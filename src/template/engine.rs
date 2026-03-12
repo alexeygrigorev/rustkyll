@@ -1,0 +1,919 @@
+use liquid::model::{DisplayCow, KStringCow, ObjectView, State, Value, ValueView};
+use liquid::Object;
+
+use super::error::TemplateError;
+
+/// A parsed Liquid template ready for rendering.
+pub struct Template {
+    inner: liquid::Template,
+}
+
+/// Wrapper around `Object` that returns `Nil` for missing keys instead of
+/// causing "Unknown variable" errors. This matches Jekyll's lenient behavior
+/// where undefined variables silently render as empty strings.
+struct LenientObject {
+    inner: Object,
+    /// A Nil value we can hand out references to for missing keys.
+    nil: Value,
+}
+
+impl LenientObject {
+    fn new(inner: Object) -> Self {
+        Self {
+            inner,
+            nil: Value::Nil,
+        }
+    }
+}
+
+impl std::fmt::Debug for LenientObject {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.inner.fmt(f)
+    }
+}
+
+impl ValueView for LenientObject {
+    fn as_debug(&self) -> &dyn std::fmt::Debug {
+        self
+    }
+
+    fn render(&self) -> DisplayCow<'_> {
+        self.inner.render()
+    }
+
+    fn source(&self) -> DisplayCow<'_> {
+        self.inner.source()
+    }
+
+    fn type_name(&self) -> &'static str {
+        self.inner.type_name()
+    }
+
+    fn query_state(&self, state: State) -> bool {
+        self.inner.query_state(state)
+    }
+
+    fn to_kstr(&self) -> KStringCow<'_> {
+        self.inner.to_kstr()
+    }
+
+    fn to_value(&self) -> Value {
+        self.inner.to_value()
+    }
+
+    fn as_object(&self) -> Option<&dyn ObjectView> {
+        Some(self)
+    }
+}
+
+impl ObjectView for LenientObject {
+    fn as_value(&self) -> &dyn ValueView {
+        self
+    }
+
+    fn size(&self) -> i64 {
+        self.inner.size()
+    }
+
+    fn keys<'k>(&'k self) -> Box<dyn Iterator<Item = KStringCow<'k>> + 'k> {
+        ObjectView::keys(&self.inner)
+    }
+
+    fn values<'k>(&'k self) -> Box<dyn Iterator<Item = &'k dyn ValueView> + 'k> {
+        ObjectView::values(&self.inner)
+    }
+
+    fn iter<'k>(&'k self) -> Box<dyn Iterator<Item = (KStringCow<'k>, &'k dyn ValueView)> + 'k> {
+        ObjectView::iter(&self.inner)
+    }
+
+    fn contains_key(&self, _index: &str) -> bool {
+        // Always claim to contain the key so the runtime never falls through
+        // to the parent RuntimeCore which would error with "Unknown variable".
+        true
+    }
+
+    fn get<'s>(&'s self, index: &str) -> Option<&'s dyn ValueView> {
+        self.inner
+            .get(index)
+            .map(|v| v as &dyn ValueView)
+            .or(Some(&self.nil as &dyn ValueView))
+    }
+}
+
+/// The core template engine wrapping the `liquid` crate parser.
+///
+/// Provides methods to parse and render Liquid templates with Jekyll-compatible
+/// behavior (e.g., undefined variables produce empty strings rather than errors).
+///
+/// Designed for extensibility: use `TemplateEngine::builder()` to get a
+/// `liquid::ParserBuilder` that can be customized with additional filters
+/// before building.
+pub struct TemplateEngine {
+    parser: liquid::Parser,
+}
+
+impl TemplateEngine {
+    /// Create a new `TemplateEngine` with stdlib + Jekyll filters.
+    ///
+    /// # Errors
+    ///
+    /// Returns `TemplateError::ParseError` if the parser fails to build.
+    pub fn new() -> Result<Self, TemplateError> {
+        let parser = Self::builder()
+            .build()
+            .map_err(|e| TemplateError::ParseError(e.to_string()))?;
+        Ok(Self { parser })
+    }
+
+    /// Return a `ParserBuilder` pre-configured with stdlib + Jekyll filters.
+    ///
+    /// Use this when you need to register additional custom filters before
+    /// building the parser (e.g., for Issue 07 custom filters).
+    pub fn builder() -> liquid::ParserBuilder {
+        liquid::ParserBuilder::with_stdlib()
+            .filter(liquid_lib::jekyll::Slugify)
+            .filter(liquid_lib::jekyll::Push)
+            .filter(liquid_lib::jekyll::Pop)
+            .filter(liquid_lib::jekyll::Unshift)
+            .filter(liquid_lib::jekyll::ArrayToSentenceString)
+    }
+
+    /// Create a `TemplateEngine` from a pre-built `liquid::Parser`.
+    ///
+    /// Useful when you've customized the parser builder with additional filters.
+    pub fn from_parser(parser: liquid::Parser) -> Self {
+        Self { parser }
+    }
+
+    /// Parse a template string into a `Template`.
+    ///
+    /// # Errors
+    ///
+    /// Returns `TemplateError::ParseError` if the template contains syntax errors.
+    pub fn parse(&self, template_str: &str) -> Result<Template, TemplateError> {
+        let inner = self
+            .parser
+            .parse(template_str)
+            .map_err(|e| TemplateError::ParseError(e.to_string()))?;
+        Ok(Template { inner })
+    }
+
+    /// Render a parsed template with the given context.
+    ///
+    /// Undefined variables produce empty strings (matching Jekyll behavior)
+    /// rather than errors.
+    ///
+    /// # Errors
+    ///
+    /// Returns `TemplateError::RenderError` for render failures other than
+    /// undefined variables.
+    pub fn render(&self, template: &Template, context: &Object) -> Result<String, TemplateError> {
+        let lenient = LenientObject::new(context.clone());
+        template
+            .inner
+            .render(&lenient)
+            .map_err(|e| TemplateError::RenderError(e.to_string()))
+    }
+
+    /// Parse and render a template string in one step.
+    ///
+    /// Convenience method combining `parse()` and `render()`.
+    ///
+    /// # Errors
+    ///
+    /// Returns `TemplateError::ParseError` or `TemplateError::RenderError`.
+    pub fn parse_and_render(
+        &self,
+        template_str: &str,
+        context: &Object,
+    ) -> Result<String, TemplateError> {
+        let template = self.parse(template_str)?;
+        self.render(&template, context)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use liquid::model::Value as LiquidValue;
+
+    fn engine() -> TemplateEngine {
+        TemplateEngine::new().unwrap()
+    }
+
+    // ========================================================================
+    // Template parsing tests
+    // ========================================================================
+
+    #[test]
+    fn test_parse_valid_template() {
+        let eng = engine();
+        assert!(eng.parse("Hello {{ variable }}!").is_ok());
+    }
+
+    #[test]
+    fn test_parse_invalid_template() {
+        let eng = engine();
+        let result = eng.parse("{% if %}");
+        assert!(result.is_err());
+        if let Err(TemplateError::ParseError(_)) = result {
+            // correct error variant
+        } else {
+            panic!("Expected ParseError");
+        }
+    }
+
+    #[test]
+    fn test_parse_and_render_simple() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("name".into(), LiquidValue::scalar("World"));
+        let output = eng.parse_and_render("Hello {{ name }}!", &ctx).unwrap();
+        assert_eq!(output, "Hello World!");
+    }
+
+    // ========================================================================
+    // Variable output with dot notation
+    // ========================================================================
+
+    #[test]
+    fn test_simple_variable() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("name".into(), LiquidValue::scalar("Alice"));
+        let output = eng.parse_and_render("{{ name }}", &ctx).unwrap();
+        assert_eq!(output, "Alice");
+    }
+
+    #[test]
+    fn test_dot_notation_2_levels() {
+        let eng = engine();
+        let mut page = Object::new();
+        page.insert("title".into(), LiquidValue::scalar("Hello"));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        let output = eng.parse_and_render("{{ page.title }}", &ctx).unwrap();
+        assert_eq!(output, "Hello");
+    }
+
+    #[test]
+    fn test_dot_notation_3_levels() {
+        let eng = engine();
+        let mut links = Object::new();
+        links.insert(
+            "youtube".into(),
+            LiquidValue::scalar("https://youtube.com/123"),
+        );
+        let mut page = Object::new();
+        page.insert("links".into(), LiquidValue::Object(links));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        let output = eng
+            .parse_and_render("{{ page.links.youtube }}", &ctx)
+            .unwrap();
+        assert_eq!(output, "https://youtube.com/123");
+    }
+
+    #[test]
+    fn test_undefined_variable_renders_empty() {
+        let eng = engine();
+        let ctx = Object::new();
+        // A template with only an undefined variable should render as empty.
+        let output = eng.parse_and_render("{{ missing_var }}", &ctx).unwrap();
+        assert_eq!(output, "");
+
+        // Mixed case: defined variables render normally, undefined ones become empty.
+        let mut ctx2 = Object::new();
+        ctx2.insert("name".into(), LiquidValue::scalar("World"));
+        let output2 = eng
+            .parse_and_render("Hello {{ name }}, {{ missing }}!", &ctx2)
+            .unwrap();
+        assert_eq!(output2, "Hello World, !");
+    }
+
+    // ========================================================================
+    // For loops
+    // ========================================================================
+
+    #[test]
+    fn test_for_loop_basic() {
+        let eng = engine();
+        let items = LiquidValue::Array(vec![
+            LiquidValue::scalar("a"),
+            LiquidValue::scalar("b"),
+            LiquidValue::scalar("c"),
+        ]);
+        let mut ctx = Object::new();
+        ctx.insert("items".into(), items);
+        let output = eng
+            .parse_and_render("{% for item in items %}{{ item }} {% endfor %}", &ctx)
+            .unwrap();
+        assert_eq!(output, "a b c ");
+    }
+
+    #[test]
+    fn test_for_loop_index() {
+        let eng = engine();
+        let items = LiquidValue::Array(vec![
+            LiquidValue::scalar("a"),
+            LiquidValue::scalar("b"),
+            LiquidValue::scalar("c"),
+        ]);
+        let mut ctx = Object::new();
+        ctx.insert("items".into(), items);
+        let output = eng
+            .parse_and_render(
+                "{% for item in items %}{{ forloop.index }}{% endfor %}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(output, "123");
+    }
+
+    #[test]
+    fn test_for_loop_first_last() {
+        let eng = engine();
+        let items = LiquidValue::Array(vec![
+            LiquidValue::scalar("a"),
+            LiquidValue::scalar("b"),
+            LiquidValue::scalar("c"),
+        ]);
+        let mut ctx = Object::new();
+        ctx.insert("items".into(), items);
+        let output = eng
+            .parse_and_render(
+                "{% for item in items %}{% if forloop.first %}F{% endif %}{% if forloop.last %}L{% endif %}{{ item }}{% endfor %}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(output, "FabLc");
+    }
+
+    #[test]
+    fn test_for_loop_limit() {
+        let eng = engine();
+        let items = LiquidValue::Array(vec![
+            LiquidValue::scalar("a"),
+            LiquidValue::scalar("b"),
+            LiquidValue::scalar("c"),
+        ]);
+        let mut ctx = Object::new();
+        ctx.insert("items".into(), items);
+        let output = eng
+            .parse_and_render(
+                "{% for item in items limit:2 %}{{ item }}{% endfor %}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(output, "ab");
+    }
+
+    #[test]
+    fn test_nested_for_loops() {
+        let eng = engine();
+        let outer = LiquidValue::Array(vec![LiquidValue::scalar("X"), LiquidValue::scalar("Y")]);
+        let inner = LiquidValue::Array(vec![LiquidValue::scalar("1"), LiquidValue::scalar("2")]);
+        let mut ctx = Object::new();
+        ctx.insert("outer".into(), outer);
+        ctx.insert("inner".into(), inner);
+        let output = eng
+            .parse_and_render(
+                "{% for o in outer %}{% for i in inner %}{{ o }}{{ i }}{% endfor %}{% endfor %}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(output, "X1X2Y1Y2");
+    }
+
+    #[test]
+    fn test_for_loop_empty_array() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("items".into(), LiquidValue::Array(vec![]));
+        let output = eng
+            .parse_and_render("{% for item in items %}{{ item }}{% endfor %}", &ctx)
+            .unwrap();
+        assert_eq!(output, "");
+    }
+
+    // ========================================================================
+    // Conditionals
+    // ========================================================================
+
+    #[test]
+    fn test_if_present_and_absent() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("x".into(), LiquidValue::scalar("val"));
+        let output = eng
+            .parse_and_render("{% if x %}yes{% endif %}", &ctx)
+            .unwrap();
+        assert_eq!(output, "yes");
+
+        let ctx2 = Object::new();
+        let output2 = eng
+            .parse_and_render("{% if x %}yes{% endif %}", &ctx2)
+            .unwrap();
+        assert_eq!(output2, "");
+    }
+
+    #[test]
+    fn test_if_elsif_else() {
+        let eng = engine();
+        let mut ctx1 = Object::new();
+        ctx1.insert("x".into(), LiquidValue::scalar(1i64));
+        let out1 = eng
+            .parse_and_render(
+                "{% if x == 1 %}one{% elsif x == 2 %}two{% else %}other{% endif %}",
+                &ctx1,
+            )
+            .unwrap();
+        assert_eq!(out1, "one");
+
+        let mut ctx2 = Object::new();
+        ctx2.insert("x".into(), LiquidValue::scalar(2i64));
+        let out2 = eng
+            .parse_and_render(
+                "{% if x == 1 %}one{% elsif x == 2 %}two{% else %}other{% endif %}",
+                &ctx2,
+            )
+            .unwrap();
+        assert_eq!(out2, "two");
+
+        let mut ctx3 = Object::new();
+        ctx3.insert("x".into(), LiquidValue::scalar(3i64));
+        let out3 = eng
+            .parse_and_render(
+                "{% if x == 1 %}one{% elsif x == 2 %}two{% else %}other{% endif %}",
+                &ctx3,
+            )
+            .unwrap();
+        assert_eq!(out3, "other");
+    }
+
+    #[test]
+    fn test_unless() {
+        let eng = engine();
+        let mut ctx_truthy = Object::new();
+        ctx_truthy.insert("x".into(), LiquidValue::scalar(true));
+        let out = eng
+            .parse_and_render("{% unless x %}no{% endunless %}", &ctx_truthy)
+            .unwrap();
+        assert_eq!(out, "");
+
+        let mut ctx_falsy = Object::new();
+        ctx_falsy.insert("x".into(), LiquidValue::scalar(false));
+        let out2 = eng
+            .parse_and_render("{% unless x %}no{% endunless %}", &ctx_falsy)
+            .unwrap();
+        assert_eq!(out2, "no");
+    }
+
+    #[test]
+    fn test_contains_operator() {
+        let eng = engine();
+        let items = LiquidValue::Array(vec![LiquidValue::scalar("a"), LiquidValue::scalar("b")]);
+        let mut ctx = Object::new();
+        ctx.insert("items".into(), items);
+        let out = eng
+            .parse_and_render("{% if items contains \"b\" %}yes{% endif %}", &ctx)
+            .unwrap();
+        assert_eq!(out, "yes");
+
+        let items2 = LiquidValue::Array(vec![LiquidValue::scalar("a"), LiquidValue::scalar("c")]);
+        let mut ctx2 = Object::new();
+        ctx2.insert("items".into(), items2);
+        let out2 = eng
+            .parse_and_render("{% if items contains \"b\" %}yes{% endif %}", &ctx2)
+            .unwrap();
+        assert_eq!(out2, "");
+    }
+
+    #[test]
+    fn test_and_operator() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("a".into(), LiquidValue::scalar(true));
+        ctx.insert("b".into(), LiquidValue::scalar(true));
+        let out = eng
+            .parse_and_render("{% if a and b %}both{% endif %}", &ctx)
+            .unwrap();
+        assert_eq!(out, "both");
+
+        let mut ctx2 = Object::new();
+        ctx2.insert("a".into(), LiquidValue::scalar(true));
+        ctx2.insert("b".into(), LiquidValue::scalar(false));
+        let out2 = eng
+            .parse_and_render("{% if a and b %}both{% endif %}", &ctx2)
+            .unwrap();
+        assert_eq!(out2, "");
+    }
+
+    #[test]
+    fn test_or_operator() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("a".into(), LiquidValue::scalar(false));
+        ctx.insert("b".into(), LiquidValue::scalar(true));
+        let out = eng
+            .parse_and_render("{% if a or b %}either{% endif %}", &ctx)
+            .unwrap();
+        assert_eq!(out, "either");
+
+        let mut ctx2 = Object::new();
+        ctx2.insert("a".into(), LiquidValue::scalar(false));
+        ctx2.insert("b".into(), LiquidValue::scalar(false));
+        let out2 = eng
+            .parse_and_render("{% if a or b %}either{% endif %}", &ctx2)
+            .unwrap();
+        assert_eq!(out2, "");
+    }
+
+    #[test]
+    fn test_not_equal_operator() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("x".into(), LiquidValue::scalar("good"));
+        let out = eng
+            .parse_and_render("{% if x != \"bad\" %}good{% endif %}", &ctx)
+            .unwrap();
+        assert_eq!(out, "good");
+    }
+
+    #[test]
+    fn test_less_equal_operator() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("x".into(), LiquidValue::scalar(3i64));
+        let out = eng
+            .parse_and_render("{% if x <= 5 %}lte{% endif %}", &ctx)
+            .unwrap();
+        assert_eq!(out, "lte");
+    }
+
+    #[test]
+    fn test_realistic_condition_from_podcast() {
+        let eng = engine();
+        let mut links = Object::new();
+        links.insert(
+            "youtube".into(),
+            LiquidValue::scalar("https://youtube.com/watch?v=abc"),
+        );
+        let mut page = Object::new();
+        page.insert("links".into(), LiquidValue::Object(links));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        let out = eng
+            .parse_and_render(
+                "{% if page.links.youtube and page.links.youtube != 'TODO' %}show{% endif %}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(out, "show");
+    }
+
+    // ========================================================================
+    // Assign and capture
+    // ========================================================================
+
+    #[test]
+    fn test_assign() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render("{% assign x = \"hello\" %}{{ x }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "hello");
+    }
+
+    #[test]
+    fn test_assign_with_filter() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("base".into(), LiquidValue::scalar("https://example.com"));
+        let out = eng
+            .parse_and_render("{% assign url = base | append: \"/path\" %}{{ url }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "https://example.com/path");
+    }
+
+    #[test]
+    fn test_capture() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("name".into(), LiquidValue::scalar("World"));
+        let out = eng
+            .parse_and_render(
+                "{% capture msg %}hello {{ name }}{% endcapture %}{{ msg }}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(out, "hello World");
+    }
+
+    // ========================================================================
+    // Break
+    // ========================================================================
+
+    #[test]
+    fn test_break_in_for_loop() {
+        let eng = engine();
+        let items = LiquidValue::Array(vec![
+            LiquidValue::scalar("a"),
+            LiquidValue::scalar("stop"),
+            LiquidValue::scalar("c"),
+        ]);
+        let mut ctx = Object::new();
+        ctx.insert("items".into(), items);
+        let out = eng
+            .parse_and_render(
+                "{% for item in items %}{% if item == \"stop\" %}{% break %}{% endif %}{{ item }}{% endfor %}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(out, "a");
+    }
+
+    // ========================================================================
+    // Whitespace control
+    // ========================================================================
+
+    #[test]
+    fn test_whitespace_control() {
+        let eng = engine();
+        let ctx = Object::new();
+        // {%- strips whitespace before the tag, -%} strips whitespace after
+        let out = eng
+            .parse_and_render("  {%- assign x = \"hi\" -%}  {{ x }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "hi");
+    }
+
+    // ========================================================================
+    // Built-in filters
+    // ========================================================================
+
+    #[test]
+    fn test_where_and_first_filter() {
+        let eng = engine();
+        let items = LiquidValue::Array(vec![
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("name".into(), LiquidValue::scalar("a"));
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("name".into(), LiquidValue::scalar("b"));
+                o
+            }),
+        ]);
+        let mut ctx = Object::new();
+        ctx.insert("items".into(), items);
+        // where filter returns an array, first extracts the first element
+        let out = eng
+            .parse_and_render(
+                "{% assign found = items | where: \"name\", \"b\" | first %}{{ found.name }}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(out, "b");
+    }
+
+    #[test]
+    fn test_sort_and_first_filter() {
+        let eng = engine();
+        let items = LiquidValue::Array(vec![
+            LiquidValue::scalar("c"),
+            LiquidValue::scalar("a"),
+            LiquidValue::scalar("b"),
+        ]);
+        let mut ctx = Object::new();
+        ctx.insert("items".into(), items);
+        let out = eng
+            .parse_and_render("{{ items | sort | first }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "a");
+    }
+
+    #[test]
+    fn test_strip_html_filter() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "text".into(),
+            LiquidValue::scalar("<p>Hello <b>World</b></p>"),
+        );
+        let out = eng
+            .parse_and_render("{{ text | strip_html }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "Hello World");
+    }
+
+    #[test]
+    fn test_default_filter() {
+        let eng = engine();
+
+        // With value set
+        let mut ctx = Object::new();
+        ctx.insert("x".into(), LiquidValue::scalar("present"));
+        let out = eng
+            .parse_and_render("{{ x | default: \"fallback\" }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "present");
+
+        // With value unset -- default only works on existing nil/empty values
+        // in liquid; for completely missing variables the render may fail,
+        // so we assign nil first
+        let ctx2 = Object::new();
+        let out2 = eng
+            .parse_and_render("{% assign x = nil %}{{ x | default: \"fallback\" }}", &ctx2)
+            .unwrap();
+        assert_eq!(out2, "fallback");
+    }
+
+    #[test]
+    fn test_plus_filter() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("x".into(), LiquidValue::scalar(5i64));
+        let out = eng.parse_and_render("{{ x | plus: 1 }}", &ctx).unwrap();
+        assert_eq!(out, "6");
+    }
+
+    #[test]
+    fn test_map_and_join_filters() {
+        let eng = engine();
+        let items = LiquidValue::Array(vec![
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("name".into(), LiquidValue::scalar("Alice"));
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("name".into(), LiquidValue::scalar("Bob"));
+                o
+            }),
+        ]);
+        let mut ctx = Object::new();
+        ctx.insert("items".into(), items);
+        let out = eng
+            .parse_and_render("{{ items | map: \"name\" | join: \", \" }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "Alice, Bob");
+    }
+
+    #[test]
+    fn test_reverse_filter() {
+        let eng = engine();
+        let items = LiquidValue::Array(vec![
+            LiquidValue::scalar("a"),
+            LiquidValue::scalar("b"),
+            LiquidValue::scalar("c"),
+        ]);
+        let mut ctx = Object::new();
+        ctx.insert("items".into(), items);
+        let out = eng
+            .parse_and_render("{{ items | reverse | join: \"\" }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "cba");
+    }
+
+    #[test]
+    fn test_truncate_filter() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "text".into(),
+            LiquidValue::scalar("Hello World, this is a long text"),
+        );
+        let out = eng
+            .parse_and_render("{{ text | truncate: 10 }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "Hello W...");
+    }
+
+    #[test]
+    fn test_slugify_filter() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("title".into(), LiquidValue::scalar("Hello World!"));
+        let out = eng.parse_and_render("{{ title | slugify }}", &ctx).unwrap();
+        assert_eq!(out, "hello-world");
+    }
+
+    // ========================================================================
+    // Edge cases
+    // ========================================================================
+
+    #[test]
+    fn test_nil_in_condition_is_falsy() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("x".into(), LiquidValue::Nil);
+        let out = eng
+            .parse_and_render("{% if x %}truthy{% else %}falsy{% endif %}", &ctx)
+            .unwrap();
+        assert_eq!(out, "falsy");
+    }
+
+    #[test]
+    fn test_parse_error_returns_template_error() {
+        let eng = engine();
+        let result = eng.parse("{% for %}");
+        assert!(matches!(result, Err(TemplateError::ParseError(_))));
+    }
+
+    #[test]
+    fn test_deeply_nested_dot_access() {
+        let eng = engine();
+        let mut d = Object::new();
+        d.insert("value".into(), LiquidValue::scalar("deep"));
+        let mut c = Object::new();
+        c.insert("d".into(), LiquidValue::Object(d));
+        let mut b = Object::new();
+        b.insert("c".into(), LiquidValue::Object(c));
+        let mut a = Object::new();
+        a.insert("b".into(), LiquidValue::Object(b));
+        let mut ctx = Object::new();
+        ctx.insert("a".into(), LiquidValue::Object(a));
+        let out = eng.parse_and_render("{{ a.b.c.d.value }}", &ctx).unwrap();
+        assert_eq!(out, "deep");
+    }
+
+    #[test]
+    fn test_integer_zero_is_truthy() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("x".into(), LiquidValue::scalar(0i64));
+        let out = eng
+            .parse_and_render("{% if x %}truthy{% else %}falsy{% endif %}", &ctx)
+            .unwrap();
+        // Liquid considers 0 truthy (unlike many languages)
+        assert_eq!(out, "truthy");
+    }
+
+    // ========================================================================
+    // Integration: Realistic template rendering
+    // ========================================================================
+
+    #[test]
+    fn test_realistic_author_pattern() {
+        let eng = engine();
+
+        // Simulate: posts array with author field, using where + for + unless forloop.last
+        let posts = LiquidValue::Array(vec![
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("title".into(), LiquidValue::scalar("Post A"));
+                o.insert("author".into(), LiquidValue::scalar("alice"));
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("title".into(), LiquidValue::scalar("Post B"));
+                o.insert("author".into(), LiquidValue::scalar("bob"));
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("title".into(), LiquidValue::scalar("Post C"));
+                o.insert("author".into(), LiquidValue::scalar("alice"));
+                o
+            }),
+        ]);
+        let mut ctx = Object::new();
+        ctx.insert("posts".into(), posts);
+
+        let template = r#"{% assign alice_posts = posts | where: "author", "alice" %}{% for post in alice_posts %}{{ post.title }}{% unless forloop.last %}, {% endunless %}{% endfor %}"#;
+        let out = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(out, "Post A, Post C");
+    }
+
+    #[test]
+    fn test_realistic_podcast_capture_pattern() {
+        let eng = engine();
+
+        let mut links = Object::new();
+        links.insert(
+            "youtube".into(),
+            LiquidValue::scalar("https://youtube.com/watch?v=abc"),
+        );
+        links.insert(
+            "spotify".into(),
+            LiquidValue::scalar("https://open.spotify.com/episode/xyz"),
+        );
+        let mut page = Object::new();
+        page.insert("links".into(), LiquidValue::Object(links));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+
+        let template = r#"{% capture actions %}{% if page.links.youtube %}<a href="{{ page.links.youtube }}">YouTube</a> {% endif %}{% if page.links.spotify %}<a href="{{ page.links.spotify }}">Spotify</a>{% endif %}{% endcapture %}{{ actions }}"#;
+        let out = eng.parse_and_render(template, &ctx).unwrap();
+        assert!(out.contains("YouTube"));
+        assert!(out.contains("Spotify"));
+        assert!(out.contains("https://youtube.com/watch?v=abc"));
+    }
+}
