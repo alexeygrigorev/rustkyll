@@ -1,4 +1,4 @@
-# rustkyl
+# rustkyll
 
 Rust static site generator replacing Jekyll for the DataTalks.Club website.
 

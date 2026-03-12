@@ -18,7 +18,7 @@ None (first issue)
 
 ## Acceptance Criteria
 
-- [ ] `Cargo.toml` exists at the project root with package name `rustkyl`
+- [ ] `Cargo.toml` exists at the project root with package name `rustkyll`
 - [ ] `Cargo.toml` lists these dependencies: `serde` (with `derive` feature), `serde_yaml`, `clap` (with `derive` feature)
 - [ ] `src/main.rs` exists and uses clap to define a CLI with at least a `--help` flag
 - [ ] Running `cargo run -- --help` prints usage information without errors

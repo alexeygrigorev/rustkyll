@@ -1,7 +1,10 @@
 use clap::{Parser, Subcommand};
 
 #[derive(Debug, Parser)]
-#[command(name = "rustkyl", about = "A static site generator for DataTalks.Club")]
+#[command(
+    name = "rustkyll",
+    about = "A static site generator for DataTalks.Club"
+)]
 #[command(version)]
 struct Cli {
     #[command(subcommand)]
@@ -22,7 +25,7 @@ fn main() {
             println!("Building site... (not yet implemented)");
         }
         None => {
-            println!("Hello from rustkyl! Use --help to see available commands.");
+            println!("Hello from rustkyll! Use --help to see available commands.");
         }
     }
 }
@@ -34,13 +37,13 @@ mod tests {
 
     #[test]
     fn test_cli_parses_no_args() {
-        let cli = Cli::try_parse_from(["rustkyl"]);
+        let cli = Cli::try_parse_from(["rustkyll"]);
         assert!(cli.is_ok());
     }
 
     #[test]
     fn test_cli_parses_build_subcommand() {
-        let cli = Cli::try_parse_from(["rustkyl", "build"]);
+        let cli = Cli::try_parse_from(["rustkyll", "build"]);
         assert!(cli.is_ok());
         let cli = cli.unwrap();
         assert!(matches!(cli.command, Some(Commands::Build)));
@@ -48,13 +51,13 @@ mod tests {
 
     #[test]
     fn test_cli_rejects_unknown_flag() {
-        let result = Cli::try_parse_from(["rustkyl", "--nonexistent"]);
+        let result = Cli::try_parse_from(["rustkyll", "--nonexistent"]);
         assert!(result.is_err());
     }
 
     #[test]
     fn test_cli_help_flag() {
-        let result = Cli::try_parse_from(["rustkyl", "--help"]);
+        let result = Cli::try_parse_from(["rustkyll", "--help"]);
         // --help causes clap to return an error (it's a special exit)
         assert!(result.is_err());
         let err = result.unwrap_err();

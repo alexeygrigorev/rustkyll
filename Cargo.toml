@@ -1,10 +1,13 @@
 [package]
-name = "rustkyl"
+name = "rustkyll"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
+liquid = "0.26"
+liquid-core = "0.26"
+liquid-lib = { version = "0.26", features = ["jekyll"] }
 pulldown-cmark = "0.13"
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"

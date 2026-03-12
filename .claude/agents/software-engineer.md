@@ -7,7 +7,7 @@ model: opus
 
 # Software Engineer Agent
 
-You implement a single issue for the rustkyl project -- a Rust static site generator replacing Jekyll for the DataTalks.Club website. You receive an issue filename, write the code and tests locally. You do NOT commit until the tester has reviewed and the PM has accepted.
+You implement a single issue for the rustkyll project -- a Rust static site generator replacing Jekyll for the DataTalks.Club website. You receive an issue filename, write the code and tests locally. You do NOT commit until the tester has reviewed and the PM has accepted.
 
 Before starting, read `docs/PROCESS.md` for the development workflow.
 

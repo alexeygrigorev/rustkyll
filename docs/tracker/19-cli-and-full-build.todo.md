@@ -10,7 +10,7 @@ Wire everything together into the CLI binary. The command reads a source directo
 
 ## Scope
 
-- CLI with clap: `rustkyl build --source ./site --output ./_site`
+- CLI with clap: `rustkyll build --source ./site --output ./_site`
 - Build pipeline: load config → load data → load collections → load templates → render all pages → generate sitemap → generate feed → copy static files
 - Progress reporting (number of pages generated)
 - Error reporting with file/line context

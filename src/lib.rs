@@ -1,10 +1,12 @@
+pub mod collection;
 pub mod config;
 pub mod data;
 pub mod frontmatter;
+pub mod template;
 
 /// Returns the name of this project.
 pub fn project_name() -> &'static str {
-    "rustkyl"
+    "rustkyll"
 }
 
 /// Returns the version string from Cargo.toml.
@@ -18,7 +20,7 @@ mod tests {
 
     #[test]
     fn test_project_name() {
-        assert_eq!(project_name(), "rustkyl");
+        assert_eq!(project_name(), "rustkyll");
     }
 
     #[test]

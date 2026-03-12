@@ -1,4 +1,4 @@
-# rustkyl -- Project Plan
+# rustkyll -- Project Plan
 
 ## Vision
 
