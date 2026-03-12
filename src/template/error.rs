@@ -12,4 +12,12 @@ pub enum TemplateError {
     /// YAML-to-Liquid value conversion failed.
     #[error("conversion error: {0}")]
     ConversionError(String),
+
+    /// I/O error reading layout or include files.
+    #[error("I/O error: {0}")]
+    IoError(#[from] std::io::Error),
+
+    /// Layout not found.
+    #[error("layout not found: {0}")]
+    LayoutNotFound(String),
 }

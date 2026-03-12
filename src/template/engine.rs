@@ -1,4 +1,9 @@
+use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
+
 use liquid::model::{DisplayCow, KStringCow, ObjectView, State, Value, ValueView};
+use liquid::partials::{EagerCompiler, InMemorySource};
 use liquid::Object;
 
 use super::error::TemplateError;
@@ -9,19 +14,154 @@ pub struct Template {
     inner: liquid::Template,
 }
 
+/// A Liquid `Value` wrapped to return `Nil` for missing keys at any nesting
+/// level. This matches Jekyll's lenient behavior where undefined variables
+/// silently render as empty strings.
+///
+/// `LenientValue` wraps both scalar values (passing through unchanged) and
+/// object values (intercepting `get()` to return `Nil` for missing keys).
+/// Nested objects are recursively wrapped.
+struct LenientValue {
+    /// The original value.
+    inner: Value,
+    /// Pre-wrapped child objects (for returning references from `get()`).
+    children: std::collections::HashMap<String, LenientValue>,
+    /// A Nil value we can hand out references to for missing keys.
+    nil: Value,
+}
+
+impl LenientValue {
+    fn from_value(value: Value) -> Self {
+        let children = if let Value::Object(ref obj) = value {
+            let mut map = std::collections::HashMap::new();
+            for (key, val) in obj.iter() {
+                map.insert(key.to_string(), LenientValue::from_value(val.to_value()));
+            }
+            map
+        } else {
+            std::collections::HashMap::new()
+        };
+        Self {
+            inner: value,
+            children,
+            nil: Value::Nil,
+        }
+    }
+}
+
+impl std::fmt::Debug for LenientValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.inner.fmt(f)
+    }
+}
+
+impl ValueView for LenientValue {
+    fn as_debug(&self) -> &dyn std::fmt::Debug {
+        self
+    }
+
+    fn render(&self) -> DisplayCow<'_> {
+        self.inner.render()
+    }
+
+    fn source(&self) -> DisplayCow<'_> {
+        self.inner.source()
+    }
+
+    fn type_name(&self) -> &'static str {
+        self.inner.type_name()
+    }
+
+    fn query_state(&self, state: State) -> bool {
+        self.inner.query_state(state)
+    }
+
+    fn to_kstr(&self) -> KStringCow<'_> {
+        self.inner.to_kstr()
+    }
+
+    fn to_value(&self) -> Value {
+        self.inner.to_value()
+    }
+
+    fn as_object(&self) -> Option<&dyn ObjectView> {
+        if self.inner.is_object() {
+            Some(self)
+        } else {
+            None
+        }
+    }
+}
+
+impl ObjectView for LenientValue {
+    fn as_value(&self) -> &dyn ValueView {
+        self
+    }
+
+    fn size(&self) -> i64 {
+        if let Value::Object(ref obj) = self.inner {
+            obj.size()
+        } else {
+            0
+        }
+    }
+
+    fn keys<'k>(&'k self) -> Box<dyn Iterator<Item = KStringCow<'k>> + 'k> {
+        if let Value::Object(ref obj) = self.inner {
+            ObjectView::keys(obj)
+        } else {
+            Box::new(std::iter::empty())
+        }
+    }
+
+    fn values<'k>(&'k self) -> Box<dyn Iterator<Item = &'k dyn ValueView> + 'k> {
+        Box::new(self.children.values().map(|v| v as &dyn ValueView))
+    }
+
+    fn iter<'k>(&'k self) -> Box<dyn Iterator<Item = (KStringCow<'k>, &'k dyn ValueView)> + 'k> {
+        Box::new(
+            self.children
+                .iter()
+                .map(|(k, v)| (KStringCow::from_ref(k), v as &dyn ValueView)),
+        )
+    }
+
+    fn contains_key(&self, _index: &str) -> bool {
+        true
+    }
+
+    fn get<'s>(&'s self, index: &str) -> Option<&'s dyn ValueView> {
+        self.children
+            .get(index)
+            .map(|v| v as &dyn ValueView)
+            .or(Some(&self.nil as &dyn ValueView))
+    }
+}
+
 /// Wrapper around `Object` that returns `Nil` for missing keys instead of
 /// causing "Unknown variable" errors. This matches Jekyll's lenient behavior
 /// where undefined variables silently render as empty strings.
+///
+/// Nested `Object` values are recursively wrapped in `LenientValue` so that
+/// accessing missing keys at any depth (e.g. `page.missing_field`) returns
+/// `Nil` instead of erroring.
 struct LenientObject {
     inner: Object,
+    /// Pre-wrapped child values (for returning references from `get()`).
+    children: std::collections::HashMap<String, LenientValue>,
     /// A Nil value we can hand out references to for missing keys.
     nil: Value,
 }
 
 impl LenientObject {
     fn new(inner: Object) -> Self {
+        let mut children = std::collections::HashMap::new();
+        for (key, val) in inner.iter() {
+            children.insert(key.to_string(), LenientValue::from_value(val.to_value()));
+        }
         Self {
             inner,
+            children,
             nil: Value::Nil,
         }
     }
@@ -81,11 +221,15 @@ impl ObjectView for LenientObject {
     }
 
     fn values<'k>(&'k self) -> Box<dyn Iterator<Item = &'k dyn ValueView> + 'k> {
-        ObjectView::values(&self.inner)
+        Box::new(self.children.values().map(|v| v as &dyn ValueView))
     }
 
     fn iter<'k>(&'k self) -> Box<dyn Iterator<Item = (KStringCow<'k>, &'k dyn ValueView)> + 'k> {
-        ObjectView::iter(&self.inner)
+        Box::new(
+            self.children
+                .iter()
+                .map(|(k, v)| (KStringCow::from_ref(k), v as &dyn ValueView)),
+        )
     }
 
     fn contains_key(&self, _index: &str) -> bool {
@@ -95,7 +239,7 @@ impl ObjectView for LenientObject {
     }
 
     fn get<'s>(&'s self, index: &str) -> Option<&'s dyn ValueView> {
-        self.inner
+        self.children
             .get(index)
             .map(|v| v as &dyn ValueView)
             .or(Some(&self.nil as &dyn ValueView))
@@ -115,13 +259,52 @@ pub struct TemplateEngine {
 }
 
 impl TemplateEngine {
-    /// Create a new `TemplateEngine` with stdlib + Jekyll filters.
+    /// Create a new `TemplateEngine` with stdlib + Jekyll filters but no includes.
     ///
     /// # Errors
     ///
     /// Returns `TemplateError::ParseError` if the parser fails to build.
     pub fn new() -> Result<Self, TemplateError> {
         let parser = Self::builder()
+            .build()
+            .map_err(|e| TemplateError::ParseError(e.to_string()))?;
+        Ok(Self { parser })
+    }
+
+    /// Create a `TemplateEngine` with includes loaded from a directory.
+    ///
+    /// All `.html` files in `includes_dir` (and subdirectories) are registered
+    /// as partials. The Jekyll-compatible include tag is used, supporting
+    /// unquoted filenames (`{% include head.html %}`), parameters with `=`,
+    /// and variable parameters.
+    ///
+    /// # Errors
+    ///
+    /// Returns `TemplateError::IoError` if the directory cannot be read, or
+    /// `TemplateError::ParseError` if the parser fails to build.
+    pub fn with_includes(includes_dir: &Path) -> Result<Self, TemplateError> {
+        let partials_map = load_includes(includes_dir)?;
+        let partials = build_partials(&partials_map);
+        let parser = Self::builder()
+            .tag(liquid_lib::jekyll::IncludeTag)
+            .partials(partials)
+            .build()
+            .map_err(|e| TemplateError::ParseError(e.to_string()))?;
+        Ok(Self { parser })
+    }
+
+    /// Create a `TemplateEngine` with includes from a pre-built map.
+    ///
+    /// Useful for testing or when includes are loaded from a non-filesystem source.
+    ///
+    /// # Errors
+    ///
+    /// Returns `TemplateError::ParseError` if the parser fails to build.
+    pub fn with_includes_map(includes: &HashMap<String, String>) -> Result<Self, TemplateError> {
+        let partials = build_partials(includes);
+        let parser = Self::builder()
+            .tag(liquid_lib::jekyll::IncludeTag)
+            .partials(partials)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
         Ok(Self { parser })
@@ -199,6 +382,61 @@ impl TemplateEngine {
         let template = self.parse(template_str)?;
         self.render(&template, context)
     }
+}
+
+/// Load all include files from a directory into a map of name -> content.
+///
+/// Files in subdirectories are registered with path separators, e.g.,
+/// `"course-structured-data/file.html"`.
+///
+/// # Errors
+///
+/// Returns `TemplateError::IoError` if the directory or any file cannot be read.
+pub fn load_includes(includes_dir: &Path) -> Result<HashMap<String, String>, TemplateError> {
+    let mut map = HashMap::new();
+    load_includes_recursive(includes_dir, includes_dir, &mut map)?;
+    Ok(map)
+}
+
+fn load_includes_recursive(
+    base_dir: &Path,
+    current_dir: &Path,
+    map: &mut HashMap<String, String>,
+) -> Result<(), TemplateError> {
+    if !current_dir.exists() {
+        return Ok(());
+    }
+
+    let entries = fs::read_dir(current_dir)?;
+    for entry in entries {
+        let entry = entry?;
+        let path = entry.path();
+
+        if path.is_dir() {
+            load_includes_recursive(base_dir, &path, map)?;
+        } else if path.is_file() {
+            // Register all files (not just .html) -- Jekyll includes can have any extension
+            let relative = path
+                .strip_prefix(base_dir)
+                .unwrap_or(&path)
+                .to_string_lossy()
+                .to_string();
+            // Normalize path separators to forward slashes
+            let key = relative.replace('\\', "/");
+            let content = fs::read_to_string(&path)?;
+            map.insert(key, content);
+        }
+    }
+    Ok(())
+}
+
+/// Build an `EagerCompiler<InMemorySource>` from a map of partial names to content.
+fn build_partials(includes: &HashMap<String, String>) -> EagerCompiler<InMemorySource> {
+    let mut partials = EagerCompiler::<InMemorySource>::empty();
+    for (name, content) in includes {
+        partials.add(name.clone(), content.clone());
+    }
+    partials
 }
 
 #[cfg(test)]
