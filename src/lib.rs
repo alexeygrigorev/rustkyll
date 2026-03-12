@@ -1,3 +1,5 @@
+pub mod config;
+pub mod data;
 pub mod frontmatter;
 
 /// Returns the name of this project.
