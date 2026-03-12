@@ -2,6 +2,7 @@ pub mod collection;
 pub mod config;
 pub mod data;
 pub mod frontmatter;
+pub mod static_files;
 pub mod template;
 
 /// Returns the name of this project.

@@ -2,6 +2,7 @@ use liquid::model::{DisplayCow, KStringCow, ObjectView, State, Value, ValueView}
 use liquid::Object;
 
 use super::error::TemplateError;
+use super::filters;
 
 /// A parsed Liquid template ready for rendering.
 pub struct Template {
@@ -137,6 +138,13 @@ impl TemplateEngine {
             .filter(liquid_lib::jekyll::Pop)
             .filter(liquid_lib::jekyll::Unshift)
             .filter(liquid_lib::jekyll::ArrayToSentenceString)
+            // Custom filters (Issue 07)
+            .filter(filters::WhereExp)
+            .filter(filters::Jsonify)
+            .filter(filters::DateToString)
+            .filter(filters::DateToXmlschema)
+            .filter(filters::Markdownify)
+            .filter(filters::RelativeUrl)
     }
 
     /// Create a `TemplateEngine` from a pre-built `liquid::Parser`.
@@ -915,5 +923,218 @@ mod tests {
         assert!(out.contains("YouTube"));
         assert!(out.contains("Spotify"));
         assert!(out.contains("https://youtube.com/watch?v=abc"));
+    }
+
+    // ========================================================================
+    // Integration tests: custom filters (Issue 07)
+    // ========================================================================
+
+    #[test]
+    fn test_integration_where_exp_with_size() {
+        let eng = engine();
+        let items = LiquidValue::Array(vec![
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("draft".into(), LiquidValue::scalar(true));
+                o.insert("name".into(), LiquidValue::scalar("a"));
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("draft".into(), LiquidValue::scalar(false));
+                o.insert("name".into(), LiquidValue::scalar("b"));
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("name".into(), LiquidValue::scalar("c"));
+                o
+            }),
+        ]);
+        let mut ctx = Object::new();
+        ctx.insert("items".into(), items);
+        let out = eng
+            .parse_and_render(
+                r#"{{ items | where_exp: "item", "item.draft != true" | size }}"#,
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(out, "2");
+    }
+
+    #[test]
+    fn test_integration_where_exp_chaining() {
+        let eng = engine();
+        let items = LiquidValue::Array(vec![
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("draft".into(), LiquidValue::scalar(true));
+                o.insert("time".into(), LiquidValue::scalar(20i64));
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("draft".into(), LiquidValue::scalar(false));
+                o.insert("time".into(), LiquidValue::scalar(20i64));
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("draft".into(), LiquidValue::scalar(false));
+                o.insert("time".into(), LiquidValue::scalar(5i64));
+                o
+            }),
+        ]);
+        let mut ctx = Object::new();
+        ctx.insert("items".into(), items);
+        let out = eng
+            .parse_and_render(
+                r#"{{ items | where_exp: "e", "e.draft != true" | where_exp: "e", "e.time > 10" | size }}"#,
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(out, "1");
+    }
+
+    #[test]
+    fn test_integration_where_exp_runtime_context() {
+        let eng = engine();
+        let items = LiquidValue::Array(vec![
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert(
+                    "authors".into(),
+                    LiquidValue::Array(vec![
+                        LiquidValue::scalar("alice"),
+                        LiquidValue::scalar("bob"),
+                    ]),
+                );
+                o.insert("title".into(), LiquidValue::scalar("Post 1"));
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert(
+                    "authors".into(),
+                    LiquidValue::Array(vec![LiquidValue::scalar("carol")]),
+                );
+                o.insert("title".into(), LiquidValue::scalar("Post 2"));
+                o
+            }),
+        ]);
+        let mut page = Object::new();
+        page.insert("short".into(), LiquidValue::scalar("alice"));
+        let mut ctx = Object::new();
+        ctx.insert("items".into(), items);
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        let out = eng
+            .parse_and_render(
+                r#"{% assign found = items | where_exp: "post", "post.authors contains page.short" %}{{ found | map: "title" | join: ", " }}"#,
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(out, "Post 1");
+    }
+
+    #[test]
+    fn test_integration_jsonify_string() {
+        let eng = engine();
+        let mut page = Object::new();
+        page.insert("title".into(), LiquidValue::scalar("My Title"));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        let out = eng
+            .parse_and_render("{{ page.title | jsonify }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "\"My Title\"");
+    }
+
+    #[test]
+    fn test_integration_date_to_string() {
+        let eng = engine();
+        let mut page = Object::new();
+        page.insert("date".into(), LiquidValue::scalar("2024-03-15"));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        let out = eng
+            .parse_and_render("{{ page.date | date_to_string }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "15 Mar 2024");
+    }
+
+    #[test]
+    fn test_integration_date_to_xmlschema_and_jsonify_chained() {
+        let eng = engine();
+        let mut page = Object::new();
+        page.insert("date".into(), LiquidValue::scalar("2024-01-15"));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        let out = eng
+            .parse_and_render("{{ page.date | date_to_xmlschema | jsonify }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "\"2024-01-15T00:00:00+00:00\"");
+    }
+
+    #[test]
+    fn test_integration_markdownify() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("text".into(), LiquidValue::scalar("**bold** and *italic*"));
+        let out = eng
+            .parse_and_render("{{ text | markdownify }}", &ctx)
+            .unwrap();
+        assert!(out.contains("<strong>bold</strong>"));
+        assert!(out.contains("<em>italic</em>"));
+    }
+
+    #[test]
+    fn test_integration_relative_url_no_baseurl() {
+        let eng = engine();
+        let mut page = Object::new();
+        page.insert("image".into(), LiquidValue::scalar("images/photo.jpg"));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        let out = eng
+            .parse_and_render("{{ page.image | relative_url }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "/images/photo.jpg");
+    }
+
+    #[test]
+    fn test_integration_relative_url_with_baseurl() {
+        let eng = engine();
+        let mut site = Object::new();
+        site.insert("baseurl".into(), LiquidValue::scalar("/blog"));
+        let mut page = Object::new();
+        page.insert("image".into(), LiquidValue::scalar("images/photo.jpg"));
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        let out = eng
+            .parse_and_render("{{ page.image | relative_url }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "/blog/images/photo.jpg");
+    }
+
+    #[test]
+    fn test_integration_realistic_json_ld() {
+        let eng = engine();
+        let mut page = Object::new();
+        page.insert("title".into(), LiquidValue::scalar("My Post"));
+        page.insert("date".into(), LiquidValue::scalar("2024-01-15"));
+        page.insert(
+            "description".into(),
+            LiquidValue::scalar("A \"great\" post"),
+        );
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        let template = r#"{"name":{{ page.title | jsonify }},"datePublished":{{ page.date | date_to_xmlschema | jsonify }},"description":{{ page.description | jsonify }}}"#;
+        let out = eng.parse_and_render(template, &ctx).unwrap();
+        assert!(out.contains("\"My Post\""));
+        assert!(out.contains("\"2024-01-15T00:00:00+00:00\""));
+        assert!(out.contains("\"A \\\"great\\\" post\""));
+        // Verify it's valid JSON
+        let parsed: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(parsed["name"], "My Post");
     }
 }

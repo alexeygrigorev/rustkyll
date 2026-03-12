@@ -11,6 +11,7 @@
 pub mod context;
 pub mod engine;
 pub mod error;
+pub mod filters;
 
 pub use context::{build_context, yaml_mapping_to_object, yaml_to_liquid};
 pub use engine::TemplateEngine;
