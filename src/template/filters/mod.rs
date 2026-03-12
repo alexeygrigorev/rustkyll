@@ -9,6 +9,7 @@ mod jsonify;
 mod markdownify;
 mod relative_url;
 mod where_exp;
+mod where_filter;
 
 pub use date_to_string::DateToString;
 pub use date_to_xmlschema::DateToXmlschema;
@@ -16,6 +17,7 @@ pub use jsonify::Jsonify;
 pub use markdownify::Markdownify;
 pub use relative_url::RelativeUrl;
 pub use where_exp::WhereExp;
+pub use where_filter::Where;
 
 use chrono::NaiveDateTime;
 

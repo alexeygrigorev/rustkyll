@@ -323,6 +323,7 @@ impl TemplateEngine {
             .filter(liquid_lib::jekyll::ArrayToSentenceString)
             // Custom filters (Issue 07)
             .filter(filters::WhereExp)
+            .filter(filters::Where)
             .filter(filters::Jsonify)
             .filter(filters::DateToString)
             .filter(filters::DateToXmlschema)
