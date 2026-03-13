@@ -228,7 +228,7 @@ mod tests {
 
         let sub_mapping = tree["sub"].as_mapping().unwrap();
         assert!(
-            sub_mapping.contains_key(&serde_yaml::Value::String("baz".into())),
+            sub_mapping.contains_key(serde_yaml::Value::String("baz".into())),
             "Expected nested key 'baz' in {:?}",
             sub_mapping
         );
@@ -308,7 +308,7 @@ mod tests {
         let first = seq[0].as_mapping().expect("event should be a mapping");
         for key in &["time", "title", "speakers", "type", "link"] {
             assert!(
-                first.contains_key(&serde_yaml::Value::String((*key).to_string())),
+                first.contains_key(serde_yaml::Value::String((*key).to_string())),
                 "First event missing key '{}'",
                 key
             );
@@ -342,7 +342,7 @@ mod tests {
         let header = &tree["header"];
         let mapping = header.as_mapping().expect("header should be a mapping");
         assert!(
-            mapping.contains_key(&serde_yaml::Value::String("announcement".into())),
+            mapping.contains_key(serde_yaml::Value::String("announcement".into())),
             "header should contain 'announcement' key"
         );
     }
@@ -357,8 +357,8 @@ mod tests {
 
         let nav = &tree["navigation"];
         let mapping = nav.as_mapping().expect("navigation should be a mapping");
-        assert!(mapping.contains_key(&serde_yaml::Value::String("top".into())));
-        assert!(mapping.contains_key(&serde_yaml::Value::String("bottom".into())));
+        assert!(mapping.contains_key(serde_yaml::Value::String("top".into())));
+        assert!(mapping.contains_key(serde_yaml::Value::String("bottom".into())));
 
         let top = mapping
             .get(serde_yaml::Value::String("top".into()))
@@ -387,7 +387,7 @@ mod tests {
         let sponsor = seq[0].as_mapping().expect("sponsor should be a mapping");
         for key in &["name", "link", "image", "from", "to"] {
             assert!(
-                sponsor.contains_key(&serde_yaml::Value::String((*key).to_string())),
+                sponsor.contains_key(serde_yaml::Value::String((*key).to_string())),
                 "Sponsor missing key '{}'",
                 key
             );
@@ -426,7 +426,7 @@ mod tests {
         let first_faq = faq_seq[0]
             .as_mapping()
             .expect("FAQ entry should be a mapping");
-        assert!(first_faq.contains_key(&serde_yaml::Value::String("question".into())));
-        assert!(first_faq.contains_key(&serde_yaml::Value::String("answer".into())));
+        assert!(first_faq.contains_key(serde_yaml::Value::String("question".into())));
+        assert!(first_faq.contains_key(serde_yaml::Value::String("answer".into())));
     }
 }

@@ -84,9 +84,9 @@ mod tests {
 
     #[test]
     fn test_jsonify_float() {
-        let input = Value::scalar(3.14f64);
+        let input = Value::scalar(2.750f64);
         let result = liquid_core::call_filter!(Jsonify, input).unwrap();
-        assert_eq!(result.to_kstr(), "3.14");
+        assert_eq!(result.to_kstr(), "2.75");
     }
 
     #[test]

@@ -170,9 +170,9 @@ mod tests {
 
     #[test]
     fn test_convert_float() {
-        let yaml: YamlValue = serde_yaml::from_str("3.14").unwrap();
+        let yaml: YamlValue = serde_yaml::from_str("1.23").unwrap();
         let liquid = yaml_to_liquid(&yaml);
-        assert_eq!(liquid, LiquidValue::scalar(3.14f64));
+        assert_eq!(liquid, LiquidValue::scalar(1.23f64));
     }
 
     #[test]

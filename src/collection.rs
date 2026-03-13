@@ -331,7 +331,6 @@ pub fn load_pages(site_dir: &Path) -> Result<(Vec<Page>, Vec<CollectionError>), 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
     use std::path::PathBuf;
 
     fn site_dir() -> PathBuf {
@@ -533,7 +532,11 @@ mod tests {
     fn test_load_courses_count() {
         let config = test_config();
         let (items, _) = load_collection("courses", &site_dir(), &config).unwrap();
-        assert!(items.len() >= 1, "Expected 1+ courses, got {}", items.len());
+        assert!(
+            !items.is_empty(),
+            "Expected 1+ courses, got {}",
+            items.len()
+        );
     }
 
     #[test]
@@ -631,12 +634,7 @@ mod tests {
             url: "https://example.com".to_string(),
             name: "Test".to_string(),
             title: "Test".to_string(),
-            twitter: None,
-            repository: None,
-            permalink: "/:title.html".to_string(),
-            exclude: vec![],
-            collections: HashMap::new(),
-            defaults: vec![],
+            ..Default::default()
         };
 
         let (items, errors) = load_collection("test", dir.path(), &config).unwrap();
@@ -662,12 +660,7 @@ mod tests {
             url: "https://example.com".to_string(),
             name: "Test".to_string(),
             title: "Test".to_string(),
-            twitter: None,
-            repository: None,
-            permalink: "/:title.html".to_string(),
-            exclude: vec![],
-            collections: HashMap::new(),
-            defaults: vec![],
+            ..Default::default()
         };
 
         let (items, errors) = load_collection("test", dir.path(), &config).unwrap();

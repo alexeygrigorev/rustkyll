@@ -194,19 +194,13 @@ pub fn copy_static_files(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
 
     fn empty_config() -> SiteConfig {
         SiteConfig {
             url: "https://example.com".to_string(),
             name: "Test".to_string(),
             title: "Test".to_string(),
-            twitter: None,
-            repository: None,
-            permalink: "/:title.html".to_string(),
-            exclude: vec![],
-            collections: HashMap::new(),
-            defaults: vec![],
+            ..Default::default()
         }
     }
 
@@ -346,7 +340,7 @@ mod tests {
         fs::create_dir_all(root.join("assets")).unwrap();
         fs::write(root.join("assets/styles.css"), "body{}").unwrap();
         fs::create_dir_all(root.join("images/books")).unwrap();
-        fs::write(root.join("images/books/foo.jpg"), &[0xFF, 0xD8]).unwrap();
+        fs::write(root.join("images/books/foo.jpg"), [0xFF, 0xD8]).unwrap();
         fs::write(root.join("CNAME"), "example.com").unwrap();
         fs::write(root.join("robots.txt"), "User-agent: *").unwrap();
 

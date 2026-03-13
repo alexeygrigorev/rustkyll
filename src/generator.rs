@@ -70,8 +70,17 @@ pub fn build_site_context(
 ) -> Object {
     let mut site = Object::new();
 
+    // Extra config keys first (so named fields can override)
+    for (key, value) in &config.extras {
+        site.insert(key.clone().into(), yaml_to_liquid(value));
+    }
+
     // Basic site fields
     site.insert("url".into(), LiquidValue::scalar(config.url.clone()));
+    site.insert(
+        "baseurl".into(),
+        LiquidValue::scalar(config.baseurl.clone()),
+    );
     site.insert("name".into(), LiquidValue::scalar(config.name.clone()));
     site.insert("title".into(), LiquidValue::scalar(config.title.clone()));
 
@@ -91,9 +100,9 @@ pub fn build_site_context(
         );
     }
 
-    // site.twitter
+    // site.twitter -- convert yaml Value to liquid Value for both string and map support
     if let Some(ref twitter) = config.twitter {
-        site.insert("twitter".into(), LiquidValue::scalar(twitter.clone()));
+        site.insert("twitter".into(), yaml_to_liquid(twitter));
     }
 
     // site.github -- dynamic repository URL resolution
@@ -617,12 +626,8 @@ mod tests {
             url: "https://example.com".to_string(),
             name: "Test".to_string(),
             title: "Test".to_string(),
-            twitter: None,
             repository: Some("owner/repo".to_string()),
-            permalink: "/:title.html".to_string(),
-            exclude: vec![],
-            collections: HashMap::new(),
-            defaults: vec![],
+            ..Default::default()
         };
         let url = resolve_repository_url(&config, None);
         assert_eq!(url, LiquidValue::scalar("https://github.com/owner/repo"));
@@ -648,12 +653,7 @@ mod tests {
             url: "https://example.com".to_string(),
             name: "Test".to_string(),
             title: "Test".to_string(),
-            twitter: None,
-            repository: None,
-            permalink: "/:title.html".to_string(),
-            exclude: vec![],
-            collections: HashMap::new(),
-            defaults: vec![],
+            ..Default::default()
         };
         // Pass a non-existent directory to avoid git remote resolving
         let url = resolve_repository_url(&config, Some(Path::new("/nonexistent")));
@@ -1258,11 +1258,6 @@ DONE
             url: "https://example.com".to_string(),
             name: "Test".to_string(),
             title: "Test".to_string(),
-            twitter: None,
-            repository: None,
-            permalink: "/:title.html".to_string(),
-            exclude: vec![],
-            collections: HashMap::new(),
             defaults: vec![crate::config::DefaultConfig {
                 scope: crate::config::DefaultScope {
                     path: String::new(),
@@ -1272,6 +1267,7 @@ DONE
                     layout: "author".to_string(),
                 },
             }],
+            ..Default::default()
         };
 
         let items = vec![
@@ -1376,6 +1372,7 @@ DONE
                     layout: "custom".to_string(),
                 },
             }],
+            ..Default::default()
         };
 
         let items = vec![
@@ -1590,5 +1587,100 @@ DONE
         let output = engine.parse_and_render(template, &ctx).unwrap();
         assert!(output.contains("[Introduction]"));
         assert!(output.contains("<b>Alexey</b>: Hello!"));
+    }
+
+    // ========================================================================
+    // Issue 23: Site context population with extras
+    // ========================================================================
+
+    #[test]
+    fn test_site_context_empty_url_default() {
+        let config = SiteConfig::default();
+        let colls = HashMap::new();
+        let data = DataTree::new();
+        let ctx = build_site_context(&config, &colls, &data, None);
+        assert_eq!(ctx.get("url"), Some(&LiquidValue::scalar("")));
+    }
+
+    #[test]
+    fn test_site_context_extras_populated() {
+        let mut config = SiteConfig::default();
+        config.extras.insert(
+            "locale".to_string(),
+            serde_yaml::Value::String("en".to_string()),
+        );
+        config.extras.insert(
+            "author".to_string(),
+            serde_yaml::Value::String("Alice".to_string()),
+        );
+        let colls = HashMap::new();
+        let data = DataTree::new();
+        let ctx = build_site_context(&config, &colls, &data, None);
+        assert_eq!(ctx.get("locale"), Some(&LiquidValue::scalar("en")));
+        assert_eq!(ctx.get("author"), Some(&LiquidValue::scalar("Alice")));
+    }
+
+    #[test]
+    fn test_site_context_twitter_map() {
+        let mut mapping = serde_yaml::Mapping::new();
+        mapping.insert(
+            serde_yaml::Value::String("username".to_string()),
+            serde_yaml::Value::String("handle".to_string()),
+        );
+        let config = SiteConfig {
+            twitter: Some(serde_yaml::Value::Mapping(mapping)),
+            ..Default::default()
+        };
+        let colls = HashMap::new();
+        let data = DataTree::new();
+        let ctx = build_site_context(&config, &colls, &data, None);
+        let twitter = ctx.get("twitter").expect("should have twitter");
+        if let LiquidValue::Object(obj) = twitter {
+            let username = obj.get("username").expect("should have username");
+            assert_eq!(username.to_kstr().as_str(), "handle");
+        } else {
+            panic!("Expected twitter to be an object, got {:?}", twitter);
+        }
+    }
+
+    #[test]
+    fn test_site_context_nested_extra() {
+        let yaml = "sass:\n  style: compressed\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let colls = HashMap::new();
+        let data = DataTree::new();
+        let ctx = build_site_context(&config, &colls, &data, None);
+        let sass = ctx.get("sass").expect("should have sass");
+        if let LiquidValue::Object(obj) = sass {
+            let style = obj.get("style").expect("should have style");
+            assert_eq!(style.to_kstr().as_str(), "compressed");
+        } else {
+            panic!("Expected sass to be an object");
+        }
+    }
+
+    // ========================================================================
+    // Issue 24: Site context includes baseurl
+    // ========================================================================
+
+    #[test]
+    fn test_site_context_baseurl_populated() {
+        let config = SiteConfig {
+            baseurl: "/blog".to_string(),
+            ..Default::default()
+        };
+        let colls = HashMap::new();
+        let data = DataTree::new();
+        let ctx = build_site_context(&config, &colls, &data, None);
+        assert_eq!(ctx.get("baseurl"), Some(&LiquidValue::scalar("/blog")));
+    }
+
+    #[test]
+    fn test_site_context_baseurl_default_empty() {
+        let config = SiteConfig::default();
+        let colls = HashMap::new();
+        let data = DataTree::new();
+        let ctx = build_site_context(&config, &colls, &data, None);
+        assert_eq!(ctx.get("baseurl"), Some(&LiquidValue::scalar("")));
     }
 }

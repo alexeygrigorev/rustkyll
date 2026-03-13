@@ -59,17 +59,26 @@ pub struct DefaultConfig {
 #[derive(Debug, Clone, Deserialize)]
 pub struct SiteConfig {
     /// Site URL (e.g., "https://datatalks.club").
+    #[serde(default)]
     pub url: String,
 
+    /// Site base URL path for sites deployed to subpaths (e.g., "/blog").
+    #[serde(default)]
+    pub baseurl: String,
+
     /// Site name.
+    #[serde(default)]
     pub name: String,
 
     /// Site title.
+    #[serde(default)]
     pub title: String,
 
-    /// Twitter handle (optional).
+    /// Twitter handle or configuration (optional).
+    /// Accepts both a plain string (`twitter: "@handle"`) and a map
+    /// (`twitter: { username: "handle" }`).
     #[serde(default)]
-    pub twitter: Option<String>,
+    pub twitter: Option<serde_yaml::Value>,
 
     /// GitHub repository in `owner/repo` format (optional).
     #[serde(default)]
@@ -90,10 +99,34 @@ pub struct SiteConfig {
     /// List of default scope/values mappings.
     #[serde(default)]
     pub defaults: Vec<DefaultConfig>,
+
+    /// Catch-all for unknown config keys.
+    /// Any YAML key not matched by a named field above is captured here.
+    /// These are exposed in templates as `site.<key>`.
+    #[serde(flatten)]
+    pub extras: HashMap<String, serde_yaml::Value>,
 }
 
 fn default_permalink() -> String {
     "/:title.html".to_string()
+}
+
+impl Default for SiteConfig {
+    fn default() -> Self {
+        Self {
+            url: String::new(),
+            baseurl: String::new(),
+            name: String::new(),
+            title: String::new(),
+            twitter: None,
+            repository: None,
+            permalink: default_permalink(),
+            exclude: vec![],
+            collections: HashMap::new(),
+            defaults: vec![],
+            extras: HashMap::new(),
+        }
+    }
 }
 
 impl SiteConfig {
@@ -114,6 +147,15 @@ impl SiteConfig {
     ///
     /// Returns `ConfigError::Yaml` if the YAML is invalid or missing required fields.
     pub fn from_yaml_str(yaml: &str) -> Result<Self, ConfigError> {
+        // Handle empty or comment-only YAML (which serde_yaml parses as Null)
+        let trimmed = yaml.trim();
+        if trimmed.is_empty()
+            || trimmed
+                .lines()
+                .all(|l| l.trim().is_empty() || l.trim().starts_with('#'))
+        {
+            return Ok(Self::default());
+        }
         let config: SiteConfig = serde_yaml::from_str(yaml)?;
         Ok(config)
     }
@@ -157,7 +199,10 @@ mod tests {
         assert_eq!(config.url, "https://datatalks.club");
         assert_eq!(config.name, "DataTalks.Club");
         assert_eq!(config.title, "DataTalks.Club");
-        assert_eq!(config.twitter, Some("@DataTalksClub".to_string()));
+        assert_eq!(
+            config.twitter,
+            Some(serde_yaml::Value::String("@DataTalksClub".to_string()))
+        );
         assert_eq!(config.permalink, "/blog/:title.html");
     }
 
@@ -317,6 +362,7 @@ permalink: "/:title.html"
         assert!(config.exclude.is_empty());
         assert!(config.collections.is_empty());
         assert!(config.defaults.is_empty());
+        assert!(config.extras.is_empty());
     }
 
     // ========================================================================
@@ -324,9 +370,11 @@ permalink: "/:title.html"
     // ========================================================================
 
     #[test]
-    fn test_parse_empty_string_returns_error() {
-        let result = SiteConfig::from_yaml_str("");
-        assert!(result.is_err());
+    fn test_parse_empty_string_succeeds_with_defaults() {
+        let config = SiteConfig::from_yaml_str("").unwrap();
+        assert_eq!(config.url, "");
+        assert_eq!(config.name, "");
+        assert_eq!(config.title, "");
     }
 
     #[test]
@@ -336,19 +384,15 @@ permalink: "/:title.html"
     }
 
     #[test]
-    fn test_parse_missing_required_field_returns_error() {
+    fn test_parse_missing_url_uses_default() {
         let yaml = r#"
 name: "Test"
 title: "Test"
 "#;
-        let result = SiteConfig::from_yaml_str(yaml);
-        assert!(result.is_err());
-        let err_msg = result.unwrap_err().to_string();
-        assert!(
-            err_msg.contains("url") || err_msg.contains("missing"),
-            "Error should mention the missing field, got: {}",
-            err_msg
-        );
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.url, "");
+        assert_eq!(config.name, "Test");
+        assert_eq!(config.title, "Test");
     }
 
     // ========================================================================
@@ -370,7 +414,7 @@ title: "Test"
             url: "https://example.com".to_string(),
             name: "Test".to_string(),
             title: "Test".to_string(),
-            twitter: Some("@test".to_string()),
+            twitter: Some(serde_yaml::Value::String("@test".to_string())),
             repository: None,
             permalink: "/:title.html".to_string(),
             exclude: vec!["node_modules/".to_string()],
@@ -384,11 +428,242 @@ title: "Test"
                     layout: "post".to_string(),
                 },
             }],
+            ..Default::default()
         };
 
         assert_eq!(config.default_layout_for("posts"), Some("post"));
         assert_eq!(config.default_layout_for("pages"), None);
         assert!(config.collection("posts").is_some());
         assert!(config.collection("missing").is_none());
+    }
+
+    // ========================================================================
+    // Issue 23: Optional fields with defaults
+    // ========================================================================
+
+    #[test]
+    fn test_no_url_defaults_to_empty() {
+        let yaml = "name: Test\ntitle: Test\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.url, "");
+    }
+
+    #[test]
+    fn test_no_name_defaults_to_empty() {
+        let yaml = "url: https://example.com\ntitle: Test\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.name, "");
+    }
+
+    #[test]
+    fn test_no_title_defaults_to_empty() {
+        let yaml = "url: https://example.com\nname: Test\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.title, "");
+    }
+
+    #[test]
+    fn test_no_url_name_title_all_default() {
+        let yaml = "permalink: /:title.html\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.url, "");
+        assert_eq!(config.name, "");
+        assert_eq!(config.title, "");
+    }
+
+    #[test]
+    fn test_only_url_set() {
+        let yaml = "url: https://example.com\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.url, "https://example.com");
+        assert_eq!(config.name, "");
+        assert_eq!(config.title, "");
+    }
+
+    #[test]
+    fn test_comment_only_yaml_parses() {
+        let yaml = "# This is a comment\n# Another comment\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.url, "");
+        assert_eq!(config.name, "");
+    }
+
+    // ========================================================================
+    // Issue 23: Twitter as flexible type
+    // ========================================================================
+
+    #[test]
+    fn test_twitter_as_string() {
+        let yaml = "twitter: \"@DataTalksClub\"\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(matches!(config.twitter, Some(serde_yaml::Value::String(_))));
+        assert_eq!(config.twitter.unwrap().as_str().unwrap(), "@DataTalksClub");
+    }
+
+    #[test]
+    fn test_twitter_as_map() {
+        let yaml = "twitter:\n  username: handle\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(matches!(
+            config.twitter,
+            Some(serde_yaml::Value::Mapping(_))
+        ));
+        let map = config.twitter.unwrap();
+        assert_eq!(
+            map.as_mapping()
+                .unwrap()
+                .get("username")
+                .unwrap()
+                .as_str()
+                .unwrap(),
+            "handle"
+        );
+    }
+
+    #[test]
+    fn test_twitter_missing() {
+        let yaml = "url: https://example.com\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(config.twitter.is_none());
+    }
+
+    #[test]
+    fn test_twitter_null() {
+        let yaml = "twitter: null\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        // serde_yaml deserializes null into None for Option
+        assert!(config.twitter.is_none());
+    }
+
+    // ========================================================================
+    // Issue 23: Unknown config keys (catch-all)
+    // ========================================================================
+
+    #[test]
+    fn test_unknown_key_locale() {
+        let yaml = "locale: en\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(
+            config.extras.get("locale").and_then(|v| v.as_str()),
+            Some("en")
+        );
+    }
+
+    #[test]
+    fn test_unknown_key_nested_sass() {
+        let yaml = "sass:\n  style: compressed\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let sass = config.extras.get("sass").unwrap();
+        assert!(sass.is_mapping());
+        assert_eq!(
+            sass.as_mapping()
+                .unwrap()
+                .get("style")
+                .unwrap()
+                .as_str()
+                .unwrap(),
+            "compressed"
+        );
+    }
+
+    #[test]
+    fn test_unknown_key_kramdown() {
+        let yaml = "kramdown:\n  input: GFM\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(config.extras.contains_key("kramdown"));
+    }
+
+    #[test]
+    fn test_many_unknown_keys() {
+        let yaml = r#"
+locale: en
+sass: { style: compressed }
+kramdown: { input: GFM }
+paginate: 10
+timezone: UTC
+markdown: kramdown
+highlighter: rouge
+encoding: utf-8
+future: true
+show_excerpts: false
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.extras.len(), 10);
+        assert_eq!(
+            config.extras.get("paginate").and_then(|v| v.as_u64()),
+            Some(10)
+        );
+        assert_eq!(
+            config.extras.get("timezone").and_then(|v| v.as_str()),
+            Some("UTC")
+        );
+    }
+
+    #[test]
+    fn test_known_fields_not_in_extras() {
+        let yaml = r#"
+url: https://example.com
+name: Test
+title: Test
+permalink: /:title.html
+locale: en
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        // Known fields should NOT appear in extras
+        assert!(!config.extras.contains_key("url"));
+        assert!(!config.extras.contains_key("name"));
+        assert!(!config.extras.contains_key("title"));
+        assert!(!config.extras.contains_key("permalink"));
+        assert!(!config.extras.contains_key("collections"));
+        assert!(!config.extras.contains_key("defaults"));
+        assert!(!config.extras.contains_key("exclude"));
+        // Unknown field should be in extras
+        assert!(config.extras.contains_key("locale"));
+    }
+
+    // ========================================================================
+    // Issue 23: DTC config still parses with extras
+    // ========================================================================
+
+    #[test]
+    fn test_real_config_has_theme_in_extras() {
+        let config = SiteConfig::from_file(&real_config_path()).unwrap();
+        // The DTC config has `theme: jekyll-theme-cayman` which is an unknown key
+        assert_eq!(
+            config.extras.get("theme").and_then(|v| v.as_str()),
+            Some("jekyll-theme-cayman")
+        );
+    }
+
+    // ========================================================================
+    // Issue 24: baseurl parsing
+    // ========================================================================
+
+    #[test]
+    fn test_baseurl_present() {
+        let yaml = "baseurl: /blog\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.baseurl, "/blog");
+    }
+
+    #[test]
+    fn test_baseurl_empty_string() {
+        let yaml = "baseurl: \"\"\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.baseurl, "");
+    }
+
+    #[test]
+    fn test_baseurl_missing_defaults_empty() {
+        let yaml = "url: https://example.com\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.baseurl, "");
+    }
+
+    #[test]
+    fn test_baseurl_unquoted() {
+        let yaml = "baseurl: /repo-name\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.baseurl, "/repo-name");
     }
 }

@@ -389,6 +389,7 @@ impl TemplateEngine {
             .filter(filters::Markdownify)
             .filter(filters::NewlineToBr)
             .filter(filters::RelativeUrl)
+            .filter(filters::AbsoluteUrl)
     }
 
     /// Create a `TemplateEngine` from a pre-built `liquid::Parser`.
@@ -1435,5 +1436,190 @@ mod tests {
         // Verify it's valid JSON
         let parsed: serde_json::Value = serde_json::from_str(&out).unwrap();
         assert_eq!(parsed["name"], "My Post");
+    }
+
+    // ========================================================================
+    // Issue 24: absolute_url filter with runtime context
+    // ========================================================================
+
+    fn ctx_with_site(url: &str, baseurl: &str) -> Object {
+        let mut site = Object::new();
+        site.insert("url".into(), LiquidValue::scalar(url.to_owned()));
+        site.insert("baseurl".into(), LiquidValue::scalar(baseurl.to_owned()));
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+        ctx
+    }
+
+    #[test]
+    fn test_absolute_url_basic() {
+        let eng = engine();
+        let ctx = ctx_with_site("https://example.com", "");
+        let out = eng
+            .parse_and_render(r#"{{ "/about.html" | absolute_url }}"#, &ctx)
+            .unwrap();
+        assert_eq!(out, "https://example.com/about.html");
+    }
+
+    #[test]
+    fn test_absolute_url_with_baseurl() {
+        let eng = engine();
+        let ctx = ctx_with_site("https://example.com", "/blog");
+        let out = eng
+            .parse_and_render(r#"{{ "/about.html" | absolute_url }}"#, &ctx)
+            .unwrap();
+        assert_eq!(out, "https://example.com/blog/about.html");
+    }
+
+    #[test]
+    fn test_absolute_url_no_leading_slash() {
+        let eng = engine();
+        let ctx = ctx_with_site("https://example.com", "/blog");
+        let out = eng
+            .parse_and_render(r#"{{ "about.html" | absolute_url }}"#, &ctx)
+            .unwrap();
+        assert_eq!(out, "https://example.com/blog/about.html");
+    }
+
+    #[test]
+    fn test_absolute_url_trailing_slash_on_url() {
+        let eng = engine();
+        let ctx = ctx_with_site("https://example.com/", "/blog");
+        let out = eng
+            .parse_and_render(r#"{{ "/page" | absolute_url }}"#, &ctx)
+            .unwrap();
+        assert_eq!(out, "https://example.com/blog/page");
+    }
+
+    #[test]
+    fn test_absolute_url_trailing_slash_on_baseurl() {
+        let eng = engine();
+        let ctx = ctx_with_site("https://example.com", "/blog/");
+        let out = eng
+            .parse_and_render(r#"{{ "/page" | absolute_url }}"#, &ctx)
+            .unwrap();
+        assert_eq!(out, "https://example.com/blog/page");
+    }
+
+    #[test]
+    fn test_absolute_url_empty_url_empty_baseurl() {
+        let eng = engine();
+        let ctx = ctx_with_site("", "");
+        let out = eng
+            .parse_and_render(r#"{{ "/about.html" | absolute_url }}"#, &ctx)
+            .unwrap();
+        assert_eq!(out, "/about.html");
+    }
+
+    #[test]
+    fn test_absolute_url_empty_url_with_baseurl() {
+        let eng = engine();
+        let ctx = ctx_with_site("", "/blog");
+        let out = eng
+            .parse_and_render(r#"{{ "/about.html" | absolute_url }}"#, &ctx)
+            .unwrap();
+        assert_eq!(out, "/blog/about.html");
+    }
+
+    #[test]
+    fn test_absolute_url_empty_input() {
+        let eng = engine();
+        let ctx = ctx_with_site("https://example.com", "");
+        let out = eng
+            .parse_and_render(r#"{{ "" | absolute_url }}"#, &ctx)
+            .unwrap();
+        assert_eq!(out, "https://example.com");
+    }
+
+    // ========================================================================
+    // Issue 24: relative_url filter with baseurl in context
+    // ========================================================================
+
+    #[test]
+    fn test_relative_url_with_baseurl_context() {
+        let eng = engine();
+        let ctx = ctx_with_site("https://example.com", "/blog");
+        let out = eng
+            .parse_and_render(r#"{{ "/assets/style.css" | relative_url }}"#, &ctx)
+            .unwrap();
+        assert_eq!(out, "/blog/assets/style.css");
+    }
+
+    #[test]
+    fn test_relative_url_empty_baseurl_context() {
+        let eng = engine();
+        let ctx = ctx_with_site("https://example.com", "");
+        let out = eng
+            .parse_and_render(r#"{{ "/assets/style.css" | relative_url }}"#, &ctx)
+            .unwrap();
+        assert_eq!(out, "/assets/style.css");
+    }
+
+    // ========================================================================
+    // Issue 24: End-to-end template rendering with absolute_url
+    // ========================================================================
+
+    #[test]
+    fn test_absolute_url_in_html_template() {
+        let eng = engine();
+        let ctx = ctx_with_site("https://example.com", "/blog");
+        let template = r#"<a href="{{ "/about" | absolute_url }}">About</a>"#;
+        let out = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(out, r#"<a href="https://example.com/blog/about">About</a>"#);
+    }
+
+    #[test]
+    fn test_relative_url_in_html_template() {
+        let eng = engine();
+        let ctx = ctx_with_site("https://example.com", "/blog");
+        let template = r#"<link href="{{ "/style.css" | relative_url }}">"#;
+        let out = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(out, r#"<link href="/blog/style.css">"#);
+    }
+
+    // ========================================================================
+    // Issue 23: Extras rendered through template engine
+    // ========================================================================
+
+    #[test]
+    fn test_site_extras_in_template() {
+        let eng = engine();
+        let mut site = Object::new();
+        site.insert("locale".into(), LiquidValue::scalar("en"));
+        site.insert("author".into(), LiquidValue::scalar("Alice"));
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+        let out = eng
+            .parse_and_render("{{ site.locale }}-{{ site.author }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "en-Alice");
+    }
+
+    #[test]
+    fn test_site_twitter_map_in_template() {
+        let eng = engine();
+        let mut twitter = Object::new();
+        twitter.insert("username".into(), LiquidValue::scalar("handle"));
+        let mut site = Object::new();
+        site.insert("twitter".into(), LiquidValue::Object(twitter));
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+        let out = eng
+            .parse_and_render("{{ site.twitter.username }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "handle");
+    }
+
+    #[test]
+    fn test_site_nested_extra_in_template() {
+        let eng = engine();
+        let mut sass = Object::new();
+        sass.insert("style".into(), LiquidValue::scalar("compressed"));
+        let mut site = Object::new();
+        site.insert("sass".into(), LiquidValue::Object(sass));
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+        let out = eng.parse_and_render("{{ site.sass.style }}", &ctx).unwrap();
+        assert_eq!(out, "compressed");
     }
 }

@@ -246,19 +246,14 @@ mod tests {
     use super::*;
     use crate::config::SiteConfig;
     use crate::frontmatter::FrontMatter;
-    use std::collections::HashMap;
 
     fn test_config() -> SiteConfig {
         SiteConfig {
             url: "https://example.com".to_string(),
             name: "Test Blog".to_string(),
             title: "Test Blog".to_string(),
-            twitter: None,
-            repository: None,
             permalink: "/blog/:title.html".to_string(),
-            exclude: vec![],
-            collections: HashMap::new(),
-            defaults: vec![],
+            ..Default::default()
         }
     }
 

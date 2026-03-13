@@ -981,14 +981,14 @@ mod tests {
         fs::create_dir_all(&expected).unwrap();
         fs::create_dir_all(&actual).unwrap();
 
-        fs::write(expected.join("image.png"), &[0u8, 1, 2, 3]).unwrap();
-        fs::write(actual.join("image.png"), &[0u8, 1, 2, 3]).unwrap();
+        fs::write(expected.join("image.png"), [0u8, 1, 2, 3]).unwrap();
+        fs::write(actual.join("image.png"), [0u8, 1, 2, 3]).unwrap();
 
         let report = compare_directories(&expected, &actual).unwrap();
         assert!(report.is_clean());
 
         // Different binary files
-        fs::write(actual.join("image.png"), &[4u8, 5, 6]).unwrap();
+        fs::write(actual.join("image.png"), [4u8, 5, 6]).unwrap();
         let report = compare_directories(&expected, &actual).unwrap();
         assert!(!report.is_clean());
         assert_eq!(report.differing[0].category, DiffCategory::Binary);

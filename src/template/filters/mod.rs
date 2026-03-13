@@ -3,6 +3,7 @@
 //! These 6 filters are NOT provided by the `liquid` crate or `liquid-lib`'s
 //! jekyll feature, but are needed by the DataTalks.Club site templates.
 
+mod absolute_url;
 mod date_to_string;
 mod date_to_xmlschema;
 mod jsonify;
@@ -12,6 +13,7 @@ mod relative_url;
 mod where_exp;
 mod where_filter;
 
+pub use absolute_url::AbsoluteUrl;
 pub use date_to_string::DateToString;
 pub use date_to_xmlschema::DateToXmlschema;
 pub use jsonify::Jsonify;
