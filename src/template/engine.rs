@@ -328,6 +328,7 @@ impl TemplateEngine {
             .filter(filters::DateToString)
             .filter(filters::DateToXmlschema)
             .filter(filters::Markdownify)
+            .filter(filters::NewlineToBr)
             .filter(filters::RelativeUrl)
     }
 

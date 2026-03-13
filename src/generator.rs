@@ -25,6 +25,42 @@ const EVENT_FIELDS: &[&str] = &[
     "season", "slug", "short",
 ];
 
+/// Fields expected on each transcript item object in `page.transcript`.
+/// The podcast layout accesses `item.who`, `item.line`, `item.header`,
+/// `item.sec`, and `item.time` on transcript array items. Header items
+/// lack `who`/`line`/`sec`/`time`, and some line items lack `who`.
+const TRANSCRIPT_ITEM_FIELDS: &[&str] = &["header", "line", "who", "sec", "time"];
+
+/// Fields expected on each quotable clip object in `page.quotableClips`.
+const CLIP_FIELDS: &[&str] = &["name", "startOffset", "endOffset", "url"];
+
+/// Fields expected by the `podcast.html` layout.
+/// Podcast episode objects must have all these keys to prevent "Unknown index"
+/// errors during Liquid template iteration (e.g., navigation, related episodes).
+const PODCAST_FIELDS: &[&str] = &[
+    "season",
+    "episode",
+    "subtitle",
+    "intro",
+    "duration",
+    "keywords",
+    "dateadded",
+    "date",
+    "guests",
+    "transcript",
+    "quotableClips",
+    "links",
+    "ids",
+    "image",
+    "description",
+    "topics",
+    "title",
+    "url",
+    "slug",
+    "content",
+    "short",
+];
+
 /// Ensure every object in a Liquid array has Nil values for all listed keys.
 ///
 /// The Liquid engine errors when accessing a missing key on an object inside
@@ -483,6 +519,210 @@ pub fn generate_posts(
             }
             Err(e) => {
                 errors.push(format!("write error for {}: {}", post.slug, e));
+            }
+        }
+    }
+
+    Ok((count, errors))
+}
+
+/// Generate HTML pages for all books in `_books/`.
+///
+/// 1. Loads the books collection
+/// 2. Loads the people collection (for author lookup in `authors.html` include)
+/// 3. Loads data files (for navigation, etc.)
+/// 4. Builds the site context with `site.people`
+/// 5. Renders each book through the book layout via `generate_collection_pages`
+/// 6. Writes the rendered HTML to `<output_dir>/books/<slug>.html`
+pub fn generate_book_pages(
+    site_dir: &Path,
+    config: &SiteConfig,
+    layout_engine: &LayoutEngine,
+    output_dir: &Path,
+) -> Result<GenerationResult, GeneratorError> {
+    // Load collections
+    let (books, _book_errors) = crate::collection::load_collection("books", site_dir, config)?;
+    let (people, _people_errors) = crate::collection::load_collection("people", site_dir, config)?;
+    let (posts, _post_errors) = crate::collection::load_collection("posts", site_dir, config)?;
+
+    // Load data (for events, navigation, etc.)
+    let data_dir = site_dir.join("_data");
+    let data = if data_dir.exists() {
+        crate::data::load_data(&data_dir)?
+    } else {
+        DataTree::new()
+    };
+
+    // Build site context with people for author lookup
+    let mut site_context = build_site_context(config, &posts, &books, &data);
+    site_context.insert("people".into(), build_people_array(&people));
+
+    // Generate pages
+    generate_collection_pages(
+        &books,
+        "books",
+        config,
+        layout_engine,
+        &site_context,
+        output_dir,
+    )
+}
+
+/// Normalize a podcast episode's front matter YAML so that nested array objects
+/// (transcript items, quotableClips) have all expected keys, preventing
+/// "Unknown index" errors when the Liquid engine iterates over them.
+fn normalize_podcast_front_matter(fm: &mut crate::frontmatter::FrontMatter) {
+    // Normalize transcript items
+    if let Some(serde_yaml::Value::Sequence(transcript)) = fm.get_mut("transcript") {
+        for item in transcript.iter_mut() {
+            if let serde_yaml::Value::Mapping(map) = item {
+                for &field in TRANSCRIPT_ITEM_FIELDS {
+                    let key = serde_yaml::Value::String(field.to_string());
+                    if !map.contains_key(&key) {
+                        map.insert(key, serde_yaml::Value::Null);
+                    }
+                }
+            }
+        }
+    }
+
+    // Normalize quotableClips items
+    if let Some(serde_yaml::Value::Sequence(clips)) = fm.get_mut("quotableClips") {
+        for item in clips.iter_mut() {
+            if let serde_yaml::Value::Mapping(map) = item {
+                for &field in CLIP_FIELDS {
+                    let key = serde_yaml::Value::String(field.to_string());
+                    if !map.contains_key(&key) {
+                        map.insert(key, serde_yaml::Value::Null);
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Build the `site.podcast` Liquid array from the `_podcast/` collection.
+///
+/// Each episode becomes an Object with all front matter fields plus
+/// computed `url`, `slug`, and `content` fields. The array is normalized
+/// so that all expected keys exist (as Nil if missing), preventing
+/// "Unknown index" errors during Liquid template iteration.
+pub fn build_podcast_array(episodes: &[CollectionItem]) -> LiquidValue {
+    let arr: Vec<LiquidValue> = episodes.iter().map(collection_item_to_liquid).collect();
+    normalize_array_objects(LiquidValue::Array(arr), PODCAST_FIELDS)
+}
+
+/// Build the full site context for podcast rendering.
+///
+/// Extends the standard site context with `site.people` (for guest bio cards)
+/// and `site.podcast` (for episode navigation and related episodes).
+pub fn build_podcast_site_context(
+    config: &SiteConfig,
+    posts: &[CollectionItem],
+    books: &[CollectionItem],
+    people: &[CollectionItem],
+    episodes: &[CollectionItem],
+    data: &DataTree,
+) -> Object {
+    let mut site = build_site_context(config, posts, books, data);
+
+    // Add people array for guest lookup
+    site.insert("people".into(), build_people_array(people));
+
+    // Add podcast array for episode navigation and related episodes
+    site.insert("podcast".into(), build_podcast_array(episodes));
+
+    site
+}
+
+/// Generate HTML pages for all podcast episodes in `_podcast/`.
+///
+/// 1. Loads the podcast collection
+/// 2. Loads the people collection (for guest bio cards)
+/// 3. Loads posts and books (for site context)
+/// 4. Loads data files (for navigation, etc.)
+/// 5. Builds the site context with `site.people` and `site.podcast`
+/// 6. Renders each episode through the podcast layout
+/// 7. Writes the rendered HTML to the output directory at `/podcast/<slug>.html`
+///
+/// Returns the number of episodes generated successfully, plus any non-fatal
+/// errors that occurred during rendering.
+pub fn generate_podcast_pages(
+    site_dir: &Path,
+    output_dir: &Path,
+) -> Result<(usize, Vec<String>), GeneratorError> {
+    let config = SiteConfig::from_file(&site_dir.join("_config.yml"))?;
+
+    // Load collections
+    let (episodes, episode_errors) =
+        crate::collection::load_collection("podcast", site_dir, &config)?;
+    let (people, _people_errors) = crate::collection::load_collection("people", site_dir, &config)?;
+    let (posts, _post_errors) = crate::collection::load_collection("posts", site_dir, &config)?;
+    let (books, _book_errors) = crate::collection::load_collection("books", site_dir, &config)?;
+
+    // Load data
+    let data_dir = site_dir.join("_data");
+    let data = if data_dir.exists() {
+        crate::data::load_data(&data_dir)?
+    } else {
+        DataTree::new()
+    };
+
+    // Build site context with people and podcast arrays
+    let site_context =
+        build_podcast_site_context(&config, &posts, &books, &people, &episodes, &data);
+
+    // Create layout engine
+    let layout_engine = LayoutEngine::new(&site_dir.join("_layouts"), &site_dir.join("_includes"))?;
+
+    // Ensure output directory exists
+    let podcast_out_dir = output_dir.join("podcast");
+    fs::create_dir_all(&podcast_out_dir).map_err(|e| GeneratorError::WriteFile {
+        path: podcast_out_dir.display().to_string(),
+        source: e,
+    })?;
+
+    let mut count = 0;
+    let mut errors: Vec<String> = Vec::new();
+
+    // Add collection loading errors
+    for err in &episode_errors {
+        errors.push(format!("collection load error: {}", err));
+    }
+
+    for episode in &episodes {
+        // Determine layout
+        let layout_name =
+            resolve_layout(episode, &config, "podcast").unwrap_or_else(|| "podcast".to_string());
+
+        // Build front matter with url added, and normalize nested arrays
+        let mut fm = episode.front_matter.clone();
+        if !fm.contains_key("url") {
+            fm.insert(
+                "url".to_string(),
+                serde_yaml::Value::String(episode.url.clone()),
+            );
+        }
+        normalize_podcast_front_matter(&mut fm);
+
+        // Render through layout -- use raw content (may contain Liquid tags)
+        let html =
+            match layout_engine.render_page(&layout_name, &episode.content, &fm, &site_context) {
+                Ok(html) => html,
+                Err(e) => {
+                    errors.push(format!("render error for {}: {}", episode.slug, e));
+                    continue;
+                }
+            };
+
+        // Write output file
+        let out_path = output_path(output_dir, "podcast", &episode.slug);
+        match fs::write(&out_path, &html) {
+            Ok(()) => {
+                count += 1;
+            }
+            Err(e) => {
+                errors.push(format!("write error for {}: {}", episode.slug, e));
             }
         }
     }
@@ -1887,5 +2127,1176 @@ DONE
             !content.is_empty() && content.len() > 1000,
             "Should have substantial rendered content"
         );
+    }
+
+    // ========================================================================
+    // Issue 11: Book page generation
+    // ========================================================================
+
+    fn build_book_test_context() -> (SiteConfig, Vec<CollectionItem>, Object, LayoutEngine) {
+        let config = test_config();
+        let (books, _) = crate::collection::load_collection("books", &site_dir(), &config).unwrap();
+        let (people, _) =
+            crate::collection::load_collection("people", &site_dir(), &config).unwrap();
+        let (posts, _) = crate::collection::load_collection("posts", &site_dir(), &config).unwrap();
+        let data_tree = crate::data::load_data(&site_dir().join("_data")).unwrap();
+
+        let mut site_context = build_site_context(&config, &posts, &books, &data_tree);
+        site_context.insert("people".into(), build_people_array(&people));
+
+        let layout_engine =
+            LayoutEngine::new(&site_dir().join("_layouts"), &site_dir().join("_includes")).unwrap();
+
+        (config, books, site_context, layout_engine)
+    }
+
+    fn render_book(
+        slug: &str,
+        books: &[CollectionItem],
+        layout_engine: &LayoutEngine,
+        site_context: &Object,
+    ) -> String {
+        let book = books.iter().find(|b| b.slug == slug).unwrap();
+        let mut fm = book.front_matter.clone();
+        fm.insert("url".into(), serde_yaml::Value::String(book.url.clone()));
+        layout_engine
+            .render_page("book", &book.html_content, &fm, site_context)
+            .unwrap()
+    }
+
+    // Unit: Output path generation for books
+
+    #[test]
+    fn test_book_output_path() {
+        let out = output_path(Path::new("/tmp/site"), "books", "20201214-ml-bookcamp");
+        assert_eq!(
+            out,
+            PathBuf::from("/tmp/site/books/20201214-ml-bookcamp.html")
+        );
+    }
+
+    // Integration: Render a single book page (ml-bookcamp)
+
+    #[test]
+    fn test_render_ml_bookcamp() {
+        let (_config, books, site_context, layout_engine) = build_book_test_context();
+        let html = render_book(
+            "20201214-ml-bookcamp",
+            &books,
+            &layout_engine,
+            &site_context,
+        );
+
+        assert!(
+            html.contains("Machine Learning Bookcamp"),
+            "Should contain the title"
+        );
+        assert!(
+            html.contains("Alexey Grigorev"),
+            "Should contain resolved author name"
+        );
+        assert!(
+            html.contains("/people/alexeygrigorev.html"),
+            "Should contain author link"
+        );
+        assert!(
+            html.contains("images/books/20201214-ml-bookcamp/cover.jpg"),
+            "Should contain cover image path"
+        );
+        assert!(html.contains("14 Dec 2020"), "Should contain start date");
+        assert!(html.contains("18 Dec 2020"), "Should contain end date");
+    }
+
+    // Integration: External links in book page
+
+    #[test]
+    fn test_ml_bookcamp_external_links() {
+        let (_config, books, site_context, layout_engine) = build_book_test_context();
+        let html = render_book(
+            "20201214-ml-bookcamp",
+            &books,
+            &layout_engine,
+            &site_context,
+        );
+
+        assert!(
+            html.contains("Book&#39;s page on Manning") || html.contains("Book's page on Manning"),
+            "Should contain Manning link text"
+        );
+        assert!(
+            html.contains("http://bit.ly/mlbookcamp"),
+            "Should contain Manning link URL"
+        );
+        assert!(
+            html.contains("https://mlbookcamp.com/"),
+            "Should contain book page URL"
+        );
+        assert!(
+            html.contains("https://github.com/alexeygrigorev/mlbookcamp-code"),
+            "Should contain GitHub URL"
+        );
+        assert!(
+            html.contains("target=\"_blank\""),
+            "Links should have target=_blank"
+        );
+    }
+
+    // Integration: Q&A archive section with nested replies
+
+    #[test]
+    fn test_ml_bookcamp_qa_archive() {
+        let (_config, books, site_context, layout_engine) = build_book_test_context();
+        let html = render_book(
+            "20201214-ml-bookcamp",
+            &books,
+            &layout_engine,
+            &site_context,
+        );
+
+        assert!(
+            html.contains("Questions and Answers"),
+            "Should contain Q&A heading"
+        );
+        assert!(
+            html.contains("Vladimir Finkelshtein"),
+            "Should contain thread author name"
+        );
+        assert!(
+            html.contains("Wendy Mak"),
+            "Should contain thread author name"
+        );
+        assert!(
+            html.contains("Neal Lathia"),
+            "Should contain thread author name"
+        );
+        assert!(
+            html.contains("book-archive-reply"),
+            "Should contain reply divs"
+        );
+        assert!(
+            html.contains("book-archive-thread"),
+            "Should contain thread divs"
+        );
+    }
+
+    // Integration: Render data-teams book
+
+    #[test]
+    fn test_render_data_teams() {
+        let (_config, books, site_context, layout_engine) = build_book_test_context();
+        let html = render_book("20210201-data-teams", &books, &layout_engine, &site_context);
+
+        assert!(html.contains("Data Teams"), "Should contain title");
+        assert!(
+            html.contains("Jesse Anderson"),
+            "Should contain resolved author name"
+        );
+        assert!(
+            html.contains("book-archive-thread"),
+            "Should contain Q&A threads"
+        );
+    }
+
+    // Integration: Book with no archive section
+
+    #[test]
+    fn test_book_without_archive() {
+        let (_config, books, site_context, layout_engine) = build_book_test_context();
+
+        let book = books
+            .iter()
+            .find(|b| !b.front_matter.contains_key("archive"));
+
+        if let Some(book) = book {
+            let mut fm = book.front_matter.clone();
+            fm.insert("url".into(), serde_yaml::Value::String(book.url.clone()));
+
+            let html = layout_engine
+                .render_page("book", &book.html_content, &fm, &site_context)
+                .unwrap();
+
+            assert!(
+                !html.contains("Questions and Answers"),
+                "Should not contain Q&A heading when no archive"
+            );
+        }
+    }
+
+    // Integration: Participation instructions block
+
+    #[test]
+    fn test_book_participation_instructions() {
+        let (_config, books, site_context, layout_engine) = build_book_test_context();
+        let html = render_book(
+            "20201214-ml-bookcamp",
+            &books,
+            &layout_engine,
+            &site_context,
+        );
+
+        assert!(
+            html.contains("/slack.html"),
+            "Should contain /slack.html link"
+        );
+        assert!(
+            html.contains("#book-of-the-week"),
+            "Should contain #book-of-the-week channel mention"
+        );
+        assert!(
+            html.contains("/books.html"),
+            "Should contain /books.html link"
+        );
+    }
+
+    // Integration: CSS classes in book output
+
+    #[test]
+    fn test_book_css_classes() {
+        let (_config, books, site_context, layout_engine) = build_book_test_context();
+        let html = render_book(
+            "20201214-ml-bookcamp",
+            &books,
+            &layout_engine,
+            &site_context,
+        );
+
+        assert!(
+            html.contains("content-book"),
+            "Should have content-book class"
+        );
+        assert!(
+            html.contains("content-book-image-container"),
+            "Should have content-book-image-container class"
+        );
+        assert!(
+            html.contains("content-book-description"),
+            "Should have content-book-description class"
+        );
+    }
+
+    // Integration: Generate all books to output directory
+
+    #[test]
+    fn test_generate_all_books() {
+        let config = test_config();
+        let layout_engine =
+            LayoutEngine::new(&site_dir().join("_layouts"), &site_dir().join("_includes")).unwrap();
+        let output_dir = tempfile::TempDir::new().unwrap();
+
+        let result =
+            generate_book_pages(&site_dir(), &config, &layout_engine, output_dir.path()).unwrap();
+
+        if !result.errors.is_empty() {
+            eprintln!(
+                "Errors during book generation ({} errors):",
+                result.errors.len()
+            );
+            for err in &result.errors {
+                eprintln!("  - {}", err);
+            }
+        }
+
+        // 98 books total (99 .md files minus _template.md which is skipped).
+        // 1 book (20210222-ml-algotrading-2ed) fails due to a typo in the
+        // original data: `list:` instead of `link:` in the links array,
+        // causing a Liquid "Unknown index" error on `link.link`.
+        assert!(
+            result.generated >= 97,
+            "Expected at least 97 books generated, got {} (skipped: {}, errors: {:?})",
+            result.generated,
+            result.skipped,
+            result.errors
+        );
+        assert_eq!(
+            result.generated + result.errors.len(),
+            98,
+            "Expected 98 total books attempted (99 files minus _template.md)"
+        );
+
+        let books_dir = output_dir.path().join("books");
+        assert!(books_dir.exists(), "books/ directory should exist");
+
+        let html_count = fs::read_dir(&books_dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| {
+                e.path()
+                    .extension()
+                    .map(|ext| ext == "html")
+                    .unwrap_or(false)
+            })
+            .count();
+        assert!(
+            html_count >= 97,
+            "Expected at least 97 HTML files, got {}",
+            html_count
+        );
+    }
+
+    // Integration: Spot-check generated book files
+
+    #[test]
+    fn test_generated_book_files_content() {
+        let config = test_config();
+        let layout_engine =
+            LayoutEngine::new(&site_dir().join("_layouts"), &site_dir().join("_includes")).unwrap();
+        let output_dir = tempfile::TempDir::new().unwrap();
+
+        let _result =
+            generate_book_pages(&site_dir(), &config, &layout_engine, output_dir.path()).unwrap();
+
+        // Spot-check ml-bookcamp
+        let ml_path = output_dir.path().join("books/20201214-ml-bookcamp.html");
+        assert!(ml_path.exists(), "ml-bookcamp should exist");
+        let ml_content = fs::read_to_string(&ml_path).unwrap();
+        assert!(ml_content.contains("Machine Learning Bookcamp"));
+        assert!(ml_content.contains("Alexey Grigorev"));
+
+        // Spot-check data-teams
+        let dt_path = output_dir.path().join("books/20210201-data-teams.html");
+        assert!(dt_path.exists(), "data-teams should exist");
+        let dt_content = fs::read_to_string(&dt_path).unwrap();
+        assert!(dt_content.contains("Data Teams"));
+
+        // Spot-check reinforcement-learning
+        let rl_path = output_dir
+            .path()
+            .join("books/20210111-reinforcement-learning.html");
+        assert!(rl_path.exists(), "reinforcement-learning should exist");
+        let rl_content = fs::read_to_string(&rl_path).unwrap();
+        assert!(rl_content.contains("Reinforcement Learning"));
+    }
+
+    // Integration: Generated book files are non-empty valid HTML
+
+    #[test]
+    fn test_generated_books_are_valid_html() {
+        let config = test_config();
+        let layout_engine =
+            LayoutEngine::new(&site_dir().join("_layouts"), &site_dir().join("_includes")).unwrap();
+        let output_dir = tempfile::TempDir::new().unwrap();
+
+        let _result =
+            generate_book_pages(&site_dir(), &config, &layout_engine, output_dir.path()).unwrap();
+
+        let books_dir = output_dir.path().join("books");
+        for entry in fs::read_dir(&books_dir).unwrap() {
+            let entry = entry.unwrap();
+            let path = entry.path();
+            if path.extension().map(|e| e == "html").unwrap_or(false) {
+                let content = fs::read_to_string(&path).unwrap();
+                assert!(!content.is_empty(), "File should not be empty: {:?}", path);
+                assert!(
+                    content.contains("<html"),
+                    "File should contain <html: {:?}",
+                    path
+                );
+                assert!(
+                    content.contains("<body"),
+                    "File should contain <body: {:?}",
+                    path
+                );
+            }
+        }
+    }
+
+    // Integration: newline_to_br + markdownify chain in Q&A text
+
+    #[test]
+    fn test_qa_text_newline_to_br_markdownify() {
+        let (_config, books, site_context, layout_engine) = build_book_test_context();
+        let html = render_book(
+            "20201214-ml-bookcamp",
+            &books,
+            &layout_engine,
+            &site_context,
+        );
+
+        // The Q&A text should have been processed through newline_to_br | markdownify
+        assert!(
+            html.contains("<br />"),
+            "Q&A text should contain <br /> from newline_to_br filter"
+        );
+    }
+
+    // Integration: Author resolution from site.people
+
+    #[test]
+    fn test_book_author_resolution() {
+        let (_config, books, site_context, layout_engine) = build_book_test_context();
+        let html = render_book(
+            "20201214-ml-bookcamp",
+            &books,
+            &layout_engine,
+            &site_context,
+        );
+
+        assert!(
+            html.contains("Alexey Grigorev"),
+            "Author name should be resolved from site.people"
+        );
+        assert!(
+            html.contains("/people/alexeygrigorev.html"),
+            "Author should link to people page"
+        );
+    }
+
+    // ========================================================================
+    // Issue 12: Podcast page generation
+    // ========================================================================
+
+    // Unit: Podcast collection in site context
+
+    #[test]
+    fn test_podcast_site_context_has_podcast_array() {
+        let config = test_config();
+        let (episodes, _) =
+            crate::collection::load_collection("podcast", &site_dir(), &config).unwrap();
+        let podcast_arr = build_podcast_array(&episodes);
+        if let LiquidValue::Array(arr) = &podcast_arr {
+            assert!(
+                arr.len() >= 193,
+                "Expected 193+ podcast items, got {}",
+                arr.len()
+            );
+        } else {
+            panic!("Expected podcast to be an array");
+        }
+    }
+
+    #[test]
+    fn test_podcast_objects_have_required_fields() {
+        let config = test_config();
+        let (episodes, _) =
+            crate::collection::load_collection("podcast", &site_dir(), &config).unwrap();
+        let podcast_arr = build_podcast_array(&episodes);
+        if let LiquidValue::Array(arr) = &podcast_arr {
+            for item in arr {
+                if let LiquidValue::Object(obj) = item {
+                    assert!(obj.get("url").is_some(), "Should have url");
+                    assert!(obj.get("slug").is_some(), "Should have slug");
+                    assert!(obj.get("title").is_some(), "Should have title");
+                    assert!(
+                        obj.get("season").is_some(),
+                        "Should have season (may be Nil)"
+                    );
+                    assert!(
+                        obj.get("episode").is_some(),
+                        "Should have episode (may be Nil)"
+                    );
+                } else {
+                    panic!("Expected object in podcast array");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_podcast_normalization_adds_nil_for_missing_fields() {
+        let config = test_config();
+        let (episodes, _) =
+            crate::collection::load_collection("podcast", &site_dir(), &config).unwrap();
+        let podcast_arr = build_podcast_array(&episodes);
+        if let LiquidValue::Array(arr) = &podcast_arr {
+            // Find an episode that likely has no transcript
+            let ep_without_transcript = arr.iter().find(|item| {
+                if let LiquidValue::Object(obj) = item {
+                    matches!(obj.get("transcript"), Some(LiquidValue::Nil))
+                } else {
+                    false
+                }
+            });
+            assert!(
+                ep_without_transcript.is_some(),
+                "Should find at least one episode with Nil transcript"
+            );
+        }
+    }
+
+    #[test]
+    fn test_podcast_normalization_preserves_existing_fields() {
+        let config = test_config();
+        let (episodes, _) =
+            crate::collection::load_collection("podcast", &site_dir(), &config).unwrap();
+        let podcast_arr = build_podcast_array(&episodes);
+        if let LiquidValue::Array(arr) = &podcast_arr {
+            let ep = arr.iter().find(|item| {
+                if let LiquidValue::Object(obj) = item {
+                    obj.get("slug")
+                        .map(|v| v.render().to_string().contains("building-agentic"))
+                        .unwrap_or(false)
+                } else {
+                    false
+                }
+            });
+            assert!(ep.is_some(), "Should find building-agentic episode");
+            if let Some(LiquidValue::Object(obj)) = ep {
+                // Season should be 22, not Nil
+                let season = obj.get("season").unwrap();
+                assert_ne!(*season, LiquidValue::Nil, "Season should not be Nil");
+            }
+        }
+    }
+
+    // Unit: Output path generation for podcast
+
+    #[test]
+    fn test_output_path_podcast_agentic() {
+        let path = output_path(
+            Path::new("/tmp/site"),
+            "podcast",
+            "building-agentic-ai-engineering-tooling-retrieval-evaluation",
+        );
+        assert_eq!(
+            path,
+            PathBuf::from(
+                "/tmp/site/podcast/building-agentic-ai-engineering-tooling-retrieval-evaluation.html"
+            )
+        );
+    }
+
+    #[test]
+    fn test_output_path_podcast_ab_testing() {
+        let path = output_path(
+            Path::new("/tmp/site"),
+            "podcast",
+            "ab-testing-and-product-experimentation",
+        );
+        assert_eq!(
+            path,
+            PathBuf::from("/tmp/site/podcast/ab-testing-and-product-experimentation.html")
+        );
+    }
+
+    // Unit: build_podcast_site_context includes both podcast and people
+
+    #[test]
+    fn test_build_podcast_site_context_has_podcast_and_people() {
+        let config = test_config();
+        let (episodes, _) =
+            crate::collection::load_collection("podcast", &site_dir(), &config).unwrap();
+        let (people, _) =
+            crate::collection::load_collection("people", &site_dir(), &config).unwrap();
+        let data = DataTree::new();
+
+        let ctx = build_podcast_site_context(&config, &[], &[], &people, &episodes, &data);
+
+        assert!(ctx.get("podcast").is_some(), "Should have site.podcast");
+        assert!(ctx.get("people").is_some(), "Should have site.people");
+        if let Some(LiquidValue::Array(arr)) = ctx.get("podcast") {
+            assert!(arr.len() >= 193, "Expected 193+ podcasts");
+        }
+        if let Some(LiquidValue::Array(arr)) = ctx.get("people") {
+            assert!(arr.len() >= 424, "Expected 424+ people");
+        }
+    }
+
+    // Helper to build podcast test context (avoid repeating boilerplate)
+    fn build_podcast_test_context() -> (Vec<CollectionItem>, Object, LayoutEngine) {
+        let config = test_config();
+        let (episodes, _) =
+            crate::collection::load_collection("podcast", &site_dir(), &config).unwrap();
+        let (people, _) =
+            crate::collection::load_collection("people", &site_dir(), &config).unwrap();
+        let (posts, _) = crate::collection::load_collection("posts", &site_dir(), &config).unwrap();
+        let (books, _) = crate::collection::load_collection("books", &site_dir(), &config).unwrap();
+        let data_tree = crate::data::load_data(&site_dir().join("_data")).unwrap();
+
+        let site_context =
+            build_podcast_site_context(&config, &posts, &books, &people, &episodes, &data_tree);
+        let layout_engine =
+            LayoutEngine::new(&site_dir().join("_layouts"), &site_dir().join("_includes")).unwrap();
+
+        (episodes, site_context, layout_engine)
+    }
+
+    fn render_podcast_episode(
+        slug: &str,
+        episodes: &[CollectionItem],
+        site_context: &Object,
+        layout_engine: &LayoutEngine,
+    ) -> String {
+        let episode = episodes.iter().find(|e| e.slug == slug).unwrap();
+        let mut fm = episode.front_matter.clone();
+        fm.insert(
+            "url".to_string(),
+            serde_yaml::Value::String(episode.url.clone()),
+        );
+        normalize_podcast_front_matter(&mut fm);
+        layout_engine
+            .render_page("podcast", &episode.content, &fm, site_context)
+            .unwrap()
+    }
+
+    // Integration: Render a single podcast episode through layout
+
+    #[test]
+    fn test_render_single_podcast_episode() {
+        let (episodes, site_context, layout_engine) = build_podcast_test_context();
+        let html = render_podcast_episode(
+            "building-agentic-ai-engineering-tooling-retrieval-evaluation",
+            &episodes,
+            &site_context,
+            &layout_engine,
+        );
+
+        assert!(html.contains("Building Agentic AI"), "Should contain title");
+        assert!(
+            html.contains("Season 22, Episode 1"),
+            "Should contain season/episode badge"
+        );
+        assert!(
+            html.contains("x2AAjqz2XmM"),
+            "Should contain YouTube video ID"
+        );
+        assert!(html.contains("<iframe"), "Should contain YouTube iframe");
+        assert!(
+            html.contains(r#"<script type="application/ld+json">"#),
+            "Should contain JSON-LD"
+        );
+        assert!(
+            html.contains("\"@type\": \"PodcastEpisode\""),
+            "Should contain PodcastEpisode type"
+        );
+    }
+
+    // Integration: Guest resolution from site.people
+
+    #[test]
+    fn test_podcast_guest_resolution() {
+        let (episodes, site_context, layout_engine) = build_podcast_test_context();
+        let html = render_podcast_episode(
+            "building-agentic-ai-engineering-tooling-retrieval-evaluation",
+            &episodes,
+            &site_context,
+            &layout_engine,
+        );
+
+        assert!(
+            html.contains("Ranjitha Kulkarni"),
+            "Should contain guest name resolved from site.people"
+        );
+        assert!(
+            html.contains("guest-bio-card"),
+            "Should contain guest bio card"
+        );
+    }
+
+    // Integration: Guest bio card details
+
+    #[test]
+    fn test_podcast_guest_bio_card_details() {
+        let (episodes, site_context, layout_engine) = build_podcast_test_context();
+        let html = render_podcast_episode(
+            "building-agentic-ai-engineering-tooling-retrieval-evaluation",
+            &episodes,
+            &site_context,
+            &layout_engine,
+        );
+
+        assert!(html.contains("guest-bio-img"), "Should contain guest image");
+        assert!(
+            html.contains("guest-bio-name"),
+            "Should contain guest name heading"
+        );
+        assert!(
+            html.contains("guest-bio-links"),
+            "Should contain guest links section"
+        );
+    }
+
+    // Integration: Episode navigation (prev/next)
+
+    #[test]
+    fn test_podcast_episode_navigation_mid_season() {
+        let (episodes, site_context, layout_engine) = build_podcast_test_context();
+
+        // Find a mid-season episode (episode 2+ in a season with 3+ episodes)
+        let episode = episodes
+            .iter()
+            .find(|e| {
+                let season = e.front_matter.get("season").and_then(|v| v.as_u64());
+                let ep_num = e.front_matter.get("episode").and_then(|v| v.as_u64());
+                matches!((season, ep_num), (Some(_), Some(n)) if n >= 2)
+            })
+            .unwrap();
+
+        let mut fm = episode.front_matter.clone();
+        fm.insert(
+            "url".to_string(),
+            serde_yaml::Value::String(episode.url.clone()),
+        );
+        normalize_podcast_front_matter(&mut fm);
+
+        let html = layout_engine
+            .render_page("podcast", &episode.content, &fm, &site_context)
+            .unwrap();
+
+        assert!(
+            html.contains("Previous episode"),
+            "Mid-season episode should have Previous episode link"
+        );
+        assert!(
+            html.contains("episode-nav-link"),
+            "Should contain episode navigation links"
+        );
+    }
+
+    // Integration: Transcript rendering
+
+    #[test]
+    fn test_podcast_transcript_rendering() {
+        let (episodes, site_context, layout_engine) = build_podcast_test_context();
+        let html = render_podcast_episode(
+            "technical-writing-for-data-scientists",
+            &episodes,
+            &site_context,
+            &layout_engine,
+        );
+
+        // Transcript tab button
+        assert!(
+            html.contains("data-tab=\"transcript\""),
+            "Should have transcript tab button"
+        );
+        // Transcript headers
+        assert!(
+            html.contains("<h3") && html.contains("transcript-header"),
+            "Should contain transcript headers"
+        );
+        // Speaker names in bold
+        assert!(
+            html.contains("<b>Alexey</b>"),
+            "Should contain bold speaker name Alexey"
+        );
+        assert!(
+            html.contains("<b>Eugene</b>"),
+            "Should contain bold speaker name Eugene"
+        );
+        // Timestamp links with data-time
+        assert!(
+            html.contains("data-time=\"0\""),
+            "Should contain data-time=0 timestamp"
+        );
+        assert!(
+            html.contains("data-time=\"19\""),
+            "Should contain data-time=19 timestamp"
+        );
+        // Timestamps tab
+        assert!(
+            html.contains("data-tab=\"timestamps\""),
+            "Should have timestamps tab button"
+        );
+    }
+
+    // Integration: Episode without transcript
+
+    #[test]
+    fn test_podcast_episode_without_transcript() {
+        let (episodes, site_context, layout_engine) = build_podcast_test_context();
+
+        // Find an episode without transcript
+        let episode = episodes
+            .iter()
+            .find(|e| !e.front_matter.contains_key("transcript"))
+            .unwrap();
+
+        let mut fm = episode.front_matter.clone();
+        fm.insert(
+            "url".to_string(),
+            serde_yaml::Value::String(episode.url.clone()),
+        );
+        normalize_podcast_front_matter(&mut fm);
+
+        let html = layout_engine
+            .render_page("podcast", &episode.content, &fm, &site_context)
+            .unwrap();
+
+        assert!(
+            !html.contains("data-tab=\"transcript\""),
+            "Episode without transcript should not have transcript tab"
+        );
+        assert!(
+            html.contains("Timestamps coming soon..."),
+            "Should show timestamps fallback"
+        );
+    }
+
+    // Integration: TODO link filtering
+
+    #[test]
+    fn test_podcast_todo_link_filtering() {
+        let (episodes, site_context, layout_engine) = build_podcast_test_context();
+        let html = render_podcast_episode(
+            "technical-writing-for-data-scientists",
+            &episodes,
+            &site_context,
+            &layout_engine,
+        );
+
+        // Apple and Spotify links are TODO, should not appear as platform chips
+        assert!(
+            !html.contains("Apple Podcasts"),
+            "Should NOT render Apple Podcasts chip when link is TODO"
+        );
+        assert!(
+            !html.contains("icon-platform-spotify"),
+            "Should NOT render Spotify chip when link is TODO"
+        );
+    }
+
+    // Integration: Quotable clips in JSON-LD
+
+    #[test]
+    fn test_podcast_quotable_clips_json_ld() {
+        let (episodes, site_context, layout_engine) = build_podcast_test_context();
+        let html = render_podcast_episode(
+            "ab-testing-and-product-experimentation",
+            &episodes,
+            &site_context,
+            &layout_engine,
+        );
+
+        assert!(
+            html.contains("\"@type\": \"Clip\"") || html.contains("\"@type\":\"Clip\""),
+            "Should contain Clip type in JSON-LD VideoObject hasPart"
+        );
+        assert!(html.contains("startOffset"), "Clip should have startOffset");
+        assert!(html.contains("endOffset"), "Clip should have endOffset");
+    }
+
+    // Integration: Related episodes
+
+    #[test]
+    fn test_podcast_related_episodes() {
+        let (episodes, site_context, layout_engine) = build_podcast_test_context();
+        let html = render_podcast_episode(
+            "building-agentic-ai-engineering-tooling-retrieval-evaluation",
+            &episodes,
+            &site_context,
+            &layout_engine,
+        );
+
+        assert!(
+            html.contains("Related episodes"),
+            "Should contain Related episodes section"
+        );
+        assert!(
+            html.contains("related-episode-card"),
+            "Should contain related episode cards"
+        );
+    }
+
+    // Integration: Inline JavaScript preserved
+
+    #[test]
+    fn test_podcast_inline_javascript() {
+        let (episodes, site_context, layout_engine) = build_podcast_test_context();
+
+        let episode = episodes.iter().next().unwrap();
+        let mut fm = episode.front_matter.clone();
+        fm.insert(
+            "url".to_string(),
+            serde_yaml::Value::String(episode.url.clone()),
+        );
+        normalize_podcast_front_matter(&mut fm);
+
+        let html = layout_engine
+            .render_page("podcast", &episode.content, &fm, &site_context)
+            .unwrap();
+
+        assert!(
+            html.contains("Tab switching functionality"),
+            "Should contain tab switching script"
+        );
+        assert!(
+            html.contains("podcast-tab-button"),
+            "Should contain tab button class"
+        );
+    }
+
+    // Integration: Newsletter CTA
+
+    #[test]
+    fn test_podcast_newsletter_cta() {
+        let (episodes, site_context, layout_engine) = build_podcast_test_context();
+
+        let episode = episodes.iter().next().unwrap();
+        let mut fm = episode.front_matter.clone();
+        fm.insert(
+            "url".to_string(),
+            serde_yaml::Value::String(episode.url.clone()),
+        );
+        normalize_podcast_front_matter(&mut fm);
+
+        let html = layout_engine
+            .render_page("podcast", &episode.content, &fm, &site_context)
+            .unwrap();
+
+        assert!(
+            html.contains("mc-embedded-subscribe-form"),
+            "Should contain Mailchimp form"
+        );
+    }
+
+    // Integration: JSON-LD partOfSeason and partOfSeries
+
+    #[test]
+    fn test_podcast_json_ld_season_and_series() {
+        let (episodes, site_context, layout_engine) = build_podcast_test_context();
+        let html = render_podcast_episode(
+            "building-agentic-ai-engineering-tooling-retrieval-evaluation",
+            &episodes,
+            &site_context,
+            &layout_engine,
+        );
+
+        assert!(
+            html.contains("\"seasonNumber\": 22"),
+            "Should contain seasonNumber 22"
+        );
+        assert!(
+            html.contains("DataTalks.Club Podcast"),
+            "Should contain series name"
+        );
+        assert!(html.contains("partOfSeries"), "Should contain partOfSeries");
+    }
+
+    // Integration: Full generation against real data
+
+    #[test]
+    fn test_generate_all_podcast_pages() {
+        let output_dir = tempfile::TempDir::new().unwrap();
+        let (count, errors) = generate_podcast_pages(&site_dir(), output_dir.path()).unwrap();
+
+        if !errors.is_empty() {
+            eprintln!("Podcast generation errors ({} errors):", errors.len());
+            for err in errors.iter().take(10) {
+                eprintln!("  - {}", err);
+            }
+        }
+
+        assert!(
+            count >= 193,
+            "Expected at least 193 podcast pages generated, got {} (errors: {})",
+            count,
+            errors.len()
+        );
+
+        let podcast_dir = output_dir.path().join("podcast");
+        assert!(podcast_dir.exists(), "podcast/ directory should exist");
+
+        let html_count = fs::read_dir(&podcast_dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| {
+                e.path()
+                    .extension()
+                    .map(|ext| ext == "html")
+                    .unwrap_or(false)
+            })
+            .count();
+        assert!(
+            html_count >= 193,
+            "Expected 193+ HTML files, got {}",
+            html_count
+        );
+    }
+
+    #[test]
+    fn test_generated_podcast_files_are_valid_html() {
+        let output_dir = tempfile::TempDir::new().unwrap();
+        let (_, _) = generate_podcast_pages(&site_dir(), output_dir.path()).unwrap();
+
+        let podcast_dir = output_dir.path().join("podcast");
+        let mut checked = 0;
+        for entry in fs::read_dir(&podcast_dir).unwrap() {
+            let entry = entry.unwrap();
+            let path = entry.path();
+            if path.extension().map(|e| e == "html").unwrap_or(false) {
+                let content = fs::read_to_string(&path).unwrap();
+                assert!(!content.is_empty(), "File should not be empty: {:?}", path);
+                assert!(
+                    content.contains("<html"),
+                    "File should contain <html: {:?}",
+                    path
+                );
+                assert!(
+                    content.contains("<body"),
+                    "File should contain <body: {:?}",
+                    path
+                );
+                // Check for closing body tag (podcast layout may not have </html>)
+                assert!(
+                    content.contains("</body>"),
+                    "File should contain </body>: {:?}",
+                    path
+                );
+                checked += 1;
+            }
+        }
+        assert!(
+            checked >= 193,
+            "Should check 193+ files, checked {}",
+            checked
+        );
+    }
+
+    #[test]
+    fn test_generated_agentic_episode_content() {
+        let output_dir = tempfile::TempDir::new().unwrap();
+        let (_, _) = generate_podcast_pages(&site_dir(), output_dir.path()).unwrap();
+
+        let path = output_dir
+            .path()
+            .join("podcast/building-agentic-ai-engineering-tooling-retrieval-evaluation.html");
+        assert!(path.exists(), "Agentic episode should exist");
+        let content = fs::read_to_string(&path).unwrap();
+
+        assert!(
+            content.contains("Season 22, Episode 1"),
+            "Should contain season/episode badge"
+        );
+        assert!(
+            content.contains("Building Agentic AI"),
+            "Should contain title"
+        );
+        assert!(
+            content.contains("youtube.com") || content.contains("YouTube"),
+            "Should contain YouTube platform link"
+        );
+        assert!(
+            content.contains("x2AAjqz2XmM"),
+            "Should contain YouTube video ID"
+        );
+        assert!(
+            content.contains(r#"<script type="application/ld+json">"#),
+            "Should contain JSON-LD"
+        );
+        assert!(
+            content.contains("\"@type\": \"PodcastEpisode\""),
+            "Should contain PodcastEpisode"
+        );
+        assert!(
+            content.contains("Ranjitha Kulkarni"),
+            "Should contain guest name"
+        );
+    }
+
+    #[test]
+    fn test_generated_transcript_episode_content() {
+        let output_dir = tempfile::TempDir::new().unwrap();
+        let (_, _) = generate_podcast_pages(&site_dir(), output_dir.path()).unwrap();
+
+        let path = output_dir
+            .path()
+            .join("podcast/technical-writing-for-data-scientists.html");
+        assert!(path.exists(), "Transcript episode should exist");
+        let content = fs::read_to_string(&path).unwrap();
+
+        assert!(
+            content.contains("data-tab=\"transcript\""),
+            "Should have transcript tab"
+        );
+        assert!(
+            content.contains("transcript-header"),
+            "Should have transcript headers"
+        );
+        assert!(
+            content.contains("<b>Alexey</b>"),
+            "Should have speaker name in bold"
+        );
+        assert!(
+            content.contains("data-time="),
+            "Should have timestamp data attributes"
+        );
+    }
+
+    #[test]
+    fn test_generated_ab_testing_episode_clips() {
+        let output_dir = tempfile::TempDir::new().unwrap();
+        let (_, _) = generate_podcast_pages(&site_dir(), output_dir.path()).unwrap();
+
+        let path = output_dir
+            .path()
+            .join("podcast/ab-testing-and-product-experimentation.html");
+        assert!(path.exists(), "AB testing episode should exist");
+        let content = fs::read_to_string(&path).unwrap();
+
+        assert!(
+            content.contains("\"@type\": \"Clip\"") || content.contains("\"@type\":\"Clip\""),
+            "Should contain Clip in JSON-LD"
+        );
+        assert!(
+            content.contains("startOffset"),
+            "Should contain clip startOffset"
+        );
+    }
+
+    // Edge: Episode with no guests
+
+    #[test]
+    fn test_podcast_episode_no_guests_no_crash() {
+        let (episodes, site_context, layout_engine) = build_podcast_test_context();
+
+        // Find an episode without guests
+        let episode = episodes
+            .iter()
+            .find(|e| !e.front_matter.contains_key("guests"));
+        if let Some(episode) = episode {
+            let mut fm = episode.front_matter.clone();
+            fm.insert(
+                "url".to_string(),
+                serde_yaml::Value::String(episode.url.clone()),
+            );
+            normalize_podcast_front_matter(&mut fm);
+
+            let result = layout_engine.render_page("podcast", &episode.content, &fm, &site_context);
+            assert!(
+                result.is_ok(),
+                "Episode without guests should render without error: {:?}",
+                result.err()
+            );
+            let html = result.unwrap();
+            assert!(
+                !html.contains("guest-bio-card"),
+                "Should not have guest bio cards"
+            );
+        }
+    }
+
+    // Spot-check JSON-LD is parseable
+
+    #[test]
+    fn test_podcast_json_ld_parseable() {
+        let output_dir = tempfile::TempDir::new().unwrap();
+        let (_, _) = generate_podcast_pages(&site_dir(), output_dir.path()).unwrap();
+
+        let files_to_check = [
+            "building-agentic-ai-engineering-tooling-retrieval-evaluation.html",
+            "technical-writing-for-data-scientists.html",
+            "ab-testing-and-product-experimentation.html",
+        ];
+
+        for filename in &files_to_check {
+            let path = output_dir.path().join("podcast").join(filename);
+            let content = fs::read_to_string(&path).unwrap();
+
+            // Extract JSON-LD block
+            let json_start = content.find(r#"<script type="application/ld+json">"#);
+            assert!(json_start.is_some(), "Should find JSON-LD in {}", filename);
+            let start = json_start.unwrap() + r#"<script type="application/ld+json">"#.len();
+            let end = content[start..].find("</script>").unwrap() + start;
+            let json_str = content[start..end].trim();
+
+            let parsed: Result<serde_json::Value, _> = serde_json::from_str(json_str);
+            assert!(
+                parsed.is_ok(),
+                "JSON-LD should be valid JSON in {}: {:?}\nJSON: {}",
+                filename,
+                parsed.err(),
+                &json_str[..json_str.len().min(500)]
+            );
+        }
     }
 }
