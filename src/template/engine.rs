@@ -211,7 +211,9 @@ impl<'a> LenientObject<'a> {
     fn new(inner: &'a Object) -> Self {
         // Only wrap page and include (small objects that need lenient access).
         // site context is large but already normalized via normalize_arrays.
-        let page = inner.get("page").map(|v| LenientValue::from_value(v.to_value()));
+        let page = inner
+            .get("page")
+            .map(|v| LenientValue::from_value(v.to_value()));
         let include = inner
             .get("include")
             .map(|v| LenientValue::from_value(v.to_value()));

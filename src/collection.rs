@@ -53,6 +53,9 @@ pub struct CollectionItem {
 
     /// Which collection this item belongs to (e.g. `people`, `posts`).
     pub collection_name: String,
+
+    /// Relative path to the source file (e.g. `_posts/2020-11-29-segmentation.md`).
+    pub source_path: String,
 }
 
 /// Regex-free post filename parsing. Extracts date and slug from `YYYY-MM-DD-title.md`.
@@ -186,6 +189,11 @@ pub fn load_collection(
         let url = generate_url(&permalink_pattern, collection_name, &slug);
         let html_content = frontmatter::markdown_to_html(&doc.content);
 
+        let source_path = path
+            .strip_prefix(site_dir)
+            .map(|p| p.to_string_lossy().replace('\\', "/"))
+            .unwrap_or_else(|_| path.to_string_lossy().replace('\\', "/"));
+
         items.push(CollectionItem {
             slug,
             front_matter: doc.front_matter,
@@ -195,6 +203,7 @@ pub fn load_collection(
             url,
             date,
             collection_name: collection_name.to_string(),
+            source_path,
         });
     }
 
@@ -202,7 +211,7 @@ pub fn load_collection(
 }
 
 /// A standalone page (root-level `.md` file, not part of any collection).
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Page {
     /// Filename stem (e.g. `index` from `index.md`).
     pub slug: String,
@@ -218,6 +227,9 @@ pub struct Page {
 
     /// Generated URL path.
     pub url: String,
+
+    /// Relative path to the source file (e.g. `index.md`).
+    pub source_path: String,
 }
 
 /// Load standalone `.md` pages from the root directory.
@@ -298,12 +310,18 @@ pub fn load_pages(site_dir: &Path) -> Result<(Vec<Page>, Vec<CollectionError>), 
 
         let html_content = frontmatter::markdown_to_html(&doc.content);
 
+        let source_path_str = path
+            .strip_prefix(site_dir)
+            .map(|p| p.to_string_lossy().replace('\\', "/"))
+            .unwrap_or_else(|_| path.to_string_lossy().replace('\\', "/"));
+
         pages.push(Page {
             slug: stem.to_string(),
             front_matter: doc.front_matter,
             content: doc.content,
             html_content,
             url,
+            source_path: source_path_str,
         });
     }
 

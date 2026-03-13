@@ -9,6 +9,7 @@ use rustkyll::config::SiteConfig;
 use rustkyll::data;
 use rustkyll::feed::{self, FeedOptions};
 use rustkyll::generator::{self, GeneratorError};
+use rustkyll::incremental::{self, BuildManifest, IncrementalAction};
 use rustkyll::sitemap;
 use rustkyll::static_files;
 use rustkyll::template::layout::LayoutEngine;
@@ -35,6 +36,14 @@ enum Commands {
         /// Destination directory (default: _site)
         #[arg(long, default_value = "_site")]
         destination: PathBuf,
+
+        /// Enable incremental builds (only rebuild changed pages)
+        #[arg(long, default_value_t = false)]
+        incremental: bool,
+
+        /// Force a full rebuild, ignoring the incremental manifest
+        #[arg(long, default_value_t = false)]
+        force: bool,
     },
 }
 
@@ -66,6 +75,15 @@ enum BuildError {
     Io(#[from] std::io::Error),
 }
 
+/// Options controlling the build behavior.
+#[derive(Debug, Clone)]
+struct BuildOptions {
+    /// Whether incremental builds are enabled.
+    incremental: bool,
+    /// Whether to force a full rebuild (overrides incremental).
+    force: bool,
+}
+
 /// Summary of a completed build.
 #[derive(Debug, Default)]
 struct BuildSummary {
@@ -74,10 +92,35 @@ struct BuildSummary {
     sitemap_entries: usize,
     static_files: usize,
     errors: Vec<String>,
+    /// Whether this was an incremental build that skipped everything.
+    skipped_all: bool,
+    /// Number of source files that triggered a rebuild.
+    changed_sources: usize,
+}
+
+/// Collect all source file relative paths from loaded collections and pages.
+fn collect_all_source_paths(
+    collections: &HashMap<String, Vec<CollectionItem>>,
+    pages: &[collection::Page],
+) -> Vec<PathBuf> {
+    let mut paths: Vec<PathBuf> = Vec::new();
+    for items in collections.values() {
+        for item in items {
+            paths.push(PathBuf::from(&item.source_path));
+        }
+    }
+    for page in pages {
+        paths.push(PathBuf::from(&page.source_path));
+    }
+    paths
 }
 
 /// Run the full site build pipeline.
-fn build_site(source: &Path, destination: &Path) -> Result<BuildSummary, BuildError> {
+fn build_site(
+    source: &Path,
+    destination: &Path,
+    options: &BuildOptions,
+) -> Result<BuildSummary, BuildError> {
     let mut summary = BuildSummary::default();
 
     // 1. Load config
@@ -119,60 +162,120 @@ fn build_site(source: &Path, destination: &Path) -> Result<BuildSummary, BuildEr
         all_load_errors.push(format!("pages: {}", err));
     }
 
-    // 5. Build site context
+    // 5. Incremental build check
+    let current_globals = incremental::collect_global_files(source);
+    let all_source_paths = collect_all_source_paths(&collections, &pages);
+    let current_sources = incremental::collect_source_files(source, &all_source_paths);
+
+    let do_incremental = options.incremental && !options.force;
+    let action = if do_incremental {
+        match incremental::load_manifest(destination) {
+            Some(prev_manifest) => {
+                incremental::determine_action(&prev_manifest, &current_globals, &current_sources)
+            }
+            None => IncrementalAction::FullRebuild, // no manifest = first build
+        }
+    } else {
+        IncrementalAction::FullRebuild
+    };
+
+    // Handle skip-all case
+    if action == IncrementalAction::SkipAll {
+        summary.skipped_all = true;
+        summary.errors.extend(all_load_errors);
+        return Ok(summary);
+    }
+
+    // Determine which source files changed (for partial rebuilds)
+    let changed_set: Option<std::collections::HashSet<String>> = match &action {
+        IncrementalAction::RebuildPartial(changed) => {
+            summary.changed_sources = changed.len();
+            Some(changed.iter().cloned().collect())
+        }
+        _ => None,
+    };
+
+    // 6. Build site context (always uses full collections for cross-references)
     let site_context =
         generator::build_site_context(&config, &collections, &data_tree, Some(source));
 
-    // 6. Create layout engine
+    // 7. Create layout engine
     let layouts_dir = source.join("_layouts");
     let includes_dir = source.join("_includes");
     let layout_engine = LayoutEngine::new(&layouts_dir, &includes_dir)?;
 
-    // 7. Clean and create destination directory
-    if destination.exists() {
-        std::fs::remove_dir_all(destination)?;
+    // 8. Clean and create destination directory (only for full rebuilds)
+    if changed_set.is_none() {
+        // Full rebuild: wipe destination
+        if destination.exists() {
+            std::fs::remove_dir_all(destination)?;
+        }
     }
     std::fs::create_dir_all(destination)?;
 
-    // 8. Generate collection pages (in parallel across collections)
+    // 9. Generate collection pages
     let collection_names: Vec<String> = collections.keys().cloned().collect();
     for name in &collection_names {
         if let Some(items) = collections.get(name) {
-            let result = generator::generate_collection_pages(
-                items,
-                name,
-                &config,
-                &layout_engine,
-                &site_context,
-                destination,
-            )?;
-            summary.collection_pages += result.generated;
-            summary.errors.extend(result.errors);
+            // For partial rebuilds, filter to only changed items
+            let items_to_build: Vec<&CollectionItem> = match &changed_set {
+                Some(changed) => items
+                    .iter()
+                    .filter(|item| changed.contains(&item.source_path))
+                    .collect(),
+                None => items.iter().collect(),
+            };
+
+            if !items_to_build.is_empty() {
+                let owned_items: Vec<CollectionItem> =
+                    items_to_build.into_iter().cloned().collect();
+                let result = generator::generate_collection_pages(
+                    &owned_items,
+                    name,
+                    &config,
+                    &layout_engine,
+                    &site_context,
+                    destination,
+                )?;
+                summary.collection_pages += result.generated;
+                summary.errors.extend(result.errors);
+            }
         }
     }
 
-    // 9. Generate standalone pages
-    let page_result = generator::generate_standalone_pages(
-        &pages,
-        &config,
-        &layout_engine,
-        &site_context,
-        destination,
-    )?;
-    summary.standalone_pages = page_result.generated;
-    summary.errors.extend(page_result.errors);
+    // 10. Generate standalone pages
+    let pages_to_build: Vec<&collection::Page> = match &changed_set {
+        Some(changed) => pages
+            .iter()
+            .filter(|page| changed.contains(&page.source_path))
+            .collect(),
+        None => pages.iter().collect(),
+    };
 
-    // 10. Copy static files (before sitemap/feed so generated files take precedence)
+    if !pages_to_build.is_empty() {
+        let owned_pages: Vec<collection::Page> = pages_to_build.into_iter().cloned().collect();
+        let page_result = generator::generate_standalone_pages(
+            &owned_pages,
+            &config,
+            &layout_engine,
+            &site_context,
+            destination,
+        )?;
+        summary.standalone_pages = page_result.generated;
+        summary.errors.extend(page_result.errors);
+    }
+
+    // 11. Copy static files (before sitemap/feed so generated files take precedence)
     let static_count = static_files::copy_static_files(source, destination, &config)?;
     summary.static_files = static_count;
 
-    // 11. Generate sitemap.xml (after static copy to overwrite any source sitemap)
+    // 12. Generate sitemap.xml (always from full set)
     let collections_vec: Vec<(String, Vec<CollectionItem>)> = collections.into_iter().collect();
     let sitemap_count =
         sitemap::generate_sitemap(&config.url, &collections_vec, &pages, destination)?;
     summary.sitemap_entries = sitemap_count;
 
-    // 12. Generate feed.xml (from posts, after static copy to overwrite any source feed)
+    // 13. Generate feed.xml (from posts, after static copy to overwrite any source feed)
     let posts_for_feed: Vec<&CollectionItem> = collections_vec
         .iter()
         .filter(|(name, _)| name == "posts")
@@ -180,6 +283,28 @@ fn build_site(source: &Path, destination: &Path) -> Result<BuildSummary, BuildEr
         .collect();
     let posts_owned: Vec<CollectionItem> = posts_for_feed.into_iter().cloned().collect();
     feed::write_atom_feed(&posts_owned, &config, &FeedOptions::default(), destination)?;
+
+    // 14. Save the build manifest
+    let mut output_map = HashMap::new();
+    for (name, items) in &collections_vec {
+        for item in items {
+            // Map source path to output path based on URL
+            let output_path = item.url.trim_start_matches('/').to_string();
+            output_map.insert(item.source_path.clone(), output_path);
+        }
+        let _ = name; // suppress unused warning
+    }
+    for page in &pages {
+        let output_path = page.url.trim_start_matches('/').to_string();
+        output_map.insert(page.source_path.clone(), output_path);
+    }
+
+    let manifest = BuildManifest {
+        source_files: current_sources,
+        output_map,
+        global_files: current_globals,
+    };
+    incremental::save_manifest(destination, &manifest)?;
 
     // Include load errors in summary
     summary.errors.extend(all_load_errors);
@@ -194,36 +319,58 @@ fn main() {
         Some(Commands::Build {
             source,
             destination,
+            incremental,
+            force,
         }) => {
             let start = Instant::now();
 
             println!("Source:      {}", source.display());
             println!("Destination: {}", destination.display());
+            if incremental {
+                println!("Mode:        incremental");
+            }
+            if force {
+                println!("Mode:        force (full rebuild)");
+            }
             println!();
 
-            match build_site(&source, &destination) {
+            let options = BuildOptions { incremental, force };
+
+            match build_site(&source, &destination, &options) {
                 Ok(summary) => {
                     let elapsed = start.elapsed();
-                    let total_pages = summary.collection_pages + summary.standalone_pages;
 
-                    println!("Build complete!");
-                    println!("  Collection pages: {}", summary.collection_pages);
-                    println!("  Standalone pages: {}", summary.standalone_pages);
-                    println!("  Total pages:      {}", total_pages);
-                    println!("  Sitemap entries:  {}", summary.sitemap_entries);
-                    println!("  Static files:     {}", summary.static_files);
-                    println!("  Time:             {:.2}s", elapsed.as_secs_f64());
+                    if summary.skipped_all {
+                        println!("Nothing to do -- all files up to date.");
+                        println!("  Time: {:.2}s", elapsed.as_secs_f64());
+                    } else {
+                        let total_pages = summary.collection_pages + summary.standalone_pages;
 
-                    if !summary.errors.is_empty() {
-                        println!();
-                        println!("Warnings ({}):", summary.errors.len());
-                        for (i, err) in summary.errors.iter().enumerate() {
-                            if i < 20 {
-                                println!("  - {}", err);
-                            }
+                        println!("Build complete!");
+                        if summary.changed_sources > 0 {
+                            println!(
+                                "  Changed sources:  {} (incremental)",
+                                summary.changed_sources
+                            );
                         }
-                        if summary.errors.len() > 20 {
-                            println!("  ... and {} more", summary.errors.len() - 20);
+                        println!("  Collection pages: {}", summary.collection_pages);
+                        println!("  Standalone pages: {}", summary.standalone_pages);
+                        println!("  Total pages:      {}", total_pages);
+                        println!("  Sitemap entries:  {}", summary.sitemap_entries);
+                        println!("  Static files:     {}", summary.static_files);
+                        println!("  Time:             {:.2}s", elapsed.as_secs_f64());
+
+                        if !summary.errors.is_empty() {
+                            println!();
+                            println!("Warnings ({}):", summary.errors.len());
+                            for (i, err) in summary.errors.iter().enumerate() {
+                                if i < 20 {
+                                    println!("  - {}", err);
+                                }
+                            }
+                            if summary.errors.len() > 20 {
+                                println!("  ... and {} more", summary.errors.len() - 20);
+                            }
                         }
                     }
                 }
@@ -260,6 +407,7 @@ mod tests {
             Some(Commands::Build {
                 source: _,
                 destination: _,
+                ..
             })
         ));
     }
@@ -306,6 +454,7 @@ mod tests {
             Some(Commands::Build {
                 source,
                 destination,
+                ..
             }) => {
                 assert_eq!(source, PathBuf::from("/src"));
                 assert_eq!(destination, PathBuf::from("/dst"));
@@ -323,6 +472,7 @@ mod tests {
             Some(Commands::Build {
                 source,
                 destination,
+                ..
             }) => {
                 assert_eq!(source, PathBuf::from("."));
                 assert_eq!(destination, PathBuf::from("_site"));

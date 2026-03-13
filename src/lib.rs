@@ -1,9 +1,11 @@
 pub mod collection;
+pub mod compare;
 pub mod config;
 pub mod data;
 pub mod feed;
 pub mod frontmatter;
 pub mod generator;
+pub mod incremental;
 pub mod sitemap;
 pub mod static_files;
 pub mod template;

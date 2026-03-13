@@ -132,6 +132,7 @@ mod tests {
             url: url.to_string(),
             date: None,
             collection_name: collection.to_string(),
+            source_path: format!("_{collection}/{slug}.md"),
         }
     }
 
@@ -142,6 +143,7 @@ mod tests {
             content: String::new(),
             html_content: String::new(),
             url: url.to_string(),
+            source_path: format!("{slug}.md"),
         }
     }
 

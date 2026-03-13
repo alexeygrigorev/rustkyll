@@ -676,6 +676,7 @@ mod tests {
             url: "/people/test.html".to_string(),
             date: None,
             collection_name: "people".to_string(),
+            source_path: "_people/test.md".to_string(),
         };
         assert_eq!(
             resolve_layout(&item, &config, "people"),
@@ -700,6 +701,7 @@ mod tests {
             url: "/people/test.html".to_string(),
             date: None,
             collection_name: "people".to_string(),
+            source_path: "_people/test.md".to_string(),
         };
         assert_eq!(
             resolve_layout(&item, &config, "people"),
@@ -719,6 +721,7 @@ mod tests {
             url: "/courses/test.html".to_string(),
             date: None,
             collection_name: "courses".to_string(),
+            source_path: "_courses/test.md".to_string(),
         };
         // courses has no default layout
         assert_eq!(resolve_layout(&item, &config, "courses"), None);
@@ -1288,6 +1291,7 @@ DONE
                 url: "/people/alice.html".to_string(),
                 date: None,
                 collection_name: "people".to_string(),
+                source_path: "_people/alice.md".to_string(),
             },
             CollectionItem {
                 slug: "bob".to_string(),
@@ -1305,6 +1309,7 @@ DONE
                 url: "/people/bob.html".to_string(),
                 date: None,
                 collection_name: "people".to_string(),
+                source_path: "_people/bob.md".to_string(),
             },
         ];
 
@@ -1390,6 +1395,7 @@ DONE
                 url: "/widgets/widget-a.html".to_string(),
                 date: None,
                 collection_name: "widgets".to_string(),
+                source_path: "_widgets/widget-a.md".to_string(),
             },
             CollectionItem {
                 slug: "widget-b".to_string(),
@@ -1407,6 +1413,7 @@ DONE
                 url: "/widgets/widget-b.html".to_string(),
                 date: None,
                 collection_name: "widgets".to_string(),
+                source_path: "_widgets/widget-b.md".to_string(),
             },
         ];
 
