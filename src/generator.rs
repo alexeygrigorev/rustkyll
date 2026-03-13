@@ -369,6 +369,112 @@ pub fn generate_site_collection(
     Ok(result)
 }
 
+/// Generate HTML for standalone pages (root-level `.md` files like `events.md`).
+///
+/// Each page's raw content is rendered through the template engine (resolving
+/// Liquid tags like `{% assign %}`, `{% for %}`, `{% include %}`) and then
+/// wrapped in the layout specified by the page's front matter.
+///
+/// Output files are written to `<output_dir>/<slug>.html` (or the page's
+/// permalink if specified in front matter).
+///
+/// Pages without a `layout` in their front matter are skipped.
+pub fn generate_pages(
+    pages: &[crate::collection::Page],
+    layout_engine: &LayoutEngine,
+    site_context: &Object,
+    output_dir: &Path,
+) -> Result<GenerationResult, GeneratorError> {
+    fs::create_dir_all(output_dir).map_err(|e| GeneratorError::WriteFile {
+        path: output_dir.display().to_string(),
+        source: e,
+    })?;
+
+    let result = Mutex::new(GenerationResult {
+        generated: 0,
+        skipped: 0,
+        errors: Vec::new(),
+    });
+
+    pages.par_iter().for_each(|page| {
+        // Resolve layout from front matter
+        let layout_name = match page
+            .front_matter
+            .get("layout")
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.is_empty())
+        {
+            Some(name) => name.to_string(),
+            None => {
+                result.lock().unwrap().skipped += 1;
+                return;
+            }
+        };
+
+        // Build page front matter with url added
+        let mut page_fm = page.front_matter.clone();
+        page_fm.insert("url".into(), serde_yaml::Value::String(page.url.clone()));
+
+        // Use raw content (not html_content) because pages may contain Liquid tags
+        // that must be resolved before the layout wraps them.
+        match layout_engine.render_page(&layout_name, &page.content, &page_fm, site_context) {
+            Ok(html) => {
+                // Compute output path from URL
+                let relative = page.url.trim_start_matches('/');
+                let out_path = output_dir.join(relative);
+
+                if let Some(parent) = out_path.parent() {
+                    if let Err(e) = fs::create_dir_all(parent) {
+                        result.lock().unwrap().errors.push(format!(
+                            "Failed to create dir for page {}: {}",
+                            page.slug, e
+                        ));
+                        return;
+                    }
+                }
+
+                match fs::write(&out_path, &html) {
+                    Ok(()) => {
+                        result.lock().unwrap().generated += 1;
+                    }
+                    Err(e) => {
+                        result
+                            .lock()
+                            .unwrap()
+                            .errors
+                            .push(format!("Failed to write page {}: {}", page.slug, e));
+                    }
+                }
+            }
+            Err(e) => {
+                result
+                    .lock()
+                    .unwrap()
+                    .errors
+                    .push(format!("Failed to render page {}: {}", page.slug, e));
+            }
+        }
+    });
+
+    Ok(result.into_inner().unwrap())
+}
+
+/// Generate HTML for standalone pages (alias for `generate_pages`).
+///
+/// This is the public entry point specified by issue 14. It delegates to
+/// [`generate_pages`] which renders each root-level `.md` page through
+/// the template engine and wraps it in the layout from front matter.
+pub fn generate_standalone_pages(
+    pages: &[crate::collection::Page],
+    config: &SiteConfig,
+    layout_engine: &LayoutEngine,
+    site_context: &Object,
+    output_dir: &Path,
+) -> Result<GenerationResult, GeneratorError> {
+    let _ = config; // available for future use (e.g. default layout resolution)
+    generate_pages(pages, layout_engine, site_context, output_dir)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
