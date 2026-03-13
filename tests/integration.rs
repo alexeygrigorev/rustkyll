@@ -24,13 +24,22 @@ fn binary_runs_without_args() {
 }
 
 #[test]
-fn binary_build_subcommand_runs() {
+fn binary_build_subcommand_without_source_fails_gracefully() {
+    // Build without a valid source directory should fail with a config error
     let output = Command::new(env!("CARGO_BIN_EXE_rustkyll"))
         .arg("build")
+        .arg("--source")
+        .arg("/nonexistent/path")
         .output()
         .expect("failed to run rustkyll binary");
 
-    assert!(output.status.success());
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("Build failed"),
+        "Expected build failure message, got: {}",
+        stderr
+    );
 }
 
 #[test]
