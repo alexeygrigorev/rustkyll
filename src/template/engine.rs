@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
-use liquid::model::{DisplayCow, KStringCow, ObjectView, State, Value, ValueView};
+use liquid::model::{ArrayView, DisplayCow, KStringCow, ObjectView, State, Value, ValueView};
 use liquid::partials::{EagerCompiler, InMemorySource};
 use liquid::Object;
 
@@ -26,6 +26,8 @@ struct LenientValue {
     inner: Value,
     /// Pre-wrapped child objects (for returning references from `get()`).
     children: std::collections::HashMap<String, LenientValue>,
+    /// Pre-wrapped array elements (for returning references from array iteration).
+    array_children: Vec<LenientValue>,
     /// A Nil value we can hand out references to for missing keys.
     nil: Value,
 }
@@ -41,9 +43,17 @@ impl LenientValue {
         } else {
             std::collections::HashMap::new()
         };
+        let array_children = if let Value::Array(ref arr) = value {
+            arr.iter()
+                .map(|v| LenientValue::from_value(v.to_value()))
+                .collect()
+        } else {
+            Vec::new()
+        };
         Self {
             inner: value,
             children,
+            array_children,
             nil: Value::Nil,
         }
     }
@@ -84,9 +94,51 @@ impl ValueView for LenientValue {
         self.inner.to_value()
     }
 
+    fn as_scalar(&self) -> Option<liquid::model::ScalarCow<'_>> {
+        self.inner.as_scalar()
+    }
+
     fn as_object(&self) -> Option<&dyn ObjectView> {
         if self.inner.is_object() {
             Some(self)
+        } else {
+            None
+        }
+    }
+
+    fn as_array(&self) -> Option<&dyn ArrayView> {
+        if self.inner.is_array() {
+            Some(self)
+        } else {
+            None
+        }
+    }
+}
+
+impl ArrayView for LenientValue {
+    fn as_value(&self) -> &dyn ValueView {
+        self
+    }
+
+    fn size(&self) -> i64 {
+        self.array_children.len() as i64
+    }
+
+    fn values<'k>(&'k self) -> Box<dyn Iterator<Item = &'k dyn ValueView> + 'k> {
+        Box::new(self.array_children.iter().map(|v| v as &dyn ValueView))
+    }
+
+    fn contains_key(&self, index: i64) -> bool {
+        let len = self.array_children.len() as i64;
+        let idx = if index >= 0 { index } else { len + index };
+        idx >= 0 && idx < len
+    }
+
+    fn get(&self, index: i64) -> Option<&dyn ValueView> {
+        let len = self.array_children.len() as i64;
+        let idx = if index >= 0 { index } else { len + index };
+        if idx >= 0 && (idx as usize) < self.array_children.len() {
+            Some(&self.array_children[idx as usize] as &dyn ValueView)
         } else {
             None
         }
@@ -145,35 +197,40 @@ impl ObjectView for LenientValue {
 /// Nested `Object` values are recursively wrapped in `LenientValue` so that
 /// accessing missing keys at any depth (e.g. `page.missing_field`) returns
 /// `Nil` instead of erroring.
-struct LenientObject {
-    inner: Object,
-    /// Pre-wrapped child values (for returning references from `get()`).
-    children: std::collections::HashMap<String, LenientValue>,
+struct LenientObject<'a> {
+    inner: &'a Object,
+    /// Pre-wrapped page object (small, needs lenient key access).
+    page: Option<LenientValue>,
+    /// Pre-wrapped include object (small, needs lenient key access).
+    include: Option<LenientValue>,
     /// A Nil value we can hand out references to for missing keys.
     nil: Value,
 }
 
-impl LenientObject {
-    fn new(inner: Object) -> Self {
-        let mut children = std::collections::HashMap::new();
-        for (key, val) in inner.iter() {
-            children.insert(key.to_string(), LenientValue::from_value(val.to_value()));
-        }
+impl<'a> LenientObject<'a> {
+    fn new(inner: &'a Object) -> Self {
+        // Only wrap page and include (small objects that need lenient access).
+        // site context is large but already normalized via normalize_arrays.
+        let page = inner.get("page").map(|v| LenientValue::from_value(v.to_value()));
+        let include = inner
+            .get("include")
+            .map(|v| LenientValue::from_value(v.to_value()));
         Self {
             inner,
-            children,
+            page,
+            include,
             nil: Value::Nil,
         }
     }
 }
 
-impl std::fmt::Debug for LenientObject {
+impl std::fmt::Debug for LenientObject<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.inner.fmt(f)
     }
 }
 
-impl ValueView for LenientObject {
+impl ValueView for LenientObject<'_> {
     fn as_debug(&self) -> &dyn std::fmt::Debug {
         self
     }
@@ -207,7 +264,7 @@ impl ValueView for LenientObject {
     }
 }
 
-impl ObjectView for LenientObject {
+impl ObjectView for LenientObject<'_> {
     fn as_value(&self) -> &dyn ValueView {
         self
     }
@@ -221,15 +278,11 @@ impl ObjectView for LenientObject {
     }
 
     fn values<'k>(&'k self) -> Box<dyn Iterator<Item = &'k dyn ValueView> + 'k> {
-        Box::new(self.children.values().map(|v| v as &dyn ValueView))
+        ObjectView::values(&self.inner)
     }
 
     fn iter<'k>(&'k self) -> Box<dyn Iterator<Item = (KStringCow<'k>, &'k dyn ValueView)> + 'k> {
-        Box::new(
-            self.children
-                .iter()
-                .map(|(k, v)| (KStringCow::from_ref(k), v as &dyn ValueView)),
-        )
+        ObjectView::iter(&self.inner)
     }
 
     fn contains_key(&self, _index: &str) -> bool {
@@ -239,10 +292,14 @@ impl ObjectView for LenientObject {
     }
 
     fn get<'s>(&'s self, index: &str) -> Option<&'s dyn ValueView> {
-        self.children
-            .get(index)
-            .map(|v| v as &dyn ValueView)
-            .or(Some(&self.nil as &dyn ValueView))
+        // For page and include, use pre-wrapped lenient versions
+        // (small objects where missing key access is common)
+        match index {
+            "page" => self.page.as_ref().map(|v| v as &dyn ValueView),
+            "include" => self.include.as_ref().map(|v| v as &dyn ValueView),
+            _ => self.inner.get(index).map(|v| v as &dyn ValueView),
+        }
+        .or(Some(&self.nil as &dyn ValueView))
     }
 }
 
@@ -362,7 +419,7 @@ impl TemplateEngine {
     /// Returns `TemplateError::RenderError` for render failures other than
     /// undefined variables.
     pub fn render(&self, template: &Template, context: &Object) -> Result<String, TemplateError> {
-        let lenient = LenientObject::new(context.clone());
+        let lenient = LenientObject::new(context);
         template
             .inner
             .render(&lenient)

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use liquid::model::Value as LiquidValue;
 use liquid::Object;
 
@@ -55,6 +57,68 @@ pub fn yaml_mapping_to_object(mapping: &serde_yaml::Mapping) -> Object {
         obj.insert(key_str.into(), yaml_to_liquid(value));
     }
     obj
+}
+
+/// Normalize a Liquid value so that arrays of objects have uniform keys.
+///
+/// When Liquid iterates over an array of objects in a `{% for %}` loop,
+/// accessing a key that exists on some objects but not others causes an
+/// "Unknown index" error. This function prevents that by ensuring every
+/// object in an array has the same set of keys (the union of all keys
+/// across all objects in that array). Missing keys are filled with `Nil`.
+///
+/// The normalization is recursive: it processes arrays inside objects,
+/// arrays inside arrays, and objects inside arrays at all nesting levels.
+pub fn normalize_arrays(value: LiquidValue) -> LiquidValue {
+    match value {
+        LiquidValue::Array(arr) => {
+            // First, recursively normalize all elements
+            let arr: Vec<LiquidValue> = arr.into_iter().map(normalize_arrays).collect();
+
+            // Check if this is an array of objects
+            let has_objects = arr.iter().any(|v| matches!(v, LiquidValue::Object(_)));
+            if !has_objects {
+                return LiquidValue::Array(arr);
+            }
+
+            // Collect the union of all keys across all objects in the array
+            let mut all_keys = HashSet::new();
+            for item in &arr {
+                if let LiquidValue::Object(obj) = item {
+                    for (key, _) in obj.iter() {
+                        all_keys.insert(key.to_string());
+                    }
+                }
+            }
+
+            // Pad each object with Nil for any missing keys
+            let arr = arr
+                .into_iter()
+                .map(|item| {
+                    if let LiquidValue::Object(mut obj) = item {
+                        for key in &all_keys {
+                            if obj.get(key.as_str()).is_none() {
+                                obj.insert(key.clone().into(), LiquidValue::Nil);
+                            }
+                        }
+                        LiquidValue::Object(obj)
+                    } else {
+                        item
+                    }
+                })
+                .collect();
+
+            LiquidValue::Array(arr)
+        }
+        LiquidValue::Object(obj) => {
+            let mut new_obj = Object::new();
+            for (key, val) in obj.into_iter() {
+                new_obj.insert(key, normalize_arrays(val));
+            }
+            LiquidValue::Object(new_obj)
+        }
+        other => other,
+    }
 }
 
 /// Build a Liquid `Object` with `page` and `site` namespaces from YAML data.
@@ -240,5 +304,98 @@ page:
         } else {
             panic!("Expected site object");
         }
+    }
+
+    // ========================================================================
+    // normalize_arrays tests
+    // ========================================================================
+
+    #[test]
+    fn test_normalize_arrays_pads_missing_keys() {
+        let arr = LiquidValue::Array(vec![
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("name".into(), LiquidValue::scalar("Alice"));
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("name".into(), LiquidValue::scalar("Bob"));
+                o.insert("role".into(), LiquidValue::scalar("Engineer"));
+                o
+            }),
+        ]);
+
+        let normalized = normalize_arrays(arr);
+        if let LiquidValue::Array(items) = normalized {
+            // Alice's object should now have "role" = Nil
+            if let LiquidValue::Object(ref alice) = items[0] {
+                assert_eq!(alice.get("name"), Some(&LiquidValue::scalar("Alice")));
+                assert_eq!(alice.get("role"), Some(&LiquidValue::Nil));
+            } else {
+                panic!("Expected Object for Alice");
+            }
+            // Bob's object should be unchanged
+            if let LiquidValue::Object(ref bob) = items[1] {
+                assert_eq!(bob.get("name"), Some(&LiquidValue::scalar("Bob")));
+                assert_eq!(bob.get("role"), Some(&LiquidValue::scalar("Engineer")));
+            } else {
+                panic!("Expected Object for Bob");
+            }
+        } else {
+            panic!("Expected Array");
+        }
+    }
+
+    #[test]
+    fn test_normalize_arrays_recursive() {
+        // Object containing an array of objects
+        let inner_arr = LiquidValue::Array(vec![
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("x".into(), LiquidValue::scalar(1i64));
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("x".into(), LiquidValue::scalar(2i64));
+                o.insert("y".into(), LiquidValue::scalar(3i64));
+                o
+            }),
+        ]);
+
+        let obj = LiquidValue::Object({
+            let mut o = Object::new();
+            o.insert("items".into(), inner_arr);
+            o
+        });
+
+        let normalized = normalize_arrays(obj);
+        if let LiquidValue::Object(ref root) = normalized {
+            if let Some(LiquidValue::Array(ref items)) = root.get("items") {
+                if let LiquidValue::Object(ref first) = items[0] {
+                    assert_eq!(first.get("y"), Some(&LiquidValue::Nil));
+                } else {
+                    panic!("Expected Object");
+                }
+            } else {
+                panic!("Expected Array");
+            }
+        } else {
+            panic!("Expected Object");
+        }
+    }
+
+    #[test]
+    fn test_normalize_arrays_leaves_scalars_unchanged() {
+        let scalar = LiquidValue::scalar("hello");
+        assert_eq!(normalize_arrays(scalar.clone()), scalar);
+    }
+
+    #[test]
+    fn test_normalize_arrays_leaves_non_object_arrays_unchanged() {
+        let arr = LiquidValue::Array(vec![LiquidValue::scalar(1i64), LiquidValue::scalar(2i64)]);
+        let normalized = normalize_arrays(arr.clone());
+        assert_eq!(normalized, arr);
     }
 }

@@ -71,6 +71,10 @@ pub struct SiteConfig {
     #[serde(default)]
     pub twitter: Option<String>,
 
+    /// GitHub repository in `owner/repo` format (optional).
+    #[serde(default)]
+    pub repository: Option<String>,
+
     /// Global default permalink pattern for posts.
     #[serde(default = "default_permalink")]
     pub permalink: String,
@@ -367,6 +371,7 @@ title: "Test"
             name: "Test".to_string(),
             title: "Test".to_string(),
             twitter: Some("@test".to_string()),
+            repository: None,
             permalink: "/:title.html".to_string(),
             exclude: vec!["node_modules/".to_string()],
             collections,

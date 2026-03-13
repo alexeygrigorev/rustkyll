@@ -202,6 +202,7 @@ mod tests {
             name: "Test".to_string(),
             title: "Test".to_string(),
             twitter: None,
+            repository: None,
             permalink: "/:title.html".to_string(),
             exclude: vec![],
             collections: HashMap::new(),

@@ -27,7 +27,7 @@ pub enum CollectionError {
 }
 
 /// A single item from a Jekyll collection.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CollectionItem {
     /// Filename stem (e.g. `alexeygrigorev` from `alexeygrigorev.md`,
     /// `segmentation` from `2020-11-29-segmentation.md` for posts).
@@ -614,6 +614,7 @@ mod tests {
             name: "Test".to_string(),
             title: "Test".to_string(),
             twitter: None,
+            repository: None,
             permalink: "/:title.html".to_string(),
             exclude: vec![],
             collections: HashMap::new(),
@@ -644,6 +645,7 @@ mod tests {
             name: "Test".to_string(),
             title: "Test".to_string(),
             twitter: None,
+            repository: None,
             permalink: "/:title.html".to_string(),
             exclude: vec![],
             collections: HashMap::new(),

@@ -18,8 +18,8 @@ use std::path::Path;
 use liquid::model::Value as LiquidValue;
 use liquid::Object;
 
-use super::context::yaml_to_liquid;
-use super::engine::TemplateEngine;
+use super::context::{normalize_arrays, yaml_to_liquid};
+use super::engine::{Template, TemplateEngine};
 use super::error::TemplateError;
 use crate::frontmatter::FrontMatter;
 
@@ -39,6 +39,8 @@ pub struct Layout {
 pub struct LayoutEngine {
     /// Map of layout name (without extension) to Layout.
     layouts: HashMap<String, Layout>,
+    /// Pre-compiled layout templates (parsed once, rendered many times).
+    compiled_layouts: HashMap<String, Template>,
     /// Template engine with includes registered as partials.
     engine: TemplateEngine,
 }
@@ -58,7 +60,12 @@ impl LayoutEngine {
     pub fn new(layouts_dir: &Path, includes_dir: &Path) -> Result<Self, TemplateError> {
         let layouts = load_layouts(layouts_dir)?;
         let engine = TemplateEngine::with_includes(includes_dir)?;
-        Ok(Self { layouts, engine })
+        let compiled_layouts = Self::compile_layouts(&layouts, &engine)?;
+        Ok(Self {
+            layouts,
+            compiled_layouts,
+            engine,
+        })
     }
 
     /// Create a `LayoutEngine` from pre-loaded layouts and includes.
@@ -69,7 +76,24 @@ impl LayoutEngine {
         includes: &HashMap<String, String>,
     ) -> Result<Self, TemplateError> {
         let engine = TemplateEngine::with_includes_map(includes)?;
-        Ok(Self { layouts, engine })
+        let compiled_layouts = Self::compile_layouts(&layouts, &engine)?;
+        Ok(Self {
+            layouts,
+            compiled_layouts,
+            engine,
+        })
+    }
+
+    fn compile_layouts(
+        layouts: &HashMap<String, Layout>,
+        engine: &TemplateEngine,
+    ) -> Result<HashMap<String, Template>, TemplateError> {
+        let mut compiled = HashMap::new();
+        for (name, layout) in layouts {
+            let template = engine.parse(&layout.source)?;
+            compiled.insert(name.clone(), template);
+        }
+        Ok(compiled)
     }
 
     /// Get a reference to the underlying template engine.
@@ -114,7 +138,13 @@ impl LayoutEngine {
             .ok_or_else(|| TemplateError::LayoutNotFound(layout_name.to_string()))?;
 
         let ctx = build_render_context(content, page_front_matter, site_context);
-        let result = self.engine.parse_and_render(&layout.source, &ctx)?;
+
+        // Use pre-compiled template if available, otherwise parse on the fly
+        let result = if let Some(compiled) = self.compiled_layouts.get(layout_name) {
+            self.engine.render(compiled, &ctx)?
+        } else {
+            self.engine.parse_and_render(&layout.source, &ctx)?
+        };
 
         // Support layout chaining: if the layout specifies a parent layout, wrap again
         if let Some(ref parent_name) = layout.parent_layout {
@@ -272,10 +302,11 @@ pub fn build_render_context(
 ) -> Object {
     let mut ctx = Object::new();
 
-    // Build page object from front matter
+    // Build page object from front matter, normalizing arrays so that objects
+    // in arrays have uniform keys (prevents "Unknown index" in Liquid for loops)
     let mut page = Object::new();
     for (key, value) in page_front_matter {
-        page.insert(key.clone().into(), yaml_to_liquid(value));
+        page.insert(key.clone().into(), normalize_arrays(yaml_to_liquid(value)));
     }
     ctx.insert("page".into(), LiquidValue::Object(page));
 
