@@ -345,7 +345,7 @@ impl TemplateEngine {
         let partials_map = load_includes(includes_dir)?;
         let partials = build_partials(&partials_map);
         let parser = Self::builder()
-            .tag(liquid_lib::jekyll::IncludeTag)
+            .tag(super::include_tag::LenientIncludeTag)
             .partials(partials)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
@@ -362,7 +362,7 @@ impl TemplateEngine {
     pub fn with_includes_map(includes: &HashMap<String, String>) -> Result<Self, TemplateError> {
         let partials = build_partials(includes);
         let parser = Self::builder()
-            .tag(liquid_lib::jekyll::IncludeTag)
+            .tag(super::include_tag::LenientIncludeTag)
             .partials(partials)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;

@@ -13,6 +13,7 @@ pub mod context;
 pub mod engine;
 pub mod error;
 pub mod filters;
+pub mod include_tag;
 pub mod layout;
 
 pub use context::{build_context, yaml_mapping_to_object, yaml_to_liquid};

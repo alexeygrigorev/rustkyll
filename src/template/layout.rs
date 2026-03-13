@@ -1234,4 +1234,220 @@ mod tests {
         // Check content
         assert_eq!(ctx.get("content"), Some(&LiquidValue::scalar("Hello")));
     }
+
+    // ========================================================================
+    // Issue 26: Include parameters -- numeric values
+    // ========================================================================
+
+    #[test]
+    fn test_include_numeric_param_renders() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "counter.html".to_string(),
+            "{{ include.max_posts }}".to_string(),
+        );
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render("{% include counter.html max_posts=5 %}", &ctx)
+            .unwrap();
+        assert_eq!(output, "5");
+    }
+
+    #[test]
+    fn test_include_numeric_param_not_nil() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "counter.html".to_string(),
+            "{% assign x = include.max_posts | default: 3 %}{{ x }}".to_string(),
+        );
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render("{% include counter.html max_posts=5 %}", &ctx)
+            .unwrap();
+        // Value should be 5 (not default 3), confirming it's not nil
+        assert_eq!(output, "5");
+    }
+
+    // ========================================================================
+    // Issue 26: Include parameters -- boolean values
+    // ========================================================================
+
+    #[test]
+    fn test_include_boolean_true_param() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "toggle.html".to_string(),
+            "{% if include.show %}YES{% endif %}".to_string(),
+        );
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render("{% include toggle.html show=true %}", &ctx)
+            .unwrap();
+        assert_eq!(output, "YES");
+    }
+
+    #[test]
+    fn test_include_boolean_false_param() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "toggle.html".to_string(),
+            "{% if include.show %}YES{% else %}NO{% endif %}".to_string(),
+        );
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render("{% include toggle.html show=false %}", &ctx)
+            .unwrap();
+        assert_eq!(output, "NO");
+    }
+
+    // ========================================================================
+    // Issue 26: Include parameters -- bracket notation
+    // ========================================================================
+
+    #[test]
+    fn test_include_bracket_notation_numeric() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "data.html".to_string(),
+            r#"{{ include["count"] }}"#.to_string(),
+        );
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render("{% include data.html count=5 %}", &ctx)
+            .unwrap();
+        assert_eq!(output, "5");
+    }
+
+    #[test]
+    fn test_include_bracket_notation_string() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "data.html".to_string(),
+            r#"{{ include["name"] }}"#.to_string(),
+        );
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render(r#"{% include data.html name="test" %}"#, &ctx)
+            .unwrap();
+        assert_eq!(output, "test");
+    }
+
+    #[test]
+    fn test_include_bracket_notation_boolean() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "data.html".to_string(),
+            r#"{% if include["flag"] %}OK{% endif %}"#.to_string(),
+        );
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render("{% include data.html flag=true %}", &ctx)
+            .unwrap();
+        assert_eq!(output, "OK");
+    }
+
+    // ========================================================================
+    // Issue 26: Include parameters -- missing params (lenient)
+    // ========================================================================
+
+    #[test]
+    fn test_include_missing_param_renders_empty() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "simple.html".to_string(),
+            "{{ include.missing_param }}".to_string(),
+        );
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render("{% include simple.html %}", &ctx)
+            .unwrap();
+        assert_eq!(output, "");
+    }
+
+    #[test]
+    fn test_include_missing_param_default_filter() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "simple.html".to_string(),
+            "{% assign x = include.max | default: 3 %}{{ x }}".to_string(),
+        );
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render("{% include simple.html %}", &ctx)
+            .unwrap();
+        assert_eq!(output, "3");
+    }
+
+    // ========================================================================
+    // Issue 26: Include parameters -- multiple params
+    // ========================================================================
+
+    #[test]
+    fn test_include_multiple_params_dot_notation() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "card.html".to_string(),
+            "{{ include.title }}-{{ include.count }}-{% if include.show %}on{% endif %}"
+                .to_string(),
+        );
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render(
+                r#"{% include card.html title="Hello" count=3 show=true %}"#,
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(output, "Hello-3-on");
+    }
+
+    #[test]
+    fn test_include_multiple_params_bracket_notation() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "card.html".to_string(),
+            r#"{{ include["title"] }}-{{ include["count"] }}-{% if include["show"] %}on{% endif %}"#.to_string(),
+        );
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render(
+                r#"{% include card.html title="Hello" count=3 show=true %}"#,
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(output, "Hello-3-on");
+    }
+
+    // ========================================================================
+    // Issue 26: Nested includes with parameter forwarding
+    // ========================================================================
+
+    #[test]
+    fn test_nested_include_param_forwarding() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "inner.html".to_string(),
+            "inner={{ include.x }}".to_string(),
+        );
+        includes.insert(
+            "outer.html".to_string(),
+            "outer[{% include inner.html x=include.x %}]".to_string(),
+        );
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render(r#"{% include outer.html x="hello" %}"#, &ctx)
+            .unwrap();
+        assert_eq!(output, "outer[inner=hello]");
+    }
 }
