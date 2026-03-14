@@ -380,7 +380,7 @@ pub fn output_path(output_dir: &Path, collection: &str, slug: &str) -> std::path
 /// Compute the output file path from a URL.
 ///
 /// URLs ending with `/` produce `<output_dir>/<url>/index.html` (pretty URLs).
-/// URLs ending with `.html` produce `<output_dir>/<url>` directly.
+/// URLs with a recognized file extension produce `<output_dir>/<url>` directly.
 /// Other URLs get `.html` appended.
 pub fn url_to_output_path(output_dir: &Path, url: &str) -> std::path::PathBuf {
     let relative = url.trim_start_matches('/');
@@ -389,10 +389,33 @@ pub fn url_to_output_path(output_dir: &Path, url: &str) -> std::path::PathBuf {
     }
     if relative.ends_with('/') {
         output_dir.join(relative).join("index.html")
-    } else if relative.ends_with(".html") {
+    } else if url_has_file_extension(relative) {
+        // URL already has a recognized file extension (e.g., .html, .xml, .json)
         output_dir.join(relative)
     } else {
         output_dir.join(format!("{relative}.html"))
+    }
+}
+
+/// Check if a URL path already has a recognized file extension.
+fn url_has_file_extension(path: &str) -> bool {
+    if let Some(dot_pos) = path.rfind('.') {
+        let ext = &path[dot_pos..];
+        matches!(
+            ext,
+            ".html"
+                | ".htm"
+                | ".xml"
+                | ".json"
+                | ".txt"
+                | ".rss"
+                | ".atom"
+                | ".css"
+                | ".js"
+                | ".svg"
+        )
+    } else {
+        false
     }
 }
 
@@ -742,19 +765,24 @@ pub fn generate_pages_cached(
     });
 
     pages.par_iter().for_each(|page| {
-        // Resolve layout from front matter
-        let layout_name = match page
-            .front_matter
-            .get("layout")
+        // Resolve layout from front matter.
+        // Three cases:
+        //   1. `layout: "some_layout"` -> render with that layout
+        //   2. `layout: null` (explicit null) -> render through Liquid, no layout wrapping
+        //   3. No `layout` key at all -> skip page (no rendering)
+        let layout_value = page.front_matter.get("layout");
+        let layout_name: Option<String> = layout_value
             .and_then(|v| v.as_str())
             .filter(|s| !s.is_empty())
-        {
-            Some(name) => name.to_string(),
-            None => {
-                result.lock().unwrap().skipped += 1;
-                return;
-            }
-        };
+            .map(|s| s.to_string());
+
+        let has_null_layout = layout_value.map(|v| v.is_null()).unwrap_or(false);
+
+        if layout_name.is_none() && !has_null_layout {
+            // No layout key at all -> skip
+            result.lock().unwrap().skipped += 1;
+            return;
+        }
 
         // Build page front matter with url added
         let mut page_fm = page.front_matter.clone();
@@ -762,23 +790,39 @@ pub fn generate_pages_cached(
 
         // Use raw content (not html_content) because pages may contain Liquid tags
         // that must be resolved before the layout wraps them.
-        // For markdown pages (.md files), use the markdown pipeline (Liquid first,
-        // then markdown->HTML) so that markdown headings and formatting are rendered.
         let is_markdown = page.source_path.ends_with(".md");
-        let render_result = if is_markdown {
-            layout_engine.render_markdown_page_with_cached_site(
-                &layout_name,
-                &page.content,
-                &page_fm,
-                cached_site,
-            )
+        let render_result = if let Some(ref layout) = layout_name {
+            // Has a named layout -> render with layout wrapping
+            if is_markdown {
+                layout_engine.render_markdown_page_with_cached_site(
+                    layout,
+                    &page.content,
+                    &page_fm,
+                    cached_site,
+                )
+            } else {
+                layout_engine.render_page_with_cached_site(
+                    layout,
+                    &page.content,
+                    &page_fm,
+                    cached_site,
+                )
+            }
         } else {
-            layout_engine.render_page_with_cached_site(
-                &layout_name,
-                &page.content,
-                &page_fm,
-                cached_site,
-            )
+            // layout: null -> render through Liquid without layout wrapping
+            if is_markdown {
+                layout_engine.render_markdown_content_with_cached_site(
+                    &page.content,
+                    &page_fm,
+                    cached_site,
+                )
+            } else {
+                layout_engine.render_content_only_with_cached_site(
+                    &page.content,
+                    &page_fm,
+                    cached_site,
+                )
+            }
         };
         match render_result {
             Ok(html) => {
@@ -1478,6 +1522,46 @@ mod tests {
                 "/tmp/site/podcast/building-agentic-ai-engineering-tooling-retrieval-evaluation.html"
             )
         );
+    }
+
+    // ========================================================================
+    // Unit: url_to_output_path for non-HTML extensions
+    // ========================================================================
+
+    #[test]
+    fn test_url_to_output_path_xml() {
+        let path = url_to_output_path(Path::new("/tmp/site"), "/podcast.xml");
+        assert_eq!(path, PathBuf::from("/tmp/site/podcast.xml"));
+    }
+
+    #[test]
+    fn test_url_to_output_path_json() {
+        let path = url_to_output_path(Path::new("/tmp/site"), "/data.json");
+        assert_eq!(path, PathBuf::from("/tmp/site/data.json"));
+    }
+
+    #[test]
+    fn test_url_to_output_path_html_unchanged() {
+        let path = url_to_output_path(Path::new("/tmp/site"), "/about.html");
+        assert_eq!(path, PathBuf::from("/tmp/site/about.html"));
+    }
+
+    #[test]
+    fn test_url_to_output_path_no_ext_gets_html() {
+        let path = url_to_output_path(Path::new("/tmp/site"), "/about");
+        assert_eq!(path, PathBuf::from("/tmp/site/about.html"));
+    }
+
+    #[test]
+    fn test_url_to_output_path_trailing_slash_pretty() {
+        let path = url_to_output_path(Path::new("/tmp/site"), "/about/");
+        assert_eq!(path, PathBuf::from("/tmp/site/about/index.html"));
+    }
+
+    #[test]
+    fn test_url_to_output_path_txt() {
+        let path = url_to_output_path(Path::new("/tmp/site"), "/robots.txt");
+        assert_eq!(path, PathBuf::from("/tmp/site/robots.txt"));
     }
 
     // ========================================================================

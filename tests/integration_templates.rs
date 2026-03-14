@@ -316,3 +316,116 @@ fn test_group_by_integration() {
     // BTreeMap ensures deterministic ordering: "fruit" before "veggie"
     assert_eq!(result.trim(), "fruit:2;veggie:1;");
 }
+
+// ========================================================================
+// Unit: `reversed` modifier in for loops
+// ========================================================================
+
+#[test]
+fn test_for_loop_reversed() {
+    let engine = rustkyll::template::engine::TemplateEngine::new().unwrap();
+    let mut ctx = Object::new();
+    ctx.insert(
+        "items".into(),
+        LiquidValue::Array(vec![
+            LiquidValue::scalar("a"),
+            LiquidValue::scalar("b"),
+            LiquidValue::scalar("c"),
+        ]),
+    );
+    let result = engine
+        .parse_and_render(
+            "{% for item in items reversed %}{{ item }} {% endfor %}",
+            &ctx,
+        )
+        .unwrap();
+    assert_eq!(result, "c b a ");
+}
+
+#[test]
+fn test_for_loop_reversed_with_limit() {
+    let engine = rustkyll::template::engine::TemplateEngine::new().unwrap();
+    let mut ctx = Object::new();
+    ctx.insert(
+        "items".into(),
+        LiquidValue::Array(vec![
+            LiquidValue::scalar("a"),
+            LiquidValue::scalar("b"),
+            LiquidValue::scalar("c"),
+            LiquidValue::scalar("d"),
+        ]),
+    );
+    let result = engine
+        .parse_and_render(
+            "{% for item in items reversed limit:2 %}{{ item }} {% endfor %}",
+            &ctx,
+        )
+        .unwrap();
+    // The liquid crate applies limit first (takes first 2: a, b), then reverses (b, a)
+    assert_eq!(result, "b a ");
+}
+
+#[test]
+fn test_for_loop_reversed_empty_array() {
+    let engine = rustkyll::template::engine::TemplateEngine::new().unwrap();
+    let mut ctx = Object::new();
+    ctx.insert("items".into(), LiquidValue::Array(vec![]));
+    let result = engine
+        .parse_and_render(
+            "{% for item in items reversed %}{{ item }} {% endfor %}",
+            &ctx,
+        )
+        .unwrap();
+    assert_eq!(result, "");
+}
+
+// ========================================================================
+// Unit: Template rendering with collection iteration
+// ========================================================================
+
+#[test]
+fn test_for_loop_over_site_collection() {
+    let engine = rustkyll::template::engine::TemplateEngine::new().unwrap();
+    let mut site = Object::new();
+    let stories: Vec<LiquidValue> = (0..5)
+        .map(|i| {
+            let mut obj = Object::new();
+            obj.insert("title".into(), LiquidValue::scalar(format!("Story {}", i)));
+            LiquidValue::Object(obj)
+        })
+        .collect();
+    site.insert("stories".into(), LiquidValue::Array(stories));
+
+    let mut ctx = Object::new();
+    ctx.insert("site".into(), LiquidValue::Object(site));
+
+    let result = engine
+        .parse_and_render("{% for post in site.stories %}X{% endfor %}", &ctx)
+        .unwrap();
+    assert_eq!(result, "XXXXX");
+}
+
+#[test]
+fn test_for_loop_over_site_collection_reversed() {
+    let engine = rustkyll::template::engine::TemplateEngine::new().unwrap();
+    let mut site = Object::new();
+    let stories: Vec<LiquidValue> = (1..=3)
+        .map(|i| {
+            let mut obj = Object::new();
+            obj.insert("num".into(), LiquidValue::scalar(i as i64));
+            LiquidValue::Object(obj)
+        })
+        .collect();
+    site.insert("stories".into(), LiquidValue::Array(stories));
+
+    let mut ctx = Object::new();
+    ctx.insert("site".into(), LiquidValue::Object(site));
+
+    let result = engine
+        .parse_and_render(
+            "{% for post in site.stories reversed %}{{ post.num }} {% endfor %}",
+            &ctx,
+        )
+        .unwrap();
+    assert_eq!(result, "3 2 1 ");
+}

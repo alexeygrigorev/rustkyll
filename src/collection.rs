@@ -505,7 +505,11 @@ pub struct Page {
     pub source_path: String,
 }
 
-/// Load standalone `.md` pages from the site directory, recursing into subdirectories.
+/// Load standalone pages from the site directory, recursing into subdirectories.
+///
+/// Loads `.md` files unconditionally, and also non-`.md` files (`.xml`, `.html`,
+/// `.htm`, `.json`, `.txt`) that have YAML front matter. This matches Jekyll's
+/// behavior of processing any file with front matter through its template engine.
 ///
 /// Skips `README.md` and files whose name starts with `_`.
 /// Skips directories that start with `_`, `.`, or are named `node_modules`,
@@ -553,7 +557,42 @@ fn should_skip_directory(name: &str, config: &SiteConfig) -> bool {
     false
 }
 
-/// Recursively discover and load `.md` pages from a directory.
+/// Check if a file extension indicates a processable page type.
+///
+/// Jekyll processes any file with YAML front matter. We check `.md` files
+/// unconditionally, and also check certain other extensions (`.xml`, `.html`,
+/// `.htm`, `.json`, `.txt`) for front matter presence.
+fn is_processable_extension(name: &str) -> Option<&'static str> {
+    [".md", ".xml", ".html", ".htm", ".json", ".txt"]
+        .iter()
+        .copied()
+        .find(|ext| name.ends_with(ext))
+}
+
+/// Check if raw file content starts with YAML front matter delimiters.
+fn has_front_matter(content: &str) -> bool {
+    let trimmed = content.trim_start_matches('\u{feff}');
+    if !trimmed.starts_with("---") {
+        return false;
+    }
+    // Must have a closing --- after the opening one
+    let after_opening = &trimmed[3..];
+    let rest = if let Some(stripped) = after_opening.strip_prefix('\n') {
+        stripped
+    } else if let Some(stripped) = after_opening.strip_prefix("\r\n") {
+        stripped
+    } else {
+        return false;
+    };
+    // Look for closing --- on its own line
+    rest.contains("\n---")
+}
+
+/// Recursively discover and load pages from a directory.
+///
+/// Loads `.md` files and also non-`.md` files (`.xml`, `.html`, etc.) that
+/// have YAML front matter, matching Jekyll's behavior of processing any file
+/// with front matter through its template engine.
 fn load_pages_recursive(
     current_dir: &Path,
     site_dir: &Path,
@@ -586,13 +625,16 @@ fn load_pages_recursive(
             continue;
         }
 
-        if !name.ends_with(".md") {
-            continue;
-        }
+        let ext = match is_processable_extension(&name) {
+            Some(ext) => ext,
+            None => continue,
+        };
 
         if name == "README.md" || name.starts_with('_') {
             continue;
         }
+
+        let is_markdown = ext == ".md";
 
         let raw = match fs::read_to_string(&path) {
             Ok(content) => content,
@@ -604,6 +646,12 @@ fn load_pages_recursive(
                 continue;
             }
         };
+
+        // For non-markdown files, only process if they have front matter
+        // (matching Jekyll behavior: only files starting with --- are processed)
+        if !is_markdown && !has_front_matter(&raw) {
+            continue;
+        }
 
         let doc = match frontmatter::parse_document(&raw) {
             Ok(doc) => doc,
@@ -627,41 +675,52 @@ fn load_pages_recursive(
             .map(|p| p.to_string_lossy().replace('\\', "/"))
             .unwrap_or_else(|_| path.to_string_lossy().replace('\\', "/"));
 
-        let stem = name.strip_suffix(".md").unwrap_or(&name);
+        let stem = name.strip_suffix(ext).unwrap_or(&name);
 
         // Use front matter `permalink` if present, otherwise derive from relative path
-        // using Jekyll's page URL rules (template + suffix based on site permalink style).
         let url = doc
             .front_matter
             .get("permalink")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string())
             .unwrap_or_else(|| {
-                let rel_stem = rel_path.strip_suffix(".md").unwrap_or(&rel_path);
-                // Index pages always get directory URL (e.g. "/" or "/subdir/")
-                if stem == "index" {
-                    let dir = rel_path.rsplit_once('/').map(|(d, _)| d).unwrap_or("");
-                    if dir.is_empty() {
-                        "/".to_string()
+                if is_markdown {
+                    let rel_stem = rel_path.strip_suffix(".md").unwrap_or(&rel_path);
+                    // Index pages always get directory URL (e.g. "/" or "/subdir/")
+                    if stem == "index" {
+                        let dir = rel_path.rsplit_once('/').map(|(d, _)| d).unwrap_or("");
+                        if dir.is_empty() {
+                            "/".to_string()
+                        } else {
+                            format!("/{}/", dir)
+                        }
                     } else {
-                        format!("/{}/", dir)
+                        // Inline the Jekyll Utils.add_permalink_suffix logic here.
+                        // See jekyll/lib/jekyll/utils.rb:253-267 for reference.
+                        let pl = &config.permalink;
+                        let suffix = match pl.as_str() {
+                            "pretty" => "/",
+                            "date" | "ordinal" | "none" => ".html",
+                            s if s.ends_with('/') => "/",
+                            s if s.ends_with(":output_ext") => ".html",
+                            _ => "",
+                        };
+                        format!("/{}{}", rel_stem, suffix)
                     }
                 } else {
-                    // Inline the Jekyll Utils.add_permalink_suffix logic here.
-                    // See jekyll/lib/jekyll/utils.rb:253-267 for reference.
-                    let pl = &config.permalink;
-                    let suffix = match pl.as_str() {
-                        "pretty" => "/",
-                        "date" | "ordinal" | "none" => ".html",
-                        s if s.ends_with('/') => "/",
-                        s if s.ends_with(":output_ext") => ".html",
-                        _ => "",
-                    };
-                    format!("/{}{}", rel_stem, suffix)
+                    // Non-markdown files keep their original extension in the URL
+                    // (e.g. podcast.xml -> /podcast.xml)
+                    format!("/{}", rel_path)
                 }
             });
 
-        let html_content = frontmatter::markdown_to_html(&doc.content);
+        let html_content = if is_markdown {
+            frontmatter::markdown_to_html(&doc.content)
+        } else {
+            // Non-markdown files: content is used as-is (will be rendered
+            // through Liquid but not converted from markdown to HTML)
+            doc.content.clone()
+        };
 
         pages.push(Page {
             slug: stem.to_string(),
@@ -1736,5 +1795,95 @@ mod tests {
         let config = SiteConfig::default();
         let (pages, _) = load_pages(dir.path(), &config).unwrap();
         assert_eq!(pages.len(), 1);
+    }
+
+    // ========================================================================
+    // Unit: Non-markdown files with front matter
+    // ========================================================================
+
+    #[test]
+    fn test_load_pages_includes_xml_with_front_matter() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("index.md"), "---\ntitle: Home\n---\nHi").unwrap();
+        std::fs::write(
+            dir.path().join("podcast.xml"),
+            "---\nlayout: null\n---\n<rss>{{ site.title }}</rss>",
+        )
+        .unwrap();
+        let config = SiteConfig::default();
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 2);
+        let xml_page = pages.iter().find(|p| p.slug == "podcast").unwrap();
+        assert_eq!(xml_page.url, "/podcast.xml");
+        assert_eq!(xml_page.source_path, "podcast.xml");
+    }
+
+    #[test]
+    fn test_load_pages_skips_xml_without_front_matter() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("index.md"), "---\ntitle: Home\n---\nHi").unwrap();
+        std::fs::write(
+            dir.path().join("data.xml"),
+            "<data>plain xml without front matter</data>",
+        )
+        .unwrap();
+        let config = SiteConfig::default();
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0].slug, "index");
+    }
+
+    #[test]
+    fn test_load_pages_html_with_front_matter() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("custom.html"),
+            "---\nlayout: default\ntitle: Custom\n---\n<h1>Hello</h1>",
+        )
+        .unwrap();
+        let config = SiteConfig::default();
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0].slug, "custom");
+        assert_eq!(pages[0].url, "/custom.html");
+    }
+
+    #[test]
+    fn test_load_pages_xml_content_not_markdown_converted() {
+        let dir = tempfile::tempdir().unwrap();
+        let xml_content = "<rss>{{ site.title }}</rss>";
+        std::fs::write(
+            dir.path().join("feed.xml"),
+            format!("---\nlayout: null\n---\n{}", xml_content),
+        )
+        .unwrap();
+        let config = SiteConfig::default();
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        let page = &pages[0];
+        // Non-markdown files should not have markdown-converted content
+        assert_eq!(page.content, xml_content);
+        assert_eq!(page.html_content, xml_content);
+    }
+
+    #[test]
+    fn test_has_front_matter_true() {
+        assert!(has_front_matter("---\ntitle: Test\n---\ncontent"));
+    }
+
+    #[test]
+    fn test_has_front_matter_false_no_delimiters() {
+        assert!(!has_front_matter("<xml>no front matter</xml>"));
+    }
+
+    #[test]
+    fn test_has_front_matter_false_only_opening() {
+        assert!(!has_front_matter(
+            "---\ntitle: Test\ncontent without closing"
+        ));
+    }
+
+    #[test]
+    fn test_has_front_matter_with_bom() {
+        assert!(has_front_matter("\u{feff}---\ntitle: Test\n---\ncontent"));
     }
 }

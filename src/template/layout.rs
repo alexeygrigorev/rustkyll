@@ -300,6 +300,27 @@ impl LayoutEngine {
         self.render_with_cached_site(layout_name, &html_content, page_front_matter, cached_site)
     }
 
+    /// Render raw (non-markdown) content through the Liquid engine WITHOUT
+    /// wrapping in any layout. Used for files like `podcast.xml` that have
+    /// `layout: null` in their front matter -- they contain Liquid tags that
+    /// must be processed, but the output should not be wrapped in a layout.
+    ///
+    /// If the content contains no Liquid tags, it is returned as-is.
+    pub fn render_content_only_with_cached_site(
+        &self,
+        raw_content: &str,
+        page_front_matter: &FrontMatter,
+        cached_site: &CachedSiteContext,
+    ) -> Result<String, TemplateError> {
+        if raw_content.contains("{{") || raw_content.contains("{%") {
+            let page_ctx = build_render_context_page_only("", page_front_matter);
+            self.engine
+                .parse_and_render_with_cached_site(raw_content, &page_ctx, cached_site)
+        } else {
+            Ok(raw_content.to_string())
+        }
+    }
+
     /// Render raw markdown content through the Liquid engine and convert to HTML,
     /// WITHOUT wrapping in any layout. This produces the body HTML suitable for
     /// use in feed entries and other contexts where only the content is needed.

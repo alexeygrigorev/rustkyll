@@ -545,6 +545,7 @@ impl TemplateEngine {
             .filter(filters::Jsonify)
             .filter(filters::DateToString)
             .filter(filters::DateToLongString)
+            .filter(filters::DateToRfc822)
             .filter(filters::DateToXmlschema)
             .filter(filters::Markdownify)
             .filter(filters::NewlineToBr)

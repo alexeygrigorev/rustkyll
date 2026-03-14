@@ -88,6 +88,39 @@ pub fn is_static_file(path: &Path, config: &SiteConfig) -> bool {
     true
 }
 
+/// Check if a file starts with YAML front matter delimiters (`---`).
+///
+/// Only checks text-based file extensions that Jekyll would process
+/// (`.xml`, `.html`, `.htm`, `.json`, `.txt`). Binary files and other
+/// extensions are never checked and always return `false`.
+///
+/// Returns `false` if the file cannot be read or is not a text-based type.
+fn file_has_front_matter(path: &Path) -> bool {
+    // Only check extensions that might contain front matter
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+    match ext {
+        "xml" | "html" | "htm" | "json" | "txt" => {}
+        _ => return false,
+    }
+
+    // Read just the first few bytes to check for `---\n`
+    let mut buf = [0u8; 8];
+    let file = match std::fs::File::open(path) {
+        Ok(f) => f,
+        Err(_) => return false,
+    };
+    use std::io::Read;
+    let mut reader = std::io::BufReader::new(file);
+    let n = match reader.read(&mut buf) {
+        Ok(n) => n,
+        Err(_) => return false,
+    };
+    let start = std::str::from_utf8(&buf[..n]).unwrap_or("");
+    // Check for BOM + --- or just ---
+    let trimmed = start.trim_start_matches('\u{feff}');
+    trimmed.starts_with("---")
+}
+
 /// Walk the source directory recursively and return all static file paths
 /// (relative to the source directory).
 ///
@@ -148,6 +181,13 @@ fn collect_recursive(
             }
             collect_recursive(base, &full_path, config, files)?;
         } else if is_static_file(relative, config) {
+            // Skip text-based files that have YAML front matter (they are
+            // processed as pages by the template engine, not copied as static).
+            // This matches Jekyll's behavior: any file starting with `---`
+            // is treated as a processable file, not a static asset.
+            if file_has_front_matter(&full_path) {
+                continue;
+            }
             files.push(relative.to_path_buf());
         }
     }
