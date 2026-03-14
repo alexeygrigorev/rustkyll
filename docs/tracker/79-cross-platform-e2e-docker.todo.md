@@ -26,10 +26,10 @@ Set up end-to-end testing that builds the DTC site with rustkyll on Windows and 
 4. Repeat with dockur/macos for macOS binary
 5. Compare outputs across all 3 platforms — they should be identical
 
-This could be:
+This should be:
 - A local script for on-demand testing
-- A CI job (if the Docker images work in GitHub Actions — they need KVM)
-- A scheduled nightly test
+- Run by QA before every release (part of the release checklist)
+- Optionally a scheduled nightly test on a KVM-capable runner
 
 ## Dependencies
 
