@@ -17,6 +17,7 @@ use rayon::prelude::*;
 use crate::collection::CollectionItem;
 use crate::config::SiteConfig;
 use crate::data::DataTree;
+use crate::jsonld;
 use crate::template::context::{normalize_arrays, yaml_to_liquid};
 use crate::template::layout::LayoutEngine;
 use crate::template::TemplateError;
@@ -370,6 +371,32 @@ pub fn generate_collection_pages(
     site_context: &Object,
     output_dir: &Path,
 ) -> Result<GenerationResult, GeneratorError> {
+    generate_collection_pages_with_people(
+        items,
+        collection_type,
+        config,
+        layout_engine,
+        site_context,
+        output_dir,
+        &[],
+    )
+}
+
+/// Generate HTML pages for collection items, with access to the people collection
+/// for JSON-LD author resolution.
+///
+/// This is the full version that supports JSON-LD post-processing injection.
+/// The `people` slice is used to resolve author slugs to full names in
+/// structured data blocks (e.g., Book JSON-LD).
+pub fn generate_collection_pages_with_people(
+    items: &[CollectionItem],
+    collection_type: &str,
+    config: &SiteConfig,
+    layout_engine: &LayoutEngine,
+    site_context: &Object,
+    output_dir: &Path,
+    people: &[CollectionItem],
+) -> Result<GenerationResult, GeneratorError> {
     let collection_out_dir = output_dir.join(collection_type);
     fs::create_dir_all(&collection_out_dir).map_err(|e| GeneratorError::WriteFile {
         path: collection_out_dir.display().to_string(),
@@ -447,6 +474,9 @@ pub fn generate_collection_pages(
 
         match layout_engine.render_page(&layout_name, render_content, &page_fm, site_context) {
             Ok(html) => {
+                // Post-process: inject JSON-LD structured data if applicable
+                let html = jsonld::inject_jsonld(&html, &layout_name, &page_fm, config, people);
+
                 // Compute output path: use URL-based path for posts, standard path for others
                 let out_path = if item.url.starts_with("/blog/") {
                     let relative = item.url.trim_start_matches('/');

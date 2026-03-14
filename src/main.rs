@@ -300,13 +300,20 @@ fn build_site(
         };
 
         if !items_slice.is_empty() {
-            let result = generator::generate_collection_pages(
+            // For collections that need JSON-LD with author resolution (e.g., books),
+            // pass the people collection for lookup.
+            let people_items: &[CollectionItem] = collections
+                .get("people")
+                .map(|v| v.as_slice())
+                .unwrap_or(&[]);
+            let result = generator::generate_collection_pages_with_people(
                 items_slice,
                 name,
                 &config,
                 &layout_engine,
                 &site_context,
                 destination,
+                people_items,
             )?;
             summary.collection_pages += result.generated;
             summary.errors.extend(result.errors);

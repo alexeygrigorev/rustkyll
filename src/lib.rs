@@ -6,6 +6,7 @@ pub mod feed;
 pub mod frontmatter;
 pub mod generator;
 pub mod incremental;
+pub mod jsonld;
 pub mod livereload;
 pub mod server;
 pub mod sitemap;

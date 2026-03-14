@@ -113,10 +113,12 @@ fn render_item(layout: &str, item: &CollectionItem) -> String {
     } else {
         &item.content
     };
-    FIXTURE
+    let html = FIXTURE
         .layout_engine
         .render_page(layout, content, &fm, &FIXTURE.site_context)
-        .unwrap()
+        .unwrap();
+    // Apply JSON-LD post-processing (same as generate_collection_pages does)
+    rustkyll::jsonld::inject_jsonld(&html, layout, &fm, &CONFIG, &FIXTURE.people)
 }
 
 // ========================================================================
@@ -712,13 +714,14 @@ fn test_podcast_jsonld_breadcrumb() {
 #[test]
 fn test_all_generated_books_have_parseable_jsonld() {
     let tmp = tempfile::TempDir::new().unwrap();
-    let result = generator::generate_collection_pages(
+    let result = generator::generate_collection_pages_with_people(
         &FIXTURE.books,
         "books",
         &CONFIG,
         &FIXTURE.layout_engine,
         &FIXTURE.site_context,
         tmp.path(),
+        &FIXTURE.people,
     )
     .unwrap();
 
