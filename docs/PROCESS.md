@@ -36,21 +36,43 @@ Issue status is encoded in the filename:
                                                  .done.md
 ```
 
-## Agent Workflow
+## Orchestrator Role
 
-The orchestrator (top-level Claude Code session) drives the process:
+The orchestrator (top-level Claude Code session) is a MANAGER, not an implementer. It:
+
+- Launches agents (PM, SWE, QA) and routes work between them
+- Routes rejection feedback: when QA fails, send SWE back with the QA feedback; when PM rejects, send SWE back with the PM feedback
+- Commits code ONLY after PM accepts
+- Picks next issues from the backlog
+- Creates task panel items to track pipeline progress
+
+The orchestrator NEVER writes or modifies code (src/, tests/, scripts/). It only touches:
+- docs/tracker/ files (creating issues, status transitions)
+- Task panel items
+- Git commits (after PM accepts)
+
+## Agent Workflow
 
 1. PM Grooms: Pick `.todo.md` issues, add acceptance criteria and test scenarios, rename to `.groomed.md`
 2. Pick 2 issues: Select the lowest-numbered `.groomed.md` issues whose dependencies are met
-3. Engineer implements: Write code + tests, rename to `.in-progress.md`
-4. Tester reviews: Run tests, verify acceptance criteria, report pass/fail
-5. If fail: Engineer fixes, tester re-reviews (repeat)
-6. If pass: PM does acceptance review
-7. If PM rejects: Engineer fixes, PM re-reviews
-8. If PM accepts: Rename to `.done.md`, commit
+3. SWE implements: Write code + tests, rename to `.in-progress.md`
+4. QA reviews: Run tests, verify acceptance criteria, report PASS/FAIL
+5. If QA FAIL: Launch SWE agent again with QA's feedback. SWE fixes. Then launch QA again. Repeat until QA passes.
+6. If QA PASS: Launch PM for acceptance review
+7. If PM rejects: Launch SWE agent again with PM's feedback. SWE fixes. Then QA re-verifies. Then PM re-reviews. Repeat until PM accepts.
+8. If PM accepts: Orchestrator renames to `.done.md` and commits
 9. Pick next 2 issues and repeat
 
 **IMPORTANT: One agent per issue.** Every agent invocation handles exactly ONE issue. When working on 2 issues in a batch, launch 2 separate agents in parallel — never combine multiple issues into a single agent call. This applies to all agent types (SWE, QA, PM).
+
+### Rejection Loop
+
+```
+QA FAIL  -->  SWE fixes (with QA feedback)  -->  QA re-verifies  -->  repeat until PASS
+PM REJECT --> SWE fixes (with PM feedback)  -->  QA re-verifies  -->  PM re-reviews --> repeat until ACCEPT
+```
+
+The orchestrator's job in a rejection is to launch a new SWE agent with the rejection details, NOT to fix the code itself.
 
 ## Agents
 

@@ -2,7 +2,7 @@
 
 A static site generator written in Rust, designed as a drop-in replacement for Jekyll. The primary goal is to speed up site builds for the DataTalks.Club website (datatalksclub.github.io), which has hundreds of pages across multiple collections.
 
-rustkyll reads the same source files as Jekyll -- Markdown with YAML front matter, Liquid templates, YAML data files, and collection directories -- and produces equivalent HTML output.
+rustkyll reads the same source files as Jekyll - Markdown with YAML front matter, Liquid templates, YAML data files, and collection directories - and produces equivalent HTML output.
 
 
 ## Installation
@@ -10,7 +10,6 @@ rustkyll reads the same source files as Jekyll -- Markdown with YAML front matte
 Prerequisites:
 
 - Rust toolchain (stable, 2021 edition or later)
-- Git (to clone the repository)
 
 Clone and build:
 
@@ -35,10 +34,10 @@ rustkyll build --source /path/to/site --destination /path/to/output
 
 Flags:
 
-- `--source` -- path to the Jekyll site directory (default: current directory)
-- `--destination` -- output directory for generated files (default: `_site`)
-- `--incremental` -- only rebuild pages whose source files have changed
-- `--force` -- force a full rebuild, ignoring the incremental manifest
+- `--source` - path to the Jekyll site directory (default: current directory)
+- `--destination` - output directory for generated files (default: `_site`)
+- `--incremental` - only rebuild pages whose source files have changed
+- `--force` - force a full rebuild, ignoring the incremental manifest
 
 ### serve
 
@@ -50,49 +49,27 @@ rustkyll serve --source /path/to/site --port 4000
 
 Flags:
 
-- `--source` -- path to the Jekyll site directory (default: current directory)
-- `--destination` -- output directory (default: `_site`)
-- `--port` -- port number for the HTTP server (default: 4000)
-- `--livereload` -- enable live reload in the browser when files change (default: enabled)
-- `--no-livereload` -- disable live reload
-
-
-## Features
-
-- YAML front matter and Markdown rendering (via pulldown-cmark)
-- Liquid template engine with tags: for, if/elsif/else, unless, assign, capture, include, highlight, break
-- 40+ Liquid filters including where, sort, date, markdownify, slugify, jsonify, relative_url, and more
-- Layout chain (nested layouts wrapping content)
-- Collections: posts, pages, and custom collections with configurable permalinks
-- Data files: YAML data loaded from `_data/` and accessible as `site.data`
-- Front matter defaults (scoped by path and type, matching Jekyll defaults)
-- Categories and tags with `site.categories` and `site.tags`
-- Sitemap generation (sitemap.xml)
-- RSS/Atom feed generation (feed.xml)
-- JSON-LD structured data (articles, books, podcasts)
-- jekyll-seo-tag plugin support (Open Graph, Twitter Cards, JSON-LD)
-- Static file copying (assets, images, and other non-template files)
-- Incremental builds (skip unchanged pages)
-- Local development server with live reload via WebSocket
-- Parallel collection loading (via rayon)
-- Duplicate YAML key handling (matches Ruby YAML behavior: last value wins)
-- Dynamic include paths and include parameters
+- `--source` - path to the Jekyll site directory (default: current directory)
+- `--destination` - output directory (default: `_site`)
+- `--port` - port number for the HTTP server (default: 4000)
+- `--livereload` - enable live reload in the browser when files change (default: enabled)
+- `--no-livereload` - disable live reload
 
 
 ## How It Was Built
 
 rustkyll was developed using an agent-driven development process. Three AI agents collaborate through a structured pipeline:
 
-1. Product Manager -- grooms issues by adding acceptance criteria and test scenarios
-2. Software Engineer -- implements code and writes tests
-3. Tester (QA) -- verifies acceptance criteria, runs tests, and checks output
+1. Product Manager - grooms issues by adding acceptance criteria and test scenarios
+2. Software Engineer - implements code and writes tests
+3. Tester (QA) - verifies acceptance criteria, runs tests, and checks output
 
 The project uses a file-based issue tracker in `docs/tracker/`. Each issue is a Markdown file whose filename encodes its status:
 
-- `.todo.md` -- not yet groomed
-- `.groomed.md` -- groomed by PM, ready for engineering
-- `.in-progress.md` -- engineer is working on it
-- `.done.md` -- accepted and committed
+- `.todo.md` - not yet groomed
+- `.groomed.md` - groomed by PM, ready for engineering
+- `.in-progress.md` - engineer is working on it
+- `.done.md` - accepted and committed
 
 The pipeline for each issue follows this flow:
 
@@ -102,48 +79,33 @@ PM grooms -> Engineer implements -> Tester verifies -> PM accepts -> committed
 
 Issues are processed in batches of two, running in parallel. If the tester finds problems, the issue goes back to the engineer. If the PM rejects, it goes back to the engineer. Only after PM acceptance is the code committed.
 
-Over 40 issues have been completed through this process, covering everything from initial project setup through config parsing, template rendering, collection loading, and cross-site compatibility testing.
 
 
-## Tested Sites
+## Tested sites
 
-rustkyll has been tested against multiple real Jekyll sites to verify compatibility.
+| Site | Pages | Jekyll | rustkyll | Speedup |
+|------|-------|--------|----------|---------|
+| [datatalksclub.github.io](https://github.com/DataTalksClub/datatalksclub.github.io) | 787 | 19.4s | 6.0s | 3.2x |
+| [kids-horror-stories-ru](https://github.com/alexeygrigorev/kids-horror-stories-ru) | 1345 | 3.8s | 0.4s | 9x |
 
-### DataTalks.Club
+Other tested sites
 
-The primary reference site. Generates 779 pages and 1455 static files. Six collections: posts, people, books, podcast, courses, conferences.
-
-- datatalksclub.github.io -- full build, 779 pages in ~17 seconds
-
-### alexeygrigorev repositories
-
-Personal Jekyll sites used for cross-site compatibility testing:
-
-- kids-horror-stories-ru -- 1344 pages (1343 posts), builds in ~4 seconds
-- alexeygrigorev.github.io -- simple personal site, 16 static files
-- snippets -- minimal site, 5 static files
-- data-science-interviews -- 24 static files
-- mlwiki.org -- minimal wiki site
-- little-book-of-metals-ru -- builds after normalize_whitespace filter was added
-- aihero -- builds after jekyll-seo-tag support was added
-
-### DataTalksClub repositories
-
-- courses -- course listing site
-- docs -- builds after include subdirectory path support was added
-
-### External complex sites
-
-These sites were used to stress-test rustkyll against diverse Jekyll features:
-
-- wtf-html-css (mdo/wtf-html-css) -- single-page site, builds successfully
-- hyde (poole/hyde) -- classic Jekyll theme, builds after highlight tag and site.related_posts support
-- opensource.guide (github/opensource.guide) -- multi-language documentation, partial build (needs hash integer indexing)
-- bitcoin.org (bitcoin/bitcoin.org) -- large site (~270 pages), partial build (needed duplicate YAML key handling)
-- academicpages (academicpages/academicpages.github.io) -- academic portfolio, builds after include subdirectory path support
-- jekyll-docs (jekyll/jekyll docs/) -- Jekyll's own documentation, builds after missing filter support
-- government.github.com (github/government.github.com) -- builds after dynamic include path support
-- edition-template (CloudCannon/edition-jekyll-template) -- builds after jekyll-seo-tag support
+- [alexeygrigorev.github.io](https://github.com/alexeygrigorev/alexeygrigorev.github.io)
+- [snippets](https://github.com/alexeygrigorev/snippets)
+- [data-science-interviews](https://github.com/alexeygrigorev/data-science-interviews)
+- [mlwiki.org](https://github.com/alexeygrigorev/mlwiki.org)
+- [little-book-of-metals-ru](https://github.com/alexeygrigorev/little-book-of-metals-ru)
+- [aihero](https://github.com/alexeygrigorev/aihero)
+- [DataTalksClub/courses](https://github.com/DataTalksClub/courses)
+- [DataTalksClub/docs](https://github.com/DataTalksClub/docs)
+- [wtf-html-css](https://github.com/mdo/wtf-html-css)
+- [hyde](https://github.com/poole/hyde)
+- [opensource.guide](https://github.com/github/opensource.guide)
+- [bitcoin.org](https://github.com/bitcoin/bitcoin.org)
+- [jekyll docs](https://github.com/jekyll/jekyll)
+- [government.github.com](https://github.com/github/government.github.com)
+- [edition-template](https://github.com/CloudCannon/edition-jekyll-template)
+- [beautiful-jekyll](https://github.com/daattali/beautiful-jekyll)
 
 
 ## Known Limitations
@@ -159,9 +121,9 @@ These sites were used to stress-test rustkyll against diverse Jekyll features:
 ## Project Structure
 
 ```
-src/           -- Rust source code
-docs/tracker/  -- file-based issue tracker
-docs/plan.md   -- project vision and architecture
+src/           - Rust source code
+docs/tracker/  - file-based issue tracker
+docs/plan.md   - project vision and architecture
 ```
 
 
