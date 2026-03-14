@@ -15,6 +15,7 @@ pub mod error;
 pub mod filters;
 pub mod include_tag;
 pub mod layout;
+pub mod seo_tag;
 
 pub use context::{build_context, yaml_mapping_to_object, yaml_to_liquid};
 pub use engine::{load_includes, TemplateEngine};

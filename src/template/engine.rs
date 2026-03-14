@@ -1,6 +1,8 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
+use std::sync::RwLock;
 
 use liquid::model::{ArrayView, DisplayCow, KStringCow, ObjectView, State, Value, ValueView};
 use liquid::partials::{EagerCompiler, InMemorySource};
@@ -314,7 +316,13 @@ impl ObjectView for LenientObject<'_> {
 /// `liquid::ParserBuilder` that can be customized with additional filters
 /// before building.
 pub struct TemplateEngine {
-    parser: liquid::Parser,
+    parser: RwLock<liquid::Parser>,
+    /// Includes map for rebuilding the parser when unknown filters are encountered.
+    includes: Option<HashMap<String, String>>,
+    /// Whether to register include tag when rebuilding.
+    has_include_tag: bool,
+    /// Set of passthrough filter names registered for unknown filters.
+    passthrough_filters: RwLock<HashSet<String>>,
 }
 
 impl TemplateEngine {
@@ -325,9 +333,15 @@ impl TemplateEngine {
     /// Returns `TemplateError::ParseError` if the parser fails to build.
     pub fn new() -> Result<Self, TemplateError> {
         let parser = Self::builder()
+            .tag(super::seo_tag::SeoTag)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
-        Ok(Self { parser })
+        Ok(Self {
+            parser: RwLock::new(parser),
+            includes: None,
+            has_include_tag: false,
+            passthrough_filters: RwLock::new(HashSet::new()),
+        })
     }
 
     /// Create a `TemplateEngine` with includes loaded from a directory.
@@ -346,10 +360,16 @@ impl TemplateEngine {
         let partials = build_partials(&partials_map);
         let parser = Self::builder()
             .tag(super::include_tag::LenientIncludeTag)
+            .tag(super::seo_tag::SeoTag)
             .partials(partials)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
-        Ok(Self { parser })
+        Ok(Self {
+            parser: RwLock::new(parser),
+            includes: Some(partials_map),
+            has_include_tag: true,
+            passthrough_filters: RwLock::new(HashSet::new()),
+        })
     }
 
     /// Create a `TemplateEngine` with includes from a pre-built map.
@@ -363,10 +383,16 @@ impl TemplateEngine {
         let partials = build_partials(includes);
         let parser = Self::builder()
             .tag(super::include_tag::LenientIncludeTag)
+            .tag(super::seo_tag::SeoTag)
             .partials(partials)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
-        Ok(Self { parser })
+        Ok(Self {
+            parser: RwLock::new(parser),
+            includes: Some(includes.clone()),
+            has_include_tag: true,
+            passthrough_filters: RwLock::new(HashSet::new()),
+        })
     }
 
     /// Return a `ParserBuilder` pre-configured with stdlib + Jekyll filters.
@@ -395,26 +421,105 @@ impl TemplateEngine {
             .filter(filters::GroupBy)
             .filter(filters::XmlEscape)
             .filter(filters::Truncatewords)
+            // Missing filters (Issue 37)
+            .filter(filters::NormalizeWhitespace)
     }
 
     /// Create a `TemplateEngine` from a pre-built `liquid::Parser`.
     ///
     /// Useful when you've customized the parser builder with additional filters.
     pub fn from_parser(parser: liquid::Parser) -> Self {
-        Self { parser }
+        Self {
+            parser: RwLock::new(parser),
+            includes: None,
+            has_include_tag: false,
+            passthrough_filters: RwLock::new(HashSet::new()),
+        }
     }
 
     /// Parse a template string into a `Template`.
     ///
+    /// If parsing fails due to an unknown filter, the engine automatically
+    /// registers a passthrough filter for the unknown name, rebuilds the parser,
+    /// and retries. This allows templates with unrecognized filters (e.g. typos
+    /// or site-specific filters) to still render, with the unknown filter
+    /// passing through the input value unchanged.
+    ///
     /// # Errors
     ///
-    /// Returns `TemplateError::ParseError` if the template contains syntax errors.
+    /// Returns `TemplateError::ParseError` if the template contains syntax errors
+    /// that are not related to unknown filters.
     pub fn parse(&self, template_str: &str) -> Result<Template, TemplateError> {
-        let inner = self
-            .parser
-            .parse(template_str)
+        loop {
+            let parser_guard = self
+                .parser
+                .read()
+                .map_err(|e| TemplateError::ParseError(format!("lock poisoned: {}", e)))?;
+            let result = parser_guard.parse(template_str);
+            drop(parser_guard);
+            match result {
+                Ok(inner) => return Ok(Template { inner }),
+                Err(e) => {
+                    let err_str = e.to_string();
+                    if let Some(filter_name) = extract_unknown_filter_name(&err_str) {
+                        eprintln!(
+                            "Warning: unknown filter '{}' encountered, registering passthrough",
+                            filter_name
+                        );
+                        self.register_passthrough_filter(&filter_name)?;
+                    } else {
+                        return Err(TemplateError::ParseError(err_str));
+                    }
+                }
+            }
+        }
+    }
+
+    /// Register a passthrough filter for an unknown filter name and rebuild
+    /// the parser.
+    fn register_passthrough_filter(&self, name: &str) -> Result<(), TemplateError> {
+        {
+            let mut filters = self
+                .passthrough_filters
+                .write()
+                .map_err(|e| TemplateError::ParseError(format!("lock poisoned: {}", e)))?;
+            filters.insert(name.to_string());
+        }
+        self.rebuild_parser()
+    }
+
+    /// Rebuild the parser with all currently registered passthrough filters.
+    fn rebuild_parser(&self) -> Result<(), TemplateError> {
+        let mut builder = Self::builder();
+
+        // Register all passthrough filters
+        let filters_guard = self
+            .passthrough_filters
+            .read()
+            .map_err(|e| TemplateError::ParseError(format!("lock poisoned: {}", e)))?;
+        for name in filters_guard.iter() {
+            builder = builder.filter(filters::passthrough::PassthroughFilter::new(name.clone()));
+        }
+        drop(filters_guard);
+
+        // Always register seo tag; include tag only when includes are present
+        builder = builder.tag(super::seo_tag::SeoTag);
+        if self.has_include_tag {
+            builder = builder.tag(super::include_tag::LenientIncludeTag);
+        }
+        if let Some(ref includes) = self.includes {
+            builder = builder.partials(build_partials(includes));
+        }
+
+        let parser = builder
+            .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
-        Ok(Template { inner })
+        let mut parser_guard = self
+            .parser
+            .write()
+            .map_err(|e| TemplateError::ParseError(format!("lock poisoned: {}", e)))?;
+        *parser_guard = parser;
+        Ok(())
     }
 
     /// Render a parsed template with the given context.
@@ -449,6 +554,32 @@ impl TemplateEngine {
         let template = self.parse(template_str)?;
         self.render(&template, context)
     }
+}
+
+/// Extract the unknown filter name from a liquid parse error message.
+///
+/// The liquid crate formats "Unknown filter" errors with the filter name
+/// in a "requested filter" context line. This function parses that out.
+fn extract_unknown_filter_name(err_str: &str) -> Option<String> {
+    // The error message format is:
+    //   liquid: Unknown filter
+    //     from: ...
+    //     requested filter: <name>
+    //     available filters: ...
+    if !err_str.contains("Unknown filter") {
+        return None;
+    }
+    for line in err_str.lines() {
+        let trimmed = line.trim();
+        // The liquid crate formats context as "requested filter=name"
+        if let Some(name) = trimmed.strip_prefix("requested filter=") {
+            let name = name.trim();
+            if !name.is_empty() {
+                return Some(name.to_string());
+            }
+        }
+    }
+    None
 }
 
 /// Load all include files from a directory into a map of name -> content.
@@ -1626,5 +1757,110 @@ mod tests {
         ctx.insert("site".into(), LiquidValue::Object(site));
         let out = eng.parse_and_render("{{ site.sass.style }}", &ctx).unwrap();
         assert_eq!(out, "compressed");
+    }
+
+    // ========================================================================
+    // normalize_whitespace filter (Issue 37)
+    // ========================================================================
+
+    #[test]
+    fn test_normalize_whitespace_filter() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "text".into(),
+            LiquidValue::scalar("  hello   world\n\t foo  "),
+        );
+        let out = eng
+            .parse_and_render("{{ text | normalize_whitespace }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "hello world foo");
+    }
+
+    #[test]
+    fn test_normalize_whitespace_empty() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("text".into(), LiquidValue::scalar(""));
+        let out = eng
+            .parse_and_render("{{ text | normalize_whitespace }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "");
+    }
+
+    #[test]
+    fn test_normalize_whitespace_already_clean() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("text".into(), LiquidValue::scalar("already clean"));
+        let out = eng
+            .parse_and_render("{{ text | normalize_whitespace }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "already clean");
+    }
+
+    #[test]
+    fn test_normalize_whitespace_with_truncate() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "description".into(),
+            LiquidValue::scalar("  hello   world\n\t foo  "),
+        );
+        let out = eng
+            .parse_and_render(
+                "{{ description | normalize_whitespace | truncate: 10 }}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(out, "hello w...");
+    }
+
+    // ========================================================================
+    // Unknown filter handling (Issue 37)
+    // ========================================================================
+
+    #[test]
+    fn test_unknown_filter_passes_through() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("value".into(), LiquidValue::scalar("hello"));
+        let out = eng
+            .parse_and_render("{{ value | nonexistent_filter }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "hello");
+    }
+
+    #[test]
+    fn test_unknown_filter_with_known_filters() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("value".into(), LiquidValue::scalar("hello"));
+        let out = eng
+            .parse_and_render("{{ value | upcase | nonexistent_xyz }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "HELLO");
+    }
+
+    #[test]
+    fn test_unknown_filter_erl_encode() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("value".into(), LiquidValue::scalar("test string"));
+        let out = eng
+            .parse_and_render("{{ value | erl_encode }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "test string");
+    }
+
+    #[test]
+    fn test_multiple_unknown_filters() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("value".into(), LiquidValue::scalar("test"));
+        let out = eng
+            .parse_and_render("{{ value | fake_one | fake_two }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "test");
     }
 }
