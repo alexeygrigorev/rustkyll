@@ -38,7 +38,11 @@ Jekyll/kramdown outputs extra blank lines between `<p>` tags. Must match to achi
 
 ## Goal
 
-After fixing all 4 issues, re-run the Playwright visual comparison. Target: 0% pixel diff on all pages (or document why specific differences remain).
+The HTML does NOT need to be byte-identical (whitespace differences, attribute ordering are OK). But:
+- **Structurally**: 100% match — same elements, same content, same attributes, same links, same classes, same IDs
+- **Visually (Playwright screenshots)**: 100% pixel-perfect match — the rendered page in a browser must look identical
+
+After fixing all 4 issues, re-run the Playwright visual comparison. Target: 0% pixel diff on all pages.
 
 ## Dependencies
 
