@@ -80,9 +80,25 @@ Include tags with path separators (`/`) in the filename are not parsed correctly
 2. **Missing Jekyll plugin tags** (`{% seo %}`) -- plugin system not supported
 3. **Include paths with `/`** -- template parser does not handle subdirectory includes
 
-## Next Steps
+## Update (2026-03-14)
 
-Follow-up issues have been created for each failure mode:
-- Issue 37: Implement missing Jekyll filters (`normalize_whitespace`)
-- Issue 38: Support `{% seo %}` tag (Jekyll SEO Tag plugin)
-- Issue 39: Support include paths with `/` subdirectory separator
+Issues #37-42 implemented the following fixes:
+- Issue #37: Missing Jekyll filters (`normalize_whitespace`, `number_of_words`, `group_by`, `xml_escape`, `truncatewords`, `date_to_long_string`, etc.)
+- Issue #38: `{% seo %}` tag (Jekyll SEO Tag plugin)
+- Issue #39: Include paths with `/` subdirectory separator
+- Issue #40: `{% highlight %}` tag
+- Issue #41: Dynamic include paths (`{% include {{ expr }} %}`)
+- Issue #42: `site.related_posts` and `site.pages`
+
+### Expected impact on previously-failing sites
+
+| Repository | Previous Status | Expected Status | Reason |
+|---|---|---|---|
+| mlbookcamp-page | FAIL | FAIL | `erl_encode` is a site-specific typo, not a standard Jekyll filter |
+| aihero | FAIL | OK | `{% seo %}` tag now supported (#38) |
+| little-book-of-metals-ru | FAIL | OK | `normalize_whitespace` filter now supported (#37) |
+| DataTalksClub/docs | FAIL | OK | Include paths with `/` now supported (#39) |
+
+Expected result: 10 of 11 sites should now build (91%), up from 7 of 11 (64%).
+
+The only remaining failure (`mlbookcamp-page`) is due to a typo in the site itself (`erl_encode` instead of `url_encode`), not a rustkyll limitation.

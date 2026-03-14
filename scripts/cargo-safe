@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Wrapper that runs cargo in an isolated cgroup with a memory limit.
+# If cargo is OOM-killed, only the cargo process dies — the parent
+# shell (and thus tmux/claude) survives with a non-zero exit code.
+#
+# Usage: cargo-safe test, cargo-safe build, cargo-safe clippy, etc.
+# Set CARGO_MEM_LIMIT to override the default (e.g. CARGO_MEM_LIMIT=32G).
+
+set -euo pipefail
+
+MEM_LIMIT="${CARGO_MEM_LIMIT:-24G}"
+
+if command -v systemd-run &>/dev/null; then
+    exec systemd-run --user --scope \
+        -p MemoryMax="$MEM_LIMIT" \
+        -p MemorySwapMax=0 \
+        --quiet \
+        cargo "$@"
+else
+    # Fallback: no systemd, just run cargo directly
+    exec cargo "$@"
+fi

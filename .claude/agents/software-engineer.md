@@ -35,7 +35,7 @@ Read the issue file. Understand the scope, acceptance criteria, and test scenari
 Every issue must include tests.
 
 ```bash
-cargo test
+./scripts/cargo-safe test
 ```
 
 Tests must pass before reporting done.
@@ -43,7 +43,7 @@ Tests must pass before reporting done.
 ### 4. Lint and Format
 
 ```bash
-cargo clippy -- -D warnings
+./scripts/cargo-safe clippy -- -D warnings
 cargo fmt --check
 ```
 
@@ -90,4 +90,4 @@ git commit -m "Implement issue NN: short description"
 - Implement exactly what the issue asks for -- no extra features
 - Every issue must include tests
 - Follow existing patterns
-- Use `cargo` for all Rust commands
+- Use `./scripts/cargo-safe` for build/test/clippy (runs cargo in a memory-limited cgroup to prevent OOM-killing the session). Use plain `cargo fmt` for formatting (low memory).

@@ -175,3 +175,22 @@ Multiple failure modes across different pages. The highlight tag is a built-in J
 | #37 | Missing Jekyll filters | Jekyll Docs (`date_to_long_string`) |
 | #38 | `{% seo %}` tag plugin | Edition Template, Open Source Guide |
 | #39 | Include subdirectory paths | AcademicPages |
+
+## Update (2026-03-14)
+
+Issues #37-42 have been implemented. Expected impact on these complex sites:
+
+| Site | Previous Status | Expected Status | Reason |
+|------|----------------|-----------------|--------|
+| Jekyll Docs | Failure | OK | `date_to_long_string` filter now supported (#37) |
+| Open Source Guide | Partial | Partial | `{% seo %}` fixed (#38), but still needs hash integer indexing (#44, in progress) |
+| Edition Template | Failure | OK | `{% seo %}` tag now supported (#38) |
+| Government GitHub | Failure | OK | Dynamic include paths now supported (#41) |
+| WTF HTML & CSS | Success | OK | Already working |
+| Bitcoin.org | Failure | Partial | Still needs duplicate YAML key handling (#43, in progress) |
+| AcademicPages | Failure | OK | Include subdirectory paths now supported (#39) |
+| Hyde | Partial | OK | `{% highlight %}` (#40), `site.related_posts` (#42), `site.pages` (#42) all now supported |
+
+Expected result: 6 of 8 sites should fully build (up from 1 of 8). Remaining blockers:
+- Open Source Guide: needs #44 (hash integer indexing, in progress)
+- Bitcoin.org: needs #43 (duplicate YAML keys, in progress)

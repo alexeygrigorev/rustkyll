@@ -58,8 +58,8 @@ Verify:
 ### 3. Run All Tests
 
 ```bash
-cargo test
-cargo clippy -- -D warnings
+./scripts/cargo-safe test
+./scripts/cargo-safe clippy -- -D warnings
 cargo fmt --check
 ```
 

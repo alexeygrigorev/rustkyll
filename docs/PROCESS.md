@@ -50,6 +50,8 @@ The orchestrator (top-level Claude Code session) drives the process:
 8. If PM accepts: Rename to `.done.md`, commit
 9. Pick next 2 issues and repeat
 
+**IMPORTANT: One agent per issue.** Every agent invocation handles exactly ONE issue. When working on 2 issues in a batch, launch 2 separate agents in parallel — never combine multiple issues into a single agent call. This applies to all agent types (SWE, QA, PM).
+
 ## Agents
 
 | Agent | File | Role |
@@ -62,9 +64,15 @@ The orchestrator (top-level Claude Code session) drives the process:
 
 - Language: Rust (latest stable)
 - Build system: Cargo
-- Testing: `cargo test`
-- Linting: `cargo clippy`
+- Testing: `./scripts/cargo-safe test`
+- Linting: `./scripts/cargo-safe clippy`
 - Formatting: `cargo fmt`
+
+### Memory Safety
+
+**Always use `./scripts/cargo-safe` instead of raw `cargo`** for build, test, and clippy commands. This wrapper runs cargo in an isolated cgroup with a memory limit (default 24G). If cargo hits the limit, only cargo dies — the shell/tmux/claude session survives and gets a non-zero exit code.
+
+Plain `cargo fmt` is fine since it uses negligible memory.
 
 ## How to Pick Issues
 
@@ -95,44 +103,52 @@ The orchestrator MUST use the Claude Code task panel to track every step of the 
 
 ### How Task Panel Items Should Look
 
-Each task panel item tracks a pipeline step for a batch of issues:
+Each task panel item tracks a pipeline step for ONE issue. When working on 2 issues, create separate task items for each:
 
 | Task Subject | Example |
 |---|---|
-| `[PM groom] issues #59, #60` | PM grooming step |
-| `[SWE] implement issues #59, #60` | Engineering step |
-| `[QA] verify issues #59, #60` | Testing step |
-| `[PM accept] issues #59, #60` | Acceptance + commit step |
+| `[PM groom] issue #59` | PM grooming one issue |
+| `[SWE] implement issue #59` | Engineering one issue |
+| `[QA] verify issue #59` | Testing one issue |
+| `[PM accept] issue #59` | Acceptance + commit one issue |
 | `[Pull next] pick 2 issues from backlog` | Pick up more work |
 
 ### Setting Up a Batch
 
-When starting work on a batch of issues, create task panel items for the full pipeline:
+When starting work on a batch of 2 issues (#N, #M), create separate task panel items per issue:
 
-1. `[PM groom] issues #N, #M`
-2. `[SWE] implement issues #N, #M`
-3. `[QA] verify issues #N, #M`
-4. `[PM accept] issues #N, #M -> commit`
-5. `[Pull next] pick 2 issues from backlog`
+1. `[PM groom] issue #N`
+2. `[PM groom] issue #M`
+3. `[SWE] implement issue #N`
+4. `[SWE] implement issue #M`
+5. `[QA] verify issue #N`
+6. `[QA] verify issue #M`
+7. `[PM accept] issue #N -> commit`
+8. `[PM accept] issue #M -> commit`
+9. `[Pull next] pick 2 issues from backlog`
 
-Set up blockedBy dependencies so each step waits for the previous one. Mark each item `in_progress` when starting it and `completed` when done.
+Set up blockedBy dependencies: each issue's SWE is blocked by its PM groom, QA by its SWE, PM accept by its QA. The two issues' pipelines run in parallel. [Pull next] is blocked by both PM accept tasks.
 
-### Pipeline Per Batch
+Launch parallel agents: for example, spawn 2 SWE agents simultaneously (one per issue), then 2 QA agents, etc.
+
+### Pipeline Per Batch (2 issues in parallel)
 
 ```
-[PM groom] -> [SWE] Implement -> [QA] Test -> [PM accept] -> Commit -> [Pull next]
-                  ^                              |
-                  +---- Reject (back to SWE) ----+
+[PM groom #N] -> [SWE #N] -> [QA #N] -> [PM accept #N] --\
+                                                           +--> [Pull next]
+[PM groom #M] -> [SWE #M] -> [QA #M] -> [PM accept #M] --/
 ```
+
+Within each issue pipeline, reject sends back to that issue's SWE, not to grooming.
 
 ### Task Panel Tags
 
 | Panel Tag | Agent | When | What happens |
 |-----------|-------|------|-------------|
-| `[PM groom]` | Product Manager | BEFORE implementation | Adds acceptance criteria, test scenarios. Renames .todo -> .groomed |
-| `[SWE]` | Software Engineer | After grooming | Implements code + tests. Renames .groomed -> .in-progress |
-| `[QA]` | Tester | After implementation | Verifies acceptance criteria, builds site and checks output. Pass/Fail |
-| `[PM accept]` | Product Manager | AFTER QA passes | Final review. Builds and inspects output. Accept -> .done + commit. Reject -> back to SWE to finish |
+| `[PM groom]` | Product Manager | BEFORE implementation | Adds acceptance criteria, test scenarios. Renames .todo -> .groomed. **One agent per issue.** |
+| `[SWE]` | Software Engineer | After grooming | Implements code + tests. Renames .groomed -> .in-progress. **One agent per issue.** |
+| `[QA]` | Tester | After implementation | Verifies acceptance criteria, builds site and checks output. Pass/Fail. **One agent per issue.** |
+| `[PM accept]` | Product Manager | AFTER QA passes | Final review. Builds and inspects output. Accept -> .done + commit. Reject -> back to SWE to finish. **One agent per issue.** |
 | `[Pull next]` | Orchestrator | AFTER commit | Check docs/tracker/ for remaining .todo/.groomed files. Pick 2 lowest-numbered, create new batch in task panel, repeat |
 
 PM has two distinct roles:

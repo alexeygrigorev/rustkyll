@@ -8,10 +8,12 @@ See `docs/PROCESS.md` for the full agent-driven development workflow.
 
 ## Quick Reference
 
-- Build: `cargo build`
-- Test: `cargo test`
-- Lint: `cargo clippy -- -D warnings`
+- Build: `./scripts/cargo-safe build`
+- Test: `./scripts/cargo-safe test`
+- Lint: `./scripts/cargo-safe clippy -- -D warnings`
 - Format: `cargo fmt`
+
+**Important:** Use `./scripts/cargo-safe` instead of raw `cargo` for build/test/clippy. It runs cargo in a memory-limited cgroup (24G default) so OOM kills only cargo, not your tmux session.
 
 ## Project Structure
 
