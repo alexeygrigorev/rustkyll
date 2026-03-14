@@ -70,10 +70,9 @@ fn test_large_docs_site_page_count() {
 fn test_documentation_theme_jekyll_page_count() {
     let tmp = build_site("documentation-theme-jekyll");
     let count = count_html_files(tmp.path());
-    // Target is 100; allow small variance due to git remote resolution differences
-    assert!(
-        (98..=100).contains(&count),
-        "documentation-theme-jekyll: expected ~100 HTML files, got {}",
+    assert_eq!(
+        count, 100,
+        "documentation-theme-jekyll: expected 100 HTML files, got {}",
         count
     );
 }
@@ -83,10 +82,9 @@ fn test_documentation_theme_jekyll_page_count() {
 fn test_muan_blog_page_count() {
     let tmp = build_site("muan-blog");
     let count = count_html_files(tmp.path());
-    // Target is 2218, allow +/- 1 for minor permalink differences
-    assert!(
-        (2217..=2219).contains(&count),
-        "muan-blog: expected ~2218 HTML files, got {}",
+    assert_eq!(
+        count, 2218,
+        "muan-blog: expected 2218 HTML files, got {}",
         count
     );
 }
@@ -96,10 +94,9 @@ fn test_muan_blog_page_count() {
 fn test_homebrew_site_page_count() {
     let tmp = build_site("homebrew-site");
     let count = count_html_files(tmp.path());
-    // Target is 134, allow +/- 1 for minor differences
-    assert!(
-        (133..=135).contains(&count),
-        "homebrew-site: expected ~134 HTML files, got {}",
+    assert_eq!(
+        count, 134,
+        "homebrew-site: expected 134 HTML files, got {}",
         count
     );
 }

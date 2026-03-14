@@ -163,3 +163,42 @@ Also, Windows ARM64 was requested but never added to the build matrix (descoped 
 - Noted unrelated changes in working tree (ci.yml integration job, compare-output.sh, deleted todo files, date_to_rfc822 filter) -- not part of issue 66, does not affect correctness
 - No criteria descoped
 - VERDICT: ACCEPT
+
+### [SWE] 2026-03-14 -- Post-push verification
+
+#### Attempt 1: v0.1.1 tag on commit 1465fc0
+- Release workflow run 23095703730 triggered
+- `Build darwin-amd64` FAILED: `macos-13` runner is no longer supported by GitHub Actions ("The configuration 'macos-13-us-default' is not supported")
+- Other builds were cancelled due to `fail-fast: true`
+- Fix: changed `darwin-amd64` os from `macos-13` to `macos-latest` (ARM64 runner, cross-compiles for x86_64); added `skip_verify: true` since ARM64 runner cannot execute x86_64 binary
+- Committed fix, deleted old v0.1.1 tag, re-tagged on new commit 7d9cedf
+
+#### Attempt 2: v0.1.1 tag on commit 7d9cedf
+- Release workflow run 23095757638 triggered
+- All 6 builds PASSED: linux-amd64, linux-arm64, darwin-amd64, darwin-arm64, windows-amd64, windows-arm64
+- GitHub Release created with 6 binary assets -- VERIFIED
+- `Publish to PyPI` FAILED: trusted publisher not configured on PyPI
+  - Error: `invalid-publisher: valid token, but no corresponding publisher`
+  - The OIDC token was valid but PyPI has no matching trusted publisher for this repo/workflow
+  - The `environment` claim is `MISSING` (workflow does not specify an environment)
+  - v0.1.0 was published manually, so trusted publishing was never set up
+
+#### Action needed from repo owner
+The repo owner must configure a trusted publisher on PyPI:
+1. Go to https://pypi.org/manage/project/rustkyll/settings/publishing/
+2. Add a new publisher:
+   - PyPI project name: `rustkyll`
+   - Owner: `alexeygrigorev`
+   - Repository name: `rustkyll`
+   - Workflow name: `release.yml`
+   - Environment name: (leave blank)
+3. After configuring, re-run the failed `Publish to PyPI` job:
+   `gh run rerun 23095757638 --repo alexeygrigorev/rustkyll --failed`
+
+#### Verification checklist
+- [x] v0.1.1 tag exists on GitHub
+- [x] GitHub Actions release workflow: 6/6 builds passed
+- [x] GitHub Release page for v0.1.1 lists 6 binary assets
+- [ ] Trusted publisher configured on PyPI (BLOCKED -- needs repo owner)
+- [ ] All 6 platform wheels published to PyPI as rustkyll 0.1.1 (BLOCKED)
+- [ ] `uvx rustkyll --help` works on Linux (BLOCKED)
