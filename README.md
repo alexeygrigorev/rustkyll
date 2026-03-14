@@ -39,6 +39,7 @@ Available binaries:
 | macOS Intel | `rustkyll-darwin-amd64` |
 | macOS Apple Silicon | `rustkyll-darwin-arm64` |
 | Windows x86_64 | `rustkyll-windows-amd64.exe` |
+| Windows ARM64 | `rustkyll-windows-arm64.exe` |
 
 On Linux and macOS, make the binary executable after downloading:
 

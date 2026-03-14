@@ -165,7 +165,7 @@ class TestMainWithDummyBinaries(unittest.TestCase):
 
             # Verify 5 wheels were created
             wheels = [f for f in os.listdir(output_dir) if f.endswith(".whl")]
-            self.assertEqual(len(wheels), 5)
+            self.assertEqual(len(wheels), 6)
 
     def test_builds_wheels_from_nested_directory(self):
         """Test building from nested artifact directories (GitHub Actions layout)."""
@@ -191,7 +191,7 @@ class TestMainWithDummyBinaries(unittest.TestCase):
             self.assertEqual(result, 0)
 
             wheels = [f for f in os.listdir(output_dir) if f.endswith(".whl")]
-            self.assertEqual(len(wheels), 5)
+            self.assertEqual(len(wheels), 6)
 
     def test_skips_missing_binaries_with_warning(self):
         """Test that missing binaries are skipped gracefully."""

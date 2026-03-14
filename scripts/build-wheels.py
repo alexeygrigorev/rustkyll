@@ -10,6 +10,7 @@ The binaries-dir should contain the release binaries with names:
     rustkyll-darwin-amd64
     rustkyll-darwin-arm64
     rustkyll-windows-amd64.exe
+    rustkyll-windows-arm64.exe
 
 Each binary is packaged into a platform-tagged wheel.
 """
@@ -51,6 +52,11 @@ TARGETS = [
     (
         "rustkyll-windows-amd64.exe",
         "win_amd64",
+        "rustkyll.exe",
+    ),
+    (
+        "rustkyll-windows-arm64.exe",
+        "win_arm64",
         "rustkyll.exe",
     ),
 ]

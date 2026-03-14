@@ -70,6 +70,14 @@ jobs:
             asset_name: rustkyll-windows-amd64.exe
             use_cross: false
 
+          - name: windows-arm64
+            os: windows-latest
+            target: aarch64-pc-windows-msvc
+            binary: rustkyll.exe
+            asset_name: rustkyll-windows-arm64.exe
+            use_cross: false
+            skip_verify: true
+
     steps:
       - uses: actions/checkout@v4
 
@@ -96,7 +104,7 @@ jobs:
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Verify binary runs --version
-        if: "!matrix.use_cross"
+        if: ${{ !matrix.use_cross && !matrix.skip_verify }}
         shell: bash
         run: |
           ./target/${{ matrix.target }}/release/${{ matrix.binary }} --version
@@ -139,6 +147,7 @@ jobs:
             artifacts/rustkyll-darwin-amd64/rustkyll-darwin-amd64
             artifacts/rustkyll-darwin-arm64/rustkyll-darwin-arm64
             artifacts/rustkyll-windows-amd64.exe/rustkyll-windows-amd64.exe
+            artifacts/rustkyll-windows-arm64.exe/rustkyll-windows-arm64.exe
 
   publish-pypi:
     name: Publish to PyPI
