@@ -100,6 +100,11 @@ pub fn build_site_context(
         );
     }
 
+    // site.categories and site.tags -- built from posts only (Jekyll behavior)
+    let (categories_map, tags_map) = build_categories_and_tags(collections);
+    site.insert("categories".into(), categories_map);
+    site.insert("tags".into(), tags_map);
+
     // site.twitter -- convert yaml Value to liquid Value for both string and map support
     if let Some(ref twitter) = config.twitter {
         site.insert("twitter".into(), yaml_to_liquid(twitter));
@@ -210,6 +215,49 @@ fn collection_item_to_liquid(item: &CollectionItem) -> LiquidValue {
     LiquidValue::Object(obj)
 }
 
+/// Build `site.categories` and `site.tags` Liquid objects from post collections.
+///
+/// Only posts are included (not other collections like people or books).
+/// Returns `(categories_liquid_value, tags_liquid_value)` where each is a
+/// Liquid object mapping category/tag name to an array of post objects.
+fn build_categories_and_tags(
+    collections: &HashMap<String, Vec<CollectionItem>>,
+) -> (LiquidValue, LiquidValue) {
+    let mut categories: HashMap<String, Vec<LiquidValue>> = HashMap::new();
+    let mut tags: HashMap<String, Vec<LiquidValue>> = HashMap::new();
+
+    if let Some(posts) = collections.get("posts") {
+        for post in posts {
+            let liquid_post = collection_item_to_liquid(post);
+
+            let post_categories = crate::collection::extract_categories(&post.front_matter);
+            for cat in post_categories {
+                categories.entry(cat).or_default().push(liquid_post.clone());
+            }
+
+            let post_tags = crate::collection::extract_tags(&post.front_matter);
+            for tag in post_tags {
+                tags.entry(tag).or_default().push(liquid_post.clone());
+            }
+        }
+    }
+
+    let categories_obj = categories
+        .into_iter()
+        .map(|(k, v)| (k.into(), LiquidValue::Array(v)))
+        .collect::<Object>();
+
+    let tags_obj = tags
+        .into_iter()
+        .map(|(k, v)| (k.into(), LiquidValue::Array(v)))
+        .collect::<Object>();
+
+    (
+        LiquidValue::Object(categories_obj),
+        LiquidValue::Object(tags_obj),
+    )
+}
+
 /// Resolve the layout name for a collection item.
 ///
 /// First checks the item's own front matter for a `layout` key.
@@ -280,8 +328,15 @@ pub fn generate_collection_pages(
             }
         };
 
-        // Build page front matter with the url field added
+        // Build page front matter: start with defaults, then overlay item's own front matter
         let mut page_fm = item.front_matter.clone();
+
+        // Apply defaults from config (only for keys not already in front matter)
+        let defaults = config.defaults_for(collection_type, &item.source_path);
+        for (key, value) in defaults {
+            page_fm.entry(key).or_insert(value);
+        }
+
         page_fm.insert("url".into(), serde_yaml::Value::String(item.url.clone()));
 
         // Also ensure date is in front matter if available (needed for posts)
@@ -614,6 +669,317 @@ mod tests {
             ctx.get("name"),
             Some(&LiquidValue::scalar("DataTalks.Club"))
         );
+    }
+
+    // ========================================================================
+    // Unit: site.categories mapping
+    // ========================================================================
+
+    #[test]
+    fn test_build_site_context_categories_mapping() {
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+
+        // Create 3 posts: A with categories [ml, python], B with category ml, C with none
+        let post_a = CollectionItem {
+            slug: "post-a".to_string(),
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("Post A".to_string()),
+                );
+                fm.insert(
+                    "categories".to_string(),
+                    serde_yaml::Value::Sequence(vec![
+                        serde_yaml::Value::String("ml".to_string()),
+                        serde_yaml::Value::String("python".to_string()),
+                    ]),
+                );
+                fm
+            },
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            url: "/blog/post-a.html".to_string(),
+            date: Some("2021-01-01".to_string()),
+            collection_name: "posts".to_string(),
+            source_path: "_posts/2021-01-01-post-a.md".to_string(),
+        };
+
+        let post_b = CollectionItem {
+            slug: "post-b".to_string(),
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("Post B".to_string()),
+                );
+                fm.insert(
+                    "category".to_string(),
+                    serde_yaml::Value::String("ml".to_string()),
+                );
+                fm
+            },
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            url: "/blog/post-b.html".to_string(),
+            date: Some("2021-02-01".to_string()),
+            collection_name: "posts".to_string(),
+            source_path: "_posts/2021-02-01-post-b.md".to_string(),
+        };
+
+        let post_c = CollectionItem {
+            slug: "post-c".to_string(),
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("Post C".to_string()),
+                );
+                fm
+            },
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            url: "/blog/post-c.html".to_string(),
+            date: Some("2021-03-01".to_string()),
+            collection_name: "posts".to_string(),
+            source_path: "_posts/2021-03-01-post-c.md".to_string(),
+        };
+
+        let mut collections = HashMap::new();
+        collections.insert("posts".to_string(), vec![post_a, post_b, post_c]);
+
+        let ctx = build_site_context(&config, &collections, &data, None);
+
+        let categories = ctx.get("categories").expect("should have categories");
+        if let LiquidValue::Object(cats) = categories {
+            // "ml" should have 2 posts
+            let ml = cats.get("ml").expect("should have ml category");
+            if let LiquidValue::Array(arr) = ml {
+                assert_eq!(arr.len(), 2, "ml category should have 2 posts");
+            } else {
+                panic!("Expected ml to be an array");
+            }
+
+            // "python" should have 1 post
+            let python = cats.get("python").expect("should have python category");
+            if let LiquidValue::Array(arr) = python {
+                assert_eq!(arr.len(), 1, "python category should have 1 post");
+            } else {
+                panic!("Expected python to be an array");
+            }
+        } else {
+            panic!("Expected categories to be an object");
+        }
+    }
+
+    // ========================================================================
+    // Unit: site.tags mapping
+    // ========================================================================
+
+    #[test]
+    fn test_build_site_context_tags_mapping() {
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+
+        let post_a = CollectionItem {
+            slug: "post-a".to_string(),
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("Post A".to_string()),
+                );
+                fm.insert(
+                    "tags".to_string(),
+                    serde_yaml::Value::Sequence(vec![
+                        serde_yaml::Value::String("data-science".to_string()),
+                        serde_yaml::Value::String("career".to_string()),
+                    ]),
+                );
+                fm
+            },
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            url: "/blog/post-a.html".to_string(),
+            date: Some("2021-01-01".to_string()),
+            collection_name: "posts".to_string(),
+            source_path: "_posts/2021-01-01-post-a.md".to_string(),
+        };
+
+        let post_b = CollectionItem {
+            slug: "post-b".to_string(),
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("Post B".to_string()),
+                );
+                fm.insert(
+                    "tags".to_string(),
+                    serde_yaml::Value::Sequence(vec![serde_yaml::Value::String(
+                        "data-science".to_string(),
+                    )]),
+                );
+                fm
+            },
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            url: "/blog/post-b.html".to_string(),
+            date: Some("2021-02-01".to_string()),
+            collection_name: "posts".to_string(),
+            source_path: "_posts/2021-02-01-post-b.md".to_string(),
+        };
+
+        let post_c = CollectionItem {
+            slug: "post-c".to_string(),
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("Post C".to_string()),
+                );
+                fm
+            },
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            url: "/blog/post-c.html".to_string(),
+            date: Some("2021-03-01".to_string()),
+            collection_name: "posts".to_string(),
+            source_path: "_posts/2021-03-01-post-c.md".to_string(),
+        };
+
+        let mut collections = HashMap::new();
+        collections.insert("posts".to_string(), vec![post_a, post_b, post_c]);
+
+        let ctx = build_site_context(&config, &collections, &data, None);
+
+        let tags = ctx.get("tags").expect("should have tags");
+        if let LiquidValue::Object(tag_map) = tags {
+            let ds = tag_map
+                .get("data-science")
+                .expect("should have data-science tag");
+            if let LiquidValue::Array(arr) = ds {
+                assert_eq!(arr.len(), 2, "data-science tag should have 2 posts");
+            } else {
+                panic!("Expected data-science to be an array");
+            }
+
+            let career = tag_map.get("career").expect("should have career tag");
+            if let LiquidValue::Array(arr) = career {
+                assert_eq!(arr.len(), 1, "career tag should have 1 post");
+            } else {
+                panic!("Expected career to be an array");
+            }
+        } else {
+            panic!("Expected tags to be an object");
+        }
+    }
+
+    #[test]
+    fn test_build_site_context_empty_posts_empty_categories_tags() {
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+        let collections = HashMap::new();
+
+        let ctx = build_site_context(&config, &collections, &data, None);
+
+        let categories = ctx.get("categories").expect("should have categories");
+        if let LiquidValue::Object(cats) = categories {
+            assert!(cats.is_empty(), "categories should be empty with no posts");
+        } else {
+            panic!("Expected categories to be an object");
+        }
+
+        let tags = ctx.get("tags").expect("should have tags");
+        if let LiquidValue::Object(tag_map) = tags {
+            assert!(tag_map.is_empty(), "tags should be empty with no posts");
+        } else {
+            panic!("Expected tags to be an object");
+        }
+    }
+
+    #[test]
+    fn test_non_post_collections_excluded_from_tags() {
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+
+        // People item with tags -- should NOT appear in site.tags
+        let person = CollectionItem {
+            slug: "alice".to_string(),
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "tags".to_string(),
+                    serde_yaml::Value::Sequence(vec![serde_yaml::Value::String(
+                        "expert".to_string(),
+                    )]),
+                );
+                fm
+            },
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            url: "/people/alice.html".to_string(),
+            date: None,
+            collection_name: "people".to_string(),
+            source_path: "_people/alice.md".to_string(),
+        };
+
+        let mut collections = HashMap::new();
+        collections.insert("people".to_string(), vec![person]);
+
+        let ctx = build_site_context(&config, &collections, &data, None);
+
+        let tags = ctx.get("tags").expect("should have tags");
+        if let LiquidValue::Object(tag_map) = tags {
+            assert!(
+                tag_map.is_empty(),
+                "people tags should not appear in site.tags"
+            );
+        } else {
+            panic!("Expected tags to be an object");
+        }
+    }
+
+    #[test]
+    fn test_build_site_context_dtc_tags() {
+        let config = test_config();
+        let (posts, _) = crate::collection::load_collection("posts", &site_dir(), &config).unwrap();
+        let mut collections = HashMap::new();
+        collections.insert("posts".to_string(), posts);
+        let data = DataTree::new();
+        let ctx = build_site_context(&config, &collections, &data, None);
+
+        // The segmentation post has tags: [analytics, clustering]
+        let tags = ctx.get("tags").expect("should have tags");
+        if let LiquidValue::Object(tag_map) = tags {
+            assert!(!tag_map.is_empty(), "DTC posts should produce some tags");
+            let analytics = tag_map.get("analytics");
+            assert!(
+                analytics.is_some(),
+                "Should have 'analytics' tag from segmentation post"
+            );
+        } else {
+            panic!("Expected tags to be an object");
+        }
+
+        // DTC posts don't use categories
+        let categories = ctx.get("categories").expect("should have categories");
+        if let LiquidValue::Object(cats) = categories {
+            assert!(
+                cats.is_empty(),
+                "DTC posts should have empty categories (none use categories in front matter)"
+            );
+        } else {
+            panic!("Expected categories to be an object");
+        }
     }
 
     // ========================================================================
@@ -1264,7 +1630,14 @@ DONE
                     type_name: "people".to_string(),
                 },
                 values: crate::config::DefaultValues {
-                    layout: "author".to_string(),
+                    values: {
+                        let mut m = HashMap::new();
+                        m.insert(
+                            "layout".to_string(),
+                            serde_yaml::Value::String("author".to_string()),
+                        );
+                        m
+                    },
                 },
             }],
             ..Default::default()
@@ -1369,7 +1742,14 @@ DONE
                     type_name: "widgets".to_string(),
                 },
                 values: crate::config::DefaultValues {
-                    layout: "custom".to_string(),
+                    values: {
+                        let mut m = HashMap::new();
+                        m.insert(
+                            "layout".to_string(),
+                            serde_yaml::Value::String("custom".to_string()),
+                        );
+                        m
+                    },
                 },
             }],
             ..Default::default()
@@ -1682,5 +2062,152 @@ DONE
         let data = DataTree::new();
         let ctx = build_site_context(&config, &colls, &data, None);
         assert_eq!(ctx.get("baseurl"), Some(&LiquidValue::scalar("")));
+    }
+
+    // ========================================================================
+    // Issue 28: Applying defaults to front matter in generation
+    // ========================================================================
+
+    #[test]
+    fn test_generate_applies_defaults_to_page_fm() {
+        // Create a config with defaults that set comments: true for posts
+        let yaml = r#"
+url: "https://example.com"
+name: "Test"
+title: "Test"
+permalink: "/blog/:title.html"
+defaults:
+  - scope:
+      type: "posts"
+    values:
+      layout: "post"
+      comments: true
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+
+        // Create a layout that renders page.comments
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "post".to_string(),
+            crate::template::Layout {
+                source: "Comments: {{ page.comments }}".to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        // Create a post with NO comments in front matter
+        let item = CollectionItem {
+            slug: "test-post".to_string(),
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("Test Post".to_string()),
+                );
+                fm
+            },
+            content: "body".to_string(),
+            html_content: "<p>body</p>".to_string(),
+            excerpt: None,
+            url: "/blog/test-post.html".to_string(),
+            date: Some("2021-01-01".to_string()),
+            collection_name: "posts".to_string(),
+            source_path: "_posts/2021-01-01-test-post.md".to_string(),
+        };
+
+        let dir = tempfile::TempDir::new().unwrap();
+        let site_context = Object::new();
+        let result = generate_collection_pages(
+            &[item],
+            "posts",
+            &config,
+            &engine,
+            &site_context,
+            dir.path(),
+        )
+        .unwrap();
+
+        assert_eq!(result.generated, 1);
+        assert_eq!(result.skipped, 0);
+
+        // Read the generated file and check that comments default was applied
+        let content = fs::read_to_string(dir.path().join("blog/test-post.html")).unwrap();
+        assert!(
+            content.contains("Comments: true"),
+            "Default comments: true should be applied. Got: {}",
+            content
+        );
+    }
+
+    #[test]
+    fn test_generate_front_matter_overrides_defaults() {
+        let yaml = r#"
+url: "https://example.com"
+name: "Test"
+title: "Test"
+permalink: "/blog/:title.html"
+defaults:
+  - scope:
+      type: "posts"
+    values:
+      layout: "post"
+      comments: true
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "post".to_string(),
+            crate::template::Layout {
+                source: "Comments: {{ page.comments }}".to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        // Create a post WITH comments: false in front matter (should override default)
+        let item = CollectionItem {
+            slug: "test-post".to_string(),
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("Test Post".to_string()),
+                );
+                fm.insert("comments".to_string(), serde_yaml::Value::Bool(false));
+                fm
+            },
+            content: "body".to_string(),
+            html_content: "<p>body</p>".to_string(),
+            excerpt: None,
+            url: "/blog/test-post.html".to_string(),
+            date: Some("2021-01-01".to_string()),
+            collection_name: "posts".to_string(),
+            source_path: "_posts/2021-01-01-test-post.md".to_string(),
+        };
+
+        let dir = tempfile::TempDir::new().unwrap();
+        let site_context = Object::new();
+        let result = generate_collection_pages(
+            &[item],
+            "posts",
+            &config,
+            &engine,
+            &site_context,
+            dir.path(),
+        )
+        .unwrap();
+
+        assert_eq!(result.generated, 1);
+
+        let content = fs::read_to_string(dir.path().join("blog/test-post.html")).unwrap();
+        assert!(
+            content.contains("Comments: false"),
+            "Front matter comments: false should override default. Got: {}",
+            content
+        );
     }
 }

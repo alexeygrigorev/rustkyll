@@ -38,11 +38,21 @@ pub struct DefaultScope {
 }
 
 /// Values section of a default configuration entry.
+///
+/// Captures all key-value pairs from the `values:` section of a defaults entry,
+/// not just `layout`. This allows any front matter key to be set as a default.
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 pub struct DefaultValues {
-    /// Default layout template name.
-    #[serde(default)]
-    pub layout: String,
+    /// All default values as a generic key-value map.
+    #[serde(flatten)]
+    pub values: HashMap<String, serde_yaml::Value>,
+}
+
+impl DefaultValues {
+    /// Get the `layout` value if present.
+    pub fn layout(&self) -> Option<&str> {
+        self.values.get("layout").and_then(|v| v.as_str())
+    }
 }
 
 /// A single defaults entry mapping a scope to values.
@@ -167,7 +177,38 @@ impl SiteConfig {
         self.defaults
             .iter()
             .find(|d| d.scope.type_name == collection_type)
-            .map(|d| d.values.layout.as_str())
+            .and_then(|d| d.values.layout())
+    }
+
+    /// Get all matching default values for a given collection type and path, merged.
+    ///
+    /// Defaults are applied in order: later entries override earlier ones for the
+    /// same key. Scope matching uses `type_name` exact match and `path` prefix match.
+    /// An empty `path` in the scope matches all items.
+    pub fn defaults_for(
+        &self,
+        type_name: &str,
+        item_path: &str,
+    ) -> HashMap<String, serde_yaml::Value> {
+        let mut result = HashMap::new();
+
+        for default in &self.defaults {
+            if default.scope.type_name != type_name {
+                continue;
+            }
+
+            // Empty path matches everything; non-empty path is a prefix match
+            if !default.scope.path.is_empty() && !item_path.starts_with(&default.scope.path) {
+                continue;
+            }
+
+            // Merge values -- later entries override earlier ones
+            for (key, value) in &default.values.values {
+                result.insert(key.clone(), value.clone());
+            }
+        }
+
+        result
     }
 
     /// Look up a collection by name.
@@ -284,7 +325,7 @@ mod tests {
                 .defaults
                 .iter()
                 .find(|d| d.scope.type_name == type_name)
-                .map(|d| d.values.layout.clone())
+                .and_then(|d| d.values.layout().map(|s| s.to_string()))
         };
 
         assert_eq!(find_layout("people"), Some("author".to_string()));
@@ -425,7 +466,14 @@ title: "Test"
                     type_name: "posts".to_string(),
                 },
                 values: DefaultValues {
-                    layout: "post".to_string(),
+                    values: {
+                        let mut m = HashMap::new();
+                        m.insert(
+                            "layout".to_string(),
+                            serde_yaml::Value::String("post".to_string()),
+                        );
+                        m
+                    },
                 },
             }],
             ..Default::default()
@@ -665,5 +713,176 @@ locale: en
         let yaml = "baseurl: /repo-name\n";
         let config = SiteConfig::from_yaml_str(yaml).unwrap();
         assert_eq!(config.baseurl, "/repo-name");
+    }
+
+    // ========================================================================
+    // Issue 28: Generalized front matter defaults
+    // ========================================================================
+
+    #[test]
+    fn test_generalized_defaults_parse_multiple_values() {
+        let yaml = r#"
+defaults:
+  - scope:
+      type: "posts"
+    values:
+      layout: "post"
+      comments: true
+      read_time: true
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.defaults.len(), 1);
+        let values = &config.defaults[0].values;
+        assert_eq!(values.layout(), Some("post"));
+        assert_eq!(
+            values.values.get("comments").and_then(|v| v.as_bool()),
+            Some(true)
+        );
+        assert_eq!(
+            values.values.get("read_time").and_then(|v| v.as_bool()),
+            Some(true)
+        );
+    }
+
+    #[test]
+    fn test_generalized_defaults_layout_only() {
+        let yaml = r#"
+defaults:
+  - scope:
+      type: "people"
+    values:
+      layout: "author"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.default_layout_for("people"), Some("author"));
+    }
+
+    #[test]
+    fn test_generalized_defaults_non_layout_keys_only() {
+        let yaml = r#"
+defaults:
+  - scope:
+      type: "posts"
+    values:
+      author: "Default Author"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let values = &config.defaults[0].values;
+        assert_eq!(values.layout(), None);
+        assert_eq!(
+            values.values.get("author").and_then(|v| v.as_str()),
+            Some("Default Author")
+        );
+    }
+
+    #[test]
+    fn test_generalized_defaults_empty_values() {
+        let yaml = r#"
+defaults:
+  - scope:
+      type: "posts"
+    values: {}
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.defaults.len(), 1);
+        assert!(config.defaults[0].values.values.is_empty());
+    }
+
+    #[test]
+    fn test_defaults_for_basic() {
+        let yaml = r#"
+defaults:
+  - scope:
+      type: "posts"
+    values:
+      layout: "post"
+      comments: true
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let defaults = config.defaults_for("posts", "");
+        assert_eq!(
+            defaults.get("layout").and_then(|v| v.as_str()),
+            Some("post")
+        );
+        assert_eq!(
+            defaults.get("comments").and_then(|v| v.as_bool()),
+            Some(true)
+        );
+    }
+
+    #[test]
+    fn test_defaults_for_type_filtering() {
+        let yaml = r#"
+defaults:
+  - scope:
+      type: "posts"
+    values:
+      layout: "post"
+  - scope:
+      type: "people"
+    values:
+      layout: "author"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let post_defaults = config.defaults_for("posts", "");
+        assert_eq!(
+            post_defaults.get("layout").and_then(|v| v.as_str()),
+            Some("post")
+        );
+        assert!(!post_defaults.contains_key("author"));
+    }
+
+    #[test]
+    fn test_defaults_for_path_override() {
+        let yaml = r#"
+defaults:
+  - scope:
+      type: "posts"
+      path: ""
+    values:
+      layout: "post"
+  - scope:
+      type: "posts"
+      path: "special/"
+    values:
+      layout: "special-post"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let defaults = config.defaults_for("posts", "special/my-post");
+        assert_eq!(
+            defaults.get("layout").and_then(|v| v.as_str()),
+            Some("special-post")
+        );
+    }
+
+    #[test]
+    fn test_defaults_for_no_defaults() {
+        let config = SiteConfig::default();
+        let defaults = config.defaults_for("posts", "");
+        assert!(defaults.is_empty());
+    }
+
+    #[test]
+    fn test_defaults_for_path_no_match() {
+        let yaml = r#"
+defaults:
+  - scope:
+      type: "posts"
+      path: "2021/"
+    values:
+      layout: "new-layout"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let defaults = config.defaults_for("posts", "2020/my-post");
+        assert!(defaults.is_empty());
+    }
+
+    #[test]
+    fn test_dtc_defaults_backward_compat() {
+        let config = SiteConfig::from_file(&real_config_path()).unwrap();
+        assert_eq!(config.default_layout_for("people"), Some("author"));
+        assert_eq!(config.default_layout_for("books"), Some("book"));
+        assert_eq!(config.default_layout_for("podcast"), Some("podcast"));
+        assert_eq!(config.default_layout_for("courses"), None);
     }
 }

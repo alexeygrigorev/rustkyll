@@ -234,6 +234,42 @@ pub fn extract_categories(front_matter: &FrontMatter) -> Vec<String> {
     Vec::new()
 }
 
+/// Extract tags from front matter.
+///
+/// Supports both `tags: [a, b]` (array) and `tag: x` (single string).
+/// When `tags` is present, it takes precedence over `tag`.
+pub fn extract_tags(front_matter: &FrontMatter) -> Vec<String> {
+    // Try `tags` first (array)
+    if let Some(val) = front_matter.get("tags") {
+        match val {
+            serde_yaml::Value::Sequence(seq) => {
+                return seq
+                    .iter()
+                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                    .collect();
+            }
+            serde_yaml::Value::String(s) => {
+                // Single string treated as one tag
+                if !s.is_empty() {
+                    return vec![s.clone()];
+                }
+            }
+            _ => {}
+        }
+    }
+
+    // Fall back to `tag` (single string)
+    if let Some(val) = front_matter.get("tag") {
+        if let Some(s) = val.as_str() {
+            if !s.is_empty() {
+                return vec![s.to_string()];
+            }
+        }
+    }
+
+    Vec::new()
+}
+
 /// Extract date from front matter, falling back to filename date.
 ///
 /// Front matter `date` overrides the filename-parsed date.
@@ -1155,5 +1191,75 @@ mod tests {
             items[0].front_matter.get("title").and_then(|v| v.as_str()),
             Some("Just Front Matter")
         );
+    }
+
+    // ========================================================================
+    // Unit: extract_tags
+    // ========================================================================
+
+    #[test]
+    fn test_extract_tags_array() {
+        let mut fm = FrontMatter::new();
+        fm.insert(
+            "tags".to_string(),
+            serde_yaml::Value::Sequence(vec![
+                serde_yaml::Value::String("machine-learning".to_string()),
+                serde_yaml::Value::String("tutorial".to_string()),
+            ]),
+        );
+        let tags = extract_tags(&fm);
+        assert_eq!(tags, vec!["machine-learning", "tutorial"]);
+    }
+
+    #[test]
+    fn test_extract_tags_single_tag_fallback() {
+        let mut fm = FrontMatter::new();
+        fm.insert(
+            "tag".to_string(),
+            serde_yaml::Value::String("python".to_string()),
+        );
+        let tags = extract_tags(&fm);
+        assert_eq!(tags, vec!["python"]);
+    }
+
+    #[test]
+    fn test_extract_tags_string_instead_of_array() {
+        let mut fm = FrontMatter::new();
+        fm.insert(
+            "tags".to_string(),
+            serde_yaml::Value::String("single-tag".to_string()),
+        );
+        let tags = extract_tags(&fm);
+        assert_eq!(tags, vec!["single-tag"]);
+    }
+
+    #[test]
+    fn test_extract_tags_none() {
+        let fm = FrontMatter::new();
+        let tags = extract_tags(&fm);
+        assert!(tags.is_empty());
+    }
+
+    #[test]
+    fn test_extract_tags_precedence_over_tag() {
+        let mut fm = FrontMatter::new();
+        fm.insert(
+            "tags".to_string(),
+            serde_yaml::Value::Sequence(vec![serde_yaml::Value::String("a".to_string())]),
+        );
+        fm.insert(
+            "tag".to_string(),
+            serde_yaml::Value::String("b".to_string()),
+        );
+        let tags = extract_tags(&fm);
+        assert_eq!(tags, vec!["a"]);
+    }
+
+    #[test]
+    fn test_extract_tags_empty_array() {
+        let mut fm = FrontMatter::new();
+        fm.insert("tags".to_string(), serde_yaml::Value::Sequence(vec![]));
+        let tags = extract_tags(&fm);
+        assert!(tags.is_empty());
     }
 }
