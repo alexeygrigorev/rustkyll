@@ -53,7 +53,9 @@ After fixing all 4 issues, re-run the Playwright visual comparison. Target: 0% p
 - Inline code has `class="language-plaintext highlighter-rouge"`
 - Paragraph spacing matches Jekyll output
 - Playwright visual comparison re-run with updated pixel diff numbers
-- DTC pages that were 1.8-2.9% must be <0.5% after fixes
+- Playwright visual comparison: 0% pixel diff on ALL pages (pixel-perfect match)
+- The ONLY acceptable difference is timestamps if dynamically generated (e.g. "built at" dates)
+- Everything else must be identical: spacing, attributes, classes, IDs, link targets
 - All existing tests still pass
 - Results documented in docs/comparison/visual-results.md (updated)
 
