@@ -1450,4 +1450,74 @@ mod tests {
             .unwrap();
         assert_eq!(output, "outer[inner=hello]");
     }
+
+    // ========================================================================
+    // Issue 39: Subdirectory include paths
+    // ========================================================================
+
+    #[test]
+    fn test_include_subdirectory_path() {
+        let mut includes = HashMap::new();
+        includes.insert("subdir/file.html".to_string(), "SUBDIR_CONTENT".to_string());
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render("{% include subdir/file.html %}", &ctx)
+            .unwrap();
+        assert_eq!(output, "SUBDIR_CONTENT");
+    }
+
+    #[test]
+    fn test_include_deeply_nested_path() {
+        let mut includes = HashMap::new();
+        includes.insert("a/b/c.html".to_string(), "DEEP_CONTENT".to_string());
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render("{% include a/b/c.html %}", &ctx)
+            .unwrap();
+        assert_eq!(output, "DEEP_CONTENT");
+    }
+
+    #[test]
+    fn test_include_subdirectory_with_param() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "subdir/file.html".to_string(),
+            "hello={{ include.param }}".to_string(),
+        );
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render(r#"{% include subdir/file.html param="world" %}"#, &ctx)
+            .unwrap();
+        assert_eq!(output, "hello=world");
+    }
+
+    #[test]
+    fn test_include_subdirectory_missing_param_returns_nil() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "subdir/file.html".to_string(),
+            "val={{ include.nonexistent }}".to_string(),
+        );
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render("{% include subdir/file.html %}", &ctx)
+            .unwrap();
+        assert_eq!(output, "val=");
+    }
+
+    #[test]
+    fn test_include_simple_still_works_after_subdirectory_support() {
+        let mut includes = HashMap::new();
+        includes.insert("simple.html".to_string(), "SIMPLE".to_string());
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render("{% include simple.html %}", &ctx)
+            .unwrap();
+        assert_eq!(output, "SIMPLE");
+    }
 }

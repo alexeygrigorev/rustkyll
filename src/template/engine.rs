@@ -334,6 +334,7 @@ impl TemplateEngine {
     pub fn new() -> Result<Self, TemplateError> {
         let parser = Self::builder()
             .tag(super::seo_tag::SeoTag)
+            .block(super::highlight_tag::HighlightBlock)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
         Ok(Self {
@@ -361,6 +362,7 @@ impl TemplateEngine {
         let parser = Self::builder()
             .tag(super::include_tag::LenientIncludeTag)
             .tag(super::seo_tag::SeoTag)
+            .block(super::highlight_tag::HighlightBlock)
             .partials(partials)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
@@ -384,6 +386,7 @@ impl TemplateEngine {
         let parser = Self::builder()
             .tag(super::include_tag::LenientIncludeTag)
             .tag(super::seo_tag::SeoTag)
+            .block(super::highlight_tag::HighlightBlock)
             .partials(partials)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
@@ -450,6 +453,11 @@ impl TemplateEngine {
     /// Returns `TemplateError::ParseError` if the template contains syntax errors
     /// that are not related to unknown filters.
     pub fn parse(&self, template_str: &str) -> Result<Template, TemplateError> {
+        // Pre-process include paths with subdirectory separators (e.g.,
+        // `{% include subdir/file.html %}` -> `{% include "subdir/file.html" %}`).
+        // The Liquid parser cannot handle `/` in unquoted tag arguments.
+        let preprocessed = super::include_tag::preprocess_include_paths(template_str);
+        let template_str = &preprocessed;
         loop {
             let parser_guard = self
                 .parser
@@ -502,8 +510,9 @@ impl TemplateEngine {
         }
         drop(filters_guard);
 
-        // Always register seo tag; include tag only when includes are present
+        // Always register seo tag and highlight block; include tag only when includes are present
         builder = builder.tag(super::seo_tag::SeoTag);
+        builder = builder.block(super::highlight_tag::HighlightBlock);
         if self.has_include_tag {
             builder = builder.tag(super::include_tag::LenientIncludeTag);
         }
@@ -629,10 +638,14 @@ fn load_includes_recursive(
 }
 
 /// Build an `EagerCompiler<InMemorySource>` from a map of partial names to content.
+///
+/// Each partial's content is pre-processed to quote include paths containing
+/// `/` so the Liquid parser can handle subdirectory includes.
 fn build_partials(includes: &HashMap<String, String>) -> EagerCompiler<InMemorySource> {
     let mut partials = EagerCompiler::<InMemorySource>::empty();
     for (name, content) in includes {
-        partials.add(name.clone(), content.clone());
+        let preprocessed = super::include_tag::preprocess_include_paths(content);
+        partials.add(name.clone(), preprocessed);
     }
     partials
 }

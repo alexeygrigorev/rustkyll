@@ -13,6 +13,7 @@ pub mod context;
 pub mod engine;
 pub mod error;
 pub mod filters;
+pub mod highlight_tag;
 pub mod include_tag;
 pub mod layout;
 pub mod seo_tag;

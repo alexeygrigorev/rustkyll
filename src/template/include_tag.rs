@@ -41,7 +41,18 @@ impl ParseTag for LenientIncludeTag {
 
         let name = match name.expect_identifier() {
             TryMatchToken::Matches(name) => name.to_kstr().to_string(),
-            TryMatchToken::Fails(name) => name.as_str().to_owned(),
+            TryMatchToken::Fails(name) => {
+                // Handle quoted strings (from pre-processing of paths with `/`).
+                // Strip surrounding quotes if present.
+                let s = name.as_str();
+                if (s.starts_with('"') && s.ends_with('"'))
+                    || (s.starts_with('\'') && s.ends_with('\''))
+                {
+                    s[1..s.len() - 1].to_owned()
+                } else {
+                    s.to_owned()
+                }
+            }
         };
 
         let partial = Expression::with_literal(name);
@@ -224,5 +235,160 @@ impl Renderable for LenientInclude {
         }
 
         Ok(())
+    }
+}
+
+/// Pre-process a template string to quote include paths containing `/`.
+///
+/// The Liquid parser's pest grammar does not recognize `/` as a valid token
+/// inside tag arguments. Jekyll `{% include subdir/file.html %}` uses
+/// unquoted paths with directory separators, which causes a parse error.
+///
+/// This function finds `{% include path/to/file.html ... %}` patterns and
+/// wraps the path in double quotes so the Liquid parser can handle it as a
+/// string literal: `{% include "path/to/file.html" ... %}`.
+///
+/// Paths without `/` are left unchanged.
+pub fn preprocess_include_paths(template: &str) -> String {
+    let mut result = String::with_capacity(template.len());
+    let mut remaining = template;
+
+    while let Some(start) = remaining.find("{%") {
+        // Copy everything up to this tag
+        result.push_str(&remaining[..start]);
+
+        // Find the closing %}
+        let after_open = &remaining[start + 2..];
+        if let Some(end_offset) = after_open.find("%}") {
+            let tag_inner = &after_open[..end_offset];
+            let tag_end = start + 2 + end_offset + 2;
+
+            // Check if this is an include tag with a path containing /
+            let trimmed = tag_inner.trim();
+
+            // Handle whitespace-control variants (e.g., {%- include -%})
+            let trimmed = trimmed.strip_prefix('-').unwrap_or(trimmed).trim();
+            let trimmed_end = trimmed.strip_suffix('-').unwrap_or(trimmed).trim();
+
+            if let Some(after_include) = trimmed_end
+                .strip_prefix("include")
+                .filter(|rest| rest.starts_with(' ') || rest.starts_with('\t'))
+            {
+                let after_include = after_include.trim_start();
+                // Check if the first "word" (up to space or %}) contains a /
+                let path_end = after_include
+                    .find([' ', '\t'])
+                    .unwrap_or(after_include.len());
+                let path = &after_include[..path_end];
+
+                if path.contains('/') && !path.starts_with('"') && !path.starts_with('\'') {
+                    // Reconstruct the tag with quoted path
+                    let rest_after_path = &after_include[path_end..];
+                    // Preserve original whitespace-control markers
+                    let orig_tag = &remaining[start..tag_end];
+                    let open_marker = if orig_tag.starts_with("{%-") {
+                        "{%-"
+                    } else {
+                        "{%"
+                    };
+                    let close_marker = if orig_tag.ends_with("-%}") {
+                        "-%}"
+                    } else {
+                        "%}"
+                    };
+                    result.push_str(open_marker);
+                    result.push_str(" include \"");
+                    result.push_str(path);
+                    result.push('"');
+                    result.push_str(rest_after_path);
+                    result.push(' ');
+                    result.push_str(close_marker);
+                    remaining = &remaining[tag_end..];
+                    continue;
+                }
+            }
+
+            // Not an include with / -- copy as-is
+            result.push_str(&remaining[start..tag_end]);
+            remaining = &remaining[tag_end..];
+        } else {
+            // No closing %} -- copy rest as-is
+            result.push_str(&remaining[start..]);
+            remaining = "";
+        }
+    }
+
+    result.push_str(remaining);
+    result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_preprocess_simple_include_unchanged() {
+        let input = "{% include simple.html %}";
+        assert_eq!(preprocess_include_paths(input), input);
+    }
+
+    #[test]
+    fn test_preprocess_subdirectory_include() {
+        let input = "{% include subdir/file.html %}";
+        let output = preprocess_include_paths(input);
+        assert!(
+            output.contains("\"subdir/file.html\""),
+            "Expected quoted path, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_deeply_nested_include() {
+        let input = "{% include a/b/c.html %}";
+        let output = preprocess_include_paths(input);
+        assert!(
+            output.contains("\"a/b/c.html\""),
+            "Expected quoted path, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_include_with_params() {
+        let input = r#"{% include subdir/file.html param="value" %}"#;
+        let output = preprocess_include_paths(input);
+        assert!(
+            output.contains("\"subdir/file.html\""),
+            "Expected quoted path, got: {}",
+            output
+        );
+        assert!(
+            output.contains("param=\"value\""),
+            "Expected params preserved, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_no_double_quote_already_quoted() {
+        let input = r#"{% include "subdir/file.html" %}"#;
+        let output = preprocess_include_paths(input);
+        // Should remain unchanged since it's already quoted
+        assert_eq!(output, input);
+    }
+
+    #[test]
+    fn test_preprocess_preserves_non_include_tags() {
+        let input = "{% if true %}hello{% endif %}";
+        assert_eq!(preprocess_include_paths(input), input);
+    }
+
+    #[test]
+    fn test_preprocess_mixed_content() {
+        let input = "<p>{% include subdir/file.html %}</p>{% if true %}yes{% endif %}";
+        let output = preprocess_include_paths(input);
+        assert!(output.contains("\"subdir/file.html\""));
+        assert!(output.contains("{% if true %}"));
     }
 }
