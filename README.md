@@ -4,6 +4,12 @@ A static site generator written in Rust, designed as a drop-in replacement for J
 
 rustkyll reads the same source files as Jekyll - Markdown with YAML front matter, Liquid templates, YAML data files, and collection directories - and produces equivalent HTML output.
 
+Quickstart:
+
+```
+uvx rustkyll build
+uvx rustkyll serve
+```
 
 ## Installation
 
