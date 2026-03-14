@@ -459,6 +459,7 @@ impl TemplateEngine {
     pub fn new() -> Result<Self, TemplateError> {
         let parser = Self::builder()
             .tag(super::seo_tag::SeoTag)
+            .tag(super::avatar_tag::AvatarTag)
             .block(super::highlight_tag::HighlightBlock)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
@@ -487,6 +488,7 @@ impl TemplateEngine {
         let parser = Self::builder()
             .tag(super::include_tag::LenientIncludeTag)
             .tag(super::seo_tag::SeoTag)
+            .tag(super::avatar_tag::AvatarTag)
             .block(super::highlight_tag::HighlightBlock)
             .partials(partials)
             .build()
@@ -511,6 +513,7 @@ impl TemplateEngine {
         let parser = Self::builder()
             .tag(super::include_tag::LenientIncludeTag)
             .tag(super::seo_tag::SeoTag)
+            .tag(super::avatar_tag::AvatarTag)
             .block(super::highlight_tag::HighlightBlock)
             .partials(partials)
             .build()
@@ -539,6 +542,7 @@ impl TemplateEngine {
             .filter(filters::Where)
             .filter(filters::Jsonify)
             .filter(filters::DateToString)
+            .filter(filters::DateToLongString)
             .filter(filters::DateToXmlschema)
             .filter(filters::Markdownify)
             .filter(filters::NewlineToBr)
@@ -635,8 +639,9 @@ impl TemplateEngine {
         }
         drop(filters_guard);
 
-        // Always register seo tag and highlight block; include tag only when includes are present
+        // Always register seo tag, avatar tag, and highlight block; include tag only when includes are present
         builder = builder.tag(super::seo_tag::SeoTag);
+        builder = builder.tag(super::avatar_tag::AvatarTag);
         builder = builder.block(super::highlight_tag::HighlightBlock);
         if self.has_include_tag {
             builder = builder.tag(super::include_tag::LenientIncludeTag);

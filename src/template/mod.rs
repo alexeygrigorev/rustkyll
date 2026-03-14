@@ -9,6 +9,7 @@
 //! - `yaml_to_liquid` / `yaml_mapping_to_object` -- convert YAML data to Liquid values
 //! - `build_context` -- convenience helper for building template contexts
 
+pub mod avatar_tag;
 pub mod context;
 pub mod engine;
 pub mod error;
