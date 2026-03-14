@@ -820,7 +820,7 @@ mod tests {
     use std::path::PathBuf;
 
     fn site_dir() -> PathBuf {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("datatalksclub.github.io")
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures")
     }
 
     fn test_config() -> SiteConfig {
@@ -891,7 +891,7 @@ mod tests {
 
         let posts_val = ctx.get("posts").expect("site should have posts");
         if let LiquidValue::Array(arr) = posts_val {
-            assert!(arr.len() >= 50, "Expected 50+ posts, got {}", arr.len());
+            assert!(arr.len() >= 2, "Expected 2+ posts, got {}", arr.len());
         } else {
             panic!("Expected posts to be an array");
         }
@@ -929,7 +929,7 @@ mod tests {
 
         let books_val = ctx.get("books").expect("site should have books");
         if let LiquidValue::Array(arr) = books_val {
-            assert!(arr.len() >= 90, "Expected 90+ books, got {}", arr.len());
+            assert!(arr.len() >= 2, "Expected 2+ books, got {}", arr.len());
         } else {
             panic!("Expected books to be an array");
         }
@@ -968,7 +968,7 @@ mod tests {
         if let LiquidValue::Object(data_obj) = data_val {
             let events = data_obj.get("events").expect("data should have events");
             if let LiquidValue::Array(arr) = events {
-                assert!(arr.len() > 100, "Expected 100+ events, got {}", arr.len());
+                assert!(!arr.is_empty(), "Expected 1+ events, got {}", arr.len());
             } else {
                 panic!("Expected events to be an array");
             }

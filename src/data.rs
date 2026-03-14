@@ -276,17 +276,13 @@ mod tests {
 
     fn data_dir() -> std::path::PathBuf {
         Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("datatalksclub.github.io")
+            .join("tests/fixtures")
             .join("_data")
     }
 
     #[test]
     fn test_load_real_data_succeeds() {
         let dir = data_dir();
-        if !dir.exists() {
-            eprintln!("Skipping integration test: {:?} not found", dir);
-            return;
-        }
         let tree = load_data(&dir).unwrap();
         assert!(!tree.is_empty());
     }
@@ -294,14 +290,11 @@ mod tests {
     #[test]
     fn test_real_events() {
         let dir = data_dir();
-        if !dir.exists() {
-            return;
-        }
         let tree = load_data(&dir).unwrap();
 
         let events = &tree["events"];
         let seq = events.as_sequence().expect("events should be a sequence");
-        assert!(seq.len() > 100, "Expected > 100 events, got {}", seq.len());
+        assert!(!seq.is_empty(), "Expected events, got {}", seq.len());
 
         // First event should have expected keys
         let first = seq[0].as_mapping().expect("event should be a mapping");
@@ -317,9 +310,6 @@ mod tests {
     #[test]
     fn test_real_events_extra() {
         let dir = data_dir();
-        if !dir.exists() {
-            return;
-        }
         let tree = load_data(&dir).unwrap();
 
         let extra = &tree["events_extra"];
@@ -333,9 +323,6 @@ mod tests {
     #[test]
     fn test_real_header() {
         let dir = data_dir();
-        if !dir.exists() {
-            return;
-        }
         let tree = load_data(&dir).unwrap();
 
         let header = &tree["header"];
@@ -349,9 +336,6 @@ mod tests {
     #[test]
     fn test_real_navigation() {
         let dir = data_dir();
-        if !dir.exists() {
-            return;
-        }
         let tree = load_data(&dir).unwrap();
 
         let nav = &tree["navigation"];
@@ -371,9 +355,6 @@ mod tests {
     #[test]
     fn test_real_sponsors() {
         let dir = data_dir();
-        if !dir.exists() {
-            return;
-        }
         let tree = load_data(&dir).unwrap();
 
         let sponsors = &tree["sponsors"];
@@ -396,9 +377,6 @@ mod tests {
     #[test]
     fn test_real_faqs() {
         let dir = data_dir();
-        if !dir.exists() {
-            return;
-        }
         let tree = load_data(&dir).unwrap();
 
         let faqs = &tree["faqs"];

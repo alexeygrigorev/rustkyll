@@ -1,0 +1,12 @@
+top:
+  - title: "Home"
+    link: "/"
+  - title: "Blog"
+    link: "/blog.html"
+  - title: "Courses"
+    link: "/courses.html"
+bottom:
+  - title: "Privacy"
+    link: "/privacy.html"
+  - title: "Contact"
+    link: "/contact.html"

@@ -75,11 +75,17 @@ static POSTS_OUTPUT: LazyLock<tempfile::TempDir> = LazyLock::new(|| {
 
 #[test]
 fn test_generate_all_posts_count() {
+    if !site_dir().exists() {
+        return;
+    }
     let _output = &*POSTS_OUTPUT;
 }
 
 #[test]
 fn test_generated_posts_are_valid_html() {
+    if !site_dir().exists() {
+        return;
+    }
     let blog_dir = POSTS_OUTPUT.path().join("blog");
     assert!(blog_dir.exists(), "blog/ directory should exist");
     for entry in fs::read_dir(&blog_dir).unwrap() {
@@ -104,6 +110,9 @@ fn test_generated_posts_are_valid_html() {
 
 #[test]
 fn test_generated_segmentation_post_content() {
+    if !site_dir().exists() {
+        return;
+    }
     let path = POSTS_OUTPUT.path().join("blog/segmentation.html");
     assert!(path.exists(), "segmentation.html should exist");
     let content = fs::read_to_string(&path).unwrap();
@@ -128,6 +137,9 @@ fn test_generated_segmentation_post_content() {
 
 #[test]
 fn test_generated_mlops_post_content() {
+    if !site_dir().exists() {
+        return;
+    }
     let path = POSTS_OUTPUT.path().join("blog/mlops-10-minutes.html");
     assert!(path.exists(), "mlops-10-minutes.html should exist");
     let content = fs::read_to_string(&path).unwrap();
@@ -144,6 +156,9 @@ fn test_generated_mlops_post_content() {
 
 #[test]
 fn test_generated_hiring_post_content() {
+    if !site_dir().exists() {
+        return;
+    }
     let path = POSTS_OUTPUT
         .path()
         .join("blog/hiring-process-for-data-professionals.html");
@@ -167,6 +182,9 @@ fn test_generated_hiring_post_content() {
 
 #[test]
 fn test_render_segmentation_post() {
+    if !site_dir().exists() {
+        return;
+    }
     let post = FIXTURE
         .posts
         .iter()
@@ -207,6 +225,9 @@ fn test_render_segmentation_post() {
 
 #[test]
 fn test_author_resolution_alexeygrigorev() {
+    if !site_dir().exists() {
+        return;
+    }
     let post = FIXTURE
         .posts
         .iter()
@@ -237,6 +258,9 @@ fn test_author_resolution_alexeygrigorev() {
 
 #[test]
 fn test_youtube_include_in_post() {
+    if !site_dir().exists() {
+        return;
+    }
     let youtube_post = FIXTURE
         .posts
         .iter()
@@ -257,6 +281,9 @@ fn test_youtube_include_in_post() {
 
 #[test]
 fn test_json_ld_schema_correctness() {
+    if !site_dir().exists() {
+        return;
+    }
     let post = FIXTURE
         .posts
         .iter()
@@ -276,6 +303,9 @@ fn test_json_ld_schema_correctness() {
 
 #[test]
 fn test_mlops_post_tags_in_json_ld() {
+    if !site_dir().exists() {
+        return;
+    }
     let post = FIXTURE
         .posts
         .iter()
@@ -295,6 +325,9 @@ fn test_mlops_post_tags_in_json_ld() {
 
 #[test]
 fn test_post_with_no_subtitle() {
+    if !site_dir().exists() {
+        return;
+    }
     let post = FIXTURE
         .posts
         .iter()

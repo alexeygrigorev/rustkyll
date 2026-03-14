@@ -257,7 +257,7 @@ mod tests {
 
     fn real_config_path() -> PathBuf {
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("datatalksclub.github.io")
+            .join("tests/fixtures")
             .join("_config.yml")
     }
 

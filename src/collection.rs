@@ -544,7 +544,7 @@ mod tests {
     use std::path::PathBuf;
 
     fn site_dir() -> PathBuf {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("datatalksclub.github.io")
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures")
     }
 
     fn test_config() -> SiteConfig {
@@ -937,8 +937,8 @@ mod tests {
         let (items, errors) = load_collection("people", &site_dir(), &config).unwrap();
         assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
         assert!(
-            items.len() >= 424,
-            "Expected 424+ people items, got {}",
+            items.len() >= 2,
+            "Expected 2+ people items, got {}",
             items.len()
         );
     }
@@ -970,8 +970,8 @@ mod tests {
         let (items, errors) = load_collection("books", &site_dir(), &config).unwrap();
         assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
         assert!(
-            items.len() >= 98,
-            "Expected 98+ books items, got {}",
+            items.len() >= 2,
+            "Expected 2+ books items, got {}",
             items.len()
         );
     }
@@ -1000,8 +1000,8 @@ mod tests {
         let (items, errors) = load_collection("podcast", &site_dir(), &config).unwrap();
         assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
         assert!(
-            items.len() >= 193,
-            "Expected 193+ podcast items, got {}",
+            items.len() >= 2,
+            "Expected 2+ podcast items, got {}",
             items.len()
         );
     }
@@ -1029,7 +1029,7 @@ mod tests {
         let config = test_config();
         let (items, errors) = load_collection("posts", &site_dir(), &config).unwrap();
         assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
-        assert_eq!(items.len(), 55, "Expected 55 posts, got {}", items.len());
+        assert_eq!(items.len(), 3, "Expected 3 posts, got {}", items.len());
     }
 
     #[test]

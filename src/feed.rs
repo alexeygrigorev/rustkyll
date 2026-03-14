@@ -694,8 +694,7 @@ mod tests {
 
     #[test]
     fn test_feed_with_real_posts() {
-        let site_dir =
-            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("datatalksclub.github.io");
+        let site_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
         let config = SiteConfig::from_file(&site_dir.join("_config.yml")).unwrap();
         let (posts, _errors) =
             crate::collection::load_collection("posts", &site_dir, &config).unwrap();
