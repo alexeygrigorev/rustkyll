@@ -108,6 +108,10 @@ Other tested sites
 - [beautiful-jekyll](https://github.com/daattali/beautiful-jekyll)
 
 
+## Jekyll Compatibility
+
+See [docs/jekyll-compatibility.md](docs/jekyll-compatibility.md) for a detailed feature-by-feature comparison between rustkyll and Jekyll.
+
 ## Known Limitations
 
 - No Sass/SCSS compilation. Jekyll sites that rely on Sass stylesheets will need to pre-compile their CSS or use plain CSS files.
