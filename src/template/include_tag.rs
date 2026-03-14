@@ -10,12 +10,18 @@ use std::io::Write;
 
 use liquid_core::error::ResultLiquidExt;
 use liquid_core::model::{DisplayCow, KString, KStringCow, ObjectView, State, Value, ValueView};
+use liquid_core::parser::FilterChain;
 use liquid_core::parser::TryMatchToken;
 use liquid_core::runtime::StackFrame;
 use liquid_core::{Error, Result};
 use liquid_core::{
     Expression, Language, ParseTag, Renderable, Runtime, TagReflection, TagTokenIter,
 };
+
+/// Sentinel filename used in preprocessed dynamic include tags.
+/// When the parser sees this as the include filename, it knows to read the
+/// next token(s) as a Liquid expression for the real path.
+const DYNAMIC_INCLUDE_SENTINEL: &str = "__DYNAMIC_INCLUDE__";
 
 /// A custom include tag that supports lenient parameter access.
 #[derive(Copy, Clone, Debug, Default)]
@@ -55,7 +61,23 @@ impl ParseTag for LenientIncludeTag {
             }
         };
 
-        let partial = Expression::with_literal(name);
+        // Check if this is a dynamic include (preprocessed from {% include {{ expr }} %}).
+        // The sentinel value __DYNAMIC_INCLUDE__ means the actual path comes from
+        // the next token which is a Liquid expression (variable + optional filters).
+        let partial = if name == DYNAMIC_INCLUDE_SENTINEL {
+            let path_token = arguments.expect_next("Expected dynamic include path expression.")?;
+            match path_token.expect_filter_chain(_options) {
+                TryMatchToken::Matches(chain) => IncludePath::Dynamic(chain),
+                TryMatchToken::Fails(token) => {
+                    return Err(Error::with_msg(format!(
+                        "Invalid dynamic include path expression: {}",
+                        token.as_str()
+                    )));
+                }
+            }
+        } else {
+            IncludePath::Literal(Expression::with_literal(name))
+        };
 
         let mut vars: Vec<(KString, Expression)> = Vec::new();
         while let Ok(next) = arguments.expect_next("") {
@@ -85,9 +107,28 @@ impl ParseTag for LenientIncludeTag {
     }
 }
 
+/// The include path, which can be a literal filename or a dynamic expression
+/// (variable reference with optional filters).
+#[derive(Debug)]
+enum IncludePath {
+    /// A static literal filename (e.g., `header.html`).
+    Literal(Expression),
+    /// A dynamic expression (e.g., `page.form | append: '.html'`).
+    Dynamic(FilterChain),
+}
+
+impl std::fmt::Display for IncludePath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            IncludePath::Literal(expr) => write!(f, "{}", expr),
+            IncludePath::Dynamic(chain) => write!(f, "{{{{ {} }}}}", chain),
+        }
+    }
+}
+
 #[derive(Debug)]
 struct LenientInclude {
-    partial: Expression,
+    partial: IncludePath,
     vars: Vec<(KString, Expression)>,
 }
 
@@ -201,7 +242,28 @@ impl ObjectView for LenientIncludeParams {
 
 impl Renderable for LenientInclude {
     fn render_to(&self, writer: &mut dyn Write, runtime: &dyn Runtime) -> Result<()> {
-        let name = self.partial.evaluate(runtime)?.render().to_string();
+        let name = match &self.partial {
+            IncludePath::Literal(expr) => expr.evaluate(runtime)?.render().to_string(),
+            IncludePath::Dynamic(chain) => {
+                let value = chain.evaluate(runtime)?;
+                if value.is_nil() {
+                    return Err(Error::with_msg(
+                        "Dynamic include path resolved to nil. \
+                         The variable used in {% include {{ ... }} %} is not set."
+                            .to_string(),
+                    ));
+                }
+                let rendered = value.render().to_string();
+                if rendered.is_empty() {
+                    return Err(Error::with_msg(
+                        "Dynamic include path resolved to empty string. \
+                         The variable used in {% include {{ ... }} %} is empty."
+                            .to_string(),
+                    ));
+                }
+                rendered
+            }
+        };
 
         {
             // Always create a lenient include object, even when there are no vars.
@@ -275,6 +337,42 @@ pub fn preprocess_include_paths(template: &str) -> String {
                 .filter(|rest| rest.starts_with(' ') || rest.starts_with('\t'))
             {
                 let after_include = after_include.trim_start();
+
+                // Handle dynamic include paths: {% include {{ expr }} ... %}
+                // Replace with sentinel + expression so the parser can
+                // distinguish dynamic paths from literal filenames.
+                if after_include.starts_with("{{") {
+                    if let Some(close_pos) = after_include.find("}}") {
+                        let inner_expr = after_include[2..close_pos].trim();
+                        let rest_after_braces = after_include[close_pos + 2..].trim_start();
+                        // Preserve original whitespace-control markers
+                        let orig_tag = &remaining[start..tag_end];
+                        let open_marker = if orig_tag.starts_with("{%-") {
+                            "{%-"
+                        } else {
+                            "{%"
+                        };
+                        let close_marker = if orig_tag.ends_with("-%}") {
+                            "-%}"
+                        } else {
+                            "%}"
+                        };
+                        result.push_str(open_marker);
+                        result.push_str(" include ");
+                        result.push_str(DYNAMIC_INCLUDE_SENTINEL);
+                        result.push(' ');
+                        result.push_str(inner_expr);
+                        if !rest_after_braces.is_empty() {
+                            result.push(' ');
+                            result.push_str(rest_after_braces);
+                        }
+                        result.push(' ');
+                        result.push_str(close_marker);
+                        remaining = &remaining[tag_end..];
+                        continue;
+                    }
+                }
+
                 // Check if the first "word" (up to space or %}) contains a /
                 let path_end = after_include
                     .find([' ', '\t'])
@@ -390,5 +488,85 @@ mod tests {
         let output = preprocess_include_paths(input);
         assert!(output.contains("\"subdir/file.html\""));
         assert!(output.contains("{% if true %}"));
+    }
+
+    // ========================================================================
+    // Issue 41: Dynamic include paths
+    // ========================================================================
+
+    #[test]
+    fn test_preprocess_dynamic_include_strips_braces() {
+        let input = "{% include {{ page.form | append: '.html' }} %}";
+        let output = preprocess_include_paths(input);
+        assert!(
+            !output.contains("{{"),
+            "Should strip {{ wrapper, got: {}",
+            output
+        );
+        assert!(
+            !output.contains("}}"),
+            "Should strip }} wrapper, got: {}",
+            output
+        );
+        assert!(
+            output.contains("page.form"),
+            "Should preserve inner expression, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_dynamic_include_simple_var() {
+        let input = "{% include {{ var }} %}";
+        let output = preprocess_include_paths(input);
+        assert!(
+            !output.contains("{{"),
+            "Should strip {{ wrapper, got: {}",
+            output
+        );
+        assert!(
+            output.contains("var"),
+            "Should preserve variable name, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_dynamic_and_static_mixed() {
+        let input = "{% include {{ var }} %}\n{% include subdir/file.html %}";
+        let output = preprocess_include_paths(input);
+        // Dynamic include should have {{ stripped
+        assert!(
+            !output.contains("{{"),
+            "Dynamic include should have {{ stripped, got: {}",
+            output
+        );
+        // Static subdirectory include should be quoted
+        assert!(
+            output.contains("\"subdir/file.html\""),
+            "Static include should be quoted, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_dynamic_include_with_params() {
+        let input = r#"{% include {{ page.form }} param1="value" %}"#;
+        let output = preprocess_include_paths(input);
+        assert!(
+            !output.contains("{{"),
+            "Should strip {{ wrapper, got: {}",
+            output
+        );
+        assert!(
+            output.contains("page.form"),
+            "Should preserve variable, got: {}",
+            output
+        );
+        assert!(
+            output.contains(r#"param1="value""#),
+            "Should preserve params, got: {}",
+            output
+        );
     }
 }

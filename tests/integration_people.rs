@@ -39,7 +39,7 @@ static FIXTURE: LazyLock<PeopleFixture> = LazyLock::new(|| {
     colls.insert("people".to_string(), people.clone());
 
     let site_context =
-        generator::build_site_context(&CONFIG, &colls, &data_tree, Some(&site_dir()));
+        generator::build_site_context(&CONFIG, &colls, &data_tree, Some(&site_dir()), &[]);
     let layout_engine =
         LayoutEngine::new(&site_dir().join("_layouts"), &site_dir().join("_includes")).unwrap();
 
@@ -167,7 +167,7 @@ fn test_people_array_includes_short_and_content() {
     let mut colls = HashMap::new();
     colls.insert("people".to_string(), people);
     let data = data::DataTree::new();
-    let ctx = generator::build_site_context(&CONFIG, &colls, &data, None);
+    let ctx = generator::build_site_context(&CONFIG, &colls, &data, None, &[]);
 
     if let Some(liquid::model::Value::Array(arr)) = ctx.get("people") {
         let alexey = arr.iter().find(|item| {

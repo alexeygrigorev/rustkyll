@@ -38,7 +38,7 @@ static FIXTURE: LazyLock<BooksFixture> = LazyLock::new(|| {
     colls.insert("people".to_string(), people);
 
     let site_context =
-        generator::build_site_context(&CONFIG, &colls, &data_tree, Some(&site_dir()));
+        generator::build_site_context(&CONFIG, &colls, &data_tree, Some(&site_dir()), &[]);
     let layout_engine =
         LayoutEngine::new(&site_dir().join("_layouts"), &site_dir().join("_includes")).unwrap();
 

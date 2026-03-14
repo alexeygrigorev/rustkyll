@@ -1520,4 +1520,121 @@ mod tests {
             .unwrap();
         assert_eq!(output, "SIMPLE");
     }
+
+    // ========================================================================
+    // Issue 41: Dynamic include paths
+    // ========================================================================
+
+    #[test]
+    fn test_dynamic_include_simple_variable() {
+        let mut includes = HashMap::new();
+        includes.insert("contact.html".to_string(), "<p>Contact</p>".to_string());
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+
+        let mut page = liquid::Object::new();
+        page.insert("form".into(), LiquidValue::scalar("contact.html"));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+
+        let output = engine
+            .parse_and_render(r#"{% include {{ page.form }} %}"#, &ctx)
+            .unwrap();
+        assert!(
+            output.contains("<p>Contact</p>"),
+            "Expected contact content, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_dynamic_include_with_filter() {
+        let mut includes = HashMap::new();
+        includes.insert("survey.html".to_string(), "<p>Survey</p>".to_string());
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+
+        let mut page = liquid::Object::new();
+        page.insert("form".into(), LiquidValue::scalar("survey"));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+
+        let output = engine
+            .parse_and_render(r#"{% include {{ page.form | append: '.html' }} %}"#, &ctx)
+            .unwrap();
+        assert!(
+            output.contains("<p>Survey</p>"),
+            "Expected survey content, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_dynamic_include_nil_path_returns_error() {
+        let mut includes = HashMap::new();
+        includes.insert("dummy.html".to_string(), "DUMMY".to_string());
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+
+        // page.form is not set, so it should be nil
+        let mut page = liquid::Object::new();
+        page.insert("other".into(), LiquidValue::scalar("irrelevant"));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+
+        let result = engine.parse_and_render(r#"{% include {{ page.form }} %}"#, &ctx);
+        assert!(
+            result.is_err(),
+            "Expected error for nil dynamic include path"
+        );
+    }
+
+    #[test]
+    fn test_dynamic_include_nonexistent_partial_returns_error() {
+        let mut includes = HashMap::new();
+        includes.insert("exists.html".to_string(), "EXISTS".to_string());
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+
+        let mut page = liquid::Object::new();
+        page.insert("form".into(), LiquidValue::scalar("nonexistent.html"));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+
+        let result = engine.parse_and_render(r#"{% include {{ page.form }} %}"#, &ctx);
+        assert!(result.is_err(), "Expected error for nonexistent partial");
+    }
+
+    #[test]
+    fn test_dynamic_include_with_params() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "form.html".to_string(),
+            "<form>{{ include.action }}</form>".to_string(),
+        );
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+
+        let mut page = liquid::Object::new();
+        page.insert("form".into(), LiquidValue::scalar("form.html"));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+
+        let output = engine
+            .parse_and_render(r#"{% include {{ page.form }} action="submit" %}"#, &ctx)
+            .unwrap();
+        assert!(
+            output.contains("<form>submit</form>"),
+            "Expected form with action, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_static_include_still_works_after_dynamic_support() {
+        // Verify literal includes are unaffected by dynamic include support
+        let mut includes = HashMap::new();
+        includes.insert("header.html".to_string(), "<h1>Header</h1>".to_string());
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render("{% include header.html %}", &ctx)
+            .unwrap();
+        assert_eq!(output, "<h1>Header</h1>");
+    }
 }

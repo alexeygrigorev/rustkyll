@@ -14,7 +14,7 @@ use liquid::model::Value as LiquidValue;
 use liquid::Object;
 use rayon::prelude::*;
 
-use crate::collection::CollectionItem;
+use crate::collection::{CollectionItem, Page};
 use crate::config::SiteConfig;
 use crate::data::DataTree;
 use crate::jsonld;
@@ -63,11 +63,14 @@ pub struct GenerationResult {
 /// - `site.data.*` from data files
 /// - `site.url`, `site.name`, `site.title`, `site.time`
 /// - `site.github.repository_url` (from config or git remote)
+/// - `site.related_posts` (10 most recent posts by date descending)
+/// - `site.pages` (standalone page objects)
 pub fn build_site_context(
     config: &SiteConfig,
     collections: &HashMap<String, Vec<CollectionItem>>,
     data: &DataTree,
     site_dir: Option<&Path>,
+    pages: &[Page],
 ) -> Object {
     let mut site = Object::new();
 
@@ -124,6 +127,20 @@ pub fn build_site_context(
         data_obj.insert(key.clone().into(), liquid_val);
     }
     site.insert("data".into(), LiquidValue::Object(data_obj));
+
+    // site.related_posts -- 10 most recent posts sorted by date descending
+    let related_posts = build_related_posts(collections);
+    site.insert(
+        "related_posts".into(),
+        normalize_arrays(LiquidValue::Array(related_posts)),
+    );
+
+    // site.pages -- standalone page objects
+    let pages_arr: Vec<LiquidValue> = pages.iter().map(page_to_liquid).collect();
+    site.insert(
+        "pages".into(),
+        normalize_arrays(LiquidValue::Array(pages_arr)),
+    );
 
     site
 }
@@ -212,6 +229,54 @@ fn collection_item_to_liquid(item: &CollectionItem) -> LiquidValue {
     if !item.front_matter.contains_key("short") {
         obj.insert("short".into(), LiquidValue::scalar(item.slug.clone()));
     }
+
+    LiquidValue::Object(obj)
+}
+
+/// Build `site.related_posts` -- the 10 most recent posts sorted by date descending.
+///
+/// In Jekyll, `site.related_posts` defaults to the 10 most recent posts
+/// (unless LSI is enabled, which we do not support). Each entry has the same
+/// structure as entries in `site.posts`.
+fn build_related_posts(collections: &HashMap<String, Vec<CollectionItem>>) -> Vec<LiquidValue> {
+    let Some(posts) = collections.get("posts") else {
+        return Vec::new();
+    };
+
+    // Sort posts by date descending, take up to 10
+    let mut sorted: Vec<&CollectionItem> = posts.iter().collect();
+    sorted.sort_by(|a, b| {
+        let date_a = a.date.as_deref().unwrap_or("");
+        let date_b = b.date.as_deref().unwrap_or("");
+        date_b.cmp(date_a) // descending
+    });
+
+    sorted
+        .into_iter()
+        .take(10)
+        .map(collection_item_to_liquid)
+        .collect()
+}
+
+/// Convert a standalone `Page` to a Liquid `Value` object.
+///
+/// Exposes front matter fields, `title`, `url`, and `content`,
+/// matching Jekyll's page object structure.
+fn page_to_liquid(page: &Page) -> LiquidValue {
+    let mut obj = Object::new();
+
+    // Copy all front matter fields
+    for (key, value) in &page.front_matter {
+        obj.insert(key.clone().into(), normalize_arrays(yaml_to_liquid(value)));
+    }
+
+    // Add computed fields (may override front matter)
+    obj.insert("url".into(), LiquidValue::scalar(page.url.clone()));
+    obj.insert("slug".into(), LiquidValue::scalar(page.slug.clone()));
+    obj.insert(
+        "content".into(),
+        LiquidValue::scalar(page.html_content.clone()),
+    );
 
     LiquidValue::Object(obj)
 }
@@ -685,7 +750,7 @@ mod tests {
         let mut collections = HashMap::new();
         collections.insert("posts".to_string(), posts);
         let data = DataTree::new();
-        let ctx = build_site_context(&config, &collections, &data, None);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
 
         let posts_val = ctx.get("posts").expect("site should have posts");
         if let LiquidValue::Array(arr) = posts_val {
@@ -702,7 +767,7 @@ mod tests {
         let mut collections = HashMap::new();
         collections.insert("posts".to_string(), posts);
         let data = DataTree::new();
-        let ctx = build_site_context(&config, &collections, &data, None);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
 
         if let Some(LiquidValue::Array(arr)) = ctx.get("posts") {
             // Check the first post has title and url
@@ -723,7 +788,7 @@ mod tests {
         let mut collections = HashMap::new();
         collections.insert("books".to_string(), books);
         let data = DataTree::new();
-        let ctx = build_site_context(&config, &collections, &data, None);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
 
         let books_val = ctx.get("books").expect("site should have books");
         if let LiquidValue::Array(arr) = books_val {
@@ -740,7 +805,7 @@ mod tests {
         let mut collections = HashMap::new();
         collections.insert("books".to_string(), books);
         let data = DataTree::new();
-        let ctx = build_site_context(&config, &collections, &data, None);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
 
         if let Some(LiquidValue::Array(arr)) = ctx.get("books") {
             let first = &arr[0];
@@ -760,7 +825,7 @@ mod tests {
         let data_dir = site_dir().join("_data");
         let data = crate::data::load_data(&data_dir).unwrap();
         let collections = HashMap::new();
-        let ctx = build_site_context(&config, &collections, &data, None);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
 
         let data_val = ctx.get("data").expect("site should have data");
         if let LiquidValue::Object(data_obj) = data_val {
@@ -780,7 +845,7 @@ mod tests {
         let config = test_config();
         let data = DataTree::new();
         let collections = HashMap::new();
-        let ctx = build_site_context(&config, &collections, &data, None);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
 
         assert_eq!(
             ctx.get("url"),
@@ -873,7 +938,7 @@ mod tests {
         let mut collections = HashMap::new();
         collections.insert("posts".to_string(), vec![post_a, post_b, post_c]);
 
-        let ctx = build_site_context(&config, &collections, &data, None);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
 
         let categories = ctx.get("categories").expect("should have categories");
         if let LiquidValue::Object(cats) = categories {
@@ -979,7 +1044,7 @@ mod tests {
         let mut collections = HashMap::new();
         collections.insert("posts".to_string(), vec![post_a, post_b, post_c]);
 
-        let ctx = build_site_context(&config, &collections, &data, None);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
 
         let tags = ctx.get("tags").expect("should have tags");
         if let LiquidValue::Object(tag_map) = tags {
@@ -1009,7 +1074,7 @@ mod tests {
         let data = DataTree::new();
         let collections = HashMap::new();
 
-        let ctx = build_site_context(&config, &collections, &data, None);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
 
         let categories = ctx.get("categories").expect("should have categories");
         if let LiquidValue::Object(cats) = categories {
@@ -1056,7 +1121,7 @@ mod tests {
         let mut collections = HashMap::new();
         collections.insert("people".to_string(), vec![person]);
 
-        let ctx = build_site_context(&config, &collections, &data, None);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
 
         let tags = ctx.get("tags").expect("should have tags");
         if let LiquidValue::Object(tag_map) = tags {
@@ -1076,7 +1141,7 @@ mod tests {
         let mut collections = HashMap::new();
         collections.insert("posts".to_string(), posts);
         let data = DataTree::new();
-        let ctx = build_site_context(&config, &collections, &data, None);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
 
         // The segmentation post has tags: [analytics, clustering]
         let tags = ctx.get("tags").expect("should have tags");
@@ -2099,7 +2164,7 @@ DONE
         let config = SiteConfig::default();
         let colls = HashMap::new();
         let data = DataTree::new();
-        let ctx = build_site_context(&config, &colls, &data, None);
+        let ctx = build_site_context(&config, &colls, &data, None, &[]);
         assert_eq!(ctx.get("url"), Some(&LiquidValue::scalar("")));
     }
 
@@ -2116,7 +2181,7 @@ DONE
         );
         let colls = HashMap::new();
         let data = DataTree::new();
-        let ctx = build_site_context(&config, &colls, &data, None);
+        let ctx = build_site_context(&config, &colls, &data, None, &[]);
         assert_eq!(ctx.get("locale"), Some(&LiquidValue::scalar("en")));
         assert_eq!(ctx.get("author"), Some(&LiquidValue::scalar("Alice")));
     }
@@ -2134,7 +2199,7 @@ DONE
         };
         let colls = HashMap::new();
         let data = DataTree::new();
-        let ctx = build_site_context(&config, &colls, &data, None);
+        let ctx = build_site_context(&config, &colls, &data, None, &[]);
         let twitter = ctx.get("twitter").expect("should have twitter");
         if let LiquidValue::Object(obj) = twitter {
             let username = obj.get("username").expect("should have username");
@@ -2150,7 +2215,7 @@ DONE
         let config = SiteConfig::from_yaml_str(yaml).unwrap();
         let colls = HashMap::new();
         let data = DataTree::new();
-        let ctx = build_site_context(&config, &colls, &data, None);
+        let ctx = build_site_context(&config, &colls, &data, None, &[]);
         let sass = ctx.get("sass").expect("should have sass");
         if let LiquidValue::Object(obj) = sass {
             let style = obj.get("style").expect("should have style");
@@ -2172,7 +2237,7 @@ DONE
         };
         let colls = HashMap::new();
         let data = DataTree::new();
-        let ctx = build_site_context(&config, &colls, &data, None);
+        let ctx = build_site_context(&config, &colls, &data, None, &[]);
         assert_eq!(ctx.get("baseurl"), Some(&LiquidValue::scalar("/blog")));
     }
 
@@ -2181,7 +2246,7 @@ DONE
         let config = SiteConfig::default();
         let colls = HashMap::new();
         let data = DataTree::new();
-        let ctx = build_site_context(&config, &colls, &data, None);
+        let ctx = build_site_context(&config, &colls, &data, None, &[]);
         assert_eq!(ctx.get("baseurl"), Some(&LiquidValue::scalar("")));
     }
 
@@ -2574,5 +2639,288 @@ defaults:
         let map = build_prev_next_map(&items);
         assert_eq!(map.len(), 1); // It builds a map regardless
                                   // The guard in generate_collection_pages prevents injection for non-posts
+    }
+
+    // ========================================================================
+    // Issue 42: site.related_posts and site.pages
+    // ========================================================================
+
+    fn make_test_post(slug: &str, date: &str, title: &str) -> CollectionItem {
+        let mut fm = HashMap::new();
+        fm.insert(
+            "title".to_string(),
+            serde_yaml::Value::String(title.to_string()),
+        );
+        CollectionItem {
+            slug: slug.to_string(),
+            front_matter: fm,
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            url: format!("/blog/{}.html", slug),
+            date: Some(date.to_string()),
+            collection_name: "posts".to_string(),
+            source_path: format!("_posts/{}-{}.md", date, slug),
+        }
+    }
+
+    fn make_test_page(slug: &str, title: &str) -> Page {
+        let mut fm = HashMap::new();
+        fm.insert(
+            "title".to_string(),
+            serde_yaml::Value::String(title.to_string()),
+        );
+        Page {
+            slug: slug.to_string(),
+            front_matter: fm,
+            content: String::new(),
+            html_content: String::new(),
+            url: format!("/{}.html", slug),
+            source_path: format!("{}.md", slug),
+        }
+    }
+
+    #[test]
+    fn test_related_posts_with_15_posts() {
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+
+        let mut posts: Vec<CollectionItem> = (1..=15)
+            .map(|i| {
+                make_test_post(
+                    &format!("post-{}", i),
+                    &format!("2024-{:02}-01", i.min(12)),
+                    &format!("Post {}", i),
+                )
+            })
+            .collect();
+        // Give posts 13-15 dates in 2025 to make them the most recent
+        posts[12].date = Some("2025-01-01".to_string());
+        posts[13].date = Some("2025-02-01".to_string());
+        posts[14].date = Some("2025-03-01".to_string());
+
+        let mut collections = HashMap::new();
+        collections.insert("posts".to_string(), posts);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
+
+        let related = ctx.get("related_posts").expect("should have related_posts");
+        if let LiquidValue::Array(arr) = related {
+            assert_eq!(arr.len(), 10, "Should have exactly 10 related posts");
+        } else {
+            panic!("Expected related_posts to be an array");
+        }
+    }
+
+    #[test]
+    fn test_related_posts_sorted_descending() {
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+
+        let posts = vec![
+            make_test_post("old", "2020-01-01", "Old Post"),
+            make_test_post("mid", "2022-06-15", "Mid Post"),
+            make_test_post("new", "2024-12-01", "New Post"),
+        ];
+
+        let mut collections = HashMap::new();
+        collections.insert("posts".to_string(), posts);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
+
+        let related = ctx.get("related_posts").expect("should have related_posts");
+        if let LiquidValue::Array(arr) = related {
+            assert_eq!(arr.len(), 3, "Should have all 3 posts");
+
+            // First should be newest
+            if let LiquidValue::Object(first) = &arr[0] {
+                let title = first.get("title").unwrap();
+                assert_eq!(
+                    title,
+                    &LiquidValue::scalar("New Post"),
+                    "First should be most recent"
+                );
+            }
+            // Last should be oldest
+            if let LiquidValue::Object(last) = &arr[2] {
+                let title = last.get("title").unwrap();
+                assert_eq!(
+                    title,
+                    &LiquidValue::scalar("Old Post"),
+                    "Last should be oldest"
+                );
+            }
+        } else {
+            panic!("Expected related_posts to be an array");
+        }
+    }
+
+    #[test]
+    fn test_related_posts_with_5_posts() {
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+
+        let posts: Vec<CollectionItem> = (1..=5)
+            .map(|i| {
+                make_test_post(
+                    &format!("post-{}", i),
+                    &format!("2024-{:02}-01", i),
+                    &format!("Post {}", i),
+                )
+            })
+            .collect();
+
+        let mut collections = HashMap::new();
+        collections.insert("posts".to_string(), posts);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
+
+        let related = ctx.get("related_posts").expect("should have related_posts");
+        if let LiquidValue::Array(arr) = related {
+            assert_eq!(arr.len(), 5, "Should have all 5 posts");
+        } else {
+            panic!("Expected related_posts to be an array");
+        }
+    }
+
+    #[test]
+    fn test_related_posts_with_zero_posts() {
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+        let collections = HashMap::new(); // No posts collection at all
+
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
+
+        let related = ctx.get("related_posts").expect("should have related_posts");
+        if let LiquidValue::Array(arr) = related {
+            assert!(arr.is_empty(), "Should be empty array with no posts");
+        } else {
+            panic!("Expected related_posts to be an array");
+        }
+    }
+
+    #[test]
+    fn test_related_posts_entries_have_required_fields() {
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+
+        let posts = vec![make_test_post("test", "2024-01-01", "Test Post")];
+
+        let mut collections = HashMap::new();
+        collections.insert("posts".to_string(), posts);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
+
+        let related = ctx.get("related_posts").expect("should have related_posts");
+        if let LiquidValue::Array(arr) = related {
+            if let LiquidValue::Object(obj) = &arr[0] {
+                assert!(obj.get("title").is_some(), "Should have title");
+                assert!(obj.get("url").is_some(), "Should have url");
+                assert!(obj.get("date").is_some(), "Should have date");
+            } else {
+                panic!("Expected post to be an object");
+            }
+        }
+    }
+
+    #[test]
+    fn test_site_pages_with_pages() {
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+        let collections = HashMap::new();
+        let pages = vec![
+            make_test_page("about", "About"),
+            make_test_page("contact", "Contact"),
+            make_test_page("index", "Home"),
+        ];
+
+        let ctx = build_site_context(&config, &collections, &data, None, &pages);
+
+        let pages_val = ctx.get("pages").expect("should have pages");
+        if let LiquidValue::Array(arr) = pages_val {
+            assert_eq!(arr.len(), 3, "Should have 3 pages");
+        } else {
+            panic!("Expected pages to be an array");
+        }
+    }
+
+    #[test]
+    fn test_site_pages_entries_have_required_fields() {
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+        let collections = HashMap::new();
+        let pages = vec![make_test_page("about", "About Us")];
+
+        let ctx = build_site_context(&config, &collections, &data, None, &pages);
+
+        let pages_val = ctx.get("pages").expect("should have pages");
+        if let LiquidValue::Array(arr) = pages_val {
+            if let LiquidValue::Object(obj) = &arr[0] {
+                assert_eq!(
+                    obj.get("title"),
+                    Some(&LiquidValue::scalar("About Us")),
+                    "Should have title"
+                );
+                assert!(obj.get("url").is_some(), "Should have url");
+            } else {
+                panic!("Expected page to be an object");
+            }
+        }
+    }
+
+    #[test]
+    fn test_site_pages_empty_when_no_pages() {
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+        let collections = HashMap::new();
+
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
+
+        let pages_val = ctx.get("pages").expect("should have pages");
+        if let LiquidValue::Array(arr) = pages_val {
+            assert!(arr.is_empty(), "Should be empty array with no pages");
+        } else {
+            panic!("Expected pages to be an array");
+        }
+    }
+
+    #[test]
+    fn test_site_posts_unchanged_with_related_posts() {
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+
+        let posts: Vec<CollectionItem> = (1..=15)
+            .map(|i| {
+                make_test_post(
+                    &format!("post-{}", i),
+                    &format!("2024-{:02}-01", i.min(12)),
+                    &format!("Post {}", i),
+                )
+            })
+            .collect();
+
+        let mut collections = HashMap::new();
+        collections.insert("posts".to_string(), posts);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
+
+        // site.posts should still have all 15, not just 10
+        let all_posts = ctx.get("posts").expect("should have posts");
+        if let LiquidValue::Array(arr) = all_posts {
+            assert_eq!(
+                arr.len(),
+                15,
+                "site.posts should contain ALL posts, got {}",
+                arr.len()
+            );
+        } else {
+            panic!("Expected posts to be an array");
+        }
+
+        // site.related_posts should have only 10
+        let related = ctx.get("related_posts").expect("should have related_posts");
+        if let LiquidValue::Array(arr) = related {
+            assert_eq!(
+                arr.len(),
+                10,
+                "site.related_posts should have 10, got {}",
+                arr.len()
+            );
+        }
     }
 }

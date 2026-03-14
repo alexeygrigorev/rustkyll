@@ -54,7 +54,7 @@ fn run_build(source: &Path, destination: &Path) -> (usize, usize, usize, usize, 
 
     // Build context
     let site_context =
-        generator::build_site_context(&config, &collections, &data_tree, Some(source));
+        generator::build_site_context(&config, &collections, &data_tree, Some(source), &pages);
 
     // Create layout engine
     let layout_engine =

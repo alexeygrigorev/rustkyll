@@ -24,7 +24,7 @@ static DATA: LazyLock<data::DataTree> =
 #[test]
 fn test_site_context_has_data_events() {
     let colls = HashMap::new();
-    let ctx = generator::build_site_context(&CONFIG, &colls, &DATA, None);
+    let ctx = generator::build_site_context(&CONFIG, &colls, &DATA, None, &[]);
 
     let data_val = ctx.get("data").expect("site should have data");
     if let LiquidValue::Object(data_obj) = data_val {
@@ -43,7 +43,7 @@ fn test_site_context_has_data_events() {
 fn test_site_context_github_url_resolves() {
     let colls = HashMap::new();
     let data = data::DataTree::new();
-    let ctx = generator::build_site_context(&CONFIG, &colls, &data, Some(&site_dir()));
+    let ctx = generator::build_site_context(&CONFIG, &colls, &data, Some(&site_dir()), &[]);
 
     let github = ctx.get("github").expect("site should have github");
     if let LiquidValue::Object(github_obj) = github {
@@ -70,7 +70,7 @@ fn test_site_context_github_url_resolves() {
 fn test_site_context_has_url_and_name() {
     let colls = HashMap::new();
     let data = data::DataTree::new();
-    let ctx = generator::build_site_context(&CONFIG, &colls, &data, None);
+    let ctx = generator::build_site_context(&CONFIG, &colls, &data, None, &[]);
 
     assert_eq!(
         ctx.get("url"),
@@ -96,7 +96,7 @@ fn test_site_context_multiple_collections() {
     colls.insert("podcast".to_string(), podcast);
 
     let data = data::DataTree::new();
-    let ctx = generator::build_site_context(&CONFIG, &colls, &data, None);
+    let ctx = generator::build_site_context(&CONFIG, &colls, &data, None, &[]);
 
     assert!(ctx.get("posts").is_some(), "Should have posts");
     assert!(ctx.get("books").is_some(), "Should have books");

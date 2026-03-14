@@ -263,7 +263,7 @@ fn build_site(
     // 6. Build site context (always uses full collections for cross-references)
     let phase_start = Instant::now();
     let site_context =
-        generator::build_site_context(&config, &collections, &data_tree, Some(source));
+        generator::build_site_context(&config, &collections, &data_tree, Some(source), &pages);
     summary.timing.context = phase_start.elapsed();
 
     // 7. Create layout engine
