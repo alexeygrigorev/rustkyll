@@ -1,0 +1,11 @@
+<!-- faq accordion include -->
+{% if include.faqs %}
+<div class="faq-accordion">
+{% for faq in include.faqs %}
+<details>
+<summary>{{ faq.question }}</summary>
+<p>{{ faq.answer }}</p>
+</details>
+{% endfor %}
+</div>
+{% endif %}

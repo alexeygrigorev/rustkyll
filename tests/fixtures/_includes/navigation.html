@@ -1,0 +1,6 @@
+<!-- navigation include -->
+<nav>
+{% for item in site.data.navigation.top %}
+<a href="{{ item.link }}">{{ item.title }}</a>
+{% endfor %}
+</nav>

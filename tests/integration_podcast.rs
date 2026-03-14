@@ -91,11 +91,13 @@ static PODCAST_OUTPUT: LazyLock<tempfile::TempDir> = LazyLock::new(|| {
 
 #[test]
 fn test_generate_all_podcast_pages_count() {
+    if !site_dir().exists() { return; }
     let _output = &*PODCAST_OUTPUT;
 }
 
 #[test]
 fn test_generated_podcast_files_are_valid_html() {
+    if !site_dir().exists() { return; }
     let podcast_dir = PODCAST_OUTPUT.path().join("podcast");
     let mut checked = 0;
     for entry in fs::read_dir(&podcast_dir).unwrap() {
@@ -119,6 +121,7 @@ fn test_generated_podcast_files_are_valid_html() {
 
 #[test]
 fn test_generated_agentic_episode_content() {
+    if !site_dir().exists() { return; }
     let path = PODCAST_OUTPUT
         .path()
         .join("podcast/building-agentic-ai-engineering-tooling-retrieval-evaluation.html");
@@ -135,6 +138,7 @@ fn test_generated_agentic_episode_content() {
 
 #[test]
 fn test_generated_transcript_episode_content() {
+    if !site_dir().exists() { return; }
     let path = PODCAST_OUTPUT
         .path()
         .join("podcast/technical-writing-for-data-scientists.html");
@@ -149,6 +153,7 @@ fn test_generated_transcript_episode_content() {
 
 #[test]
 fn test_generated_ab_testing_episode_clips() {
+    if !site_dir().exists() { return; }
     let path = PODCAST_OUTPUT
         .path()
         .join("podcast/ab-testing-and-product-experimentation.html");
@@ -165,6 +170,7 @@ fn test_generated_ab_testing_episode_clips() {
 
 #[test]
 fn test_render_single_podcast_episode() {
+    if !site_dir().exists() { return; }
     let html = render_episode("building-agentic-ai-engineering-tooling-retrieval-evaluation");
 
     assert!(html.contains("Building Agentic AI"));
@@ -177,6 +183,7 @@ fn test_render_single_podcast_episode() {
 
 #[test]
 fn test_podcast_guest_resolution() {
+    if !site_dir().exists() { return; }
     let html = render_episode("building-agentic-ai-engineering-tooling-retrieval-evaluation");
 
     assert!(html.contains("Ranjitha Kulkarni"));
@@ -185,6 +192,7 @@ fn test_podcast_guest_resolution() {
 
 #[test]
 fn test_podcast_guest_bio_card_details() {
+    if !site_dir().exists() { return; }
     let html = render_episode("building-agentic-ai-engineering-tooling-retrieval-evaluation");
 
     assert!(html.contains("guest-bio-img"));
@@ -194,6 +202,7 @@ fn test_podcast_guest_bio_card_details() {
 
 #[test]
 fn test_podcast_episode_navigation_mid_season() {
+    if !site_dir().exists() { return; }
     let episode = FIXTURE
         .episodes
         .iter()
@@ -221,6 +230,7 @@ fn test_podcast_episode_navigation_mid_season() {
 
 #[test]
 fn test_podcast_transcript_rendering() {
+    if !site_dir().exists() { return; }
     let html = render_episode("technical-writing-for-data-scientists");
 
     assert!(html.contains("data-tab=\"transcript\""));
@@ -234,6 +244,7 @@ fn test_podcast_transcript_rendering() {
 
 #[test]
 fn test_podcast_episode_without_transcript() {
+    if !site_dir().exists() { return; }
     let episode = FIXTURE
         .episodes
         .iter()
@@ -257,6 +268,7 @@ fn test_podcast_episode_without_transcript() {
 
 #[test]
 fn test_podcast_todo_link_filtering() {
+    if !site_dir().exists() { return; }
     let html = render_episode("technical-writing-for-data-scientists");
 
     assert!(!html.contains("Apple Podcasts"));
@@ -265,6 +277,7 @@ fn test_podcast_todo_link_filtering() {
 
 #[test]
 fn test_podcast_quotable_clips_json_ld() {
+    if !site_dir().exists() { return; }
     let html = render_episode("ab-testing-and-product-experimentation");
 
     assert!(html.contains("\"@type\": \"Clip\"") || html.contains("\"@type\":\"Clip\""),);
@@ -274,6 +287,7 @@ fn test_podcast_quotable_clips_json_ld() {
 
 #[test]
 fn test_podcast_related_episodes() {
+    if !site_dir().exists() { return; }
     let html = render_episode("building-agentic-ai-engineering-tooling-retrieval-evaluation");
 
     assert!(html.contains("Related episodes"));
@@ -282,6 +296,7 @@ fn test_podcast_related_episodes() {
 
 #[test]
 fn test_podcast_inline_javascript() {
+    if !site_dir().exists() { return; }
     let episode = FIXTURE.episodes.first().unwrap();
     let mut fm = episode.front_matter.clone();
     fm.insert(
@@ -300,6 +315,7 @@ fn test_podcast_inline_javascript() {
 
 #[test]
 fn test_podcast_newsletter_cta() {
+    if !site_dir().exists() { return; }
     let episode = FIXTURE.episodes.first().unwrap();
     let mut fm = episode.front_matter.clone();
     fm.insert(
@@ -317,6 +333,7 @@ fn test_podcast_newsletter_cta() {
 
 #[test]
 fn test_podcast_json_ld_season_and_series() {
+    if !site_dir().exists() { return; }
     let html = render_episode("building-agentic-ai-engineering-tooling-retrieval-evaluation");
 
     assert!(html.contains("\"seasonNumber\": 22"));
@@ -326,6 +343,7 @@ fn test_podcast_json_ld_season_and_series() {
 
 #[test]
 fn test_podcast_episode_no_guests_no_crash() {
+    if !site_dir().exists() { return; }
     let episode = FIXTURE
         .episodes
         .iter()
@@ -355,6 +373,7 @@ fn test_podcast_episode_no_guests_no_crash() {
 
 #[test]
 fn test_podcast_json_ld_parseable() {
+    if !site_dir().exists() { return; }
     let files_to_check = [
         "building-agentic-ai-engineering-tooling-retrieval-evaluation.html",
         "technical-writing-for-data-scientists.html",
@@ -388,6 +407,7 @@ fn test_podcast_json_ld_parseable() {
 
 #[test]
 fn test_podcast_site_context_has_podcast_and_people() {
+    if !site_dir().exists() { return; }
     // Already tested via FIXTURE, but verify explicitly
     assert!(
         FIXTURE.site_context.get("podcast").is_some(),

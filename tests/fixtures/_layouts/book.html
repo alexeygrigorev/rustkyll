@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+{% include head.html %}
+</head>
+<body>
+{% include header.html %}
+<main>
+<div class="content-book">
+<div class="content-book-image-container">
+<img src="{{ page.cover }}" alt="{{ page.title }}">
+</div>
+<div class="content-book-description">
+<h1>{{ page.title }}</h1>
+{% if page.start %}<p>{{ page.start | date: "%d %b %Y" }}</p>{% endif %}
+{% if page.end %}<p>{{ page.end | date: "%d %b %Y" }}</p>{% endif %}
+{% for author_slug in page.authors %}
+{% for person in site.people %}
+{% if person.short == author_slug %}<a href="{{ person.url }}">{{ person.title }}</a>{% endif %}
+{% endfor %}
+{% endfor %}
+{{ content }}
+{% if page.links %}
+{% for link in page.links %}
+<a href="{{ link.link }}" target="_blank">{{ link.text }}</a>
+{% endfor %}
+{% endif %}
+{% if page.archive %}
+<h2>Questions and Answers</h2>
+{% for thread in page.archive %}
+<div class="book-archive-thread">
+<p class="book-archive-reply">{{ thread.question }}</p>
+{% for reply in thread.replies %}<p class="book-archive-reply">{{ reply.author }}: {{ reply.text }}</p>{% endfor %}
+</div>
+{% endfor %}
+{% endif %}
+<p><a href="/slack.html">Join Slack</a> — <a href="/books.html">#book-of-the-week</a></p>
+</div>
+</div>
+</main>
+{% include footer.html %}
+</body>
+</html>

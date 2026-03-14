@@ -1,0 +1,60 @@
+url: "https://datatalks.club"
+name: "DataTalks.Club"
+title: "DataTalks.Club"
+twitter: "@DataTalksClub"
+permalink: "/blog/:title.html"
+baseurl: ""
+theme: jekyll-theme-cayman
+repository: DataTalksClub/datatalksclub.github.io
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules/
+  - package.json
+  - package-lock.json
+  - vendor/
+  - scripts/
+  - Rakefile
+  - README.md
+  - LICENSE
+  - .sass-cache/
+  - "*.gem"
+  - .bundle/
+
+collections:
+  books:
+    output: true
+    permalink: /:collection/:title.html
+  people:
+    output: true
+    permalink: /:collection/:title.html
+  conferences:
+    output: true
+    permalink: /:collection/:title.html
+  podcast:
+    output: true
+    permalink: /:collection/:title.html
+  courses:
+    output: true
+    permalink: /:collection/:title.html
+  tools:
+    output: true
+    permalink: /:collection/:title.html
+
+defaults:
+  - scope:
+      path: ""
+      type: "people"
+    values:
+      layout: "author"
+  - scope:
+      path: ""
+      type: "books"
+    values:
+      layout: "book"
+  - scope:
+      path: ""
+      type: "podcast"
+    values:
+      layout: "podcast"

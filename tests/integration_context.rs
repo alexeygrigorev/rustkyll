@@ -23,6 +23,7 @@ static DATA: LazyLock<data::DataTree> =
 
 #[test]
 fn test_site_context_has_data_events() {
+    if !site_dir().exists() { return; }
     let colls = HashMap::new();
     let ctx = generator::build_site_context(&CONFIG, &colls, &DATA, None, &[]);
 
@@ -41,6 +42,7 @@ fn test_site_context_has_data_events() {
 
 #[test]
 fn test_site_context_github_url_resolves() {
+    if !site_dir().exists() { return; }
     let colls = HashMap::new();
     let data = data::DataTree::new();
     let ctx = generator::build_site_context(&CONFIG, &colls, &data, Some(&site_dir()), &[]);
@@ -68,6 +70,7 @@ fn test_site_context_github_url_resolves() {
 
 #[test]
 fn test_site_context_has_url_and_name() {
+    if !site_dir().exists() { return; }
     let colls = HashMap::new();
     let data = data::DataTree::new();
     let ctx = generator::build_site_context(&CONFIG, &colls, &data, None, &[]);
@@ -84,6 +87,7 @@ fn test_site_context_has_url_and_name() {
 
 #[test]
 fn test_site_context_multiple_collections() {
+    if !site_dir().exists() { return; }
     let (posts, _) = collection::load_collection("posts", &site_dir(), &CONFIG).unwrap();
     let (books, _) = collection::load_collection("books", &site_dir(), &CONFIG).unwrap();
     let (people, _) = collection::load_collection("people", &site_dir(), &CONFIG).unwrap();

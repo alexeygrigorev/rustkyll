@@ -1,0 +1,12 @@
+- time: "2021-01-15 18:00:00 +0000"
+  title: "Intro to ML"
+  speakers:
+    - alexeygrigorev
+  type: workshop
+  link: "https://datatalks.club/events/intro-ml.html"
+- time: "2021-02-20 18:00:00 +0000"
+  title: "Data Engineering 101"
+  speakers:
+    - chiphuyen
+  type: workshop
+  link: "https://datatalks.club/events/data-engineering.html"

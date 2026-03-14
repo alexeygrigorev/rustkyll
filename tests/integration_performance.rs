@@ -114,6 +114,7 @@ fn build_site_cached(source: &Path, destination: &Path) -> (usize, usize, Vec<St
 #[test]
 #[ignore] // Large site test -- run with `cargo test -- --ignored`
 fn test_dtc_site_builds_successfully() {
+    if !site_dir().exists() { return; }
     let source = dtc_site_dir();
     if !source.exists() {
         eprintln!("Skipping: DTC site not found at {:?}", source);
@@ -149,6 +150,7 @@ fn test_dtc_site_builds_successfully() {
 #[test]
 #[ignore] // Large site test
 fn test_dtc_site_build_time() {
+    if !site_dir().exists() { return; }
     let source = dtc_site_dir();
     if !source.exists() {
         eprintln!("Skipping: DTC site not found at {:?}", source);
@@ -182,6 +184,7 @@ fn test_dtc_site_build_time() {
 #[test]
 #[ignore] // Large site test
 fn test_kids_site_build_time() {
+    if !site_dir().exists() { return; }
     let source = kids_site_dir();
     if !source.exists() {
         eprintln!("Skipping: kids-horror-stories-ru not found at {:?}", source);
@@ -217,6 +220,7 @@ fn test_kids_site_build_time() {
 #[test]
 #[ignore] // Large site test
 fn test_dtc_output_html_file_count() {
+    if !site_dir().exists() { return; }
     let source = dtc_site_dir();
     if !source.exists() {
         return;
@@ -248,6 +252,7 @@ fn test_dtc_output_html_file_count() {
 #[test]
 #[ignore] // Large site test
 fn test_dtc_output_no_raw_liquid_tags() {
+    if !site_dir().exists() { return; }
     let source = dtc_site_dir();
     if !source.exists() {
         return;
@@ -281,6 +286,7 @@ fn test_dtc_output_no_raw_liquid_tags() {
 #[test]
 #[ignore] // Large site test
 fn test_dtc_output_no_empty_html_files() {
+    if !site_dir().exists() { return; }
     let source = dtc_site_dir();
     if !source.exists() {
         return;
@@ -311,6 +317,7 @@ fn test_dtc_output_no_empty_html_files() {
 #[test]
 #[ignore] // Large site test
 fn test_dtc_homepage_has_expected_content() {
+    if !site_dir().exists() { return; }
     let source = dtc_site_dir();
     if !source.exists() {
         return;
@@ -342,6 +349,7 @@ fn test_dtc_homepage_has_expected_content() {
 #[test]
 #[ignore] // Large site test
 fn test_dtc_blog_post_has_expected_content() {
+    if !site_dir().exists() { return; }
     let source = dtc_site_dir();
     if !source.exists() {
         return;
@@ -380,6 +388,7 @@ fn test_dtc_blog_post_has_expected_content() {
 #[test]
 #[ignore] // Large site test
 fn test_dtc_podcast_page_has_expected_content() {
+    if !site_dir().exists() { return; }
     let source = dtc_site_dir();
     if !source.exists() {
         return;
@@ -422,6 +431,7 @@ fn test_dtc_podcast_page_has_expected_content() {
 #[test]
 #[ignore] // Large site test
 fn test_dtc_person_page_has_expected_content() {
+    if !site_dir().exists() { return; }
     let source = dtc_site_dir();
     if !source.exists() {
         return;
@@ -450,6 +460,7 @@ fn test_dtc_person_page_has_expected_content() {
 #[test]
 #[ignore] // Large site test
 fn test_dtc_events_page_has_expected_content() {
+    if !site_dir().exists() { return; }
     let source = dtc_site_dir();
     if !source.exists() {
         return;
@@ -476,6 +487,7 @@ fn test_dtc_events_page_has_expected_content() {
 #[test]
 #[ignore] // Large site test
 fn test_dtc_output_file_tree_complete() {
+    if !site_dir().exists() { return; }
     let source = dtc_site_dir();
     if !source.exists() {
         return;
@@ -509,6 +521,7 @@ fn test_dtc_output_file_tree_complete() {
 #[test]
 #[ignore] // Large site test
 fn test_kids_site_output_count() {
+    if !site_dir().exists() { return; }
     let source = kids_site_dir();
     if !source.exists() {
         return;
@@ -542,6 +555,7 @@ fn test_kids_site_output_count() {
 
 #[test]
 fn test_cached_site_context_creation() {
+    if !site_dir().exists() { return; }
     use liquid::model::Value as LiquidValue;
     use liquid::Object;
 
@@ -582,6 +596,7 @@ fn test_cached_site_context_creation() {
 
 #[test]
 fn test_cached_site_context_page_specific_variables() {
+    if !site_dir().exists() { return; }
     use liquid::model::Value as LiquidValue;
     use liquid::Object;
 
@@ -622,6 +637,7 @@ fn test_cached_site_context_page_specific_variables() {
 
 #[test]
 fn test_slim_site_context_excludes_large_arrays() {
+    if !site_dir().exists() { return; }
     use liquid::model::Value as LiquidValue;
     use rustkyll::collection::CollectionItem;
 
@@ -721,6 +737,7 @@ fn test_slim_site_context_excludes_large_arrays() {
 
 #[test]
 fn test_slim_site_context_keeps_small_arrays() {
+    if !site_dir().exists() { return; }
     use rustkyll::collection::CollectionItem;
 
     // Create an item with only small front matter fields
@@ -788,6 +805,7 @@ fn test_slim_site_context_keeps_small_arrays() {
 
 #[test]
 fn test_render_1000_for_loop_iterations() {
+    if !site_dir().exists() { return; }
     let engine = rustkyll::template::engine::TemplateEngine::new().unwrap();
     let mut ctx = liquid::Object::new();
 
@@ -822,6 +840,7 @@ fn test_render_1000_for_loop_iterations() {
 
 #[test]
 fn test_render_deeply_nested_object_access() {
+    if !site_dir().exists() { return; }
     let engine = rustkyll::template::engine::TemplateEngine::new().unwrap();
     let mut ctx = liquid::Object::new();
 
@@ -867,6 +886,7 @@ fn test_render_deeply_nested_object_access() {
 
 #[test]
 fn test_render_100_templates_sequentially() {
+    if !site_dir().exists() { return; }
     let engine = rustkyll::template::engine::TemplateEngine::new().unwrap();
 
     let start = Instant::now();

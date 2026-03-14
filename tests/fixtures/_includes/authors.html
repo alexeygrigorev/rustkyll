@@ -1,0 +1,5 @@
+{% for author_slug in include.authors %}
+{% for person in site.people %}
+{% if person.short == author_slug %}<span class="author"><a href="{{ person.url }}">{{ person.title }}</a></span>{% endif %}
+{% endfor %}
+{% endfor %}

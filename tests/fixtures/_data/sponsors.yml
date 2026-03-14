@@ -1,0 +1,5 @@
+- name: "Example Sponsor"
+  link: "https://example.com"
+  image: "images/sponsors/example.jpg"
+  from: "2021-01-01"
+  to: "2021-12-31"

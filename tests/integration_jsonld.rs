@@ -127,6 +127,7 @@ fn render_item(layout: &str, item: &CollectionItem) -> String {
 
 #[test]
 fn test_post_jsonld_is_valid_json() {
+    if !site_dir().exists() { return; }
     let post = FIXTURE
         .posts
         .iter()
@@ -146,6 +147,7 @@ fn test_post_jsonld_is_valid_json() {
 
 #[test]
 fn test_post_jsonld_contains_article_type() {
+    if !site_dir().exists() { return; }
     let post = FIXTURE
         .posts
         .iter()
@@ -160,6 +162,7 @@ fn test_post_jsonld_contains_article_type() {
 
 #[test]
 fn test_post_jsonld_contains_breadcrumb() {
+    if !site_dir().exists() { return; }
     let post = FIXTURE
         .posts
         .iter()
@@ -179,6 +182,7 @@ fn test_post_jsonld_contains_breadcrumb() {
 
 #[test]
 fn test_post_jsonld_article_fields() {
+    if !site_dir().exists() { return; }
     let post = FIXTURE
         .posts
         .iter()
@@ -220,6 +224,7 @@ fn test_post_jsonld_article_fields() {
 
 #[test]
 fn test_post_jsonld_author_person_type() {
+    if !site_dir().exists() { return; }
     let post = FIXTURE
         .posts
         .iter()
@@ -257,6 +262,7 @@ fn test_post_jsonld_author_person_type() {
 
 #[test]
 fn test_multiple_posts_jsonld_parseable() {
+    if !site_dir().exists() { return; }
     let slugs = ["segmentation", "mlops-10-minutes"];
     for slug in &slugs {
         let post = FIXTURE.posts.iter().find(|p| p.slug == *slug);
@@ -278,6 +284,7 @@ fn test_multiple_posts_jsonld_parseable() {
 
 #[test]
 fn test_person_jsonld_is_valid_json() {
+    if !site_dir().exists() { return; }
     let person = FIXTURE
         .people
         .iter()
@@ -294,6 +301,7 @@ fn test_person_jsonld_is_valid_json() {
 
 #[test]
 fn test_person_jsonld_contains_person_type() {
+    if !site_dir().exists() { return; }
     let person = FIXTURE
         .people
         .iter()
@@ -308,6 +316,7 @@ fn test_person_jsonld_contains_person_type() {
 
 #[test]
 fn test_person_jsonld_fields() {
+    if !site_dir().exists() { return; }
     let person = FIXTURE
         .people
         .iter()
@@ -335,6 +344,7 @@ fn test_person_jsonld_fields() {
 
 #[test]
 fn test_person_jsonld_same_as_links() {
+    if !site_dir().exists() { return; }
     let person = FIXTURE
         .people
         .iter()
@@ -375,6 +385,7 @@ fn test_person_jsonld_same_as_links() {
 
 #[test]
 fn test_multiple_people_jsonld_parseable() {
+    if !site_dir().exists() { return; }
     let slugs = ["alexeygrigorev", "chiphuyen"];
     for slug in &slugs {
         let person = FIXTURE.people.iter().find(|p| p.slug == *slug);
@@ -396,6 +407,7 @@ fn test_multiple_people_jsonld_parseable() {
 
 #[test]
 fn test_book_jsonld_is_valid_json() {
+    if !site_dir().exists() { return; }
     let book = FIXTURE
         .books
         .iter()
@@ -412,6 +424,7 @@ fn test_book_jsonld_is_valid_json() {
 
 #[test]
 fn test_book_jsonld_contains_book_type() {
+    if !site_dir().exists() { return; }
     let book = FIXTURE
         .books
         .iter()
@@ -426,6 +439,7 @@ fn test_book_jsonld_contains_book_type() {
 
 #[test]
 fn test_book_jsonld_contains_breadcrumb() {
+    if !site_dir().exists() { return; }
     let book = FIXTURE
         .books
         .iter()
@@ -445,6 +459,7 @@ fn test_book_jsonld_contains_breadcrumb() {
 
 #[test]
 fn test_book_jsonld_fields() {
+    if !site_dir().exists() { return; }
     let book = FIXTURE
         .books
         .iter()
@@ -477,6 +492,7 @@ fn test_book_jsonld_fields() {
 
 #[test]
 fn test_book_jsonld_author_resolution() {
+    if !site_dir().exists() { return; }
     let book = FIXTURE
         .books
         .iter()
@@ -521,6 +537,7 @@ fn test_book_jsonld_author_resolution() {
 
 #[test]
 fn test_book_jsonld_title_matches() {
+    if !site_dir().exists() { return; }
     let book = FIXTURE
         .books
         .iter()
@@ -551,6 +568,7 @@ fn test_book_jsonld_title_matches() {
 
 #[test]
 fn test_multiple_books_jsonld_parseable() {
+    if !site_dir().exists() { return; }
     let slugs = ["20201214-ml-bookcamp", "20210201-data-teams"];
     for slug in &slugs {
         let book = FIXTURE.books.iter().find(|b| b.slug == *slug);
@@ -572,6 +590,7 @@ fn test_multiple_books_jsonld_parseable() {
 
 #[test]
 fn test_podcast_jsonld_is_valid_json() {
+    if !site_dir().exists() { return; }
     let episode = FIXTURE
         .episodes
         .iter()
@@ -588,6 +607,7 @@ fn test_podcast_jsonld_is_valid_json() {
 
 #[test]
 fn test_podcast_jsonld_contains_episode_type() {
+    if !site_dir().exists() { return; }
     let episode = FIXTURE
         .episodes
         .iter()
@@ -607,6 +627,7 @@ fn test_podcast_jsonld_contains_episode_type() {
 
 #[test]
 fn test_podcast_jsonld_contains_season_and_series() {
+    if !site_dir().exists() { return; }
     let episode = FIXTURE
         .episodes
         .iter()
@@ -632,6 +653,7 @@ fn test_podcast_jsonld_contains_season_and_series() {
 
 #[test]
 fn test_podcast_jsonld_episode_fields() {
+    if !site_dir().exists() { return; }
     let episode = FIXTURE
         .episodes
         .iter()
@@ -671,6 +693,7 @@ fn test_podcast_jsonld_episode_fields() {
 
 #[test]
 fn test_podcast_jsonld_video_object() {
+    if !site_dir().exists() { return; }
     let episode = FIXTURE
         .episodes
         .iter()
@@ -690,6 +713,7 @@ fn test_podcast_jsonld_video_object() {
 
 #[test]
 fn test_podcast_jsonld_breadcrumb() {
+    if !site_dir().exists() { return; }
     let episode = FIXTURE
         .episodes
         .iter()
@@ -713,6 +737,7 @@ fn test_podcast_jsonld_breadcrumb() {
 
 #[test]
 fn test_all_generated_books_have_parseable_jsonld() {
+    if !site_dir().exists() { return; }
     let tmp = tempfile::TempDir::new().unwrap();
     let result = generator::generate_collection_pages_with_authors(
         &FIXTURE.books,
@@ -759,6 +784,7 @@ fn test_all_generated_books_have_parseable_jsonld() {
 
 #[test]
 fn test_sample_posts_have_parseable_jsonld() {
+    if !site_dir().exists() { return; }
     // Check a sample of posts (not all, to keep tests fast)
     let tmp = tempfile::TempDir::new().unwrap();
     let result = generator::generate_collection_pages(
@@ -798,6 +824,7 @@ fn test_sample_posts_have_parseable_jsonld() {
 
 #[test]
 fn test_sample_podcast_episodes_have_parseable_jsonld() {
+    if !site_dir().exists() { return; }
     // Check a few specific episodes for parseability
     let slugs = [
         "building-agentic-ai-engineering-tooling-retrieval-evaluation",

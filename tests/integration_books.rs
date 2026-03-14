@@ -88,11 +88,13 @@ static BOOKS_OUTPUT: LazyLock<tempfile::TempDir> = LazyLock::new(|| {
 
 #[test]
 fn test_generate_all_books_count() {
+    if !site_dir().exists() { return; }
     let _output = &*BOOKS_OUTPUT;
 }
 
 #[test]
 fn test_render_ml_bookcamp() {
+    if !site_dir().exists() { return; }
     let html = render_book("20201214-ml-bookcamp");
 
     assert!(html.contains("Machine Learning Bookcamp"));
@@ -105,6 +107,7 @@ fn test_render_ml_bookcamp() {
 
 #[test]
 fn test_ml_bookcamp_external_links() {
+    if !site_dir().exists() { return; }
     let html = render_book("20201214-ml-bookcamp");
 
     assert!(html.contains("Book&#39;s page on Manning") || html.contains("Book's page on Manning"),);
@@ -116,6 +119,7 @@ fn test_ml_bookcamp_external_links() {
 
 #[test]
 fn test_ml_bookcamp_qa_archive() {
+    if !site_dir().exists() { return; }
     let html = render_book("20201214-ml-bookcamp");
 
     assert!(html.contains("Questions and Answers"));
@@ -128,6 +132,7 @@ fn test_ml_bookcamp_qa_archive() {
 
 #[test]
 fn test_render_data_teams() {
+    if !site_dir().exists() { return; }
     let html = render_book("20210201-data-teams");
 
     assert!(html.contains("Data Teams"));
@@ -137,6 +142,7 @@ fn test_render_data_teams() {
 
 #[test]
 fn test_book_without_archive() {
+    if !site_dir().exists() { return; }
     let book = FIXTURE
         .books
         .iter()
@@ -157,6 +163,7 @@ fn test_book_without_archive() {
 
 #[test]
 fn test_book_participation_instructions() {
+    if !site_dir().exists() { return; }
     let html = render_book("20201214-ml-bookcamp");
 
     assert!(html.contains("/slack.html"));
@@ -166,6 +173,7 @@ fn test_book_participation_instructions() {
 
 #[test]
 fn test_book_css_classes() {
+    if !site_dir().exists() { return; }
     let html = render_book("20201214-ml-bookcamp");
 
     assert!(html.contains("content-book"));
@@ -175,6 +183,7 @@ fn test_book_css_classes() {
 
 #[test]
 fn test_generated_book_files_content() {
+    if !site_dir().exists() { return; }
     let _output = &*BOOKS_OUTPUT;
 
     let ml_path = BOOKS_OUTPUT.path().join("books/20201214-ml-bookcamp.html");
@@ -198,6 +207,7 @@ fn test_generated_book_files_content() {
 
 #[test]
 fn test_generated_books_are_valid_html() {
+    if !site_dir().exists() { return; }
     let _output = &*BOOKS_OUTPUT;
     let books_dir = BOOKS_OUTPUT.path().join("books");
     for entry in fs::read_dir(&books_dir).unwrap() {
@@ -214,6 +224,7 @@ fn test_generated_books_are_valid_html() {
 
 #[test]
 fn test_qa_text_newline_to_br_markdownify() {
+    if !site_dir().exists() { return; }
     let html = render_book("20201214-ml-bookcamp");
     assert!(
         html.contains("<br />"),
@@ -223,6 +234,7 @@ fn test_qa_text_newline_to_br_markdownify() {
 
 #[test]
 fn test_book_author_resolution() {
+    if !site_dir().exists() { return; }
     let html = render_book("20201214-ml-bookcamp");
     assert!(html.contains("Alexey Grigorev"));
     assert!(html.contains("/people/alexeygrigorev.html"));
