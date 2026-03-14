@@ -63,6 +63,17 @@ The orchestrator NEVER writes or modifies code (src/, tests/, scripts/). It only
 8. If PM accepts: Orchestrator renames to `.done.md` and commits
 9. Pick next 2 issues and repeat
 
+### Done Means DONE
+
+An issue moves to `.done.md` ONLY when ALL acceptance criteria are fully satisfied and verified. Writing code is not done. Passing tests is not done. The actual deliverable must be complete:
+
+- "Publish to PyPI" is done when wheels are on PyPI and `uvx` works — not when the workflow YAML is written
+- "Benchmark" is done when results have real numbers — not when the script exists
+- "Visual comparison" is done when screenshots show real diffs — not when the test infrastructure is set up
+- "CI fix" is done when CI is green — not when the workflow is committed
+
+If the deliverable requires deployment, external verification, or running against real data, the issue stays `.in-progress.md` until that happens. The orchestrator must verify the actual outcome before moving to done.
+
 **IMPORTANT: One agent per issue.** Every agent invocation handles exactly ONE issue. When working on 2 issues in a batch, launch 2 separate agents in parallel — never combine multiple issues into a single agent call. This applies to all agent types (SWE, QA, PM).
 
 ### Rejection Loop

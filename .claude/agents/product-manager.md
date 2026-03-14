@@ -90,7 +90,13 @@ An issue filename (`.in-progress.md`) and confirmation that the tester passed.
    - Follow-up issues created: #NN, #MM (if any descoped)
    - VERDICT: ACCEPT or REJECT
    ```
-8. Verdict:
+8. **Done means DONE.** An issue moves to `.done.md` only when ALL acceptance criteria are fully satisfied — not when code is written, not when tests pass, but when the actual deliverable is complete and verified. Examples:
+   - A "publish to PyPI" issue is done when wheels are on PyPI and `uvx` works, NOT when the workflow YAML is written
+   - A "benchmark" issue is done when the results document has real numbers, NOT when the script exists
+   - A "visual comparison" issue is done when screenshots show real diffs against Jekyll, NOT when the test infrastructure is set up
+   - A "CI fix" issue is done when CI is green, NOT when the workflow file is committed
+   If the deliverable requires deployment, external verification, or running against real data, the issue stays in-progress until that happens.
+9. Verdict:
    - **ACCEPT** -- Engineer can commit. Issue moves to `done/NN-name.done.md`.
    - **REJECT** -- List specific issues. Engineer must fix.
 
