@@ -487,6 +487,7 @@ impl TemplateEngine {
         let partials = build_partials(&partials_map);
         let parser = Self::builder()
             .tag(super::include_tag::LenientIncludeTag)
+            .tag(super::include_tag::LenientIncludeCachedTag)
             .tag(super::seo_tag::SeoTag)
             .tag(super::avatar_tag::AvatarTag)
             .block(super::highlight_tag::HighlightBlock)
@@ -512,6 +513,7 @@ impl TemplateEngine {
         let partials = build_partials(includes);
         let parser = Self::builder()
             .tag(super::include_tag::LenientIncludeTag)
+            .tag(super::include_tag::LenientIncludeCachedTag)
             .tag(super::seo_tag::SeoTag)
             .tag(super::avatar_tag::AvatarTag)
             .block(super::highlight_tag::HighlightBlock)
@@ -551,6 +553,7 @@ impl TemplateEngine {
             // Missing filters (Issue 30)
             .filter(filters::NumberOfWords)
             .filter(filters::GroupBy)
+            .filter(filters::GroupByExp)
             .filter(filters::XmlEscape)
             .filter(filters::Truncatewords)
             // Missing filters (Issue 37)
@@ -645,6 +648,7 @@ impl TemplateEngine {
         builder = builder.block(super::highlight_tag::HighlightBlock);
         if self.has_include_tag {
             builder = builder.tag(super::include_tag::LenientIncludeTag);
+            builder = builder.tag(super::include_tag::LenientIncludeCachedTag);
         }
         if let Some(ref includes) = self.includes {
             builder = builder.partials(build_partials(includes));
@@ -2218,5 +2222,56 @@ mod tests {
             "Expected a valid value, got: {}",
             value
         );
+    }
+
+    // ========================================================================
+    // Issue 53: include_cached tag registration
+    // ========================================================================
+
+    #[test]
+    fn test_include_cached_renders_same_as_include() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "foo.html".to_string(),
+            "Hello {{ include.name }}!".to_string(),
+        );
+        let eng = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+
+        let output_cached = eng
+            .parse_and_render(r#"{% include_cached foo.html name="World" %}"#, &ctx)
+            .unwrap();
+        let output_regular = eng
+            .parse_and_render(r#"{% include foo.html name="World" %}"#, &ctx)
+            .unwrap();
+        assert_eq!(output_cached, output_regular);
+        assert_eq!(output_cached, "Hello World!");
+    }
+
+    #[test]
+    fn test_include_cached_with_variable_param() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "greeting.html".to_string(),
+            "Hi {{ include.locale }}!".to_string(),
+        );
+        let eng = TemplateEngine::with_includes_map(&includes).unwrap();
+        let mut ctx = Object::new();
+        ctx.insert("locale".into(), LiquidValue::scalar("en"));
+
+        let output = eng
+            .parse_and_render(r#"{% include_cached greeting.html locale=locale %}"#, &ctx)
+            .unwrap();
+        assert_eq!(output, "Hi en!");
+    }
+
+    #[test]
+    fn test_include_cached_missing_partial_errors() {
+        let includes = HashMap::new();
+        let eng = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+
+        let result = eng.parse_and_render("{% include_cached missing.html %}", &ctx);
+        assert!(result.is_err(), "Should error on missing partial");
     }
 }

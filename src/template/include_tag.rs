@@ -37,6 +37,39 @@ impl TagReflection for LenientIncludeTag {
     }
 }
 
+/// A variant of `LenientIncludeTag` that registers under the name `include_cached`.
+///
+/// The `jekyll-include-cache` plugin provides this tag. It is functionally
+/// identical to `include` but caches the rendered output. Since rustkyll does
+/// not do incremental re-rendering, we simply treat it as an alias.
+#[derive(Copy, Clone, Debug, Default)]
+pub struct LenientIncludeCachedTag;
+
+impl TagReflection for LenientIncludeCachedTag {
+    fn tag(&self) -> &'static str {
+        "include_cached"
+    }
+
+    fn description(&self) -> &'static str {
+        "jekyll-include-cache: alias for include with lenient parameter access"
+    }
+}
+
+impl ParseTag for LenientIncludeCachedTag {
+    fn parse(
+        &self,
+        arguments: TagTokenIter<'_>,
+        options: &Language,
+    ) -> Result<Box<dyn Renderable>> {
+        // Delegate to the same parsing logic as LenientIncludeTag
+        LenientIncludeTag.parse(arguments, options)
+    }
+
+    fn reflection(&self) -> &dyn TagReflection {
+        self
+    }
+}
+
 impl ParseTag for LenientIncludeTag {
     fn parse(
         &self,
@@ -390,11 +423,21 @@ pub fn preprocess_include_paths(template: &str) -> String {
             let trimmed = trimmed.strip_prefix('-').unwrap_or(trimmed).trim();
             let trimmed_end = trimmed.strip_suffix('-').unwrap_or(trimmed).trim();
 
-            if let Some(after_include) = trimmed_end
-                .strip_prefix("include")
+            // Match both `include` and `include_cached` tags.
+            // Try `include_cached` first (longer prefix) to avoid partial match.
+            let include_match = trimmed_end
+                .strip_prefix("include_cached")
                 .filter(|rest| rest.starts_with(' ') || rest.starts_with('\t'))
-            {
-                let after_include = after_include.trim_start();
+                .map(|rest| ("include_cached", rest))
+                .or_else(|| {
+                    trimmed_end
+                        .strip_prefix("include")
+                        .filter(|rest| rest.starts_with(' ') || rest.starts_with('\t'))
+                        .map(|rest| ("include", rest))
+                });
+
+            if let Some((tag_name, after_tag_name)) = include_match {
+                let after_include = after_tag_name.trim_start();
 
                 // Handle dynamic include paths: {% include {{ expr }} ... %}
                 // Replace with sentinel + expression so the parser can
@@ -416,7 +459,9 @@ pub fn preprocess_include_paths(template: &str) -> String {
                             "%}"
                         };
                         result.push_str(open_marker);
-                        result.push_str(" include ");
+                        result.push(' ');
+                        result.push_str(tag_name);
+                        result.push(' ');
                         result.push_str(DYNAMIC_INCLUDE_SENTINEL);
                         result.push(' ');
                         result.push_str(inner_expr);
@@ -457,7 +502,9 @@ pub fn preprocess_include_paths(template: &str) -> String {
                         "%}"
                     };
                     result.push_str(open_marker);
-                    result.push_str(" include ");
+                    result.push(' ');
+                    result.push_str(tag_name);
+                    result.push(' ');
                     if needs_path_quoting {
                         result.push('"');
                         result.push_str(path);
@@ -780,6 +827,112 @@ mod tests {
         assert!(
             !output.contains("\\\""),
             "Should replace escaped quotes, got: {}",
+            output
+        );
+    }
+
+    // ========================================================================
+    // Issue 53: include_cached tag support
+    // ========================================================================
+
+    #[test]
+    fn test_preprocess_include_cached_simple_unchanged() {
+        let input = "{% include_cached foo.html %}";
+        assert_eq!(preprocess_include_paths(input), input);
+    }
+
+    #[test]
+    fn test_preprocess_include_cached_subdirectory() {
+        let input = "{% include_cached subdir/foo.html %}";
+        let output = preprocess_include_paths(input);
+        assert!(
+            output.contains("\"subdir/foo.html\""),
+            "Expected quoted path, got: {}",
+            output
+        );
+        assert!(
+            output.contains("include_cached"),
+            "Should preserve include_cached tag name, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_include_cached_with_params_unchanged() {
+        let input = r#"{% include_cached foo.html param="val" %}"#;
+        assert_eq!(preprocess_include_paths(input), input);
+    }
+
+    #[test]
+    fn test_preprocess_include_cached_whitespace_control() {
+        let input = "{%- include_cached foo.html -%}";
+        assert_eq!(preprocess_include_paths(input), input);
+    }
+
+    #[test]
+    fn test_preprocess_include_cached_whitespace_control_subdir() {
+        let input = "{%- include_cached subdir/foo.html -%}";
+        let output = preprocess_include_paths(input);
+        assert!(
+            output.starts_with("{%-"),
+            "Should preserve open whitespace control, got: {}",
+            output
+        );
+        assert!(
+            output.ends_with("-%}"),
+            "Should preserve close whitespace control, got: {}",
+            output
+        );
+        assert!(
+            output.contains("\"subdir/foo.html\""),
+            "Expected quoted path, got: {}",
+            output
+        );
+        assert!(
+            output.contains("include_cached"),
+            "Should preserve include_cached tag name, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_mixed_include_and_include_cached() {
+        let input = "{% include subdir/a.html %}\n{% include_cached subdir/b.html %}";
+        let output = preprocess_include_paths(input);
+        assert!(
+            output.contains("include \"subdir/a.html\""),
+            "include tag should be processed, got: {}",
+            output
+        );
+        assert!(
+            output.contains("include_cached \"subdir/b.html\""),
+            "include_cached tag should be processed, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_include_cached_dynamic() {
+        let input = "{% include_cached {{ page.partial }} %}";
+        let output = preprocess_include_paths(input);
+        assert!(
+            !output.contains("{{"),
+            "Should strip {{ wrapper, got: {}",
+            output
+        );
+        assert!(
+            output.contains("include_cached"),
+            "Should preserve include_cached tag name, got: {}",
+            output
+        );
+        assert!(
+            output.contains("page.partial"),
+            "Should preserve variable name, got: {}",
+            output
+        );
+        assert!(
+            output.contains(DYNAMIC_INCLUDE_SENTINEL),
+            "Should contain dynamic include sentinel, got: {}",
             output
         );
     }
