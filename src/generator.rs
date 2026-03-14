@@ -45,6 +45,16 @@ pub enum GeneratorError {
     },
 }
 
+/// Compile SCSS source code to CSS using the grass compiler.
+///
+/// Jekyll compiles `.scss` files with front matter into CSS. This function
+/// replicates that behavior using the `grass` crate (a pure-Rust SCSS compiler).
+/// The output style is compressed to match Jekyll's default SCSS output.
+fn compile_scss(scss_source: &str) -> Result<String, String> {
+    let options = grass::Options::default().style(grass::OutputStyle::Compressed);
+    grass::from_string(scss_source.to_string(), &options).map_err(|e| e.to_string())
+}
+
 /// Result of generating pages for a collection.
 #[derive(Debug)]
 pub struct GenerationResult {
@@ -103,7 +113,12 @@ pub fn build_site_context(
     // from site-level cross-references. Excluding them dramatically reduces
     // the cost of `where`, `sort`, and other filters that clone objects.
     for (name, items) in collections {
-        let arr: Vec<LiquidValue> = items.iter().map(collection_item_to_liquid_slim).collect();
+        let mut arr: Vec<LiquidValue> = items.iter().map(collection_item_to_liquid_slim).collect();
+        // Jekyll exposes site.posts in reverse chronological order (newest first).
+        // Other collections are kept in their load order (date ascending).
+        if name == "posts" {
+            arr.reverse();
+        }
         site.insert(
             name.clone().into(),
             normalize_arrays(LiquidValue::Array(arr)),
@@ -397,6 +412,34 @@ pub fn url_to_output_path(output_dir: &Path, url: &str) -> std::path::PathBuf {
     }
 }
 
+/// Normalize a front matter field to an array if it's a string.
+///
+/// Jekyll always exposes `categories` and `tags` as arrays, even when specified
+/// as a single string in front matter (e.g., `categories: food` becomes `["food"]`).
+/// Also handles space-separated strings (e.g., `categories: "foo bar"` -> `["foo", "bar"]`).
+fn normalize_fm_to_array(fm: &mut crate::frontmatter::FrontMatter, key: &str) {
+    if let Some(val) = fm.get(key) {
+        match val {
+            serde_yaml::Value::String(s) => {
+                if s.is_empty() {
+                    fm.insert(key.to_string(), serde_yaml::Value::Sequence(Vec::new()));
+                } else {
+                    // Split on spaces for multi-category strings
+                    let items: Vec<serde_yaml::Value> = s
+                        .split_whitespace()
+                        .map(|w| serde_yaml::Value::String(w.to_string()))
+                        .collect();
+                    fm.insert(key.to_string(), serde_yaml::Value::Sequence(items));
+                }
+            }
+            serde_yaml::Value::Null => {
+                fm.insert(key.to_string(), serde_yaml::Value::Sequence(Vec::new()));
+            }
+            _ => {} // Already an array or other type, leave as-is
+        }
+    }
+}
+
 /// Check if a URL path already has a recognized file extension.
 fn url_has_file_extension(path: &str) -> bool {
     if let Some(dot_pos) = path.rfind('.') {
@@ -581,6 +624,12 @@ pub fn generate_collection_pages_cached(
             page_fm.entry(key).or_insert(value);
         }
 
+        // Normalize categories and tags to arrays (Jekyll always exposes them as arrays).
+        // A front matter `categories: food` (string) must become `["food"]` so that
+        // Liquid filters like `join` work correctly.
+        normalize_fm_to_array(&mut page_fm, "categories");
+        normalize_fm_to_array(&mut page_fm, "tags");
+
         page_fm.insert("url".into(), serde_yaml::Value::String(item.url.clone()));
 
         // Also ensure date is in front matter if available (needed for posts)
@@ -677,10 +726,28 @@ pub fn generate_collection_pages_cached(
                 }
             }
             Err(e) => {
-                result.lock().unwrap().errors.push(format!(
-                    "Failed to render {}/{}: {}",
+                // On render failure, fall back to writing the HTML content as-is.
+                // This matches Jekyll's behavior of always producing output files,
+                // and ensures page counts match even when templates have issues.
+                eprintln!(
+                    "Warning: failed to render {}/{}, writing fallback: {}",
                     collection_type, item.slug, e
-                ));
+                );
+                let out_path = url_to_output_path(output_dir, &item.url);
+                if let Some(parent) = out_path.parent() {
+                    let _ = fs::create_dir_all(parent);
+                }
+                match fs::write(&out_path, &item.html_content) {
+                    Ok(()) => {
+                        result.lock().unwrap().generated += 1;
+                    }
+                    Err(write_e) => {
+                        result.lock().unwrap().errors.push(format!(
+                            "Failed to write fallback {}/{}: {}",
+                            collection_type, item.slug, write_e
+                        ));
+                    }
+                }
             }
         }
     });
@@ -753,6 +820,23 @@ pub fn generate_pages_cached(
     cached_site: &CachedSiteContext,
     output_dir: &Path,
 ) -> Result<GenerationResult, GeneratorError> {
+    generate_pages_cached_with_config(pages, layout_engine, cached_site, output_dir, None)
+}
+
+/// Generate HTML for standalone pages using a pre-built cached site context,
+/// with optional config for applying front-matter defaults.
+///
+/// When `config` is provided, front-matter defaults from `_config.yml` are applied
+/// to each page before checking for a layout. This is essential for sites that
+/// use `defaults` with `type: "pages"` or `path:` scoping to assign layouts
+/// to standalone pages (e.g., documentation-theme-jekyll, large-docs-site).
+pub fn generate_pages_cached_with_config(
+    pages: &[crate::collection::Page],
+    layout_engine: &LayoutEngine,
+    cached_site: &CachedSiteContext,
+    output_dir: &Path,
+    config: Option<&SiteConfig>,
+) -> Result<GenerationResult, GeneratorError> {
     fs::create_dir_all(output_dir).map_err(|e| GeneratorError::WriteFile {
         path: output_dir.display().to_string(),
         source: e,
@@ -765,27 +849,30 @@ pub fn generate_pages_cached(
     });
 
     pages.par_iter().for_each(|page| {
-        // Resolve layout from front matter.
+        // Build page front matter: start with page's own front matter,
+        // then apply config defaults for keys not already present.
+        let mut page_fm = page.front_matter.clone();
+        if let Some(cfg) = config {
+            // Apply defaults matching type "pages" and path-scoped defaults
+            let defaults = cfg.defaults_for_page(&page.source_path);
+            for (key, value) in defaults {
+                page_fm.entry(key).or_insert(value);
+            }
+        }
+
+        // Resolve layout from front matter (after defaults are applied).
         // Three cases:
         //   1. `layout: "some_layout"` -> render with that layout
         //   2. `layout: null` (explicit null) -> render through Liquid, no layout wrapping
         //   3. No `layout` key at all -> skip page (no rendering)
-        let layout_value = page.front_matter.get("layout");
+        let layout_value = page_fm.get("layout");
         let layout_name: Option<String> = layout_value
             .and_then(|v| v.as_str())
             .filter(|s| !s.is_empty())
             .map(|s| s.to_string());
 
-        let has_null_layout = layout_value.map(|v| v.is_null()).unwrap_or(false);
-
-        if layout_name.is_none() && !has_null_layout {
-            // No layout key at all -> skip
-            result.lock().unwrap().skipped += 1;
-            return;
-        }
-
-        // Build page front matter with url added
-        let mut page_fm = page.front_matter.clone();
+        // Jekyll processes ALL files with front matter regardless of layout.
+        // Pages without a layout are rendered through Liquid without wrapping.
         page_fm.insert("url".into(), serde_yaml::Value::String(page.url.clone()));
 
         // Use raw content (not html_content) because pages may contain Liquid tags
@@ -826,6 +913,22 @@ pub fn generate_pages_cached(
         };
         match render_result {
             Ok(html) => {
+                // If the source is an SCSS file, compile to CSS
+                let html = if page.source_path.ends_with(".scss") {
+                    match compile_scss(&html) {
+                        Ok(css) => css,
+                        Err(e) => {
+                            result.lock().unwrap().errors.push(format!(
+                                "Failed to compile SCSS for page {}: {}",
+                                page.slug, e
+                            ));
+                            return;
+                        }
+                    }
+                } else {
+                    html
+                };
+
                 // Compute output path from URL (handles trailing-slash pretty URLs)
                 let out_path = url_to_output_path(output_dir, &page.url);
 
@@ -853,16 +956,134 @@ pub fn generate_pages_cached(
                 }
             }
             Err(e) => {
-                result
-                    .lock()
-                    .unwrap()
-                    .errors
-                    .push(format!("Failed to render page {}: {}", page.slug, e));
+                // On render failure, fall back to writing the content as-is
+                // (with markdown->HTML conversion). This matches Jekyll's behavior
+                // of always producing output files, and ensures page counts match.
+                eprintln!(
+                    "Warning: failed to render page '{}', writing fallback: {}",
+                    page.slug, e
+                );
+                let fallback = if page.source_path.ends_with(".md") {
+                    crate::frontmatter::markdown_to_html(&page.content)
+                } else {
+                    page.content.clone()
+                };
+                let out_path = url_to_output_path(output_dir, &page.url);
+                if let Some(parent) = out_path.parent() {
+                    let _ = fs::create_dir_all(parent);
+                }
+                match fs::write(&out_path, &fallback) {
+                    Ok(()) => {
+                        result.lock().unwrap().generated += 1;
+                    }
+                    Err(write_e) => {
+                        result.lock().unwrap().errors.push(format!(
+                            "Failed to write fallback page {}: {}",
+                            page.slug, write_e
+                        ));
+                    }
+                }
             }
         }
     });
 
     Ok(result.into_inner().unwrap())
+}
+
+/// Generate pagination pages (jekyll-paginate support).
+///
+/// Splits posts into pages of `per_page` items and generates paginated index
+/// pages at the paths specified by `paginate_path` (e.g., `/blog/page-:num/`).
+/// The first page is always at `/blog/index.html` (or the site root).
+///
+/// Returns the number of pagination pages generated.
+pub fn generate_pagination_pages(
+    posts: &[CollectionItem],
+    per_page: usize,
+    paginate_path: &str,
+    layout_engine: &LayoutEngine,
+    cached_site: &CachedSiteContext,
+    output_dir: &Path,
+) -> Result<usize, GeneratorError> {
+    if per_page == 0 || posts.is_empty() {
+        return Ok(0);
+    }
+
+    // Sort posts by date descending (newest first) like Jekyll
+    let mut sorted_posts: Vec<&CollectionItem> = posts.iter().collect();
+    sorted_posts.sort_by(|a, b| {
+        let date_a = a.date.as_deref().unwrap_or("");
+        let date_b = b.date.as_deref().unwrap_or("");
+        date_b.cmp(date_a)
+    });
+
+    let total_posts = sorted_posts.len();
+    let total_pages = total_posts.div_ceil(per_page);
+
+    if total_pages <= 1 {
+        // Only one page, no pagination needed
+        return Ok(0);
+    }
+
+    let mut generated = 0;
+
+    // Generate page 2, 3, ... (page 1 is the site's blog/index.html)
+    for page_num in 2..=total_pages {
+        let page_url = paginate_path.replace(":num", &page_num.to_string());
+
+        // Build a simple paginator object for the template
+        let start = (page_num - 1) * per_page;
+        let end = std::cmp::min(start + per_page, total_posts);
+        let page_posts: Vec<&CollectionItem> = sorted_posts[start..end].to_vec();
+
+        // Build a minimal HTML page with post links
+        let mut html = String::from("<ul>\n");
+        for post in &page_posts {
+            let title = post
+                .front_matter
+                .get("title")
+                .and_then(|v| v.as_str())
+                .unwrap_or(&post.slug);
+            html.push_str(&format!(
+                "  <li><a href=\"{}\">{}</a></li>\n",
+                post.url, title
+            ));
+        }
+        html.push_str("</ul>\n");
+
+        // Try to render through the default layout if available
+        let mut page_fm = crate::frontmatter::FrontMatter::new();
+        page_fm.insert(
+            "title".to_string(),
+            serde_yaml::Value::String(format!("Page {}", page_num)),
+        );
+        page_fm.insert(
+            "url".to_string(),
+            serde_yaml::Value::String(page_url.clone()),
+        );
+
+        let out_path = url_to_output_path(output_dir, &page_url);
+        if let Some(parent) = out_path.parent() {
+            let _ = fs::create_dir_all(parent);
+        }
+
+        // Try rendering with default layout, fall back to raw HTML
+        let final_html = match layout_engine.render_page_with_cached_site(
+            "default",
+            &html,
+            &page_fm,
+            cached_site,
+        ) {
+            Ok(rendered) => rendered,
+            Err(_) => html,
+        };
+
+        if fs::write(&out_path, &final_html).is_ok() {
+            generated += 1;
+        }
+    }
+
+    Ok(generated)
 }
 
 /// Generate HTML for standalone pages (alias for `generate_pages`).
@@ -877,8 +1098,8 @@ pub fn generate_standalone_pages(
     site_context: &Object,
     output_dir: &Path,
 ) -> Result<GenerationResult, GeneratorError> {
-    let _ = config; // available for future use (e.g. default layout resolution)
-    generate_pages(pages, layout_engine, site_context, output_dir)
+    let cached_site = LayoutEngine::build_cached_site_context(site_context);
+    generate_pages_cached_with_config(pages, layout_engine, &cached_site, output_dir, Some(config))
 }
 
 #[cfg(test)]

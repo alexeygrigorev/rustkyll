@@ -159,6 +159,54 @@ fn collect_all_source_paths(
 }
 
 /// Run the full site build pipeline.
+/// Extract redirect URLs from a page/post's front matter.
+///
+/// Supports both single string and array values for `redirect_from`:
+/// - `redirect_from: /old-url/`
+/// - `redirect_from: [/old-1/, /old-2/]`
+fn extract_redirect_from(fm: &rustkyll::frontmatter::FrontMatter) -> Vec<String> {
+    let mut redirects = Vec::new();
+    if let Some(val) = fm.get("redirect_from") {
+        match val {
+            serde_yaml::Value::String(s) => {
+                if !s.is_empty() {
+                    redirects.push(s.clone());
+                }
+            }
+            serde_yaml::Value::Sequence(seq) => {
+                for item in seq {
+                    if let Some(s) = item.as_str() {
+                        if !s.is_empty() {
+                            redirects.push(s.to_string());
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    redirects
+}
+
+/// Generate a simple HTML redirect page (matches jekyll-redirect-from output).
+fn generate_redirect_html(_from_url: &str, to_url: &str) -> String {
+    format!(
+        r#"<!DOCTYPE html>
+<html lang="en-US">
+  <meta charset="utf-8">
+  <title>Redirecting&hellip;</title>
+  <link rel="canonical" href="{to}">
+  <script>location="{to}"</script>
+  <meta http-equiv="refresh" content="0; url={to}">
+  <meta name="robots" content="noindex">
+  <h1>Redirecting&hellip;</h1>
+  <a href="{to}">Click here if you are not redirected.</a>
+</html>
+"#,
+        to = to_url
+    )
+}
+
 fn build_site(
     source: &Path,
     destination: &Path,
@@ -297,6 +345,16 @@ fn build_site(
         .collect();
 
     for (name, items) in &collections {
+        // Skip collections with output: false (except posts which always output).
+        // Jekyll only generates HTML pages for collections with `output: true`.
+        if name != "posts" {
+            if let Some(coll_config) = config.collection(name) {
+                if !coll_config.output {
+                    continue;
+                }
+            }
+        }
+
         // For partial rebuilds, filter to only changed items
         let filtered: Vec<CollectionItem>;
         let items_slice: &[CollectionItem] = match &changed_set {
@@ -341,15 +399,78 @@ fn build_site(
     };
 
     if !pages_slice.is_empty() {
-        let page_result = generator::generate_pages_cached(
+        let page_result = generator::generate_pages_cached_with_config(
             pages_slice,
             &layout_engine,
             &cached_site,
             destination,
+            Some(&config),
         )?;
         summary.standalone_pages = page_result.generated;
         summary.errors.extend(page_result.errors);
     }
+    // 10b. Generate pagination pages (jekyll-paginate support)
+    if let Some(paginate_val) = config.extras.get("paginate") {
+        if let Some(per_page) = paginate_val.as_u64() {
+            let per_page = per_page as usize;
+            let paginate_path = config
+                .extras
+                .get("paginate_path")
+                .and_then(|v| v.as_str())
+                .unwrap_or("/blog/page-:num/");
+
+            if let Some(posts) = collections.get("posts") {
+                let count = generator::generate_pagination_pages(
+                    posts,
+                    per_page,
+                    paginate_path,
+                    &layout_engine,
+                    &cached_site,
+                    destination,
+                )?;
+                summary.standalone_pages += count;
+            }
+        }
+    }
+
+    // 10c. Generate redirect pages (jekyll-redirect-from support)
+    {
+        let mut redirect_count = 0;
+        // Check collections for redirect_from front matter
+        for items in collections.values() {
+            for item in items {
+                let redirects = extract_redirect_from(&item.front_matter);
+                for redirect_url in &redirects {
+                    let target_url = &item.url;
+                    let html = generate_redirect_html(redirect_url, target_url);
+                    let out_path = generator::url_to_output_path(destination, redirect_url);
+                    if let Some(parent) = out_path.parent() {
+                        let _ = std::fs::create_dir_all(parent);
+                    }
+                    if std::fs::write(&out_path, &html).is_ok() {
+                        redirect_count += 1;
+                    }
+                }
+            }
+        }
+        // Check standalone pages for redirect_from front matter
+        for page in &pages {
+            let redirects = extract_redirect_from(&page.front_matter);
+            for redirect_url in &redirects {
+                let target_url = &page.url;
+                let html = generate_redirect_html(redirect_url, target_url);
+                let out_path = generator::url_to_output_path(destination, redirect_url);
+                if let Some(parent) = out_path.parent() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+                if std::fs::write(&out_path, &html).is_ok() {
+                    redirect_count += 1;
+                }
+            }
+        }
+        summary.standalone_pages += redirect_count;
+    }
+
     summary.timing.generation = phase_start.elapsed();
 
     // 11. Copy static files (before sitemap/feed so generated files take precedence)

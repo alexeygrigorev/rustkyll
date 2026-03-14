@@ -307,9 +307,9 @@ pub fn extract_date(front_matter: &FrontMatter, filename_date: Option<&str>) -> 
     filename_date.map(|s| s.to_string())
 }
 
-/// Returns true if the filename should be skipped (starts with `_` or is not `.md`).
+/// Returns true if the filename should be skipped (starts with `_`).
 fn should_skip(filename: &str) -> bool {
-    filename.starts_with('_') || !filename.ends_with(".md")
+    filename.starts_with('_')
 }
 
 /// Returns true if the front matter has `published: false`.
@@ -373,35 +373,122 @@ pub fn load_collection(
         return Ok((Vec::new(), Vec::new()));
     }
 
-    let entries = fs::read_dir(&dir).map_err(|e| CollectionError::ReadDir {
-        path: dir.display().to_string(),
-        source: e,
-    })?;
-
     let permalink_pattern = if collection_name == "posts" {
-        config.permalink.clone()
+        // Check defaults for a post-specific permalink first, then use global
+        let defaults = config.defaults_for("posts", "");
+        defaults
+            .get("permalink")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| config.permalink.clone())
     } else {
         config
             .collection(collection_name)
             .map(|c| c.permalink.clone())
+            .filter(|p| !p.is_empty())
             .unwrap_or_else(|| "/:collection/:title.html".to_string())
     };
 
     let mut items = Vec::new();
     let mut errors = Vec::new();
 
-    let mut file_paths: Vec<_> = entries.filter_map(|e| e.ok()).map(|e| e.path()).collect();
-    file_paths.sort();
+    load_collection_recursive(
+        &dir,
+        &dir,
+        site_dir,
+        collection_name,
+        &permalink_pattern,
+        &mut items,
+        &mut errors,
+    )?;
 
-    for path in file_paths {
+    // Sort collection items by date ascending (oldest first), with slug as
+    // tiebreaker. This matches Jekyll's behavior where all collection documents
+    // (not just posts) are sorted by date. Without this sort, file path ordering
+    // produces incorrect results for filenames with mixed-length numeric prefixes
+    // (e.g. 099 sorts before 1000 but 1000 sorts before 100 in string order).
+    items.sort_by(|a, b| {
+        let date_a = a.date.as_deref().unwrap_or("");
+        let date_b = b.date.as_deref().unwrap_or("");
+        date_a
+            .cmp(date_b)
+            .then_with(|| a.source_path.cmp(&b.source_path))
+    });
+
+    Ok((items, errors))
+}
+
+/// File extensions that can be processed as collection items.
+///
+/// Jekyll processes any file with front matter in a collection directory.
+/// We check `.md` files unconditionally, and also non-`.md` files for
+/// front matter presence.
+const COLLECTION_EXTENSIONS: &[&str] = &[".md", ".html", ".htm", ".xml", ".json", ".txt"];
+
+/// Recursively load collection items from a directory.
+///
+/// This handles subdirectories within collection directories (e.g., `_pages/redirect/`)
+/// and non-markdown files that have YAML front matter (e.g., `.html`, `.json`).
+#[allow(clippy::only_used_in_recursion)]
+fn load_collection_recursive(
+    current_dir: &Path,
+    collection_dir: &Path,
+    site_dir: &Path,
+    collection_name: &str,
+    permalink_pattern: &str,
+    items: &mut Vec<CollectionItem>,
+    errors: &mut Vec<CollectionError>,
+) -> Result<(), CollectionError> {
+    let entries = fs::read_dir(current_dir).map_err(|e| CollectionError::ReadDir {
+        path: current_dir.display().to_string(),
+        source: e,
+    })?;
+
+    let mut entry_paths: Vec<_> = entries.filter_map(|e| e.ok()).map(|e| e.path()).collect();
+    entry_paths.sort();
+
+    for path in entry_paths {
         let filename = match path.file_name().and_then(|n| n.to_str()) {
             Some(name) => name.to_string(),
             None => continue,
         };
 
+        if path.is_dir() {
+            // Recurse into subdirectories (skip hidden/underscore dirs)
+            if !filename.starts_with('.') && !filename.starts_with('_') {
+                load_collection_recursive(
+                    &path,
+                    collection_dir,
+                    site_dir,
+                    collection_name,
+                    permalink_pattern,
+                    items,
+                    errors,
+                )?;
+            }
+            continue;
+        }
+
+        if !path.is_file() {
+            continue;
+        }
+
         if should_skip(&filename) {
             continue;
         }
+
+        // Determine file extension
+        let ext = COLLECTION_EXTENSIONS
+            .iter()
+            .copied()
+            .find(|ext| filename.ends_with(ext));
+
+        let ext = match ext {
+            Some(e) => e,
+            None => continue,
+        };
+
+        let is_markdown = ext == ".md";
 
         let raw = match fs::read_to_string(&path) {
             Ok(content) => content,
@@ -413,6 +500,11 @@ pub fn load_collection(
                 continue;
             }
         };
+
+        // For non-markdown files, only process if they have front matter
+        if !is_markdown && !has_front_matter(&raw) {
+            continue;
+        }
 
         let doc = match frontmatter::parse_document(&raw) {
             Ok(doc) => doc,
@@ -431,7 +523,7 @@ pub fn load_collection(
         }
 
         let is_posts = collection_name == "posts";
-        let stem = filename.strip_suffix(".md").unwrap_or(&filename);
+        let stem = filename.strip_suffix(ext).unwrap_or(&filename);
 
         let (filename_date, slug) = if is_posts {
             let (date, raw_slug) = parse_post_filename(&filename);
@@ -451,21 +543,43 @@ pub fn load_collection(
 
         // Build source path stem (path without extension, without leading _collection/)
         let source_path_stem = source_path
-            .strip_suffix(".md")
+            .strip_suffix(ext)
             .unwrap_or(&source_path)
             .strip_prefix(&format!("_{}/", collection_name))
-            .unwrap_or(source_path.strip_suffix(".md").unwrap_or(&source_path))
+            .unwrap_or(source_path.strip_suffix(ext).unwrap_or(&source_path))
             .to_string();
 
-        let ctx = PermalinkContext {
-            collection: collection_name.to_string(),
-            title: slug.clone(),
-            date: date.clone(),
-            categories,
-            source_path_stem: Some(source_path_stem),
+        // Use front matter `permalink` if present, otherwise use the pattern
+        let url = doc
+            .front_matter
+            .get("permalink")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| {
+                let ctx = PermalinkContext {
+                    collection: collection_name.to_string(),
+                    title: slug.clone(),
+                    date: date.clone(),
+                    categories: categories.clone(),
+                    source_path_stem: Some(source_path_stem.clone()),
+                };
+                let mut generated = generate_url_with_context(permalink_pattern, &ctx);
+                // For non-markdown files (e.g., .json, .xml), Jekyll uses the
+                // original file extension as the output extension, not .html.
+                // Replace the trailing .html with the source file's extension.
+                if !is_markdown && ext != ".html" && ext != ".htm" {
+                    if let Some(stripped) = generated.strip_suffix(".html") {
+                        generated = format!("{}{}", stripped, ext);
+                    }
+                }
+                generated
+            });
+
+        let html_content = if is_markdown {
+            frontmatter::markdown_to_html(&doc.content)
+        } else {
+            doc.content.clone()
         };
-        let url = generate_url_with_context(&permalink_pattern, &ctx);
-        let html_content = frontmatter::markdown_to_html(&doc.content);
 
         items.push(CollectionItem {
             slug,
@@ -480,7 +594,7 @@ pub fn load_collection(
         });
     }
 
-    Ok((items, errors))
+    Ok(())
 }
 
 /// A standalone page (root-level `.md` file, not part of any collection).
@@ -563,10 +677,12 @@ fn should_skip_directory(name: &str, config: &SiteConfig) -> bool {
 /// unconditionally, and also check certain other extensions (`.xml`, `.html`,
 /// `.htm`, `.json`, `.txt`) for front matter presence.
 fn is_processable_extension(name: &str) -> Option<&'static str> {
-    [".md", ".xml", ".html", ".htm", ".json", ".txt"]
-        .iter()
-        .copied()
-        .find(|ext| name.ends_with(ext))
+    [
+        ".md", ".xml", ".html", ".htm", ".json", ".txt", ".scss", ".css",
+    ]
+    .iter()
+    .copied()
+    .find(|ext| name.ends_with(ext))
 }
 
 /// Check if raw file content starts with YAML front matter delimiters.
@@ -584,8 +700,9 @@ fn has_front_matter(content: &str) -> bool {
     } else {
         return false;
     };
-    // Look for closing --- on its own line
-    rest.contains("\n---")
+    // Look for closing --- on its own line, or at the very start of rest
+    // (which happens with empty front matter: "---\n---\n")
+    rest.starts_with("---") || rest.contains("\n---")
 }
 
 /// Recursively discover and load pages from a directory.
@@ -647,9 +764,9 @@ fn load_pages_recursive(
             }
         };
 
-        // For non-markdown files, only process if they have front matter
-        // (matching Jekyll behavior: only files starting with --- are processed)
-        if !is_markdown && !has_front_matter(&raw) {
+        // Jekyll only processes files that have YAML front matter (starting with ---)
+        // This applies to all file types including .md files
+        if !has_front_matter(&raw) {
             continue;
         }
 
@@ -710,7 +827,13 @@ fn load_pages_recursive(
                 } else {
                     // Non-markdown files keep their original extension in the URL
                     // (e.g. podcast.xml -> /podcast.xml)
-                    format!("/{}", rel_path)
+                    // Exception: .scss files are output as .css (Jekyll compiles SCSS)
+                    let url_path = if rel_path.ends_with(".scss") {
+                        format!("{}css", rel_path.strip_suffix("scss").unwrap_or(&rel_path))
+                    } else {
+                        rel_path.clone()
+                    };
+                    format!("/{}", url_path)
                 }
             });
 
@@ -1115,8 +1238,10 @@ mod tests {
     }
 
     #[test]
-    fn test_should_skip_non_md() {
-        assert!(should_skip("file.txt"));
+    fn test_should_not_skip_non_md() {
+        // should_skip now only checks for underscore prefix;
+        // extension filtering is handled by COLLECTION_EXTENSIONS
+        assert!(!should_skip("file.txt"));
     }
 
     #[test]

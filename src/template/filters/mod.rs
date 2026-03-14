@@ -4,6 +4,7 @@
 //! jekyll feature, but are needed by common Jekyll site templates.
 
 mod absolute_url;
+mod date;
 mod date_to_long_string;
 mod date_to_rfc822;
 mod date_to_string;
@@ -23,6 +24,7 @@ mod where_filter;
 mod xml_escape;
 
 pub use absolute_url::AbsoluteUrl;
+pub use date::Date;
 pub use date_to_long_string::DateToLongString;
 pub use date_to_rfc822::DateToRfc822;
 pub use date_to_string::DateToString;

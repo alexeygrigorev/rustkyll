@@ -559,6 +559,8 @@ impl TemplateEngine {
             .filter(filters::Truncatewords)
             // Missing filters (Issue 37)
             .filter(filters::NormalizeWhitespace)
+            // Custom date filter that handles YYYY-MM-DD strings (Issue 72)
+            .filter(filters::Date)
     }
 
     /// Create a `TemplateEngine` from a pre-built `liquid::Parser`.
@@ -590,6 +592,14 @@ impl TemplateEngine {
         // `{% include subdir/file.html %}` -> `{% include "subdir/file.html" %}`).
         // The Liquid parser cannot handle `/` in unquoted tag arguments.
         let preprocessed = super::include_tag::preprocess_include_paths(template_str);
+        // Pre-process capture tags to strip extra tokens after the variable name.
+        // Jekyll silently ignores extra tokens (e.g., `{% capture var do %}`),
+        // but the Liquid parser rejects them.
+        let preprocessed = preprocess_capture_tags(&preprocessed);
+        // Pre-process Jekyll-specific tags ({% link %}, {% post_url %}) that
+        // the Liquid parser does not support. These are replaced with their
+        // approximate URL output.
+        let preprocessed = preprocess_jekyll_tags(&preprocessed);
         let template_str = &preprocessed;
         loop {
             let parser_guard = self
@@ -738,6 +748,167 @@ impl TemplateEngine {
         let template = self.parse(template_str)?;
         self.render_with_cached_site(&template, context, cached_site)
     }
+}
+
+/// Pre-process capture tags to strip extra tokens after the variable name.
+///
+/// Jekyll's Liquid parser silently ignores extra tokens after the variable name
+/// in a capture tag (e.g., `{% capture myvar do %}` is treated as
+/// `{% capture myvar %}`). The liquid crate's parser is strict and rejects them.
+///
+/// This function finds `{% capture <var> <extra_tokens> %}` patterns and
+/// rewrites them to `{% capture <var> %}`, preserving whitespace-control
+/// markers (`-`).
+fn preprocess_capture_tags(template: &str) -> String {
+    let mut result = String::with_capacity(template.len());
+    let mut remaining = template;
+
+    while let Some(start) = remaining.find("{%") {
+        // Copy everything up to this tag
+        result.push_str(&remaining[..start]);
+
+        let after_open = &remaining[start + 2..];
+        if let Some(end_offset) = after_open.find("%}") {
+            let tag_inner = &after_open[..end_offset];
+            let tag_end = start + 2 + end_offset + 2;
+
+            // Parse tag inner, handling whitespace-control dashes
+            let trimmed = tag_inner.trim();
+            let has_leading_dash = trimmed.starts_with('-');
+            let trimmed = if has_leading_dash {
+                trimmed[1..].trim_start()
+            } else {
+                trimmed
+            };
+            let has_trailing_dash = trimmed.ends_with('-');
+            let trimmed = if has_trailing_dash {
+                trimmed[..trimmed.len() - 1].trim_end()
+            } else {
+                trimmed
+            };
+
+            // Check if this is a capture tag with extra tokens
+            if let Some(after_capture) = trimmed
+                .strip_prefix("capture")
+                .filter(|rest| rest.starts_with(char::is_whitespace))
+            {
+                let args = after_capture.trim();
+                // The variable name is the first word; extra tokens follow
+                let var_name = args.split_whitespace().next().unwrap_or(args);
+                let has_extra = args.len() > var_name.len();
+
+                if has_extra {
+                    // Rewrite: keep only the variable name
+                    result.push_str("{%");
+                    if has_leading_dash {
+                        result.push('-');
+                    }
+                    result.push_str(" capture ");
+                    result.push_str(var_name);
+                    result.push(' ');
+                    if has_trailing_dash {
+                        result.push('-');
+                    }
+                    result.push_str("%}");
+                } else {
+                    // No extra tokens, keep original
+                    result.push_str(&remaining[start..tag_end]);
+                }
+            } else {
+                // Not a capture tag, keep original
+                result.push_str(&remaining[start..tag_end]);
+            }
+
+            remaining = &remaining[tag_end..];
+        } else {
+            // No closing %}, copy rest as-is
+            result.push_str(&remaining[start..]);
+            remaining = "";
+        }
+    }
+
+    // Copy any remaining text
+    result.push_str(remaining);
+    result
+}
+
+/// Pre-process Jekyll-specific tags that the liquid crate does not support.
+///
+/// Handles:
+/// - `{% link _pages/file.md %}` -> approximate URL (e.g., `/pages/file.html`)
+/// - `{% post_url 2022-01-01-title %}` -> approximate URL (e.g., `/posts/title`)
+///
+/// These are best-effort transformations. The exact URL depends on the site's
+/// permalink configuration, but the approximation is sufficient for most cases.
+fn preprocess_jekyll_tags(template: &str) -> String {
+    let mut result = String::with_capacity(template.len());
+    let mut remaining = template;
+
+    while let Some(start) = remaining.find("{%") {
+        result.push_str(&remaining[..start]);
+
+        let after_open = &remaining[start + 2..];
+        if let Some(end_offset) = after_open.find("%}") {
+            let tag_inner = &after_open[..end_offset];
+            let tag_end = start + 2 + end_offset + 2;
+
+            let trimmed = tag_inner.trim();
+            let trimmed = trimmed.strip_prefix('-').unwrap_or(trimmed).trim();
+            let trimmed = trimmed.strip_suffix('-').unwrap_or(trimmed).trim();
+
+            if let Some(path) = trimmed
+                .strip_prefix("link")
+                .filter(|rest| rest.starts_with(char::is_whitespace))
+            {
+                // {% link _pages/file.md %} -> /pages/file.html (or similar)
+                let path = path.trim().trim_matches('"').trim_matches('\'');
+                // Strip leading underscore-prefixed directory (e.g., _pages/ -> pages/)
+                let url_path = if let Some(stripped) = path.strip_prefix('_') {
+                    stripped
+                } else {
+                    path
+                };
+                // Convert .md to .html extension
+                let url_path = if let Some(stem) = url_path.strip_suffix(".md") {
+                    format!("/{}.html", stem)
+                } else {
+                    format!("/{}", url_path)
+                };
+                result.push_str(&url_path);
+            } else if let Some(slug) = trimmed
+                .strip_prefix("post_url")
+                .filter(|rest| rest.starts_with(char::is_whitespace))
+            {
+                // {% post_url 2022-01-01-title %} -> /2022/01/01/title/
+                let slug = slug.trim();
+                // Parse YYYY-MM-DD-title format
+                if slug.len() > 10
+                    && slug.chars().nth(4) == Some('-')
+                    && slug.chars().nth(7) == Some('-')
+                {
+                    let year = &slug[0..4];
+                    let month = &slug[5..7];
+                    let day = &slug[8..10];
+                    let title = &slug[11..];
+                    result.push_str(&format!("/{}/{}/{}/{}", year, month, day, title));
+                } else {
+                    // Fallback: just use slug as path
+                    result.push_str(&format!("/{}", slug));
+                }
+            } else {
+                // Not a link/post_url tag, keep original
+                result.push_str(&remaining[start..tag_end]);
+            }
+
+            remaining = &remaining[tag_end..];
+        } else {
+            result.push_str(&remaining[start..]);
+            remaining = "";
+        }
+    }
+
+    result.push_str(remaining);
+    result
 }
 
 /// Extract the unknown filter name from a liquid parse error message.
@@ -2274,5 +2445,81 @@ mod tests {
 
         let result = eng.parse_and_render("{% include_cached missing.html %}", &ctx);
         assert!(result.is_err(), "Should error on missing partial");
+    }
+
+    #[test]
+    fn test_date_filter_with_format_string() {
+        let eng = engine();
+        let mut page = Object::new();
+        page.insert("date".into(), LiquidValue::scalar("2024-07-24"));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        let out = eng
+            .parse_and_render(r#"{{ page.date | date: "%d.%m.%Y" }}"#, &ctx)
+            .unwrap();
+        assert_eq!(out, "24.07.2024");
+    }
+
+    // ========================================================================
+    // Issue 74: Capture tag tolerance
+    // ========================================================================
+
+    #[test]
+    fn test_capture_with_extra_tokens() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("name".into(), LiquidValue::scalar("World"));
+        let out = eng
+            .parse_and_render(
+                "{% capture myvar do %}hello {{ name }}{% endcapture %}{{ myvar }}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(out, "hello World");
+    }
+
+    #[test]
+    fn test_capture_with_multiple_extra_tokens() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render(
+                "{% capture msg extra ignored tokens %}content{% endcapture %}{{ msg }}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(out, "content");
+    }
+
+    #[test]
+    fn test_capture_normal_still_works() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render("{% capture msg %}hello{% endcapture %}{{ msg }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "hello");
+    }
+
+    // ========================================================================
+    // Issue 74: Jekyll tag preprocessing (link, post_url)
+    // ========================================================================
+
+    #[test]
+    fn test_link_tag_preprocessing() {
+        let result = preprocess_jekyll_tags(r#"<a href="{% link _pages/about.md %}">About</a>"#);
+        assert_eq!(result, r#"<a href="/pages/about.html">About</a>"#);
+    }
+
+    #[test]
+    fn test_post_url_tag_preprocessing() {
+        let result = preprocess_jekyll_tags("{% post_url 2022-09-07-homebrew-3.6.0 %}");
+        assert_eq!(result, "/2022/09/07/homebrew-3.6.0");
+    }
+
+    #[test]
+    fn test_capture_preprocess_with_dash() {
+        let result = preprocess_capture_tags("{%- capture myvar do -%}content{%- endcapture -%}");
+        assert_eq!(result, "{%- capture myvar -%}content{%- endcapture -%}");
     }
 }

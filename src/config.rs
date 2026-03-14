@@ -224,7 +224,43 @@ impl SiteConfig {
         let mut result = HashMap::new();
 
         for default in &self.defaults {
-            if default.scope.type_name != type_name {
+            // Match if scope type matches exactly, or scope type is empty
+            // (empty type matches all items, matching Jekyll behavior)
+            if !default.scope.type_name.is_empty() && default.scope.type_name != type_name {
+                continue;
+            }
+
+            // Empty path matches everything; non-empty path is a prefix match
+            if !default.scope.path.is_empty() && !item_path.starts_with(&default.scope.path) {
+                continue;
+            }
+
+            // Merge values -- later entries override earlier ones
+            for (key, value) in &default.values.values {
+                result.insert(key.clone(), value.clone());
+            }
+        }
+
+        result
+    }
+
+    /// Get all matching default values for a standalone page.
+    ///
+    /// Standalone pages match defaults with `type: "pages"` or with an empty type
+    /// (path-only scoping). This matches Jekyll's behavior where standalone pages
+    /// are of type "pages" and also match unscoped defaults.
+    ///
+    /// Defaults are applied in order: later entries override earlier ones for the
+    /// same key.
+    pub fn defaults_for_page(&self, item_path: &str) -> HashMap<String, serde_yaml::Value> {
+        let mut result = HashMap::new();
+
+        for default in &self.defaults {
+            // Match if type is "pages" or empty (empty type matches all items)
+            let type_matches =
+                default.scope.type_name.is_empty() || default.scope.type_name == "pages";
+
+            if !type_matches {
                 continue;
             }
 
@@ -1032,5 +1068,90 @@ repository:
         let config = SiteConfig::from_yaml_str(yaml).unwrap();
         assert_eq!(config.url, "");
         assert_eq!(config.name, "Test");
+    }
+
+    // ========================================================================
+    // Issue 74: defaults_for_page
+    // ========================================================================
+
+    #[test]
+    fn test_defaults_for_page_type_pages() {
+        let yaml = r#"
+defaults:
+  - scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: "page"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let defaults = config.defaults_for_page("index.md");
+        assert_eq!(
+            defaults.get("layout").and_then(|v| v.as_str()),
+            Some("page")
+        );
+    }
+
+    #[test]
+    fn test_defaults_for_page_empty_type_matches() {
+        let yaml = r#"
+defaults:
+  - scope:
+      path: "docs"
+    values:
+      layout: "doc"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let defaults = config.defaults_for_page("docs/getting-started/intro.md");
+        assert_eq!(defaults.get("layout").and_then(|v| v.as_str()), Some("doc"));
+    }
+
+    #[test]
+    fn test_defaults_for_page_path_no_match() {
+        let yaml = r#"
+defaults:
+  - scope:
+      path: "docs"
+    values:
+      layout: "doc"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let defaults = config.defaults_for_page("blog/post.md");
+        assert!(defaults.is_empty());
+    }
+
+    #[test]
+    fn test_defaults_for_page_posts_type_no_match() {
+        let yaml = r#"
+defaults:
+  - scope:
+      type: "posts"
+    values:
+      layout: "post"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let defaults = config.defaults_for_page("index.md");
+        assert!(defaults.is_empty());
+    }
+
+    // ========================================================================
+    // Issue 74: defaults_for with empty type_name scope
+    // ========================================================================
+
+    #[test]
+    fn test_defaults_for_empty_type_matches_all() {
+        let yaml = r#"
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: "default"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let defaults = config.defaults_for("posts", "");
+        assert_eq!(
+            defaults.get("layout").and_then(|v| v.as_str()),
+            Some("default")
+        );
     }
 }

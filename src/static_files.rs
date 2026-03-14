@@ -99,7 +99,7 @@ fn file_has_front_matter(path: &Path) -> bool {
     // Only check extensions that might contain front matter
     let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
     match ext {
-        "xml" | "html" | "htm" | "json" | "txt" => {}
+        "xml" | "html" | "htm" | "json" | "txt" | "scss" | "css" => {}
         _ => return false,
     }
 
