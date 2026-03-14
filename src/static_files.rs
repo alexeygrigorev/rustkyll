@@ -1,5 +1,9 @@
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+
+use rayon::prelude::*;
 
 use crate::config::SiteConfig;
 
@@ -168,24 +172,39 @@ pub fn copy_static_files(
     let files = collect_static_files(source_dir, config)?;
     let count = files.len();
 
+    // Pre-create all necessary parent directories before parallel copy.
+    // collect all unique parent dirs and create them sequentially (safe, fast).
+    let mut parent_dirs: HashSet<PathBuf> = HashSet::new();
     for relative_path in &files {
-        let src = source_dir.join(relative_path);
         let dst = output_dir.join(relative_path);
-
         if let Some(parent) = dst.parent() {
-            if !parent.exists() {
-                fs::create_dir_all(parent).map_err(|e| StaticFileError::CreateDir {
-                    path: parent.display().to_string(),
-                    source: e,
-                })?;
-            }
+            parent_dirs.insert(parent.to_path_buf());
         }
-
-        fs::copy(&src, &dst).map_err(|e| StaticFileError::CopyFile {
-            src: src.display().to_string(),
-            dst: dst.display().to_string(),
+    }
+    for dir in &parent_dirs {
+        fs::create_dir_all(dir).map_err(|e| StaticFileError::CreateDir {
+            path: dir.display().to_string(),
             source: e,
         })?;
+    }
+
+    // Copy files in parallel using rayon
+    let errors: Mutex<Vec<StaticFileError>> = Mutex::new(Vec::new());
+    files.par_iter().for_each(|relative_path| {
+        let src = source_dir.join(relative_path);
+        let dst = output_dir.join(relative_path);
+        if let Err(e) = fs::copy(&src, &dst) {
+            errors.lock().unwrap().push(StaticFileError::CopyFile {
+                src: src.display().to_string(),
+                dst: dst.display().to_string(),
+                source: e,
+            });
+        }
+    });
+
+    let errors = errors.into_inner().unwrap();
+    if let Some(err) = errors.into_iter().next() {
+        return Err(err);
     }
 
     Ok(count)
@@ -530,5 +549,95 @@ mod tests {
             !file_strs.iter().any(|f| f.starts_with("node_modules/")),
             "Should not contain node_modules/"
         );
+    }
+
+    // ========================================================================
+    // Parallel static file copying tests
+    // ========================================================================
+
+    #[test]
+    fn test_parallel_copy_many_files() {
+        let src_tmp = tempfile::tempdir().unwrap();
+        let dst_tmp = tempfile::tempdir().unwrap();
+        let src = src_tmp.path();
+        let dst = dst_tmp.path();
+
+        // Create 150+ files across nested directories
+        for i in 0..160 {
+            let subdir = format!("dir{}", i % 10);
+            let dir_path = src.join(&subdir);
+            fs::create_dir_all(&dir_path).unwrap();
+            fs::write(
+                dir_path.join(format!("file{}.txt", i)),
+                format!("content-{}", i),
+            )
+            .unwrap();
+        }
+
+        let config = empty_config();
+        let count = copy_static_files(src, dst, &config).unwrap();
+
+        assert_eq!(count, 160);
+
+        // Verify all files were copied with correct content
+        for i in 0..160 {
+            let subdir = format!("dir{}", i % 10);
+            let content = fs::read_to_string(dst.join(&subdir).join(format!("file{}.txt", i)))
+                .unwrap_or_else(|_| panic!("file {} should be copied", i));
+            assert_eq!(content, format!("content-{}", i));
+        }
+    }
+
+    #[test]
+    fn test_parallel_copy_preserves_nested_dirs() {
+        let src_tmp = tempfile::tempdir().unwrap();
+        let dst_tmp = tempfile::tempdir().unwrap();
+        let src = src_tmp.path();
+        let dst = dst_tmp.path();
+
+        // Create deeply nested structure
+        fs::create_dir_all(src.join("a/b/c/d")).unwrap();
+        fs::write(src.join("a/b/c/d/deep.txt"), "deep content").unwrap();
+        fs::create_dir_all(src.join("x/y")).unwrap();
+        fs::write(src.join("x/y/shallow.txt"), "shallow content").unwrap();
+        fs::write(src.join("root.txt"), "root content").unwrap();
+
+        let config = empty_config();
+        let count = copy_static_files(src, dst, &config).unwrap();
+
+        assert_eq!(count, 3);
+        assert_eq!(
+            fs::read_to_string(dst.join("a/b/c/d/deep.txt")).unwrap(),
+            "deep content"
+        );
+        assert_eq!(
+            fs::read_to_string(dst.join("x/y/shallow.txt")).unwrap(),
+            "shallow content"
+        );
+        assert_eq!(
+            fs::read_to_string(dst.join("root.txt")).unwrap(),
+            "root content"
+        );
+    }
+
+    #[test]
+    fn test_parallel_copy_returns_correct_count() {
+        let src_tmp = tempfile::tempdir().unwrap();
+        let dst_tmp = tempfile::tempdir().unwrap();
+        let src = src_tmp.path();
+        let dst = dst_tmp.path();
+
+        for i in 0..50 {
+            fs::write(src.join(format!("file{}.css", i)), "body{}").unwrap();
+        }
+        // Add some non-static files that should not be counted
+        fs::write(src.join("readme.md"), "# Hello").unwrap();
+        fs::create_dir_all(src.join("_layouts")).unwrap();
+        fs::write(src.join("_layouts/default.html"), "<html>").unwrap();
+
+        let config = empty_config();
+        let count = copy_static_files(src, dst, &config).unwrap();
+
+        assert_eq!(count, 50);
     }
 }

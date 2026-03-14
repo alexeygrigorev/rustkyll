@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use clap::{Parser, Subcommand};
+use rayon::prelude::*;
 
 use rustkyll::collection::{self, CollectionItem};
 use rustkyll::config::SiteConfig;
@@ -84,6 +85,22 @@ struct BuildOptions {
     force: bool,
 }
 
+/// Per-phase timing information for build profiling.
+#[derive(Debug, Default)]
+struct PhaseTiming {
+    config: Duration,
+    data: Duration,
+    collections: Duration,
+    pages: Duration,
+    incremental: Duration,
+    context: Duration,
+    layouts: Duration,
+    generation: Duration,
+    static_files: Duration,
+    sitemap_feed: Duration,
+    manifest: Duration,
+}
+
 /// Summary of a completed build.
 #[derive(Debug, Default)]
 struct BuildSummary {
@@ -96,6 +113,8 @@ struct BuildSummary {
     skipped_all: bool,
     /// Number of source files that triggered a rebuild.
     changed_sources: usize,
+    /// Per-phase timing breakdown.
+    timing: PhaseTiming,
 }
 
 /// Collect all source file relative paths from loaded collections and pages.
@@ -124,45 +143,67 @@ fn build_site(
     let mut summary = BuildSummary::default();
 
     // 1. Load config
+    let phase_start = Instant::now();
     let config_path = source.join("_config.yml");
     let config = SiteConfig::from_file(&config_path)?;
+    summary.timing.config = phase_start.elapsed();
 
     // 2. Load data
+    let phase_start = Instant::now();
     let data_dir = source.join("_data");
     let data_tree = if data_dir.exists() {
         data::load_data(&data_dir)?
     } else {
         HashMap::new()
     };
+    summary.timing.data = phase_start.elapsed();
 
-    // 3. Load all collections
-    let mut collections: HashMap<String, Vec<CollectionItem>> = HashMap::new();
+    // 3. Load all collections in parallel
+    let phase_start = Instant::now();
     let mut all_load_errors = Vec::new();
 
-    for collection_name in config.collections.keys() {
-        let (items, errors) = collection::load_collection(collection_name, source, &config)?;
-        for err in &errors {
-            all_load_errors.push(format!("collection '{}': {}", collection_name, err));
-        }
-        collections.insert(collection_name.clone(), items);
+    // Gather all collection names to load (including "posts" if not in config)
+    let mut collection_names_to_load: Vec<String> = config.collections.keys().cloned().collect();
+    if !collection_names_to_load.contains(&"posts".to_string()) {
+        collection_names_to_load.push("posts".to_string());
     }
 
-    // Load posts separately (not in config.collections but always expected)
-    if !collections.contains_key("posts") {
-        let (posts, errors) = collection::load_collection("posts", source, &config)?;
-        for err in &errors {
-            all_load_errors.push(format!("collection 'posts': {}", err));
+    // Load all collections in parallel using rayon
+    type CollectionLoadResult = (
+        String,
+        Result<
+            (Vec<CollectionItem>, Vec<collection::CollectionError>),
+            collection::CollectionError,
+        >,
+    );
+    let loaded: Vec<CollectionLoadResult> = collection_names_to_load
+        .par_iter()
+        .map(|name| {
+            let result = collection::load_collection(name, source, &config);
+            (name.clone(), result)
+        })
+        .collect();
+
+    let mut collections: HashMap<String, Vec<CollectionItem>> = HashMap::new();
+    for (name, result) in loaded {
+        let (items, errors) = result?;
+        for err in errors {
+            all_load_errors.push(format!("collection '{}': {}", name, err));
         }
-        collections.insert("posts".to_string(), posts);
+        collections.insert(name, items);
     }
+    summary.timing.collections = phase_start.elapsed();
 
     // 4. Load standalone pages
+    let phase_start = Instant::now();
     let (pages, page_errors) = collection::load_pages(source)?;
     for err in &page_errors {
         all_load_errors.push(format!("pages: {}", err));
     }
+    summary.timing.pages = phase_start.elapsed();
 
     // 5. Incremental build check
+    let phase_start = Instant::now();
     let current_globals = incremental::collect_global_files(source);
     let all_source_paths = collect_all_source_paths(&collections, &pages);
     let current_sources = incremental::collect_source_files(source, &all_source_paths);
@@ -178,6 +219,7 @@ fn build_site(
     } else {
         IncrementalAction::FullRebuild
     };
+    summary.timing.incremental = phase_start.elapsed();
 
     // Handle skip-all case
     if action == IncrementalAction::SkipAll {
@@ -196,13 +238,17 @@ fn build_site(
     };
 
     // 6. Build site context (always uses full collections for cross-references)
+    let phase_start = Instant::now();
     let site_context =
         generator::build_site_context(&config, &collections, &data_tree, Some(source));
+    summary.timing.context = phase_start.elapsed();
 
     // 7. Create layout engine
+    let phase_start = Instant::now();
     let layouts_dir = source.join("_layouts");
     let includes_dir = source.join("_includes");
     let layout_engine = LayoutEngine::new(&layouts_dir, &includes_dir)?;
+    summary.timing.layouts = phase_start.elapsed();
 
     // 8. Clean and create destination directory (only for full rebuilds)
     if changed_set.is_none() {
@@ -213,49 +259,54 @@ fn build_site(
     }
     std::fs::create_dir_all(destination)?;
 
-    // 9. Generate collection pages
-    let collection_names: Vec<String> = collections.keys().cloned().collect();
-    for name in &collection_names {
-        if let Some(items) = collections.get(name) {
-            // For partial rebuilds, filter to only changed items
-            let items_to_build: Vec<&CollectionItem> = match &changed_set {
-                Some(changed) => items
+    // 9. Generate collection pages (avoid cloning: pass slices directly)
+    let phase_start = Instant::now();
+    for (name, items) in &collections {
+        // For partial rebuilds, filter to only changed items
+        let filtered: Vec<CollectionItem>;
+        let items_slice: &[CollectionItem] = match &changed_set {
+            Some(changed) => {
+                filtered = items
                     .iter()
                     .filter(|item| changed.contains(&item.source_path))
-                    .collect(),
-                None => items.iter().collect(),
-            };
-
-            if !items_to_build.is_empty() {
-                let owned_items: Vec<CollectionItem> =
-                    items_to_build.into_iter().cloned().collect();
-                let result = generator::generate_collection_pages(
-                    &owned_items,
-                    name,
-                    &config,
-                    &layout_engine,
-                    &site_context,
-                    destination,
-                )?;
-                summary.collection_pages += result.generated;
-                summary.errors.extend(result.errors);
+                    .cloned()
+                    .collect();
+                &filtered
             }
+            None => items,
+        };
+
+        if !items_slice.is_empty() {
+            let result = generator::generate_collection_pages(
+                items_slice,
+                name,
+                &config,
+                &layout_engine,
+                &site_context,
+                destination,
+            )?;
+            summary.collection_pages += result.generated;
+            summary.errors.extend(result.errors);
         }
     }
 
-    // 10. Generate standalone pages
-    let pages_to_build: Vec<&collection::Page> = match &changed_set {
-        Some(changed) => pages
-            .iter()
-            .filter(|page| changed.contains(&page.source_path))
-            .collect(),
-        None => pages.iter().collect(),
+    // 10. Generate standalone pages (avoid cloning: pass slice directly)
+    let filtered_pages: Vec<collection::Page>;
+    let pages_slice: &[collection::Page] = match &changed_set {
+        Some(changed) => {
+            filtered_pages = pages
+                .iter()
+                .filter(|page| changed.contains(&page.source_path))
+                .cloned()
+                .collect();
+            &filtered_pages
+        }
+        None => &pages,
     };
 
-    if !pages_to_build.is_empty() {
-        let owned_pages: Vec<collection::Page> = pages_to_build.into_iter().cloned().collect();
+    if !pages_slice.is_empty() {
         let page_result = generator::generate_standalone_pages(
-            &owned_pages,
+            pages_slice,
             &config,
             &layout_engine,
             &site_context,
@@ -264,35 +315,40 @@ fn build_site(
         summary.standalone_pages = page_result.generated;
         summary.errors.extend(page_result.errors);
     }
+    summary.timing.generation = phase_start.elapsed();
 
     // 11. Copy static files (before sitemap/feed so generated files take precedence)
+    let phase_start = Instant::now();
     let static_count = static_files::copy_static_files(source, destination, &config)?;
     summary.static_files = static_count;
+    summary.timing.static_files = phase_start.elapsed();
 
-    // 12. Generate sitemap.xml (always from full set)
+    // 12. Generate sitemap.xml and feed.xml
+    let phase_start = Instant::now();
+
+    // Build collections_vec by iterating the HashMap directly (avoid extra collect)
     let collections_vec: Vec<(String, Vec<CollectionItem>)> = collections.into_iter().collect();
     let sitemap_count =
         sitemap::generate_sitemap(&config.url, &collections_vec, &pages, destination)?;
     summary.sitemap_entries = sitemap_count;
 
-    // 13. Generate feed.xml (from posts, after static copy to overwrite any source feed)
-    let posts_for_feed: Vec<&CollectionItem> = collections_vec
-        .iter()
-        .filter(|(name, _)| name == "posts")
-        .flat_map(|(_, items)| items.iter())
-        .collect();
-    let posts_owned: Vec<CollectionItem> = posts_for_feed.into_iter().cloned().collect();
-    feed::write_atom_feed(&posts_owned, &config, &FeedOptions::default(), destination)?;
+    // 13. Generate feed.xml (from posts)
+    if let Some((_, posts_vec)) = collections_vec.iter().find(|(name, _)| name == "posts") {
+        feed::write_atom_feed(posts_vec, &config, &FeedOptions::default(), destination)?;
+    } else {
+        // No posts collection -- write empty feed
+        feed::write_atom_feed(&[], &config, &FeedOptions::default(), destination)?;
+    }
+    summary.timing.sitemap_feed = phase_start.elapsed();
 
     // 14. Save the build manifest
+    let phase_start = Instant::now();
     let mut output_map = HashMap::new();
-    for (name, items) in &collections_vec {
+    for (_, items) in &collections_vec {
         for item in items {
-            // Map source path to output path based on URL
             let output_path = item.url.trim_start_matches('/').to_string();
             output_map.insert(item.source_path.clone(), output_path);
         }
-        let _ = name; // suppress unused warning
     }
     for page in &pages {
         let output_path = page.url.trim_start_matches('/').to_string();
@@ -305,6 +361,7 @@ fn build_site(
         global_files: current_globals,
     };
     incremental::save_manifest(destination, &manifest)?;
+    summary.timing.manifest = phase_start.elapsed();
 
     // Include load errors in summary
     summary.errors.extend(all_load_errors);
@@ -359,6 +416,22 @@ fn main() {
                         println!("  Sitemap entries:  {}", summary.sitemap_entries);
                         println!("  Static files:     {}", summary.static_files);
                         println!("  Time:             {:.2}s", elapsed.as_secs_f64());
+
+                        // Per-phase timing breakdown
+                        let t = &summary.timing;
+                        println!();
+                        println!("Phase timing:");
+                        println!("  Config:       {:.3}s", t.config.as_secs_f64());
+                        println!("  Data:         {:.3}s", t.data.as_secs_f64());
+                        println!("  Collections:  {:.3}s", t.collections.as_secs_f64());
+                        println!("  Pages:        {:.3}s", t.pages.as_secs_f64());
+                        println!("  Incremental:  {:.3}s", t.incremental.as_secs_f64());
+                        println!("  Context:      {:.3}s", t.context.as_secs_f64());
+                        println!("  Layouts:      {:.3}s", t.layouts.as_secs_f64());
+                        println!("  Generation:   {:.3}s", t.generation.as_secs_f64());
+                        println!("  Static files: {:.3}s", t.static_files.as_secs_f64());
+                        println!("  Sitemap/Feed: {:.3}s", t.sitemap_feed.as_secs_f64());
+                        println!("  Manifest:     {:.3}s", t.manifest.as_secs_f64());
 
                         if !summary.errors.is_empty() {
                             println!();

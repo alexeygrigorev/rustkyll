@@ -437,3 +437,101 @@ defaults:
     assert!(stdout.contains("Collection pages: 2"));
     assert!(stdout.contains("Standalone pages: 1"));
 }
+
+// ============================================================================
+// Phase timing tests (Issue 31)
+// ============================================================================
+
+#[test]
+fn test_cli_build_prints_phase_timing() {
+    let source = site_dir();
+    let tmp = tempfile::tempdir().unwrap();
+    let dest = tmp.path().join("_site");
+
+    let output = Command::new(env!("CARGO_BIN_EXE_rustkyll"))
+        .arg("build")
+        .arg("--source")
+        .arg(source.to_str().unwrap())
+        .arg("--destination")
+        .arg(dest.to_str().unwrap())
+        .output()
+        .expect("failed to run rustkyll binary");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(
+        output.status.success(),
+        "Build should succeed.\nstdout: {}\nstderr: {}",
+        stdout,
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    // Verify phase timing output
+    assert!(
+        stdout.contains("Phase timing:"),
+        "Should print phase timing header"
+    );
+    assert!(
+        stdout.contains("Collections:"),
+        "Should print collections timing"
+    );
+    assert!(
+        stdout.contains("Generation:"),
+        "Should print generation timing"
+    );
+    assert!(
+        stdout.contains("Static files:"),
+        "Should print static files timing"
+    );
+    assert!(
+        stdout.contains("Sitemap/Feed:"),
+        "Should print sitemap/feed timing"
+    );
+}
+
+// ============================================================================
+// Parallel collection loading test (Issue 31)
+// ============================================================================
+
+#[test]
+fn test_parallel_collection_loading() {
+    use rayon::prelude::*;
+
+    let source = site_dir();
+    let config = SiteConfig::from_file(&source.join("_config.yml")).unwrap();
+
+    // Load all collection names
+    let mut collection_names: Vec<String> = config.collections.keys().cloned().collect();
+    if !collection_names.contains(&"posts".to_string()) {
+        collection_names.push("posts".to_string());
+    }
+
+    // Load in parallel
+    let loaded: Vec<(String, Vec<CollectionItem>)> = collection_names
+        .par_iter()
+        .map(|name| {
+            let (items, _errors) = collection::load_collection(name, &source, &config).unwrap();
+            (name.clone(), items)
+        })
+        .collect();
+
+    // Verify all collections loaded
+    let loaded_names: Vec<&str> = loaded.iter().map(|(n, _)| n.as_str()).collect();
+    assert!(
+        loaded_names.contains(&"posts"),
+        "Should load posts collection"
+    );
+    assert!(
+        loaded_names.contains(&"people"),
+        "Should load people collection"
+    );
+    assert!(
+        loaded_names.contains(&"books"),
+        "Should load books collection"
+    );
+
+    // Verify each collection has items
+    for (name, items) in &loaded {
+        assert!(!items.is_empty(), "Collection '{}' should have items", name);
+    }
+}
