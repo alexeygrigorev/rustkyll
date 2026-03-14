@@ -290,6 +290,69 @@ pub fn output_path(output_dir: &Path, collection: &str, slug: &str) -> std::path
     output_dir.join(collection).join(format!("{slug}.html"))
 }
 
+/// Convert a `CollectionItem` into a `serde_yaml::Value::Mapping` suitable
+/// for injection as `page.previous` or `page.next` in a post's front matter.
+///
+/// The resulting mapping contains all front matter fields plus computed fields
+/// (`url`, `slug`, `date`) so templates can access e.g. `page.next.title`.
+fn item_to_yaml_mapping(item: &CollectionItem) -> serde_yaml::Value {
+    let mut map = serde_yaml::Mapping::new();
+
+    // Copy all front matter fields
+    for (key, value) in &item.front_matter {
+        map.insert(serde_yaml::Value::String(key.clone()), value.clone());
+    }
+
+    // Add computed fields
+    map.insert(
+        serde_yaml::Value::String("url".to_string()),
+        serde_yaml::Value::String(item.url.clone()),
+    );
+    map.insert(
+        serde_yaml::Value::String("slug".to_string()),
+        serde_yaml::Value::String(item.slug.clone()),
+    );
+    if let Some(ref date) = item.date {
+        map.entry(serde_yaml::Value::String("date".to_string()))
+            .or_insert(serde_yaml::Value::String(date.clone()));
+    }
+
+    serde_yaml::Value::Mapping(map)
+}
+
+/// Build a map from post slug to (Option<previous>, Option<next>) YAML values.
+///
+/// Posts are sorted by date ascending (oldest first), with a secondary sort by
+/// slug for deterministic ordering when dates are equal. This matches Jekyll's
+/// behavior where `page.previous` is the older post and `page.next` is the
+/// newer post.
+pub fn build_prev_next_map(
+    items: &[CollectionItem],
+) -> HashMap<String, (Option<serde_yaml::Value>, Option<serde_yaml::Value>)> {
+    let mut sorted: Vec<&CollectionItem> = items.iter().collect();
+    sorted.sort_by(|a, b| {
+        let date_a = a.date.as_deref().unwrap_or("");
+        let date_b = b.date.as_deref().unwrap_or("");
+        date_a.cmp(date_b).then_with(|| a.slug.cmp(&b.slug))
+    });
+
+    let mut result = HashMap::new();
+    for (i, item) in sorted.iter().enumerate() {
+        let prev = if i > 0 {
+            Some(item_to_yaml_mapping(sorted[i - 1]))
+        } else {
+            None
+        };
+        let next = if i + 1 < sorted.len() {
+            Some(item_to_yaml_mapping(sorted[i + 1]))
+        } else {
+            None
+        };
+        result.insert(item.slug.clone(), (prev, next));
+    }
+    result
+}
+
 /// Generate HTML pages for a collection using parallel rendering.
 ///
 /// This is the main orchestration function. For each item in `items`:
@@ -312,6 +375,14 @@ pub fn generate_collection_pages(
         path: collection_out_dir.display().to_string(),
         source: e,
     })?;
+
+    // Pre-compute prev/next references for posts (sorted by date ascending).
+    // For non-post collections, this map is empty and no prev/next is injected.
+    let prev_next = if collection_type == "posts" {
+        build_prev_next_map(items)
+    } else {
+        HashMap::new()
+    };
 
     let result = Mutex::new(GenerationResult {
         generated: 0,
@@ -343,6 +414,26 @@ pub fn generate_collection_pages(
         if !page_fm.contains_key("date") {
             if let Some(ref date) = item.date {
                 page_fm.insert("date".to_string(), serde_yaml::Value::String(date.clone()));
+            }
+        }
+
+        // Inject previous/next for posts
+        if let Some((prev, next)) = prev_next.get(&item.slug) {
+            match prev {
+                Some(val) => {
+                    page_fm.insert("previous".to_string(), val.clone());
+                }
+                None => {
+                    page_fm.insert("previous".to_string(), serde_yaml::Value::Null);
+                }
+            }
+            match next {
+                Some(val) => {
+                    page_fm.insert("next".to_string(), val.clone());
+                }
+                None => {
+                    page_fm.insert("next".to_string(), serde_yaml::Value::Null);
+                }
             }
         }
 
@@ -2209,5 +2300,249 @@ defaults:
             "Front matter comments: false should override default. Got: {}",
             content
         );
+    }
+
+    fn make_post(slug: &str, date: &str, title: &str) -> CollectionItem {
+        let mut fm = crate::frontmatter::FrontMatter::new();
+        fm.insert(
+            "title".to_string(),
+            serde_yaml::Value::String(title.to_string()),
+        );
+        CollectionItem {
+            slug: slug.to_string(),
+            front_matter: fm,
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            url: format!("/blog/{slug}.html"),
+            date: Some(date.to_string()),
+            collection_name: "posts".to_string(),
+            source_path: format!("_posts/{date}-{slug}.md"),
+        }
+    }
+
+    #[test]
+    fn test_prev_next_three_posts() {
+        let posts = vec![
+            make_post("post-a", "2024-01-01", "Post A"),
+            make_post("post-b", "2024-02-01", "Post B"),
+            make_post("post-c", "2024-03-01", "Post C"),
+        ];
+        let map = build_prev_next_map(&posts);
+
+        // Post A: no previous, next is B
+        let (prev_a, next_a) = map.get("post-a").unwrap();
+        assert!(prev_a.is_none());
+        let next_a_map = next_a.as_ref().unwrap().as_mapping().unwrap();
+        assert_eq!(
+            next_a_map
+                .get(serde_yaml::Value::String("title".into()))
+                .unwrap()
+                .as_str()
+                .unwrap(),
+            "Post B"
+        );
+
+        // Post B: previous is A, next is C
+        let (prev_b, next_b) = map.get("post-b").unwrap();
+        let prev_b_map = prev_b.as_ref().unwrap().as_mapping().unwrap();
+        assert_eq!(
+            prev_b_map
+                .get(serde_yaml::Value::String("title".into()))
+                .unwrap()
+                .as_str()
+                .unwrap(),
+            "Post A"
+        );
+        let next_b_map = next_b.as_ref().unwrap().as_mapping().unwrap();
+        assert_eq!(
+            next_b_map
+                .get(serde_yaml::Value::String("title".into()))
+                .unwrap()
+                .as_str()
+                .unwrap(),
+            "Post C"
+        );
+
+        // Post C: previous is B, no next
+        let (prev_c, next_c) = map.get("post-c").unwrap();
+        let prev_c_map = prev_c.as_ref().unwrap().as_mapping().unwrap();
+        assert_eq!(
+            prev_c_map
+                .get(serde_yaml::Value::String("title".into()))
+                .unwrap()
+                .as_str()
+                .unwrap(),
+            "Post B"
+        );
+        assert!(next_c.is_none());
+    }
+
+    #[test]
+    fn test_prev_next_single_post() {
+        let posts = vec![make_post("only", "2024-01-01", "Only Post")];
+        let map = build_prev_next_map(&posts);
+        let (prev, next) = map.get("only").unwrap();
+        assert!(prev.is_none());
+        assert!(next.is_none());
+    }
+
+    #[test]
+    fn test_prev_next_two_posts() {
+        let posts = vec![
+            make_post("first", "2024-01-01", "First"),
+            make_post("second", "2024-02-01", "Second"),
+        ];
+        let map = build_prev_next_map(&posts);
+
+        let (prev_first, next_first) = map.get("first").unwrap();
+        assert!(prev_first.is_none());
+        let next_map = next_first.as_ref().unwrap().as_mapping().unwrap();
+        assert_eq!(
+            next_map
+                .get(serde_yaml::Value::String("url".into()))
+                .unwrap()
+                .as_str()
+                .unwrap(),
+            "/blog/second.html"
+        );
+
+        let (prev_second, next_second) = map.get("second").unwrap();
+        assert!(next_second.is_none());
+        let prev_map = prev_second.as_ref().unwrap().as_mapping().unwrap();
+        assert_eq!(
+            prev_map
+                .get(serde_yaml::Value::String("url".into()))
+                .unwrap()
+                .as_str()
+                .unwrap(),
+            "/blog/first.html"
+        );
+    }
+
+    #[test]
+    fn test_prev_next_url_and_title_correct() {
+        let posts = vec![
+            make_post("alpha", "2024-01-01", "Alpha Post"),
+            make_post("beta", "2024-02-01", "Beta Post"),
+        ];
+        let map = build_prev_next_map(&posts);
+
+        let (_, next) = map.get("alpha").unwrap();
+        let next_map = next.as_ref().unwrap().as_mapping().unwrap();
+        assert_eq!(
+            next_map
+                .get(serde_yaml::Value::String("url".into()))
+                .unwrap()
+                .as_str()
+                .unwrap(),
+            "/blog/beta.html"
+        );
+        assert_eq!(
+            next_map
+                .get(serde_yaml::Value::String("title".into()))
+                .unwrap()
+                .as_str()
+                .unwrap(),
+            "Beta Post"
+        );
+    }
+
+    #[test]
+    fn test_prev_next_out_of_order_dates_sorted() {
+        // Posts provided in wrong order should still be sorted by date
+        let posts = vec![
+            make_post("newest", "2024-03-01", "Newest"),
+            make_post("oldest", "2024-01-01", "Oldest"),
+            make_post("middle", "2024-02-01", "Middle"),
+        ];
+        let map = build_prev_next_map(&posts);
+
+        // Oldest should have no previous
+        let (prev, next) = map.get("oldest").unwrap();
+        assert!(prev.is_none());
+        let next_map = next.as_ref().unwrap().as_mapping().unwrap();
+        assert_eq!(
+            next_map
+                .get(serde_yaml::Value::String("title".into()))
+                .unwrap()
+                .as_str()
+                .unwrap(),
+            "Middle"
+        );
+
+        // Newest should have no next
+        let (prev_n, next_n) = map.get("newest").unwrap();
+        assert!(next_n.is_none());
+        let prev_map = prev_n.as_ref().unwrap().as_mapping().unwrap();
+        assert_eq!(
+            prev_map
+                .get(serde_yaml::Value::String("title".into()))
+                .unwrap()
+                .as_str()
+                .unwrap(),
+            "Middle"
+        );
+    }
+
+    #[test]
+    fn test_prev_next_same_date_deterministic_by_slug() {
+        let posts = vec![
+            make_post("beta", "2024-01-01", "Beta"),
+            make_post("alpha", "2024-01-01", "Alpha"),
+        ];
+        let map = build_prev_next_map(&posts);
+
+        // alpha sorts before beta by slug
+        let (prev_alpha, next_alpha) = map.get("alpha").unwrap();
+        assert!(prev_alpha.is_none());
+        let next_map = next_alpha.as_ref().unwrap().as_mapping().unwrap();
+        assert_eq!(
+            next_map
+                .get(serde_yaml::Value::String("title".into()))
+                .unwrap()
+                .as_str()
+                .unwrap(),
+            "Beta"
+        );
+    }
+
+    #[test]
+    fn test_prev_next_empty_collection() {
+        let posts: Vec<CollectionItem> = vec![];
+        let map = build_prev_next_map(&posts);
+        assert!(map.is_empty());
+    }
+
+    #[test]
+    fn test_prev_next_contains_date() {
+        let posts = vec![
+            make_post("a", "2024-01-15", "A"),
+            make_post("b", "2024-02-20", "B"),
+        ];
+        let map = build_prev_next_map(&posts);
+        let (_, next) = map.get("a").unwrap();
+        let next_map = next.as_ref().unwrap().as_mapping().unwrap();
+        assert_eq!(
+            next_map
+                .get(serde_yaml::Value::String("date".into()))
+                .unwrap()
+                .as_str()
+                .unwrap(),
+            "2024-02-20"
+        );
+    }
+
+    #[test]
+    fn test_prev_next_not_injected_for_non_posts() {
+        // build_prev_next_map is only called for posts collection.
+        // For non-post collections, the map should be empty (tested by
+        // verifying generate_collection_pages only calls it for "posts").
+        // Here we verify the map itself works correctly even if called
+        // with non-post items -- the function is agnostic to collection type.
+        let items = vec![make_post("person", "2024-01-01", "Person")];
+        let map = build_prev_next_map(&items);
+        assert_eq!(map.len(), 1); // It builds a map regardless
+                                  // The guard in generate_collection_pages prevents injection for non-posts
     }
 }

@@ -390,6 +390,11 @@ impl TemplateEngine {
             .filter(filters::NewlineToBr)
             .filter(filters::RelativeUrl)
             .filter(filters::AbsoluteUrl)
+            // Missing filters (Issue 30)
+            .filter(filters::NumberOfWords)
+            .filter(filters::GroupBy)
+            .filter(filters::XmlEscape)
+            .filter(filters::Truncatewords)
     }
 
     /// Create a `TemplateEngine` from a pre-built `liquid::Parser`.

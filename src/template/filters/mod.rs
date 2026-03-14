@@ -6,22 +6,30 @@
 mod absolute_url;
 mod date_to_string;
 mod date_to_xmlschema;
+mod group_by;
 mod jsonify;
 mod markdownify;
 mod newline_to_br;
+mod number_of_words;
 mod relative_url;
+mod truncatewords;
 mod where_exp;
 mod where_filter;
+mod xml_escape;
 
 pub use absolute_url::AbsoluteUrl;
 pub use date_to_string::DateToString;
 pub use date_to_xmlschema::DateToXmlschema;
+pub use group_by::GroupBy;
 pub use jsonify::Jsonify;
 pub use markdownify::Markdownify;
 pub use newline_to_br::NewlineToBr;
+pub use number_of_words::NumberOfWords;
 pub use relative_url::RelativeUrl;
+pub use truncatewords::Truncatewords;
 pub use where_exp::WhereExp;
 pub use where_filter::Where;
+pub use xml_escape::XmlEscape;
 
 use chrono::NaiveDateTime;
 
