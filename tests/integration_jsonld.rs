@@ -714,7 +714,7 @@ fn test_podcast_jsonld_breadcrumb() {
 #[test]
 fn test_all_generated_books_have_parseable_jsonld() {
     let tmp = tempfile::TempDir::new().unwrap();
-    let result = generator::generate_collection_pages_with_people(
+    let result = generator::generate_collection_pages_with_authors(
         &FIXTURE.books,
         "books",
         &CONFIG,

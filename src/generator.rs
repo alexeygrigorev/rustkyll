@@ -190,7 +190,7 @@ fn resolve_repository_url(config: &SiteConfig, site_dir: Option<&Path>) -> Liqui
 ///
 /// Includes all front matter fields plus computed fields like `url`, `id`,
 /// `content`, `date`, and `slug`. Also ensures `short` is set from slug
-/// if not present in front matter (needed for people author lookup).
+/// if not present in front matter (needed for author lookup in JSON-LD).
 fn collection_item_to_liquid(item: &CollectionItem) -> LiquidValue {
     let mut obj = Object::new();
 
@@ -225,7 +225,7 @@ fn collection_item_to_liquid(item: &CollectionItem) -> LiquidValue {
     );
 
     // Ensure "short" is set from slug if not in front matter
-    // (needed for author lookup via `site.people | where: "short", name`)
+    // (needed for author lookup via `site.<collection> | where: "short", name`)
     if !item.front_matter.contains_key("short") {
         obj.insert("short".into(), LiquidValue::scalar(item.slug.clone()));
     }
@@ -283,7 +283,7 @@ fn page_to_liquid(page: &Page) -> LiquidValue {
 
 /// Build `site.categories` and `site.tags` Liquid objects from post collections.
 ///
-/// Only posts are included (not other collections like people or books).
+/// Only posts are included (not other custom collections).
 /// Returns `(categories_liquid_value, tags_liquid_value)` where each is a
 /// Liquid object mapping category/tag name to an array of post objects.
 fn build_categories_and_tags(
@@ -436,7 +436,7 @@ pub fn generate_collection_pages(
     site_context: &Object,
     output_dir: &Path,
 ) -> Result<GenerationResult, GeneratorError> {
-    generate_collection_pages_with_people(
+    generate_collection_pages_with_authors(
         items,
         collection_type,
         config,
@@ -447,20 +447,22 @@ pub fn generate_collection_pages(
     )
 }
 
-/// Generate HTML pages for collection items, with access to the people collection
+/// Generate HTML pages for collection items, with access to author items
 /// for JSON-LD author resolution.
 ///
 /// This is the full version that supports JSON-LD post-processing injection.
-/// The `people` slice is used to resolve author slugs to full names in
-/// structured data blocks (e.g., Book JSON-LD).
-pub fn generate_collection_pages_with_people(
+/// The `author_items` slice is used to resolve author slugs to full names in
+/// structured data blocks (e.g., Book JSON-LD). Any collection items can serve
+/// as author sources, regardless of which collection name is used for author
+/// data (e.g., "people", "authors", "team").
+pub fn generate_collection_pages_with_authors(
     items: &[CollectionItem],
     collection_type: &str,
     config: &SiteConfig,
     layout_engine: &LayoutEngine,
     site_context: &Object,
     output_dir: &Path,
-    people: &[CollectionItem],
+    author_items: &[CollectionItem],
 ) -> Result<GenerationResult, GeneratorError> {
     let collection_out_dir = output_dir.join(collection_type);
     fs::create_dir_all(&collection_out_dir).map_err(|e| GeneratorError::WriteFile {
@@ -540,7 +542,8 @@ pub fn generate_collection_pages_with_people(
         match layout_engine.render_page(&layout_name, render_content, &page_fm, site_context) {
             Ok(html) => {
                 // Post-process: inject JSON-LD structured data if applicable
-                let html = jsonld::inject_jsonld(&html, &layout_name, &page_fm, config, people);
+                let html =
+                    jsonld::inject_jsonld(&html, &layout_name, &page_fm, config, author_items);
 
                 // Compute output path: use URL-based path for posts, standard path for others
                 let out_path = if item.url.starts_with("/blog/") {

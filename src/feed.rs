@@ -76,7 +76,7 @@ pub fn generate_atom_feed(
     xml.push_str("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
     xml.push_str("<feed xmlns=\"http://www.w3.org/2005/Atom\">\n");
     xml.push_str(
-        "  <generator uri=\"https://github.com/DataTalksClub/rustkyll\">rustkyll</generator>\n",
+        "  <generator uri=\"https://github.com/rustkyll/rustkyll\">rustkyll</generator>\n",
     );
     xml.push_str(&format!(
         "  <link href=\"{feed_url}\" rel=\"self\" type=\"application/atom+xml\"/>\n"
@@ -358,6 +358,21 @@ mod tests {
         let xml = generate_atom_feed(&posts, &config, &FeedOptions::default());
         assert!(xml.contains("<generator"));
         assert!(xml.contains("rustkyll</generator>"));
+    }
+
+    #[test]
+    fn test_feed_generator_uri_is_generic() {
+        let config = test_config();
+        let posts = vec![];
+        let xml = generate_atom_feed(&posts, &config, &FeedOptions::default());
+        assert!(
+            !xml.contains("DataTalksClub"),
+            "Feed generator URI should not contain org-specific references"
+        );
+        assert!(
+            xml.contains("uri=\"https://github.com/rustkyll/rustkyll\""),
+            "Feed generator URI should use generic rustkyll URL"
+        );
     }
 
     // ========================================================================

@@ -29,7 +29,7 @@ pub enum CollectionError {
 /// A single item from a Jekyll collection.
 #[derive(Debug, Clone)]
 pub struct CollectionItem {
-    /// Filename stem (e.g. `alexeygrigorev` from `alexeygrigorev.md`,
+    /// Filename stem (e.g. `john-doe` from `john-doe.md`,
     /// `segmentation` from `2020-11-29-segmentation.md` for posts).
     pub slug: String,
 
@@ -45,7 +45,7 @@ pub struct CollectionItem {
     /// Content before `<!--more-->` separator, if present.
     pub excerpt: Option<String>,
 
-    /// Generated URL path (e.g. `/people/alexeygrigorev.html`).
+    /// Generated URL path (e.g. `/people/john-doe.html`).
     pub url: String,
 
     /// Extracted date for posts (from `YYYY-MM-DD-title.md` filename or front matter).

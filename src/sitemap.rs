@@ -2,7 +2,7 @@
 //!
 //! Generates a standard `sitemap.xml` listing all pages and collection items
 //! with their full URLs. This is the programmatic equivalent of the Jekyll
-//! sitemap template found in `datatalksclub.github.io/sitemap.xml`.
+//! sitemap template found in a typical Jekyll site's `sitemap.xml`.
 
 use std::fmt::Write;
 use std::fs;
@@ -13,13 +13,13 @@ use crate::collection::{CollectionItem, Page};
 /// A single entry in the sitemap.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SitemapEntry {
-    /// Full URL (e.g. `https://datatalks.club/books/ml-bookcamp.html`).
+    /// Full URL (e.g. `https://example.com/books/my-book.html`).
     pub loc: String,
 }
 
 /// Collect sitemap entries from collection items and standalone pages.
 ///
-/// The `base_url` is the site URL (e.g. `https://datatalks.club`) and is
+/// The `base_url` is the site URL (e.g. `https://example.com`) and is
 /// prepended to each item's relative URL.
 ///
 /// Collection items and pages are included in the order they appear. The

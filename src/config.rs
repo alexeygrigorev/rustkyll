@@ -71,7 +71,7 @@ pub struct DefaultConfig {
 /// Top-level site configuration parsed from `_config.yml`.
 #[derive(Debug, Clone, Deserialize)]
 pub struct SiteConfig {
-    /// Site URL (e.g., "https://datatalks.club").
+    /// Site URL (e.g., "https://example.com").
     #[serde(default)]
     pub url: String,
 

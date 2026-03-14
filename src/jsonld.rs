@@ -166,7 +166,7 @@ fn build_author_person(
             .unwrap_or(slug);
         person.insert("name".into(), serde_json::Value::String(name.to_string()));
 
-        let author_url = format!("{site_url}/people/{slug}.html");
+        let author_url = format!("{site_url}{}", item.url);
         person.insert("url".into(), serde_json::Value::String(author_url));
 
         if let Some(pic) = item.front_matter.get("picture").and_then(|v| v.as_str()) {
@@ -436,6 +436,56 @@ mod tests {
             .as_str()
             .unwrap()
             .contains("/people/alexeygrigorev.html"));
+    }
+
+    #[test]
+    fn test_book_jsonld_author_resolution_from_any_collection() {
+        // Verify that author resolution works regardless of the collection name.
+        // The JSON-LD code does not assume "people" -- it takes a flat slice of items.
+        let config = make_config("https://example.com", "Test");
+        // Create an author item with collection_name "team" instead of "people"
+        let mut fm = FrontMatter::new();
+        fm.insert(
+            "short".into(),
+            serde_yaml::Value::String("jdoe".to_string()),
+        );
+        fm.insert(
+            "title".into(),
+            serde_yaml::Value::String("Jane Doe".to_string()),
+        );
+        let team_member = CollectionItem {
+            slug: "jdoe".to_string(),
+            front_matter: fm,
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            url: "/team/jdoe.html".to_string(),
+            date: None,
+            collection_name: "team".to_string(),
+            source_path: String::new(),
+        };
+
+        let book_fm = make_book_fm("My Book", &["jdoe"], None, None, None);
+        let jsonld = generate_book_jsonld(&book_fm, &config, &[team_member]);
+        let parsed: serde_json::Value = serde_json::from_str(&jsonld).unwrap();
+
+        let book = parsed["@graph"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["@type"] == "Book")
+            .unwrap();
+
+        let authors = book["author"].as_array().unwrap();
+        assert_eq!(authors.len(), 1);
+        assert_eq!(authors[0]["name"], "Jane Doe");
+        assert!(
+            authors[0]["url"]
+                .as_str()
+                .unwrap()
+                .contains("/team/jdoe.html"),
+            "Author URL should reference the team collection path"
+        );
     }
 
     #[test]

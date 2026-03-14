@@ -18,7 +18,7 @@ use rustkyll::template::layout::LayoutEngine;
 #[derive(Debug, Parser)]
 #[command(
     name = "rustkyll",
-    about = "A static site generator for DataTalks.Club"
+    about = "A fast static site generator compatible with Jekyll"
 )]
 #[command(version)]
 struct Cli {
@@ -301,19 +301,21 @@ fn build_site(
 
         if !items_slice.is_empty() {
             // For collections that need JSON-LD with author resolution (e.g., books),
-            // pass the people collection for lookup.
-            let people_items: &[CollectionItem] = collections
-                .get("people")
-                .map(|v| v.as_slice())
-                .unwrap_or(&[]);
-            let result = generator::generate_collection_pages_with_people(
+            // collect all items from all collections as potential author sources.
+            // This is generic -- it works regardless of what the author collection
+            // is named (e.g., "people", "authors", "team").
+            let author_items: Vec<CollectionItem> = collections
+                .values()
+                .flat_map(|v| v.iter().cloned())
+                .collect();
+            let result = generator::generate_collection_pages_with_authors(
                 items_slice,
                 name,
                 &config,
                 &layout_engine,
                 &site_context,
                 destination,
-                people_items,
+                &author_items,
             )?;
             summary.collection_pages += result.generated;
             summary.errors.extend(result.errors);
@@ -693,6 +695,21 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert_eq!(err.kind(), clap::error::ErrorKind::DisplayHelp);
+    }
+
+    #[test]
+    fn test_cli_about_is_generic() {
+        let result = Cli::try_parse_from(["rustkyll", "--help"]);
+        let err = result.unwrap_err();
+        let help_text = err.to_string();
+        assert!(
+            !help_text.contains("DataTalks"),
+            "CLI help should not mention any specific organization"
+        );
+        assert!(
+            help_text.contains("Jekyll"),
+            "CLI help should mention Jekyll compatibility"
+        );
     }
 
     // --- Serve command CLI tests ---
