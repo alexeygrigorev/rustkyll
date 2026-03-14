@@ -50,7 +50,7 @@ fn run_build(source: &Path, destination: &Path) -> (usize, usize, usize, usize, 
     }
 
     // Load pages
-    let (pages, _) = collection::load_pages(source).unwrap();
+    let (pages, _) = collection::load_pages(source, &config).unwrap();
 
     // Build context
     let site_context =

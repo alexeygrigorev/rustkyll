@@ -383,7 +383,7 @@ mod tests {
         let (posts, _) = crate::collection::load_collection("posts", &site_dir, &config).unwrap();
         collections_vec.push(("posts".to_string(), posts));
 
-        let (pages, _) = crate::collection::load_pages(&site_dir).unwrap();
+        let (pages, _) = crate::collection::load_pages(&site_dir, &config).unwrap();
 
         let entries = collect_entries(&config.url, &collections_vec, &pages);
 

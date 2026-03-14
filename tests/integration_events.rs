@@ -31,7 +31,7 @@ struct EventsFixture {
 }
 
 static FIXTURE: LazyLock<EventsFixture> = LazyLock::new(|| {
-    let (pages, _) = collection::load_pages(&site_dir()).unwrap();
+    let (pages, _) = collection::load_pages(&site_dir(), &CONFIG).unwrap();
     let (people, _) = collection::load_collection("people", &site_dir(), &CONFIG).unwrap();
     let (posts, _) = collection::load_collection("posts", &site_dir(), &CONFIG).unwrap();
     let (books, _) = collection::load_collection("books", &site_dir(), &CONFIG).unwrap();
@@ -140,7 +140,8 @@ fn test_events_page_url() {
         return;
     }
     let events_page = FIXTURE.pages.iter().find(|p| p.slug == "events").unwrap();
-    assert_eq!(events_page.url, "/events.html");
+    // Pages always get .html extension (verified against Jekyll DTC output)
+    assert_eq!(events_page.url, "/events");
 }
 
 // ========================================================================

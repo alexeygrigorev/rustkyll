@@ -117,6 +117,27 @@ pub fn expand_permalink_style(pattern: &str) -> &str {
     }
 }
 
+/// Determine the URL suffix for standalone pages based on the site's permalink style.
+///
+/// This mirrors Jekyll's `Utils.add_permalink_suffix` behavior for pages.
+/// Jekyll pages use the template `/:path/:basename` and append a suffix
+/// based on the site permalink style:
+///
+/// - Named style `pretty` -> `/` (trailing slash, pretty URLs)
+/// - Named styles `date`, `ordinal`, `none` -> `.html` (output extension)
+/// - Custom pattern ending with `/` -> `/`
+/// - Custom pattern ending with `:output_ext` -> `.html`
+/// - Everything else (e.g. `/blog/:title.html`) -> no suffix (bare basename)
+///
+/// Index pages always get URL `/<dir>/` regardless of permalink style.
+pub fn page_url_suffix(permalink_style: &str) -> &'static str {
+    if permalink_style == "pretty" || permalink_style.ends_with('/') {
+        "/"
+    } else {
+        ".html"
+    }
+}
+
 /// Generate a URL from a permalink pattern by substituting all Jekyll permalink variables.
 ///
 /// Supports `:collection`, `:title`, `:slug`, `:year`, `:month`, `:day`,
@@ -291,6 +312,42 @@ fn should_skip(filename: &str) -> bool {
     filename.starts_with('_') || !filename.ends_with(".md")
 }
 
+/// Returns true if the front matter has `published: false`.
+///
+/// Jekyll skips items and pages with `published: false` in their front matter.
+/// If the key is absent or has any other value, the item is considered published.
+fn is_published_false(front_matter: &FrontMatter) -> bool {
+    front_matter
+        .get("published")
+        .and_then(|v| v.as_bool())
+        .is_some_and(|b| !b)
+}
+
+/// Sanitize a slug to match Jekyll's behavior.
+///
+/// - Trims leading and trailing whitespace
+/// - Replaces internal spaces with hyphens
+/// - Collapses multiple consecutive hyphens into a single hyphen
+pub fn sanitize_slug(raw: &str) -> String {
+    let trimmed = raw.trim();
+    let mut result = String::with_capacity(trimmed.len());
+    let mut prev_was_hyphen = false;
+
+    for ch in trimmed.chars() {
+        if ch == ' ' || ch == '-' {
+            if !prev_was_hyphen {
+                result.push('-');
+                prev_was_hyphen = true;
+            }
+        } else {
+            result.push(ch);
+            prev_was_hyphen = false;
+        }
+    }
+
+    result
+}
+
 /// Load all items from a collection directory.
 ///
 /// For posts (`collection_name == "posts"`), the global permalink pattern from
@@ -368,13 +425,19 @@ pub fn load_collection(
             }
         };
 
+        // Skip items with `published: false` (matching Jekyll behavior)
+        if is_published_false(&doc.front_matter) {
+            continue;
+        }
+
         let is_posts = collection_name == "posts";
         let stem = filename.strip_suffix(".md").unwrap_or(&filename);
 
         let (filename_date, slug) = if is_posts {
-            parse_post_filename(&filename)
+            let (date, raw_slug) = parse_post_filename(&filename);
+            (date, sanitize_slug(&raw_slug))
         } else {
-            (None, stem.to_string())
+            (None, sanitize_slug(stem))
         };
 
         // Use front matter date if available, falling back to filename date
@@ -442,9 +505,11 @@ pub struct Page {
     pub source_path: String,
 }
 
-/// Load standalone `.md` pages from the root directory.
+/// Load standalone `.md` pages from the site directory, recursing into subdirectories.
 ///
 /// Skips `README.md` and files whose name starts with `_`.
+/// Skips directories that start with `_`, `.`, or are named `node_modules`,
+/// or are in the config `exclude` list.
 /// If a file fails to parse, the error is collected but loading continues.
 ///
 /// Returns an empty Vec if the directory does not exist.
@@ -452,37 +517,80 @@ pub struct Page {
 /// # Errors
 ///
 /// Returns `CollectionError::ReadDir` if the directory cannot be read.
-pub fn load_pages(site_dir: &Path) -> Result<(Vec<Page>, Vec<CollectionError>), CollectionError> {
+pub fn load_pages(
+    site_dir: &Path,
+    config: &SiteConfig,
+) -> Result<(Vec<Page>, Vec<CollectionError>), CollectionError> {
     if !site_dir.exists() {
         return Ok((Vec::new(), Vec::new()));
     }
 
-    let entries = fs::read_dir(site_dir).map_err(|e| CollectionError::ReadDir {
-        path: site_dir.display().to_string(),
-        source: e,
-    })?;
-
     let mut pages = Vec::new();
     let mut errors = Vec::new();
 
-    let mut file_paths: Vec<_> = entries.filter_map(|e| e.ok()).map(|e| e.path()).collect();
-    file_paths.sort();
+    load_pages_recursive(site_dir, site_dir, config, &mut pages, &mut errors)?;
 
-    for path in file_paths {
+    Ok((pages, errors))
+}
+
+/// Check if a directory name should be skipped during page discovery.
+fn should_skip_directory(name: &str, config: &SiteConfig) -> bool {
+    // Skip hidden directories and underscore-prefixed directories
+    if name.starts_with('_') || name.starts_with('.') {
+        return true;
+    }
+    // Skip node_modules
+    if name == "node_modules" {
+        return true;
+    }
+    // Skip directories in the config exclude list
+    for excluded in &config.exclude {
+        let excluded_name = excluded.trim_end_matches('/');
+        if name == excluded_name {
+            return true;
+        }
+    }
+    false
+}
+
+/// Recursively discover and load `.md` pages from a directory.
+fn load_pages_recursive(
+    current_dir: &Path,
+    site_dir: &Path,
+    config: &SiteConfig,
+    pages: &mut Vec<Page>,
+    errors: &mut Vec<CollectionError>,
+) -> Result<(), CollectionError> {
+    let entries = fs::read_dir(current_dir).map_err(|e| CollectionError::ReadDir {
+        path: current_dir.display().to_string(),
+        source: e,
+    })?;
+
+    let mut entry_paths: Vec<_> = entries.filter_map(|e| e.ok()).map(|e| e.path()).collect();
+    entry_paths.sort();
+
+    for path in entry_paths {
+        let name = match path.file_name().and_then(|n| n.to_str()) {
+            Some(n) => n.to_string(),
+            None => continue,
+        };
+
+        if path.is_dir() {
+            if !should_skip_directory(&name, config) {
+                load_pages_recursive(&path, site_dir, config, pages, errors)?;
+            }
+            continue;
+        }
+
         if !path.is_file() {
             continue;
         }
 
-        let filename = match path.file_name().and_then(|n| n.to_str()) {
-            Some(name) => name.to_string(),
-            None => continue,
-        };
-
-        if !filename.ends_with(".md") {
+        if !name.ends_with(".md") {
             continue;
         }
 
-        if filename == "README.md" || filename.starts_with('_') {
+        if name == "README.md" || name.starts_with('_') {
             continue;
         }
 
@@ -508,22 +616,52 @@ pub fn load_pages(site_dir: &Path) -> Result<(Vec<Page>, Vec<CollectionError>), 
             }
         };
 
-        let stem = filename.strip_suffix(".md").unwrap_or(&filename);
+        // Skip pages with `published: false` (matching Jekyll behavior)
+        if is_published_false(&doc.front_matter) {
+            continue;
+        }
 
-        // Use front matter `permalink` if present, otherwise `/:title.html`
+        // Compute relative path from site_dir for URL generation
+        let rel_path = path
+            .strip_prefix(site_dir)
+            .map(|p| p.to_string_lossy().replace('\\', "/"))
+            .unwrap_or_else(|_| path.to_string_lossy().replace('\\', "/"));
+
+        let stem = name.strip_suffix(".md").unwrap_or(&name);
+
+        // Use front matter `permalink` if present, otherwise derive from relative path
+        // using Jekyll's page URL rules (template + suffix based on site permalink style).
         let url = doc
             .front_matter
             .get("permalink")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string())
-            .unwrap_or_else(|| format!("/{}.html", stem));
+            .unwrap_or_else(|| {
+                let rel_stem = rel_path.strip_suffix(".md").unwrap_or(&rel_path);
+                // Index pages always get directory URL (e.g. "/" or "/subdir/")
+                if stem == "index" {
+                    let dir = rel_path.rsplit_once('/').map(|(d, _)| d).unwrap_or("");
+                    if dir.is_empty() {
+                        "/".to_string()
+                    } else {
+                        format!("/{}/", dir)
+                    }
+                } else {
+                    // Inline the Jekyll Utils.add_permalink_suffix logic here.
+                    // See jekyll/lib/jekyll/utils.rb:253-267 for reference.
+                    let pl = &config.permalink;
+                    let suffix = match pl.as_str() {
+                        "pretty" => "/",
+                        "date" | "ordinal" | "none" => ".html",
+                        s if s.ends_with('/') => "/",
+                        s if s.ends_with(":output_ext") => ".html",
+                        _ => "",
+                    };
+                    format!("/{}{}", rel_stem, suffix)
+                }
+            });
 
         let html_content = frontmatter::markdown_to_html(&doc.content);
-
-        let source_path_str = path
-            .strip_prefix(site_dir)
-            .map(|p| p.to_string_lossy().replace('\\', "/"))
-            .unwrap_or_else(|_| path.to_string_lossy().replace('\\', "/"));
 
         pages.push(Page {
             slug: stem.to_string(),
@@ -531,11 +669,11 @@ pub fn load_pages(site_dir: &Path) -> Result<(Vec<Page>, Vec<CollectionError>), 
             content: doc.content,
             html_content,
             url,
-            source_path: source_path_str,
+            source_path: rel_path,
         });
     }
 
-    Ok((pages, errors))
+    Ok(())
 }
 
 #[cfg(test)]
@@ -1083,7 +1221,8 @@ mod tests {
 
     #[test]
     fn test_load_pages_count() {
-        let (pages, errors) = load_pages(&site_dir()).unwrap();
+        let config = test_config();
+        let (pages, errors) = load_pages(&site_dir(), &config).unwrap();
         assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
         assert_eq!(
             pages.len(),
@@ -1095,7 +1234,8 @@ mod tests {
 
     #[test]
     fn test_load_pages_index() {
-        let (pages, _) = load_pages(&site_dir()).unwrap();
+        let config = test_config();
+        let (pages, _) = load_pages(&site_dir(), &config).unwrap();
         let index = pages.iter().find(|p| p.slug == "index");
         assert!(index.is_some(), "Expected to find index page");
         let index = index.unwrap();
@@ -1107,7 +1247,8 @@ mod tests {
 
     #[test]
     fn test_load_pages_excludes_readme() {
-        let (pages, _) = load_pages(&site_dir()).unwrap();
+        let config = test_config();
+        let (pages, _) = load_pages(&site_dir(), &config).unwrap();
         let readme = pages.iter().find(|p| p.slug == "README");
         assert!(readme.is_none(), "README.md should be excluded");
     }
@@ -1126,7 +1267,8 @@ mod tests {
 
     #[test]
     fn test_nonexistent_pages_dir_returns_empty() {
-        let (pages, errors) = load_pages(Path::new("/nonexistent/dir")).unwrap();
+        let config = SiteConfig::default();
+        let (pages, errors) = load_pages(Path::new("/nonexistent/dir"), &config).unwrap();
         assert!(pages.is_empty());
         assert!(errors.is_empty());
     }
@@ -1261,5 +1403,338 @@ mod tests {
         fm.insert("tags".to_string(), serde_yaml::Value::Sequence(vec![]));
         let tags = extract_tags(&fm);
         assert!(tags.is_empty());
+    }
+
+    // ========================================================================
+    // Unit: page_url_suffix (Jekyll Utils.add_permalink_suffix for pages)
+    // ========================================================================
+
+    #[test]
+    fn test_page_url_suffix_pretty() {
+        assert_eq!(page_url_suffix("pretty"), "/");
+    }
+
+    #[test]
+    fn test_page_url_suffix_date() {
+        assert_eq!(page_url_suffix("date"), ".html");
+    }
+
+    #[test]
+    fn test_page_url_suffix_ordinal() {
+        assert_eq!(page_url_suffix("ordinal"), ".html");
+    }
+
+    #[test]
+    fn test_page_url_suffix_none() {
+        assert_eq!(page_url_suffix("none"), ".html");
+    }
+
+    #[test]
+    fn test_page_url_suffix_custom_ending_slash() {
+        // e.g. permalink: /:title/
+        assert_eq!(page_url_suffix("/:title/"), "/");
+    }
+
+    #[test]
+    fn test_page_url_suffix_custom_ending_output_ext() {
+        // e.g. permalink: /:title:output_ext
+        assert_eq!(page_url_suffix("/:title:output_ext"), ".html");
+    }
+
+    #[test]
+    fn test_page_url_suffix_custom_ending_html() {
+        // Jekyll pages always get .html extension regardless of permalink pattern
+        assert_eq!(page_url_suffix("/blog/:title.html"), ".html");
+    }
+
+    #[test]
+    fn test_page_url_suffix_collection_pattern() {
+        assert_eq!(page_url_suffix("/:collection/:title.html"), ".html");
+    }
+
+    #[test]
+    fn test_page_url_suffix_default_permalink() {
+        assert_eq!(page_url_suffix("/:title.html"), ".html");
+    }
+
+    // ========================================================================
+    // Unit: Standalone page URL generation (via load_pages)
+    // ========================================================================
+
+    #[test]
+    fn test_page_url_no_permalink_fixture_config() {
+        // Fixture has permalink: "/blog/:title.html" which ends with .html (not :output_ext).
+        // Jekyll add_permalink_suffix adds no suffix for such patterns -> URL is "/events".
+        let config = test_config();
+        let (pages, _) = load_pages(&site_dir(), &config).unwrap();
+        let events = pages.iter().find(|p| p.slug == "events");
+        assert!(events.is_some(), "Should find events page in fixtures");
+        assert_eq!(events.unwrap().url, "/events.html");
+    }
+
+    #[test]
+    fn test_page_url_with_explicit_permalink() {
+        // Create a temp dir with a page that has an explicit permalink
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("about.md"),
+            "---\ntitle: About\npermalink: /about/\n---\nContent",
+        )
+        .unwrap();
+        let config = SiteConfig {
+            permalink: "/blog/:title.html".to_string(),
+            ..SiteConfig::default()
+        };
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0].url, "/about/");
+    }
+
+    #[test]
+    fn test_page_url_index_always_directory() {
+        // index.md always gets "/" regardless of permalink style
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("index.md"),
+            "---\ntitle: Home\n---\nWelcome",
+        )
+        .unwrap();
+        let config = SiteConfig {
+            permalink: "/blog/:title.html".to_string(),
+            ..SiteConfig::default()
+        };
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0].url, "/");
+    }
+
+    #[test]
+    fn test_page_url_pretty_permalink_gets_trailing_slash() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("about.md"),
+            "---\ntitle: About\n---\nContent",
+        )
+        .unwrap();
+        let config = SiteConfig {
+            permalink: "pretty".to_string(),
+            ..SiteConfig::default()
+        };
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0].url, "/about/");
+    }
+
+    #[test]
+    fn test_page_url_date_permalink_gets_html() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("about.md"),
+            "---\ntitle: About\n---\nContent",
+        )
+        .unwrap();
+        let config = SiteConfig {
+            permalink: "date".to_string(),
+            ..SiteConfig::default()
+        };
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0].url, "/about.html");
+    }
+
+    #[test]
+    fn test_page_url_custom_slash_permalink_gets_trailing_slash() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("contact.md"),
+            "---\ntitle: Contact\n---\nContent",
+        )
+        .unwrap();
+        let config = SiteConfig {
+            permalink: "/:title/".to_string(),
+            ..SiteConfig::default()
+        };
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0].url, "/contact/");
+    }
+
+    #[test]
+    fn test_page_url_custom_html_no_suffix() {
+        // permalink: /blog/:title.html -> no suffix per Jekyll add_permalink_suffix
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("articles.md"),
+            "---\ntitle: Articles\n---\nContent",
+        )
+        .unwrap();
+        let config = SiteConfig {
+            permalink: "/blog/:title.html".to_string(),
+            ..SiteConfig::default()
+        };
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0].url, "/articles");
+    }
+
+    #[test]
+    fn test_page_url_subdir_index() {
+        // Subdirectory index.md should get /subdir/
+        let dir = tempfile::tempdir().unwrap();
+        let subdir = dir.path().join("slack");
+        std::fs::create_dir(&subdir).unwrap();
+        std::fs::write(subdir.join("index.md"), "---\ntitle: Slack\n---\nJoin").unwrap();
+        let config = SiteConfig {
+            permalink: "/blog/:title.html".to_string(),
+            ..SiteConfig::default()
+        };
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0].url, "/slack/");
+    }
+
+    #[test]
+    fn test_page_url_subdir_non_index() {
+        // Subdirectory non-index page
+        let dir = tempfile::tempdir().unwrap();
+        let subdir = dir.path().join("slack");
+        std::fs::create_dir(&subdir).unwrap();
+        std::fs::write(
+            subdir.join("guidelines.md"),
+            "---\ntitle: Guidelines\n---\nRules",
+        )
+        .unwrap();
+        let config = SiteConfig {
+            permalink: "/blog/:title.html".to_string(),
+            ..SiteConfig::default()
+        };
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 1);
+        // Custom pattern ending in .html -> no suffix
+        assert_eq!(pages[0].url, "/slack/guidelines");
+    }
+
+    #[test]
+    fn test_sanitize_slug_leading_space() {
+        assert_eq!(sanitize_slug(" aashishnair"), "aashishnair");
+    }
+    #[test]
+    fn test_sanitize_slug_internal_space() {
+        assert_eq!(
+            sanitize_slug("production-ml-search-vector-search-embeddings-hybrid search"),
+            "production-ml-search-vector-search-embeddings-hybrid-search"
+        );
+    }
+    #[test]
+    fn test_sanitize_slug_trailing_space() {
+        assert_eq!(sanitize_slug("foo "), "foo");
+    }
+    #[test]
+    fn test_sanitize_slug_normal_unchanged() {
+        assert_eq!(sanitize_slug("johndoe"), "johndoe");
+    }
+    #[test]
+    fn test_sanitize_slug_multiple_consecutive_spaces() {
+        assert_eq!(sanitize_slug("a   b"), "a-b");
+    }
+    #[test]
+    fn test_sanitize_slug_space_and_hyphen_collapsed() {
+        assert_eq!(sanitize_slug("a - b"), "a-b");
+    }
+    #[test]
+    fn test_load_pages_discovers_subdirectory() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("index.md"),
+            "---\ntitle: Home\nlayout: page\n---\nHome",
+        )
+        .unwrap();
+        let subdir = dir.path().join("subdir");
+        std::fs::create_dir(&subdir).unwrap();
+        std::fs::write(
+            subdir.join("page.md"),
+            "---\ntitle: Sub Page\nlayout: page\n---\nSub content",
+        )
+        .unwrap();
+        let config = SiteConfig::default();
+        let (pages, errors) = load_pages(dir.path(), &config).unwrap();
+        assert!(errors.is_empty());
+        assert_eq!(pages.len(), 2);
+        let sub_page = pages.iter().find(|p| p.slug == "page").unwrap();
+        // Default permalink "/:title.html" ends in .html -> no suffix for pages
+        assert_eq!(sub_page.url, "/subdir/page");
+    }
+    #[test]
+    fn test_load_pages_skips_underscore_dirs() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("top.md"), "---\ntitle: Top\n---\nTop").unwrap();
+        let hidden = dir.path().join("_hidden");
+        std::fs::create_dir(&hidden).unwrap();
+        std::fs::write(hidden.join("secret.md"), "---\ntitle: Secret\n---\nS").unwrap();
+        let config = SiteConfig::default();
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 1);
+    }
+    #[test]
+    fn test_load_pages_skips_excluded_dirs() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("top.md"), "---\ntitle: Top\n---\nTop").unwrap();
+        let excluded = dir.path().join("scripts");
+        std::fs::create_dir(&excluded).unwrap();
+        std::fs::write(excluded.join("h.md"), "---\ntitle: H\n---\nH").unwrap();
+        let config = SiteConfig {
+            exclude: vec!["scripts/".to_string()],
+            ..SiteConfig::default()
+        };
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 1);
+    }
+    #[test]
+    fn test_published_false_skips_collection_item() {
+        let dir = tempfile::tempdir().unwrap();
+        let coll_dir = dir.path().join("_tools");
+        std::fs::create_dir(&coll_dir).unwrap();
+        std::fs::write(coll_dir.join("visible.md"), "---\ntitle: Visible\n---\nC").unwrap();
+        std::fs::write(
+            coll_dir.join("hidden.md"),
+            "---\ntitle: Hidden\npublished: false\n---\nC",
+        )
+        .unwrap();
+        std::fs::write(
+            dir.path().join("_config.yml"),
+            "collections:\n  tools:\n    output: true\n    permalink: /:collection/:title.html\n",
+        )
+        .unwrap();
+        let config = SiteConfig::from_file(&dir.path().join("_config.yml")).unwrap();
+        let (items, errors) = load_collection("tools", dir.path(), &config).unwrap();
+        assert!(errors.is_empty());
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].slug, "visible");
+    }
+    #[test]
+    fn test_published_false_skips_page() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("visible.md"), "---\ntitle: V\n---\nC").unwrap();
+        std::fs::write(
+            dir.path().join("hidden.md"),
+            "---\ntitle: H\npublished: false\n---\nC",
+        )
+        .unwrap();
+        let config = SiteConfig::default();
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0].slug, "visible");
+    }
+    #[test]
+    fn test_published_true_not_skipped() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("v.md"),
+            "---\ntitle: V\npublished: true\n---\nC",
+        )
+        .unwrap();
+        let config = SiteConfig::default();
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 1);
     }
 }

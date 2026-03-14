@@ -1007,4 +1007,81 @@ mod tests {
         assert!(!out.contains("<title>"));
         assert!(!out.contains("name=\"description\""));
     }
+
+    // ========================================================================
+    // Canonical URL construction (issue #69)
+    // ========================================================================
+
+    #[test]
+    fn test_canonical_url_no_extension() {
+        // Page URL /articles (no .html) -> canonical = site_url + /articles
+        let eng = engine();
+        let ctx = make_context(
+            Some("Articles"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/articles"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("href=\"https://example.com/articles\""),
+            "Canonical should be https://example.com/articles, got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_canonical_url_with_trailing_slash() {
+        let eng = engine();
+        let ctx = make_context(
+            Some("Articles"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/articles/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("href=\"https://example.com/articles/\""),
+            "Canonical should preserve trailing slash"
+        );
+    }
+
+    #[test]
+    fn test_canonical_url_no_double_slashes() {
+        let eng = engine();
+        let ctx = make_context(
+            Some("Home"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com/"),
+            Some("/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        // site.url has trailing slash, page.url is "/" -- should not produce "//"
+        assert!(
+            out.contains("href=\"https://example.com/\""),
+            "Should not have double slashes in canonical URL"
+        );
+        assert!(
+            !out.contains("href=\"https://example.com//\""),
+            "Must not have double slashes"
+        );
+    }
 }

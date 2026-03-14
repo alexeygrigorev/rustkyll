@@ -30,7 +30,7 @@ struct PagesFixture {
 }
 
 static FIXTURE: LazyLock<PagesFixture> = LazyLock::new(|| {
-    let (pages, _) = collection::load_pages(&site_dir()).unwrap();
+    let (pages, _) = collection::load_pages(&site_dir(), &CONFIG).unwrap();
     let (people, _) = collection::load_collection("people", &site_dir(), &CONFIG).unwrap();
     let (posts, _) = collection::load_collection("posts", &site_dir(), &CONFIG).unwrap();
     let (books, _) = collection::load_collection("books", &site_dir(), &CONFIG).unwrap();
@@ -75,8 +75,8 @@ static PAGES_OUTPUT: LazyLock<tempfile::TempDir> = LazyLock::new(|| {
     .unwrap();
 
     assert_eq!(
-        result.generated, 10,
-        "Expected 10 pages generated, got {} (skipped: {}, errors: {:?})",
+        result.generated, 11,
+        "Expected 11 pages generated, got {} (skipped: {}, errors: {:?})",
         result.generated, result.skipped, result.errors
     );
     assert!(

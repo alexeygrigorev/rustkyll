@@ -220,7 +220,7 @@ fn build_site(
 
     // 4. Load standalone pages
     let phase_start = Instant::now();
-    let (pages, page_errors) = collection::load_pages(source)?;
+    let (pages, page_errors) = collection::load_pages(source, &config)?;
     for err in &page_errors {
         all_load_errors.push(format!("pages: {}", err));
     }

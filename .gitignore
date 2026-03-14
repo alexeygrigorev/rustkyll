@@ -5,3 +5,4 @@ _site__pycache__/
 playwright/node_modules/
 playwright/screenshots/
 playwright/test-results/
+__pycache__

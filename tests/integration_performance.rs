@@ -54,7 +54,7 @@ fn build_site_cached(source: &Path, destination: &Path) -> (usize, usize, Vec<St
         collections.insert("posts".to_string(), posts);
     }
 
-    let (pages, _) = collection::load_pages(source).unwrap();
+    let (pages, _) = collection::load_pages(source, &config).unwrap();
 
     let site_context =
         generator::build_site_context(&config, &collections, &data_tree, Some(source), &pages);

@@ -547,13 +547,7 @@ pub fn generate_collection_pages_cached(
     });
 
     items.par_iter().for_each(|item| {
-        let layout_name = match resolve_layout(item, config, collection_type) {
-            Some(name) => name,
-            None => {
-                result.lock().unwrap().skipped += 1;
-                return;
-            }
-        };
+        let layout_name = resolve_layout(item, config, collection_type);
 
         // Build page front matter: start with defaults, then overlay item's own front matter
         let mut page_fm = item.front_matter.clone();
@@ -593,30 +587,47 @@ pub fn generate_collection_pages_cached(
             }
         }
 
-        // For posts: use raw content with Liquid+markdown pipeline (Liquid first, then markdown->HTML).
-        // For other collections: content is already HTML (markdown was pre-converted during loading).
-        let render_result = if item.collection_name == "posts" {
-            layout_engine.render_markdown_page_with_cached_site(
-                &layout_name,
-                &item.content,
-                &page_fm,
-                cached_site,
-            )
+        // Determine HTML output: render through layout if available,
+        // otherwise output raw content (Jekyll outputs items without layout too).
+        let html_result = if let Some(ref layout) = layout_name {
+            // For posts: use raw content with Liquid+markdown pipeline (Liquid first, then markdown->HTML).
+            // For other collections: content is already HTML (markdown was pre-converted during loading).
+            let render_result = if item.collection_name == "posts" {
+                layout_engine.render_markdown_page_with_cached_site(
+                    layout,
+                    &item.content,
+                    &page_fm,
+                    cached_site,
+                )
+            } else {
+                layout_engine.render_page_with_cached_site(
+                    layout,
+                    &item.html_content,
+                    &page_fm,
+                    cached_site,
+                )
+            };
+
+            match render_result {
+                Ok(html) => {
+                    // Post-process: inject JSON-LD structured data if applicable
+                    Ok(jsonld::inject_jsonld(
+                        &html,
+                        layout,
+                        &page_fm,
+                        config,
+                        author_items,
+                    ))
+                }
+                Err(e) => Err(e),
+            }
         } else {
-            layout_engine.render_page_with_cached_site(
-                &layout_name,
-                &item.html_content,
-                &page_fm,
-                cached_site,
-            )
+            // No layout: output just the rendered HTML content (matches Jekyll behavior)
+            Ok(item.html_content.clone())
         };
 
-        match render_result {
+        match html_result {
             Ok(html) => {
-                // Post-process: inject JSON-LD structured data if applicable
-                let html =
-                    jsonld::inject_jsonld(&html, &layout_name, &page_fm, config, author_items);
-
                 // Compute output path from the item's URL (respects permalink patterns)
                 let out_path = url_to_output_path(output_dir, &item.url);
 
