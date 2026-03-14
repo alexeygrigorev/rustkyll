@@ -30,6 +30,10 @@ struct LenientValue {
     children: std::collections::HashMap<String, LenientValue>,
     /// Pre-wrapped array elements (for returning references from array iteration).
     array_children: Vec<LenientValue>,
+    /// Pre-computed positional children for integer-indexed access on objects.
+    /// Each entry is a two-element array `[key_string, value]` matching Jekyll's
+    /// `hash[0]` behavior. Only populated for Object values.
+    positional_children: Vec<LenientValue>,
     /// A Nil value we can hand out references to for missing keys.
     nil: Value,
 }
@@ -52,10 +56,24 @@ impl LenientValue {
         } else {
             Vec::new()
         };
+        // Pre-compute positional children for objects: each entry is a
+        // two-element array [key_string, value] to support Jekyll's hash[0]
+        // integer indexing.
+        let positional_children = if let Value::Object(ref obj) = value {
+            obj.iter()
+                .map(|(key, val)| {
+                    let pair = Value::Array(vec![Value::scalar(key.to_string()), val.to_value()]);
+                    LenientValue::from_value(pair)
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
         Self {
             inner: value,
             children,
             array_children,
+            positional_children,
             nil: Value::Nil,
         }
     }
@@ -185,10 +203,23 @@ impl ObjectView for LenientValue {
     }
 
     fn get<'s>(&'s self, index: &str) -> Option<&'s dyn ValueView> {
-        self.children
-            .get(index)
-            .map(|v| v as &dyn ValueView)
-            .or(Some(&self.nil as &dyn ValueView))
+        // First try normal string-key lookup.
+        if let Some(child) = self.children.get(index) {
+            return Some(child as &dyn ValueView);
+        }
+        // Fall back to positional (integer) indexing on objects.
+        // Jekyll allows `hash[0]` to return the first [key, value] pair.
+        if !self.positional_children.is_empty() {
+            if let Ok(i) = index.parse::<i64>() {
+                if i >= 0 && (i as usize) < self.positional_children.len() {
+                    return Some(&self.positional_children[i as usize] as &dyn ValueView);
+                }
+                // Negative or out-of-bounds integer index returns nil.
+                return Some(&self.nil as &dyn ValueView);
+            }
+        }
+        // Missing key returns nil (lenient behavior).
+        Some(&self.nil as &dyn ValueView)
     }
 }
 
@@ -205,24 +236,28 @@ struct LenientObject<'a> {
     page: Option<LenientValue>,
     /// Pre-wrapped include object (small, needs lenient key access).
     include: Option<LenientValue>,
+    /// Pre-wrapped site object (needs lenient access for hash integer indexing).
+    site: Option<LenientValue>,
     /// A Nil value we can hand out references to for missing keys.
     nil: Value,
 }
 
 impl<'a> LenientObject<'a> {
     fn new(inner: &'a Object) -> Self {
-        // Only wrap page and include (small objects that need lenient access).
-        // site context is large but already normalized via normalize_arrays.
         let page = inner
             .get("page")
             .map(|v| LenientValue::from_value(v.to_value()));
         let include = inner
             .get("include")
             .map(|v| LenientValue::from_value(v.to_value()));
+        let site = inner
+            .get("site")
+            .map(|v| LenientValue::from_value(v.to_value()));
         Self {
             inner,
             page,
             include,
+            site,
             nil: Value::Nil,
         }
     }
@@ -296,11 +331,12 @@ impl ObjectView for LenientObject<'_> {
     }
 
     fn get<'s>(&'s self, index: &str) -> Option<&'s dyn ValueView> {
-        // For page and include, use pre-wrapped lenient versions
-        // (small objects where missing key access is common)
+        // Use pre-wrapped lenient versions for page, include, and site.
+        // This enables lenient key access and hash integer indexing.
         match index {
             "page" => self.page.as_ref().map(|v| v as &dyn ValueView),
             "include" => self.include.as_ref().map(|v| v as &dyn ValueView),
+            "site" => self.site.as_ref().map(|v| v as &dyn ValueView),
             _ => self.inner.get(index).map(|v| v as &dyn ValueView),
         }
         .or(Some(&self.nil as &dyn ValueView))
@@ -1875,5 +1911,178 @@ mod tests {
             .parse_and_render("{{ value | fake_one | fake_two }}", &ctx)
             .unwrap();
         assert_eq!(out, "test");
+    }
+
+    // ========================================================================
+    // Issue 44: Hash integer indexing
+    // ========================================================================
+
+    /// Helper to build a page-level object for hash indexing tests.
+    /// Objects must be in the "page" namespace to go through LenientValue.
+    fn page_ctx_with_hash(key: &'static str, obj: Object) -> Object {
+        let mut page = Object::new();
+        page.insert(key.into(), LiquidValue::Object(obj));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        ctx
+    }
+
+    #[test]
+    fn test_hash_integer_index_first_entry() {
+        let eng = engine();
+        // Use a single-entry object for deterministic ordering
+        let mut obj = Object::new();
+        obj.insert("mykey".into(), LiquidValue::scalar(42i64));
+        let ctx = page_ctx_with_hash("obj", obj);
+        let out = eng.parse_and_render("{{ page.obj[0][0] }}", &ctx).unwrap();
+        assert_eq!(out, "mykey");
+    }
+
+    #[test]
+    fn test_hash_integer_index_returns_key() {
+        let eng = engine();
+        let mut obj = Object::new();
+        obj.insert("name".into(), LiquidValue::scalar("Alice"));
+        let ctx = page_ctx_with_hash("obj", obj);
+        let out = eng.parse_and_render("{{ page.obj[0][0] }}", &ctx).unwrap();
+        assert_eq!(out, "name");
+    }
+
+    #[test]
+    fn test_hash_integer_index_returns_value() {
+        let eng = engine();
+        let mut obj = Object::new();
+        obj.insert("name".into(), LiquidValue::scalar("Alice"));
+        let ctx = page_ctx_with_hash("obj", obj);
+        let out = eng.parse_and_render("{{ page.obj[0][1] }}", &ctx).unwrap();
+        assert_eq!(out, "Alice");
+    }
+
+    #[test]
+    fn test_hash_integer_index_out_of_bounds() {
+        let eng = engine();
+        let mut obj = Object::new();
+        obj.insert("a".into(), LiquidValue::scalar(1i64));
+        obj.insert("b".into(), LiquidValue::scalar(2i64));
+        obj.insert("c".into(), LiquidValue::scalar(3i64));
+        let ctx = page_ctx_with_hash("obj", obj);
+        let out = eng.parse_and_render("{{ page.obj[5] }}", &ctx).unwrap();
+        assert_eq!(out, "");
+    }
+
+    #[test]
+    fn test_hash_integer_index_negative() {
+        let eng = engine();
+        let mut obj = Object::new();
+        obj.insert("a".into(), LiquidValue::scalar(1i64));
+        let ctx = page_ctx_with_hash("obj", obj);
+        let out = eng.parse_and_render("{{ page.obj[-1] }}", &ctx).unwrap();
+        // Negative indexing on hashes returns nil in Jekyll
+        assert_eq!(out, "");
+    }
+
+    #[test]
+    fn test_hash_string_key_priority_over_integer() {
+        let eng = engine();
+        let mut obj = Object::new();
+        obj.insert("0".into(), LiquidValue::scalar("zero"));
+        obj.insert("a".into(), LiquidValue::scalar(1i64));
+        let ctx = page_ctx_with_hash("obj", obj);
+        // Key "0" exists as a string key, so it should be returned directly
+        let out = eng.parse_and_render("{{ page.obj[0] }}", &ctx).unwrap();
+        assert_eq!(out, "zero");
+    }
+
+    #[test]
+    fn test_hash_normal_string_access_unaffected() {
+        let eng = engine();
+        let mut obj = Object::new();
+        obj.insert("name".into(), LiquidValue::scalar("Alice"));
+        let ctx = page_ctx_with_hash("obj", obj);
+        let out = eng.parse_and_render("{{ page.obj.name }}", &ctx).unwrap();
+        assert_eq!(out, "Alice");
+    }
+
+    #[test]
+    fn test_hash_bracket_string_access_unaffected() {
+        let eng = engine();
+        let mut obj = Object::new();
+        obj.insert("name".into(), LiquidValue::scalar("Alice"));
+        let ctx = page_ctx_with_hash("obj", obj);
+        let out = eng
+            .parse_and_render(r#"{{ page.obj["name"] }}"#, &ctx)
+            .unwrap();
+        assert_eq!(out, "Alice");
+    }
+
+    #[test]
+    fn test_hash_integer_index_with_assign() {
+        let eng = engine();
+        let mut obj = Object::new();
+        obj.insert("en".into(), LiquidValue::scalar("English"));
+        obj.insert("es".into(), LiquidValue::scalar("Spanish"));
+        let ctx = page_ctx_with_hash("locales", obj);
+        // Assign from hash[0] then access the key
+        let out = eng
+            .parse_and_render("{% assign first = page.locales[0] %}{{ first[0] }}", &ctx)
+            .unwrap();
+        // Object uses HashMap, so iteration order is not guaranteed
+        assert!(
+            out == "en" || out == "es",
+            "Expected 'en' or 'es', got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_hash_integer_index_site_data() {
+        let eng = engine();
+        let mut locales = Object::new();
+        locales.insert("en".into(), LiquidValue::scalar("English"));
+        locales.insert("es".into(), LiquidValue::scalar("Spanish"));
+        let mut data = Object::new();
+        data.insert("locales".into(), LiquidValue::Object(locales));
+        let mut site = Object::new();
+        site.insert("data".into(), LiquidValue::Object(data));
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+
+        // Object uses HashMap, so order is not guaranteed.
+        // Verify we get a valid locale key.
+        let out = eng
+            .parse_and_render(
+                "{% assign first = site.data.locales[0] %}{{ first[0] }}",
+                &ctx,
+            )
+            .unwrap();
+        assert!(
+            out == "en" || out == "es",
+            "Expected 'en' or 'es', got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_hash_integer_index_second_entry() {
+        let eng = engine();
+        let mut obj = Object::new();
+        obj.insert("a".into(), LiquidValue::scalar(1i64));
+        obj.insert("b".into(), LiquidValue::scalar(2i64));
+        obj.insert("c".into(), LiquidValue::scalar(3i64));
+        let ctx = page_ctx_with_hash("obj", obj);
+        // Object uses HashMap so iteration order is not guaranteed.
+        // Just verify that [1] returns a valid [key, value] pair.
+        let key = eng.parse_and_render("{{ page.obj[1][0] }}", &ctx).unwrap();
+        let value = eng.parse_and_render("{{ page.obj[1][1] }}", &ctx).unwrap();
+        assert!(
+            ["a", "b", "c"].contains(&key.as_str()),
+            "Expected a valid key, got: {}",
+            key
+        );
+        assert!(
+            ["1", "2", "3"].contains(&value.as_str()),
+            "Expected a valid value, got: {}",
+            value
+        );
     }
 }

@@ -12,6 +12,7 @@ pub mod server;
 pub mod sitemap;
 pub mod static_files;
 pub mod template;
+pub mod yaml;
 
 /// Returns the name of this project.
 pub fn project_name() -> &'static str {

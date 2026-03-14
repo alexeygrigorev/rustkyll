@@ -11,6 +11,9 @@ pub enum ConfigError {
 
     #[error("failed to parse config YAML: {0}")]
     Yaml(#[from] serde_yaml::Error),
+
+    #[error("failed to parse config YAML (lenient): {0}")]
+    YamlLenient(#[from] crate::yaml::YamlParseError),
 }
 
 /// Configuration for a single Jekyll collection.
@@ -166,7 +169,7 @@ impl SiteConfig {
         {
             return Ok(Self::default());
         }
-        let config: SiteConfig = serde_yaml::from_str(yaml)?;
+        let config: SiteConfig = crate::yaml::from_str_lenient(yaml)?;
         Ok(config)
     }
 
@@ -884,5 +887,50 @@ defaults:
         assert_eq!(config.default_layout_for("books"), Some("book"));
         assert_eq!(config.default_layout_for("podcast"), Some("podcast"));
         assert_eq!(config.default_layout_for("courses"), None);
+    }
+
+    // ========================================================================
+    // Issue 43: Duplicate YAML keys in config
+    // ========================================================================
+
+    #[test]
+    fn test_duplicate_top_level_key_last_wins() {
+        let yaml = "url: https://first.com\nname: Test\nurl: https://second.com\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.url, "https://second.com");
+    }
+
+    #[test]
+    fn test_duplicate_nested_key_last_wins() {
+        let yaml = r#"
+sass:
+  style: expanded
+  style: compressed
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let sass = config.extras.get("sass").unwrap();
+        assert_eq!(
+            sass.as_mapping()
+                .unwrap()
+                .get("style")
+                .unwrap()
+                .as_str()
+                .unwrap(),
+            "compressed"
+        );
+    }
+
+    #[test]
+    fn test_duplicate_key_different_types_last_wins() {
+        let yaml = "url: 123\nname: Test\nurl: https://example.com\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.url, "https://example.com");
+    }
+
+    #[test]
+    fn test_triple_duplicate_key_third_wins() {
+        let yaml = "url: first\nurl: second\nurl: third\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.url, "third");
     }
 }

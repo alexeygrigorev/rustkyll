@@ -23,7 +23,7 @@ pub enum DataError {
     #[error("failed to parse YAML in {path}: {source}")]
     YamlParse {
         path: String,
-        source: serde_yaml::Error,
+        source: crate::yaml::YamlParseError,
     },
 }
 
@@ -125,18 +125,17 @@ fn file_stem(path: &Path) -> Option<String> {
         .map(|s| s.to_string())
 }
 
-/// Read and parse a single YAML file.
+/// Read and parse a single YAML file, tolerating duplicate keys.
 fn load_yaml_file(path: &Path) -> Result<serde_yaml::Value, DataError> {
     let content = fs::read_to_string(path).map_err(|e| DataError::ReadFile {
         path: path.display().to_string(),
         source: e,
     })?;
 
-    let value: serde_yaml::Value =
-        serde_yaml::from_str(&content).map_err(|e| DataError::YamlParse {
-            path: path.display().to_string(),
-            source: e,
-        })?;
+    let value = crate::yaml::parse_yaml_lenient(&content).map_err(|e| DataError::YamlParse {
+        path: path.display().to_string(),
+        source: e,
+    })?;
 
     Ok(value)
 }
@@ -428,5 +427,49 @@ mod tests {
             .expect("FAQ entry should be a mapping");
         assert!(first_faq.contains_key(serde_yaml::Value::String("question".into())));
         assert!(first_faq.contains_key(serde_yaml::Value::String("answer".into())));
+    }
+
+    // ========================================================================
+    // Issue 43: Duplicate keys in data files
+    // ========================================================================
+
+    #[test]
+    fn test_data_file_duplicate_keys_last_wins() {
+        let dir = TempDir::new().unwrap();
+        let file = dir.path().join("test.yaml");
+        fs::write(&file, "name: first\nvalue: 42\nname: second\n").unwrap();
+
+        let tree = load_data(dir.path()).unwrap();
+        let value = &tree["test"];
+        let mapping = value.as_mapping().unwrap();
+        assert_eq!(
+            mapping
+                .get(serde_yaml::Value::String("name".into()))
+                .and_then(|v| v.as_str()),
+            Some("second")
+        );
+    }
+
+    #[test]
+    fn test_data_file_duplicate_nested_keys_last_wins() {
+        let dir = TempDir::new().unwrap();
+        let file = dir.path().join("nested.yml");
+        fs::write(&file, "config:\n  mode: debug\n  mode: release\n").unwrap();
+
+        let tree = load_data(dir.path()).unwrap();
+        let value = &tree["nested"];
+        let config = value
+            .as_mapping()
+            .unwrap()
+            .get(serde_yaml::Value::String("config".into()))
+            .unwrap()
+            .as_mapping()
+            .unwrap();
+        assert_eq!(
+            config
+                .get(serde_yaml::Value::String("mode".into()))
+                .and_then(|v| v.as_str()),
+            Some("release")
+        );
     }
 }

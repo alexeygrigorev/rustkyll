@@ -7,6 +7,9 @@ use pulldown_cmark::{html, Options, Parser};
 pub enum ParseError {
     #[error("failed to parse YAML front matter: {0}")]
     Yaml(#[from] serde_yaml::Error),
+
+    #[error("failed to parse YAML front matter (lenient): {0}")]
+    YamlLenient(#[from] crate::yaml::YamlParseError),
 }
 
 /// YAML front matter as a flexible key-value map.
@@ -98,7 +101,7 @@ pub fn parse_document(input: &str) -> Result<Document, ParseError> {
 
     let front_matter = match yaml_str {
         Some(yaml) => {
-            let parsed: Option<FrontMatter> = serde_yaml::from_str(yaml)?;
+            let parsed: Option<FrontMatter> = crate::yaml::from_str_lenient(yaml)?;
             parsed.unwrap_or_default()
         }
         None => FrontMatter::new(),
@@ -579,5 +582,23 @@ Transcript content here.
         // Season/episode as integers
         let season = doc.front_matter.get("season").unwrap();
         assert_eq!(season.as_u64(), Some(7));
+    }
+
+    // ========================================================================
+    // Issue 43: Duplicate keys in front matter
+    // ========================================================================
+
+    #[test]
+    fn test_front_matter_duplicate_keys_last_wins() {
+        let input = "---\ntitle: First Title\nlayout: post\ntitle: Second Title\n---\nBody here";
+        let doc = parse_document(input).unwrap();
+        assert_eq!(
+            doc.front_matter.get("title").and_then(Value::as_str),
+            Some("Second Title")
+        );
+        assert_eq!(
+            doc.front_matter.get("layout").and_then(Value::as_str),
+            Some("post")
+        );
     }
 }
