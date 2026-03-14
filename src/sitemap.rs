@@ -367,7 +367,7 @@ mod tests {
         use crate::config::SiteConfig;
         use std::path::PathBuf;
 
-        let site_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("datatalksclub.github.io");
+        let site_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
         let config = SiteConfig::from_file(&site_dir.join("_config.yml")).unwrap();
 
         let mut collections_vec = Vec::new();
@@ -387,10 +387,10 @@ mod tests {
 
         let entries = collect_entries(&config.url, &collections_vec, &pages);
 
-        // Should have a substantial number of entries
+        // Should have entries from all collections
         assert!(
-            entries.len() > 100,
-            "Expected 100+ sitemap entries, got {}",
+            entries.len() > 5,
+            "Expected 5+ sitemap entries, got {}",
             entries.len()
         );
 

@@ -99,7 +99,9 @@ fn read_page(slug: &str) -> String {
 
 #[test]
 fn test_generate_standalone_pages_empty_vec() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let tmp = tempfile::TempDir::new().unwrap();
     let result = generator::generate_standalone_pages(
         &[],
@@ -120,7 +122,9 @@ fn test_generate_standalone_pages_empty_vec() {
 
 #[test]
 fn test_all_10_pages_generated() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let _output = &*PAGES_OUTPUT;
     let expected = [
         "index", "events", "articles", "books", "people", "podcast", "tools", "courses", "slack",
@@ -138,7 +142,9 @@ fn test_all_10_pages_generated() {
 
 #[test]
 fn test_no_unrendered_liquid_tags() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let _output = &*PAGES_OUTPUT;
     let slugs = [
         "index", "events", "articles", "books", "people", "podcast", "tools", "courses", "slack",
@@ -163,7 +169,9 @@ fn test_no_unrendered_liquid_tags() {
 
 #[test]
 fn test_all_pages_have_html_structure() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let _output = &*PAGES_OUTPUT;
     let slugs = [
         "index", "events", "articles", "books", "people", "podcast", "tools", "courses", "slack",
@@ -192,7 +200,9 @@ fn test_all_pages_have_html_structure() {
 
 #[test]
 fn test_index_has_upcoming_events() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = read_page("index");
     // index.md references site.data.events
     let has_events = html.contains("Upcoming events")
@@ -203,7 +213,9 @@ fn test_index_has_upcoming_events() {
 
 #[test]
 fn test_index_has_podcast_episodes() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = read_page("index");
     assert!(
         html.contains("Latest podcast episodes") || html.contains("podcast"),
@@ -213,7 +225,9 @@ fn test_index_has_podcast_episodes() {
 
 #[test]
 fn test_index_has_sponsors_section() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = read_page("index");
     assert!(
         html.contains("Our Sponsors") || html.contains("sponsors"),
@@ -223,7 +237,9 @@ fn test_index_has_sponsors_section() {
 
 #[test]
 fn test_index_has_book_of_the_week() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = read_page("index");
     assert!(
         html.contains("Book of the week") || html.contains("book"),
@@ -233,7 +249,9 @@ fn test_index_has_book_of_the_week() {
 
 #[test]
 fn test_index_has_latest_articles() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = read_page("index");
     assert!(
         html.contains("Latest articles") || html.contains("articles"),
@@ -247,7 +265,9 @@ fn test_index_has_latest_articles() {
 
 #[test]
 fn test_events_has_past_events() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = read_page("events");
     assert!(
         html.contains("Past events") || html.contains("past-events"),
@@ -257,7 +277,9 @@ fn test_events_has_past_events() {
 
 #[test]
 fn test_events_has_links() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = read_page("events");
     assert!(
         html.contains("<a href="),
@@ -267,7 +289,9 @@ fn test_events_has_links() {
 
 #[test]
 fn test_events_has_speaker_links() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = read_page("events");
     assert!(
         html.contains("/people/"),
@@ -281,7 +305,9 @@ fn test_events_has_speaker_links() {
 
 #[test]
 fn test_articles_lists_posts() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = read_page("articles");
     // articles.md iterates site.posts, each post has a title
     assert!(
@@ -292,7 +318,9 @@ fn test_articles_lists_posts() {
 
 #[test]
 fn test_articles_has_author_links() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = read_page("articles");
     assert!(
         html.contains("/people/"),
@@ -306,7 +334,9 @@ fn test_articles_has_author_links() {
 
 #[test]
 fn test_books_has_archive() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = read_page("books");
     assert!(
         html.contains("Archive") || html.contains("archive"),
@@ -316,7 +346,9 @@ fn test_books_has_archive() {
 
 #[test]
 fn test_books_has_book_links() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = read_page("books");
     assert!(
         html.contains("<a href="),
@@ -330,7 +362,9 @@ fn test_books_has_book_links() {
 
 #[test]
 fn test_people_has_count() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = read_page("people");
     // people.md uses {{ site.people.size }} which should render as a number
     // The count should be 424+
@@ -342,7 +376,9 @@ fn test_people_has_count() {
 
 #[test]
 fn test_people_has_name_links() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = read_page("people");
     assert!(
         html.contains("/people/"),
@@ -356,7 +392,9 @@ fn test_people_has_name_links() {
 
 #[test]
 fn test_podcast_has_season_headings() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = read_page("podcast");
     assert!(
         html.contains("Season") || html.contains("season"),
@@ -366,7 +404,9 @@ fn test_podcast_has_season_headings() {
 
 #[test]
 fn test_podcast_has_episode_links() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = read_page("podcast");
     assert!(
         html.contains("<a href="),
@@ -380,7 +420,9 @@ fn test_podcast_has_episode_links() {
 
 #[test]
 fn test_tools_lists_tools() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = read_page("tools");
     assert!(
         html.contains("<a href="),
@@ -394,7 +436,9 @@ fn test_tools_lists_tools() {
 
 #[test]
 fn test_courses_has_content() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = read_page("courses");
     assert!(
         html.contains("Courses") || html.contains("courses"),
@@ -404,7 +448,9 @@ fn test_courses_has_content() {
 
 #[test]
 fn test_slack_has_subscribe() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = read_page("slack");
     assert!(
         html.contains("Slack") || html.contains("slack"),
@@ -414,7 +460,9 @@ fn test_slack_has_subscribe() {
 
 #[test]
 fn test_support_has_content() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = read_page("support");
     assert!(
         html.contains("Support") || html.contains("support"),
@@ -428,7 +476,9 @@ fn test_support_has_content() {
 
 #[test]
 fn test_index_uses_home_layout() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = read_page("index");
     // The home layout has specific elements different from page layout
     // Check for the html structure that comes from the layout
@@ -444,7 +494,9 @@ fn test_index_uses_home_layout() {
 
 #[test]
 fn test_non_index_pages_use_page_layout() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let slugs = [
         "events", "articles", "books", "people", "podcast", "tools", "courses", "slack", "support",
     ];

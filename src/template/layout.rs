@@ -426,7 +426,7 @@ mod tests {
     use std::path::PathBuf;
 
     fn site_dir() -> PathBuf {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("datatalksclub.github.io")
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures")
     }
 
     fn layouts_dir() -> PathBuf {

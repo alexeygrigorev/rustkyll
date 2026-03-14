@@ -73,14 +73,18 @@ static PEOPLE_OUTPUT: LazyLock<tempfile::TempDir> = LazyLock::new(|| {
 
 #[test]
 fn test_generate_people_pages_count() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     // Force lazy evaluation
     let _output = &*PEOPLE_OUTPUT;
 }
 
 #[test]
 fn test_generated_alexeygrigorev_content() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = fs::read_to_string(PEOPLE_OUTPUT.path().join("people/alexeygrigorev.html")).unwrap();
 
     assert!(html.contains("Alexey Grigorev"), "Should contain name");
@@ -112,7 +116,9 @@ fn test_generated_alexeygrigorev_content() {
 
 #[test]
 fn test_generated_chiphuyen_content() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = fs::read_to_string(PEOPLE_OUTPUT.path().join("people/chiphuyen.html")).unwrap();
 
     assert!(html.contains("Chip Huyen"), "Should contain name");
@@ -137,7 +143,9 @@ fn test_generated_chiphuyen_content() {
 
 #[test]
 fn test_generated_alexeygrigorev_has_jsonld() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = fs::read_to_string(PEOPLE_OUTPUT.path().join("people/alexeygrigorev.html")).unwrap();
 
     assert!(
@@ -156,7 +164,9 @@ fn test_generated_alexeygrigorev_has_jsonld() {
 
 #[test]
 fn test_generated_alexeygrigorev_has_articles_section() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let html = fs::read_to_string(PEOPLE_OUTPUT.path().join("people/alexeygrigorev.html")).unwrap();
 
     assert!(
@@ -167,7 +177,9 @@ fn test_generated_alexeygrigorev_has_articles_section() {
 
 #[test]
 fn test_people_array_includes_short_and_content() {
-    if !site_dir().exists() { return; }
+    if !site_dir().exists() {
+        return;
+    }
     let (people, _) = collection::load_collection("people", &site_dir(), &CONFIG).unwrap();
 
     let mut colls = HashMap::new();

@@ -16,7 +16,7 @@
 {% if page.end %}<p>{{ page.end | date: "%d %b %Y" }}</p>{% endif %}
 {% for author_slug in page.authors %}
 {% for person in site.people %}
-{% if person.short == author_slug %}<a href="{{ person.url }}">{{ person.title }}</a>{% endif %}
+{% if person.short == author_slug %}{% if person.url %}<a href="{{ person.url }}">{{ person.title }}</a>{% else %}{{ person.title }}{% endif %}{% endif %}
 {% endfor %}
 {% endfor %}
 {{ content }}
