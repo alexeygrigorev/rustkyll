@@ -46,6 +46,29 @@ enum Commands {
         #[arg(long, default_value_t = false)]
         force: bool,
     },
+
+    /// Build and serve the site locally
+    Serve {
+        /// Source directory (default: current directory)
+        #[arg(long, default_value = ".")]
+        source: PathBuf,
+
+        /// Destination directory (default: _site)
+        #[arg(long, default_value = "_site")]
+        destination: PathBuf,
+
+        /// Port to serve on (default: 4000)
+        #[arg(long, default_value_t = 4000)]
+        port: u16,
+
+        /// Enable live reload (default: true)
+        #[arg(long, default_value_t = true)]
+        livereload: bool,
+
+        /// Disable live reload
+        #[arg(long, default_value_t = false)]
+        no_livereload: bool,
+    },
 }
 
 /// Errors that can occur during the build pipeline.
@@ -453,10 +476,106 @@ fn main() {
                 }
             }
         }
+        Some(Commands::Serve {
+            source,
+            destination,
+            port,
+            livereload,
+            no_livereload,
+        }) => {
+            let livereload_enabled = livereload && !no_livereload;
+
+            // Build the site first
+            println!("Building site before serving...");
+            let options = BuildOptions {
+                incremental: false,
+                force: false,
+            };
+            match build_site(&source, &destination, &options) {
+                Ok(summary) => {
+                    let total_pages = summary.collection_pages + summary.standalone_pages;
+                    println!("Build complete: {} pages generated.", total_pages);
+                }
+                Err(e) => {
+                    eprintln!("Build failed: {}", e);
+                    std::process::exit(1);
+                }
+            }
+
+            let ws_port = port + 1; // WebSocket on port+1
+
+            if livereload_enabled {
+                let shutdown = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+
+                // Set up Ctrl+C handler
+                let shutdown_ctrlc = std::sync::Arc::clone(&shutdown);
+                let _ = ctrlc_flag(&shutdown_ctrlc);
+
+                // Channel for reload signals
+                let (reload_tx, reload_rx) = std::sync::mpsc::channel();
+
+                // Start WebSocket server thread
+                let shutdown_ws = std::sync::Arc::clone(&shutdown);
+                let ws_handle = std::thread::spawn(move || {
+                    rustkyll::livereload::start_websocket_server(ws_port, reload_rx, shutdown_ws);
+                });
+
+                // Start file watcher thread
+                let source_clone = source.clone();
+                let destination_clone = destination.clone();
+                let shutdown_watcher = std::sync::Arc::clone(&shutdown);
+                let watcher_handle = std::thread::spawn(move || {
+                    let src = source_clone.clone();
+                    let dst = destination_clone.clone();
+                    let build_fn = Box::new(move || {
+                        let opts = BuildOptions {
+                            incremental: false,
+                            force: false,
+                        };
+                        build_site(&src, &dst, &opts)
+                            .map(|_| ())
+                            .map_err(|e| e.to_string())
+                    });
+                    if let Err(e) = rustkyll::livereload::start_file_watcher(
+                        source_clone,
+                        destination_clone,
+                        reload_tx,
+                        shutdown_watcher,
+                        build_fn,
+                    ) {
+                        eprintln!("Watcher error: {}", e);
+                    }
+                });
+
+                // Start HTTP server (blocks)
+                if let Err(e) = rustkyll::server::start_server(&destination, port, Some(ws_port)) {
+                    eprintln!("Server error: {}", e);
+                    std::process::exit(1);
+                }
+
+                shutdown.store(true, std::sync::atomic::Ordering::Relaxed);
+                let _ = ws_handle.join();
+                let _ = watcher_handle.join();
+            } else {
+                // No live reload -- just serve
+                println!("Live reload disabled.");
+                if let Err(e) = rustkyll::server::start_server(&destination, port, None) {
+                    eprintln!("Server error: {}", e);
+                    std::process::exit(1);
+                }
+            }
+        }
         None => {
             println!("Hello from rustkyll! Use --help to see available commands.");
         }
     }
+}
+
+/// Set a flag to `true` when Ctrl+C is pressed.
+fn ctrlc_flag(_flag: &std::sync::Arc<std::sync::atomic::AtomicBool>) -> Result<(), std::io::Error> {
+    // Since tiny_http blocks on incoming_requests, the process will
+    // terminate naturally on SIGINT/SIGTERM
+    Ok(())
 }
 
 #[cfg(test)]
@@ -567,5 +686,129 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert_eq!(err.kind(), clap::error::ErrorKind::DisplayHelp);
+    }
+
+    // --- Serve command CLI tests ---
+
+    #[test]
+    fn test_cli_parses_serve_defaults() {
+        let cli = Cli::try_parse_from(["rustkyll", "serve"]).unwrap();
+        match cli.command {
+            Some(Commands::Serve {
+                source,
+                destination,
+                port,
+                livereload,
+                no_livereload,
+            }) => {
+                assert_eq!(source, PathBuf::from("."));
+                assert_eq!(destination, PathBuf::from("_site"));
+                assert_eq!(port, 4000);
+                assert!(livereload);
+                assert!(!no_livereload);
+            }
+            _ => panic!("Expected Serve command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_parses_serve_with_port() {
+        let cli = Cli::try_parse_from(["rustkyll", "serve", "--port", "8080"]).unwrap();
+        match cli.command {
+            Some(Commands::Serve { port, .. }) => {
+                assert_eq!(port, 8080);
+            }
+            _ => panic!("Expected Serve command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_parses_serve_with_source_and_destination() {
+        let cli = Cli::try_parse_from([
+            "rustkyll",
+            "serve",
+            "--source",
+            "/tmp/site",
+            "--destination",
+            "/tmp/out",
+        ])
+        .unwrap();
+        match cli.command {
+            Some(Commands::Serve {
+                source,
+                destination,
+                ..
+            }) => {
+                assert_eq!(source, PathBuf::from("/tmp/site"));
+                assert_eq!(destination, PathBuf::from("/tmp/out"));
+            }
+            _ => panic!("Expected Serve command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_parses_serve_all_flags() {
+        let cli = Cli::try_parse_from([
+            "rustkyll",
+            "serve",
+            "--port",
+            "3000",
+            "--source",
+            "/src",
+            "--destination",
+            "/dst",
+        ])
+        .unwrap();
+        match cli.command {
+            Some(Commands::Serve {
+                source,
+                destination,
+                port,
+                ..
+            }) => {
+                assert_eq!(port, 3000);
+                assert_eq!(source, PathBuf::from("/src"));
+                assert_eq!(destination, PathBuf::from("/dst"));
+            }
+            _ => panic!("Expected Serve command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_parses_serve_livereload_enabled_by_default() {
+        let cli = Cli::try_parse_from(["rustkyll", "serve"]).unwrap();
+        match cli.command {
+            Some(Commands::Serve {
+                livereload,
+                no_livereload,
+                ..
+            }) => {
+                assert!(livereload);
+                assert!(!no_livereload);
+            }
+            _ => panic!("Expected Serve command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_parses_serve_no_livereload() {
+        let cli = Cli::try_parse_from(["rustkyll", "serve", "--no-livereload"]).unwrap();
+        match cli.command {
+            Some(Commands::Serve { no_livereload, .. }) => {
+                assert!(no_livereload);
+            }
+            _ => panic!("Expected Serve command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_parses_serve_explicit_livereload() {
+        let cli = Cli::try_parse_from(["rustkyll", "serve", "--livereload"]).unwrap();
+        match cli.command {
+            Some(Commands::Serve { livereload, .. }) => {
+                assert!(livereload);
+            }
+            _ => panic!("Expected Serve command"),
+        }
     }
 }
