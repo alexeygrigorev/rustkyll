@@ -79,7 +79,8 @@ An issue filename (`.in-progress.md`) and confirmation that the tester passed.
    - [ ] Compare output against the original Jekyll site in `datatalksclub.github.io/` where applicable
    - [ ] Check that links, images, and metadata are correct
    - [ ] Do NOT accept work where the output "compiles" but doesn't actually produce correct HTML
-6. Verdict:
+6. **Results must be in the issue.** For any issue that produces measurable results (benchmarks, comparisons, test runs, validations), the actual results must be documented in the issue file or a linked results document BEFORE acceptance. Do NOT accept an issue where the infrastructure was built but never actually run against real data. "Self-comparison" or "verified the script runs" is not the same as "ran the actual comparison and here are the results."
+7. Verdict:
    - **ACCEPT** -- Engineer can commit. Issue moves to `done/NN-name.done.md`.
    - **REJECT** -- List specific issues. Engineer must fix.
 
@@ -100,3 +101,5 @@ You must explicitly list what is being descoped and why, and create the follow-u
 - The tester passed it with "tests pass" but the output is clearly wrong
 - Output doesn't match the original Jekyll site's behavior where it should
 - Acceptance criteria are unmet and no follow-up issues are created for the gaps
+- The issue requires comparison/validation results but only infrastructure was built — no actual results documented
+- Self-comparison or mock data was used instead of real Jekyll vs rustkyll comparison
