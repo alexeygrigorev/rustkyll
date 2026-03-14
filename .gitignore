@@ -2,3 +2,6 @@ datatalksclub.github.io/
 websites/
 /target
 _site__pycache__/
+playwright/node_modules/
+playwright/screenshots/
+playwright/test-results/

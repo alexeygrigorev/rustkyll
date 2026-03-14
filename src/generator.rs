@@ -377,6 +377,25 @@ pub fn output_path(output_dir: &Path, collection: &str, slug: &str) -> std::path
     output_dir.join(collection).join(format!("{slug}.html"))
 }
 
+/// Compute the output file path from a URL.
+///
+/// URLs ending with `/` produce `<output_dir>/<url>/index.html` (pretty URLs).
+/// URLs ending with `.html` produce `<output_dir>/<url>` directly.
+/// Other URLs get `.html` appended.
+pub fn url_to_output_path(output_dir: &Path, url: &str) -> std::path::PathBuf {
+    let relative = url.trim_start_matches('/');
+    if relative.is_empty() {
+        return output_dir.join("index.html");
+    }
+    if relative.ends_with('/') {
+        output_dir.join(relative).join("index.html")
+    } else if relative.ends_with(".html") {
+        output_dir.join(relative)
+    } else {
+        output_dir.join(format!("{relative}.html"))
+    }
+}
+
 /// Convert a `CollectionItem` into a `serde_yaml::Value::Mapping` suitable
 /// for injection as `page.previous` or `page.next` in a post's front matter.
 ///
@@ -517,13 +536,9 @@ pub fn generate_collection_pages_cached(
         source: e,
     })?;
 
-    // Pre-compute prev/next references for posts (sorted by date ascending).
-    // For non-post collections, this map is empty and no prev/next is injected.
-    let prev_next = if collection_type == "posts" {
-        build_prev_next_map(items)
-    } else {
-        HashMap::new()
-    };
+    // Pre-compute prev/next references for all collections.
+    // Jekyll provides `page.previous` and `page.next` for both posts and custom collections.
+    let prev_next = build_prev_next_map(items);
 
     let result = Mutex::new(GenerationResult {
         generated: 0,
@@ -578,32 +593,32 @@ pub fn generate_collection_pages_cached(
             }
         }
 
-        // Determine which content to render: raw content for posts (may contain Liquid),
-        // html_content for collections that have already been converted from markdown
-        let render_content = if item.collection_name == "posts" {
-            &item.content
+        // For posts: use raw content with Liquid+markdown pipeline (Liquid first, then markdown->HTML).
+        // For other collections: content is already HTML (markdown was pre-converted during loading).
+        let render_result = if item.collection_name == "posts" {
+            layout_engine.render_markdown_page_with_cached_site(
+                &layout_name,
+                &item.content,
+                &page_fm,
+                cached_site,
+            )
         } else {
-            &item.html_content
+            layout_engine.render_page_with_cached_site(
+                &layout_name,
+                &item.html_content,
+                &page_fm,
+                cached_site,
+            )
         };
 
-        match layout_engine.render_page_with_cached_site(
-            &layout_name,
-            render_content,
-            &page_fm,
-            cached_site,
-        ) {
+        match render_result {
             Ok(html) => {
                 // Post-process: inject JSON-LD structured data if applicable
                 let html =
                     jsonld::inject_jsonld(&html, &layout_name, &page_fm, config, author_items);
 
-                // Compute output path: use URL-based path for posts, standard path for others
-                let out_path = if item.url.starts_with("/blog/") {
-                    let relative = item.url.trim_start_matches('/');
-                    output_dir.join(relative)
-                } else {
-                    output_path(output_dir, collection_type, &item.slug)
-                };
+                // Compute output path from the item's URL (respects permalink patterns)
+                let out_path = url_to_output_path(output_dir, &item.url);
 
                 if let Some(parent) = out_path.parent() {
                     if let Err(e) = fs::create_dir_all(parent) {
@@ -743,9 +758,8 @@ pub fn generate_pages_cached(
             cached_site,
         ) {
             Ok(html) => {
-                // Compute output path from URL
-                let relative = page.url.trim_start_matches('/');
-                let out_path = output_dir.join(relative);
+                // Compute output path from URL (handles trailing-slash pretty URLs)
+                let out_path = url_to_output_path(output_dir, &page.url);
 
                 if let Some(parent) = out_path.parent() {
                     if let Err(e) = fs::create_dir_all(parent) {
@@ -811,6 +825,55 @@ mod tests {
 
     fn test_config() -> SiteConfig {
         SiteConfig::from_file(&site_dir().join("_config.yml")).unwrap()
+    }
+
+    // ========================================================================
+    // Unit: url_to_output_path
+    // ========================================================================
+
+    #[test]
+    fn test_url_to_output_path_trailing_slash() {
+        let out = PathBuf::from("/out");
+        assert_eq!(
+            url_to_output_path(&out, "/stories/my-story/"),
+            PathBuf::from("/out/stories/my-story/index.html")
+        );
+    }
+
+    #[test]
+    fn test_url_to_output_path_html_extension() {
+        let out = PathBuf::from("/out");
+        assert_eq!(
+            url_to_output_path(&out, "/blog/my-post.html"),
+            PathBuf::from("/out/blog/my-post.html")
+        );
+    }
+
+    #[test]
+    fn test_url_to_output_path_root_slash() {
+        let out = PathBuf::from("/out");
+        assert_eq!(
+            url_to_output_path(&out, "/"),
+            PathBuf::from("/out/index.html")
+        );
+    }
+
+    #[test]
+    fn test_url_to_output_path_no_extension() {
+        let out = PathBuf::from("/out");
+        assert_eq!(
+            url_to_output_path(&out, "/about"),
+            PathBuf::from("/out/about.html")
+        );
+    }
+
+    #[test]
+    fn test_url_to_output_path_nested_trailing_slash() {
+        let out = PathBuf::from("/out");
+        assert_eq!(
+            url_to_output_path(&out, "/2024/01/15/my-post/"),
+            PathBuf::from("/out/2024/01/15/my-post/index.html")
+        );
     }
 
     // ========================================================================

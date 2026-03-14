@@ -1,0 +1,14 @@
+{
+  "name": "rustkyll-visual-compare",
+  "version": "1.0.0",
+  "description": "Playwright visual comparison between Jekyll and rustkyll output",
+  "scripts": {
+    "test": "npx playwright test",
+    "install-browsers": "npx playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "pixelmatch": "^6.0.0",
+    "pngjs": "^7.0.0"
+  }
+}

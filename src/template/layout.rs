@@ -263,6 +263,36 @@ impl LayoutEngine {
             cached_site,
         )
     }
+
+    /// Render raw markdown content that may contain Liquid tags, converting
+    /// markdown to HTML after Liquid processing, then wrapping in a layout.
+    ///
+    /// This is the correct pipeline for posts and other markdown files with Liquid:
+    /// 1. Process Liquid tags in the raw markdown
+    /// 2. Convert the result from markdown to HTML
+    /// 3. Wrap in the specified layout
+    pub fn render_markdown_page_with_cached_site(
+        &self,
+        layout_name: &str,
+        raw_content: &str,
+        page_front_matter: &FrontMatter,
+        cached_site: &CachedSiteContext,
+    ) -> Result<String, TemplateError> {
+        // Step 1: Process Liquid tags in the raw content
+        let after_liquid = if raw_content.contains("{{") || raw_content.contains("{%") {
+            let page_ctx = build_render_context_page_only("", page_front_matter);
+            self.engine
+                .parse_and_render_with_cached_site(raw_content, &page_ctx, cached_site)?
+        } else {
+            raw_content.to_string()
+        };
+
+        // Step 2: Convert markdown to HTML
+        let html_content = crate::frontmatter::markdown_to_html(&after_liquid);
+
+        // Step 3: Wrap in layout
+        self.render_with_cached_site(layout_name, &html_content, page_front_matter, cached_site)
+    }
 }
 
 /// Load all layout files from a directory.
