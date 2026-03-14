@@ -689,6 +689,138 @@ mod tests {
     }
 
     // ========================================================================
+    // Liquid tag handling in feed content
+    // ========================================================================
+
+    /// Helper: check if a string contains raw Liquid tags.
+    fn contains_liquid_tags(s: &str) -> bool {
+        s.contains("{{") || s.contains("{%") || s.contains("}}") || s.contains("%}")
+    }
+
+    #[test]
+    fn test_feed_clean_content_no_liquid_tags() {
+        let config = test_config();
+        let posts = vec![make_post(
+            "clean",
+            "Clean Post",
+            "2024-01-15",
+            "Just plain content",
+            None,
+            vec!["alice"],
+        )];
+        let xml = generate_atom_feed(&posts, &config, &FeedOptions::default());
+        assert!(
+            !contains_liquid_tags(&xml),
+            "Feed with clean content should not contain Liquid tags"
+        );
+    }
+
+    #[test]
+    fn test_feed_with_rendered_content_no_liquid_tags() {
+        // Simulate the fix: html_content has been pre-rendered through Liquid
+        let config = test_config();
+        let mut post = make_post(
+            "rendered",
+            "Rendered Post",
+            "2024-01-15",
+            "Visit {{ site.url }}",
+            None,
+            vec![],
+        );
+        // After the fix, html_content would be the rendered result
+        post.html_content = "<p>Visit https://example.com</p>".to_string();
+        let xml = generate_atom_feed(&[post], &config, &FeedOptions::default());
+        assert!(
+            !contains_liquid_tags(&xml),
+            "Feed should not contain Liquid tags when html_content is pre-rendered"
+        );
+        assert!(
+            xml.contains("Visit https://example.com"),
+            "Feed should contain the rendered content"
+        );
+    }
+
+    #[test]
+    fn test_feed_with_include_tag_rendered() {
+        // Simulate: include tag was resolved before feed generation
+        let config = test_config();
+        let mut post = make_post(
+            "include-post",
+            "Include Post",
+            "2024-01-15",
+            "{% include footer.html %}",
+            None,
+            vec![],
+        );
+        // After Liquid rendering, include is resolved
+        post.html_content = "<p>Footer content here</p>".to_string();
+        let xml = generate_atom_feed(&[post], &config, &FeedOptions::default());
+        assert!(
+            !contains_liquid_tags(&xml),
+            "Feed should not contain raw include tags"
+        );
+        assert!(xml.contains("Footer content here"));
+    }
+
+    #[test]
+    fn test_feed_javascript_template_literals_not_false_positive() {
+        // JavaScript template literals like ${var} should not be treated as Liquid tags
+        let config = test_config();
+        let mut post = make_post(
+            "js-post",
+            "JS Post",
+            "2024-01-15",
+            "some js code",
+            None,
+            vec![],
+        );
+        post.html_content = "<p>const msg = `Hello ${name}`;</p>".to_string();
+        let xml = generate_atom_feed(&[post], &config, &FeedOptions::default());
+        // ${} is not a Liquid tag pattern, so it should pass through fine
+        assert!(
+            !contains_liquid_tags(&xml),
+            "JavaScript template literals should not be flagged as Liquid tags"
+        );
+        assert!(xml.contains("${name}"));
+    }
+
+    #[test]
+    fn test_feed_mixed_posts_some_with_liquid_some_without() {
+        // When all posts have been properly rendered, feed should be clean
+        let config = test_config();
+        let mut post_with_liquid = make_post(
+            "liquid-post",
+            "Liquid Post",
+            "2024-01-15",
+            "{{ site.url }}/page",
+            None,
+            vec![],
+        );
+        post_with_liquid.html_content = "<p>https://example.com/page</p>".to_string();
+
+        let plain_post = make_post(
+            "plain-post",
+            "Plain Post",
+            "2024-01-14",
+            "No Liquid here",
+            None,
+            vec![],
+        );
+
+        let xml = generate_atom_feed(
+            &[post_with_liquid, plain_post],
+            &config,
+            &FeedOptions::default(),
+        );
+        assert!(
+            !contains_liquid_tags(&xml),
+            "Feed with mixed posts should not contain Liquid tags after rendering"
+        );
+        assert!(xml.contains("https://example.com/page"));
+        assert!(xml.contains("No Liquid here"));
+    }
+
+    // ========================================================================
     // Integration: real DataTalks.Club posts
     // ========================================================================
 

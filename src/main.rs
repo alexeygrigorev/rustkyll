@@ -358,7 +358,71 @@ fn build_site(
     summary.static_files = static_count;
     summary.timing.static_files = phase_start.elapsed();
 
-    // 12. Generate sitemap.xml and feed.xml
+    // 12. Re-render post html_content through Liquid+markdown so feed entries
+    //     contain fully rendered HTML instead of raw Liquid tags.
+    if let Some(posts) = collections.get_mut("posts") {
+        for item in posts.iter_mut() {
+            // Only re-render if the raw content contains Liquid tags
+            if item.content.contains("{{") || item.content.contains("{%") {
+                // Build a page front matter that matches what the generator provides:
+                // inject url and date so that Liquid templates (e.g. related-posts.html)
+                // can access page.url and page.date.
+                let mut page_fm = item.front_matter.clone();
+                page_fm
+                    .entry("url".to_string())
+                    .or_insert_with(|| serde_yaml::Value::String(item.url.clone()));
+                if !page_fm.contains_key("date") {
+                    if let Some(ref date) = item.date {
+                        page_fm.insert("date".to_string(), serde_yaml::Value::String(date.clone()));
+                    }
+                }
+
+                match layout_engine.render_markdown_content_with_cached_site(
+                    &item.content,
+                    &page_fm,
+                    &cached_site,
+                ) {
+                    Ok(rendered) => {
+                        item.html_content = rendered;
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            "Warning: failed to render Liquid in post '{}': {}",
+                            item.source_path, e
+                        );
+                        // On render failure, strip raw Liquid tags from
+                        // html_content so they don't leak into the feed.
+                        item.html_content = strip_liquid_tags(&item.html_content);
+                    }
+                }
+            }
+        }
+    }
+
+    /// Strip raw Liquid tags from content so they don't leak into the feed.
+    /// Removes `{% ... %}` and `{{ ... }}` blocks.
+    fn strip_liquid_tags(content: &str) -> String {
+        let mut result = content.to_string();
+        // Remove {% ... %} blocks (including multiline)
+        while let Some(start) = result.find("{%") {
+            if let Some(end) = result[start..].find("%}") {
+                result.replace_range(start..start + end + 2, "");
+            } else {
+                break;
+            }
+        }
+        // Remove {{ ... }} blocks
+        while let Some(start) = result.find("{{") {
+            if let Some(end) = result[start..].find("}}") {
+                result.replace_range(start..start + end + 2, "");
+            } else {
+                break;
+            }
+        }
+        result
+    }
+
+    // 13. Generate sitemap.xml and feed.xml
     let phase_start = Instant::now();
 
     // Build collections_vec by iterating the HashMap directly (avoid extra collect)
@@ -367,7 +431,7 @@ fn build_site(
         sitemap::generate_sitemap(&config.url, &collections_vec, &pages, destination)?;
     summary.sitemap_entries = sitemap_count;
 
-    // 13. Generate feed.xml (from posts)
+    // 14. Generate feed.xml (from posts)
     if let Some((_, posts_vec)) = collections_vec.iter().find(|(name, _)| name == "posts") {
         feed::write_atom_feed(posts_vec, &config, &FeedOptions::default(), destination)?;
     } else {
@@ -376,7 +440,7 @@ fn build_site(
     }
     summary.timing.sitemap_feed = phase_start.elapsed();
 
-    // 14. Save the build manifest
+    // 15. Save the build manifest
     let phase_start = Instant::now();
     let mut output_map = HashMap::new();
     for (_, items) in &collections_vec {
