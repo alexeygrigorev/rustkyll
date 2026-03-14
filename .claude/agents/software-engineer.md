@@ -55,9 +55,26 @@ Fix any issues.
 mv docs/tracker/NN-name.groomed.md docs/tracker/NN-name.in-progress.md
 ```
 
-### 6. Report to Orchestrator
+### 6. Log Progress in the Issue File
 
-Report:
+Append a `## Log` section (or append to it) in the issue file with your work:
+
+```markdown
+## Log
+
+### [SWE] YYYY-MM-DD HH:MM
+- What was done (implementation steps, root causes, fixes)
+- Files modified: list of files
+- Tests added: count and description
+- Build results: X tests pass, Y fail, clippy clean/warnings, fmt clean
+- Known limitations (if any)
+```
+
+This is the primary record of what happened. The orchestrator and PM will read it.
+
+### 7. Report to Orchestrator
+
+Report a summary (the log has the details):
 - What files were created/modified
 - Test results (count passing/failing)
 - What works
@@ -65,16 +82,17 @@ Report:
 
 Do NOT commit. Wait for tester review.
 
-### 7. Handle Tester Feedback
+### 8. Handle Tester Feedback
 
 When you receive feedback:
 1. Fix each issue
 2. Run tests again
-3. Report fixes
+3. Append a new log entry to the issue file with what was fixed
+4. Report fixes
 
 Repeat until tester passes.
 
-### 8. Commit (only after PM accepts)
+### 9. Commit (only after PM accepts)
 
 Only after PM reports "ACCEPT":
 

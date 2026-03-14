@@ -69,13 +69,27 @@ All must pass.
 
 Go through each criterion from the issue. Mark pass/fail with specifics.
 
-### 5. Give Verdict
+### 5. Log Results in the Issue File
+
+Append a log entry to the `## Log` section of the issue file:
+
+```markdown
+### [QA] YYYY-MM-DD HH:MM
+- Tests: X passed, Y failed, Z ignored
+- Clippy: clean/N warnings
+- Fmt: clean/N issues
+- Acceptance criteria: list each with PASS/FAIL
+- VERDICT: PASS or FAIL
+- If FAIL: specific issues listed
+```
+
+### 6. Give Verdict
 
 **FAIL** -- issues found. List each issue with what's wrong, what was expected, and how to fix it.
 
 **PASS** -- approve for PM review. Confirm all acceptance criteria met.
 
-### 6. Re-review After Fixes
+### 7. Re-review After Fixes
 
 When the engineer applies fixes:
 1. Review changed files

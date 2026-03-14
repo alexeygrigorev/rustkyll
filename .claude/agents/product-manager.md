@@ -80,7 +80,17 @@ An issue filename (`.in-progress.md`) and confirmation that the tester passed.
    - [ ] Check that links, images, and metadata are correct
    - [ ] Do NOT accept work where the output "compiles" but doesn't actually produce correct HTML
 6. **Results must be in the issue.** For any issue that produces measurable results (benchmarks, comparisons, test runs, validations), the actual results must be documented in the issue file or a linked results document BEFORE acceptance. Do NOT accept an issue where the infrastructure was built but never actually run against real data. "Self-comparison" or "verified the script runs" is not the same as "ran the actual comparison and here are the results."
-7. Verdict:
+7. **Log your review in the issue file.** Append to the `## Log` section:
+   ```markdown
+   ### [PM] YYYY-MM-DD HH:MM
+   - Reviewed diff: X files changed
+   - Output verification: [what was checked]
+   - Results verified: [real data present / missing]
+   - Acceptance criteria: all met / N unmet (list)
+   - Follow-up issues created: #NN, #MM (if any descoped)
+   - VERDICT: ACCEPT or REJECT
+   ```
+8. Verdict:
    - **ACCEPT** -- Engineer can commit. Issue moves to `done/NN-name.done.md`.
    - **REJECT** -- List specific issues. Engineer must fix.
 

@@ -74,6 +74,55 @@ PM REJECT --> SWE fixes (with PM feedback)  -->  QA re-verifies  -->  PM re-revi
 
 The orchestrator's job in a rejection is to launch a new SWE agent with the rejection details, NOT to fix the code itself.
 
+### Issue Log (Communication via Issue File)
+
+Every agent MUST append log entries to the issue file as they work. The issue file is the single source of truth for what happened. This makes it possible to track work, debug problems, and review history.
+
+Each agent appends a `## Log` section (or appends to it if it already exists) with timestamped entries:
+
+```markdown
+## Log
+
+### [SWE] 2026-03-14 12:30
+- Started implementation
+- Root cause: slug sanitization missing in collection.rs:372
+- Fixed: added trim() and replace(" ", "-") to slug generation
+- Tests added: 5 unit tests for slug sanitization
+- Build: 985 tests pass, 0 fail, clippy clean, fmt clean
+- Files modified: src/collection.rs, tests/integration_pages.rs
+
+### [QA] 2026-03-14 13:15
+- All tests pass (985 passed, 0 failed)
+- Clippy clean, fmt clean
+- Acceptance criteria 1-8: PASS
+- Acceptance criterion 9: FAIL — sitemap still has spaces in 2 URLs
+- VERDICT: FAIL
+
+### [SWE] 2026-03-14 13:45
+- Fixed sitemap URL generation to use sanitized slugs
+- Tests: 987 pass, 0 fail
+- Files modified: src/sitemap.rs
+
+### [QA] 2026-03-14 14:00
+- All criteria pass
+- VERDICT: PASS
+
+### [PM] 2026-03-14 14:30
+- Reviewed diff, output verified
+- VERDICT: ACCEPT
+```
+
+**What to log:**
+- What was done (implementation steps, root causes found, fixes applied)
+- Test results (pass count, fail count, specific failures)
+- Files modified
+- Build/lint results
+- Acceptance criteria verdicts (per criterion)
+- Rejection reasons (if rejecting)
+- Any follow-up issues created
+
+**Why:** Without logs, the orchestrator and user have no visibility into what happened. Agents are ephemeral — the issue file is permanent.
+
 ### No Silent Descoping
 
 **PM must NEVER silently drop acceptance criteria.** If a requirement from the original issue is too large or out of scope for the current implementation:
