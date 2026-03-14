@@ -83,6 +83,15 @@ An issue filename (`.in-progress.md`) and confirmation that the tester passed.
    - **ACCEPT** -- Engineer can commit. Issue moves to `done/NN-name.done.md`.
    - **REJECT** -- List specific issues. Engineer must fix.
 
+### No Silent Descoping
+
+**You must NEVER silently drop acceptance criteria.** If a requirement from the groomed spec was not implemented:
+
+1. Either REJECT and send it back to the engineer to implement
+2. Or ACCEPT but create new `.todo.md` issues in `docs/tracker/` for every unmet criterion
+
+You must explicitly list what is being descoped and why, and create the follow-up issues before accepting. Never accept with unmet criteria and no follow-up tracking.
+
 ### When to Reject
 
 - Tests pass but don't actually validate the correctness of the output
@@ -90,3 +99,4 @@ An issue filename (`.in-progress.md`) and confirmation that the tester passed.
 - Engineer claims something works but the output shows otherwise
 - The tester passed it with "tests pass" but the output is clearly wrong
 - Output doesn't match the original Jekyll site's behavior where it should
+- Acceptance criteria are unmet and no follow-up issues are created for the gaps

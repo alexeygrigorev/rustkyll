@@ -74,6 +74,16 @@ PM REJECT --> SWE fixes (with PM feedback)  -->  QA re-verifies  -->  PM re-revi
 
 The orchestrator's job in a rejection is to launch a new SWE agent with the rejection details, NOT to fix the code itself.
 
+### No Silent Descoping
+
+**PM must NEVER silently drop acceptance criteria.** If a requirement from the original issue is too large or out of scope for the current implementation:
+
+1. PM must explicitly call out what is being descoped and why
+2. PM must create a new `.todo.md` issue for each descoped requirement, OR assign it to an existing open issue
+3. The descoped items must be traceable — the new issue should reference the original issue number
+
+The orchestrator must verify that PM acceptance does not silently drop criteria from the groomed spec. If the PM accepts with unmet criteria and no follow-up issues, the orchestrator must reject the acceptance and require follow-up issues be created.
+
 ## Agents
 
 | Agent | File | Role |
