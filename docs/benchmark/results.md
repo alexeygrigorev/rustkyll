@@ -25,9 +25,9 @@ Jekyll version: jekyll 4.4.1
 | DataTalksClub/docs | 57 | 1.793 | FAIL | N/A |
 | academicpages | 1 | 4.405 | 0.357 | 12.33x |
 | beautiful-jekyll | 3 | 0.829 | 0.152 | 5.45x |
-| bitcoin-org | ? | FAIL | FAIL | N/A |
+| bitcoin-org | N/A | FAIL | FAIL | N/A |
 | choosealicense.com | 2 | FAIL | 0.021 | N/A |
-| edition-template | ? | FAIL | FAIL | N/A |
+| edition-template | N/A | FAIL | FAIL | N/A |
 | government-github | 13 | FAIL | 0.064 | N/A |
 | hyde | 5 | FAIL | 0.010 | N/A |
 | jekyll-docs/docs | 228 | 3.039 | FAIL | N/A |
@@ -62,6 +62,54 @@ The primary reference site (DataTalksClub/datatalksclub.github.io, 787 pages) ti
 - Sites that build only with Jekyll: 3 (missing rustkyll features)
 - Sites that fail with both tools: 2 (bitcoin-org, edition-template)
 - Sites where rustkyll times out: 1 (DTC main site)
+
+## Page count investigation (Issue 51)
+
+Six sites had suspicious page counts. Investigation results:
+
+### bitcoin-org: N/A (both tools fail)
+
+- **rustkyll**: FAIL -- uses custom `{% translate %}` tag not supported by rustkyll
+- **Jekyll**: FAIL -- missing Ruby gems (needs `bundle install` with specific dependencies)
+- **Resolution**: Changed "?" to "N/A" in results. No page count is possible since neither tool produces output.
+
+### edition-template: N/A (both tools fail)
+
+- **rustkyll**: FAIL -- config YAML parse error fixed (null string values), but now fails on unsupported `{% feed_meta %}` tag
+- **Jekyll**: FAIL -- missing Ruby gems
+- **Resolution**: Changed "?" to "N/A". The config parse bug was fixed (issue 51) but template compatibility remains a separate issue.
+
+### data-science-interviews: 0 pages (correct)
+
+- The site has no layouts specified in its pages' front matter and no default layout in `_config.yml`
+- rustkyll correctly copies 27 static files but renders 0 HTML pages
+- Jekyll also fails to build this site (missing gems), so no Jekyll comparison available
+- **Resolution**: 0 is the correct page count. No bug.
+
+### academicpages: 1 page (rustkyll) vs 45 pages (Jekyll)
+
+- rustkyll renders only `_site/talkmap/map.html` (1 page), failing on 44 others
+- Two template compatibility issues cause the failures:
+  1. `page["author"][0]` -- indexing a string with `[0]` errors in rustkyll's Liquid engine (should return nil for non-array values)
+  2. `| "Undefined parameter..."` -- string literal used as filter name (non-standard Liquid that Jekyll tolerates)
+- **Resolution**: 1 page is accurate for rustkyll's current capabilities. The 44 missing pages are due to Liquid engine compatibility gaps, not page-discovery bugs. These are template rendering issues to be addressed separately.
+
+### minimal-mistakes: 1 page (Jekyll), rustkyll FAIL
+
+- Previously reported as "1 page" in the benchmark, but rustkyll was actually failing with a config YAML parse error (`invalid type: unit value, expected a string`) due to many null-valued config keys like `url:`, `baseurl:`, etc.
+- **Fix applied in issue 51**: Added `deserialize_string_or_null` to handle YAML null values in string fields (url, baseurl, name, title, permalink)
+- After the config fix, rustkyll now fails with a template error: unsupported `{% include_cached %}` tag (a Jekyll plugin tag)
+- Jekyll produces 1 page (index.html) -- this is correct for the minimal-mistakes theme demo which has only a sample index page
+- **Resolution**: The benchmark's "1 page" was from a stale `_site/` directory. The config parse bug is now fixed. Template compatibility for `include_cached` is a separate issue.
+
+### beautiful-jekyll: 3 pages (rustkyll) vs 6 pages (Jekyll)
+
+- rustkyll renders 3 pages: `tags.html`, `404.html`, `index.html`
+- Jekyll renders 6 pages: the same 3 plus `aboutme/index.html`, `2020-02-28-sample-markdown/index.html`, `2020-02-26-flake-it-till-you-make-it/index.html`
+- The 3 missing pages fail due to two template issues:
+  1. `site.title-on-all-pages` -- variable name with hyphens in a comparison expression causes a parse error (`expected Literal`)
+  2. `page["cover-img"]` -- array type check fails when the value is a string
+- **Resolution**: 3 pages is accurate for rustkyll's current capabilities. The 3 missing pages are due to Liquid template compatibility issues, not page-discovery bugs.
 
 ## Notes
 

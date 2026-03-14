@@ -244,6 +244,11 @@ for site_dir in "${ALL_SITES[@]}"; do
         pages=$(count_pages "$site_dir")
     fi
 
+    # If both tools failed, report N/A instead of "?"
+    if [ "$pages" = "?" ]; then
+        pages="N/A"
+    fi
+
     RESULT_NAMES+=("$name")
     RESULT_PAGES+=("$pages")
     RESULT_JEKYLL+=("$jekyll_time")

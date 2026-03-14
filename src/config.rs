@@ -68,23 +68,37 @@ pub struct DefaultConfig {
     pub values: DefaultValues,
 }
 
+/// Deserialize a string field that may be null in YAML.
+///
+/// Jekyll configs commonly have keys with no value (e.g., `url:` or `baseurl:`),
+/// which YAML parses as null. This deserializer treats null as an empty string
+/// instead of failing with "invalid type: unit value, expected a string".
+fn deserialize_string_or_null<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::Deserialize;
+    let value = Option::<String>::deserialize(deserializer)?;
+    Ok(value.unwrap_or_default())
+}
+
 /// Top-level site configuration parsed from `_config.yml`.
 #[derive(Debug, Clone, Deserialize)]
 pub struct SiteConfig {
     /// Site URL (e.g., "https://example.com").
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_string_or_null")]
     pub url: String,
 
     /// Site base URL path for sites deployed to subpaths (e.g., "/blog").
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_string_or_null")]
     pub baseurl: String,
 
     /// Site name.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_string_or_null")]
     pub name: String,
 
     /// Site title.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_string_or_null")]
     pub title: String,
 
     /// Twitter handle or configuration (optional).
@@ -98,7 +112,10 @@ pub struct SiteConfig {
     pub repository: Option<String>,
 
     /// Global default permalink pattern for posts.
-    #[serde(default = "default_permalink")]
+    #[serde(
+        default = "default_permalink",
+        deserialize_with = "deserialize_string_or_null_with_default"
+    )]
     pub permalink: String,
 
     /// List of files/directories to exclude from site generation.
@@ -118,6 +135,17 @@ pub struct SiteConfig {
     /// These are exposed in templates as `site.<key>`.
     #[serde(flatten)]
     pub extras: HashMap<String, serde_yaml::Value>,
+}
+
+/// Like `deserialize_string_or_null` but falls back to the default permalink
+/// when the value is null.
+fn deserialize_string_or_null_with_default<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::Deserialize;
+    let value = Option::<String>::deserialize(deserializer)?;
+    Ok(value.unwrap_or_else(default_permalink))
 }
 
 fn default_permalink() -> String {
@@ -932,5 +960,77 @@ sass:
         let yaml = "url: first\nurl: second\nurl: third\n";
         let config = SiteConfig::from_yaml_str(yaml).unwrap();
         assert_eq!(config.url, "third");
+    }
+
+    // ========================================================================
+    // Issue 51: Null YAML values for string fields
+    // ========================================================================
+
+    #[test]
+    fn test_null_url_defaults_to_empty() {
+        let yaml = "url:\nname: Test\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.url, "");
+        assert_eq!(config.name, "Test");
+    }
+
+    #[test]
+    fn test_null_baseurl_defaults_to_empty() {
+        let yaml = "baseurl:\nurl: https://example.com\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.baseurl, "");
+        assert_eq!(config.url, "https://example.com");
+    }
+
+    #[test]
+    fn test_null_name_defaults_to_empty() {
+        let yaml = "name:\ntitle: Test\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.name, "");
+        assert_eq!(config.title, "Test");
+    }
+
+    #[test]
+    fn test_null_title_defaults_to_empty() {
+        let yaml = "title:\nname: Test\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.title, "");
+    }
+
+    #[test]
+    fn test_null_permalink_defaults_to_default() {
+        let yaml = "permalink:\nurl: https://example.com\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.permalink, "/:title.html");
+    }
+
+    #[test]
+    fn test_many_null_values_parse_successfully() {
+        // Mimics configs like minimal-mistakes where many keys have null values
+        let yaml = r#"
+url:
+baseurl:
+name:
+title:
+subtitle:
+description:
+permalink:
+repository:
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.url, "");
+        assert_eq!(config.baseurl, "");
+        assert_eq!(config.name, "");
+        assert_eq!(config.title, "");
+        assert_eq!(config.permalink, "/:title.html");
+    }
+
+    #[test]
+    fn test_null_with_comment_parses() {
+        // YAML like `url: # the base hostname` is also null
+        let yaml = "url: # the base hostname\nname: Test\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.url, "");
+        assert_eq!(config.name, "Test");
     }
 }
