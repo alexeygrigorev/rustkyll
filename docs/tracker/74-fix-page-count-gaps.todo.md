@@ -14,7 +14,7 @@ A "10x speedup" is meaningless if rustkyll only renders 1 page while Jekyll rend
 
 ## Goal
 
-For every benchmark site where both tools succeed, rustkyll must render the same number of pages as Jekyll (within 5%). Sites where rustkyll renders <50% of Jekyll's pages must be investigated and fixed.
+For every benchmark site, rustkyll must render the exact same number of pages as Jekyll. Not "close to", not "within 5%" — the exact same number. If there's a difference, it's a bug.
 
 ## Priority: real sites first
 
@@ -41,10 +41,11 @@ None
 
 ## Acceptance criteria
 
-- muan-blog: rustkyll builds successfully and renders close to 2218 pages
-- documentation-theme-jekyll: rustkyll renders close to 100 pages
-- homebrew-site: rustkyll renders close to 134 pages
-- large-blog-3000: rustkyll renders 3001 pages (same as Jekyll)
-- large-docs-site: rustkyll renders 801 pages (same as Jekyll)
+- muan-blog: rustkyll builds successfully and renders exactly 2218 pages (same as Jekyll)
+- documentation-theme-jekyll: rustkyll renders exactly 100 pages (same as Jekyll)
+- homebrew-site: rustkyll renders exactly 134 pages (same as Jekyll)
+- large-blog-3000: rustkyll renders exactly 3001 pages (same as Jekyll)
+- large-docs-site: rustkyll renders exactly 801 pages (same as Jekyll)
+- Page counts match Jekyll exactly for every site — any difference is a bug to fix
 - Benchmark results updated with correct page counts
 - Speed comparisons only shown for sites with matching page counts
