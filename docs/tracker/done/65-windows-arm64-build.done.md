@@ -27,3 +27,8 @@ Add Windows ARM64 (aarch64) to the release workflow matrix.
 - Wheel builder includes the new platform
 - README platform table updated
 - All existing targets still build correctly
+
+
+## Resolution
+
+Absorbed into issue #66 (publish all platform wheels including Windows ARM64).
