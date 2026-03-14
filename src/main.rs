@@ -13,6 +13,7 @@ use rustkyll::generator::{self, GeneratorError};
 use rustkyll::incremental::{self, BuildManifest, IncrementalAction};
 use rustkyll::sitemap;
 use rustkyll::static_files;
+use rustkyll::template::engine::CachedSiteContext;
 use rustkyll::template::layout::LayoutEngine;
 
 #[derive(Debug, Parser)]
@@ -282,8 +283,19 @@ fn build_site(
     }
     std::fs::create_dir_all(destination)?;
 
-    // 9. Generate collection pages (avoid cloning: pass slices directly)
+    // 9. Build cached site context ONCE for all page renders.
+    // This is the key performance optimization: the LenientValue tree for the
+    // site Object (with all posts, pages, collections) is built once and shared
+    // across all collection and page renders, avoiding O(n) work per collection.
     let phase_start = Instant::now();
+    let cached_site = CachedSiteContext::new(&site_context);
+
+    // Pre-collect author items once (used for JSON-LD author resolution).
+    let author_items: Vec<CollectionItem> = collections
+        .values()
+        .flat_map(|v| v.iter().cloned())
+        .collect();
+
     for (name, items) in &collections {
         // For partial rebuilds, filter to only changed items
         let filtered: Vec<CollectionItem>;
@@ -300,20 +312,12 @@ fn build_site(
         };
 
         if !items_slice.is_empty() {
-            // For collections that need JSON-LD with author resolution (e.g., books),
-            // collect all items from all collections as potential author sources.
-            // This is generic -- it works regardless of what the author collection
-            // is named (e.g., "people", "authors", "team").
-            let author_items: Vec<CollectionItem> = collections
-                .values()
-                .flat_map(|v| v.iter().cloned())
-                .collect();
-            let result = generator::generate_collection_pages_with_authors(
+            let result = generator::generate_collection_pages_cached(
                 items_slice,
                 name,
                 &config,
                 &layout_engine,
-                &site_context,
+                &cached_site,
                 destination,
                 &author_items,
             )?;
@@ -337,11 +341,10 @@ fn build_site(
     };
 
     if !pages_slice.is_empty() {
-        let page_result = generator::generate_standalone_pages(
+        let page_result = generator::generate_pages_cached(
             pages_slice,
-            &config,
             &layout_engine,
-            &site_context,
+            &cached_site,
             destination,
         )?;
         summary.standalone_pages = page_result.generated;

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
-use std::sync::RwLock;
+use std::sync::{OnceLock, RwLock};
 
 use liquid::model::{ArrayView, DisplayCow, KStringCow, ObjectView, State, Value, ValueView};
 use liquid::partials::{EagerCompiler, InMemorySource};
@@ -23,23 +23,38 @@ pub struct Template {
 /// `LenientValue` wraps both scalar values (passing through unchanged) and
 /// object values (intercepting `get()` to return `Nil` for missing keys).
 /// Nested objects are recursively wrapped.
-struct LenientValue {
+///
+/// For performance, `LenientValue` can be built once for large shared contexts
+/// (like `site`) and reused across many renders, avoiding O(n^2) deep-cloning.
+pub(crate) struct LenientValue {
     /// The original value.
     inner: Value,
     /// Pre-wrapped child objects (for returning references from `get()`).
     children: std::collections::HashMap<String, LenientValue>,
     /// Pre-wrapped array elements (for returning references from array iteration).
     array_children: Vec<LenientValue>,
-    /// Pre-computed positional children for integer-indexed access on objects.
+    /// Lazily computed positional children for integer-indexed access on objects.
     /// Each entry is a two-element array `[key_string, value]` matching Jekyll's
-    /// `hash[0]` behavior. Only populated for Object values.
-    positional_children: Vec<LenientValue>,
+    /// `hash[0]` behavior. Only populated on first integer-index access.
+    positional_children: OnceLock<Vec<LenientValue>>,
     /// A Nil value we can hand out references to for missing keys.
     nil: Value,
 }
 
+// LenientValue is Sync because all fields are Sync:
+// - inner (Value), children (HashMap), array_children (Vec), nil (Value) are all Sync
+// - positional_children uses OnceLock for safe lazy initialization across threads
+
 impl LenientValue {
-    fn from_value(value: Value) -> Self {
+    /// Build a `LenientValue` tree from a `Value`, recursively wrapping all
+    /// nested objects and arrays. This is the expensive operation that should
+    /// be done ONCE for shared contexts (like `site`) and reused.
+    ///
+    /// Positional children (for Jekyll's `hash[0]` syntax) are NOT built
+    /// eagerly -- they are lazily initialized on first integer-index access.
+    /// This avoids creating millions of extra allocations for objects that
+    /// are never integer-indexed, which was a major bottleneck on large sites.
+    pub(crate) fn from_value(value: Value) -> Self {
         let children = if let Value::Object(ref obj) = value {
             let mut map = std::collections::HashMap::new();
             for (key, val) in obj.iter() {
@@ -56,26 +71,33 @@ impl LenientValue {
         } else {
             Vec::new()
         };
-        // Pre-compute positional children for objects: each entry is a
-        // two-element array [key_string, value] to support Jekyll's hash[0]
-        // integer indexing.
-        let positional_children = if let Value::Object(ref obj) = value {
-            obj.iter()
-                .map(|(key, val)| {
-                    let pair = Value::Array(vec![Value::scalar(key.to_string()), val.to_value()]);
-                    LenientValue::from_value(pair)
-                })
-                .collect()
-        } else {
-            Vec::new()
-        };
         Self {
             inner: value,
             children,
             array_children,
-            positional_children,
+            positional_children: OnceLock::new(),
             nil: Value::Nil,
         }
+    }
+
+    /// Get or lazily initialize positional children for integer-indexed access.
+    ///
+    /// Only builds the positional children on first call, avoiding the cost
+    /// for objects that are never integer-indexed (which is the common case).
+    fn get_positional_children(&self) -> &[LenientValue] {
+        self.positional_children.get_or_init(|| {
+            if let Value::Object(ref obj) = self.inner {
+                obj.iter()
+                    .map(|(key, val)| {
+                        let pair =
+                            Value::Array(vec![Value::scalar(key.to_string()), val.to_value()]);
+                        LenientValue::from_value(pair)
+                    })
+                    .collect()
+            } else {
+                Vec::new()
+            }
+        })
     }
 }
 
@@ -209,10 +231,12 @@ impl ObjectView for LenientValue {
         }
         // Fall back to positional (integer) indexing on objects.
         // Jekyll allows `hash[0]` to return the first [key, value] pair.
-        if !self.positional_children.is_empty() {
+        // Positional children are lazily built only when integer indexing is used.
+        if self.inner.is_object() {
             if let Ok(i) = index.parse::<i64>() {
-                if i >= 0 && (i as usize) < self.positional_children.len() {
-                    return Some(&self.positional_children[i as usize] as &dyn ValueView);
+                let positional = self.get_positional_children();
+                if i >= 0 && (i as usize) < positional.len() {
+                    return Some(&positional[i as usize] as &dyn ValueView);
                 }
                 // Negative or out-of-bounds integer index returns nil.
                 return Some(&self.nil as &dyn ValueView);
@@ -236,10 +260,29 @@ struct LenientObject<'a> {
     page: Option<LenientValue>,
     /// Pre-wrapped include object (small, needs lenient key access).
     include: Option<LenientValue>,
-    /// Pre-wrapped site object (needs lenient access for hash integer indexing).
-    site: Option<LenientValue>,
+    /// Pre-wrapped site object -- either owned (built fresh) or borrowed from cache.
+    /// Using an enum avoids rebuilding the expensive site LenientValue tree on every render.
+    site: CachedOrOwned<'a>,
     /// A Nil value we can hand out references to for missing keys.
     nil: Value,
+}
+
+/// Either a borrowed reference to a pre-built `LenientValue` (for cached site context)
+/// or an owned one built on the fly.
+enum CachedOrOwned<'a> {
+    Cached(&'a LenientValue),
+    Owned(Box<LenientValue>),
+    None,
+}
+
+impl<'a> CachedOrOwned<'a> {
+    fn as_ref(&self) -> Option<&LenientValue> {
+        match self {
+            CachedOrOwned::Cached(v) => Some(v),
+            CachedOrOwned::Owned(v) => Some(v),
+            CachedOrOwned::None => None,
+        }
+    }
 }
 
 impl<'a> LenientObject<'a> {
@@ -250,14 +293,36 @@ impl<'a> LenientObject<'a> {
         let include = inner
             .get("include")
             .map(|v| LenientValue::from_value(v.to_value()));
-        let site = inner
-            .get("site")
-            .map(|v| LenientValue::from_value(v.to_value()));
+        let site = match inner.get("site") {
+            Some(v) => CachedOrOwned::Owned(Box::new(LenientValue::from_value(v.to_value()))),
+            None => CachedOrOwned::None,
+        };
         Self {
             inner,
             page,
             include,
             site,
+            nil: Value::Nil,
+        }
+    }
+
+    /// Create a `LenientObject` using a pre-built `LenientValue` for the site context.
+    ///
+    /// This avoids the expensive `LenientValue::from_value()` call on the site object,
+    /// which is the main O(n^2) bottleneck for large sites. The site `LenientValue`
+    /// is built once and shared across all page renders.
+    fn with_cached_site(inner: &'a Object, cached_site: &'a LenientValue) -> Self {
+        let page = inner
+            .get("page")
+            .map(|v| LenientValue::from_value(v.to_value()));
+        let include = inner
+            .get("include")
+            .map(|v| LenientValue::from_value(v.to_value()));
+        Self {
+            inner,
+            page,
+            include,
+            site: CachedOrOwned::Cached(cached_site),
             nil: Value::Nil,
         }
     }
@@ -340,6 +405,30 @@ impl ObjectView for LenientObject<'_> {
             _ => self.inner.get(index).map(|v| v as &dyn ValueView),
         }
         .or(Some(&self.nil as &dyn ValueView))
+    }
+}
+
+/// Pre-built, cached site context for efficient rendering.
+///
+/// On large sites (787+ pages), building a `LenientValue` tree for the site
+/// context on every render is O(n^2) -- each of the N pages triggers a full
+/// recursive walk of all N post objects. By building the `LenientValue` once
+/// and sharing it, rendering becomes O(n).
+pub struct CachedSiteContext {
+    site_lenient: LenientValue,
+}
+
+impl CachedSiteContext {
+    /// Build a cached site context from a site `Object`.
+    ///
+    /// This is the expensive operation -- it recursively wraps all values in
+    /// the site Object into `LenientValue` nodes. Call this ONCE, then pass
+    /// the result to every `render_with_cached_site` call.
+    pub fn new(site_obj: &Object) -> Self {
+        let site_value = Value::Object(site_obj.clone());
+        Self {
+            site_lenient: LenientValue::from_value(site_value),
+        }
     }
 }
 
@@ -598,6 +687,46 @@ impl TemplateEngine {
     ) -> Result<String, TemplateError> {
         let template = self.parse(template_str)?;
         self.render(&template, context)
+    }
+
+    /// Render a parsed template using a pre-built cached site context.
+    ///
+    /// This avoids the O(n^2) cost of rebuilding the `LenientValue` tree for
+    /// the site object on every render. The `context` Object should contain
+    /// `page` and `content` but NOT `site` -- the site is provided via the
+    /// cached context.
+    ///
+    /// # Errors
+    ///
+    /// Returns `TemplateError::RenderError` for render failures.
+    pub fn render_with_cached_site(
+        &self,
+        template: &Template,
+        context: &Object,
+        cached_site: &CachedSiteContext,
+    ) -> Result<String, TemplateError> {
+        let lenient = LenientObject::with_cached_site(context, &cached_site.site_lenient);
+        template
+            .inner
+            .render(&lenient)
+            .map_err(|e| TemplateError::RenderError(e.to_string()))
+    }
+
+    /// Parse and render a template string using a pre-built cached site context.
+    ///
+    /// Combines `parse()` and `render_with_cached_site()`.
+    ///
+    /// # Errors
+    ///
+    /// Returns `TemplateError::ParseError` or `TemplateError::RenderError`.
+    pub fn parse_and_render_with_cached_site(
+        &self,
+        template_str: &str,
+        context: &Object,
+        cached_site: &CachedSiteContext,
+    ) -> Result<String, TemplateError> {
+        let template = self.parse(template_str)?;
+        self.render_with_cached_site(&template, context, cached_site)
     }
 }
 

@@ -54,8 +54,10 @@ impl Filter for WhereFilter {
         for item in array.values() {
             if let Some(obj) = item.as_object() {
                 if let Some(val) = obj.get(property.as_str()) {
-                    let rendered = val.render().to_string();
-                    if rendered == target_value.as_str() {
+                    // Use to_kstr() instead of render().to_string() to avoid
+                    // unnecessary Display formatting and string allocation.
+                    let val_str = val.to_kstr();
+                    if val_str.as_str() == target_value.as_str() {
                         result.push(item.to_value());
                     }
                 }

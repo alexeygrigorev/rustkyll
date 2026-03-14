@@ -19,7 +19,7 @@ use liquid::model::Value as LiquidValue;
 use liquid::Object;
 
 use super::context::{normalize_arrays, yaml_to_liquid};
-use super::engine::{Template, TemplateEngine};
+use super::engine::{CachedSiteContext, Template, TemplateEngine};
 use super::error::TemplateError;
 use crate::frontmatter::FrontMatter;
 
@@ -171,9 +171,14 @@ impl LayoutEngine {
         page_front_matter: &FrontMatter,
         site_context: &Object,
     ) -> Result<String, TemplateError> {
-        // Step 1: Render the page content itself (it may contain Liquid tags)
-        let page_ctx = build_render_context("", page_front_matter, site_context);
-        let rendered_content = self.engine.parse_and_render(raw_content, &page_ctx)?;
+        // Step 1: Render the page content itself (it may contain Liquid tags).
+        // Skip Liquid parsing for plain HTML content (no {{ or {% tags).
+        let rendered_content = if raw_content.contains("{{") || raw_content.contains("{%") {
+            let page_ctx = build_render_context("", page_front_matter, site_context);
+            self.engine.parse_and_render(raw_content, &page_ctx)?
+        } else {
+            raw_content.to_string()
+        };
 
         // Step 2: Wrap in layout
         self.render(
@@ -181,6 +186,81 @@ impl LayoutEngine {
             &rendered_content,
             page_front_matter,
             site_context,
+        )
+    }
+
+    /// Build a `CachedSiteContext` from a site Object.
+    ///
+    /// Call this ONCE before rendering many pages, then pass the result to
+    /// `render_with_cached_site` / `render_page_with_cached_site`.
+    /// This converts the site Object into a `LenientValue` tree once,
+    /// avoiding O(n^2) deep-cloning on large sites.
+    pub fn build_cached_site_context(site_context: &Object) -> CachedSiteContext {
+        CachedSiteContext::new(site_context)
+    }
+
+    /// Render page content wrapped in a layout, using a pre-built cached site context.
+    ///
+    /// This is the performance-optimized version of `render()`. The site
+    /// `LenientValue` tree is built once and reused, avoiding the O(n^2)
+    /// deep-clone that was the main bottleneck on large sites.
+    pub fn render_with_cached_site(
+        &self,
+        layout_name: &str,
+        content: &str,
+        page_front_matter: &FrontMatter,
+        cached_site: &CachedSiteContext,
+    ) -> Result<String, TemplateError> {
+        let layout = self
+            .layouts
+            .get(layout_name)
+            .ok_or_else(|| TemplateError::LayoutNotFound(layout_name.to_string()))?;
+
+        let ctx = build_render_context_page_only(content, page_front_matter);
+
+        let result = if let Some(compiled) = self.compiled_layouts.get(layout_name) {
+            self.engine
+                .render_with_cached_site(compiled, &ctx, cached_site)?
+        } else {
+            self.engine
+                .parse_and_render_with_cached_site(&layout.source, &ctx, cached_site)?
+        };
+
+        if let Some(ref parent_name) = layout.parent_layout {
+            self.render_with_cached_site(parent_name, &result, page_front_matter, cached_site)
+        } else {
+            Ok(result)
+        }
+    }
+
+    /// Render page content through the template engine then wrap in a layout,
+    /// using a pre-built cached site context.
+    ///
+    /// This is the performance-optimized version of `render_page()`.
+    pub fn render_page_with_cached_site(
+        &self,
+        layout_name: &str,
+        raw_content: &str,
+        page_front_matter: &FrontMatter,
+        cached_site: &CachedSiteContext,
+    ) -> Result<String, TemplateError> {
+        // Optimization: skip Liquid parsing for content that has no Liquid tags.
+        // Many collection items (podcast, books, people) have plain HTML content
+        // with no Liquid tags. Parsing plain HTML through the Liquid parser is
+        // pure overhead.
+        let rendered_content = if raw_content.contains("{{") || raw_content.contains("{%") {
+            let page_ctx = build_render_context_page_only("", page_front_matter);
+            self.engine
+                .parse_and_render_with_cached_site(raw_content, &page_ctx, cached_site)?
+        } else {
+            raw_content.to_string()
+        };
+
+        self.render_with_cached_site(
+            layout_name,
+            &rendered_content,
+            page_front_matter,
+            cached_site,
         )
     }
 }
@@ -314,6 +394,26 @@ pub fn build_render_context(
     ctx.insert("site".into(), LiquidValue::Object(site_context.clone()));
 
     // Insert content
+    ctx.insert("content".into(), LiquidValue::scalar(content.to_owned()));
+
+    ctx
+}
+
+/// Build a render context with only page and content -- no site.
+///
+/// Used with `render_with_cached_site` / `render_page_with_cached_site` where
+/// the site context is provided separately via a `CachedSiteContext`. This
+/// avoids the expensive `site_context.clone()` that was the main O(n^2)
+/// bottleneck on large sites.
+pub fn build_render_context_page_only(content: &str, page_front_matter: &FrontMatter) -> Object {
+    let mut ctx = Object::new();
+
+    let mut page = Object::new();
+    for (key, value) in page_front_matter {
+        page.insert(key.clone().into(), normalize_arrays(yaml_to_liquid(value)));
+    }
+    ctx.insert("page".into(), LiquidValue::Object(page));
+
     ctx.insert("content".into(), LiquidValue::scalar(content.to_owned()));
 
     ctx
