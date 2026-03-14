@@ -143,7 +143,9 @@ pub fn markdown_to_html(markdown: &str) -> String {
     let parser = Parser::new_ext(markdown, options);
     let mut html_output = String::new();
     html::push_html(&mut html_output, parser);
-    html_output
+
+    // Apply kramdown compatibility post-processing
+    crate::kramdown::postprocess(&html_output)
 }
 
 /// Dedent lines inside HTML blocks that have 4+ spaces of leading whitespace.
@@ -386,7 +388,7 @@ mod tests {
     #[test]
     fn test_md_heading() {
         let html = markdown_to_html("## Hello");
-        assert!(html.contains("<h2>"));
+        assert!(html.contains("<h2"), "Should contain h2 tag. Got: {}", html);
         assert!(html.contains("Hello"));
         assert!(html.contains("</h2>"));
     }
@@ -516,7 +518,7 @@ They asked me to perform customer segmentation.
 
         // HTML conversion
         let html = markdown_to_html(&doc.content);
-        assert!(html.contains("<h2>"));
+        assert!(html.contains("<h2"), "Should contain h2 tag. Got: {}", html);
         assert!(html.contains("<figure>"));
         assert!(html.contains("{% include youtube.html"));
     }
@@ -843,7 +845,7 @@ Some markdown text here.
 
         // Markdown heading should be converted
         assert!(
-            html.contains("<h2>Introduction</h2>"),
+            html.contains("Introduction</h2>") && html.contains("<h2"),
             "Markdown heading should be converted to HTML. Got: {}",
             html
         );
@@ -891,17 +893,26 @@ Each week we have a book author coming.
         let dedented = dedent_html_lines(input);
         let html = markdown_to_html(&dedented);
 
-        assert!(html.contains("<h1>Book of the Week</h1>"), "h1 missing");
         assert!(
-            html.contains("<h2>How it works</h2>"),
+            html.contains("Book of the Week</h1>") && html.contains("<h1"),
+            "h1 missing. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("How it works</h2>") && html.contains("<h2"),
             "h2 'How it works' missing. Got: {}",
             html
         );
         assert!(
-            html.contains("<h2>Upcoming books</h2>"),
-            "h2 'Upcoming books' missing"
+            html.contains("Upcoming books</h2>"),
+            "h2 'Upcoming books' missing. Got: {}",
+            html
         );
-        assert!(html.contains("<h2>Archive</h2>"), "h2 'Archive' missing");
+        assert!(
+            html.contains("Archive</h2>"),
+            "h2 'Archive' missing. Got: {}",
+            html
+        );
         assert!(
             html.contains("<li>Register on DataTalks.Club</li>"),
             "list items missing"

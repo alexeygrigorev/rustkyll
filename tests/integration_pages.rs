@@ -520,18 +520,19 @@ fn test_books_has_markdown_headings() {
     }
     let html = read_page("books");
     // books.md has ## How it works, ## Upcoming books, ## Archive
+    // Headings now have auto-generated IDs from kramdown compatibility
     assert!(
-        html.contains("<h2>How it works</h2>"),
-        "books.html should contain <h2>How it works</h2>. Content snippet: {}",
+        html.contains("<h2 id=\"how-it-works\">How it works</h2>"),
+        "books.html should contain <h2 id=\"how-it-works\">How it works</h2>. Content snippet: {}",
         &html[..html.len().min(2000)]
     );
     assert!(
-        html.contains("<h2>Upcoming books</h2>"),
-        "books.html should contain <h2>Upcoming books</h2>"
+        html.contains("<h2 id=\"upcoming-books\">Upcoming books</h2>"),
+        "books.html should contain <h2 id=\"upcoming-books\">Upcoming books</h2>"
     );
     assert!(
-        html.contains("<h2>Archive</h2>"),
-        "books.html should contain <h2>Archive</h2>"
+        html.contains("<h2 id=\"archive\">Archive</h2>"),
+        "books.html should contain <h2 id=\"archive\">Archive</h2>"
     );
 }
 
@@ -543,7 +544,7 @@ fn test_courses_has_markdown_heading() {
     let html = read_page("courses");
     // courses.md has a Courses heading
     assert!(
-        html.contains("<h2>Courses</h2>") || html.contains("<h1>Courses</h1>"),
+        html.contains("Courses</h2>") || html.contains("Courses</h1>"),
         "courses.html should contain a Courses heading rendered from markdown"
     );
 }
@@ -555,12 +556,12 @@ fn test_events_has_markdown_headings() {
     }
     let html = read_page("events");
     assert!(
-        html.contains("<h2>Upcoming events</h2>"),
-        "events.html should contain <h2>Upcoming events</h2>"
+        html.contains("<h2 id=\"upcoming-events\">Upcoming events</h2>"),
+        "events.html should contain <h2 id=\"upcoming-events\">Upcoming events</h2>"
     );
     assert!(
-        html.contains("<h2>Past events</h2>"),
-        "events.html should contain <h2>Past events</h2>"
+        html.contains("<h2 id=\"past-events\">Past events</h2>"),
+        "events.html should contain <h2 id=\"past-events\">Past events</h2>"
     );
 }
 
@@ -571,7 +572,7 @@ fn test_slack_has_markdown_heading() {
     }
     let html = read_page("slack");
     assert!(
-        html.contains("<h2>Channels</h2>"),
-        "slack.html should contain <h2>Channels</h2>"
+        html.contains("Channels</h2>"),
+        "slack.html should contain a Channels heading"
     );
 }

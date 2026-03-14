@@ -53,19 +53,22 @@ mod tests {
     fn test_inline_code() {
         let result = liquid_core::call_filter!(Markdownify, "`code`").unwrap();
         let s = result.to_kstr().to_string();
-        assert!(s.contains("<code>code</code>"), "got: {s}");
+        assert!(
+            s.contains("<code class=\"language-plaintext highlighter-rouge\">code</code>"),
+            "got: {s}"
+        );
     }
 
     #[test]
     fn test_paragraph_wrapping() {
         let result = liquid_core::call_filter!(Markdownify, "hello").unwrap();
-        assert_eq!(result.to_kstr(), "<p>hello</p>\n");
+        assert_eq!(result.to_kstr(), "<p>hello</p>\n\n");
     }
 
     #[test]
     fn test_plain_text() {
         let result = liquid_core::call_filter!(Markdownify, "just text").unwrap();
-        assert_eq!(result.to_kstr(), "<p>just text</p>\n");
+        assert_eq!(result.to_kstr(), "<p>just text</p>\n\n");
     }
 
     #[test]
