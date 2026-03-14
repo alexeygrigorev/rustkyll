@@ -694,8 +694,14 @@ pub fn generate_collection_pages_cached(
                 Err(e) => Err(e),
             }
         } else {
-            // No layout: output just the rendered HTML content (matches Jekyll behavior)
-            Ok(item.html_content.clone())
+            // No layout: output just the rendered HTML content (matches Jekyll behavior).
+            // If the body is empty, output a newline -- Jekyll never produces 0-byte files
+            // for collection items with output: true.
+            if item.html_content.is_empty() {
+                Ok("\n".to_string())
+            } else {
+                Ok(item.html_content.clone())
+            }
         };
 
         match html_result {
@@ -737,7 +743,12 @@ pub fn generate_collection_pages_cached(
                 if let Some(parent) = out_path.parent() {
                     let _ = fs::create_dir_all(parent);
                 }
-                match fs::write(&out_path, &item.html_content) {
+                let fallback_content = if item.html_content.is_empty() {
+                    "\n"
+                } else {
+                    &item.html_content
+                };
+                match fs::write(&out_path, fallback_content) {
                     Ok(()) => {
                         result.lock().unwrap().generated += 1;
                     }
@@ -3388,5 +3399,197 @@ defaults:
                 arr.len()
             );
         }
+    }
+
+    // ========================================================================
+    // Unit: Empty-body collection items (Issue 80)
+    // ========================================================================
+
+    #[test]
+    fn test_empty_body_no_layout_produces_newline() {
+        // A collection item with no layout and empty body should produce "\n"
+        let item = CollectionItem {
+            slug: "modelstore".to_string(),
+            url: "/tools/modelstore.html".to_string(),
+            date: None,
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("ModelStore".to_string()),
+                );
+                fm
+            },
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            collection_name: "tools".to_string(),
+            source_path: "_tools/modelstore.md".to_string(),
+        };
+
+        let tmp = tempfile::tempdir().unwrap();
+        let output_dir = tmp.path();
+
+        // Create minimal layout engine (no layouts needed for this test)
+        let layouts_dir = tmp.path().join("_layouts");
+        let includes_dir = tmp.path().join("_includes");
+        fs::create_dir_all(&layouts_dir).unwrap();
+        fs::create_dir_all(&includes_dir).unwrap();
+        let layout_engine = LayoutEngine::new(&layouts_dir, &includes_dir).unwrap();
+
+        let config = SiteConfig::default();
+        let site_ctx = liquid::Object::new();
+        let cached_site = CachedSiteContext::new(&site_ctx);
+
+        let result = generate_collection_pages_cached(
+            &[item],
+            "tools",
+            &config,
+            &layout_engine,
+            &cached_site,
+            output_dir,
+            &[],
+        )
+        .unwrap();
+
+        assert_eq!(result.generated, 1);
+        assert!(result.errors.is_empty());
+
+        let output_path = output_dir.join("tools/modelstore.html");
+        assert!(output_path.exists(), "Output file should exist");
+
+        let content = fs::read_to_string(&output_path).unwrap();
+        assert_eq!(
+            content, "\n",
+            "Empty-body item with no layout should produce a newline"
+        );
+        assert!(!content.is_empty(), "Output must not be 0 bytes");
+    }
+
+    #[test]
+    fn test_nonempty_body_no_layout_produces_content() {
+        // A collection item with no layout but non-empty body should produce the body content
+        let item = CollectionItem {
+            slug: "sometool".to_string(),
+            url: "/tools/sometool.html".to_string(),
+            date: None,
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("SomeTool".to_string()),
+                );
+                fm
+            },
+            content: "This is a tool.".to_string(),
+            html_content: "<p>This is a tool.</p>\n".to_string(),
+            excerpt: None,
+            collection_name: "tools".to_string(),
+            source_path: "_tools/sometool.md".to_string(),
+        };
+
+        let tmp = tempfile::tempdir().unwrap();
+        let output_dir = tmp.path();
+
+        let layouts_dir = tmp.path().join("_layouts");
+        let includes_dir = tmp.path().join("_includes");
+        fs::create_dir_all(&layouts_dir).unwrap();
+        fs::create_dir_all(&includes_dir).unwrap();
+        let layout_engine = LayoutEngine::new(&layouts_dir, &includes_dir).unwrap();
+
+        let config = SiteConfig::default();
+        let site_ctx = liquid::Object::new();
+        let cached_site = CachedSiteContext::new(&site_ctx);
+
+        let result = generate_collection_pages_cached(
+            &[item],
+            "tools",
+            &config,
+            &layout_engine,
+            &cached_site,
+            output_dir,
+            &[],
+        )
+        .unwrap();
+
+        assert_eq!(result.generated, 1);
+
+        let output_path = output_dir.join("tools/sometool.html");
+        let content = fs::read_to_string(&output_path).unwrap();
+        assert!(
+            content.contains("<p>This is a tool.</p>"),
+            "Non-empty body should be rendered as-is, got: {}",
+            content
+        );
+    }
+
+    #[test]
+    fn test_empty_body_with_layout_renders_through_layout() {
+        // A collection item with a layout but empty body should render through the layout
+        // (not produce just a newline)
+        let item = CollectionItem {
+            slug: "emptytool".to_string(),
+            url: "/tools/emptytool.html".to_string(),
+            date: None,
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("EmptyTool".to_string()),
+                );
+                fm.insert(
+                    "layout".to_string(),
+                    serde_yaml::Value::String("tool".to_string()),
+                );
+                fm
+            },
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            collection_name: "tools".to_string(),
+            source_path: "_tools/emptytool.md".to_string(),
+        };
+
+        let tmp = tempfile::tempdir().unwrap();
+        let output_dir = tmp.path();
+
+        let layouts_dir = tmp.path().join("_layouts");
+        let includes_dir = tmp.path().join("_includes");
+        fs::create_dir_all(&layouts_dir).unwrap();
+        fs::create_dir_all(&includes_dir).unwrap();
+
+        // Create a minimal "tool" layout
+        fs::write(
+            layouts_dir.join("tool.html"),
+            "<html><body>{{ content }}</body></html>",
+        )
+        .unwrap();
+
+        let layout_engine = LayoutEngine::new(&layouts_dir, &includes_dir).unwrap();
+
+        let config = SiteConfig::default();
+        let site_ctx = liquid::Object::new();
+        let cached_site = CachedSiteContext::new(&site_ctx);
+
+        let result = generate_collection_pages_cached(
+            &[item],
+            "tools",
+            &config,
+            &layout_engine,
+            &cached_site,
+            output_dir,
+            &[],
+        )
+        .unwrap();
+
+        assert_eq!(result.generated, 1);
+
+        let output_path = output_dir.join("tools/emptytool.html");
+        let content = fs::read_to_string(&output_path).unwrap();
+        assert!(
+            content.contains("<html>"),
+            "Item with layout should render through layout, got: {}",
+            content
+        );
     }
 }

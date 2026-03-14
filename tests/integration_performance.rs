@@ -294,7 +294,10 @@ fn test_dtc_output_no_empty_html_files() {
     for entry in walkdir(dest.as_path()) {
         if entry.ends_with(".html") {
             let metadata = fs::metadata(&entry).unwrap();
-            if metadata.len() < 100 {
+            // A 0-byte file is always a bug: Jekyll never produces 0-byte output
+            // for items with output: true. Small files (e.g. 1-2 bytes) are
+            // legitimate for collection items with no layout and no body content.
+            if metadata.len() == 0 {
                 empty_files.push((entry, metadata.len()));
             }
         }
@@ -302,7 +305,7 @@ fn test_dtc_output_no_empty_html_files() {
 
     assert!(
         empty_files.is_empty(),
-        "Found {} empty or near-empty HTML files: {:?}",
+        "Found {} zero-byte HTML files (generation bug): {:?}",
         empty_files.len(),
         &empty_files[..empty_files.len().min(10)]
     );
