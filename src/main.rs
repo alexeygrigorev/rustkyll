@@ -838,4 +838,145 @@ mod tests {
             _ => panic!("Expected Serve command"),
         }
     }
+
+    // --- Issue 55: serve/build defaults to current directory ---
+
+    #[test]
+    fn test_cli_build_relative_source_path() {
+        let cli = Cli::try_parse_from(["rustkyll", "build", "--source", "../relative"]).unwrap();
+        match cli.command {
+            Some(Commands::Build { source, .. }) => {
+                assert_eq!(source, PathBuf::from("../relative"));
+            }
+            _ => panic!("Expected Build command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_serve_default_source_is_dot() {
+        let cli = Cli::try_parse_from(["rustkyll", "serve"]).unwrap();
+        match cli.command {
+            Some(Commands::Serve {
+                source,
+                destination,
+                ..
+            }) => {
+                assert_eq!(source, PathBuf::from("."));
+                assert_eq!(destination, PathBuf::from("_site"));
+            }
+            _ => panic!("Expected Serve command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_serve_with_explicit_source() {
+        let cli = Cli::try_parse_from(["rustkyll", "serve", "--source", "/tmp/site"]).unwrap();
+        match cli.command {
+            Some(Commands::Serve { source, .. }) => {
+                assert_eq!(source, PathBuf::from("/tmp/site"));
+            }
+            _ => panic!("Expected Serve command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_serve_with_explicit_destination() {
+        let cli = Cli::try_parse_from(["rustkyll", "serve", "--destination", "/tmp/out"]).unwrap();
+        match cli.command {
+            Some(Commands::Serve { destination, .. }) => {
+                assert_eq!(destination, PathBuf::from("/tmp/out"));
+            }
+            _ => panic!("Expected Serve command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_build_relative_dot_source() {
+        let cli = Cli::try_parse_from(["rustkyll", "build", "--source", "."]).unwrap();
+        match cli.command {
+            Some(Commands::Build { source, .. }) => {
+                assert_eq!(source, PathBuf::from("."));
+            }
+            _ => panic!("Expected Build command"),
+        }
+    }
+
+    #[test]
+    fn test_build_site_with_dot_source() {
+        // Create a minimal site in a temp directory and build with source = "."
+        let tmp = tempfile::tempdir().unwrap();
+        let site_root = tmp.path();
+
+        // Minimal config
+        std::fs::create_dir_all(site_root.join("_layouts")).unwrap();
+        std::fs::create_dir_all(site_root.join("_includes")).unwrap();
+        std::fs::write(
+            site_root.join("_config.yml"),
+            "url: \"https://example.com\"\ntitle: \"Dot Test\"\n",
+        )
+        .unwrap();
+        std::fs::write(
+            site_root.join("_layouts/page.html"),
+            "<html><body>{{ content }}</body></html>",
+        )
+        .unwrap();
+        std::fs::write(
+            site_root.join("index.md"),
+            "---\ntitle: Home\nlayout: page\npermalink: /index.html\n---\nHello dot source.",
+        )
+        .unwrap();
+
+        let dest = site_root.join("_site");
+        let options = BuildOptions {
+            incremental: false,
+            force: false,
+        };
+
+        // Build using the absolute path (equivalent to passing "." while CWD = site_root)
+        let result = build_site(site_root, &dest, &options);
+        assert!(
+            result.is_ok(),
+            "build_site should succeed: {:?}",
+            result.err()
+        );
+
+        let summary = result.unwrap();
+        assert!(
+            summary.standalone_pages > 0,
+            "Should generate at least one page"
+        );
+        assert!(
+            dest.join("index.html").exists(),
+            "index.html should be in _site/"
+        );
+
+        let content = std::fs::read_to_string(dest.join("index.html")).unwrap();
+        assert!(
+            content.contains("Hello dot source"),
+            "Output should contain page content"
+        );
+    }
+
+    #[test]
+    fn test_build_site_missing_config_returns_error() {
+        let tmp = tempfile::tempdir().unwrap();
+        let empty_dir = tmp.path();
+        let dest = empty_dir.join("_site");
+        let options = BuildOptions {
+            incremental: false,
+            force: false,
+        };
+
+        let result = build_site(empty_dir, &dest, &options);
+        assert!(
+            result.is_err(),
+            "Should return error for missing _config.yml"
+        );
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("config") || err_msg.contains("No such file"),
+            "Error should mention config or file not found, got: {}",
+            err_msg
+        );
+    }
 }

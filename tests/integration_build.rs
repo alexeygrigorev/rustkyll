@@ -439,6 +439,269 @@ defaults:
 }
 
 // ============================================================================
+// Issue 55: Build with default source (current directory)
+// ============================================================================
+
+/// Helper: create a minimal synthetic site in the given directory.
+fn create_minimal_site(site_dir: &Path) {
+    fs::create_dir_all(site_dir.join("_layouts")).unwrap();
+    fs::create_dir_all(site_dir.join("_includes")).unwrap();
+    fs::create_dir_all(site_dir.join("_data")).unwrap();
+
+    fs::write(
+        site_dir.join("_config.yml"),
+        r#"
+url: "https://example.com"
+name: "Default Source Test"
+title: "Default Source Test"
+permalink: "/blog/:title.html"
+"#,
+    )
+    .unwrap();
+
+    fs::write(
+        site_dir.join("_layouts/page.html"),
+        "<html><body>{{ content }}</body></html>",
+    )
+    .unwrap();
+
+    fs::write(
+        site_dir.join("index.md"),
+        "---\ntitle: Home\nlayout: page\npermalink: /index.html\n---\nWelcome default source.",
+    )
+    .unwrap();
+
+    // A data file to verify data loading works
+    fs::write(site_dir.join("_data/info.yml"), "key: value\n").unwrap();
+
+    // A static file
+    fs::write(site_dir.join("CNAME"), "example.com").unwrap();
+}
+
+#[test]
+fn test_cli_build_no_source_flag_uses_cwd() {
+    let tmp = tempfile::tempdir().unwrap();
+    let site = tmp.path().join("mysite");
+    fs::create_dir_all(&site).unwrap();
+    create_minimal_site(&site);
+
+    // Run rustkyll build with no --source flag, with CWD set to the site directory.
+    // Destination is explicitly set to a temp path to avoid polluting CWD.
+    let dest = tmp.path().join("output");
+    let output = Command::new(env!("CARGO_BIN_EXE_rustkyll"))
+        .arg("build")
+        .arg("--destination")
+        .arg(dest.to_str().unwrap())
+        .current_dir(&site)
+        .output()
+        .expect("failed to run rustkyll binary");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert!(
+        output.status.success(),
+        "Build with default source should succeed.\nstdout: {}\nstderr: {}",
+        stdout,
+        stderr
+    );
+
+    assert!(
+        stdout.contains("Build complete!"),
+        "Should show completion message"
+    );
+    assert!(
+        dest.join("index.html").exists(),
+        "index.html should be generated"
+    );
+    assert!(dest.join("CNAME").exists(), "Static files should be copied");
+
+    let index = fs::read_to_string(dest.join("index.html")).unwrap();
+    assert!(
+        index.contains("Welcome default source"),
+        "Output should contain page content"
+    );
+}
+
+#[test]
+fn test_cli_build_default_destination_is_site_in_cwd() {
+    let tmp = tempfile::tempdir().unwrap();
+    let site = tmp.path().join("mysite");
+    fs::create_dir_all(&site).unwrap();
+    create_minimal_site(&site);
+
+    // Run rustkyll build with no --source and no --destination, CWD = site dir.
+    // Default destination should be _site/ relative to CWD.
+    let output = Command::new(env!("CARGO_BIN_EXE_rustkyll"))
+        .arg("build")
+        .current_dir(&site)
+        .output()
+        .expect("failed to run rustkyll binary");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert!(
+        output.status.success(),
+        "Build with all defaults should succeed.\nstdout: {}\nstderr: {}",
+        stdout,
+        stderr
+    );
+
+    // _site/ should appear inside the site directory (CWD)
+    let default_dest = site.join("_site");
+    assert!(
+        default_dest.exists(),
+        "_site/ should be created in CWD ({})",
+        default_dest.display()
+    );
+    assert!(
+        default_dest.join("index.html").exists(),
+        "index.html should be in _site/"
+    );
+}
+
+#[test]
+fn test_cli_build_relative_source_path() {
+    let tmp = tempfile::tempdir().unwrap();
+    let site = tmp.path().join("sites").join("mysite");
+    fs::create_dir_all(&site).unwrap();
+    create_minimal_site(&site);
+
+    let dest = tmp.path().join("output");
+
+    // Run from tmp.path()/sites/ with --source ../sites/mysite (relative)
+    let parent = tmp.path().join("sites");
+    let output = Command::new(env!("CARGO_BIN_EXE_rustkyll"))
+        .arg("build")
+        .arg("--source")
+        .arg("mysite")
+        .arg("--destination")
+        .arg(dest.to_str().unwrap())
+        .current_dir(&parent)
+        .output()
+        .expect("failed to run rustkyll binary");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert!(
+        output.status.success(),
+        "Build with relative source should succeed.\nstdout: {}\nstderr: {}",
+        stdout,
+        stderr
+    );
+
+    assert!(
+        dest.join("index.html").exists(),
+        "index.html should be generated"
+    );
+}
+
+#[test]
+fn test_cli_build_dotdot_relative_source_path() {
+    let tmp = tempfile::tempdir().unwrap();
+    let site = tmp.path().join("mysite");
+    fs::create_dir_all(&site).unwrap();
+    create_minimal_site(&site);
+
+    let run_dir = tmp.path().join("other");
+    fs::create_dir_all(&run_dir).unwrap();
+
+    let dest = tmp.path().join("output");
+
+    // Run from other/ with --source ../mysite
+    let output = Command::new(env!("CARGO_BIN_EXE_rustkyll"))
+        .arg("build")
+        .arg("--source")
+        .arg("../mysite")
+        .arg("--destination")
+        .arg(dest.to_str().unwrap())
+        .current_dir(&run_dir)
+        .output()
+        .expect("failed to run rustkyll binary");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert!(
+        output.status.success(),
+        "Build with ../relative source should succeed.\nstdout: {}\nstderr: {}",
+        stdout,
+        stderr
+    );
+
+    assert!(
+        dest.join("index.html").exists(),
+        "index.html should be generated"
+    );
+}
+
+#[test]
+fn test_cli_build_missing_config_graceful_error() {
+    let tmp = tempfile::tempdir().unwrap();
+    let empty_dir = tmp.path();
+    let dest = tmp.path().join("output");
+
+    let output = Command::new(env!("CARGO_BIN_EXE_rustkyll"))
+        .arg("build")
+        .arg("--destination")
+        .arg(dest.to_str().unwrap())
+        .current_dir(empty_dir)
+        .output()
+        .expect("failed to run rustkyll binary");
+
+    assert!(
+        !output.status.success(),
+        "Build should fail when _config.yml is missing"
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("Build failed"),
+        "Should print failure message, got: {}",
+        stderr
+    );
+}
+
+#[test]
+fn test_cli_build_explicit_source_override() {
+    // Verify --source flag overrides default CWD behavior
+    let tmp = tempfile::tempdir().unwrap();
+    let site = tmp.path().join("actual_site");
+    fs::create_dir_all(&site).unwrap();
+    create_minimal_site(&site);
+
+    let dest = tmp.path().join("output");
+
+    // Run from tmp root (which has no _config.yml) but --source points to actual_site
+    let output = Command::new(env!("CARGO_BIN_EXE_rustkyll"))
+        .arg("build")
+        .arg("--source")
+        .arg(site.to_str().unwrap())
+        .arg("--destination")
+        .arg(dest.to_str().unwrap())
+        .current_dir(tmp.path())
+        .output()
+        .expect("failed to run rustkyll binary");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert!(
+        output.status.success(),
+        "Build with explicit --source should succeed.\nstdout: {}\nstderr: {}",
+        stdout,
+        stderr
+    );
+
+    assert!(
+        dest.join("index.html").exists(),
+        "index.html should be generated"
+    );
+}
+
+// ============================================================================
 // Phase timing tests (Issue 31)
 // ============================================================================
 
