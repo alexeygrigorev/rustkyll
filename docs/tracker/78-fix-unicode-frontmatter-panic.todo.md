@@ -1,5 +1,9 @@
 # Issue 78: Fix Unicode byte boundary panic in frontmatter parsing
 
+## Priority
+
+CRITICAL — blocks actual usage of rustkyll on the DTC site via `uvx rustkyll build`. Confirmed still present in v0.1.3.
+
 ## Problem
 
 On Windows, building the DTC site panics at `src/frontmatter.rs:61:33`:
