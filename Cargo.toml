@@ -1,10 +1,11 @@
 [package]
 name = "rustkyll"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 
 [dependencies]
 chrono = "0.4"
+grass = "0.13"
 rayon = "1.10"
 clap = { version = "4", features = ["derive"] }
 kstring = { version = "2.0", features = ["arc"] }
