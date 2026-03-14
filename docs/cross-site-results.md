@@ -1,13 +1,13 @@
 # Cross-Site Build Testing Results
 
-Tested: 2026-03-14
-
-## Summary
+## Verified Results (2026-03-14)
 
 **11 Jekyll sites found** across `alexeygrigorev` and `DataTalksClub` GitHub accounts.
 
-- **7 of 11 sites build successfully** (64%)
-- **4 of 11 sites fail** (36%)
+- **10 of 11 sites build successfully** (91%)
+- **1 of 11 sites fail** (9%)
+
+Previous result (before issues #37-44): 7 of 11 (64%).
 
 ## Sites Tested
 
@@ -15,90 +15,64 @@ Tested: 2026-03-14
 
 | Repository | Status | Pages | Static Files | Time | Notes |
 |---|---|---|---|---|---|
-| alexeygrigorev.github.io | OK | 0 | 16 | 0.01s | Simple personal site, no collections |
-| kids-horror-stories-ru | OK | 1344 | 2622 | 4.06s | Large site with 1343 posts |
-| snippets | OK | 0 | 5 | 0.01s | Minimal site |
-| data-science-interviews | OK | 0 | 24 | 0.01s | Pages not rendered (no layout specified) |
-| mlwiki.org | OK | 1 | 6 | 0.00s | Minimal wiki site |
-| mlbookcamp-page | FAIL | - | - | - | Unknown filter: `erl_encode` |
-| aihero | FAIL | - | - | - | Unknown tag: `seo` (Jekyll SEO Tag plugin) |
-| little-book-of-metals-ru | FAIL | - | - | - | Unknown filter: `normalize_whitespace` |
+| alexeygrigorev.github.io | OK | 8 | 11 | 0.01s | Simple personal site |
+| kids-horror-stories-ru | OK | 1345 | 2624 | 73.46s | Large site with 1343+ posts |
+| snippets | OK | 2 | 6 | 0.00s | Minimal site |
+| data-science-interviews | OK | 0 | 27 | 0.00s | Pages not rendered (no layout specified) |
+| mlwiki.org | OK | 2 | 8 | 0.00s | Minimal wiki site |
+| mlbookcamp-page | OK | 15 | 77 | 0.02s | `erl_encode` filter handled via passthrough with warning |
+| aihero | OK | 2 | 38 | 0.01s | `{% seo %}` tag now supported (#38) |
+| little-book-of-metals-ru | OK | 1 | 12 | 0.01s | `normalize_whitespace` filter now supported (#37) |
 
 ### DataTalksClub (3 sites)
 
 | Repository | Status | Pages | Static Files | Time | Notes |
 |---|---|---|---|---|---|
-| datatalksclub.github.io | OK | 779 | 1455 | 16.75s | Primary reference site; 6 template warnings |
-| courses | OK | 0 | 82 | 0.01s | Course listing site, no rendered pages |
-| docs | FAIL | - | - | - | Include path with `/` not supported |
+| datatalksclub.github.io | OK | 784 | 1457 | 621.68s | Primary reference site |
+| courses | OK | 5 | 80 | 0.03s | Course listing site |
+| docs | FAIL | - | - | 0.01s | Escaped quotes in include parameter values |
 
 ## Failure Details
 
-### 1. Unknown filter: `erl_encode` (mlbookcamp-page)
+### 1. Escaped quotes in include parameters (DataTalksClub/docs)
 
 ```
-Build failed: template error: template parse error: liquid: Unknown filter
-  with: requested filter=erl_encode
+Build failed: template parse error: liquid:   --> 23:124
+   |
+23 | {% include "vendor/anchor_headings.html" html=content beforeHeading="true"
+   |   anchorBody="<svg viewBox=\"0 0 16 16\" ...>" ... %}
+   |                                          ^---
+   = expected Value, Range, ...
 ```
 
-The template `_layouts/article.html` uses `{{ page.title | erl_encode }}` which is likely a typo for `url_encode`. This is a valid error -- the site has a bug in its template. However, rustkyll should ideally not crash on unknown filters but skip them with a warning.
+The include tag uses escaped double quotes (`\"`) inside parameter values. The Liquid template parser does not handle backslash-escaped quotes within include tag arguments. This is a different issue from #39 (include subdirectory paths), which was about forward slashes in filenames.
 
-### 2. Unknown tag: `seo` (aihero)
+## Improvements Since Last Test
 
-```
-Build failed: template error: template parse error: liquid:
-    {% seo %}
-       ^^^
-    = Unknown tag.
-```
-
-The `{% seo %}` tag comes from the `jekyll-seo-tag` plugin. This is a widely-used Jekyll plugin that generates SEO metadata (Open Graph, Twitter Cards, JSON-LD). Rustkyll does not currently support Jekyll plugins.
-
-### 3. Unknown filter: `normalize_whitespace` (little-book-of-metals-ru)
-
-```
-Build failed: template error: template parse error: liquid: Unknown filter
-  with: requested filter=normalize_whitespace
-```
-
-The `normalize_whitespace` filter is a built-in Jekyll filter that collapses multiple whitespace characters into a single space. It is not implemented in rustkyll.
-
-### 4. Include path with `/` separator (docs)
-
-```
-Build failed: template error: template parse error: liquid:
-    {% include icons/icons.html %}
-                    ^---
-    = expected Value, Range, ...
-```
-
-Include tags with path separators (`/`) in the filename are not parsed correctly by the Liquid template engine. This is the same issue affecting 6 posts in `datatalksclub.github.io` (the `course-structured-data/*.html` includes).
-
-## Distinct Failure Modes
-
-1. **Missing Jekyll filters** (`normalize_whitespace`, `erl_encode`) -- filters not implemented in rustkyll
-2. **Missing Jekyll plugin tags** (`{% seo %}`) -- plugin system not supported
-3. **Include paths with `/`** -- template parser does not handle subdirectory includes
-
-## Update (2026-03-14)
-
-Issues #37-42 implemented the following fixes:
-- Issue #37: Missing Jekyll filters (`normalize_whitespace`, `number_of_words`, `group_by`, `xml_escape`, `truncatewords`, `date_to_long_string`, etc.)
-- Issue #38: `{% seo %}` tag (Jekyll SEO Tag plugin)
-- Issue #39: Include paths with `/` subdirectory separator
-- Issue #40: `{% highlight %}` tag
-- Issue #41: Dynamic include paths (`{% include {{ expr }} %}`)
-- Issue #42: `site.related_posts` and `site.pages`
-
-### Expected impact on previously-failing sites
-
-| Repository | Previous Status | Expected Status | Reason |
+| Repository | Previous Status | Current Status | Fix |
 |---|---|---|---|
-| mlbookcamp-page | FAIL | FAIL | `erl_encode` is a site-specific typo, not a standard Jekyll filter |
-| aihero | FAIL | OK | `{% seo %}` tag now supported (#38) |
-| little-book-of-metals-ru | FAIL | OK | `normalize_whitespace` filter now supported (#37) |
-| DataTalksClub/docs | FAIL | OK | Include paths with `/` now supported (#39) |
+| mlbookcamp-page | FAIL | OK | Unknown filters now pass through with warning instead of failing |
+| aihero | FAIL | OK | `{% seo %}` tag implemented (#38) |
+| little-book-of-metals-ru | FAIL | OK | `normalize_whitespace` filter implemented (#37) |
+| DataTalksClub/docs | FAIL | FAIL | Include paths with `/` fixed (#39), but new blocker: escaped quotes in include params |
 
-Expected result: 10 of 11 sites should now build (91%), up from 7 of 11 (64%).
+## Page Count Changes
 
-The only remaining failure (`mlbookcamp-page`) is due to a typo in the site itself (`erl_encode` instead of `url_encode`), not a rustkyll limitation.
+| Repository | Previous Pages | Current Pages | Delta | Notes |
+|---|---|---|---|---|
+| alexeygrigorev.github.io | 0 | 8 | +8 | Pages now rendered (likely site.pages fix #42) |
+| kids-horror-stories-ru | 1344 | 1345 | +1 | Minor |
+| snippets | 0 | 2 | +2 | Pages now rendered |
+| data-science-interviews | 0 | 0 | 0 | No layouts, expected |
+| mlwiki.org | 1 | 2 | +1 | Minor |
+| mlbookcamp-page | - | 15 | new | Now builds |
+| aihero | - | 2 | new | Now builds |
+| little-book-of-metals-ru | - | 1 | new | Now builds |
+| datatalksclub.github.io | 779 | 784 | +5 | Minor |
+| courses | 0 | 5 | +5 | Pages now rendered |
+
+## New Issues Discovered
+
+| Issue | Description | Affected Site |
+|---|---|---|
+| (new) | Escaped quotes (`\"`) in include tag parameter values not parsed | DataTalksClub/docs |
