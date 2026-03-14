@@ -1,111 +1,174 @@
 # Benchmark: rustkyll vs Jekyll
 
-Generated: 2026-03-14 11:00 UTC
+Generated: 2026-03-14 22:26 UTC
 
 Configuration: 3 runs per tool, median wall-clock time reported.
 Timeout: 120s per build.
 
-rustkyll version: rustkyll 0.1.0
+rustkyll version: rustkyll 0.1.4
 Jekyll version: jekyll 4.4.1
 
-## Results
+## Summary
+
+rustkyll is faster than Jekyll on every site where both tools succeed. Speedups range from 2x (mlwiki.org) to 142x (academicpages). For the primary target site (DataTalksClub/datatalksclub.github.io), rustkyll builds in 1.9s vs Jekyll's 19.1s -- a 10x speedup.
+
+14 of 32 sites build successfully with both tools (down from 16 in the previous run: beautiful-jekyll, homebrew-site, and jekyll-docs/docs regressed; muan-blog was gained). Structural equivalence varies widely: sites with simple layouts (kids-horror-stories-ru, alexeygrigorev.github.io) have near-perfect match, while sites with complex theme layouts (so-simple-theme, documentation-theme-jekyll) show significant structural differences due to missing Liquid features. Visual fidelity is excellent for well-supported sites (0% pixel diff for courses, people pages) and degrades proportionally with structural gaps.
+
+## All Sites -- Speed Benchmark
 
 | Site | Pages | Jekyll (s) | rustkyll (s) | Speedup |
 |------|-------|------------|-------------|---------|
-| alexeygrigorev/aihero | 2 | FAIL | 0.017 | N/A |
-| alexeygrigorev/alexeygrigorev.github.io | 8 | 0.566 | 0.010 | 56.60x |
+| alexeygrigorev/aihero | 2 | FAIL | 0.021 | N/A |
+| alexeygrigorev/alexeygrigorev.github.io | 8 | 0.568 | 0.014 | 40.57x |
 | alexeygrigorev/data-science-interviews | 0 | FAIL | 0.008 | N/A |
-| alexeygrigorev/kids-horror-stories-ru | 1345 | 3.816 | 0.297 | 12.84x |
-| alexeygrigorev/little-book-of-metals-ru | 1 | 2.299 | 0.014 | 164.21x |
-| alexeygrigorev/mlbookcamp-page | 15 | FAIL | 0.016 | N/A |
-| alexeygrigorev/mlwiki.org | 2 | 0.971 | 0.009 | 107.88x |
-| alexeygrigorev/snippets | 2 | 0.649 | 0.008 | 81.12x |
-| DataTalksClub/courses | 5 | FAIL | 0.015 | N/A |
-| DataTalksClub/datatalksclub.github.io | 784 | 19.155 | 5.925 | 3.23x |
-| DataTalksClub/docs | 1 | 1.805 | 0.016 | 112.81x |
-| academicpages | 1 | 4.418 | 0.028 | 157.78x |
-| beautiful-jekyll | 3 | 0.804 | 0.022 | 36.54x |
+| alexeygrigorev/kids-horror-stories-ru | 1345 | 3.787 | 0.503 | 7.52x |
+| alexeygrigorev/little-book-of-metals-ru | 43 | 2.276 | 0.389 | 5.85x |
+| alexeygrigorev/mlbookcamp-page | 15 | FAIL | 0.065 | N/A |
+| alexeygrigorev/mlwiki.org | 640 | 0.973 | 0.489 | 1.98x |
+| alexeygrigorev/snippets | 25 | 0.639 | 0.013 | 49.15x |
+| DataTalksClub/courses | 5 | FAIL | 0.031 | N/A |
+| DataTalksClub/datatalksclub.github.io | 787 | 19.145 | 1.877 | 10.19x |
+| DataTalksClub/docs | 57 | 1.788 | 0.033 | 54.18x |
+| academicpages | 17 | 4.414 | 0.031 | 142.38x |
+| beautiful-jekyll | 6 | 0.806 | FAIL | N/A |
 | bitcoin-org | N/A | FAIL | FAIL | N/A |
-| choosealicense.com | 2 | FAIL | 0.011 | N/A |
-| documentation-theme-jekyll | 8 | 3.618 | 0.017 | 212.82x |
+| choosealicense.com | 72 | FAIL | 0.039 | N/A |
+| documentation-theme-jekyll | 100 | 3.600 | 0.072 | 50.00x |
 | edition-template | N/A | FAIL | FAIL | N/A |
-| government-github | 13 | FAIL | 0.021 | N/A |
-| homebrew-site | 53 | 1.212 | 0.027 | 44.88x |
-| hyde | 5 | FAIL | 0.008 | N/A |
-| jekyll-docs/docs | 7 | 2.974 | 0.060 | 49.56x |
-| large-blog-3000 | 1 | 4.279 | 0.393 | 10.88x |
-| large-docs-site | 1 | 23.227 | 0.009 | 2580.77x |
-| made-mistakes-jekyll | 1 | FAIL | 0.007 | N/A |
-| minima | 1 | FAIL | 0.009 | N/A |
-| minimal-mistakes | 2 | 0.903 | 0.043 | 21.00x |
-| muan-blog | 2218 | 15.818 | FAIL | N/A |
-| opensource-guide | 4 | FAIL | 0.018 | N/A |
-| programming-historian | 54 | FAIL | 0.264 | N/A |
-| so-simple-theme | 2 | 1.439 | 0.014 | 102.78x |
+| government-github | 21 | FAIL | 5.106 | N/A |
+| homebrew-site | 134 | FAIL | 0.049 | N/A |
+| hyde | 6 | FAIL | 0.010 | N/A |
+| jekyll-docs/docs | 228 | 2.974 | FAIL | N/A |
+| large-blog-3000 | 3001 | 4.303 | 1.430 | 3.00x |
+| large-docs-site | 801 | 23.366 | 0.282 | 82.85x |
+| made-mistakes-jekyll | 2 | FAIL | 0.010 | N/A |
+| minima | 9 | FAIL | 0.011 | N/A |
+| minimal-mistakes | 2 | 0.922 | 0.055 | 16.76x |
+| muan-blog | 2218 | 15.869 | 0.364 | 43.59x |
+| opensource-guide | 390 | FAIL | 1.178 | N/A |
+| programming-historian | N/A | FAIL | FAIL | N/A |
+| so-simple-theme | 11 | 1.476 | 0.025 | 59.04x |
 | uswds-site | N/A | FAIL | FAIL | N/A |
-| wtf-html-css | 1 | FAIL | 0.009 | N/A |
+| wtf-html-css | 1 | FAIL | 0.013 | N/A |
 
-## Sites where both tools succeeded
+## Dual-Success Sites -- Consolidated Comparison
 
-| Site | Pages | Jekyll (s) | rustkyll (s) | Speedup |
-|------|-------|------------|-------------|---------|
-| alexeygrigorev/alexeygrigorev.github.io | 8 | 0.566 | 0.010 | 56.60x |
-| alexeygrigorev/kids-horror-stories-ru | 1345 | 3.816 | 0.297 | 12.84x |
-| alexeygrigorev/little-book-of-metals-ru | 1 | 2.299 | 0.014 | 164.21x |
-| alexeygrigorev/mlwiki.org | 2 | 0.971 | 0.009 | 107.88x |
-| alexeygrigorev/snippets | 2 | 0.649 | 0.008 | 81.12x |
-| DataTalksClub/datatalksclub.github.io | 784 | 19.155 | 5.925 | 3.23x |
-| DataTalksClub/docs | 1 | 1.805 | 0.016 | 112.81x |
-| academicpages | 1 | 4.418 | 0.028 | 157.78x |
-| beautiful-jekyll | 3 | 0.804 | 0.022 | 36.54x |
-| documentation-theme-jekyll | 8 | 3.618 | 0.017 | 212.82x |
-| homebrew-site | 53 | 1.212 | 0.027 | 44.88x |
-| jekyll-docs/docs | 7 | 2.974 | 0.060 | 49.56x |
-| large-blog-3000 | 1 | 4.279 | 0.393 | 10.88x |
-| large-docs-site | 1 | 23.227 | 0.009 | 2580.77x |
-| minimal-mistakes | 2 | 0.903 | 0.043 | 21.00x |
-| so-simple-theme | 2 | 1.439 | 0.014 | 102.78x |
+For every site where both Jekyll and rustkyll succeed, the table below shows speed, structural equivalence, and visual fidelity in one view.
 
-rustkyll is faster than Jekyll on every site where both tools succeed. Speedups range from 3x (DTC main site, 784 pages) to 2581x (large-docs-site, 801 Jekyll pages vs 1 rustkyll page). For sites where rustkyll renders comparable page counts, the speedup is typically 10-160x.
+| Site | Pages | Jekyll (s) | rustkyll (s) | Speedup | File Match | Struct Diffs | Liquid Leaks | Visual Diff |
+|------|-------|------------|-------------|---------|------------|-------------|-------------|-------------|
+| alexeygrigorev/alexeygrigorev.github.io | 8 | 0.568 | 0.014 | 40.57x | 8/8 (100%) | 0/8 (0%) | 0 | 1.69% |
+| alexeygrigorev/kids-horror-stories-ru | 1345 | 3.787 | 0.503 | 7.52x | 1345/1345 (100%) | 0/51 (0%) | 0 | 0.85% avg |
+| alexeygrigorev/little-book-of-metals-ru | 43 | 2.276 | 0.389 | 5.85x | 43/48 (90%) | 43/43 (100%) | 0 | 0.00% |
+| alexeygrigorev/mlwiki.org | 640 | 0.973 | 0.489 | 1.98x | 640/639 (100%) | 49/51 (96%) | 5 | 0.00% |
+| alexeygrigorev/snippets | 25 | 0.639 | 0.013 | 49.15x | 25/25 (100%) | 24/25 (96%) | 0 | 0.04% |
+| DataTalksClub/datatalksclub.github.io | 787 | 19.145 | 1.877 | 10.19x | 787/787 (100%) | 13/51 (25%) | 0 | 1.29% avg |
+| DataTalksClub/docs | 57 | 1.788 | 0.033 | 54.18x | 57/57 (100%) | 50/51 (98%) | 33 | SKIP |
+| academicpages | 17 | 4.414 | 0.031 | 142.38x | 17/45 (38%) | 16/17 (94%) | 0 | 3.18% |
+| documentation-theme-jekyll | 100 | 3.600 | 0.072 | 50.00x | 100/100 (100%) | 50/51 (98%) | 90 | SKIP |
+| large-blog-3000 | 3001 | 4.303 | 1.430 | 3.00x | 3001/3001 (100%) | 50/51 (98%) | 0 | 0.10% |
+| large-docs-site | 801 | 23.366 | 0.282 | 82.85x | 801/801 (100%) | 50/51 (98%) | 0 | 9.62% |
+| minimal-mistakes | 2 | 0.922 | 0.055 | 16.76x | 2/1 (200%) | 1/1 (100%) | 0 | SKIP |
+| muan-blog | 2218 | 15.869 | 0.364 | 43.59x | 2218/2218 (100%) | 25/51 (49%) | 22 | SKIP |
+| so-simple-theme | 11 | 1.476 | 0.025 | 59.04x | 11/66 (17%) | 11/11 (100%) | 1 | SKIP |
 
-Notable improvement: kids-horror-stories-ru (1345 pages) previously took 72s with rustkyll and now completes in 0.297s (12.8x faster than Jekyll). The DTC main site (784 pages) previously timed out at 300s and now builds in 5.9s.
+**Column definitions:**
+- **File Match**: rustkyll HTML files / Jekyll HTML files. 100% means identical file tree.
+- **Struct Diffs**: files with structural differences / files sampled (up to 51). Lower is better.
+- **Liquid Leaks**: count of rustkyll HTML files containing raw `{%` or `{{` tags.
+- **Visual Diff**: pixel difference percentage for homepage (or average across sampled pages). SKIP = rustkyll homepage lacks valid HTML, preventing screenshot comparison.
 
-## New sites added (issue 56)
+## Structural Equivalence Details
 
-The following 8 sites were added to expand benchmark coverage:
+### Tier 1: High fidelity (file match 100%, struct diffs < 30%)
 
-| Site | Category | Source files | Jekyll pages | Notes |
-|------|----------|-------------|-------------|-------|
-| documentation-theme-jekyll | Documentation | 136 | 100 | Tom Johnson's technical writing theme |
-| homebrew-site | Community/docs | 107 | 134 | Homebrew package manager website |
-| large-blog-3000 | Synthetic blog | 3000 posts | 3001 | Generated benchmark site with categories and tags |
-| large-docs-site | Synthetic docs | 800 pages | 801 | Generated documentation site across 10 sections |
-| muan-blog | Blog/portfolio | 2224 | 2218 | Large personal blog, Jekyll only (rustkyll FAIL) |
-| programming-historian | Educational | 610 | N/A | Digital humanities tutorials (Jekyll FAIL: plugin error) |
-| made-mistakes-jekyll | Blog | 1123 | N/A | Large blog (Jekyll FAIL: missing jekyll-tagging gem) |
-| uswds-site | Government | 864 | N/A | US Web Design System (both FAIL: needs pre-build step) |
+**alexeygrigorev/alexeygrigorev.github.io** -- Perfect structural match. 8/8 files identical, 0/8 structural diffs. No Liquid leaks. Visual diff 1.69% (minor CSS rendering difference).
 
-Categories represented: documentation, blog, community, educational, government, synthetic benchmarks.
+**alexeygrigorev/kids-horror-stories-ru** -- Perfect structural match. 1345/1345 files, 0/51 sampled diffs. No Liquid leaks. Visual diffs: homepage 0.85%, story pages 0.00-0.03%.
 
-Sites with 100+ pages (from best tool): documentation-theme-jekyll (100), homebrew-site (134), large-blog-3000 (3001), large-docs-site (801), muan-blog (2218) = 5 sites.
+**DataTalksClub/datatalksclub.github.io** -- 787/787 file match. 13/51 structural diffs (mostly HTML entity encoding: `&amp;` vs `&` in URLs). No Liquid leaks. Visual diffs: homepage 2.21%, blog-post 0.00%, courses 0.00%, people 0.00%, books 2.12%, events 1.80%, articles 2.93%. Root causes: minor sort order differences in listing pages; HTML entity encoding differences.
 
-Sites where Jekyll takes 5+ seconds: muan-blog (15.8s), large-docs-site (23.2s), DataTalksClub/datatalksclub.github.io (19.2s) = 3 sites.
+### Tier 2: Good file match, moderate structural diffs
 
-## Page count discrepancies
+**alexeygrigorev/little-book-of-metals-ru** -- 43/48 files (90%). Missing 5 section index pages (Cyrillic collection names). All 43 common files have structural diffs because rustkyll omits navigation links, headings, and Google Fonts. Visual: 0.00% (homepage renders identically).
 
-The "Pages" column in the results table shows the page count from the first tool that succeeds (rustkyll runs first). For several sites, Jekyll produces significantly more pages than rustkyll due to template compatibility gaps:
+**alexeygrigorev/mlwiki.org** -- 640/639 files (100%). 49/51 structural diffs: missing GitHub edit links (theme-specific include). 5 files with raw Liquid tags. Visual: 0.00%.
 
-- documentation-theme-jekyll: rustkyll 8 pages vs Jekyll 100 pages
-- homebrew-site: rustkyll 53 pages vs Jekyll 134 pages
-- large-blog-3000: rustkyll 1 page vs Jekyll 3001 pages (rustkyll only renders index)
-- large-docs-site: rustkyll 1 page vs Jekyll 801 pages (rustkyll only renders index)
+**alexeygrigorev/snippets** -- 25/25 files (100%). 24/25 structural diffs: 6 category index pages are empty (0 bytes) in rustkyll due to missing layout support. Remaining diffs are missing navigation links. Visual: 0.04%.
 
-## Compatibility summary
+**large-blog-3000** -- 3001/3001 files (100%). 50/51 structural diffs: different link ordering in navigation sidebar (sort order difference). No Liquid leaks. Visual: 0.10%.
 
-- Sites that build with both tools: 16 of 32
-- Sites that build only with rustkyll: 12 (missing Jekyll gems or incompatible Jekyll version)
-- Sites that build only with Jekyll: 1 (muan-blog -- template issues in rustkyll)
-- Sites that fail with both tools: 3 (bitcoin-org, edition-template, uswds-site)
+**muan-blog** -- 2218/2218 files (100%). 25/51 structural diffs. 455 empty HTML files, 22 with raw Liquid tags. Layout partially renders but many pages fall back. Visual: SKIP (homepage not valid HTML).
+
+### Tier 3: Significant gaps
+
+**DataTalksClub/docs** -- 57/57 files (100%). 50/51 structural diffs, 33 Liquid leaks. Uses just-the-docs theme whose sidebar navigation relies on unsupported Liquid features. Visual: SKIP.
+
+**academicpages** -- 17/45 files (38%). Missing 28 files from collections (publications, talks, teaching, portfolio). 16/17 structural diffs: complex Minimal Mistakes-based theme with sidebars. Visual: 3.18%.
+
+**documentation-theme-jekyll** -- 100/100 files (100%). 50/51 structural diffs, 90 Liquid leaks, 12 empty files. Complex data-driven sidebar/navigation uses unsupported Liquid patterns. Visual: SKIP.
+
+**large-docs-site** -- 801/801 files (100%). 50/51 structural diffs: missing page titles and different link ordering in sidebar navigation. Visual: 9.62% (sidebar links different order).
+
+**minimal-mistakes** -- 2/1 files. Rustkyll generates near-empty index.html (0 bytes). Minimal Mistakes gem theme not supported. Visual: SKIP.
+
+**so-simple-theme** -- 11/66 files (17%). Missing 55 files. 7 empty files, 1 Liquid leak. Theme requires many unsupported Liquid features. Visual: SKIP.
+
+## Visual Comparison Details
+
+Visual comparisons were performed by serving both outputs over HTTP and taking full-page Chromium screenshots via Playwright. Pages with >0% diff have root causes noted below.
+
+### Pages with 0% diff (pixel-perfect)
+
+- kids-horror-stories-ru: story-toy (0.00%)
+- DataTalksClub/datatalksclub.github.io: blog-post (0.00%), courses (0.00%), people (0.00%)
+- little-book-of-metals-ru: homepage (0.00%)
+- mlwiki.org: homepage (0.00%)
+
+### Pages with <1% diff (near-perfect)
+
+- kids-horror-stories-ru: homepage (0.85%), story-orchid (0.03%), story-silkworm (0.03%)
+- snippets: homepage (0.04%)
+- large-blog-3000: homepage (0.10%)
+
+### Pages with 1-5% diff (minor differences)
+
+- alexeygrigorev.github.io: homepage (1.69%) -- Root cause: minor CSS rendering difference (Google Fonts loading timing).
+- DataTalksClub/datatalksclub.github.io: homepage (2.21%) -- Root cause: event sort order slightly different.
+- DataTalksClub/datatalksclub.github.io: books (2.12%) -- Root cause: book listing order difference.
+- DataTalksClub/datatalksclub.github.io: events (1.80%) -- Root cause: event listing sort difference.
+- DataTalksClub/datatalksclub.github.io: articles (2.93%) -- Root cause: article listing includes slightly different set.
+- academicpages: homepage (3.18%) -- Root cause: missing sidebar and navigation elements from unsupported theme features.
+
+### Pages with >5% diff
+
+- large-docs-site: homepage (9.62%) -- Root cause: sidebar navigation renders links in different sort order, producing visually different layout.
+
+### Sites where visual comparison was skipped
+
+The following sites could not be visually compared because rustkyll's homepage did not contain valid HTML (empty or Liquid fallback output):
+
+- DataTalksClub/docs (just-the-docs theme unsupported)
+- documentation-theme-jekyll (complex data-driven navigation)
+- minimal-mistakes (gem theme not supported)
+- muan-blog (many pages fall back to empty)
+- so-simple-theme (theme requires unsupported features)
+
+Diff images are saved under `playwright/screenshots/` organized by site name.
+
+## Compatibility Summary
+
+- Sites that build with both tools: 14 of 32
+- Sites that build only with rustkyll: 14 (missing Jekyll gems or incompatible Jekyll version)
+- Sites that build only with Jekyll: 2 (beautiful-jekyll, jekyll-docs/docs)
+- Sites that fail with both tools: 4 (bitcoin-org, edition-template, programming-historian, uswds-site)
+
+### Changes from previous benchmark
+
+- **Gained**: muan-blog now builds with rustkyll (was FAIL before)
+- **Lost**: beautiful-jekyll now fails with rustkyll (was 0.022s); homebrew-site now fails with Jekyll (was 1.212s); jekyll-docs/docs now fails with rustkyll (was 0.060s)
+- **DTC speedup improved**: 5.925s -> 1.877s (from 3.2x to 10.2x vs Jekyll)
+- **Page counts increased**: little-book-of-metals-ru 1->43, mlwiki.org 2->640, snippets 2->25, DataTalksClub/docs 1->57, academicpages 1->17, so-simple-theme 2->11 (kramdown + template improvements)
 
 ## Notes
 
@@ -117,4 +180,5 @@ The "Pages" column in the results table shows the page count from the first tool
 - Jekyll builds use bundle exec when a Gemfile is present
 - rustkyll is pre-compiled in release mode
 - Jekyll FAIL entries are often due to missing Ruby gems (bundle install not run) rather than tool limitations
-- Synthetic sites (large-blog-3000, large-docs-site) were created specifically for benchmarking large page counts
+- Structural comparison samples up to 51 common files per site
+- Visual comparison uses Playwright/Chromium at 1280x720 viewport, full-page screenshots

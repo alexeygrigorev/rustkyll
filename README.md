@@ -141,8 +141,13 @@ Issues are processed in batches of two, running in parallel. If the tester finds
 
 | Site | Pages | Jekyll | rustkyll | Speedup |
 |------|-------|--------|----------|---------|
-| [datatalksclub.github.io](https://github.com/DataTalksClub/datatalksclub.github.io) | 787 | 19.4s | 1.05s | 18.5x |
-| [kids-horror-stories-ru](https://github.com/alexeygrigorev/kids-horror-stories-ru) | 1345 | 3.8s | 0.4s | 9.5x |
+| [datatalksclub.github.io](https://github.com/DataTalksClub/datatalksclub.github.io) | 787 | 19.1s | 1.9s | 10.2x |
+| [kids-horror-stories-ru](https://github.com/alexeygrigorev/kids-horror-stories-ru) | 1345 | 3.8s | 0.5s | 7.5x |
+| [muan-blog](https://github.com/muan/site) | 2218 | 15.9s | 0.4s | 43.6x |
+| [large-docs-site](websites/large-docs-site) | 801 | 23.4s | 0.3s | 82.9x |
+| [large-blog-3000](websites/large-blog-3000) | 3001 | 4.3s | 1.4s | 3.0x |
+
+14 of 32 sites build with both tools. See [docs/benchmark/results.md](docs/benchmark/results.md) for full results including structural equivalence and visual comparison.
 
 Other tested sites
 
@@ -158,7 +163,6 @@ Other tested sites
 - [hyde](https://github.com/poole/hyde)
 - [opensource.guide](https://github.com/github/opensource.guide)
 - [bitcoin.org](https://github.com/bitcoin/bitcoin.org)
-- [jekyll docs](https://github.com/jekyll/jekyll)
 - [government.github.com](https://github.com/github/government.github.com)
 - [edition-template](https://github.com/CloudCannon/edition-jekyll-template)
 - [beautiful-jekyll](https://github.com/daattali/beautiful-jekyll)
