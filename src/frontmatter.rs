@@ -53,22 +53,35 @@ fn split_front_matter(input: &str) -> (Option<&str>, &str) {
         return (None, input);
     };
 
-    // Search for closing --- on its own line.
-    for (i, line) in rest.lines().enumerate() {
+    // Search for closing --- on its own line by scanning for line boundaries
+    // directly in the byte string. This correctly handles both LF and CRLF
+    // line endings without cumulative byte offset drift (which was the cause
+    // of the Unicode slicing panic in issue #78).
+    let mut line_start = 0;
+    while line_start < rest.len() {
+        // Find where this line ends (at the next \n, or end of string).
+        let newline_pos = rest[line_start..].find('\n');
+        let line_end = newline_pos.map(|p| line_start + p).unwrap_or(rest.len());
+
+        // Extract the line content (without the trailing \n).
+        let line = &rest[line_start..line_end];
+
         if line.trim() == "---" {
-            // Calculate byte offset of this closing delimiter in `rest`.
-            let byte_offset: usize = rest.lines().take(i).map(|l| l.len() + 1).sum();
-            let yaml_str = &rest[..byte_offset];
-            // Body starts after the closing --- line.
-            let after_close = &rest[byte_offset..];
-            // Skip the "---" line itself.
-            let body = if let Some(pos) = after_close.find('\n') {
-                &after_close[pos + 1..]
+            // YAML content is everything before this line's start.
+            let yaml_str = &rest[..line_start];
+            // Body starts after the closing --- line (past the \n).
+            let body = if line_end < rest.len() {
+                &rest[line_end + 1..]
             } else {
-                // Nothing after the closing ---
                 ""
             };
             return (Some(yaml_str), body);
+        }
+
+        // Advance to the next line. If no newline was found, we're done.
+        match newline_pos {
+            Some(_) => line_start = line_end + 1,
+            None => break,
         }
     }
 
@@ -892,6 +905,178 @@ Each week we have a book author coming.
         assert!(
             html.contains("<li>Register on DataTalks.Club</li>"),
             "list items missing"
+        );
+    }
+
+    // ========================================================================
+    // Issue 78: Unicode byte boundary panic with CRLF line endings
+    // ========================================================================
+
+    #[test]
+    fn test_unicode_curly_quote_lf() {
+        // U+2019 RIGHT SINGLE QUOTATION MARK (3 bytes in UTF-8)
+        let input = "---\ntitle: 'Strategic Positioning\u{2019}'\n---\nBody here";
+        let doc = parse_document(input).unwrap();
+        assert_eq!(
+            doc.front_matter.get("title").and_then(Value::as_str),
+            Some("Strategic Positioning\u{2019}")
+        );
+        assert_eq!(doc.content, "Body here");
+    }
+
+    #[test]
+    fn test_unicode_curly_quote_crlf() {
+        // This is the exact reproduction case from issue #78.
+        // CRLF line endings + U+2019 curly quote caused a byte boundary panic.
+        let input = "---\r\ntitle: 'Strategic Positioning\u{2019}'\r\n---\r\nBody here";
+        let doc = parse_document(input).unwrap();
+        assert_eq!(
+            doc.front_matter.get("title").and_then(Value::as_str),
+            Some("Strategic Positioning\u{2019}")
+        );
+        assert_eq!(doc.content, "Body here");
+    }
+
+    #[test]
+    fn test_unicode_emoji_crlf() {
+        // 4-byte emoji with CRLF line endings
+        let input = "---\r\ntitle: 'Hello \u{1F600} World'\r\nlayout: post\r\n---\r\nBody content";
+        let doc = parse_document(input).unwrap();
+        assert_eq!(
+            doc.front_matter.get("title").and_then(Value::as_str),
+            Some("Hello \u{1F600} World")
+        );
+        assert_eq!(doc.content, "Body content");
+    }
+
+    #[test]
+    fn test_unicode_cjk_crlf() {
+        // CJK characters (3 bytes each) with CRLF
+        let input = "---\r\ntitle: '\u{4F60}\u{597D}\u{4E16}\u{754C}'\r\n---\r\nBody";
+        let doc = parse_document(input).unwrap();
+        assert_eq!(
+            doc.front_matter.get("title").and_then(Value::as_str),
+            Some("\u{4F60}\u{597D}\u{4E16}\u{754C}")
+        );
+        assert_eq!(doc.content, "Body");
+    }
+
+    #[test]
+    fn test_unicode_in_body_crlf() {
+        let input = "---\r\ntitle: Test\r\n---\r\nBody with \u{2019}curly\u{2019} quotes";
+        let doc = parse_document(input).unwrap();
+        assert_eq!(doc.content, "Body with \u{2019}curly\u{2019} quotes");
+    }
+
+    #[test]
+    fn test_crlf_ascii_only() {
+        let input = "---\r\ntitle: Hello\r\nlayout: post\r\n---\r\nBody content here";
+        let doc = parse_document(input).unwrap();
+        assert_eq!(
+            doc.front_matter.get("title").and_then(Value::as_str),
+            Some("Hello")
+        );
+        assert_eq!(
+            doc.front_matter.get("layout").and_then(Value::as_str),
+            Some("post")
+        );
+        assert_eq!(doc.content, "Body content here");
+    }
+
+    #[test]
+    fn test_crlf_long_frontmatter_with_unicode() {
+        // 50+ lines to accumulate offset drift, with Unicode on the last line
+        let mut input = String::from("---\r\n");
+        for i in 0..55 {
+            input.push_str(&format!("key{}: value{}\r\n", i, i));
+        }
+        input.push_str("special: 'quote\u{2019}mark'\r\n");
+        input.push_str("---\r\n");
+        input.push_str("Body after long frontmatter");
+
+        let doc = parse_document(&input).unwrap();
+        assert_eq!(
+            doc.front_matter.get("special").and_then(Value::as_str),
+            Some("quote\u{2019}mark")
+        );
+        assert_eq!(doc.content, "Body after long frontmatter");
+    }
+
+    #[test]
+    fn test_mixed_line_endings() {
+        // Mix of LF and CRLF within the same file
+        let input = "---\ntitle: 'Mixed \u{2019} endings'\r\nlayout: post\n---\r\nBody here";
+        let doc = parse_document(&input).unwrap();
+        assert_eq!(
+            doc.front_matter.get("title").and_then(Value::as_str),
+            Some("Mixed \u{2019} endings")
+        );
+        assert_eq!(doc.content, "Body here");
+    }
+
+    #[test]
+    fn test_empty_front_matter_crlf() {
+        let input = "---\r\n---\r\nBody after empty front matter";
+        let doc = parse_document(input).unwrap();
+        assert!(doc.front_matter.is_empty());
+        assert_eq!(doc.content, "Body after empty front matter");
+    }
+
+    #[test]
+    fn test_bom_crlf_unicode() {
+        // BOM + CRLF + multi-byte characters
+        let input = "\u{feff}---\r\ntitle: 'Hello \u{2019}World\u{2019}'\r\n---\r\nBody";
+        let doc = parse_document(input).unwrap();
+        assert_eq!(
+            doc.front_matter.get("title").and_then(Value::as_str),
+            Some("Hello \u{2019}World\u{2019}")
+        );
+        assert_eq!(doc.content, "Body");
+    }
+
+    #[test]
+    fn test_crlf_podcast_pattern_with_curly_quotes() {
+        // Simulates the actual DTC podcast episode that triggered the panic.
+        // The curly quote U+2019 appears in the title value.
+        let input = "---\r\ntitle: \"Building a Sustainable Data Freelancing Career: Market Validation, Client Acquisition & Strategic Positioning\u{2019}\"\r\nseason: 7\r\nepisode: 6\r\nguests:\r\n- jakobgraff\r\nimage: images/podcast/ab-testing.jpg\r\nids:\r\n  anchor: AB-Testing-e1eq73v\r\n  youtube: 0Gqx1LtqRZU\r\n---\r\nTranscript content here.";
+        let doc = parse_document(input).unwrap();
+        assert!(
+            doc.front_matter.get("title").is_some(),
+            "title should be parsed"
+        );
+        assert_eq!(doc.content, "Transcript content here.");
+    }
+
+    #[test]
+    fn test_split_front_matter_crlf_closing_delimiter() {
+        // Verify that the closing --- with CRLF is detected correctly
+        let input = "---\r\ntitle: Test\r\n---\r\n";
+        let (yaml, body) = split_front_matter(input);
+        assert!(yaml.is_some(), "YAML should be detected");
+        assert!(body.is_empty() || body.trim().is_empty());
+    }
+
+    #[test]
+    fn test_unicode_at_exact_offset_boundary() {
+        // Construct input where the multi-byte character would be at the exact
+        // position where the old code's cumulative drift would cause a panic.
+        // With CRLF, each line undercounts by 1 byte. After N lines the drift is N bytes.
+        // Place a 3-byte character so the old offset would land inside it.
+        let mut input = String::from("---\r\n");
+        // 10 lines of short content to create 10-byte drift
+        for _ in 0..10 {
+            input.push_str("k: v\r\n");
+        }
+        // Add a line with a multi-byte char near where the drift would cause slicing
+        input.push_str("z: '\u{2019}\u{2019}\u{2019}'\r\n");
+        input.push_str("---\r\n");
+        input.push_str("Body");
+
+        let doc = parse_document(&input).unwrap();
+        assert_eq!(doc.content, "Body");
+        assert_eq!(
+            doc.front_matter.get("z").and_then(Value::as_str),
+            Some("\u{2019}\u{2019}\u{2019}")
         );
     }
 }
