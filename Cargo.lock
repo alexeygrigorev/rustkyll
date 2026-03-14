@@ -1012,6 +1012,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "clap",
+ "kstring",
  "liquid",
  "liquid-core",
  "liquid-lib",

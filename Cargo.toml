@@ -7,6 +7,7 @@ edition = "2021"
 chrono = "0.4"
 rayon = "1.10"
 clap = { version = "4", features = ["derive"] }
+kstring = { version = "2.0", features = ["arc"] }
 liquid = "0.26"
 liquid-core = "0.26"
 liquid-lib = { version = "0.26", features = ["jekyll"] }

@@ -96,9 +96,14 @@ pub fn build_site_context(
         LiquidValue::scalar(now.format("%Y-%m-%d %H:%M:%S").to_string()),
     );
 
-    // site.<collection_name> for each collection
+    // site.<collection_name> for each collection.
+    // Use slim conversion to exclude large array fields (like transcript with
+    // 400+ entries) from site context objects. These fields are only needed
+    // when rendering the current page (via page.X) and are never accessed
+    // from site-level cross-references. Excluding them dramatically reduces
+    // the cost of `where`, `sort`, and other filters that clone objects.
     for (name, items) in collections {
-        let arr: Vec<LiquidValue> = items.iter().map(collection_item_to_liquid).collect();
+        let arr: Vec<LiquidValue> = items.iter().map(collection_item_to_liquid_slim).collect();
         site.insert(
             name.clone().into(),
             normalize_arrays(LiquidValue::Array(arr)),
@@ -187,17 +192,32 @@ fn resolve_repository_url(config: &SiteConfig, site_dir: Option<&Path>) -> Liqui
     LiquidValue::Nil
 }
 
-/// Convert a `CollectionItem` to a Liquid `Value` (object).
+/// Convert a `CollectionItem` to a Liquid `Value` for site context arrays.
 ///
 /// Includes all front matter fields plus computed fields like `url`, `id`,
 /// `content`, `date`, and `slug`. Also ensures `short` is set from slug
 /// if not present in front matter (needed for author lookup in JSON-LD).
-fn collection_item_to_liquid(item: &CollectionItem) -> LiquidValue {
+///
+/// Large array-valued front matter fields (more than 10 elements) are excluded
+/// to reduce clone costs when filters like `where` and `sort` operate on
+/// site-level collection arrays (`site.posts`, `site.podcast`, etc.).
+/// Fields like `transcript` (which can have 400+ entries) are only needed
+/// when rendering the current page (via `page.transcript`) and are never
+/// accessed from site-level cross-references. The current page always has
+/// its full front matter available through the `page` variable.
+fn collection_item_to_liquid_slim(item: &CollectionItem) -> LiquidValue {
     let mut obj = Object::new();
 
-    // Copy all front matter fields, normalizing arrays so that objects
-    // in arrays have uniform keys (prevents "Unknown index" in Liquid for loops)
+    // Copy front matter fields, normalizing arrays so that objects
+    // in arrays have uniform keys (prevents "Unknown index" in Liquid for loops).
+    // Skip large array fields (e.g., transcript with 400+ entries) that are only
+    // needed when rendering the current page, not for cross-references.
     for (key, value) in &item.front_matter {
+        if let serde_yaml::Value::Sequence(seq) = value {
+            if seq.len() > 10 {
+                continue;
+            }
+        }
         obj.insert(key.clone().into(), normalize_arrays(yaml_to_liquid(value)));
     }
 
@@ -255,7 +275,7 @@ fn build_related_posts(collections: &HashMap<String, Vec<CollectionItem>>) -> Ve
     sorted
         .into_iter()
         .take(10)
-        .map(collection_item_to_liquid)
+        .map(collection_item_to_liquid_slim)
         .collect()
 }
 
@@ -295,7 +315,7 @@ fn build_categories_and_tags(
 
     if let Some(posts) = collections.get("posts") {
         for post in posts {
-            let liquid_post = collection_item_to_liquid(post);
+            let liquid_post = collection_item_to_liquid_slim(post);
 
             let post_categories = crate::collection::extract_categories(&post.front_matter);
             for cat in post_categories {
