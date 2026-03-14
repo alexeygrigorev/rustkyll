@@ -85,8 +85,8 @@ Issues are processed in batches of two, running in parallel. If the tester finds
 
 | Site | Pages | Jekyll | rustkyll | Speedup |
 |------|-------|--------|----------|---------|
-| [datatalksclub.github.io](https://github.com/DataTalksClub/datatalksclub.github.io) | 787 | 19.4s | 6.0s | 3.2x |
-| [kids-horror-stories-ru](https://github.com/alexeygrigorev/kids-horror-stories-ru) | 1345 | 3.8s | 0.4s | 9x |
+| [datatalksclub.github.io](https://github.com/DataTalksClub/datatalksclub.github.io) | 787 | 19.4s | 1.05s | 18.5x |
+| [kids-horror-stories-ru](https://github.com/alexeygrigorev/kids-horror-stories-ru) | 1345 | 3.8s | 0.4s | 9.5x |
 
 Other tested sites
 
