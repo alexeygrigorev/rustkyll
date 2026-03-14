@@ -24,7 +24,7 @@ interface PageDef {
 
 const DTC_PAGES: PageDef[] = [
   { name: 'homepage', path: '/' },
-  { name: 'blog-post', path: '/segmentation/' },
+  { name: 'blog-post', path: '/blog/segmentation.html' },
   { name: 'books-listing', path: '/books.html' },
   { name: 'events-listing', path: '/events.html' },
   { name: 'courses', path: '/courses.html' },
