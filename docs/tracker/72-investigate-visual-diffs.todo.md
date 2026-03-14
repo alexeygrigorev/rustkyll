@@ -40,4 +40,9 @@ The Playwright visual comparison (issue #62) was run as a self-comparison (rustk
 - Every difference >0% is investigated with documented root cause
 - Diff images saved and reviewed
 - No 404 errors in browser console for rustkyll server that don't also appear on Jekyll server
-- Results documented with screenshots
+- Results documented in docs/comparison/visual-results.md with:
+  - Per-page pixel diff percentage
+  - Screenshot file paths (jekyll, rustkyll, diff)
+  - Root cause analysis for every page with >0% diff
+  - Summary: total pages compared, pages passing, pages failing
+  - Date of comparison run
