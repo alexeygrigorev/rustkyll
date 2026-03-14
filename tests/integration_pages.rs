@@ -508,3 +508,70 @@ fn test_non_index_pages_use_page_layout() {
         );
     }
 }
+
+// ========================================================================
+// Issue 71: Standalone page markdown headings
+// ========================================================================
+
+#[test]
+fn test_books_has_markdown_headings() {
+    if !site_dir().exists() {
+        return;
+    }
+    let html = read_page("books");
+    // books.md has ## How it works, ## Upcoming books, ## Archive
+    assert!(
+        html.contains("<h2>How it works</h2>"),
+        "books.html should contain <h2>How it works</h2>. Content snippet: {}",
+        &html[..html.len().min(2000)]
+    );
+    assert!(
+        html.contains("<h2>Upcoming books</h2>"),
+        "books.html should contain <h2>Upcoming books</h2>"
+    );
+    assert!(
+        html.contains("<h2>Archive</h2>"),
+        "books.html should contain <h2>Archive</h2>"
+    );
+}
+
+#[test]
+fn test_courses_has_markdown_heading() {
+    if !site_dir().exists() {
+        return;
+    }
+    let html = read_page("courses");
+    // courses.md has a Courses heading
+    assert!(
+        html.contains("<h2>Courses</h2>") || html.contains("<h1>Courses</h1>"),
+        "courses.html should contain a Courses heading rendered from markdown"
+    );
+}
+
+#[test]
+fn test_events_has_markdown_headings() {
+    if !site_dir().exists() {
+        return;
+    }
+    let html = read_page("events");
+    assert!(
+        html.contains("<h2>Upcoming events</h2>"),
+        "events.html should contain <h2>Upcoming events</h2>"
+    );
+    assert!(
+        html.contains("<h2>Past events</h2>"),
+        "events.html should contain <h2>Past events</h2>"
+    );
+}
+
+#[test]
+fn test_slack_has_markdown_heading() {
+    if !site_dir().exists() {
+        return;
+    }
+    let html = read_page("slack");
+    assert!(
+        html.contains("<h2>Channels</h2>"),
+        "slack.html should contain <h2>Channels</h2>"
+    );
+}

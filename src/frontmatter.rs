@@ -133,6 +133,78 @@ pub fn markdown_to_html(markdown: &str) -> String {
     html_output
 }
 
+/// Dedent lines inside HTML blocks that have 4+ spaces of leading whitespace.
+///
+/// In CommonMark, 4+ spaces of indentation creates an indented code block.
+/// When Liquid includes produce HTML output with indentation (e.g., from
+/// `{% for %}` loops), the indented `<a>`, `<div>`, `<h3>` tags get treated
+/// as code blocks by pulldown-cmark, causing them to be HTML-escaped inside
+/// `<pre><code>` blocks.
+///
+/// Jekyll uses kramdown, which is more lenient about indentation inside HTML.
+/// This function normalizes the indentation to prevent the code-block issue
+/// while preserving actual indented code blocks (those not containing HTML tags).
+///
+/// The algorithm: reduce any line indented with 4+ spaces to 2 spaces if it
+/// looks like it contains an HTML tag (starts with `<` after trimming) or is
+/// a blank line within an HTML context.
+pub fn dedent_html_lines(content: &str) -> String {
+    let mut result = String::with_capacity(content.len());
+
+    for line in content.split('\n') {
+        let trimmed = line.trim_start();
+        let leading_spaces = line.len() - trimmed.len();
+
+        // Only modify lines with 4+ spaces that look like HTML
+        if leading_spaces >= 4 && looks_like_html(trimmed) {
+            // Reduce to at most 3 spaces (prevent code-block interpretation)
+            let new_indent = leading_spaces.min(3);
+            for _ in 0..new_indent {
+                result.push(' ');
+            }
+            result.push_str(trimmed);
+        } else {
+            result.push_str(line);
+        }
+        result.push('\n');
+    }
+
+    // Remove trailing newline that we added if original didn't end with one
+    if !content.ends_with('\n') && result.ends_with('\n') {
+        result.pop();
+    }
+
+    result
+}
+
+/// Check if a trimmed line looks like it contains HTML content.
+///
+/// Returns true for lines that start with an HTML tag, end with an HTML tag,
+/// or contain common HTML patterns. Returns false for plain text that should
+/// be treated as potential indented code blocks.
+fn looks_like_html(trimmed: &str) -> bool {
+    if trimmed.is_empty() {
+        return false;
+    }
+
+    // Lines starting with HTML tags
+    if trimmed.starts_with('<') {
+        return true;
+    }
+
+    // Lines starting with HTML closing tags
+    if trimmed.starts_with("</") {
+        return true;
+    }
+
+    // Lines that end with an HTML tag (e.g., content followed by </div>)
+    if trimmed.ends_with('>') {
+        return true;
+    }
+
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -599,6 +671,227 @@ Transcript content here.
         assert_eq!(
             doc.front_matter.get("layout").and_then(Value::as_str),
             Some("post")
+        );
+    }
+
+    // ========================================================================
+    // Issue 71: dedent_html_lines tests
+    // ========================================================================
+
+    #[test]
+    fn test_dedent_html_lines_reduces_indented_html_tags() {
+        let input = "    <a href=\"/test.html\">Link</a>\n    <div>Content</div>";
+        let result = dedent_html_lines(input);
+        // Should reduce 4-space indent to 3 spaces (below code-block threshold)
+        assert!(
+            !result.starts_with("    <a"),
+            "Should reduce indentation below 4 spaces, got: {:?}",
+            result
+        );
+        assert!(
+            result.contains("<a href=\"/test.html\">Link</a>"),
+            "HTML content should be preserved, got: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_dedent_html_lines_preserves_non_html_indentation() {
+        // Plain text with 4+ spaces should NOT be dedented (it's a code block)
+        let input = "    let x = 42;";
+        let result = dedent_html_lines(input);
+        assert_eq!(
+            result, input,
+            "Non-HTML indented lines should be preserved as-is"
+        );
+    }
+
+    #[test]
+    fn test_dedent_html_lines_preserves_less_than_4_spaces() {
+        let input = "  <div>OK</div>";
+        let result = dedent_html_lines(input);
+        assert_eq!(result, input, "Lines with <4 spaces should be unchanged");
+    }
+
+    #[test]
+    fn test_dedent_html_lines_handles_deep_indentation() {
+        let input = "        <h3>Title</h3>";
+        let result = dedent_html_lines(input);
+        assert!(
+            result.contains("<h3>Title</h3>"),
+            "Content should be preserved"
+        );
+        let leading_spaces = result.len() - result.trim_start().len();
+        assert!(
+            leading_spaces <= 3,
+            "Leading spaces should be at most 3, got {}",
+            leading_spaces
+        );
+    }
+
+    #[test]
+    fn test_dedent_html_lines_mixed_content() {
+        let input = "## Heading\n\n<div class=\"wrapper\">\n    <a href=\"/test\">Link</a>\n    <h3>Title</h3>\n</div>\n\n## Another heading";
+        let result = dedent_html_lines(input);
+        assert!(
+            result.contains("## Heading"),
+            "Markdown headings should be preserved"
+        );
+        assert!(
+            result.contains("## Another heading"),
+            "Markdown headings should be preserved"
+        );
+        assert!(
+            result.contains("<a href=\"/test\">Link</a>"),
+            "HTML links should be preserved"
+        );
+        // The indented <a> tag should no longer have 4+ spaces
+        assert!(
+            !result.contains("    <a href"),
+            "Indented HTML should be dedented"
+        );
+    }
+
+    #[test]
+    fn test_dedent_html_lines_related_posts_pattern() {
+        // Simulates what Liquid outputs after processing related-posts.html include
+        let input = r#"<div class="related-posts-section">
+  <h2 class="related-posts-title">Related Posts</h2>
+  <div class="related-posts-grid">
+    <a href="/blog/test.html" class="related-post-card">
+      <div class="related-post-content">
+        <h3 class="related-post-title">Test Course</h3>
+      </div>
+    </a>
+  </div>
+</div>"#;
+        let result = dedent_html_lines(input);
+        // After dedenting, the markdown processor should not escape the HTML
+        let html = markdown_to_html(&result);
+        assert!(
+            html.contains("<h3 class=\"related-post-title\">Test Course</h3>"),
+            "h3 tags should render as HTML, not be escaped. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<a href=\"/blog/test.html\""),
+            "Links should render as HTML. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains("&lt;a href"),
+            "Links should NOT be HTML-escaped. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains("<pre><code>"),
+            "Should not produce code blocks. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_dedent_html_lines_preserves_fenced_code_blocks() {
+        // Fenced code blocks (```) should not be affected since they use
+        // backtick fencing, not indentation
+        let input = "```\n    <div>code example</div>\n```";
+        let result = dedent_html_lines(input);
+        // The <div> inside fenced code is still HTML-looking, but the fenced
+        // code block markers ensure it's treated as code by the markdown parser
+        let html = markdown_to_html(&result);
+        assert!(
+            html.contains("<code>"),
+            "Fenced code block should still work"
+        );
+    }
+
+    #[test]
+    fn test_markdown_with_embedded_html_after_liquid() {
+        // Simulates a markdown file that contains HTML from a Liquid include,
+        // which is the pattern for blog posts with {% include related-posts.html %}
+        let input = r#"## Introduction
+
+Some markdown text here.
+
+<div class="related-posts-section">
+  <h2 class="related-posts-title">Related Posts</h2>
+  <div class="related-posts-grid">
+    <a href="/blog/course.html" class="related-post-card">
+      <div class="related-post-content">
+        <h3 class="related-post-title">Course Title</h3>
+        <p class="related-post-excerpt">Description here</p>
+      </div>
+    </a>
+  </div>
+</div>
+"#;
+        let dedented = dedent_html_lines(input);
+        let html = markdown_to_html(&dedented);
+
+        // Markdown heading should be converted
+        assert!(
+            html.contains("<h2>Introduction</h2>"),
+            "Markdown heading should be converted to HTML. Got: {}",
+            html
+        );
+
+        // Embedded HTML should be preserved as-is
+        assert!(
+            html.contains("<h3 class=\"related-post-title\">Course Title</h3>"),
+            "Include output HTML should not be escaped. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains("&lt;h3"),
+            "HTML tags should not be escaped. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_markdown_headings_with_liquid_html() {
+        // Simulates a standalone page like books.md with markdown headings
+        // mixed with Liquid-generated HTML
+        let input = r#"# Book of the Week
+
+Each week we have a book author coming.
+
+## How it works
+
+* Register on DataTalks.Club
+* Join the channel
+
+## Upcoming books
+
+<section class="upcoming-books">
+  <div class="books">
+    <div class="book-card">Book 1</div>
+  </div>
+</section>
+
+## Archive
+
+<ul>
+  <li>Past book 1</li>
+</ul>
+"#;
+        let dedented = dedent_html_lines(input);
+        let html = markdown_to_html(&dedented);
+
+        assert!(html.contains("<h1>Book of the Week</h1>"), "h1 missing");
+        assert!(
+            html.contains("<h2>How it works</h2>"),
+            "h2 'How it works' missing. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<h2>Upcoming books</h2>"),
+            "h2 'Upcoming books' missing"
+        );
+        assert!(html.contains("<h2>Archive</h2>"), "h2 'Archive' missing");
+        assert!(
+            html.contains("<li>Register on DataTalks.Club</li>"),
+            "list items missing"
         );
     }
 }

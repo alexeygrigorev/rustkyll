@@ -762,12 +762,25 @@ pub fn generate_pages_cached(
 
         // Use raw content (not html_content) because pages may contain Liquid tags
         // that must be resolved before the layout wraps them.
-        match layout_engine.render_page_with_cached_site(
-            &layout_name,
-            &page.content,
-            &page_fm,
-            cached_site,
-        ) {
+        // For markdown pages (.md files), use the markdown pipeline (Liquid first,
+        // then markdown->HTML) so that markdown headings and formatting are rendered.
+        let is_markdown = page.source_path.ends_with(".md");
+        let render_result = if is_markdown {
+            layout_engine.render_markdown_page_with_cached_site(
+                &layout_name,
+                &page.content,
+                &page_fm,
+                cached_site,
+            )
+        } else {
+            layout_engine.render_page_with_cached_site(
+                &layout_name,
+                &page.content,
+                &page_fm,
+                cached_site,
+            )
+        };
+        match render_result {
             Ok(html) => {
                 // Compute output path from URL (handles trailing-slash pretty URLs)
                 let out_path = url_to_output_path(output_dir, &page.url);

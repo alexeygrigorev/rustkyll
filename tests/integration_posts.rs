@@ -345,3 +345,87 @@ fn test_post_with_no_subtitle() {
         );
     }
 }
+
+// ========================================================================
+// Issue 71: Related posts include rendering
+// ========================================================================
+
+#[test]
+fn test_related_posts_include_renders_as_html() {
+    if !site_dir().exists() {
+        return;
+    }
+    // Find the data engineering zoomcamp post (uses related-posts.html include)
+    let post = FIXTURE
+        .posts
+        .iter()
+        .find(|p| p.slug == "data-engineering-zoomcamp");
+    let post = post.expect("data-engineering-zoomcamp post should exist");
+
+    let cached_site =
+        rustkyll::template::layout::LayoutEngine::build_cached_site_context(&FIXTURE.site_context);
+    let mut fm = post.front_matter.clone();
+    fm.insert("url".into(), serde_yaml::Value::String(post.url.clone()));
+    let html = FIXTURE
+        .layout_engine
+        .render_markdown_page_with_cached_site("post", &post.content, &fm, &cached_site)
+        .unwrap();
+
+    // Related post titles should render as h3 tags, not inside <pre><code>
+    assert!(
+        html.contains("related-post-title"),
+        "Should contain related-post-title class"
+    );
+    assert!(
+        html.contains("<h3 class=\"related-post-title\">"),
+        "Related post titles should be rendered as h3 tags, not escaped. HTML snippet: {}",
+        html.chars()
+            .skip(html.find("related-post").unwrap_or(0).saturating_sub(200))
+            .take(600)
+            .collect::<String>()
+    );
+    assert!(
+        html.contains("<a href=\"/blog/"),
+        "Related post links should be rendered as HTML links"
+    );
+    // Should NOT have escaped HTML tags inside code blocks
+    assert!(
+        !html.contains("&lt;a href=\"/blog/"),
+        "Related post links should NOT be HTML-escaped"
+    );
+}
+
+#[test]
+fn test_related_posts_no_code_blocks() {
+    if !site_dir().exists() {
+        return;
+    }
+    // Check multiple posts that use related-posts.html
+    let slugs = [
+        "data-engineering-zoomcamp",
+        "llm-zoomcamp",
+        "mlops-zoomcamp",
+        "machine-learning-zoomcamp",
+    ];
+    let cached_site =
+        rustkyll::template::layout::LayoutEngine::build_cached_site_context(&FIXTURE.site_context);
+
+    for slug in &slugs {
+        let post = FIXTURE.posts.iter().find(|p| p.slug == *slug);
+        if let Some(post) = post {
+            let mut fm = post.front_matter.clone();
+            fm.insert("url".into(), serde_yaml::Value::String(post.url.clone()));
+            let html = FIXTURE
+                .layout_engine
+                .render_markdown_page_with_cached_site("post", &post.content, &fm, &cached_site)
+                .unwrap();
+
+            // Count related-post-title occurrences (should be >= 3)
+            let title_count = html.matches("related-post-title").count();
+            assert!(
+                title_count >= 3,
+                "{slug} should have at least 3 related post titles, found {title_count}"
+            );
+        }
+    }
+}

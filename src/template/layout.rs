@@ -287,11 +287,48 @@ impl LayoutEngine {
             raw_content.to_string()
         };
 
-        // Step 2: Convert markdown to HTML
-        let html_content = crate::frontmatter::markdown_to_html(&after_liquid);
+        // Step 2: Dedent HTML lines to prevent pulldown-cmark from treating
+        // indented include output as code blocks. Liquid includes (like
+        // related-posts.html) often produce HTML with 4+ spaces of indentation
+        // from {% for %} loops, which CommonMark interprets as code blocks.
+        let dedented = crate::frontmatter::dedent_html_lines(&after_liquid);
 
-        // Step 3: Wrap in layout
+        // Step 3: Convert markdown to HTML
+        let html_content = crate::frontmatter::markdown_to_html(&dedented);
+
+        // Step 4: Wrap in layout
         self.render_with_cached_site(layout_name, &html_content, page_front_matter, cached_site)
+    }
+
+    /// Render raw markdown content through the Liquid engine and convert to HTML,
+    /// WITHOUT wrapping in any layout. This produces the body HTML suitable for
+    /// use in feed entries and other contexts where only the content is needed.
+    ///
+    /// Steps:
+    /// 1. Process Liquid tags in the raw markdown content
+    /// 2. Convert the result to HTML via markdown
+    ///
+    /// If the content contains no Liquid tags, it is converted to HTML directly.
+    pub fn render_markdown_content_with_cached_site(
+        &self,
+        raw_content: &str,
+        page_front_matter: &FrontMatter,
+        cached_site: &CachedSiteContext,
+    ) -> Result<String, TemplateError> {
+        // Step 1: Process Liquid tags in the raw content
+        let after_liquid = if raw_content.contains("{{") || raw_content.contains("{%") {
+            let page_ctx = build_render_context_page_only("", page_front_matter);
+            self.engine
+                .parse_and_render_with_cached_site(raw_content, &page_ctx, cached_site)?
+        } else {
+            raw_content.to_string()
+        };
+
+        // Step 2: Dedent HTML lines (same as render_markdown_page_with_cached_site)
+        let dedented = crate::frontmatter::dedent_html_lines(&after_liquid);
+
+        // Step 3: Convert markdown to HTML
+        Ok(crate::frontmatter::markdown_to_html(&dedented))
     }
 }
 
@@ -1766,5 +1803,95 @@ mod tests {
             .parse_and_render("{% include header.html %}", &ctx)
             .unwrap();
         assert_eq!(output, "<h1>Header</h1>");
+    }
+
+    // ========================================================================
+    // render_markdown_content_with_cached_site (for feed content rendering)
+    // ========================================================================
+
+    #[test]
+    fn test_render_markdown_content_no_liquid_passthrough() {
+        let includes = HashMap::new();
+        let layouts = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+        let fm = FrontMatter::new();
+        let site_ctx = Object::new();
+        let cached = CachedSiteContext::new(&site_ctx);
+
+        let result = engine
+            .render_markdown_content_with_cached_site("Hello **world**", &fm, &cached)
+            .unwrap();
+        assert!(
+            result.contains("<strong>world</strong>"),
+            "Should convert markdown to HTML: {}",
+            result
+        );
+        assert!(
+            !result.contains("{{"),
+            "Should not contain Liquid tags: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_render_markdown_content_with_liquid_variable() {
+        let includes = HashMap::new();
+        let layouts = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let mut fm = FrontMatter::new();
+        fm.insert(
+            "title".into(),
+            serde_yaml::Value::String("My Title".to_string()),
+        );
+
+        let site_ctx = Object::new();
+        let cached = CachedSiteContext::new(&site_ctx);
+
+        let result = engine
+            .render_markdown_content_with_cached_site("Title: {{ page.title }}", &fm, &cached)
+            .unwrap();
+        assert!(
+            result.contains("My Title"),
+            "Should render Liquid variable: {}",
+            result
+        );
+        assert!(
+            !result.contains("{{"),
+            "Should not contain raw Liquid tags: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_render_markdown_content_with_include() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "footer.html".to_string(),
+            "<footer>Copyright 2024</footer>".to_string(),
+        );
+        let layouts = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+        let fm = FrontMatter::new();
+        let site_ctx = Object::new();
+        let cached = CachedSiteContext::new(&site_ctx);
+
+        let result = engine
+            .render_markdown_content_with_cached_site(
+                "Content here\n\n{% include footer.html %}",
+                &fm,
+                &cached,
+            )
+            .unwrap();
+        assert!(
+            result.contains("Copyright 2024"),
+            "Should resolve include: {}",
+            result
+        );
+        assert!(
+            !result.contains("{%"),
+            "Should not contain raw Liquid tags: {}",
+            result
+        );
     }
 }
