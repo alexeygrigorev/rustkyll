@@ -6,3 +6,4 @@ playwright/node_modules/
 playwright/screenshots/
 playwright/test-results/
 __pycache__
+_site
