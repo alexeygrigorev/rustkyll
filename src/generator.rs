@@ -19,6 +19,7 @@ use crate::config::SiteConfig;
 use crate::data::DataTree;
 use crate::jsonld;
 use crate::template::context::{normalize_arrays, yaml_to_liquid};
+use crate::template::engine::CachedSiteContext;
 use crate::template::layout::LayoutEngine;
 use crate::template::TemplateError;
 
@@ -464,6 +465,32 @@ pub fn generate_collection_pages_with_authors(
     output_dir: &Path,
     author_items: &[CollectionItem],
 ) -> Result<GenerationResult, GeneratorError> {
+    let cached_site = LayoutEngine::build_cached_site_context(site_context);
+    generate_collection_pages_cached(
+        items,
+        collection_type,
+        config,
+        layout_engine,
+        &cached_site,
+        output_dir,
+        author_items,
+    )
+}
+
+/// Generate HTML pages for collection items using a pre-built cached site context.
+///
+/// This is the performance-optimized version. The caller should build the
+/// `CachedSiteContext` ONCE and pass it to all collection page generations,
+/// avoiding redundant O(n) LenientValue tree construction per collection.
+pub fn generate_collection_pages_cached(
+    items: &[CollectionItem],
+    collection_type: &str,
+    config: &SiteConfig,
+    layout_engine: &LayoutEngine,
+    cached_site: &CachedSiteContext,
+    output_dir: &Path,
+    author_items: &[CollectionItem],
+) -> Result<GenerationResult, GeneratorError> {
     let collection_out_dir = output_dir.join(collection_type);
     fs::create_dir_all(&collection_out_dir).map_err(|e| GeneratorError::WriteFile {
         path: collection_out_dir.display().to_string(),
@@ -539,7 +566,12 @@ pub fn generate_collection_pages_with_authors(
             &item.html_content
         };
 
-        match layout_engine.render_page(&layout_name, render_content, &page_fm, site_context) {
+        match layout_engine.render_page_with_cached_site(
+            &layout_name,
+            render_content,
+            &page_fm,
+            cached_site,
+        ) {
             Ok(html) => {
                 // Post-process: inject JSON-LD structured data if applicable
                 let html =
@@ -638,6 +670,20 @@ pub fn generate_pages(
     site_context: &Object,
     output_dir: &Path,
 ) -> Result<GenerationResult, GeneratorError> {
+    let cached_site = LayoutEngine::build_cached_site_context(site_context);
+    generate_pages_cached(pages, layout_engine, &cached_site, output_dir)
+}
+
+/// Generate HTML for standalone pages using a pre-built cached site context.
+///
+/// Performance-optimized version of `generate_pages`. The caller should
+/// build the `CachedSiteContext` once and share it across all generation calls.
+pub fn generate_pages_cached(
+    pages: &[crate::collection::Page],
+    layout_engine: &LayoutEngine,
+    cached_site: &CachedSiteContext,
+    output_dir: &Path,
+) -> Result<GenerationResult, GeneratorError> {
     fs::create_dir_all(output_dir).map_err(|e| GeneratorError::WriteFile {
         path: output_dir.display().to_string(),
         source: e,
@@ -670,7 +716,12 @@ pub fn generate_pages(
 
         // Use raw content (not html_content) because pages may contain Liquid tags
         // that must be resolved before the layout wraps them.
-        match layout_engine.render_page(&layout_name, &page.content, &page_fm, site_context) {
+        match layout_engine.render_page_with_cached_site(
+            &layout_name,
+            &page.content,
+            &page_fm,
+            cached_site,
+        ) {
             Ok(html) => {
                 // Compute output path from URL
                 let relative = page.url.trim_start_matches('/');

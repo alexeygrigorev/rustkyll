@@ -300,17 +300,75 @@ impl Renderable for LenientInclude {
     }
 }
 
-/// Pre-process a template string to quote include paths containing `/`.
+/// Replace backslash-escaped quotes inside double-quoted and single-quoted
+/// parameter values of an include tag.
 ///
-/// The Liquid parser's pest grammar does not recognize `/` as a valid token
-/// inside tag arguments. Jekyll `{% include subdir/file.html %}` uses
-/// unquoted paths with directory separators, which causes a parse error.
+/// Jekyll supports `\"` inside double-quoted include parameter values and `\'`
+/// inside single-quoted values. After parsing, Jekyll unescapes them. The
+/// Liquid parser's pest grammar does not support backslash escapes, so we
+/// replace `\"` with `&quot;` and `\'` with `&#39;` before the Liquid parser
+/// sees the template. Since include parameter values typically end up in HTML
+/// output, using HTML entities is semantically correct.
+fn unescape_include_params(params: &str) -> String {
+    let mut result = String::with_capacity(params.len());
+    let mut chars = params.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        if ch == '"' {
+            // Start of a double-quoted value -- copy everything inside,
+            // replacing `\"` with `&quot;`
+            result.push('"');
+            loop {
+                match chars.next() {
+                    Some('\\') if chars.peek() == Some(&'"') => {
+                        chars.next(); // consume the escaped quote
+                        result.push_str("&quot;");
+                    }
+                    Some('"') => {
+                        result.push('"');
+                        break;
+                    }
+                    Some(c) => result.push(c),
+                    None => break, // unterminated string -- stop gracefully
+                }
+            }
+        } else if ch == '\'' {
+            // Start of a single-quoted value -- copy everything inside,
+            // replacing `\'` with `&#39;`
+            result.push('\'');
+            loop {
+                match chars.next() {
+                    Some('\\') if chars.peek() == Some(&'\'') => {
+                        chars.next();
+                        result.push_str("&#39;");
+                    }
+                    Some('\'') => {
+                        result.push('\'');
+                        break;
+                    }
+                    Some(c) => result.push(c),
+                    None => break,
+                }
+            }
+        } else {
+            result.push(ch);
+        }
+    }
+
+    result
+}
+
+/// Pre-process a template string to handle Jekyll include tag quirks.
 ///
-/// This function finds `{% include path/to/file.html ... %}` patterns and
-/// wraps the path in double quotes so the Liquid parser can handle it as a
-/// string literal: `{% include "path/to/file.html" ... %}`.
+/// The Liquid parser's pest grammar does not recognize:
+/// 1. `/` as a valid token inside tag arguments (unquoted subdirectory paths)
+/// 2. `\"` as an escape sequence inside double-quoted strings
 ///
-/// Paths without `/` are left unchanged.
+/// This function:
+/// - Wraps unquoted paths containing `/` in double quotes
+/// - Replaces `\"` inside double-quoted parameter values with `&quot;`
+/// - Replaces `\'` inside single-quoted parameter values with `&#39;`
+/// - Handles dynamic includes (`{% include {{ expr }} %}`)
 pub fn preprocess_include_paths(template: &str) -> String {
     let mut result = String::with_capacity(template.len());
     let mut remaining = template;
@@ -325,7 +383,7 @@ pub fn preprocess_include_paths(template: &str) -> String {
             let tag_inner = &after_open[..end_offset];
             let tag_end = start + 2 + end_offset + 2;
 
-            // Check if this is an include tag with a path containing /
+            // Check if this is an include tag
             let trimmed = tag_inner.trim();
 
             // Handle whitespace-control variants (e.g., {%- include -%})
@@ -373,15 +431,19 @@ pub fn preprocess_include_paths(template: &str) -> String {
                     }
                 }
 
-                // Check if the first "word" (up to space or %}) contains a /
+                // Extract the path (first "word" up to space or end)
                 let path_end = after_include
                     .find([' ', '\t'])
                     .unwrap_or(after_include.len());
                 let path = &after_include[..path_end];
+                let rest_after_path = &after_include[path_end..];
 
-                if path.contains('/') && !path.starts_with('"') && !path.starts_with('\'') {
-                    // Reconstruct the tag with quoted path
-                    let rest_after_path = &after_include[path_end..];
+                let needs_path_quoting =
+                    path.contains('/') && !path.starts_with('"') && !path.starts_with('\'');
+                let has_escaped_quotes =
+                    rest_after_path.contains("\\\"") || rest_after_path.contains("\\'");
+
+                if needs_path_quoting || has_escaped_quotes {
                     // Preserve original whitespace-control markers
                     let orig_tag = &remaining[start..tag_end];
                     let open_marker = if orig_tag.starts_with("{%-") {
@@ -395,10 +457,19 @@ pub fn preprocess_include_paths(template: &str) -> String {
                         "%}"
                     };
                     result.push_str(open_marker);
-                    result.push_str(" include \"");
-                    result.push_str(path);
-                    result.push('"');
-                    result.push_str(rest_after_path);
+                    result.push_str(" include ");
+                    if needs_path_quoting {
+                        result.push('"');
+                        result.push_str(path);
+                        result.push('"');
+                    } else {
+                        result.push_str(path);
+                    }
+                    if has_escaped_quotes {
+                        result.push_str(&unescape_include_params(rest_after_path));
+                    } else {
+                        result.push_str(rest_after_path);
+                    }
                     result.push(' ');
                     result.push_str(close_marker);
                     remaining = &remaining[tag_end..];
@@ -406,7 +477,7 @@ pub fn preprocess_include_paths(template: &str) -> String {
                 }
             }
 
-            // Not an include with / -- copy as-is
+            // Not an include with special handling -- copy as-is
             result.push_str(&remaining[start..tag_end]);
             remaining = &remaining[tag_end..];
         } else {
@@ -566,6 +637,149 @@ mod tests {
         assert!(
             output.contains(r#"param1="value""#),
             "Should preserve params, got: {}",
+            output
+        );
+    }
+
+    // ========================================================================
+    // Issue 50: Escaped quotes in include parameters
+    // ========================================================================
+
+    #[test]
+    fn test_unescape_include_params_double_quotes() {
+        let input = r#" param="value with \"escaped\" quotes""#;
+        let output = unescape_include_params(input);
+        assert_eq!(output, r#" param="value with &quot;escaped&quot; quotes""#);
+    }
+
+    #[test]
+    fn test_unescape_include_params_single_quotes() {
+        let input = r" param='value with \'escaped\' quotes'";
+        let output = unescape_include_params(input);
+        assert_eq!(output, " param='value with &#39;escaped&#39; quotes'");
+    }
+
+    #[test]
+    fn test_unescape_include_params_no_escapes() {
+        let input = r#" param="normal value" other="also normal""#;
+        let output = unescape_include_params(input);
+        assert_eq!(output, input);
+    }
+
+    #[test]
+    fn test_unescape_include_params_mixed() {
+        let input = r#" normal="ok" escaped="has \"quotes\"" also="fine""#;
+        let output = unescape_include_params(input);
+        assert_eq!(
+            output,
+            r#" normal="ok" escaped="has &quot;quotes&quot;" also="fine""#
+        );
+    }
+
+    #[test]
+    fn test_preprocess_escaped_quotes_simple() {
+        let input = r#"{% include file.html param="value with \"escaped\" quotes" %}"#;
+        let output = preprocess_include_paths(input);
+        assert!(
+            !output.contains("\\\""),
+            "Should not contain backslash-escaped quotes, got: {}",
+            output
+        );
+        assert!(
+            output.contains("&quot;"),
+            "Should contain HTML entity quotes, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_escaped_quotes_anchor_headings() {
+        // The exact failing line from DataTalksClub/docs default.html
+        let input = r##"{% include vendor/anchor_headings.html html=content beforeHeading="true" anchorBody="<svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><use xlink:href=\"#svg-link\"></use></svg>" anchorClass="anchor-heading" anchorAttrs="aria-labelledby=\"%html_id%\"" %}"##;
+        let output = preprocess_include_paths(input);
+        // Path should be quoted (contains /)
+        assert!(
+            output.contains(r#""vendor/anchor_headings.html""#),
+            "Path should be quoted, got: {}",
+            output
+        );
+        // Escaped quotes should be replaced with &quot;
+        assert!(
+            !output.contains("\\\""),
+            "Should not contain backslash-escaped quotes, got: {}",
+            output
+        );
+        assert!(
+            output.contains("viewBox=&quot;0 0 16 16&quot;"),
+            "Should have HTML entity quotes in viewBox, got: {}",
+            output
+        );
+        assert!(
+            output.contains("aria-hidden=&quot;true&quot;"),
+            "Should have HTML entity quotes in aria-hidden, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_escaped_quotes_no_path_slash() {
+        // Include without / in path but with escaped quotes in params
+        let input = r#"{% include file.html param="has \"escaped\" quotes" normal="ok" %}"#;
+        let output = preprocess_include_paths(input);
+        assert!(
+            !output.contains("\\\""),
+            "Should not contain backslash-escaped quotes, got: {}",
+            output
+        );
+        assert!(
+            output.contains("&quot;escaped&quot;"),
+            "Should replace with HTML entities, got: {}",
+            output
+        );
+        assert!(
+            output.contains("normal=\"ok\""),
+            "Non-escaped params should be preserved, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_escaped_quotes_preserves_other_tags() {
+        let input = r#"{% if true %}{% include file.html param="\"escaped\"" %}{% endif %}"#;
+        let output = preprocess_include_paths(input);
+        assert!(output.contains("{% if true %}"));
+        assert!(output.contains("{% endif %}"));
+        assert!(
+            !output.contains("\\\""),
+            "Escaped quotes should be replaced, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_no_escaped_quotes_unchanged() {
+        // Regression: include without escaped quotes should be identical
+        let input = r#"{% include file.html param="normal" %}"#;
+        assert_eq!(preprocess_include_paths(input), input);
+    }
+
+    #[test]
+    fn test_preprocess_whitespace_control_with_escaped_quotes() {
+        let input = r#"{%- include file.html param="\"escaped\"" -%}"#;
+        let output = preprocess_include_paths(input);
+        assert!(
+            output.starts_with("{%-"),
+            "Should preserve open whitespace control, got: {}",
+            output
+        );
+        assert!(
+            output.ends_with("-%}"),
+            "Should preserve close whitespace control, got: {}",
+            output
+        );
+        assert!(
+            !output.contains("\\\""),
+            "Should replace escaped quotes, got: {}",
             output
         );
     }
