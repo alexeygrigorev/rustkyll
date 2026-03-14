@@ -139,3 +139,36 @@ jobs:
             artifacts/rustkyll-darwin-amd64/rustkyll-darwin-amd64
             artifacts/rustkyll-darwin-arm64/rustkyll-darwin-arm64
             artifacts/rustkyll-windows-amd64.exe/rustkyll-windows-amd64.exe
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List artifacts
+        run: find artifacts -type f
+
+      - name: Build platform-tagged wheels
+        run: python scripts/build-wheels.py --binaries-dir ./artifacts --output-dir ./dist
+
+      - name: List wheels
+        run: ls -la dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/

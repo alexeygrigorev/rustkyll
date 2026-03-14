@@ -7,6 +7,25 @@ rustkyll reads the same source files as Jekyll - Markdown with YAML front matter
 
 ## Installation
 
+### Install with uv (recommended)
+
+The fastest way to install rustkyll is with [uv](https://docs.astral.sh/uv/):
+
+```
+# Run without installing
+uvx rustkyll build --source /path/to/site
+
+# Or install as a global tool
+uv tool install rustkyll
+rustkyll build --source /path/to/site
+```
+
+You can also install with pip:
+
+```
+pip install rustkyll
+```
+
 ### Pre-built binaries
 
 Download the latest release for your platform from the [GitHub Releases](https://github.com/alexeygrigorev/rustkyll/releases) page.
@@ -42,6 +61,12 @@ cargo build --release
 ```
 
 The binary will be at `target/release/rustkyll`.
+
+Alternatively, install directly with cargo:
+
+```
+cargo install --path .
+```
 
 
 ## Usage
