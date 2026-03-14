@@ -35,3 +35,33 @@ jobs:
 
       - name: cargo fmt --check
         run: cargo fmt --check
+
+  integration:
+    name: Integration Tests (DTC Site)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry and target
+        uses: Swatinem/rust-cache@v2
+
+      - name: Clone DTC site (shallow)
+        run: |
+          mkdir -p websites/DataTalksClub
+          git clone --depth 1 https://github.com/DataTalksClub/datatalksclub.github.io.git \
+            websites/DataTalksClub/datatalksclub.github.io
+
+      - name: Build rustkyll (release)
+        run: cargo build --release --verbose
+
+      - name: Run integration tests (ignored tests, excluding Jekyll-dependent)
+        run: cargo test -- --ignored --skip structural_comparison --skip vs_jekyll --skip kids_
+        env:
+          RUST_LOG: info
+
+      - name: Run rustkyll-only output validation
+        run: ./scripts/compare-output.sh --validate-only --site DataTalksClub/datatalksclub.github.io

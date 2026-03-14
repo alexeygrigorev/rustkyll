@@ -5,6 +5,11 @@
 #   ./scripts/compare-output.sh --site DataTalksClub/datatalksclub.github.io
 #   ./scripts/compare-output.sh --site alexeygrigorev/kids-horror-stories-ru
 #   ./scripts/compare-output.sh --jekyll-dir /path/to/jekyll/output --rustkyll-dir /path/to/rustkyll/output
+#   ./scripts/compare-output.sh --validate-only --site DataTalksClub/datatalksclub.github.io
+#
+# Modes:
+#   Default (--site or --jekyll-dir/--rustkyll-dir): Full Jekyll vs rustkyll comparison
+#   --validate-only: Build with rustkyll only and validate output (no Jekyll required)
 #
 # This script compares:
 # 1. File tree: lists of generated HTML files
@@ -25,6 +30,8 @@ SITE=""
 JEKYLL_DIR=""
 RUSTKYLL_DIR=""
 THRESHOLD_PCT=5
+VALIDATE_ONLY=0
+MIN_HTML_FILES=100
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -42,6 +49,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --threshold)
             THRESHOLD_PCT="$2"
+            shift 2
+            ;;
+        --validate-only)
+            VALIDATE_ONLY=1
+            shift
+            ;;
+        --min-files)
+            MIN_HTML_FILES="$2"
             shift 2
             ;;
         *)
@@ -120,6 +135,63 @@ validate_output() {
     return $failed
 }
 
+# --- Validate-only mode: build with rustkyll and validate output (no Jekyll) ---
+
+if [[ "$VALIDATE_ONLY" -eq 1 ]]; then
+    if [[ -z "$SITE" ]]; then
+        echo "Usage: $0 --validate-only --site <site-path>"
+        echo "  e.g.: $0 --validate-only --site DataTalksClub/datatalksclub.github.io"
+        exit 1
+    fi
+
+    SITE_DIR="$PROJECT_DIR/websites/$SITE"
+    if [[ ! -d "$SITE_DIR" ]]; then
+        echo "ERROR: Site directory not found: $SITE_DIR"
+        exit 1
+    fi
+
+    RUSTKYLL_DIR="/tmp/compare-rustkyll-$(echo "$SITE" | tr '/' '-')"
+
+    # Build with rustkyll
+    echo "=== Building with rustkyll (validate-only mode) ==="
+    "$PROJECT_DIR/target/release/rustkyll" build \
+        --source "$SITE_DIR" \
+        --destination "$RUSTKYLL_DIR" 2>&1 | tail -5
+    echo ""
+
+    # Validate output
+    echo "=== Rustkyll Output Validation ==="
+    VALIDATE_FAIL=0
+    validate_output "$RUSTKYLL_DIR" "rustkyll" || VALIDATE_FAIL=1
+    echo ""
+
+    # Count HTML files
+    HTML_COUNT=$(find "$RUSTKYLL_DIR" -name "*.html" | wc -l)
+    echo "  Total HTML files: $HTML_COUNT"
+    echo "  Minimum required: $MIN_HTML_FILES"
+    echo ""
+
+    # Summary
+    echo "=== Summary ==="
+    FAILED=0
+
+    if [[ "$VALIDATE_FAIL" -eq 1 ]]; then
+        echo "FAIL: Rustkyll output validation failed (raw Liquid tags found)"
+        FAILED=1
+    else
+        echo "PASS: Rustkyll output validation (no raw Liquid tags)"
+    fi
+
+    if [[ "$HTML_COUNT" -lt "$MIN_HTML_FILES" ]]; then
+        echo "FAIL: HTML file count ($HTML_COUNT) is below minimum ($MIN_HTML_FILES)"
+        FAILED=1
+    else
+        echo "PASS: HTML file count ($HTML_COUNT) meets minimum ($MIN_HTML_FILES)"
+    fi
+
+    exit $FAILED
+fi
+
 # --- Site mode: build both Jekyll and rustkyll ---
 
 if [[ -n "$SITE" ]]; then
@@ -156,6 +228,7 @@ fi
 
 if [[ -z "$JEKYLL_DIR" ]] || [[ -z "$RUSTKYLL_DIR" ]]; then
     echo "Usage: $0 --site <site-path> OR --jekyll-dir <dir> --rustkyll-dir <dir>"
+    echo "       $0 --validate-only --site <site-path>"
     exit 1
 fi
 
