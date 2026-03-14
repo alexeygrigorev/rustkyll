@@ -7,6 +7,28 @@ rustkyll reads the same source files as Jekyll - Markdown with YAML front matter
 
 ## Installation
 
+### Pre-built binaries
+
+Download the latest release for your platform from the [GitHub Releases](https://github.com/alexeygrigorev/rustkyll/releases) page.
+
+Available binaries:
+
+| Platform | Binary |
+|----------|--------|
+| Linux x86_64 | `rustkyll-linux-amd64` |
+| Linux ARM64 | `rustkyll-linux-arm64` |
+| macOS Intel | `rustkyll-darwin-amd64` |
+| macOS Apple Silicon | `rustkyll-darwin-arm64` |
+| Windows x86_64 | `rustkyll-windows-amd64.exe` |
+
+On Linux and macOS, make the binary executable after downloading:
+
+```
+chmod +x rustkyll-*
+```
+
+### Build from source
+
 Prerequisites:
 
 - Rust toolchain (stable, 2021 edition or later)
