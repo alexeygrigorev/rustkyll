@@ -30,12 +30,24 @@ Fix the frontmatter parser to handle multi-byte UTF-8 characters correctly. No p
 
 Build the DTC site — the panic occurs on a podcast episode with curly quotes in the title.
 
-The bug may also be reproducible on Linux (not Windows-specific). Try:
+The DTC site must be at the latest commit to reproduce:
+```
+commit 8a9789e4dd13ccf666cec18080c5f1705a9fb082 (HEAD -> main, origin/main)
+Author: Alexey Grigorev
+Date:   Thu Mar 12 21:01:24 2026 +0100
+    Add Snowplow sponsor and adjust sponsor logo sizes
+```
+
+The local copy used for development may be older and missing the problematic podcast episode.
+
+To reproduce:
 ```bash
+# Update or clone the latest DTC site
+git clone --depth 1 https://github.com/DataTalksClub/datatalksclub.github.io.git
 cargo run --release -- build --source datatalksclub.github.io/
 ```
 
-If it doesn't panic on Linux, the issue may be related to line ending differences (CRLF vs LF) affecting byte offsets.
+If it doesn't panic on Linux, the issue may be related to line ending differences (CRLF vs LF) affecting byte offsets. Git on Windows may check out files with CRLF, shifting byte positions.
 
 ## Approach
 
