@@ -51,9 +51,14 @@ The orchestrator NEVER writes or modifies code (src/, tests/, scripts/). It only
 - Task panel items
 - Git commits (after PM accepts)
 
-**NEVER wait for user input.** The pipeline runs autonomously. If something needs user action (e.g. configuring a secret, testing on their machine, confirming a deployment), note it in the issue file as a "USER ACTION REQUIRED" item and keep moving to the next issue. Do not stop the pipeline.
+**NEVER wait for user input. NEVER idle. The pipeline must always be running.**
 
-**NEVER block on dependencies within a batch.** If issue A is groomed but issue B is still grooming, launch the SWE agent for A immediately. Don't wait for B. Each issue's pipeline is independent — launch agents as soon as their predecessor step completes, regardless of the other issue in the batch.
+- If something needs user action (configuring a secret, testing on their machine), note it in the issue file as "USER ACTION REQUIRED" and immediately move to the next issue
+- After committing a batch, immediately pick the next 2 issues and start grooming/implementing
+- After asking the user a question, don't wait for the answer — keep working on other issues
+- If issue A is groomed but issue B is still grooming, launch SWE for A immediately
+- If there are issues in the backlog, there is work to do — never end with "waiting for completion"
+- The orchestrator's job is to keep agents busy at ALL times
 
 ## Agent Workflow
 
