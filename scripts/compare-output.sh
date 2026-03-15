@@ -13,12 +13,12 @@
 #
 # This script compares:
 # 1. File tree: lists of generated HTML files
-# 2. Structural elements: title, h1-h6, links, images per page
+# 2. DOM tree comparison: full normalized DOM tree diff via dom_compare.py
 # 3. Reports differences and exits nonzero if thresholds exceeded.
 #
 # Thresholds:
 # - File count difference: 5% tolerance
-# - Per-page structural diff: fail if >50% of sampled files differ
+# - DOM comparison: fail if any common file has DOM differences
 # - Missing files: fail if >5% of files are missing from either side
 
 set -euo pipefail
@@ -67,26 +67,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 # --- Helper functions (defined before use) ---
-
-extract_structural_elements() {
-    local file="$1"
-    # Extract title, headings, links, and images using grep/sed
-    # This is a lightweight structural extraction without requiring Python/Node
-    # Note: each grep pipeline uses "|| true" to avoid pipefail exit on no-match
-    {
-        # Title
-        (grep -oiP '<title[^>]*>\K[^<]+' "$file" 2>/dev/null || true) | head -1 | sed 's/^/TITLE: /'
-
-        # Headings h1-h6
-        (grep -oiP '<h[1-6][^>]*>\K[^<]+' "$file" 2>/dev/null || true) | sed 's/^/HEADING: /'
-
-        # Links (href values)
-        (grep -oiP 'href="\K[^"]+' "$file" 2>/dev/null || true) | sort -u | sed 's/^/LINK: /'
-
-        # Images (src values)
-        (grep -oiP '<img[^>]*src="\K[^"]+' "$file" 2>/dev/null || true) | sort -u | sed 's/^/IMG: /'
-    } | sort
-}
 
 validate_output() {
     local dir="$1"
@@ -286,46 +266,13 @@ fi
 
 echo ""
 
-# 2. Compare structural elements for common files
-echo "--- Structural Element Comparison ---"
+# 2. DOM tree comparison using dom_compare.py
+echo "--- DOM Tree Comparison ---"
 
-COMMON_FILES=$(comm -12 <(echo "$JEKYLL_FILES") <(echo "$RUSTKYLL_FILES"))
-COMMON_COUNT=$(echo "$COMMON_FILES" | grep -c . || true)
-echo "Common files to compare: $COMMON_COUNT"
-
-STRUCT_DIFFS=0
-SAMPLE_DIFFS=""
-
-# Compare a sample of files (up to 50)
-SAMPLE_COUNT=0
-while IFS= read -r rel_path; do
-    [[ -z "$rel_path" ]] && continue
-    SAMPLE_COUNT=$((SAMPLE_COUNT + 1))
-    [[ "$SAMPLE_COUNT" -gt 50 ]] && break
-
-    JEKYLL_FILE="$JEKYLL_DIR/$rel_path"
-    RUSTKYLL_FILE="$RUSTKYLL_DIR/$rel_path"
-
-    JEKYLL_STRUCT=$(extract_structural_elements "$JEKYLL_FILE")
-    RUSTKYLL_STRUCT=$(extract_structural_elements "$RUSTKYLL_FILE")
-
-    if [[ "$JEKYLL_STRUCT" != "$RUSTKYLL_STRUCT" ]]; then
-        STRUCT_DIFFS=$((STRUCT_DIFFS + 1))
-        if [[ "$STRUCT_DIFFS" -le 5 ]]; then
-            SAMPLE_DIFFS="${SAMPLE_DIFFS}\n--- $rel_path ---\n"
-            SAMPLE_DIFFS="${SAMPLE_DIFFS}$(diff <(echo "$JEKYLL_STRUCT") <(echo "$RUSTKYLL_STRUCT") | head -20 || true)\n"
-        fi
-    fi
-done <<< "$COMMON_FILES"
-
-echo "Files compared:    $SAMPLE_COUNT"
-echo "Files with diffs:  $STRUCT_DIFFS"
-
-if [[ "$STRUCT_DIFFS" -gt 0 ]] && [[ -n "$SAMPLE_DIFFS" ]]; then
-    echo ""
-    echo "Sample structural differences:"
-    echo -e "$SAMPLE_DIFFS"
-fi
+DOM_COMPARE_FAIL=0
+python3 "$SCRIPT_DIR/dom_compare.py" \
+    --jekyll-dir "$JEKYLL_DIR" \
+    --rustkyll-dir "$RUSTKYLL_DIR" || DOM_COMPARE_FAIL=1
 
 echo ""
 
@@ -355,11 +302,11 @@ else
     echo "PASS: Missing files within tolerance"
 fi
 
-if [[ "$STRUCT_DIFFS" -gt "$((SAMPLE_COUNT / 2))" ]]; then
-    echo "FAIL: More than half of sampled files have structural differences ($STRUCT_DIFFS/$SAMPLE_COUNT)"
+if [[ "$DOM_COMPARE_FAIL" -eq 1 ]]; then
+    echo "FAIL: DOM tree comparison found differences"
     FAILED=1
 else
-    echo "PASS: Structural differences within tolerance ($STRUCT_DIFFS/$SAMPLE_COUNT)"
+    echo "PASS: DOM tree comparison (all common files match)"
 fi
 
 exit $FAILED
