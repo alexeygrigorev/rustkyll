@@ -211,9 +211,7 @@ EOF
     # Initialize git repo for benchmark compatibility
     cd "$site_dir"
     if [[ ! -d ".git" ]]; then
-        git init -b main
-        git add .
-        git commit -m "Initial commit: large-blog-3000 with 3000 posts"
+        # No git init needed -- just a directory with files
     fi
 
     echo "Generated large-blog-3000 with 3000 posts."
@@ -385,9 +383,8 @@ EOF
     # Initialize git repo for benchmark compatibility
     cd "$site_dir"
     if [[ ! -d ".git" ]]; then
-        git init -b main
-        git add .
-        git commit -m "Initial commit: large-docs-site with $page_num pages"
+        # No git init needed -- just a directory with files
+        # No git init needed -- just a directory with files
     fi
 
     echo "Generated large-docs-site with $page_num pages across ${#sections[@]} sections."
