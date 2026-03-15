@@ -93,6 +93,12 @@ jobs:
           git clone --depth 1 https://github.com/Homebrew/brew.sh.git \
             websites/homebrew-site
 
+      # -- Git config for synthetic site generation --
+      - name: Configure git for synthetic sites
+        run: |
+          git config --global user.email "ci@rustkyll.dev"
+          git config --global user.name "CI Bot"
+
       # -- Generate synthetic benchmark sites --
 
       - name: Generate synthetic sites (large-blog-3000, large-docs-site)
