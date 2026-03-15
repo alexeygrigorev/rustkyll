@@ -190,20 +190,25 @@ fn build_with_rustkyll(source: &Path, dest: &Path) {
 }
 
 /// Build a site with Jekyll and return the output directory path.
+///
+/// Uses `bundle exec jekyll build` with the working directory set to the site
+/// source so that the site's Gemfile and bundled gems (themes, plugins) are
+/// picked up correctly.
 fn build_with_jekyll(source: &Path, dest: &Path) {
     if dest.exists() {
         fs::remove_dir_all(dest).unwrap();
     }
     fs::create_dir_all(dest).unwrap();
 
-    let output = Command::new("jekyll")
+    let output = Command::new("bundle")
+        .arg("exec")
+        .arg("jekyll")
         .arg("build")
-        .arg("--source")
-        .arg(source.to_str().unwrap())
         .arg("--destination")
         .arg(dest.to_str().unwrap())
+        .current_dir(source)
         .output()
-        .expect("failed to run jekyll");
+        .expect("failed to run bundle exec jekyll");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
