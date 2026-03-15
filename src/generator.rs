@@ -703,12 +703,26 @@ pub fn generate_collection_pages_cached_with_progress(
         // Determine HTML output: render through layout if available,
         // otherwise output raw content (Jekyll outputs items without layout too).
         let html_result = if let Some(ref layout) = layout_name {
-            // For posts: use raw content with Liquid+markdown pipeline (Liquid first, then markdown->HTML).
-            // For other collections: content is already HTML (markdown was pre-converted during loading).
-            let render_result = if item.collection_name == "posts" {
+            // Jekyll processes Liquid first, then markdown for ALL markdown-sourced files.
+            // Use the Liquid-first-then-markdown pipeline for any collection item whose
+            // source content contains Liquid tags and comes from a markdown file. This
+            // prevents markdown-to-HTML conversion from encoding operators (< > >= <=)
+            // inside Liquid expressions like where_exp date comparisons.
+            let is_markdown_source =
+                item.source_path.ends_with(".md") || item.source_path.ends_with(".markdown");
+            let has_liquid_tags = item.content.contains("{{") || item.content.contains("{%");
+            let render_result = if is_markdown_source && has_liquid_tags {
                 layout_engine.render_markdown_page_with_cached_site(
                     layout,
                     &item.content,
+                    &page_fm,
+                    cached_site,
+                )
+            } else if is_markdown_source {
+                // Markdown without Liquid: use pre-converted HTML (faster)
+                layout_engine.render_page_with_cached_site(
+                    layout,
+                    &item.html_content,
                     &page_fm,
                     cached_site,
                 )

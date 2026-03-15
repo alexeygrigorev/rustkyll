@@ -166,6 +166,17 @@ fn values_equal(a: &Value, b: &Value) -> bool {
     a.render().to_string() == b.render().to_string()
 }
 
+/// Decode HTML entities that may appear in expressions when Liquid tags are
+/// processed after markdown-to-HTML conversion. For example, `>=` becomes
+/// `&gt;=` and `<` becomes `&lt;` in HTML.
+fn decode_html_entities(s: &str) -> String {
+    s.replace("&gt;", ">")
+        .replace("&lt;", "<")
+        .replace("&amp;", "&")
+        .replace("&quot;", "\"")
+        .replace("&#39;", "'")
+}
+
 /// Evaluate a simple expression like "item.field op value" or "item.field contains value".
 fn evaluate_expression(
     expr: &str,
@@ -173,7 +184,11 @@ fn evaluate_expression(
     element: &dyn ValueView,
     runtime: &dyn Runtime,
 ) -> bool {
-    let expr = expr.trim();
+    // Decode HTML entities in the expression -- when Liquid tags appear inside
+    // markdown content that was converted to HTML before Liquid processing,
+    // operators like >= and < become &gt;= and &lt;.
+    let decoded = decode_html_entities(expr);
+    let expr = decoded.trim();
 
     // Try to find a known operator
     let operators = [" contains ", " != ", " >= ", " <= ", " > ", " < ", " == "];
@@ -237,7 +252,8 @@ impl Filter for WhereExpFilter {
 
         let mut result = Vec::new();
         for item in array.values() {
-            if evaluate_expression(&expression, &var_name, item, runtime) {
+            let matches = evaluate_expression(&expression, &var_name, item, runtime);
+            if matches {
                 result.push(item.to_value());
             }
         }
@@ -416,6 +432,162 @@ mod tests {
         let result =
             liquid_core::call_filter!(WhereExp, input, "item", "item.status == \"active\"")
                 .unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.size(), 1);
+    }
+
+    #[test]
+    fn test_decode_html_entities() {
+        assert_eq!(decode_html_entities("a &gt;= b"), "a >= b");
+        assert_eq!(decode_html_entities("a &lt; b"), "a < b");
+        assert_eq!(decode_html_entities("a &gt; b"), "a > b");
+        assert_eq!(decode_html_entities("a &lt;= b"), "a <= b");
+        assert_eq!(decode_html_entities("a &amp; b"), "a & b");
+        assert_eq!(decode_html_entities("no entities here"), "no entities here");
+    }
+
+    #[test]
+    fn test_where_exp_date_string_comparison_less_than() {
+        // Simulates: track.date < site.time where dates are strings
+        let input = Value::Array(vec![
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("date".into(), Value::scalar("2021-02-05 20:00:00"));
+                o.insert("name".into(), Value::scalar("Track 1"));
+                o
+            }),
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("date".into(), Value::scalar("2099-12-31 23:59:59"));
+                o.insert("name".into(), Value::scalar("Track 2"));
+                o
+            }),
+        ]);
+        // All 2021 dates are less than 2026 site.time
+        let result = liquid_core::call_filter!(
+            WhereExp,
+            input,
+            "item",
+            "item.date < \"2026-03-15 00:00:00\""
+        )
+        .unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.size(), 1);
+    }
+
+    #[test]
+    fn test_where_exp_date_string_comparison_greater_equal() {
+        let input = Value::Array(vec![
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("date".into(), Value::scalar("2021-02-05 20:00:00"));
+                o.insert("name".into(), Value::scalar("Past"));
+                o
+            }),
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("date".into(), Value::scalar("2099-12-31 23:59:59"));
+                o.insert("name".into(), Value::scalar("Future"));
+                o
+            }),
+        ]);
+        let result = liquid_core::call_filter!(
+            WhereExp,
+            input,
+            "item",
+            "item.date >= \"2026-03-15 00:00:00\""
+        )
+        .unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.size(), 1);
+    }
+
+    #[test]
+    fn test_where_exp_html_encoded_greater_equal() {
+        // When markdown converts >= to &gt;= inside Liquid expressions
+        let input = Value::Array(vec![
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("time".into(), Value::scalar(15i64));
+                o
+            }),
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("time".into(), Value::scalar(20i64));
+                o
+            }),
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("time".into(), Value::scalar(10i64));
+                o
+            }),
+        ]);
+        // Expression with HTML-encoded >= (&gt;=)
+        let result =
+            liquid_core::call_filter!(WhereExp, input, "item", "item.time &gt;= 15").unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.size(), 2);
+    }
+
+    #[test]
+    fn test_where_exp_html_encoded_less_than() {
+        // When markdown converts < to &lt; inside Liquid expressions
+        let input = Value::Array(vec![
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("time".into(), Value::scalar(10i64));
+                o
+            }),
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("time".into(), Value::scalar(20i64));
+                o
+            }),
+        ]);
+        // Expression with HTML-encoded < (&lt;)
+        let result =
+            liquid_core::call_filter!(WhereExp, input, "item", "item.time &lt; 15").unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.size(), 1);
+    }
+
+    #[test]
+    fn test_where_exp_html_encoded_date_comparison() {
+        // Real-world scenario: track.date &gt;= site.time (HTML-encoded from markdown)
+        let input = Value::Array(vec![
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("date".into(), Value::scalar("2021-02-05 20:00:00"));
+                o.insert("name".into(), Value::scalar("Past Track"));
+                o
+            }),
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("date".into(), Value::scalar("2099-12-31 23:59:59"));
+                o.insert("name".into(), Value::scalar("Future Track"));
+                o
+            }),
+        ]);
+
+        // HTML-encoded >= -- should filter to only the future track
+        let result = liquid_core::call_filter!(
+            WhereExp,
+            input.clone(),
+            "track",
+            "track.date &gt;= \"2026-03-15 00:00:00\""
+        )
+        .unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.size(), 1);
+
+        // HTML-encoded < -- should filter to only the past track
+        let result = liquid_core::call_filter!(
+            WhereExp,
+            input,
+            "track",
+            "track.date &lt; \"2026-03-15 00:00:00\""
+        )
+        .unwrap();
         let arr = result.as_array().unwrap();
         assert_eq!(arr.size(), 1);
     }
