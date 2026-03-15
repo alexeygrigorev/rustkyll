@@ -398,4 +398,57 @@ page:
         let normalized = normalize_arrays(arr.clone());
         assert_eq!(normalized, arr);
     }
+
+    // ========================================================================
+    // Sexagesimal timestamp handling (Issue 101)
+    // ========================================================================
+
+    #[test]
+    fn test_sexagesimal_timestamp_survives_yaml_to_liquid() {
+        // Podcast timestamps like "0:30" must remain as strings through
+        // the YAML -> serde_yaml::Value -> LiquidValue conversion pipeline.
+        let yaml_str = r#"
+transcript:
+  - time: 0:30
+    sec: 30
+    who: Alexey
+  - time: '1:05'
+    sec: 65
+    who: Guest
+"#;
+        let yaml: YamlValue = crate::yaml::parse_yaml_lenient(yaml_str).unwrap();
+        let liquid = yaml_to_liquid(&yaml);
+
+        if let LiquidValue::Object(root) = &liquid {
+            if let Some(LiquidValue::Array(transcript)) = root.get("transcript") {
+                // First entry: unquoted 0:30
+                if let LiquidValue::Object(ref line) = transcript[0] {
+                    assert_eq!(
+                        line.get("time"),
+                        Some(&LiquidValue::scalar("0:30")),
+                        "Unquoted 0:30 should be string '0:30' in Liquid context"
+                    );
+                    assert_eq!(line.get("sec"), Some(&LiquidValue::scalar(30i64)));
+                } else {
+                    panic!("Expected Object for transcript[0]");
+                }
+
+                // Second entry: quoted '1:05'
+                if let LiquidValue::Object(ref line) = transcript[1] {
+                    assert_eq!(
+                        line.get("time"),
+                        Some(&LiquidValue::scalar("1:05")),
+                        "Quoted '1:05' should be string '1:05' in Liquid context"
+                    );
+                    assert_eq!(line.get("sec"), Some(&LiquidValue::scalar(65i64)));
+                } else {
+                    panic!("Expected Object for transcript[1]");
+                }
+            } else {
+                panic!("Expected transcript array");
+            }
+        } else {
+            panic!("Expected root Object");
+        }
+    }
 }

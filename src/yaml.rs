@@ -389,4 +389,93 @@ plugins:
         let result = parse_yaml_lenient(":\n  - :\n    invalid: [unclosed");
         assert!(result.is_err());
     }
+
+    // ========================================================================
+    // Sexagesimal timestamp handling (Issue 101)
+    //
+    // YAML 1.1 can interpret colon-separated values like 0:30 as sexagesimal
+    // (base-60) integers. Our parser (yaml_rust2) does NOT do this — it keeps
+    // them as strings. This is the desired behavior for podcast timestamps
+    // like "0:30", "1:05", etc., which should render as-is.
+    // ========================================================================
+
+    #[test]
+    fn test_sexagesimal_short_timestamp_stays_string() {
+        // 0:30 should remain "0:30", not become integer 30
+        let value = parse_yaml_lenient("time: 0:30").unwrap();
+        let mapping = value.as_mapping().unwrap();
+        let time = mapping.get("time").unwrap();
+        assert_eq!(time.as_str(), Some("0:30"));
+        assert!(time.as_i64().is_none());
+    }
+
+    #[test]
+    fn test_sexagesimal_zero_timestamp_stays_string() {
+        // 0:00 should remain "0:00", not become integer 0
+        let value = parse_yaml_lenient("time: 0:00").unwrap();
+        let mapping = value.as_mapping().unwrap();
+        let time = mapping.get("time").unwrap();
+        assert_eq!(time.as_str(), Some("0:00"));
+    }
+
+    #[test]
+    fn test_sexagesimal_hour_minute_second_stays_string() {
+        // 1:30:00 should remain "1:30:00", not become integer 5400
+        let value = parse_yaml_lenient("time: 1:30:00").unwrap();
+        let mapping = value.as_mapping().unwrap();
+        let time = mapping.get("time").unwrap();
+        assert_eq!(time.as_str(), Some("1:30:00"));
+    }
+
+    #[test]
+    fn test_sexagesimal_various_podcast_timestamps() {
+        let yaml = r#"
+transcript:
+  - time: 0:00
+    sec: 0
+  - time: 0:12
+    sec: 12
+  - time: 0:30
+    sec: 30
+  - time: 0:41
+    sec: 41
+"#;
+        let value = parse_yaml_lenient(yaml).unwrap();
+        let transcript = value
+            .as_mapping()
+            .unwrap()
+            .get("transcript")
+            .unwrap()
+            .as_sequence()
+            .unwrap();
+
+        let expected_times = ["0:00", "0:12", "0:30", "0:41"];
+        let expected_secs = [0, 12, 30, 41];
+
+        for (i, item) in transcript.iter().enumerate() {
+            let m = item.as_mapping().unwrap();
+            assert_eq!(
+                m.get("time").unwrap().as_str(),
+                Some(expected_times[i]),
+                "time[{}] should be string '{}'",
+                i,
+                expected_times[i]
+            );
+            assert_eq!(
+                m.get("sec").unwrap().as_u64(),
+                Some(expected_secs[i]),
+                "sec[{}] should be integer {}",
+                i,
+                expected_secs[i]
+            );
+        }
+    }
+
+    #[test]
+    fn test_quoted_timestamps_also_stay_string() {
+        // Quoted timestamps should obviously stay as strings
+        let value = parse_yaml_lenient("time: '1:05'").unwrap();
+        let mapping = value.as_mapping().unwrap();
+        assert_eq!(mapping.get("time").unwrap().as_str(), Some("1:05"));
+    }
 }
