@@ -11,7 +11,7 @@ use liquid_core::{
 };
 use liquid_core::{Value, ValueView};
 
-use super::parse_date_string;
+use super::{parse_date_string, safe_chrono_format};
 
 #[derive(Debug, FilterParameters)]
 struct DateToLongStringArgs {
@@ -71,14 +71,15 @@ impl Filter for DateToLongStringFilter {
 
         match parse_date_string(s) {
             Some(dt) => {
-                let day = dt
-                    .format("%e")
-                    .to_string()
+                let day = safe_chrono_format(&dt.format("%e"))
+                    .unwrap_or_default()
                     .trim()
                     .parse::<u32>()
                     .unwrap_or(0);
-                let month = dt.format("%B").to_string();
-                let year = dt.format("%Y").to_string();
+                let month =
+                    safe_chrono_format(&dt.format("%B")).unwrap_or_else(|| "???".to_string());
+                let year =
+                    safe_chrono_format(&dt.format("%Y")).unwrap_or_else(|| "????".to_string());
                 if is_ordinal {
                     let suffix = ordinal_suffix(day);
                     Ok(Value::scalar(format!(

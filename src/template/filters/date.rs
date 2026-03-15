@@ -14,7 +14,7 @@ use liquid_core::{
 };
 use liquid_core::{Value, ValueView};
 
-use super::parse_date_string;
+use super::{parse_date_string, safe_chrono_format};
 
 #[derive(Debug, FilterParameters)]
 struct DateArgs {
@@ -53,12 +53,10 @@ impl Filter for DateFilter {
 
         // Handle "now" / "today" like Jekyll
         let result = if s.eq_ignore_ascii_case("now") || s.eq_ignore_ascii_case("today") {
-            chrono::Local::now()
-                .naive_local()
-                .format(&format_str)
-                .to_string()
+            safe_chrono_format(&chrono::Local::now().naive_local().format(&format_str))
+                .unwrap_or_else(|| s.to_string())
         } else if let Some(dt) = parse_date_string(s) {
-            dt.format(&format_str).to_string()
+            safe_chrono_format(&dt.format(&format_str)).unwrap_or_else(|| s.to_string())
         } else {
             // If we can't parse it, return the input as-is (Jekyll behavior)
             s.to_string()
@@ -108,5 +106,33 @@ mod tests {
     fn test_date_format_invalid_passthrough() {
         let result = liquid_core::call_filter!(Date, "not-a-date", "%d.%m.%Y").unwrap();
         assert_eq!(result.to_kstr(), "not-a-date");
+    }
+
+    #[test]
+    fn test_date_format_now_does_not_panic() {
+        // "now" with a normal format should produce something (exact value depends on time)
+        let result = liquid_core::call_filter!(Date, "now", "%Y-%m-%d").unwrap();
+        assert!(!result.to_kstr().is_empty());
+    }
+
+    #[test]
+    fn test_date_format_problematic_specifier_no_panic() {
+        // %Z on NaiveDateTime has no timezone info -- chrono's Display can error.
+        // The filter must NOT panic; it should return the input as-is.
+        let result = liquid_core::call_filter!(Date, "2024-07-24", "%Z").unwrap();
+        // Either a valid result or fallback to input -- but no panic
+        let s = result.to_kstr();
+        assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn test_date_format_timezone_specifiers_no_panic() {
+        // Multiple timezone-related specifiers that can fail on NaiveDateTime
+        for fmt in &["%z", "%:z", "%Z", "%+"] {
+            let result = liquid_core::call_filter!(Date, "2024-01-15", *fmt).unwrap();
+            let s = result.to_kstr();
+            // Should not panic; either formatted or fallback
+            assert!(!s.is_empty(), "Format {} produced empty result", fmt);
+        }
     }
 }

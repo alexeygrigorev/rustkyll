@@ -44,6 +44,23 @@ pub use xml_escape::XmlEscape;
 
 use chrono::NaiveDateTime;
 
+/// Safely format a chrono `DelayedFormat` value to a string.
+///
+/// `chrono::DelayedFormat::fmt()` can return `Err` for certain format specifiers
+/// (e.g., `%Z` on `NaiveDateTime`). The standard `.to_string()` method panics in
+/// that case because `format!("{}", ...)` panics on `Display::fmt` errors.
+///
+/// This function catches the error and returns `None`, allowing callers to fall
+/// back gracefully (e.g., returning the input as-is, matching Jekyll behavior).
+pub(crate) fn safe_chrono_format(formatted: &impl std::fmt::Display) -> Option<String> {
+    use std::fmt::Write;
+    let mut buf = String::new();
+    match write!(buf, "{}", formatted) {
+        Ok(()) => Some(buf),
+        Err(_) => None,
+    }
+}
+
 /// Parse a date string trying multiple formats commonly found in Jekyll YAML.
 ///
 /// Returns a `NaiveDateTime` on success, `None` if no format matches.
@@ -69,4 +86,54 @@ pub(crate) fn parse_date_string(s: &str) -> Option<NaiveDateTime> {
         return d.and_hms_opt(0, 0, 0);
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_safe_chrono_format_valid() {
+        let dt = chrono::NaiveDate::from_ymd_opt(2024, 7, 24)
+            .unwrap()
+            .and_hms_opt(0, 0, 0)
+            .unwrap();
+        let result = safe_chrono_format(&dt.format("%Y-%m-%d"));
+        assert_eq!(result, Some("2024-07-24".to_string()));
+    }
+
+    #[test]
+    fn test_safe_chrono_format_month_name() {
+        let dt = chrono::NaiveDate::from_ymd_opt(2024, 3, 15)
+            .unwrap()
+            .and_hms_opt(0, 0, 0)
+            .unwrap();
+        let result = safe_chrono_format(&dt.format("%B %Y"));
+        assert_eq!(result, Some("March 2024".to_string()));
+    }
+
+    #[test]
+    fn test_safe_chrono_format_does_not_panic_on_tz_specifier() {
+        // %Z on NaiveDateTime -- chrono may return an error from Display::fmt
+        let dt = chrono::NaiveDate::from_ymd_opt(2024, 1, 1)
+            .unwrap()
+            .and_hms_opt(0, 0, 0)
+            .unwrap();
+        // This should NOT panic regardless of whether chrono returns Ok or Err
+        let _result = safe_chrono_format(&dt.format("%Z"));
+        // We don't assert the value -- just that it didn't panic
+    }
+
+    #[test]
+    fn test_safe_chrono_format_tz_offset_specifier() {
+        let dt = chrono::NaiveDate::from_ymd_opt(2024, 1, 1)
+            .unwrap()
+            .and_hms_opt(0, 0, 0)
+            .unwrap();
+        // %z, %:z on NaiveDateTime may fail
+        let _r1 = safe_chrono_format(&dt.format("%z"));
+        let _r2 = safe_chrono_format(&dt.format("%:z"));
+        let _r3 = safe_chrono_format(&dt.format("%+"));
+        // No panic is the test
+    }
 }

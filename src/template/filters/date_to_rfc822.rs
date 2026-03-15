@@ -3,7 +3,7 @@ use liquid_core::Runtime;
 use liquid_core::{Display_filter, Filter, FilterReflection, ParseFilter};
 use liquid_core::{Value, ValueView};
 
-use super::parse_date_string;
+use super::{parse_date_string, safe_chrono_format};
 
 /// Format a date as RFC 822 (e.g., "Mon, 01 Jan 2024 00:00:00 +0000").
 ///
@@ -33,7 +33,8 @@ impl Filter for DateToRfc822Filter {
                 // Format as RFC 822: "Mon, 01 Jan 2024 00:00:00 +0000"
                 // NaiveDateTime has no timezone info, so we assume UTC (+0000).
                 Ok(Value::scalar(
-                    dt.format("%a, %d %b %Y %H:%M:%S +0000").to_string(),
+                    safe_chrono_format(&dt.format("%a, %d %b %Y %H:%M:%S +0000"))
+                        .unwrap_or_else(|| s.to_string()),
                 ))
             }
             None => Ok(Value::scalar(s.to_string())),

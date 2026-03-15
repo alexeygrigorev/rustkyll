@@ -3,7 +3,7 @@ use liquid_core::Runtime;
 use liquid_core::{Display_filter, Filter, FilterReflection, ParseFilter};
 use liquid_core::{Value, ValueView};
 
-use super::parse_date_string;
+use super::{parse_date_string, safe_chrono_format};
 
 /// Format a date as "DD Mon YYYY" (e.g., "01 Jan 2024").
 #[derive(Clone, ParseFilter, FilterReflection)]
@@ -27,7 +27,9 @@ impl Filter for DateToStringFilter {
         }
 
         match parse_date_string(s) {
-            Some(dt) => Ok(Value::scalar(dt.format("%d %b %Y").to_string())),
+            Some(dt) => Ok(Value::scalar(
+                safe_chrono_format(&dt.format("%d %b %Y")).unwrap_or_else(|| s.to_string()),
+            )),
             None => Ok(Value::scalar(s.to_string())),
         }
     }

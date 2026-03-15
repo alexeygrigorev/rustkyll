@@ -12,7 +12,7 @@ Jekyll version: jekyll 4.4.1
 
 rustkyll is faster than Jekyll on every site where both tools succeed. Speedups range from 2x (mlwiki.org) to 142x (academicpages). For the primary target site (DataTalksClub/datatalksclub.github.io), rustkyll builds in 1.9s vs Jekyll's 19.1s -- a 10x speedup.
 
-14 of 32 sites build successfully with both tools (down from 16 in the previous run: beautiful-jekyll, homebrew-site, and jekyll-docs/docs regressed; muan-blog was gained). Structural equivalence varies widely: sites with simple layouts (kids-horror-stories-ru, alexeygrigorev.github.io) have near-perfect match, while sites with complex theme layouts (so-simple-theme, documentation-theme-jekyll) show significant structural differences due to missing Liquid features. Visual fidelity is excellent for well-supported sites (0% pixel diff for courses, people pages) and degrades proportionally with structural gaps.
+16 of 32 sites build successfully with both tools (beautiful-jekyll and jekyll-docs/docs restored after fixing DateFilter panic in issue #86; homebrew-site Jekyll failure is environmental -- Ruby version mismatch, not a rustkyll issue). Structural equivalence varies widely: sites with simple layouts (kids-horror-stories-ru, alexeygrigorev.github.io) have near-perfect match, while sites with complex theme layouts (so-simple-theme, documentation-theme-jekyll) show significant structural differences due to missing Liquid features. Visual fidelity is excellent for well-supported sites (0% pixel diff for courses, people pages) and degrades proportionally with structural gaps.
 
 ## All Sites -- Speed Benchmark
 
@@ -30,7 +30,7 @@ rustkyll is faster than Jekyll on every site where both tools succeed. Speedups 
 | DataTalksClub/datatalksclub.github.io | 787 | 19.145 | 1.877 | 10.19x |
 | DataTalksClub/docs | 57 | 1.788 | 0.033 | 54.18x |
 | academicpages | 17 | 4.414 | 0.031 | 142.38x |
-| beautiful-jekyll | 6 | 0.806 | FAIL | N/A |
+| beautiful-jekyll | 9 | 0.806 | 0.020 | 40.30x |
 | bitcoin-org | N/A | FAIL | FAIL | N/A |
 | choosealicense.com | 72 | FAIL | 0.039 | N/A |
 | documentation-theme-jekyll | 100 | 3.600 | 0.072 | 50.00x |
@@ -38,7 +38,7 @@ rustkyll is faster than Jekyll on every site where both tools succeed. Speedups 
 | government-github | 21 | FAIL | 5.106 | N/A |
 | homebrew-site | 134 | FAIL | 0.049 | N/A |
 | hyde | 6 | FAIL | 0.010 | N/A |
-| jekyll-docs/docs | 228 | 2.974 | FAIL | N/A |
+| jekyll-docs/docs | 132 | 2.974 | 1.070 | 2.78x |
 | large-blog-3000 | 3001 | 4.303 | 1.430 | 3.00x |
 | large-docs-site | 801 | 23.366 | 0.282 | 82.85x |
 | made-mistakes-jekyll | 2 | FAIL | 0.010 | N/A |
@@ -158,15 +158,16 @@ Diff images are saved under `playwright/screenshots/` organized by site name.
 
 ## Compatibility Summary
 
-- Sites that build with both tools: 14 of 32
+- Sites that build with both tools: 16 of 32
 - Sites that build only with rustkyll: 14 (missing Jekyll gems or incompatible Jekyll version)
-- Sites that build only with Jekyll: 2 (beautiful-jekyll, jekyll-docs/docs)
+- Sites that build only with Jekyll: 0
 - Sites that fail with both tools: 4 (bitcoin-org, edition-template, programming-historian, uswds-site)
 
 ### Changes from previous benchmark
 
 - **Gained**: muan-blog now builds with rustkyll (was FAIL before)
-- **Lost**: beautiful-jekyll now fails with rustkyll (was 0.022s); homebrew-site now fails with Jekyll (was 1.212s); jekyll-docs/docs now fails with rustkyll (was 0.060s)
+- **Restored (issue #86)**: beautiful-jekyll (was FAIL, now 0.020s); jekyll-docs/docs (was FAIL, now 1.070s). Root cause: DateFilter panic on chrono format error, fixed with safe_chrono_format helper.
+- **Jekyll environment issue**: homebrew-site Jekyll FAIL caused by Ruby version mismatch (Gemfile specifies Ruby 4.0.1, local system has 3.3.7). Rustkyll builds it successfully (0.049s, 134 pages).
 - **DTC speedup improved**: 5.925s -> 1.877s (from 3.2x to 10.2x vs Jekyll)
 - **Page counts increased**: little-book-of-metals-ru 1->43, mlwiki.org 2->640, snippets 2->25, DataTalksClub/docs 1->57, academicpages 1->17, so-simple-theme 2->11 (kramdown + template improvements)
 
@@ -179,6 +180,6 @@ Diff images are saved under `playwright/screenshots/` organized by site name.
 - Each build starts from a clean _site/ directory (no caching)
 - Jekyll builds use bundle exec when a Gemfile is present
 - rustkyll is pre-compiled in release mode
-- Jekyll FAIL entries are often due to missing Ruby gems (bundle install not run) rather than tool limitations
+- Jekyll FAIL entries are often due to missing Ruby gems (bundle install not run) rather than tool limitations. homebrew-site Jekyll failure is specifically caused by Ruby version mismatch (Gemfile requires Ruby 4.0.1, local system has 3.3.7)
 - Structural comparison samples up to 51 common files per site
 - Visual comparison uses Playwright/Chromium at 1280x720 viewport, full-page screenshots
