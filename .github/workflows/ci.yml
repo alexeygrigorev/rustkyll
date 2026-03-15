@@ -9,6 +9,7 @@ on:
       - 'Cargo.toml'
       - 'Cargo.lock'
       - '.github/workflows/ci.yml'
+      - 'scripts/**'
   pull_request:
     paths:
       - 'src/**'
@@ -16,6 +17,7 @@ on:
       - 'Cargo.toml'
       - 'Cargo.lock'
       - '.github/workflows/ci.yml'
+      - 'scripts/**'
 
 env:
   CARGO_TERM_COLOR: always
@@ -49,7 +51,7 @@ jobs:
         run: cargo fmt --check
 
   integration:
-    name: Integration Tests (DTC Site)
+    name: Integration Tests (All Sites)
     runs-on: ubuntu-latest
 
     steps:
@@ -61,19 +63,80 @@ jobs:
       - name: Cache cargo registry and target
         uses: Swatinem/rust-cache@v2
 
+      # -- Clone all required sites --
+
       - name: Clone DTC site (shallow)
         run: |
           mkdir -p websites/DataTalksClub
           git clone --depth 1 https://github.com/DataTalksClub/datatalksclub.github.io.git \
             websites/DataTalksClub/datatalksclub.github.io
 
+      - name: Clone kids-horror-stories-ru (shallow)
+        run: |
+          mkdir -p websites/alexeygrigorev
+          git clone --depth 1 https://github.com/alexeygrigorev/kids-horror-stories-ru.git \
+            websites/alexeygrigorev/kids-horror-stories-ru
+
+      - name: Clone muan-blog (shallow)
+        run: |
+          git clone --depth 1 https://github.com/muan/muan.github.com.git \
+            websites/muan-blog
+
+      - name: Clone documentation-theme-jekyll (shallow)
+        run: |
+          git clone --depth 1 https://github.com/tomjoht/documentation-theme-jekyll.git \
+            websites/documentation-theme-jekyll
+
+      - name: Clone homebrew-site (shallow)
+        run: |
+          git clone --depth 1 https://github.com/Homebrew/brew.sh.git \
+            websites/homebrew-site
+
+      # -- Generate synthetic benchmark sites --
+
+      - name: Generate synthetic sites (large-blog-3000, large-docs-site)
+        run: ./scripts/generate-synthetic-sites.sh
+
+      # -- Install Ruby and Jekyll --
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+
+      - name: Cache Ruby gems
+        uses: actions/cache@v4
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-gems-
+
+      - name: Install Jekyll and Bundler
+        run: gem install bundler jekyll
+
+      - name: Bundle install for DTC site
+        run: |
+          cd websites/DataTalksClub/datatalksclub.github.io
+          bundle config set --local path '${{ github.workspace }}/vendor/bundle'
+          bundle install --jobs 4 --retry 3
+
+      - name: Bundle install for kids-horror-stories-ru
+        run: |
+          cd websites/alexeygrigorev/kids-horror-stories-ru
+          bundle config set --local path '${{ github.workspace }}/vendor/bundle'
+          bundle install --jobs 4 --retry 3
+
+      # -- Build and test --
+
       - name: Build rustkyll (release)
         run: cargo build --release --verbose
 
-      - name: Run integration tests (ignored tests, excluding Jekyll-dependent)
-        run: cargo test -- --ignored --skip structural_comparison --skip vs_jekyll --skip kids_ --skip page_count --skip _notes_exist --skip _stories_exist --skip build_time
+      - name: Run ALL integration tests (no skips)
+        run: cargo test -- --ignored
         env:
           RUST_LOG: info
+          CI: "true"
 
       - name: Run rustkyll-only output validation
         run: ./scripts/compare-output.sh --validate-only --site DataTalksClub/datatalksclub.github.io

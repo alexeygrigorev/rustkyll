@@ -9,6 +9,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
+/// Check if we are running in CI (GitHub Actions sets CI=true).
+fn is_ci() -> bool {
+    std::env::var("CI").map(|v| v == "true").unwrap_or(false)
+}
+
 use rustkyll::collection::{self, CollectionItem};
 use rustkyll::config::SiteConfig;
 use rustkyll::data;
@@ -170,11 +175,13 @@ fn test_dtc_site_build_time() {
     eprintln!("DTC build times: {:?}, median: {:.2}s", times, median);
 
     // Issue 57: the release build target is <2s. Debug/test builds are ~5-10x
-    // slower due to lack of optimizations. Use a generous 30s ceiling that
-    // catches major regressions but doesn't flake on slow CI runners.
+    // slower due to lack of optimizations. CI runners (2-core VMs) are slower
+    // than dev machines, so use relaxed thresholds there.
+    let threshold = if is_ci() { 90.0 } else { 30.0 };
     assert!(
-        median < 30.0,
-        "DTC site should build in under 30s (debug), took {:.2}s (median of 3 runs)",
+        median < threshold,
+        "DTC site should build in under {:.0}s (debug), took {:.2}s (median of 3 runs)",
+        threshold,
         median
     );
 }
@@ -202,10 +209,12 @@ fn test_kids_site_build_time() {
     eprintln!("Kids build times: {:?}, median: {:.2}s", times, median);
 
     // Issue 57: the release build target is <0.5s. Debug builds are much
-    // slower. Use a generous 5s ceiling for debug mode.
+    // slower. CI runners are slower than dev machines.
+    let threshold = if is_ci() { 30.0 } else { 5.0 };
     assert!(
-        median < 5.0,
-        "kids-horror-stories-ru should build in under 5s (debug), took {:.2}s",
+        median < threshold,
+        "kids-horror-stories-ru should build in under {:.0}s (debug), took {:.2}s",
+        threshold,
         median
     );
 }
