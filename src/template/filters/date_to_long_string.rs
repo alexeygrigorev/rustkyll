@@ -11,7 +11,7 @@ use liquid_core::{
 };
 use liquid_core::{Value, ValueView};
 
-use super::{parse_date_string, safe_chrono_format};
+use super::{get_site_timezone, parse_date_string_with_tz, safe_chrono_format};
 
 #[derive(Debug, FilterParameters)]
 struct DateToLongStringArgs {
@@ -69,7 +69,8 @@ impl Filter for DateToLongStringFilter {
             .map(|v| v.to_kstr().as_ref() == "ordinal")
             .unwrap_or(false);
 
-        match parse_date_string(s) {
+        let site_tz = get_site_timezone(runtime);
+        match parse_date_string_with_tz(s, site_tz) {
             Some(dt) => {
                 let day = safe_chrono_format(&dt.format("%e"))
                     .unwrap_or_default()

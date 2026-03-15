@@ -3,7 +3,7 @@ use liquid_core::Runtime;
 use liquid_core::{Display_filter, Filter, FilterReflection, ParseFilter};
 use liquid_core::{Value, ValueView};
 
-use super::{parse_date_string, safe_chrono_format};
+use super::{get_site_timezone, parse_date_string_with_tz, safe_chrono_format};
 
 /// Format a date as ISO 8601 with timezone (e.g., "2024-01-15T00:00:00+00:00").
 #[derive(Clone, ParseFilter, FilterReflection)]
@@ -19,7 +19,7 @@ pub struct DateToXmlschema;
 struct DateToXmlschemaFilter;
 
 impl Filter for DateToXmlschemaFilter {
-    fn evaluate(&self, input: &dyn ValueView, _runtime: &dyn Runtime) -> Result<Value> {
+    fn evaluate(&self, input: &dyn ValueView, runtime: &dyn Runtime) -> Result<Value> {
         let input_str = input.to_kstr();
         let s = input_str.trim();
         if s.is_empty() {
@@ -34,7 +34,8 @@ impl Filter for DateToXmlschemaFilter {
             ));
         }
 
-        match parse_date_string(s) {
+        let site_tz = get_site_timezone(runtime);
+        match parse_date_string_with_tz(s, site_tz) {
             Some(dt) => {
                 // Default timezone is UTC (+00:00)
                 let formatted = safe_chrono_format(&dt.format("%Y-%m-%dT%H:%M:%S"))

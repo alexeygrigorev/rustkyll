@@ -43,6 +43,7 @@ pub use where_filter::Where;
 pub use xml_escape::XmlEscape;
 
 use chrono::NaiveDateTime;
+use chrono::TimeZone;
 
 /// Safely format a chrono `DelayedFormat` value to a string.
 ///
@@ -61,6 +62,35 @@ pub(crate) fn safe_chrono_format(formatted: &impl std::fmt::Display) -> Option<S
     }
 }
 
+/// Resolve the site timezone from an IANA name (e.g. "Europe/Berlin").
+///
+/// Returns `None` if the name is not a valid IANA timezone.
+pub(crate) fn resolve_site_tz(name: &str) -> Option<chrono_tz::Tz> {
+    name.parse::<chrono_tz::Tz>().ok()
+}
+
+/// Extract the site timezone name from the Liquid runtime context.
+///
+/// Looks up `site.timezone` which is set from the `timezone` key in `_config.yml`.
+pub(crate) fn get_site_timezone(runtime: &dyn liquid_core::Runtime) -> Option<chrono_tz::Tz> {
+    use liquid_core::model::ScalarCow;
+    use liquid_core::ValueView;
+    let tz_str = runtime
+        .try_get(&[ScalarCow::new("site"), ScalarCow::new("timezone")])
+        .map(|v| v.to_kstr().to_string())?;
+    if tz_str.is_empty() {
+        return None;
+    }
+    resolve_site_tz(&tz_str)
+}
+
+/// Convert a NaiveDateTime (assumed UTC) to the target timezone, returning
+/// the local NaiveDateTime in that timezone.
+fn convert_utc_to_tz(dt: NaiveDateTime, tz: chrono_tz::Tz) -> NaiveDateTime {
+    let utc_dt = chrono::Utc.from_utc_datetime(&dt);
+    utc_dt.with_timezone(&tz).naive_local()
+}
+
 /// Parse a date string trying multiple formats commonly found in Jekyll YAML.
 ///
 /// Returns a `NaiveDateTime` on success, `None` if no format matches.
@@ -69,33 +99,58 @@ pub(crate) fn safe_chrono_format(formatted: &impl std::fmt::Display) -> Option<S
 /// the date portion is preserved as written in the front matter. Jekyll's
 /// `date_to_string` uses the date as-is without converting to UTC, so a date
 /// like `2023-10-11 00:00:00 +0200` should remain Oct 11, not become Oct 10.
-pub(crate) fn parse_date_string(s: &str) -> Option<NaiveDateTime> {
+///
+/// For dates WITHOUT timezone (NaiveDateTime), Jekyll treats them as UTC and
+/// converts to the site's configured timezone. Pass `site_tz` to enable this
+/// conversion. If `site_tz` is `None`, dates are kept as-is (UTC) for
+/// reproducible builds.
+///
+/// Jekyll treats naive dates as UTC and converts them to the site timezone
+/// for display.
+pub(crate) fn parse_date_string_with_tz(
+    s: &str,
+    site_tz: Option<chrono_tz::Tz>,
+) -> Option<NaiveDateTime> {
     // Try ISO 8601 with timezone offset (e.g. "2024-01-15T00:00:00+00:00")
     if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(s) {
         return Some(dt.naive_local());
     }
-    // Try "YYYY-MM-DDTHH:MM:SS" without timezone
-    if let Ok(dt) = NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S") {
-        return Some(dt);
-    }
-    // Try "YYYY-MM-DD HH:MM:SS"
-    if let Ok(dt) = NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S") {
-        return Some(dt);
-    }
     // Try "YYYY-MM-DD HH:MM:SS +HHMM" (Jekyll-style with space before offset)
+    // Check this BEFORE the bare "YYYY-MM-DD HH:MM:SS" to avoid partial matches.
     if let Ok(dt) = chrono::DateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S %z") {
         return Some(dt.naive_local());
     }
-    // Try date-only "YYYY-MM-DD"
+    // Try "YYYY-MM-DDTHH:MM:SS" without timezone -- treat as UTC
+    if let Ok(dt) = NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S") {
+        return Some(apply_tz_conversion(dt, site_tz));
+    }
+    // Try "YYYY-MM-DD HH:MM:SS" -- treat as UTC
+    if let Ok(dt) = NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S") {
+        return Some(apply_tz_conversion(dt, site_tz));
+    }
+    // Try date-only "YYYY-MM-DD" -- treat as UTC (midnight)
     if let Ok(d) = chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d") {
-        return d.and_hms_opt(0, 0, 0);
+        let dt = d.and_hms_opt(0, 0, 0)?;
+        return Some(apply_tz_conversion(dt, site_tz));
     }
     None
+}
+
+/// Apply timezone conversion: treat the NaiveDateTime as UTC, convert to
+/// the site timezone. If no site timezone is configured, the datetime is
+/// returned as-is (effectively treating it as UTC), which ensures
+/// reproducible builds regardless of the system timezone.
+fn apply_tz_conversion(dt: NaiveDateTime, site_tz: Option<chrono_tz::Tz>) -> NaiveDateTime {
+    match site_tz {
+        Some(tz) => convert_utc_to_tz(dt, tz),
+        None => dt, // No site timezone: keep as-is (UTC)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::{Datelike, Timelike};
 
     #[test]
     fn test_safe_chrono_format_valid() {
@@ -140,5 +195,81 @@ mod tests {
         let _r2 = safe_chrono_format(&dt.format("%:z"));
         let _r3 = safe_chrono_format(&dt.format("%+"));
         // No panic is the test
+    }
+
+    #[test]
+    fn test_resolve_site_tz_valid() {
+        let tz = resolve_site_tz("Europe/Berlin");
+        assert!(tz.is_some());
+    }
+
+    #[test]
+    fn test_resolve_site_tz_invalid() {
+        let tz = resolve_site_tz("Not/A/Timezone");
+        assert!(tz.is_none());
+    }
+
+    #[test]
+    fn test_resolve_site_tz_utc() {
+        let tz = resolve_site_tz("UTC");
+        assert!(tz.is_some());
+    }
+
+    // Issue 109: NaiveDateTime without timezone should be treated as UTC
+    // and converted to the site timezone.
+
+    #[test]
+    fn test_naive_datetime_converted_to_cet() {
+        // "2020-12-18 23:59:59" treated as UTC, converted to CET (UTC+1)
+        // should become "2020-12-19 00:59:59"
+        let tz = resolve_site_tz("Europe/Berlin").unwrap();
+        let dt = parse_date_string_with_tz("2020-12-18 23:59:59", Some(tz));
+        let dt = dt.unwrap();
+        assert_eq!(dt.date().day(), 19);
+        assert_eq!(dt.date().month(), 12);
+        assert_eq!(dt.date().year(), 2020);
+        assert_eq!(dt.time().hour(), 0);
+        assert_eq!(dt.time().minute(), 59);
+    }
+
+    #[test]
+    fn test_naive_datetime_no_date_change_when_utc() {
+        // "2020-12-18 23:59:59" treated as UTC, converted to UTC -> no change
+        let tz = resolve_site_tz("UTC").unwrap();
+        let dt = parse_date_string_with_tz("2020-12-18 23:59:59", Some(tz));
+        let dt = dt.unwrap();
+        assert_eq!(dt.date().day(), 18);
+        assert_eq!(dt.date().month(), 12);
+    }
+
+    #[test]
+    fn test_naive_date_only_converted_to_cet() {
+        // "2020-12-18" treated as UTC midnight, converted to CET (UTC+1)
+        // should become "2020-12-18 01:00:00" (same date, just different time)
+        let tz = resolve_site_tz("Europe/Berlin").unwrap();
+        let dt = parse_date_string_with_tz("2020-12-18", Some(tz));
+        let dt = dt.unwrap();
+        assert_eq!(dt.date().day(), 18);
+        assert_eq!(dt.time().hour(), 1);
+    }
+
+    #[test]
+    fn test_explicit_tz_not_affected_by_site_tz() {
+        // Dates with explicit timezone should use naive_local() regardless of site_tz
+        let tz = resolve_site_tz("America/New_York").unwrap();
+        let dt = parse_date_string_with_tz("2023-10-11 00:00:00 +0200", Some(tz));
+        let dt = dt.unwrap();
+        // Should remain Oct 11 (local time of +0200), NOT converted to New York
+        assert_eq!(dt.date().day(), 11);
+        assert_eq!(dt.date().month(), 10);
+    }
+
+    #[test]
+    fn test_naive_t_format_converted_to_tz() {
+        // "2020-12-18T23:59:59" (ISO without tz) treated as UTC, CET conversion
+        let tz = resolve_site_tz("Europe/Berlin").unwrap();
+        let dt = parse_date_string_with_tz("2020-12-18T23:59:59", Some(tz));
+        let dt = dt.unwrap();
+        assert_eq!(dt.date().day(), 19);
     }
 }

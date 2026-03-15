@@ -14,7 +14,7 @@ use liquid_core::{
 };
 use liquid_core::{Value, ValueView};
 
-use super::{parse_date_string, safe_chrono_format};
+use super::{get_site_timezone, parse_date_string_with_tz, safe_chrono_format};
 
 #[derive(Debug, FilterParameters)]
 struct DateArgs {
@@ -51,11 +51,13 @@ impl Filter for DateFilter {
             return Ok(Value::scalar(String::new()));
         }
 
+        let site_tz = get_site_timezone(runtime);
+
         // Handle "now" / "today" like Jekyll
         let result = if s.eq_ignore_ascii_case("now") || s.eq_ignore_ascii_case("today") {
             safe_chrono_format(&chrono::Local::now().naive_local().format(&format_str))
                 .unwrap_or_else(|| s.to_string())
-        } else if let Some(dt) = parse_date_string(s) {
+        } else if let Some(dt) = parse_date_string_with_tz(s, site_tz) {
             safe_chrono_format(&dt.format(&format_str)).unwrap_or_else(|| s.to_string())
         } else {
             // If we can't parse it, return the input as-is (Jekyll behavior)

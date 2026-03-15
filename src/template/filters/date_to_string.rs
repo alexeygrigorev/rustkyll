@@ -3,7 +3,7 @@ use liquid_core::Runtime;
 use liquid_core::{Display_filter, Filter, FilterReflection, ParseFilter};
 use liquid_core::{Value, ValueView};
 
-use super::{parse_date_string, safe_chrono_format};
+use super::{get_site_timezone, parse_date_string_with_tz, safe_chrono_format};
 
 /// Format a date as "DD Mon YYYY" (e.g., "01 Jan 2024").
 #[derive(Clone, ParseFilter, FilterReflection)]
@@ -19,14 +19,15 @@ pub struct DateToString;
 struct DateToStringFilter;
 
 impl Filter for DateToStringFilter {
-    fn evaluate(&self, input: &dyn ValueView, _runtime: &dyn Runtime) -> Result<Value> {
+    fn evaluate(&self, input: &dyn ValueView, runtime: &dyn Runtime) -> Result<Value> {
         let input_str = input.to_kstr();
         let s = input_str.trim();
         if s.is_empty() {
             return Ok(Value::scalar(String::new()));
         }
 
-        match parse_date_string(s) {
+        let site_tz = get_site_timezone(runtime);
+        match parse_date_string_with_tz(s, site_tz) {
             Some(dt) => Ok(Value::scalar(
                 safe_chrono_format(&dt.format("%d %b %Y")).unwrap_or_else(|| s.to_string()),
             )),

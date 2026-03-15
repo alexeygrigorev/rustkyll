@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 chrono = "0.4"
+chrono-tz = "0.10"
 grass = "0.13"
 rayon = "1.10"
 clap = { version = "4", features = ["derive"] }
