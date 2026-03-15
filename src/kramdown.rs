@@ -61,7 +61,8 @@ pub fn remove_heading_markers(html: &str) -> String {
 /// Apply all kramdown compatibility transformations to HTML output.
 ///
 /// This is the main entry point. It applies, in order:
-/// 1. Strip unwanted `<p>` tags inside HTML block elements
+/// 1. Strip unwanted `<p>` tags inside HTML block elements (only when
+///    `collapse_blank_lines_in_html_blocks` was NOT applied pre-markdown)
 /// 2. Auto-generated heading IDs
 /// 3. Inline attribute lists (`{:target="_blank"}`, `{:.class}`, `{:#id}`)
 /// 4. Fenced code block wrapping (no language tag)
@@ -241,6 +242,9 @@ fn collapse_blank_lines(content: &str) -> String {
 
 /// HTML block-level element tag names where pulldown-cmark may incorrectly
 /// wrap inline content in `<p>` tags. kramdown does not do this.
+/// Tags used by `collapse_blank_lines_in_html_blocks` (pre-markdown processing).
+/// Includes all block-level HTML elements where blank lines from Liquid output
+/// might cause pulldown-cmark to insert unwanted paragraph breaks.
 const BLOCK_PARENT_TAGS: &[&str] = &[
     "li",
     "div",
@@ -268,6 +272,39 @@ const BLOCK_PARENT_TAGS: &[&str] = &[
     "dt",
 ];
 
+/// Tags used by `strip_paragraphs_in_html_blocks` (post-markdown processing).
+///
+/// This is a SUBSET of `BLOCK_PARENT_TAGS`. It includes only elements where
+/// pulldown-cmark commonly auto-inserts `<p>` tags around inline content
+/// (which kramdown does not do).
+///
+/// Excludes:
+/// - `<section>`, `<article>`, `<header>`, `<footer>`, `<nav>`, `<aside>`:
+///   semantic containers that commonly contain intentional `<p>` tags.
+/// - `<div>`, `<form>`, `<fieldset>`, `<details>`: generic containers where
+///   `<p>` tags are typically intentional HTML structure. Pulldown-cmark
+///   treats these as HTML blocks and passes content through unchanged.
+///
+/// The remaining elements are ones where pulldown-cmark DOES auto-wrap
+/// inline content in `<p>` tags during markdown processing, typically from
+/// Liquid include output that mixes inline content inside block elements.
+const STRIP_P_PARENT_TAGS: &[&str] = &[
+    "li",
+    "td",
+    "th",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "figure",
+    "figcaption",
+    "summary",
+    "dd",
+    "dt",
+];
+
 /// Strip unwanted `<p>` tags that pulldown-cmark inserts inside HTML block elements.
 ///
 /// When Liquid produces HTML like `<li><a href="...">Title</a> text</li>`,
@@ -278,13 +315,12 @@ const BLOCK_PARENT_TAGS: &[&str] = &[
 /// elements as-is. This function removes those auto-generated `<p>` wrappers
 /// while preserving intentional `<p>` tags in markdown content.
 ///
-/// The algorithm: for each block parent element, check if it contains only
-/// `<p>` wrappers around inline content (no nested block elements). If so,
-/// strip the `<p>`/`</p>` tags.
+/// Uses `STRIP_P_PARENT_TAGS` (not `BLOCK_PARENT_TAGS`) to avoid stripping
+/// intentional `<p>` tags from semantic container elements like `<section>`.
 fn strip_paragraphs_in_html_blocks(html: &str) -> String {
     let mut result = html.to_string();
 
-    for &tag in BLOCK_PARENT_TAGS {
+    for &tag in STRIP_P_PARENT_TAGS {
         result = strip_p_in_tag(&result, tag);
     }
 
@@ -1994,13 +2030,22 @@ mod tests {
     }
 
     #[test]
-    fn test_strip_p_in_section_with_nested_div() {
+    fn test_strip_p_in_section_preserves_intentional_p() {
+        // <section> and <div> are no longer in STRIP_P_PARENT_TAGS.
+        // Only the <h2> (which IS in the list) gets its <p> stripped.
         let html =
             "<section><h2><p>Title</p></h2><div><p>Content with <a>link</a></p></div></section>";
         let result = strip_paragraphs_in_html_blocks(html);
+        // <p> inside <h2> should be stripped (h2 is in STRIP_P_PARENT_TAGS)
         assert!(
-            !result.contains("<p>"),
-            "Should strip <p> in nested elements. Got: {}",
+            result.contains("<h2>Title</h2>"),
+            "Should strip <p> from <h2>. Got: {}",
+            result
+        );
+        // <p> inside <div> should be preserved (div is NOT in STRIP_P_PARENT_TAGS)
+        assert!(
+            result.contains("<div><p>Content with <a>link</a></p></div>"),
+            "Should preserve <p> in <div>. Got: {}",
             result
         );
     }
@@ -2060,17 +2105,17 @@ mod tests {
     }
 
     #[test]
-    fn test_strip_p_mixed_content() {
-        // Markdown paragraphs before/after a div with p-stripped content
+    fn test_strip_p_mixed_content_preserves_div_p() {
+        // <div> is no longer in STRIP_P_PARENT_TAGS, so <p> inside <div> is preserved.
         let html = "<p>Markdown paragraph</p>\n<div><p>inline content</p></div>\n<p>Another paragraph</p>\n";
         let result = strip_paragraphs_in_html_blocks(html);
-        // The <p> inside <div> should be stripped
+        // The <p> inside <div> should be preserved (div is NOT in STRIP_P_PARENT_TAGS)
         assert!(
-            result.contains("<div>inline content</div>"),
-            "Should strip <p> inside <div>. Got: {}",
+            result.contains("<div><p>inline content</p></div>"),
+            "Should preserve <p> inside <div>. Got: {}",
             result
         );
-        // But standalone paragraphs should remain
+        // Standalone paragraphs should remain
         assert!(
             result.contains("<p>Markdown paragraph</p>"),
             "Standalone <p> should remain. Got: {}",
@@ -2084,12 +2129,13 @@ mod tests {
     }
 
     #[test]
-    fn test_strip_p_in_nested_divs() {
+    fn test_strip_p_in_nested_divs_preserved() {
+        // <div> is no longer in STRIP_P_PARENT_TAGS -- its <p> tags are intentional.
         let html = "<div><div><p>nested content</p></div></div>";
         let result = strip_paragraphs_in_html_blocks(html);
         assert!(
-            !result.contains("<p>"),
-            "Should strip <p> in nested divs. Got: {}",
+            result.contains("<p>"),
+            "Should preserve <p> in divs (intentional markup). Got: {}",
             result
         );
     }
