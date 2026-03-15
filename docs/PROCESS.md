@@ -51,6 +51,8 @@ The orchestrator NEVER writes or modifies code (src/, tests/, scripts/). It only
 - Task panel items
 - Git commits (after PM accepts)
 
+**NEVER wait for user input.** The pipeline runs autonomously. If something needs user action (e.g. configuring a secret, testing on their machine, confirming a deployment), note it in the issue file as a "USER ACTION REQUIRED" item and keep moving to the next issue. Do not stop the pipeline.
+
 ## Agent Workflow
 
 1. PM Grooms: Pick `.todo.md` issues, add acceptance criteria and test scenarios, rename to `.groomed.md`

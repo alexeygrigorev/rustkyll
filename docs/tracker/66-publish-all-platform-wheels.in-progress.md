@@ -202,3 +202,14 @@ The repo owner must configure a trusted publisher on PyPI:
 - [ ] Trusted publisher configured on PyPI (BLOCKED -- needs repo owner)
 - [ ] All 6 platform wheels published to PyPI as rustkyll 0.1.1 (BLOCKED)
 - [ ] `uvx rustkyll --help` works on Linux (BLOCKED)
+
+## Status
+
+v0.1.4 released and published to PyPI with all 6 platform wheels. GitHub Release has all 6 binaries. User confirmed `uvx rustkyll -V` works on Windows (v0.1.3, then v0.1.4).
+
+### USER ACTION REQUIRED
+
+- [ ] User to verify `uvx rustkyll build` works on Windows with v0.1.4 (Unicode panic fixed)
+- [ ] User to verify `uvx rustkyll serve` works on Windows with v0.1.4
+
+Once confirmed, this issue can be moved to done.
