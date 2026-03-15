@@ -300,8 +300,15 @@ impl LayoutEngine {
         // Only markdown-sourced headings should get auto-generated IDs.
         let marked = crate::kramdown::mark_existing_html_headings(&dedented);
 
+        // Step 2.75: Collapse blank lines inside HTML block elements.
+        // Liquid include output often contains blank lines (from {% assign %},
+        // {% for %} loops, etc.) that pulldown-cmark treats as paragraph
+        // separators, wrapping inline content in <p> tags. Collapsing these
+        // blank lines before markdown parsing prevents the spurious <p> tags.
+        let collapsed = crate::kramdown::collapse_blank_lines_in_html_blocks(&marked);
+
         // Step 3: Convert markdown to HTML
-        let html_content = crate::frontmatter::markdown_to_html(&marked);
+        let html_content = crate::frontmatter::markdown_to_html(&collapsed);
 
         // Step 3.5 (D1): Remove the heading markers after postprocessing
         let html_content = crate::kramdown::remove_heading_markers(&html_content);
@@ -365,8 +372,11 @@ impl LayoutEngine {
         // Step 2: Dedent HTML lines (same as render_markdown_page_with_cached_site)
         let dedented = crate::frontmatter::dedent_html_lines(&after_liquid);
 
+        // Step 2.5: Collapse blank lines in HTML blocks (same as main pipeline)
+        let collapsed = crate::kramdown::collapse_blank_lines_in_html_blocks(&dedented);
+
         // Step 3: Convert markdown to HTML
-        Ok(crate::frontmatter::markdown_to_html(&dedented))
+        Ok(crate::frontmatter::markdown_to_html(&collapsed))
     }
 }
 

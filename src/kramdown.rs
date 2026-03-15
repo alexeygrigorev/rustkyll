@@ -96,6 +96,146 @@ pub fn normalize_html_output(html: &str) -> String {
 }
 
 // ============================================================================
+// Pre-markdown: Collapse blank lines inside HTML block elements
+// ============================================================================
+
+/// Collapse blank lines inside HTML block elements before markdown parsing.
+///
+/// When Liquid `{% include %}` output contains blank lines inside HTML block
+/// elements like `<li>`, `<div>`, `<h5>`, etc., pulldown-cmark interprets the
+/// blank lines as paragraph separators and wraps content in `<p>` tags.
+/// Jekyll/kramdown does not do this.
+///
+/// This function removes blank lines (lines containing only whitespace) that
+/// appear between the opening and closing tags of HTML block elements. It
+/// operates on the post-Liquid, pre-markdown content to prevent pulldown-cmark
+/// from ever seeing the blank lines as paragraph breaks.
+///
+/// Content outside HTML block elements is left unchanged so that regular
+/// markdown paragraph separation still works.
+pub fn collapse_blank_lines_in_html_blocks(content: &str) -> String {
+    let mut result = content.to_string();
+
+    for &tag in BLOCK_PARENT_TAGS {
+        result = collapse_blanks_in_tag(&result, tag);
+    }
+
+    result
+}
+
+/// Collapse blank lines inside all instances of `<tag ...>...</tag>`.
+fn collapse_blanks_in_tag(content: &str, tag: &str) -> String {
+    let open_pattern = format!("<{}", tag);
+    let close_pattern = format!("</{}>", tag);
+    let mut result = String::with_capacity(content.len());
+    let mut remaining = content;
+
+    while !remaining.is_empty() {
+        // Find the next opening tag
+        let open_pos = match remaining.find(&open_pattern) {
+            Some(pos) => {
+                // Verify it's actually the tag (not e.g. <listing> when we search <li>)
+                let after = &remaining[pos + open_pattern.len()..];
+                if after.starts_with('>') || after.starts_with(' ') || after.starts_with('/') {
+                    pos
+                } else {
+                    // Not our tag, skip past this match
+                    result.push_str(&remaining[..pos + open_pattern.len()]);
+                    remaining = &remaining[pos + open_pattern.len()..];
+                    continue;
+                }
+            }
+            None => {
+                result.push_str(remaining);
+                break;
+            }
+        };
+
+        // Copy everything before the tag
+        result.push_str(&remaining[..open_pos]);
+        remaining = &remaining[open_pos..];
+
+        // Find the closing `>` of the opening tag
+        let gt_pos = match remaining.find('>') {
+            Some(pos) => pos,
+            None => {
+                result.push_str(remaining);
+                break;
+            }
+        };
+
+        let opening_tag = &remaining[..=gt_pos];
+
+        // Find the matching closing tag (handle nesting)
+        let inner_start = gt_pos + 1;
+        let inner = &remaining[inner_start..];
+
+        if let Some(close_offset) = find_matching_close(inner, tag) {
+            let inner_content = &inner[..close_offset];
+            let after_close = &inner[close_offset + close_pattern.len()..];
+
+            // Collapse blank lines in the inner content
+            let collapsed = collapse_blank_lines(inner_content);
+
+            result.push_str(opening_tag);
+            result.push_str(&collapsed);
+            result.push_str(&close_pattern);
+            remaining = after_close;
+        } else {
+            // No matching close tag found -- output opening tag and continue
+            result.push_str(opening_tag);
+            remaining = &remaining[gt_pos + 1..];
+        }
+    }
+
+    result
+}
+
+/// Remove blank lines (lines that are empty or contain only whitespace) from
+/// a string while preserving non-blank lines separated by single newlines.
+///
+/// A "blank line" is a line that contains only whitespace characters.
+/// Multiple consecutive blank lines are removed entirely. Non-blank lines
+/// remain separated by single newlines.
+fn collapse_blank_lines(content: &str) -> String {
+    // Check if there are any blank lines to collapse
+    let has_blank_line = content.split('\n').any(|line| line.trim().is_empty());
+    if !has_blank_line {
+        return content.to_string();
+    }
+
+    let lines: Vec<&str> = content.split('\n').collect();
+    let mut result_lines: Vec<&str> = Vec::with_capacity(lines.len());
+
+    for line in &lines {
+        if line.trim().is_empty() {
+            // Skip blank lines entirely
+            continue;
+        }
+        result_lines.push(line);
+    }
+
+    if result_lines.is_empty() {
+        return String::new();
+    }
+
+    // Join non-blank lines with newlines, and add leading/trailing newlines
+    // to match the original structure (content sits on its own lines within
+    // the block element).
+    let mut result = String::with_capacity(content.len());
+    result.push('\n');
+    for (i, line) in result_lines.iter().enumerate() {
+        if i > 0 {
+            result.push('\n');
+        }
+        result.push_str(line);
+    }
+    result.push('\n');
+
+    result
+}
+
+// ============================================================================
 // 0. Strip unwanted <p> tags inside HTML block elements
 // ============================================================================
 
@@ -2229,5 +2369,178 @@ on 20 Mar 2026
         let input = r#"<input required="" type="text" /><br /><div itemscope="">"#;
         let result = normalize_html_output(input);
         assert_eq!(result, r#"<input required type="text"><br><div itemscope>"#);
+    }
+
+    // ========================================================================
+    // Pre-markdown: Collapse blank lines in HTML block elements
+    // ========================================================================
+
+    #[test]
+    fn test_collapse_blank_lines_in_li() {
+        let input = "<li>\n\n  Event Title\n  (link)\n\n</li>";
+        let result = collapse_blank_lines_in_html_blocks(input);
+        assert_eq!(result, "<li>\n  Event Title\n  (link)\n</li>");
+    }
+
+    #[test]
+    fn test_collapse_blank_lines_in_div() {
+        let input = "<div class=\"book\">\n\n  Some content\n\n  More content\n\n</div>";
+        let result = collapse_blank_lines_in_html_blocks(input);
+        assert_eq!(
+            result,
+            "<div class=\"book\">\n  Some content\n  More content\n</div>"
+        );
+    }
+
+    #[test]
+    fn test_collapse_blank_lines_in_h5() {
+        let input = "<h5>\n\nby <a href=\"x\">Author</a>\n\n</h5>";
+        let result = collapse_blank_lines_in_html_blocks(input);
+        assert_eq!(result, "<h5>\nby <a href=\"x\">Author</a>\n</h5>");
+    }
+
+    #[test]
+    fn test_collapse_preserves_content_outside_blocks() {
+        let input = "Paragraph one\n\nParagraph two\n\n<li>\n\nContent\n\n</li>\n\nParagraph three";
+        let result = collapse_blank_lines_in_html_blocks(input);
+        assert_eq!(
+            result,
+            "Paragraph one\n\nParagraph two\n\n<li>\nContent\n</li>\n\nParagraph three"
+        );
+    }
+
+    #[test]
+    fn test_collapse_no_blank_lines_unchanged() {
+        let input = "<li>Simple content</li>";
+        let result = collapse_blank_lines_in_html_blocks(input);
+        assert_eq!(result, "<li>Simple content</li>");
+    }
+
+    #[test]
+    fn test_collapse_nested_blocks() {
+        let input = "<div>\n\n<li>\n\nNested\n\n</li>\n\n</div>";
+        let result = collapse_blank_lines_in_html_blocks(input);
+        // Both div and li blank lines should be collapsed
+        assert_eq!(result, "<div>\n<li>\nNested\n</li>\n</div>");
+    }
+
+    #[test]
+    fn test_collapse_li_with_class() {
+        let input = "<li class=\"webinar\">\n\n  Event Title by <a href=\"/people/foo.html\">Foo</a>\n  (<a href=\"https://youtube.com\">watch on youtube</a>)\n\n</li>";
+        let result = collapse_blank_lines_in_html_blocks(input);
+        assert_eq!(
+            result,
+            "<li class=\"webinar\">\n  Event Title by <a href=\"/people/foo.html\">Foo</a>\n  (<a href=\"https://youtube.com\">watch on youtube</a>)\n</li>"
+        );
+    }
+
+    #[test]
+    fn test_collapse_multiple_li_elements() {
+        let input = "<li>\n\nFirst\n\n</li>\n<li>\n\nSecond\n\n</li>";
+        let result = collapse_blank_lines_in_html_blocks(input);
+        assert_eq!(result, "<li>\nFirst\n</li>\n<li>\nSecond\n</li>");
+    }
+
+    #[test]
+    fn test_collapse_authors_include_pattern() {
+        // Simulates the authors.html include output with blank lines between iterations
+        let input = "<li>\n\n  <a href=\"/people/foo.html\">Foo</a>, \n\n  <a href=\"/people/bar.html\">Bar</a>\n\n</li>";
+        let result = collapse_blank_lines_in_html_blocks(input);
+        assert_eq!(
+            result,
+            "<li>\n  <a href=\"/people/foo.html\">Foo</a>, \n  <a href=\"/people/bar.html\">Bar</a>\n</li>"
+        );
+    }
+
+    #[test]
+    fn test_collapse_does_not_affect_td() {
+        let input = "<td>\n\nCell content\n\n</td>";
+        let result = collapse_blank_lines_in_html_blocks(input);
+        assert_eq!(result, "<td>\nCell content\n</td>");
+    }
+
+    #[test]
+    fn test_no_p_tags_after_collapse_in_li() {
+        // Full pipeline test: collapse then markdown_to_html
+        let input = "<li>\n\nSome text by <a href='x'>Author</a>\n\n</li>";
+        let collapsed = collapse_blank_lines_in_html_blocks(input);
+        let html = crate::frontmatter::markdown_to_html(&collapsed);
+        // The output should NOT contain <p> inside <li>
+        assert!(
+            !html.contains("<li><p>") && !html.contains("<li>\n<p>"),
+            "Expected no <p> inside <li>, got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_no_p_tags_after_collapse_in_h5() {
+        let input = "<h5>\n\nby <a href='x'>Author</a>\n\n</h5>";
+        let collapsed = collapse_blank_lines_in_html_blocks(input);
+        let html = crate::frontmatter::markdown_to_html(&collapsed);
+        assert!(
+            !html.contains("<h5><p>") && !html.contains("<h5>\n<p>"),
+            "Expected no <p> inside <h5>, got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_legitimate_paragraphs_preserved() {
+        // Regular markdown with blank lines should still produce <p> tags
+        let input = "First paragraph\n\nSecond paragraph";
+        let result = collapse_blank_lines_in_html_blocks(input);
+        // Content outside HTML blocks should be unchanged
+        assert_eq!(result, input);
+        let html = crate::frontmatter::markdown_to_html(&result);
+        assert!(html.contains("<p>First paragraph</p>"));
+        assert!(html.contains("<p>Second paragraph</p>"));
+    }
+
+    #[test]
+    fn test_markdown_after_html_block_still_works() {
+        let input = "<li>\n\nContent\n\n</li>\n\nA paragraph of text\n\nAnother paragraph";
+        let result = collapse_blank_lines_in_html_blocks(input);
+        // The blank lines between paragraphs outside the <li> should be preserved
+        assert!(result.contains("\n\nA paragraph of text\n\nAnother paragraph"));
+    }
+
+    #[test]
+    fn test_collapse_event_html_full_pattern() {
+        // Simulate the full event.html include pattern inside <li>
+        let input = r#"<li class="webinar">
+
+  Machine Learning Zoomcamp by <a href="/people/alexey-grigorev.html">Alexey Grigorev</a>
+  (<a href="https://youtube.com/watch?v=123">watch on youtube</a>)
+
+</li>"#;
+        let result = collapse_blank_lines_in_html_blocks(input);
+        let html = crate::frontmatter::markdown_to_html(&result);
+        assert!(
+            !html.contains("<p>"),
+            "Expected no <p> tags in event output, got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_collapse_book_html_with_nested_h5() {
+        // Simulate book.html include with nested h5 containing authors
+        let input = r#"<div class="book">
+
+<h5>
+
+by <a href="/people/author.html">Author Name</a>
+
+</h5>
+
+</div>"#;
+        let result = collapse_blank_lines_in_html_blocks(input);
+        let html = crate::frontmatter::markdown_to_html(&result);
+        assert!(
+            !html.contains("<h5>\n<p>") && !html.contains("<h5><p>"),
+            "Expected no <p> inside <h5> in book output, got: {}",
+            html
+        );
     }
 }
