@@ -111,6 +111,20 @@ impl LayoutEngine {
         self.layouts.contains_key(name)
     }
 
+    /// Check if any layout or include references `page.previous` or `page.next`.
+    ///
+    /// Used to skip the expensive prev/next map computation when no template
+    /// actually uses these variables.
+    pub fn uses_prev_next(&self) -> bool {
+        for layout in self.layouts.values() {
+            if layout.source.contains("page.previous") || layout.source.contains("page.next") {
+                return true;
+            }
+        }
+        // Also check includes (they're stored in the engine)
+        self.engine.uses_prev_next()
+    }
+
     /// Render page content wrapped in a layout.
     ///
     /// # Arguments
@@ -469,6 +483,11 @@ pub fn load_layouts(layouts_dir: &Path) -> Result<HashMap<String, Layout>, Templ
         // Check for front matter in layout (for layout chaining)
         let (parent_layout, clean_source) = extract_layout_front_matter(&source);
 
+        // Pre-normalize void elements and boolean attributes in layout sources.
+        // This way, the rendered output doesn't contain `/>` or `=""` from the
+        // layout HTML, and the final normalize_html_output() can exit early.
+        let clean_source = crate::kramdown::normalize_html_output(&clean_source);
+
         layouts.insert(
             name,
             Layout {
@@ -544,7 +563,13 @@ pub fn build_render_context(
     // in arrays have uniform keys (prevents "Unknown index" in Liquid for loops)
     let mut page = Object::new();
     for (key, value) in page_front_matter {
-        page.insert(key.clone().into(), normalize_arrays(yaml_to_liquid(value)));
+        let liquid_val = yaml_to_liquid(value);
+        let liquid_val = if matches!(liquid_val, LiquidValue::Array(_)) {
+            normalize_arrays(liquid_val)
+        } else {
+            liquid_val
+        };
+        page.insert(key.clone().into(), liquid_val);
     }
     ctx.insert("page".into(), LiquidValue::Object(page));
 
@@ -568,7 +593,15 @@ pub fn build_render_context_page_only(content: &str, page_front_matter: &FrontMa
 
     let mut page = Object::new();
     for (key, value) in page_front_matter {
-        page.insert(key.clone().into(), normalize_arrays(yaml_to_liquid(value)));
+        let liquid_val = yaml_to_liquid(value);
+        // Only normalize arrays (uniform key padding) for values that are
+        // actually arrays. Scalar/mapping values don't need normalization.
+        let liquid_val = if matches!(liquid_val, LiquidValue::Array(_)) {
+            normalize_arrays(liquid_val)
+        } else {
+            liquid_val
+        };
+        page.insert(key.clone().into(), liquid_val);
     }
     ctx.insert("page".into(), LiquidValue::Object(page));
 

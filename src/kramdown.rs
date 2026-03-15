@@ -81,7 +81,13 @@ pub fn postprocess(html: &str) -> String {
     let html = add_inline_code_classes(&html);
     let html = add_block_spacing(&html);
     let html = remove_ol_start_attribute(&html);
-    normalize_figcaption_whitespace(&html)
+    let html = normalize_figcaption_whitespace(&html);
+    // D3, D2, D12: Normalize void elements and boolean attributes in the markdown
+    // output early (during collection loading). This ensures that the final
+    // normalize_html_output() call after layout wrapping finds nothing to change
+    // and exits early, avoiding a full scan of the (often 100-300KB) page HTML.
+    let html = normalize_void_elements(&html);
+    normalize_boolean_attributes(&html)
 }
 
 /// Apply final HTML output normalization to match Jekyll/kramdown conventions.
@@ -93,6 +99,20 @@ pub fn postprocess(html: &str) -> String {
 /// - D2, D12: Boolean HTML attribute normalization (`required=""` -> `required`)
 /// - D3: Void element self-closing slash removal (`<br />` -> `<br>`)
 pub fn normalize_html_output(html: &str) -> String {
+    // Quick check: if the HTML has neither "/>" nor `=""`, nothing to normalize.
+    let has_void = html.contains("/>");
+    let has_bool = html.contains("=\"\"");
+    if !has_void && !has_bool {
+        return html.to_string();
+    }
+    // If only one kind of normalization is needed, do a single pass.
+    if has_void && !has_bool {
+        return normalize_void_elements(html);
+    }
+    if has_bool && !has_void {
+        return normalize_boolean_attributes(html);
+    }
+    // Both needed: apply sequentially (each is already single-pass).
     let html = normalize_void_elements(html);
     normalize_boolean_attributes(&html)
 }
@@ -1263,105 +1283,155 @@ fn remove_attribute(tag: &str, attr_name: &str) -> String {
 // 8. Normalize void elements (D3)
 // ============================================================================
 
-/// Remove self-closing slash from void HTML elements.
+/// Remove self-closing slash from void HTML elements (single-pass).
 ///
 /// pulldown-cmark produces `<br />`, `<hr />`, `<input ... />` etc.
 /// kramdown produces `<br>`, `<hr>`, `<input ...>`.
+///
+/// This implementation scans the HTML once, finding all `/>` sequences and
+/// checking if they are inside void element tags. This replaces the prior
+/// approach of 26+ individual `replace()` calls which each scanned the
+/// entire string.
 fn normalize_void_elements(html: &str) -> String {
-    let mut result = html.to_string();
-    // Handle self-closing void elements: replace " />" with ">"
-    // Only for void elements that should not have a closing slash
-    let void_elements = [
-        "br", "hr", "img", "input", "meta", "link", "col", "area", "base", "embed", "source",
-        "track", "wbr",
-    ];
-    for tag in &void_elements {
-        // Replace patterns like <br /> or <br/> or <input ... />
-        let pattern_space = format!("<{} />", tag);
-        let replacement_space = format!("<{}>", tag);
-        result = result.replace(&pattern_space, &replacement_space);
-
-        let pattern_no_space = format!("<{}/>", tag);
-        let replacement_no_space = format!("<{}>", tag);
-        result = result.replace(&pattern_no_space, &replacement_no_space);
+    // Quick check: if there's no "/>", nothing to normalize
+    if !html.contains("/>") {
+        return html.to_string();
     }
 
-    // Handle void elements with attributes: `<input type="text" />`
-    // We need a more targeted approach for these
-    result = normalize_self_closing_with_attrs(&result);
-
-    result
-}
-
-/// Normalize self-closing tags with attributes (e.g., `<input type="text" />`).
-fn normalize_self_closing_with_attrs(html: &str) -> String {
     let mut result = String::with_capacity(html.len());
     let mut remaining = html;
 
-    while let Some(pos) = remaining.find(" />") {
-        // Check if this is inside a void element tag
-        let before = &remaining[..pos];
+    while !remaining.is_empty() {
+        // Find next "/>" (with or without space before it)
+        let pos = match remaining.find("/>") {
+            Some(p) => p,
+            None => {
+                result.push_str(remaining);
+                break;
+            }
+        };
+
+        // Check if there's a space before "/>" (i.e., " />")
+        let has_space = pos > 0 && remaining.as_bytes()[pos - 1] == b' ';
+        let tag_end_pos = if has_space { pos - 1 } else { pos };
+
+        // Find the opening '<' for this tag
+        let before = &remaining[..tag_end_pos];
         if let Some(tag_start) = before.rfind('<') {
             let tag_content = &before[tag_start + 1..];
             let tag_name = tag_content
                 .split(|c: char| c.is_whitespace())
                 .next()
                 .unwrap_or("");
-            let void_elements = [
-                "br", "hr", "img", "input", "meta", "link", "col", "area", "base", "embed",
-                "source", "track", "wbr",
-            ];
-            if void_elements.contains(&tag_name) {
-                result.push_str(&remaining[..pos]);
+            if is_void_element(tag_name) {
+                // It's a void element -- replace " />" or "/>" with ">"
+                result.push_str(&remaining[..tag_end_pos]);
                 result.push('>');
-                remaining = &remaining[pos + 3..];
+                remaining = &remaining[pos + 2..];
                 continue;
             }
         }
-        result.push_str(&remaining[..pos + 3]);
-        remaining = &remaining[pos + 3..];
+        // Not a void element -- keep as-is
+        result.push_str(&remaining[..pos + 2]);
+        remaining = &remaining[pos + 2..];
     }
-    result.push_str(remaining);
     result
+}
+
+/// Check if a tag name is a void (self-closing) HTML element.
+fn is_void_element(tag_name: &str) -> bool {
+    matches!(
+        tag_name,
+        "br" | "hr"
+            | "img"
+            | "input"
+            | "meta"
+            | "link"
+            | "col"
+            | "area"
+            | "base"
+            | "embed"
+            | "source"
+            | "track"
+            | "wbr"
+    )
 }
 
 // ============================================================================
 // 9. Normalize boolean HTML attributes (D2, D12)
 // ============================================================================
 
-/// Normalize boolean HTML attributes by removing empty string values.
+/// Normalize boolean HTML attributes by removing empty string values (single-pass).
 ///
 /// pulldown-cmark produces `required=""`, `novalidate=""`, `itemscope=""`.
 /// kramdown produces `required`, `novalidate`, `itemscope`.
+///
+/// This implementation finds `=""` patterns and checks if the preceding word
+/// is a boolean attribute, avoiding 18 separate `replace()` calls that each
+/// scan the entire string.
 fn normalize_boolean_attributes(html: &str) -> String {
-    let boolean_attrs = [
-        "required",
-        "novalidate",
-        "itemscope",
-        "checked",
-        "disabled",
-        "readonly",
-        "multiple",
-        "autofocus",
-        "autoplay",
-        "controls",
-        "loop",
-        "muted",
-        "selected",
-        "hidden",
-        "async",
-        "defer",
-        "formnovalidate",
-        "open",
-        "allowfullscreen",
-    ];
+    // Quick check: if there's no `=""`, nothing to normalize
+    if !html.contains("=\"\"") {
+        return html.to_string();
+    }
 
-    let mut result = html.to_string();
-    for attr in &boolean_attrs {
-        let pattern = format!("{attr}=\"\"");
-        result = result.replace(&pattern, attr);
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+
+    while !remaining.is_empty() {
+        let pos = match remaining.find("=\"\"") {
+            Some(p) => p,
+            None => {
+                result.push_str(remaining);
+                break;
+            }
+        };
+
+        // Extract the attribute name: scan backwards from `pos` to find the word
+        let before = &remaining[..pos];
+        let attr_start = before
+            .rfind(|c: char| !c.is_ascii_alphanumeric() && c != '-' && c != '_')
+            .map(|i| i + 1)
+            .unwrap_or(0);
+        let attr_name = &before[attr_start..];
+
+        if is_boolean_attribute(attr_name) {
+            // Strip the `=""` -- just output up to and including the attribute name
+            result.push_str(&remaining[..pos]);
+            remaining = &remaining[pos + 3..];
+        } else {
+            // Not a boolean attribute -- keep `=""`
+            result.push_str(&remaining[..pos + 3]);
+            remaining = &remaining[pos + 3..];
+        }
     }
     result
+}
+
+/// Check if an attribute name is a boolean HTML attribute.
+fn is_boolean_attribute(attr: &str) -> bool {
+    matches!(
+        attr,
+        "required"
+            | "novalidate"
+            | "itemscope"
+            | "checked"
+            | "disabled"
+            | "readonly"
+            | "multiple"
+            | "autofocus"
+            | "autoplay"
+            | "controls"
+            | "loop"
+            | "muted"
+            | "selected"
+            | "hidden"
+            | "async"
+            | "defer"
+            | "formnovalidate"
+            | "open"
+            | "allowfullscreen"
+    )
 }
 
 // ============================================================================
@@ -2852,5 +2922,118 @@ by <a href="/people/author.html">Author Name</a>
         let input = "<div>caf\u{00e9} & th\u{00e9}</div>";
         let result = encode_bare_ampersands(input);
         assert_eq!(result, "<div>caf\u{00e9} &amp; th\u{00e9}</div>");
+    }
+
+    // --- Optimized normalize_void_elements tests (single-pass) ---
+
+    #[test]
+    fn test_normalize_void_elements_br_space() {
+        assert_eq!(normalize_void_elements("<br />"), "<br>");
+    }
+
+    #[test]
+    fn test_normalize_void_elements_br_no_space() {
+        assert_eq!(normalize_void_elements("<br/>"), "<br>");
+    }
+
+    #[test]
+    fn test_normalize_void_elements_hr() {
+        assert_eq!(normalize_void_elements("<hr />"), "<hr>");
+    }
+
+    #[test]
+    fn test_normalize_void_elements_img_with_attrs() {
+        assert_eq!(
+            normalize_void_elements(r#"<img src="test.jpg" />"#),
+            r#"<img src="test.jpg">"#
+        );
+    }
+
+    #[test]
+    fn test_normalize_void_elements_meta() {
+        assert_eq!(
+            normalize_void_elements(r#"<meta content="summary" />"#),
+            r#"<meta content="summary">"#
+        );
+    }
+
+    #[test]
+    fn test_normalize_void_elements_link() {
+        assert_eq!(
+            normalize_void_elements(r#"<link rel="stylesheet" href="s.css" />"#),
+            r#"<link rel="stylesheet" href="s.css">"#
+        );
+    }
+
+    #[test]
+    fn test_normalize_void_elements_preserves_non_void() {
+        // Non-void elements with /> should be preserved
+        assert_eq!(normalize_void_elements("<div />"), "<div />");
+    }
+
+    #[test]
+    fn test_normalize_void_elements_no_change() {
+        let input = "<p>Hello</p>";
+        assert_eq!(normalize_void_elements(input), input);
+    }
+
+    #[test]
+    fn test_normalize_void_elements_multiple() {
+        assert_eq!(normalize_void_elements("<br /><hr /><br/>"), "<br><hr><br>");
+    }
+
+    // --- Optimized normalize_boolean_attributes tests (single-pass) ---
+
+    #[test]
+    fn test_normalize_boolean_required() {
+        assert_eq!(
+            normalize_boolean_attributes(r#"<input required="">"#),
+            "<input required>"
+        );
+    }
+
+    #[test]
+    fn test_normalize_boolean_itemscope() {
+        assert_eq!(
+            normalize_boolean_attributes(r#"<div itemscope="">"#),
+            "<div itemscope>"
+        );
+    }
+
+    #[test]
+    fn test_normalize_boolean_multiple() {
+        assert_eq!(
+            normalize_boolean_attributes(r#"<input required="" disabled="">"#),
+            "<input required disabled>"
+        );
+    }
+
+    #[test]
+    fn test_normalize_boolean_preserves_non_boolean() {
+        // Non-boolean attributes with ="" should be preserved
+        let input = r#"<input value="">"#;
+        assert_eq!(normalize_boolean_attributes(input), input);
+    }
+
+    #[test]
+    fn test_normalize_boolean_no_change() {
+        let input = "<p>Hello</p>";
+        assert_eq!(normalize_boolean_attributes(input), input);
+    }
+
+    // --- normalize_html_output quick-exit tests ---
+
+    #[test]
+    fn test_normalize_html_output_no_patterns() {
+        let input = "<html><body><p>Hello world</p></body></html>";
+        assert_eq!(normalize_html_output(input), input);
+    }
+
+    #[test]
+    fn test_normalize_html_output_both_patterns() {
+        assert_eq!(
+            normalize_html_output(r#"<br /><input required="">"#),
+            "<br><input required>"
+        );
     }
 }

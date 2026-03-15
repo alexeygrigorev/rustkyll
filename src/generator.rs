@@ -484,8 +484,14 @@ fn url_has_file_extension(path: &str) -> bool {
 fn item_to_yaml_mapping(item: &CollectionItem) -> serde_yaml::Value {
     let mut map = serde_yaml::Mapping::new();
 
-    // Copy all front matter fields
+    // Copy front matter fields, skipping large arrays (e.g., transcript with
+    // 400+ entries) that are never accessed via page.previous/page.next.
     for (key, value) in &item.front_matter {
+        if let serde_yaml::Value::Sequence(seq) = value {
+            if seq.len() > 10 {
+                continue;
+            }
+        }
         map.insert(serde_yaml::Value::String(key.clone()), value.clone());
     }
 
@@ -643,9 +649,32 @@ pub fn generate_collection_pages_cached_with_progress(
         source: e,
     })?;
 
-    // Pre-compute prev/next references for all collections.
-    // Jekyll provides `page.previous` and `page.next` for both posts and custom collections.
-    let prev_next = build_prev_next_map(items);
+    // Pre-create all needed output directories before the parallel loop.
+    // This avoids redundant `create_dir_all` syscalls in each thread.
+    {
+        let mut dirs = std::collections::HashSet::new();
+        for item in items {
+            let out_path = url_to_output_path(output_dir, &item.url);
+            if let Some(parent) = out_path.parent() {
+                dirs.insert(parent.to_path_buf());
+            }
+        }
+        for dir in &dirs {
+            fs::create_dir_all(dir).map_err(|e| GeneratorError::WriteFile {
+                path: dir.display().to_string(),
+                source: e,
+            })?;
+        }
+    }
+
+    // Pre-compute prev/next references only if templates actually use them.
+    // Building prev/next maps clones front matter for all adjacent items, which
+    // is expensive for large collections (e.g., 427 people). Skip if unused.
+    let prev_next = if layout_engine.uses_prev_next() {
+        build_prev_next_map(items)
+    } else {
+        HashMap::new()
+    };
 
     let result = Mutex::new(GenerationResult {
         generated: 0,
@@ -737,14 +766,19 @@ pub fn generate_collection_pages_cached_with_progress(
 
             match render_result {
                 Ok(html) => {
-                    // Post-process: inject JSON-LD structured data if applicable
-                    Ok(jsonld::inject_jsonld(
-                        &html,
-                        layout,
-                        &page_fm,
-                        config,
-                        author_items,
-                    ))
+                    // Post-process: inject JSON-LD structured data if applicable.
+                    // Only book pages get JSON-LD; skip the clone for other layouts.
+                    if layout == "book" {
+                        Ok(jsonld::inject_jsonld(
+                            &html,
+                            layout,
+                            &page_fm,
+                            config,
+                            author_items,
+                        ))
+                    } else {
+                        Ok(html)
+                    }
                 }
                 Err(e) => Err(e),
             }
@@ -764,16 +798,7 @@ pub fn generate_collection_pages_cached_with_progress(
                 // Compute output path from the item's URL (respects permalink patterns)
                 let out_path = url_to_output_path(output_dir, &item.url);
 
-                if let Some(parent) = out_path.parent() {
-                    if let Err(e) = fs::create_dir_all(parent) {
-                        result.lock().unwrap().errors.push(format!(
-                            "Failed to create dir for {}/{}: {}",
-                            collection_type, item.slug, e
-                        ));
-                        return;
-                    }
-                }
-
+                // Directories were pre-created before the parallel loop.
                 match fs::write(&out_path, &html) {
                     Ok(()) => {
                         result.lock().unwrap().generated += 1;
@@ -795,9 +820,7 @@ pub fn generate_collection_pages_cached_with_progress(
                     collection_type, item.slug, e
                 );
                 let out_path = url_to_output_path(output_dir, &item.url);
-                if let Some(parent) = out_path.parent() {
-                    let _ = fs::create_dir_all(parent);
-                }
+                // Directories were pre-created before the parallel loop.
                 let fallback_content = if item.html_content.is_empty() {
                     "\n"
                 } else {

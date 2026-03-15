@@ -228,17 +228,22 @@ pub fn copy_static_files(
         })?;
     }
 
-    // Copy files in parallel using rayon
+    // Copy files in parallel using rayon.
+    // Try hard link first (near-instant, no data copy), fall back to regular copy.
     let errors: Mutex<Vec<StaticFileError>> = Mutex::new(Vec::new());
     files.par_iter().for_each(|relative_path| {
         let src = source_dir.join(relative_path);
         let dst = output_dir.join(relative_path);
-        if let Err(e) = fs::copy(&src, &dst) {
-            errors.lock().unwrap().push(StaticFileError::CopyFile {
-                src: src.display().to_string(),
-                dst: dst.display().to_string(),
-                source: e,
-            });
+        // Try hard link first (much faster than copy -- no data transfer).
+        // Falls back to copy if hard linking fails (e.g., cross-device, permissions).
+        if fs::hard_link(&src, &dst).is_err() {
+            if let Err(e) = fs::copy(&src, &dst) {
+                errors.lock().unwrap().push(StaticFileError::CopyFile {
+                    src: src.display().to_string(),
+                    dst: dst.display().to_string(),
+                    source: e,
+                });
+            }
         }
     });
 

@@ -451,6 +451,18 @@ pub struct TemplateEngine {
 }
 
 impl TemplateEngine {
+    /// Check if any include source references `page.previous` or `page.next`.
+    pub fn uses_prev_next(&self) -> bool {
+        if let Some(ref includes) = self.includes {
+            for source in includes.values() {
+                if source.contains("page.previous") || source.contains("page.next") {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
     /// Create a new `TemplateEngine` with stdlib + Jekyll filters but no includes.
     ///
     /// # Errors
@@ -977,6 +989,11 @@ fn load_includes_recursive(
             // Normalize path separators to forward slashes
             let key = relative.replace('\\', "/");
             let content = fs::read_to_string(&path)?;
+            // Pre-normalize void elements and boolean attributes in include
+            // sources. This way, the rendered output doesn't contain `/>` or
+            // `=""` from includes, and the final normalize_html_output() can
+            // exit early without scanning the entire page HTML.
+            let content = crate::kramdown::normalize_html_output(&content);
             map.insert(key, content);
         }
     }

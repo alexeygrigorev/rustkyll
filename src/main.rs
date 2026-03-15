@@ -401,10 +401,10 @@ fn build_site(
     let cached_site = CachedSiteContext::new(&site_context);
 
     // Pre-collect author items once (used for JSON-LD author resolution).
-    let author_items: Vec<CollectionItem> = collections
-        .values()
-        .flat_map(|v| v.iter().cloned())
-        .collect();
+    // Only "people" collection items are needed for author slug resolution,
+    // avoiding a full clone of all 777+ collection items.
+    let empty_vec = Vec::new();
+    let author_items: &[CollectionItem] = collections.get("people").unwrap_or(&empty_vec);
 
     // Count total renderable pages for progress bar
     let total_renderable: usize = {
@@ -473,7 +473,7 @@ fn build_site(
                 &layout_engine,
                 &cached_site,
                 destination,
-                &author_items,
+                author_items,
                 Some(&render_progress),
             )?;
             summary.collection_pages += result.generated;
