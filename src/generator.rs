@@ -10,6 +10,8 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::Mutex;
 
+use crate::progress::RenderProgress;
+
 use liquid::model::Value as LiquidValue;
 use liquid::Object;
 use rayon::prelude::*;
@@ -314,6 +316,18 @@ fn page_to_liquid(page: &Page) -> LiquidValue {
         LiquidValue::scalar(page.html_content.clone()),
     );
 
+    // page.name -- the source filename (e.g. "index.md"), matching Jekyll's behavior
+    // This is needed for templates that check page.name to customize output
+    // (e.g., the DTC site's head.html uses {% if page.name == 'index.md' %})
+    let name = std::path::Path::new(&page.source_path)
+        .file_name()
+        .map(|f| f.to_string_lossy().to_string())
+        .unwrap_or_default();
+    obj.insert("name".into(), LiquidValue::scalar(name));
+
+    // page.path -- the relative source path (e.g. "index.md" or "books.md")
+    obj.insert("path".into(), LiquidValue::scalar(page.source_path.clone()));
+
     LiquidValue::Object(obj)
 }
 
@@ -596,6 +610,33 @@ pub fn generate_collection_pages_cached(
     output_dir: &Path,
     author_items: &[CollectionItem],
 ) -> Result<GenerationResult, GeneratorError> {
+    generate_collection_pages_cached_with_progress(
+        items,
+        collection_type,
+        config,
+        layout_engine,
+        cached_site,
+        output_dir,
+        author_items,
+        None,
+    )
+}
+
+/// Like `generate_collection_pages_cached` but accepts an optional progress tracker.
+///
+/// When provided, the progress bar is incremented after each page is rendered,
+/// updating in real time during the rayon parallel loop.
+#[allow(clippy::too_many_arguments)]
+pub fn generate_collection_pages_cached_with_progress(
+    items: &[CollectionItem],
+    collection_type: &str,
+    config: &SiteConfig,
+    layout_engine: &LayoutEngine,
+    cached_site: &CachedSiteContext,
+    output_dir: &Path,
+    author_items: &[CollectionItem],
+    progress: Option<&RenderProgress>,
+) -> Result<GenerationResult, GeneratorError> {
     let collection_out_dir = output_dir.join(collection_type);
     fs::create_dir_all(&collection_out_dir).map_err(|e| GeneratorError::WriteFile {
         path: collection_out_dir.display().to_string(),
@@ -761,6 +802,10 @@ pub fn generate_collection_pages_cached(
                 }
             }
         }
+        // Increment progress bar after each page is processed (real-time update)
+        if let Some(p) = progress {
+            p.inc(&item.slug);
+        }
     });
 
     Ok(result.into_inner().unwrap())
@@ -848,6 +893,25 @@ pub fn generate_pages_cached_with_config(
     output_dir: &Path,
     config: Option<&SiteConfig>,
 ) -> Result<GenerationResult, GeneratorError> {
+    generate_pages_cached_with_config_and_progress(
+        pages,
+        layout_engine,
+        cached_site,
+        output_dir,
+        config,
+        None,
+    )
+}
+
+/// Like `generate_pages_cached_with_config` but accepts an optional progress tracker.
+pub fn generate_pages_cached_with_config_and_progress(
+    pages: &[crate::collection::Page],
+    layout_engine: &LayoutEngine,
+    cached_site: &CachedSiteContext,
+    output_dir: &Path,
+    config: Option<&SiteConfig>,
+    progress: Option<&RenderProgress>,
+) -> Result<GenerationResult, GeneratorError> {
     fs::create_dir_all(output_dir).map_err(|e| GeneratorError::WriteFile {
         path: output_dir.display().to_string(),
         source: e,
@@ -885,6 +949,21 @@ pub fn generate_pages_cached_with_config(
         // Jekyll processes ALL files with front matter regardless of layout.
         // Pages without a layout are rendered through Liquid without wrapping.
         page_fm.insert("url".into(), serde_yaml::Value::String(page.url.clone()));
+
+        // page.name -- the source filename (e.g. "index.md"), matching Jekyll's behavior.
+        // Needed for templates like DTC's head.html that check page.name.
+        let page_name = std::path::Path::new(&page.source_path)
+            .file_name()
+            .map(|f| f.to_string_lossy().to_string())
+            .unwrap_or_default();
+        page_fm
+            .entry("name".into())
+            .or_insert_with(|| serde_yaml::Value::String(page_name));
+
+        // page.path -- the relative source path
+        page_fm
+            .entry("path".into())
+            .or_insert_with(|| serde_yaml::Value::String(page.source_path.clone()));
 
         // Use raw content (not html_content) because pages may contain Liquid tags
         // that must be resolved before the layout wraps them.
@@ -995,6 +1074,10 @@ pub fn generate_pages_cached_with_config(
                     }
                 }
             }
+        }
+        // Increment progress bar after each page is processed (real-time update)
+        if let Some(p) = progress {
+            p.inc(&page.slug);
         }
     });
 

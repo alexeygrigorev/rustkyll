@@ -11,6 +11,7 @@ use rustkyll::data;
 use rustkyll::feed::{self, FeedOptions};
 use rustkyll::generator::{self, GeneratorError};
 use rustkyll::incremental::{self, BuildManifest, IncrementalAction};
+use rustkyll::progress::ProgressReporter;
 use rustkyll::sitemap;
 use rustkyll::static_files;
 use rustkyll::template::engine::CachedSiteContext;
@@ -46,6 +47,10 @@ enum Commands {
         /// Force a full rebuild, ignoring the incremental manifest
         #[arg(long, default_value_t = false)]
         force: bool,
+
+        /// Suppress all progress output (only errors are shown)
+        #[arg(long, default_value_t = false)]
+        quiet: bool,
     },
 
     /// Build and serve the site locally
@@ -69,6 +74,10 @@ enum Commands {
         /// Disable live reload
         #[arg(long, default_value_t = false)]
         no_livereload: bool,
+
+        /// Suppress all progress output (only errors are shown)
+        #[arg(long, default_value_t = false)]
+        quiet: bool,
     },
 }
 
@@ -107,6 +116,8 @@ struct BuildOptions {
     incremental: bool,
     /// Whether to force a full rebuild (overrides incremental).
     force: bool,
+    /// Whether to suppress all progress output.
+    quiet: bool,
 }
 
 /// Per-phase timing information for build profiling.
@@ -212,15 +223,18 @@ fn build_site(
     destination: &Path,
     options: &BuildOptions,
 ) -> Result<BuildSummary, BuildError> {
+    let progress = ProgressReporter::new(options.quiet);
     let mut summary = BuildSummary::default();
 
     // 1. Load config
+    progress.phase("Loading config...");
     let phase_start = Instant::now();
     let config_path = source.join("_config.yml");
     let config = SiteConfig::from_file(&config_path)?;
     summary.timing.config = phase_start.elapsed();
 
     // 2. Load data
+    progress.phase("Loading data files...");
     let phase_start = Instant::now();
     let data_dir = source.join("_data");
     let data_tree = if data_dir.exists() {
@@ -228,9 +242,12 @@ fn build_site(
     } else {
         HashMap::new()
     };
+    let data_file_count = data_tree.len();
+    progress.phase_done(&format!("Loading data files... {} files", data_file_count));
     summary.timing.data = phase_start.elapsed();
 
     // 3. Load all collections in parallel
+    progress.phase("Loading collections...");
     let phase_start = Instant::now();
     let mut all_load_errors = Vec::new();
 
@@ -264,9 +281,16 @@ fn build_site(
         }
         collections.insert(name, items);
     }
+    let total_items: usize = collections.values().map(|v| v.len()).sum();
+    progress.phase_done(&format!(
+        "Loading collections... {} collections, {} items",
+        collections.len(),
+        total_items
+    ));
     summary.timing.collections = phase_start.elapsed();
 
     // 4. Load standalone pages
+    progress.phase("Loading pages...");
     let phase_start = Instant::now();
     let (pages, page_errors) = collection::load_pages(source, &config)?;
     for err in &page_errors {
@@ -310,12 +334,14 @@ fn build_site(
     };
 
     // 6. Build site context (always uses full collections for cross-references)
+    progress.phase("Building site context...");
     let phase_start = Instant::now();
     let site_context =
         generator::build_site_context(&config, &collections, &data_tree, Some(source), &pages);
     summary.timing.context = phase_start.elapsed();
 
     // 7. Create layout engine
+    progress.phase("Loading layouts...");
     let phase_start = Instant::now();
     let layouts_dir = source.join("_layouts");
     let includes_dir = source.join("_includes");
@@ -335,6 +361,7 @@ fn build_site(
     // This is the key performance optimization: the LenientValue tree for the
     // site Object (with all posts, pages, collections) is built once and shared
     // across all collection and page renders, avoiding O(n) work per collection.
+    progress.phase("Rendering pages...");
     let phase_start = Instant::now();
     let cached_site = CachedSiteContext::new(&site_context);
 
@@ -343,6 +370,40 @@ fn build_site(
         .values()
         .flat_map(|v| v.iter().cloned())
         .collect();
+
+    // Count total renderable pages for progress bar
+    let total_renderable: usize = {
+        let mut count = 0usize;
+        for (name, items) in &collections {
+            if name != "posts" {
+                if let Some(coll_config) = config.collection(name) {
+                    if !coll_config.output {
+                        continue;
+                    }
+                }
+            }
+            match &changed_set {
+                Some(changed) => {
+                    count += items
+                        .iter()
+                        .filter(|item| changed.contains(&item.source_path))
+                        .count();
+                }
+                None => count += items.len(),
+            }
+        }
+        match &changed_set {
+            Some(changed) => {
+                count += pages
+                    .iter()
+                    .filter(|page| changed.contains(&page.source_path))
+                    .count();
+            }
+            None => count += pages.len(),
+        }
+        count
+    };
+    let render_progress = progress.render_progress(total_renderable as u64, "Rendering");
 
     for (name, items) in &collections {
         // Skip collections with output: false (except posts which always output).
@@ -370,7 +431,7 @@ fn build_site(
         };
 
         if !items_slice.is_empty() {
-            let result = generator::generate_collection_pages_cached(
+            let result = generator::generate_collection_pages_cached_with_progress(
                 items_slice,
                 name,
                 &config,
@@ -378,6 +439,7 @@ fn build_site(
                 &cached_site,
                 destination,
                 &author_items,
+                Some(&render_progress),
             )?;
             summary.collection_pages += result.generated;
             summary.errors.extend(result.errors);
@@ -399,12 +461,13 @@ fn build_site(
     };
 
     if !pages_slice.is_empty() {
-        let page_result = generator::generate_pages_cached_with_config(
+        let page_result = generator::generate_pages_cached_with_config_and_progress(
             pages_slice,
             &layout_engine,
             &cached_site,
             destination,
             Some(&config),
+            Some(&render_progress),
         )?;
         summary.standalone_pages = page_result.generated;
         summary.errors.extend(page_result.errors);
@@ -471,12 +534,15 @@ fn build_site(
         summary.standalone_pages += redirect_count;
     }
 
+    render_progress.finish();
     summary.timing.generation = phase_start.elapsed();
 
     // 11. Copy static files (before sitemap/feed so generated files take precedence)
+    progress.phase("Copying static files...");
     let phase_start = Instant::now();
     let static_count = static_files::copy_static_files(source, destination, &config)?;
     summary.static_files = static_count;
+    progress.phase_done(&format!("Copying static files... {} files", static_count));
     summary.timing.static_files = phase_start.elapsed();
 
     // 12. Re-render post html_content through Liquid+markdown so feed entries
@@ -544,6 +610,7 @@ fn build_site(
     }
 
     // 13. Generate sitemap.xml and feed.xml
+    progress.phase("Generating sitemap...");
     let phase_start = Instant::now();
 
     // Build collections_vec by iterating the HashMap directly (avoid extra collect)
@@ -551,13 +618,17 @@ fn build_site(
     let sitemap_count =
         sitemap::generate_sitemap(&config.url, &collections_vec, &pages, destination)?;
     summary.sitemap_entries = sitemap_count;
+    progress.phase_done(&format!("Generating sitemap... {} entries", sitemap_count));
 
     // 14. Generate feed.xml (from posts)
+    progress.phase("Generating feed...");
     if let Some((_, posts_vec)) = collections_vec.iter().find(|(name, _)| name == "posts") {
         feed::write_atom_feed(posts_vec, &config, &FeedOptions::default(), destination)?;
+        progress.phase_done(&format!("Generating feed... {} posts", posts_vec.len()));
     } else {
         // No posts collection -- write empty feed
         feed::write_atom_feed(&[], &config, &FeedOptions::default(), destination)?;
+        progress.phase_done("Generating feed... 0 posts");
     }
     summary.timing.sitemap_feed = phase_start.elapsed();
 
@@ -598,23 +669,30 @@ fn main() {
             destination,
             incremental,
             force,
+            quiet,
         }) => {
             let start = Instant::now();
 
-            println!("Source:      {}", source.display());
-            println!("Destination: {}", destination.display());
-            if incremental {
-                println!("Mode:        incremental");
+            if !quiet {
+                println!("Source:      {}", source.display());
+                println!("Destination: {}", destination.display());
+                if incremental {
+                    println!("Mode:        incremental");
+                }
+                if force {
+                    println!("Mode:        force (full rebuild)");
+                }
+                println!();
             }
-            if force {
-                println!("Mode:        force (full rebuild)");
-            }
-            println!();
 
-            let options = BuildOptions { incremental, force };
+            let options = BuildOptions {
+                incremental,
+                force,
+                quiet,
+            };
 
             match build_site(&source, &destination, &options) {
-                Ok(summary) => {
+                Ok(summary) if !quiet => {
                     let elapsed = start.elapsed();
 
                     if summary.skipped_all {
@@ -667,6 +745,9 @@ fn main() {
                         }
                     }
                 }
+                Ok(_) => {
+                    // quiet mode: no summary output
+                }
                 Err(e) => {
                     eprintln!("Build failed: {}", e);
                     std::process::exit(1);
@@ -679,20 +760,25 @@ fn main() {
             port,
             livereload,
             no_livereload,
+            quiet,
         }) => {
             let livereload_enabled = livereload && !no_livereload;
 
             // Build the site first
-            println!("Building site before serving...");
+            if !quiet {
+                println!("Building site before serving...");
+            }
             let options = BuildOptions {
                 incremental: false,
                 force: false,
+                quiet,
             };
             match build_site(&source, &destination, &options) {
-                Ok(summary) => {
+                Ok(summary) if !quiet => {
                     let total_pages = summary.collection_pages + summary.standalone_pages;
                     println!("Build complete: {} pages generated.", total_pages);
                 }
+                Ok(_) => {}
                 Err(e) => {
                     eprintln!("Build failed: {}", e);
                     std::process::exit(1);
@@ -728,6 +814,7 @@ fn main() {
                         let opts = BuildOptions {
                             incremental: false,
                             force: false,
+                            quiet,
                         };
                         build_site(&src, &dst, &opts)
                             .map(|_| ())
@@ -912,6 +999,7 @@ mod tests {
                 port,
                 livereload,
                 no_livereload,
+                ..
             }) => {
                 assert_eq!(source, PathBuf::from("."));
                 assert_eq!(destination, PathBuf::from("_site"));
@@ -1115,6 +1203,7 @@ mod tests {
         let options = BuildOptions {
             incremental: false,
             force: false,
+            quiet: false,
         };
 
         // Build using the absolute path (equivalent to passing "." while CWD = site_root)
@@ -1150,6 +1239,7 @@ mod tests {
         let options = BuildOptions {
             incremental: false,
             force: false,
+            quiet: false,
         };
 
         let result = build_site(empty_dir, &dest, &options);
@@ -1163,5 +1253,88 @@ mod tests {
             "Error should mention config or file not found, got: {}",
             err_msg
         );
+    }
+
+    // --- Issue 91: --quiet flag tests ---
+
+    #[test]
+    fn test_cli_build_quiet_flag() {
+        let cli = Cli::try_parse_from(["rustkyll", "build", "--quiet"]).unwrap();
+        match cli.command {
+            Some(Commands::Build { quiet, .. }) => {
+                assert!(quiet, "--quiet flag should be true");
+            }
+            _ => panic!("Expected Build command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_build_no_quiet_flag_defaults_false() {
+        let cli = Cli::try_parse_from(["rustkyll", "build"]).unwrap();
+        match cli.command {
+            Some(Commands::Build { quiet, .. }) => {
+                assert!(!quiet, "--quiet should default to false");
+            }
+            _ => panic!("Expected Build command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_serve_quiet_flag() {
+        let cli = Cli::try_parse_from(["rustkyll", "serve", "--quiet"]).unwrap();
+        match cli.command {
+            Some(Commands::Serve { quiet, .. }) => {
+                assert!(quiet, "--quiet flag should be true for serve");
+            }
+            _ => panic!("Expected Serve command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_serve_no_quiet_flag_defaults_false() {
+        let cli = Cli::try_parse_from(["rustkyll", "serve"]).unwrap();
+        match cli.command {
+            Some(Commands::Serve { quiet, .. }) => {
+                assert!(!quiet, "--quiet should default to false for serve");
+            }
+            _ => panic!("Expected Serve command"),
+        }
+    }
+
+    #[test]
+    fn test_build_quiet_mode_produces_no_progress() {
+        // Build a minimal site in quiet mode; verify build succeeds
+        let tmp = tempfile::tempdir().unwrap();
+        let site_root = tmp.path();
+
+        std::fs::create_dir_all(site_root.join("_layouts")).unwrap();
+        std::fs::create_dir_all(site_root.join("_includes")).unwrap();
+        std::fs::write(
+            site_root.join("_config.yml"),
+            "url: \"https://example.com\"\ntitle: \"Quiet Test\"\n",
+        )
+        .unwrap();
+        std::fs::write(
+            site_root.join("_layouts/page.html"),
+            "<html><body>{{ content }}</body></html>",
+        )
+        .unwrap();
+        std::fs::write(
+            site_root.join("index.md"),
+            "---\ntitle: Home\nlayout: page\npermalink: /index.html\n---\nHello quiet.",
+        )
+        .unwrap();
+
+        let dest = site_root.join("_site");
+        let options = BuildOptions {
+            incremental: false,
+            force: false,
+            quiet: true,
+        };
+
+        let result = build_site(site_root, &dest, &options);
+        assert!(result.is_ok(), "build should succeed in quiet mode");
+        let summary = result.unwrap();
+        assert!(summary.standalone_pages > 0, "Should generate pages");
     }
 }
