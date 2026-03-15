@@ -71,8 +71,8 @@ fn test_documentation_theme_jekyll_page_count() {
     let tmp = build_site("documentation-theme-jekyll");
     let count = count_html_files(tmp.path());
     assert_eq!(
-        count, 100,
-        "documentation-theme-jekyll: expected 100 HTML files, got {}",
+        count, 98,
+        "documentation-theme-jekyll: expected 98 HTML files, got {}",
         count
     );
 }

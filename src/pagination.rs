@@ -303,22 +303,29 @@ pub fn generate_pagination_pages(
             is_markdown,
         );
 
-        match render_result {
-            Ok(html) => {
-                let out_path = url_to_output_path(output_dir, &page_url);
-                if let Some(parent) = out_path.parent() {
-                    let _ = fs::create_dir_all(parent);
-                }
-                if fs::write(&out_path, &html).is_ok() {
-                    generated += 1;
-                }
-            }
+        let html = match render_result {
+            Ok(html) => html,
             Err(e) => {
                 eprintln!(
-                    "Warning: failed to render pagination page {}: {}",
+                    "Warning: failed to render pagination page {}, writing fallback: {}",
                     page_num, e
                 );
+                // Fall back to raw content (with markdown conversion if needed),
+                // matching the normal page generator's fallback behavior.
+                if is_markdown {
+                    crate::frontmatter::markdown_to_html(raw_content)
+                } else {
+                    raw_content.to_string()
+                }
             }
+        };
+
+        let out_path = url_to_output_path(output_dir, &page_url);
+        if let Some(parent) = out_path.parent() {
+            let _ = fs::create_dir_all(parent);
+        }
+        if fs::write(&out_path, &html).is_ok() {
+            generated += 1;
         }
     }
 
