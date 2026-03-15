@@ -269,6 +269,7 @@ fn collapse_blank_lines(content: &str) -> String {
 const BLOCK_PARENT_TAGS: &[&str] = &[
     "li",
     "div",
+    "p",
     "td",
     "th",
     "h1",

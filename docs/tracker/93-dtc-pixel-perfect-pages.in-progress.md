@@ -258,14 +258,39 @@ First run: 7/22 pages at 0%, 5 with small diffs, 10 with visible differences.
 - Issue #107: Fix where_exp date comparison (affects pages 21, 22)
 - Issue #108: Investigate "sub-pixel" diffs — 3-15K pixels not noise (affects pages 14, 16)
 
-### Re-run procedure
+### [SWE] 2026-03-15 13:00 -- Round 2 Re-run
 
-After all blocking issues are resolved:
-1. Rebuild both sites with Jekyll and rustkyll
-2. Run DOM tree comparison (#97) on ALL 787 HTML files — identify any remaining structural differences
-3. Fix any DOM differences found
-4. Run Playwright on all 22 pages at 0% threshold
-5. Verify all 22 pass at 0% pixel diff
-6. Re-validate feed.xml and sitemap.xml
+All blocking issues done (#105, #106, #107, #108, #109). Re-ran full verification.
 
-Order: DOM check first (find exact differences) → fix → pixel check (verify visual match). After fixing all issues, re-run #93 to verify everything passes.
+**Fixes applied in this session:**
+1. System timezone fallback: Added `iana-time-zone` crate. When no `timezone` in `_config.yml`, rustkyll now falls back to system timezone (matching Jekyll). Fixed books.html date off-by-one (0.40% -> 0.00%), plus 3 sub-pixel pages.
+2. `<p>` blank line collapsing: Added `"p"` to BLOCK_PARENT_TAGS. Fixed tools.html (1.27% -> 0.00%).
+3. Updated integration test for timezone-aware book end date.
+
+**Playwright results (22 HTML pages at 0% threshold):**
+- 19 PASS at exactly 0.00% pixel diff
+- 3 FAIL:
+  - podcast.html (0.05%) -- sort stability for same-date episodes
+  - blog/practical-guide-better-code.html (0.08%) -- syntect vs Rouge tokenization differences
+  - courses/2021-winter-ml-zoomcamp.html (4.12%) -- bare text between blocks not auto-wrapped in `<p>`
+
+**Other checks:**
+- All 24 output files exist in both Jekyll and rustkyll output
+- No raw Liquid tags in any output file
+- feed.xml: valid XML, 10/10 entries match
+- sitemap.xml: valid XML, 789 vs 781 URLs (1.0% diff)
+- No rustkyll-only 404 errors
+- 1375 tests pass, 0 fail, clippy clean, fmt clean
+
+**Files modified:**
+- Cargo.toml (added iana-time-zone dep)
+- src/template/filters/mod.rs (system timezone fallback)
+- src/generator.rs (inject system timezone into site context)
+- src/kramdown.rs (added "p" to BLOCK_PARENT_TAGS)
+- tests/integration_books.rs (timezone-aware end date assertion)
+- docs/comparison/pixel-perfect-results.md (updated with round 2 results)
+
+**Remaining 3 failures need new issues:**
+1. Collection sort stability for tie-breaking (podcast.html)
+2. Syntect-to-Rouge tokenization mapping (blog-practical-guide)
+3. Kramdown auto-wrapping of bare text between blocks (course-ml-zoomcamp)

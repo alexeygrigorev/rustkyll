@@ -92,6 +92,15 @@ pub fn build_site_context(
         site.insert(key.clone().into(), yaml_to_liquid(value));
     }
 
+    // Default timezone: if not set in _config.yml, use the system timezone.
+    // This matches Jekyll's behavior: when no timezone is configured, Jekyll
+    // uses the system's local timezone for formatting naive dates.
+    if !config.extras.contains_key("timezone") {
+        if let Some(tz_name) = crate::template::filters::get_system_timezone() {
+            site.insert("timezone".into(), LiquidValue::scalar(tz_name));
+        }
+    }
+
     // Basic site fields
     site.insert("url".into(), LiquidValue::scalar(config.url.clone()));
     site.insert(

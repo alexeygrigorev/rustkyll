@@ -84,6 +84,16 @@ pub(crate) fn get_site_timezone(runtime: &dyn liquid_core::Runtime) -> Option<ch
     resolve_site_tz(&tz_str)
 }
 
+/// Get the system's local timezone as an IANA timezone name.
+///
+/// Uses the `iana-time-zone` crate which reads the system timezone from
+/// OS-specific sources (e.g., /etc/timezone on Linux, registry on Windows).
+/// Returns `None` if the system timezone cannot be determined or is not a
+/// valid IANA timezone.
+pub(crate) fn get_system_timezone() -> Option<String> {
+    iana_time_zone::get_timezone().ok()
+}
+
 /// Convert a NaiveDateTime (assumed UTC) to the target timezone, returning
 /// the local NaiveDateTime in that timezone.
 fn convert_utc_to_tz(dt: NaiveDateTime, tz: chrono_tz::Tz) -> NaiveDateTime {
@@ -101,9 +111,9 @@ fn convert_utc_to_tz(dt: NaiveDateTime, tz: chrono_tz::Tz) -> NaiveDateTime {
 /// like `2023-10-11 00:00:00 +0200` should remain Oct 11, not become Oct 10.
 ///
 /// For dates WITHOUT timezone (NaiveDateTime), Jekyll treats them as UTC and
-/// converts to the site's configured timezone. Pass `site_tz` to enable this
-/// conversion. If `site_tz` is `None`, dates are kept as-is (UTC) for
-/// reproducible builds.
+/// converts to the site's configured timezone (or the system timezone if none
+/// is configured). Pass `site_tz` to enable this conversion. If `site_tz` is
+/// `None`, dates are kept as-is.
 ///
 /// Jekyll treats naive dates as UTC and converts them to the site timezone
 /// for display.
@@ -137,13 +147,12 @@ pub(crate) fn parse_date_string_with_tz(
 }
 
 /// Apply timezone conversion: treat the NaiveDateTime as UTC, convert to
-/// the site timezone. If no site timezone is configured, the datetime is
-/// returned as-is (effectively treating it as UTC), which ensures
-/// reproducible builds regardless of the system timezone.
+/// the site/system timezone. If no timezone is available at all (unlikely),
+/// the datetime is returned as-is.
 fn apply_tz_conversion(dt: NaiveDateTime, site_tz: Option<chrono_tz::Tz>) -> NaiveDateTime {
     match site_tz {
         Some(tz) => convert_utc_to_tz(dt, tz),
-        None => dt, // No site timezone: keep as-is (UTC)
+        None => dt,
     }
 }
 
