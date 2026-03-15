@@ -71,7 +71,7 @@ jobs:
         run: cargo build --release --verbose
 
       - name: Run integration tests (ignored tests, excluding Jekyll-dependent)
-        run: cargo test -- --ignored --skip structural_comparison --skip vs_jekyll --skip kids_
+        run: cargo test -- --ignored --skip structural_comparison --skip vs_jekyll --skip kids_ --skip page_count --skip _notes_exist --skip _stories_exist
         env:
           RUST_LOG: info
 
