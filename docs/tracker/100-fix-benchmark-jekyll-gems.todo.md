@@ -24,6 +24,10 @@ Run `bundle install` for all benchmark sites that have a Gemfile, then re-run th
 
 - aihero builds with Jekyll (with real timing)
 - data-science-interviews builds with Jekyll (with real timing)
-- All other Gemfile sites attempted
-- Benchmark results updated
+- All other Gemfile sites attempted with `bundle install`
+- Benchmark results updated with real Jekyll timings
 - Dual-success site count increases
+- Structural comparison (DOM tree match) run for aihero and data-science-interviews
+- Playwright pixel-perfect check for aihero (0% diff target) — serve both, screenshot all pages, compare
+- Page counts match Jekyll exactly for both sites
+- Results documented in docs/benchmark/results.md
