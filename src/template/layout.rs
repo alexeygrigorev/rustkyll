@@ -233,6 +233,49 @@ impl LayoutEngine {
         }
     }
 
+    /// Render page content wrapped in a layout, with extra global variables
+    /// (like `paginator`) added to the template context.
+    ///
+    /// This is used by the pagination system to inject the `paginator` variable
+    /// into the template context while still supporting layout chaining.
+    pub fn render_with_paginator(
+        &self,
+        layout_name: &str,
+        content: &str,
+        page_front_matter: &FrontMatter,
+        cached_site: &CachedSiteContext,
+        paginator: &LiquidValue,
+    ) -> Result<String, TemplateError> {
+        let layout = self
+            .layouts
+            .get(layout_name)
+            .ok_or_else(|| TemplateError::LayoutNotFound(layout_name.to_string()))?;
+
+        let mut ctx = build_render_context_page_only(content, page_front_matter);
+        ctx.insert("paginator".into(), paginator.clone());
+
+        let result = if let Some(compiled) = self.compiled_layouts.get(layout_name) {
+            self.engine
+                .render_with_cached_site(compiled, &ctx, cached_site)?
+        } else {
+            self.engine
+                .parse_and_render_with_cached_site(&layout.source, &ctx, cached_site)?
+        };
+
+        if let Some(ref parent_name) = layout.parent_layout {
+            // Propagate paginator through the layout chain
+            self.render_with_paginator(
+                parent_name,
+                &result,
+                page_front_matter,
+                cached_site,
+                paginator,
+            )
+        } else {
+            Ok(result)
+        }
+    }
+
     /// Render page content through the template engine then wrap in a layout,
     /// using a pre-built cached site context.
     ///

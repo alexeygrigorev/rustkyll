@@ -45,7 +45,7 @@ This document lists every major Jekyll feature and its implementation status in 
 | Collection `output: true/false` | yes | yes | `src/config.rs` -- controls whether pages are generated |
 | Collection permalinks | yes | yes | `src/collection.rs` -- per-collection permalink patterns |
 | Drafts (`_drafts/`) | yes | no | No `_drafts` directory support or `--drafts` flag |
-| Pagination (jekyll-paginate) | yes | no | No paginator object or multi-page post listings |
+| Pagination (jekyll-paginate) | yes | yes | `src/pagination.rs` -- full paginator support with posts, nav links, page counts |
 | Post categories | yes | yes | `src/collection.rs` -- extracted from front matter (`categories` array or `category` string) |
 | Post tags | yes | yes | `src/collection.rs` -- extracted from front matter (`tags` array or `tag` string) |
 | `site.categories` | yes | yes | `src/generator.rs` -- maps category name to array of posts |
@@ -162,7 +162,7 @@ This document lists every major Jekyll feature and its implementation status in 
 | `site.*` variables | yes | yes | `src/generator.rs` -- url, baseurl, name, title, time, collections, data, categories, tags, related_posts, pages, plus all extras from config |
 | `page.*` variables | yes | yes | `src/generator.rs` -- all front matter keys plus url, content, title, previous, next |
 | `content` | yes | yes | `src/template/layout.rs` -- rendered content injected into layouts |
-| `paginator.*` | yes | no | No pagination support |
+| `paginator.*` | yes | yes | `src/pagination.rs` -- posts, per_page, total_posts, total_pages, page, previous_page, next_page, previous_page_path, next_page_path |
 | `forloop` variables | yes | yes | Liquid stdlib -- `forloop.index`, `forloop.first`, `forloop.last`, etc. |
 | `site.time` | yes | yes | `src/generator.rs` -- current build timestamp |
 | `site.data.*` | yes | yes | `src/generator.rs` -- data from `_data/` directory |
@@ -187,7 +187,7 @@ This document lists every major Jekyll feature and its implementation status in 
 | jekyll-sitemap | yes | yes | `src/sitemap.rs` -- generates sitemap.xml |
 | jekyll-avatar | yes | yes | `src/template/avatar_tag.rs` -- built-in implementation |
 | jekyll-redirect-from | yes | no | |
-| jekyll-paginate | yes | no | |
+| jekyll-paginate | yes | yes | `src/pagination.rs` -- full paginator variable in templates |
 | jekyll-mentions | yes | no | |
 | jekyll-include-cache | yes | partial | Includes are loaded eagerly; `{% include_cached %}` is not a distinct tag but includes are not re-parsed per render |
 | jekyll-relative-links | yes | no | |

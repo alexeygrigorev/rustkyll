@@ -11,6 +11,7 @@ use rustkyll::data;
 use rustkyll::feed::{self, FeedOptions};
 use rustkyll::generator::{self, GeneratorError};
 use rustkyll::incremental::{self, BuildManifest, IncrementalAction};
+use rustkyll::pagination::{self, PaginationConfig};
 use rustkyll::progress::ProgressReporter;
 use rustkyll::sitemap;
 use rustkyll::static_files;
@@ -176,6 +177,11 @@ fn collect_all_source_paths(
 /// Run the full site build pipeline.
 /// Extract redirect URLs from a page/post's front matter.
 ///
+/// Check if a source path is the root index page (used for pagination).
+fn is_index_page(source_path: &str) -> bool {
+    source_path == "index.html" || source_path == "index.md" || source_path == "index.htm"
+}
+
 /// Supports both single string and array values for `redirect_from`:
 /// - `redirect_from: /old-url/`
 /// - `redirect_from: [/old-1/, /old-2/]`
@@ -451,9 +457,26 @@ fn build_site(
     }
 
     // 10. Generate standalone pages (avoid cloning: pass slice directly)
+    // When pagination is enabled, skip the index page from normal rendering
+    // because it will be rendered with the paginator variable in step 10b.
+    let pagination_config = PaginationConfig::from_config(&config);
+    let has_pagination = pagination_config.is_some()
+        && collections.contains_key("posts")
+        && pagination::find_index_page(&pages).is_some();
+
     let filtered_pages: Vec<collection::Page>;
-    let pages_slice: &[collection::Page] = match &changed_set {
-        Some(changed) => {
+    let pages_slice: &[collection::Page] = match (&changed_set, has_pagination) {
+        (Some(changed), true) => {
+            filtered_pages = pages
+                .iter()
+                .filter(|page| {
+                    changed.contains(&page.source_path) && !is_index_page(&page.source_path)
+                })
+                .cloned()
+                .collect();
+            &filtered_pages
+        }
+        (Some(changed), false) => {
             filtered_pages = pages
                 .iter()
                 .filter(|page| changed.contains(&page.source_path))
@@ -461,7 +484,15 @@ fn build_site(
                 .collect();
             &filtered_pages
         }
-        None => &pages,
+        (None, true) => {
+            filtered_pages = pages
+                .iter()
+                .filter(|page| !is_index_page(&page.source_path))
+                .cloned()
+                .collect();
+            &filtered_pages
+        }
+        (None, false) => &pages,
     };
 
     if !pages_slice.is_empty() {
@@ -477,22 +508,16 @@ fn build_site(
         summary.errors.extend(page_result.errors);
     }
     // 10b. Generate pagination pages (jekyll-paginate support)
-    if let Some(paginate_val) = config.extras.get("paginate") {
-        if let Some(per_page) = paginate_val.as_u64() {
-            let per_page = per_page as usize;
-            let paginate_path = config
-                .extras
-                .get("paginate_path")
-                .and_then(|v| v.as_str())
-                .unwrap_or("/blog/page-:num/");
-
-            if let Some(posts) = collections.get("posts") {
-                let count = generator::generate_pagination_pages(
+    if let Some(ref pagination_config) = pagination_config {
+        if let Some(posts) = collections.get("posts") {
+            if let Some(index_page) = pagination::find_index_page(&pages) {
+                let count = pagination::generate_pagination_pages(
                     posts,
-                    per_page,
-                    paginate_path,
+                    pagination_config,
+                    index_page,
                     &layout_engine,
                     &cached_site,
+                    &config,
                     destination,
                 )?;
                 summary.standalone_pages += count;
