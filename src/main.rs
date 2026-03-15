@@ -75,6 +75,10 @@ enum Commands {
         #[arg(long, default_value_t = false)]
         no_livereload: bool,
 
+        /// Disable file watching (build once and serve, no rebuilds)
+        #[arg(long, default_value_t = false)]
+        no_watch: bool,
+
         /// Suppress all progress output (only errors are shown)
         #[arg(long, default_value_t = false)]
         quiet: bool,
@@ -760,9 +764,10 @@ fn main() {
             port,
             livereload,
             no_livereload,
+            no_watch,
             quiet,
         }) => {
-            let livereload_enabled = livereload && !no_livereload;
+            let livereload_enabled = livereload && !no_livereload && !no_watch;
 
             // Build the site first
             if !quiet {
@@ -841,8 +846,13 @@ fn main() {
                 let _ = ws_handle.join();
                 let _ = watcher_handle.join();
             } else {
-                // No live reload -- just serve
-                println!("Live reload disabled.");
+                // No live reload or no watch -- just serve
+                if no_watch && !quiet {
+                    println!("File watching disabled.");
+                }
+                if !quiet {
+                    println!("Live reload disabled.");
+                }
                 if let Err(e) = rustkyll::server::start_server(&destination, port, None) {
                     eprintln!("Server error: {}", e);
                     std::process::exit(1);
@@ -1107,6 +1117,60 @@ mod tests {
         match cli.command {
             Some(Commands::Serve { livereload, .. }) => {
                 assert!(livereload);
+            }
+            _ => panic!("Expected Serve command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_parses_serve_no_watch_flag() {
+        let cli = Cli::try_parse_from(["rustkyll", "serve", "--no-watch"]).unwrap();
+        match cli.command {
+            Some(Commands::Serve { no_watch, .. }) => {
+                assert!(no_watch);
+            }
+            _ => panic!("Expected Serve command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_parses_serve_no_watch_defaults_false() {
+        let cli = Cli::try_parse_from(["rustkyll", "serve"]).unwrap();
+        match cli.command {
+            Some(Commands::Serve { no_watch, .. }) => {
+                assert!(!no_watch);
+            }
+            _ => panic!("Expected Serve command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_parses_serve_no_watch_and_no_livereload() {
+        let cli =
+            Cli::try_parse_from(["rustkyll", "serve", "--no-watch", "--no-livereload"]).unwrap();
+        match cli.command {
+            Some(Commands::Serve {
+                no_watch,
+                no_livereload,
+                ..
+            }) => {
+                assert!(no_watch);
+                assert!(no_livereload);
+            }
+            _ => panic!("Expected Serve command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_parses_serve_no_watch_with_source() {
+        let cli = Cli::try_parse_from(["rustkyll", "serve", "--no-watch", "--source", "/tmp/site"])
+            .unwrap();
+        match cli.command {
+            Some(Commands::Serve {
+                no_watch, source, ..
+            }) => {
+                assert!(no_watch);
+                assert_eq!(source, PathBuf::from("/tmp/site"));
             }
             _ => panic!("Expected Serve command"),
         }

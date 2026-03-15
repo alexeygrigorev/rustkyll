@@ -106,6 +106,18 @@ pub fn is_in_destination(path: &Path, destination: &Path) -> bool {
     }
 }
 
+/// Check whether a file path is within the source directory.
+///
+/// Uses canonicalization for accurate comparison, falling back to
+/// `starts_with` if canonicalization fails.
+pub fn is_in_source(path: &Path, source: &Path) -> bool {
+    if let (Ok(canon_path), Ok(canon_source)) = (path.canonicalize(), source.canonicalize()) {
+        canon_path.starts_with(&canon_source)
+    } else {
+        path.starts_with(source)
+    }
+}
+
 /// Start a WebSocket server on the given port that sends "reload" messages
 /// to all connected clients when `reload_rx` receives a signal.
 ///
@@ -215,7 +227,9 @@ pub fn start_file_watcher(
                 let relevant: Vec<_> = events
                     .iter()
                     .filter(|e| {
-                        !is_in_destination(&e.path, &destination) && should_watch_file(&e.path)
+                        is_in_source(&e.path, &source)
+                            && !is_in_destination(&e.path, &destination)
+                            && should_watch_file(&e.path)
                     })
                     .collect();
 
@@ -382,5 +396,78 @@ mod tests {
         let source_file = dir.path().join("index.md");
         std::fs::write(&source_file, "test").unwrap();
         assert!(!is_in_destination(&source_file, &dest));
+    }
+
+    // --- Source directory filtering tests ---
+
+    #[test]
+    fn test_is_in_source_file_inside() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("site");
+        std::fs::create_dir_all(&source).unwrap();
+        let file = source.join("post.md");
+        std::fs::write(&file, "test").unwrap();
+        assert!(is_in_source(&file, &source));
+    }
+
+    #[test]
+    fn test_is_in_source_file_outside_project() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("site");
+        std::fs::create_dir_all(&source).unwrap();
+        let file = dir.path().join("Cargo.toml");
+        std::fs::write(&file, "test").unwrap();
+        assert!(!is_in_source(&file, &source));
+    }
+
+    #[test]
+    fn test_is_in_source_file_in_other_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("site");
+        let other = dir.path().join("other");
+        std::fs::create_dir_all(&source).unwrap();
+        std::fs::create_dir_all(&other).unwrap();
+        let file = other.join("file.md");
+        std::fs::write(&file, "test").unwrap();
+        assert!(!is_in_source(&file, &source));
+    }
+
+    #[test]
+    fn test_is_in_source_nested_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("site");
+        let subdir = source.join("_posts");
+        std::fs::create_dir_all(&subdir).unwrap();
+        let file = subdir.join("2024-01-01-hello.md");
+        std::fs::write(&file, "test").unwrap();
+        assert!(is_in_source(&file, &source));
+    }
+
+    #[test]
+    fn test_is_in_source_but_in_destination_both_checks() {
+        // A file inside source's _site subdir should be in_source=true but in_destination=true
+        // This tests that both checks are needed together
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("site");
+        let dest = source.join("_site");
+        std::fs::create_dir_all(&dest).unwrap();
+        let file = dest.join("index.html");
+        std::fs::write(&file, "test").unwrap();
+        assert!(is_in_source(&file, &source)); // it IS in source
+        assert!(is_in_destination(&file, &dest)); // it IS in destination
+                                                  // The watcher should filter it out because is_in_destination is true
+    }
+
+    #[test]
+    fn test_is_in_source_git_dir_inside_source() {
+        // .git inside source should be in_source=true, but should_watch_file=false
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("site");
+        let git_dir = source.join(".git").join("objects");
+        std::fs::create_dir_all(&git_dir).unwrap();
+        let file = git_dir.join("abc123");
+        std::fs::write(&file, "test").unwrap();
+        assert!(is_in_source(&file, &source)); // it IS in source
+        assert!(!should_watch_file(&file)); // but should NOT be watched
     }
 }
