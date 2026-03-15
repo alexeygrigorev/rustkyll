@@ -8,7 +8,7 @@
 //! When stderr is not a TTY, the progress bar falls back to simple line-by-line
 //! output without ANSI escape codes.
 
-use std::io::IsTerminal;
+use std::io::{IsTerminal, Write};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
@@ -42,19 +42,35 @@ impl ProgressReporter {
     }
 
     /// Emit a phase start message (e.g., "Loading config...").
+    ///
+    /// On TTY: prints the message without a trailing newline so the cursor stays
+    /// on the same line, allowing `phase_done()` to overwrite it in place.
+    /// Uses `\r` and ANSI erase-line to cleanly replace any previous in-progress text.
+    /// On non-TTY: no-op; only `phase_done()` prints the final line.
     pub fn phase(&self, message: &str) {
-        if self.quiet {
+        if self.quiet || !self.is_tty {
             return;
         }
-        eprintln!("{}", message);
+        // \r returns to start of line; \x1b[2K erases the entire line
+        eprint!("\r\x1b[2K{}", message);
+        let _ = std::io::stderr().flush();
     }
 
     /// Emit a phase completion message with detail (e.g., "Loading collections... 6 collections, 1543 items").
+    ///
+    /// On TTY: uses carriage return + ANSI erase to overwrite the in-progress message
+    /// from `phase()`, then prints the completed message with a newline.
+    /// On non-TTY: prints the final line once (since `phase()` was a no-op).
     pub fn phase_done(&self, message: &str) {
         if self.quiet {
             return;
         }
-        eprintln!("{}", message);
+        if self.is_tty {
+            // \r returns to start of line; \x1b[2K erases the entire line
+            eprintln!("\r\x1b[2K{}", message);
+        } else {
+            eprintln!("{}", message);
+        }
     }
 
     /// Create a progress bar for rendering pages.
@@ -198,5 +214,66 @@ mod tests {
         let reporter = ProgressReporter::new_with_tty(false, false);
         reporter.phase("Loading config...");
         reporter.phase_done("Loading collections... 5 collections, 100 items");
+    }
+
+    #[test]
+    fn test_tty_mode_phase_and_phase_done() {
+        // Verify the TTY code path executes without panic
+        let reporter = ProgressReporter::new_with_tty(false, true);
+        reporter.phase("Loading...");
+        reporter.phase_done("Loading... 5 items");
+    }
+
+    #[test]
+    fn test_non_tty_mode_phase_is_noop() {
+        // In non-TTY mode, phase() should be a no-op (no output).
+        // phase_done() should print the final message.
+        // We verify the code paths execute without panic.
+        let reporter = ProgressReporter::new_with_tty(false, false);
+        reporter.phase("Loading..."); // should be no-op
+        reporter.phase_done("Loading... 5 items"); // should print once
+    }
+
+    #[test]
+    fn test_phase_done_without_prior_phase() {
+        // Calling phase_done() without phase() first should not panic
+        // in either TTY or non-TTY mode.
+        let tty_reporter = ProgressReporter::new_with_tty(false, true);
+        tty_reporter.phase_done("Loading... 5 items");
+
+        let non_tty_reporter = ProgressReporter::new_with_tty(false, false);
+        non_tty_reporter.phase_done("Loading... 5 items");
+    }
+
+    #[test]
+    fn test_quiet_mode_phase_and_phase_done_suppressed() {
+        // Quiet mode: both phase() and phase_done() should be no-ops
+        let tty_reporter = ProgressReporter::new_with_tty(true, true);
+        tty_reporter.phase("Loading...");
+        tty_reporter.phase_done("Loading... 5 items");
+
+        let non_tty_reporter = ProgressReporter::new_with_tty(true, false);
+        non_tty_reporter.phase("Loading...");
+        non_tty_reporter.phase_done("Loading... 5 items");
+    }
+
+    #[test]
+    fn test_multiple_phases_tty_mode() {
+        // Multiple phase/phase_done cycles should work on TTY
+        let reporter = ProgressReporter::new_with_tty(false, true);
+        reporter.phase("Phase 1...");
+        reporter.phase_done("Phase 1... done");
+        reporter.phase("Phase 2...");
+        reporter.phase_done("Phase 2... done");
+    }
+
+    #[test]
+    fn test_phase_without_phase_done_tty() {
+        // Some phases only call phase() without phase_done().
+        // The next phase() should overwrite cleanly.
+        let reporter = ProgressReporter::new_with_tty(false, true);
+        reporter.phase("Loading config...");
+        reporter.phase("Loading data files...");
+        reporter.phase_done("Loading data files... 6 files");
     }
 }

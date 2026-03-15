@@ -834,3 +834,105 @@ fn test_parallel_collection_loading() {
         assert!(!items.is_empty(), "Collection '{}' should have items", name);
     }
 }
+
+// ============================================================================
+// Progress output duplicate-line tests (Issue 96)
+// ============================================================================
+
+#[test]
+fn test_cli_build_no_duplicate_phase_lines() {
+    if !site_dir().exists() {
+        return;
+    }
+    let source = site_dir();
+    let tmp = tempfile::tempdir().unwrap();
+    let dest = tmp.path().join("_site");
+
+    // When running as a subprocess, stderr is non-TTY, so phase() is a no-op
+    // and phase_done() prints exactly once. This ensures each phase appears
+    // as exactly one line.
+    let output = Command::new(env!("CARGO_BIN_EXE_rustkyll"))
+        .arg("build")
+        .arg("--source")
+        .arg(source.to_str().unwrap())
+        .arg("--destination")
+        .arg(dest.to_str().unwrap())
+        .output()
+        .expect("failed to run rustkyll binary");
+
+    assert!(
+        output.status.success(),
+        "Build should succeed.\nstdout: {}\nstderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    // Phase names that have both phase() and phase_done() calls.
+    // Each should appear exactly ONCE in the output (not twice).
+    let phase_patterns = [
+        "Loading data files...",
+        "Loading collections...",
+        "Copying static files...",
+        "Generating sitemap...",
+        "Generating feed...",
+    ];
+
+    for pattern in &phase_patterns {
+        let count = stderr.matches(pattern).count();
+        assert_eq!(
+            count, 1,
+            "Phase '{}' should appear exactly once in stderr, but appeared {} times.\nFull stderr:\n{}",
+            pattern, count, stderr
+        );
+    }
+}
+
+#[test]
+fn test_cli_build_quiet_no_phase_output() {
+    if !site_dir().exists() {
+        return;
+    }
+    let source = site_dir();
+    let tmp = tempfile::tempdir().unwrap();
+    let dest = tmp.path().join("_site");
+
+    let output = Command::new(env!("CARGO_BIN_EXE_rustkyll"))
+        .arg("build")
+        .arg("--source")
+        .arg(source.to_str().unwrap())
+        .arg("--destination")
+        .arg(dest.to_str().unwrap())
+        .arg("--quiet")
+        .output()
+        .expect("failed to run rustkyll binary");
+
+    assert!(
+        output.status.success(),
+        "Build should succeed.\nstdout: {}\nstderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    // In quiet mode, no phase messages should appear
+    let phase_patterns = [
+        "Loading data files...",
+        "Loading collections...",
+        "Loading config...",
+        "Copying static files...",
+        "Generating sitemap...",
+        "Generating feed...",
+    ];
+
+    for pattern in &phase_patterns {
+        assert!(
+            !stderr.contains(pattern),
+            "Quiet mode should not contain '{}' in stderr.\nFull stderr:\n{}",
+            pattern,
+            stderr
+        );
+    }
+}
