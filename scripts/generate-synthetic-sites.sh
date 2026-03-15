@@ -7,17 +7,19 @@
 #
 # These are deterministic: running twice produces identical output.
 #
-# Usage: scripts/generate-synthetic-sites.sh [--dir WEBSITES_DIR]
+# Usage: scripts/generate-synthetic-sites.sh [--dir WEBSITES_DIR] [--only blog|docs]
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 WEBSITES_DIR="$PROJECT_DIR/websites"
+ONLY=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --dir) WEBSITES_DIR="$2"; shift 2 ;;
+        --only) ONLY="$2"; shift 2 ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
 done
@@ -47,7 +49,7 @@ generate_large_blog() {
     # _config.yml
     cat > "$site_dir/_config.yml" << 'YAML'
 title: Large Blog Benchmark
-description: A synthetic Jekyll blog with 500 posts for benchmarking
+description: A synthetic Jekyll blog with 3000 posts for benchmarking
 url: "https://example.com"
 baseurl: ""
 permalink: /:year/:month/:day/:title/
@@ -206,6 +208,14 @@ This concludes post number ${post_num} in the ${category} category.
 EOF
     done
 
+    # Initialize git repo for benchmark compatibility
+    cd "$site_dir"
+    if [[ ! -d ".git" ]]; then
+        git init -b main
+        git add .
+        git commit -m "Initial commit: large-blog-3000 with 3000 posts"
+    fi
+
     echo "Generated large-blog-3000 with 3000 posts."
 }
 
@@ -232,7 +242,7 @@ generate_large_docs() {
     # _config.yml
     cat > "$site_dir/_config.yml" << 'YAML'
 title: Large Documentation Site
-description: A synthetic documentation site with 300 pages for benchmarking
+description: A synthetic documentation site with 800 pages for benchmarking
 url: "https://docs.example.com"
 baseurl: ""
 defaults:
@@ -372,6 +382,14 @@ EOF
         done
     done
 
+    # Initialize git repo for benchmark compatibility
+    cd "$site_dir"
+    if [[ ! -d ".git" ]]; then
+        git init -b main
+        git add .
+        git commit -m "Initial commit: large-docs-site with $page_num pages"
+    fi
+
     echo "Generated large-docs-site with $page_num pages across ${#sections[@]} sections."
 }
 
@@ -379,7 +397,11 @@ EOF
 # Main
 # =============================================================================
 
-generate_large_blog
-generate_large_docs
+if [[ -z "$ONLY" || "$ONLY" == "blog" ]]; then
+    generate_large_blog
+fi
+if [[ -z "$ONLY" || "$ONLY" == "docs" ]]; then
+    generate_large_docs
+fi
 
 echo "Synthetic site generation complete."
