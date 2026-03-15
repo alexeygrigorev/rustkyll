@@ -88,6 +88,15 @@ Generate the static site from source files:
 rustkyll build --source /path/to/site --destination /path/to/output
 ```
 
+For development, build and run from source:
+
+```
+cargo run --release -- build --source /path/to/site
+cargo run --release -- serve --source /path/to/site
+```
+
+The `--release` flag is important for performance — debug builds are 5-10x slower.
+
 Flags:
 
 - `--source` - path to the Jekyll site directory (default: current directory)
