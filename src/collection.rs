@@ -307,6 +307,39 @@ pub fn extract_date(front_matter: &FrontMatter, filename_date: Option<&str>) -> 
     filename_date.map(|s| s.to_string())
 }
 
+/// Generate a build-time timestamp in Jekyll's default format.
+///
+/// Jekyll assigns `site.time` (the build timestamp) as the default `date`
+/// for collection items that don't have an explicit date in their front matter
+/// or filename.  The format is `YYYY-MM-DD HH:MM:SS +0000`.
+pub fn build_timestamp() -> String {
+    chrono::Utc::now()
+        .format("%Y-%m-%d %H:%M:%S +0000")
+        .to_string()
+}
+
+/// Fill in a default date for collection items that have no date.
+///
+/// Jekyll gives every collection item a `date` -- when no explicit date is
+/// specified in front matter or the filename, it defaults to the build
+/// timestamp (`site.time`).  This function replicates that behaviour so
+/// that template expressions like `{{ page.date }}` produce a value even
+/// for items without an explicit date (e.g. podcast episodes).
+///
+/// The same `build_time` string should be used for every item within a
+/// single build to match Jekyll's semantics.
+pub fn backfill_default_dates(items: &mut [CollectionItem], build_time: &str) {
+    for item in items.iter_mut() {
+        if item.date.is_none() {
+            item.date = Some(build_time.to_string());
+            // Also add to front matter so that `page.date` is available in templates
+            item.front_matter
+                .entry("date".to_string())
+                .or_insert_with(|| serde_yaml::Value::String(build_time.to_string()));
+        }
+    }
+}
+
 /// Returns true if the filename should be skipped (starts with `_`).
 fn should_skip(filename: &str) -> bool {
     filename.starts_with('_')
@@ -2010,5 +2043,125 @@ mod tests {
     #[test]
     fn test_has_front_matter_with_bom() {
         assert!(has_front_matter("\u{feff}---\ntitle: Test\n---\ncontent"));
+    }
+
+    // -- Tests for build_timestamp / backfill_default_dates (issue 104) --
+
+    #[test]
+    fn test_build_timestamp_format() {
+        let ts = build_timestamp();
+        // Must match Jekyll's format: "YYYY-MM-DD HH:MM:SS +0000"
+        assert!(
+            ts.ends_with(" +0000"),
+            "build_timestamp should end with ' +0000', got: {ts}"
+        );
+        // Length: "2026-03-15 12:30:45 +0000" = 25 chars
+        assert_eq!(ts.len(), 25, "Unexpected timestamp length: {ts}");
+        // Verify date portion is valid
+        let date_part = &ts[..10];
+        assert_eq!(
+            date_part.matches('-').count(),
+            2,
+            "Date portion should have 2 dashes: {date_part}"
+        );
+    }
+
+    #[test]
+    fn test_backfill_default_dates_fills_missing() {
+        let mut items = vec![CollectionItem {
+            slug: "test-episode".to_string(),
+            front_matter: FrontMatter::new(),
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            url: "/podcast/test-episode.html".to_string(),
+            date: None,
+            collection_name: "podcast".to_string(),
+            source_path: "test-episode.md".to_string(),
+        }];
+
+        let build_time = "2026-03-15 10:30:00 +0000";
+        backfill_default_dates(&mut items, build_time);
+
+        assert_eq!(items[0].date.as_deref(), Some(build_time));
+        // Also check front matter
+        let fm_date = items[0]
+            .front_matter
+            .get("date")
+            .and_then(|v| v.as_str())
+            .unwrap();
+        assert_eq!(fm_date, build_time);
+    }
+
+    #[test]
+    fn test_backfill_default_dates_preserves_existing() {
+        let mut fm = FrontMatter::new();
+        fm.insert(
+            "date".into(),
+            serde_yaml::Value::String("2024-01-15".to_string()),
+        );
+        let mut items = vec![CollectionItem {
+            slug: "my-post".to_string(),
+            front_matter: fm,
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            url: "/posts/my-post.html".to_string(),
+            date: Some("2024-01-15".to_string()),
+            collection_name: "posts".to_string(),
+            source_path: "2024-01-15-my-post.md".to_string(),
+        }];
+
+        let build_time = "2026-03-15 10:30:00 +0000";
+        backfill_default_dates(&mut items, build_time);
+
+        // Should keep the original date
+        assert_eq!(items[0].date.as_deref(), Some("2024-01-15"));
+        let fm_date = items[0]
+            .front_matter
+            .get("date")
+            .and_then(|v| v.as_str())
+            .unwrap();
+        assert_eq!(fm_date, "2024-01-15");
+    }
+
+    #[test]
+    fn test_backfill_default_dates_mixed_items() {
+        let mut fm_with_date = FrontMatter::new();
+        fm_with_date.insert(
+            "date".into(),
+            serde_yaml::Value::String("2023-06-01".to_string()),
+        );
+
+        let mut items = vec![
+            CollectionItem {
+                slug: "has-date".to_string(),
+                front_matter: fm_with_date,
+                content: String::new(),
+                html_content: String::new(),
+                excerpt: None,
+                url: "/posts/has-date.html".to_string(),
+                date: Some("2023-06-01".to_string()),
+                collection_name: "posts".to_string(),
+                source_path: "has-date.md".to_string(),
+            },
+            CollectionItem {
+                slug: "no-date".to_string(),
+                front_matter: FrontMatter::new(),
+                content: String::new(),
+                html_content: String::new(),
+                excerpt: None,
+                url: "/podcast/no-date.html".to_string(),
+                date: None,
+                collection_name: "podcast".to_string(),
+                source_path: "no-date.md".to_string(),
+            },
+        ];
+
+        let build_time = "2026-03-15 10:30:00 +0000";
+        backfill_default_dates(&mut items, build_time);
+
+        assert_eq!(items[0].date.as_deref(), Some("2023-06-01"));
+        assert_eq!(items[1].date.as_deref(), Some(build_time));
     }
 }

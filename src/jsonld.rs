@@ -272,6 +272,7 @@ fn fm_string_array(fm: &FrontMatter, key: &str) -> Option<Vec<String>> {
 ///
 /// Handles various formats:
 /// - "2020-12-14 00:00:00" -> "2020-12-14T00:00:00+00:00"
+/// - "2020-12-14 00:00:00 +0000" -> "2020-12-14T00:00:00+00:00"
 /// - "2020-12-14" -> "2020-12-14T00:00:00+00:00"
 fn normalize_date(date_str: &str) -> String {
     let trimmed = date_str.trim();
@@ -284,13 +285,35 @@ fn normalize_date(date_str: &str) -> String {
         return trimmed.to_string();
     }
 
-    // Try "YYYY-MM-DD HH:MM:SS" format
-    if let Some((date_part, time_part)) = trimmed.split_once(' ') {
-        return format!("{date_part}T{time_part}+00:00");
+    // Try "YYYY-MM-DD HH:MM:SS [+/-HHMM]" format
+    // Split into at most 3 parts: date, time, optional timezone
+    let parts: Vec<&str> = trimmed.splitn(3, ' ').collect();
+    match parts.len() {
+        3 => {
+            // "YYYY-MM-DD HH:MM:SS +HHMM" -> convert tz from "+HHMM" to "+HH:MM"
+            let date_part = parts[0];
+            let time_part = parts[1];
+            let tz_raw = parts[2].trim();
+            let tz = if tz_raw.len() == 5 && (tz_raw.starts_with('+') || tz_raw.starts_with('-')) {
+                // "+0000" -> "+00:00"
+                format!("{}:{}", &tz_raw[..3], &tz_raw[3..])
+            } else {
+                // Already has colon or unexpected format -- use as-is
+                tz_raw.to_string()
+            };
+            format!("{date_part}T{time_part}{tz}")
+        }
+        2 => {
+            // "YYYY-MM-DD HH:MM:SS" -> append +00:00
+            let date_part = parts[0];
+            let time_part = parts[1];
+            format!("{date_part}T{time_part}+00:00")
+        }
+        _ => {
+            // Just a date: "YYYY-MM-DD"
+            format!("{trimmed}T00:00:00+00:00")
+        }
     }
-
-    // Just a date: "YYYY-MM-DD"
-    format!("{trimmed}T00:00:00+00:00")
 }
 
 #[cfg(test)]
@@ -571,6 +594,26 @@ mod tests {
     }
 
     #[test]
+    fn test_book_jsonld_date_published_with_timezone() {
+        // Build-timestamp-style date with timezone suffix
+        let config = make_config("https://example.com", "Test");
+        let people = vec![];
+        let fm = make_book_fm("Test", &[], None, Some("2026-03-15 10:30:00 +0000"), None);
+
+        let jsonld = generate_book_jsonld(&fm, &config, &people);
+        let parsed: serde_json::Value = serde_json::from_str(&jsonld).unwrap();
+
+        let book = parsed["@graph"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["@type"] == "Book")
+            .unwrap();
+
+        assert_eq!(book["datePublished"], "2026-03-15T10:30:00+00:00");
+    }
+
+    #[test]
     fn test_breadcrumb_has_three_items() {
         let config = make_config("https://example.com", "Test");
         let people = vec![];
@@ -679,6 +722,40 @@ mod tests {
     #[test]
     fn test_normalize_date_empty() {
         assert_eq!(normalize_date(""), "");
+    }
+
+    #[test]
+    fn test_normalize_date_with_time_and_timezone() {
+        // Jekyll build-timestamp format: "YYYY-MM-DD HH:MM:SS +0000"
+        assert_eq!(
+            normalize_date("2026-03-15 10:30:00 +0000"),
+            "2026-03-15T10:30:00+00:00"
+        );
+    }
+
+    #[test]
+    fn test_normalize_date_with_positive_timezone() {
+        assert_eq!(
+            normalize_date("2023-10-11 00:00:00 +0200"),
+            "2023-10-11T00:00:00+02:00"
+        );
+    }
+
+    #[test]
+    fn test_normalize_date_with_negative_timezone() {
+        assert_eq!(
+            normalize_date("2024-06-15 23:30:00 -0500"),
+            "2024-06-15T23:30:00-05:00"
+        );
+    }
+
+    #[test]
+    fn test_normalize_date_iso_passthrough() {
+        // Already ISO format with T -- should pass through
+        assert_eq!(
+            normalize_date("2024-01-15T14:30:00+00:00"),
+            "2024-01-15T14:30:00+00:00"
+        );
     }
 
     #[test]

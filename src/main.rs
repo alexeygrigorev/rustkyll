@@ -295,6 +295,15 @@ fn build_site(
         }
         collections.insert(name, items);
     }
+
+    // Jekyll assigns the build timestamp as the default `date` for collection
+    // items that don't have an explicit date.  Generate once so every item in
+    // this build gets the same value.
+    let build_time = collection::build_timestamp();
+    for items in collections.values_mut() {
+        collection::backfill_default_dates(items, &build_time);
+    }
+
     let total_items: usize = collections.values().map(|v| v.len()).sum();
     progress.phase_done(&format!(
         "Loading collections... {} collections, {} items",
