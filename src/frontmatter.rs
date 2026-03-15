@@ -143,9 +143,14 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // kramdown converts straight quotes to curly quotes by default.
     options.insert(Options::ENABLE_SMART_PUNCTUATION);
 
+    // Escape parenthesis-style ordered list markers (e.g., "1) text") because
+    // kramdown does not support `)` as a list delimiter -- only `.`.
+    // pulldown-cmark (CommonMark) would treat these as ordered lists.
+    let markdown = escape_paren_list_markers(markdown);
+
     // Protect Liquid tags from smart punctuation by replacing quotes inside
     // {% %} and {{ }} patterns with placeholders.
-    let protected = protect_liquid_quotes(markdown);
+    let protected = protect_liquid_quotes(&markdown);
 
     let parser = Parser::new_ext(&protected, options);
     let mut html_output = String::new();
@@ -156,6 +161,74 @@ pub fn markdown_to_html(markdown: &str) -> String {
 
     // Apply kramdown compatibility post-processing
     crate::kramdown::postprocess(&html_output)
+}
+
+/// Escape parenthesis-style ordered list markers to prevent pulldown-cmark
+/// from treating them as ordered lists. Kramdown only uses `.` as a list
+/// delimiter, not `)`, so `1) text` should be treated as a paragraph.
+///
+/// This converts `1) ` at the start of a line to `1\) ` so the backslash
+/// escapes the parenthesis in CommonMark. Only applies outside of code blocks
+/// and HTML blocks.
+fn escape_paren_list_markers(markdown: &str) -> String {
+    let mut result = String::with_capacity(markdown.len());
+    let mut in_code_block = false;
+    let mut in_html_block = false;
+
+    for line in markdown.split('\n') {
+        if !result.is_empty() {
+            result.push('\n');
+        }
+
+        // Track fenced code blocks
+        let trimmed = line.trim_start();
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            in_code_block = !in_code_block;
+            result.push_str(line);
+            continue;
+        }
+
+        if in_code_block {
+            result.push_str(line);
+            continue;
+        }
+
+        // Track HTML blocks (simple heuristic: lines starting with <)
+        if trimmed.starts_with('<') && !trimmed.starts_with("</") {
+            in_html_block = true;
+        }
+        if in_html_block {
+            result.push_str(line);
+            // End HTML block on blank line or closing tag
+            if trimmed.is_empty() {
+                in_html_block = false;
+            }
+            continue;
+        }
+
+        // Check for N) pattern at start of line (with optional leading whitespace)
+        let leading_spaces = line.len() - trimmed.len();
+        if let Some(rest) = trimmed.strip_prefix(|c: char| c.is_ascii_digit()) {
+            // Check for more digits followed by ") "
+            let digits_end = rest
+                .find(|c: char| !c.is_ascii_digit())
+                .unwrap_or(rest.len());
+            let after_digits = &rest[digits_end..];
+            if after_digits.starts_with(") ") || after_digits == ")" {
+                // Escape the closing parenthesis
+                result.push_str(&line[..leading_spaces]);
+                let digit_count = trimmed.len() - rest.len() + digits_end;
+                result.push_str(&trimmed[..digit_count]);
+                result.push_str("\\)");
+                result.push_str(&after_digits[1..]); // skip the original )
+                continue;
+            }
+        }
+
+        result.push_str(line);
+    }
+
+    result
 }
 
 /// Replace double quotes inside Liquid tags with a placeholder to prevent
@@ -1165,6 +1238,74 @@ Each week we have a book author coming.
         assert_eq!(
             doc.front_matter.get("z").and_then(Value::as_str),
             Some("\u{2019}\u{2019}\u{2019}")
+        );
+    }
+
+    // ========================================================================
+    // escape_paren_list_markers tests
+    // ========================================================================
+
+    #[test]
+    fn test_escape_paren_list_markers_basic() {
+        let input = "1) First item\n2) Second item";
+        let result = escape_paren_list_markers(input);
+        assert_eq!(result, "1\\) First item\n2\\) Second item");
+    }
+
+    #[test]
+    fn test_escape_paren_list_markers_dot_style_unaffected() {
+        let input = "1. First item\n2. Second item";
+        let result = escape_paren_list_markers(input);
+        assert_eq!(
+            result, input,
+            "Dot-style list markers should not be escaped"
+        );
+    }
+
+    #[test]
+    fn test_escape_paren_list_markers_inside_code_block() {
+        let input = "```\n1) code line\n```\n1) outside code";
+        let result = escape_paren_list_markers(input);
+        assert!(
+            result.contains("1) code line"),
+            "Should not escape inside code blocks. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("1\\) outside code"),
+            "Should escape outside code blocks. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_escape_paren_list_markers_mid_sentence() {
+        let input = "This has 1) in the middle";
+        let result = escape_paren_list_markers(input);
+        assert_eq!(result, input, "Should not escape when not at start of line");
+    }
+
+    #[test]
+    fn test_escape_paren_list_markers_multi_digit() {
+        let input = "10) Tenth item";
+        let result = escape_paren_list_markers(input);
+        assert_eq!(result, "10\\) Tenth item");
+    }
+
+    #[test]
+    fn test_escape_paren_list_markers_renders_as_paragraph() {
+        // Verify that after escaping, markdown_to_html produces a <p> tag, not <ol>
+        let input = "1) First item";
+        let html = markdown_to_html(input);
+        assert!(
+            !html.contains("<ol>"),
+            "Escaped paren marker should not produce <ol>. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<p>"),
+            "Escaped paren marker should produce <p>. Got: {}",
+            html
         );
     }
 }

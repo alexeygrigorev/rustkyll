@@ -796,7 +796,7 @@ fn get_unique_id(used: &mut HashMap<String, usize>, base: &str) -> String {
 // 3. Fenced code block wrapping (no language tag)
 // ============================================================================
 
-/// Wrap bare `<pre><code>...</code></pre>` blocks in kramdown-style div structure.
+/// Wrap `<pre><code>...</code></pre>` blocks in kramdown-style div structure.
 ///
 /// Fenced code blocks without a language tag are wrapped as:
 /// ```html
@@ -804,34 +804,69 @@ fn get_unique_id(used: &mut HashMap<String, usize>, base: &str) -> String {
 /// ```
 ///
 /// Fenced code blocks WITH a language class (e.g., `<pre><code class="language-python">`)
-/// are left untouched.
+/// are also wrapped with the appropriate language class:
+/// ```html
+/// <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>...</code></pre></div></div>
+/// ```
 fn wrap_fenced_code_blocks(html: &str) -> String {
     let mut result = String::with_capacity(html.len());
     let mut remaining = html;
 
     while !remaining.is_empty() {
-        // Look for <pre><code> (bare, no class on <code>)
-        if let Some(pre_pos) = remaining.find("<pre><code>") {
+        // Look for <pre><code (either bare or with class)
+        if let Some(pre_pos) = remaining.find("<pre><code") {
             // Copy everything before this match
             result.push_str(&remaining[..pre_pos]);
 
-            let after_pre_code = &remaining[pre_pos + 11..]; // skip "<pre><code>"
+            let after_pre = &remaining[pre_pos + 10..]; // skip "<pre><code"
+
+            // Determine if this is bare <code> or <code class="language-xxx">
+            let (lang, after_open_tag) = if let Some(rest) = after_pre.strip_prefix('>') {
+                // Bare <pre><code>
+                ("plaintext".to_string(), rest)
+            } else if let Some(rest) = after_pre.strip_prefix(" class=\"language-") {
+                // <pre><code class="language-xxx">
+                if let Some(quote_end) = rest.find('"') {
+                    let lang = rest[..quote_end].to_string();
+                    let after_quote = &rest[quote_end + 1..];
+                    if let Some(inner) = after_quote.strip_prefix('>') {
+                        (lang, inner)
+                    } else {
+                        // Unexpected format, copy as-is
+                        result.push_str("<pre><code");
+                        remaining = after_pre;
+                        continue;
+                    }
+                } else {
+                    result.push_str("<pre><code");
+                    remaining = after_pre;
+                    continue;
+                }
+            } else {
+                // Some other attribute, copy as-is
+                result.push_str("<pre><code");
+                remaining = after_pre;
+                continue;
+            };
 
             // Find the closing </code></pre>
-            if let Some(close_pos) = after_pre_code.find("</code></pre>") {
-                let code_content = &after_pre_code[..close_pos];
+            if let Some(close_pos) = after_open_tag.find("</code></pre>") {
+                let code_content = &after_open_tag[..close_pos];
                 // Write the kramdown wrapper
-                result.push_str("<div class=\"language-plaintext highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>");
+                result.push_str(&format!(
+                    "<div class=\"language-{} highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>",
+                    lang
+                ));
                 result.push_str(code_content);
                 result.push_str("</code></pre></div></div>");
-                remaining = &after_pre_code[close_pos + 13..]; // skip "</code></pre>"
+                remaining = &after_open_tag[close_pos + 13..]; // skip "</code></pre>"
             } else {
                 // No closing tag found, copy as-is
                 result.push_str("<pre><code>");
-                remaining = after_pre_code;
+                remaining = after_open_tag;
             }
         } else {
-            // No more bare <pre><code> blocks
+            // No more <pre><code blocks
             result.push_str(remaining);
             break;
         }
@@ -1404,17 +1439,17 @@ mod tests {
     }
 
     #[test]
-    fn test_postprocess_fenced_code_not_modified() {
+    fn test_postprocess_fenced_code_wrapped_with_language() {
         let html = "<pre><code class=\"language-python\">print('hi')\n</code></pre>\n";
         let result = postprocess(html);
         assert!(
-            result.contains("class=\"language-python\""),
-            "Fenced code class should not be modified. Got: {}",
+            result.contains("<div class=\"language-python highlighter-rouge\">"),
+            "Language-tagged code should be wrapped with language class. Got: {}",
             result
         );
         assert!(
             !result.contains("language-plaintext"),
-            "Should not add plaintext class to fenced code. Got: {}",
+            "Should not add plaintext class to language-tagged code. Got: {}",
             result
         );
     }
@@ -1607,28 +1642,33 @@ mod tests {
     }
 
     #[test]
-    fn test_fenced_code_wrapping_does_not_affect_language_python() {
+    fn test_fenced_code_wrapping_wraps_language_python() {
         let html = "<pre><code class=\"language-python\">print('hi')\n</code></pre>\n";
         let result = postprocess(html);
         assert!(
-            !result.contains("<div class=\"language-plaintext highlighter-rouge\">"),
-            "Language-tagged code should not get plaintext wrapper. Got: {}",
+            result.contains("<div class=\"language-python highlighter-rouge\">"),
+            "Language-tagged code should get language-specific wrapper. Got: {}",
             result
         );
         assert!(
-            result.contains("class=\"language-python\""),
-            "Language class should be preserved. Got: {}",
+            !result.contains("language-plaintext"),
+            "Should not add plaintext class to language-tagged code. Got: {}",
             result
         );
     }
 
     #[test]
-    fn test_fenced_code_wrapping_does_not_affect_language_bash() {
+    fn test_fenced_code_wrapping_wraps_language_bash() {
         let html = "<pre><code class=\"language-bash\">echo hello\n</code></pre>\n";
         let result = postprocess(html);
         assert!(
-            !result.contains("<div class=\"language-plaintext highlighter-rouge\">"),
-            "Language-tagged code should not get plaintext wrapper. Got: {}",
+            result.contains("<div class=\"language-bash highlighter-rouge\">"),
+            "Language-tagged code should get language-specific wrapper. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("language-plaintext"),
+            "Should not add plaintext class to language-tagged code. Got: {}",
             result
         );
     }
@@ -1651,17 +1691,17 @@ mod tests {
     fn test_fenced_code_wrapping_mixed_bare_and_language() {
         let html = "<pre><code>bare code\n</code></pre>\n<pre><code class=\"language-python\">print('hi')\n</code></pre>\n";
         let result = postprocess(html);
-        let count = result
+        let plaintext_count = result
             .matches("<div class=\"language-plaintext highlighter-rouge\">")
             .count();
         assert_eq!(
-            count, 1,
-            "Only bare block should be wrapped. Got: {}",
+            plaintext_count, 1,
+            "Only bare block should get plaintext wrapper. Got: {}",
             result
         );
         assert!(
-            result.contains("class=\"language-python\""),
-            "Language-tagged block should be unchanged. Got: {}",
+            result.contains("<div class=\"language-python highlighter-rouge\">"),
+            "Language-tagged block should get its own wrapper. Got: {}",
             result
         );
     }
@@ -1715,10 +1755,10 @@ mod tests {
             "Inline code should get class. Got: {}",
             result
         );
-        // Fenced with language: unchanged
+        // Fenced with language: wrapped with language class
         assert!(
-            result.contains("class=\"language-python\""),
-            "Language-tagged block should be unchanged. Got: {}",
+            result.contains("<div class=\"language-python highlighter-rouge\">"),
+            "Language-tagged block should be wrapped with language class. Got: {}",
             result
         );
         // Fenced without language: wrapped

@@ -13,7 +13,7 @@ const pixelmatch: typeof import('pixelmatch').default =
 const JEKYLL_URL = process.env.JEKYLL_URL || 'http://localhost:4100';
 const RUSTKYLL_URL = process.env.RUSTKYLL_URL || 'http://localhost:4101';
 const SCREENSHOT_DIR = process.env.SCREENSHOT_DIR || path.join(__dirname, '..', 'screenshots');
-const DIFF_THRESHOLD = parseFloat(process.env.DIFF_THRESHOLD || '0.05');
+const DIFF_THRESHOLD = parseFloat(process.env.DIFF_THRESHOLD || '0.0');
 const SITE_NAME = process.env.SITE_NAME || 'unknown';
 
 // Page definitions per site
@@ -23,20 +23,35 @@ interface PageDef {
 }
 
 const DTC_PAGES: PageDef[] = [
+  // Listing/index pages (1-11)
   { name: 'homepage', path: '/' },
-  { name: 'blog-post', path: '/blog/segmentation.html' },
-  { name: 'books-listing', path: '/books.html' },
-  { name: 'book-detail', path: '/books/20230529-modeling-mindsets.html' },
-  { name: 'podcast-listing', path: '/podcast.html' },
-  { name: 'podcast-episode', path: '/podcast/machine-learning-decision-optimization.html' },
-  { name: 'events-listing', path: '/events.html' },
-  { name: 'courses', path: '/courses.html' },
-  { name: 'people-listing', path: '/people.html' },
-  { name: 'person-detail', path: '/people/andrewmcmahon.html' },
   { name: 'articles-listing', path: '/articles.html' },
-  { name: 'slack-community', path: '/slack.html' },
+  { name: 'books-listing', path: '/books.html' },
+  { name: 'podcast-listing', path: '/podcast.html' },
+  { name: 'events-listing', path: '/events.html' },
+  { name: 'courses-listing', path: '/courses.html' },
+  { name: 'people-listing', path: '/people.html' },
   { name: 'support', path: '/support.html' },
   { name: 'tools', path: '/tools.html' },
+  { name: 'slack-community', path: '/slack.html' },
+  { name: 'slack-guidelines', path: '/slack/guidelines.html' },
+  // Blog posts (12-14)
+  { name: 'blog-segmentation', path: '/blog/segmentation.html' },
+  { name: 'blog-practical-guide', path: '/blog/practical-guide-better-code.html' },
+  { name: 'blog-data-roles', path: '/blog/data-roles.html' },
+  // Book detail pages (15-16)
+  { name: 'book-ml-bookcamp', path: '/books/20201214-ml-bookcamp.html' },
+  { name: 'book-reinforcement-learning', path: '/books/20210111-reinforcement-learning.html' },
+  // Podcast episode pages (17-18)
+  { name: 'podcast-ab-testing', path: '/podcast/ab-testing-and-product-experimentation.html' },
+  { name: 'podcast-ai-ecology', path: '/podcast/ai-for-ecology-biodiversity-and-conservation.html' },
+  // People detail pages (19-20)
+  { name: 'person-alexeygrigorev', path: '/people/alexeygrigorev.html' },
+  { name: 'person-aaishamuhammad', path: '/people/aaishamuhammad.html' },
+  // Course page (21)
+  { name: 'course-ml-zoomcamp', path: '/courses/2021-winter-ml-zoomcamp.html' },
+  // Conference page (22)
+  { name: 'conference-2021-feb', path: '/conferences/2021-feb.html' },
 ];
 
 const KIDS_PAGES: PageDef[] = [
