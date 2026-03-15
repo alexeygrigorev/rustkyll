@@ -10,6 +10,7 @@ The file watcher in serve mode must only watch files inside the source directory
 
 ## Acceptance criteria
 
+- `--no-watch` flag disables the file watcher entirely (build once and serve, no rebuilds)
 - File watcher only watches the `--source` directory
 - Changes to files outside `--source` do not trigger rebuilds
 - Changes to files inside `--source` (markdown, layouts, includes, data, config) still trigger rebuilds
