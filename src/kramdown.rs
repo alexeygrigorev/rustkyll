@@ -74,6 +74,7 @@ pub fn remove_heading_markers(html: &str) -> String {
 /// 10. Normalize `<figcaption>` closing tag whitespace (D6)
 pub fn postprocess(html: &str) -> String {
     let html = strip_paragraphs_in_html_blocks(html);
+    let html = encode_bare_ampersands(&html);
     let html = add_heading_ids(&html);
     let html = apply_inline_attributes(&html);
     let html = wrap_fenced_code_blocks(&html);
@@ -1382,6 +1383,111 @@ fn normalize_figcaption_whitespace(html: &str) -> String {
     html.replace("\n</figcaption>", "</figcaption>")
 }
 
+/// Encode bare `&` characters that are not part of valid HTML entity references.
+///
+/// D17: pulldown-cmark passes raw HTML blocks through verbatim, so bare `&`
+/// characters (not part of `&name;`, `&#digits;`, or `&#xhex;` references)
+/// survive into the output. Jekyll/kramdown re-encodes these as `&amp;`.
+///
+/// This function finds every `&` and checks whether it begins a valid entity
+/// reference. If not, it replaces the `&` with `&amp;`. Already-encoded
+/// entities like `&amp;` are left untouched, preventing double-encoding.
+fn encode_bare_ampersands(html: &str) -> String {
+    let mut result = String::with_capacity(html.len());
+    let bytes = html.as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
+
+    while i < len {
+        if bytes[i] == b'&' {
+            if is_valid_entity_start(bytes, i, len) {
+                // Part of a valid entity reference -- copy as-is up to and
+                // including the terminating ';'
+                if let Some(semi) = find_entity_end(bytes, i, len) {
+                    result.push_str(&html[i..=semi]);
+                    i = semi + 1;
+                } else {
+                    // Shouldn't happen if is_valid_entity_start is correct,
+                    // but be safe: encode as bare ampersand
+                    result.push_str("&amp;");
+                    i += 1;
+                }
+            } else {
+                result.push_str("&amp;");
+                i += 1;
+            }
+        } else {
+            result.push(html[i..].chars().next().unwrap());
+            i += html[i..].chars().next().unwrap().len_utf8();
+        }
+    }
+
+    result
+}
+
+/// Check whether `&` at position `pos` begins a valid HTML entity reference.
+///
+/// Valid patterns:
+/// - `&#` followed by one or more ASCII digits, then `;`
+/// - `&#x` or `&#X` followed by one or more hex digits, then `;`
+/// - `&` followed by one or more ASCII alphanumeric characters, then `;`
+fn is_valid_entity_start(bytes: &[u8], pos: usize, len: usize) -> bool {
+    if pos + 1 >= len {
+        return false;
+    }
+
+    let next = bytes[pos + 1];
+
+    if next == b'#' {
+        // Numeric character reference
+        if pos + 2 >= len {
+            return false;
+        }
+        let after_hash = bytes[pos + 2];
+        if after_hash == b'x' || after_hash == b'X' {
+            // Hex: &#xHH;
+            let mut j = pos + 3;
+            if j >= len || !bytes[j].is_ascii_hexdigit() {
+                return false;
+            }
+            while j < len && bytes[j].is_ascii_hexdigit() {
+                j += 1;
+            }
+            j < len && bytes[j] == b';'
+        } else if after_hash.is_ascii_digit() {
+            // Decimal: &#DD;
+            let mut j = pos + 2;
+            while j < len && bytes[j].is_ascii_digit() {
+                j += 1;
+            }
+            j < len && bytes[j] == b';'
+        } else {
+            false
+        }
+    } else if next.is_ascii_alphabetic() {
+        // Named entity: &name;
+        let mut j = pos + 1;
+        while j < len && bytes[j].is_ascii_alphanumeric() {
+            j += 1;
+        }
+        j < len && bytes[j] == b';'
+    } else {
+        false
+    }
+}
+
+/// Find the position of the `;` that terminates the entity starting at `pos`.
+fn find_entity_end(bytes: &[u8], pos: usize, len: usize) -> Option<usize> {
+    let mut j = pos + 1;
+    while j < len {
+        if bytes[j] == b';' {
+            return Some(j);
+        }
+        j += 1;
+    }
+    None
+}
+
 // ============================================================================
 // Tests
 // ============================================================================
@@ -2604,5 +2710,147 @@ by <a href="/people/author.html">Author Name</a>
             "Expected no <p> inside <h5> in book output, got: {}",
             html
         );
+    }
+
+    // ========================================================================
+    // D17: encode_bare_ampersands tests
+    // ========================================================================
+
+    #[test]
+    fn test_encode_bare_ampersand_in_text() {
+        let input = "<div>Tom & Jerry</div>";
+        let result = encode_bare_ampersands(input);
+        assert_eq!(result, "<div>Tom &amp; Jerry</div>");
+    }
+
+    #[test]
+    fn test_encode_bare_ampersand_no_double_encoding() {
+        let input = "<div>Tom &amp; Jerry</div>";
+        let result = encode_bare_ampersands(input);
+        assert_eq!(result, "<div>Tom &amp; Jerry</div>");
+    }
+
+    #[test]
+    fn test_encode_bare_ampersand_preserves_named_entities() {
+        let input = "&lt;div&gt; &nbsp; &quot;hello&quot;";
+        let result = encode_bare_ampersands(input);
+        assert_eq!(result, "&lt;div&gt; &nbsp; &quot;hello&quot;");
+    }
+
+    #[test]
+    fn test_encode_bare_ampersand_preserves_numeric_entities() {
+        let input = "&#123; &#x1F600;";
+        let result = encode_bare_ampersands(input);
+        assert_eq!(result, "&#123; &#x1F600;");
+    }
+
+    #[test]
+    fn test_encode_bare_ampersand_in_url_attribute() {
+        let input = r#"<a href="?a=1&b=2">link</a>"#;
+        let result = encode_bare_ampersands(input);
+        assert_eq!(result, r#"<a href="?a=1&amp;b=2">link</a>"#);
+    }
+
+    #[test]
+    fn test_encode_bare_ampersand_multiple() {
+        let input = "A & B & C";
+        let result = encode_bare_ampersands(input);
+        assert_eq!(result, "A &amp; B &amp; C");
+    }
+
+    #[test]
+    fn test_encode_bare_ampersand_at_end_of_string() {
+        let input = "trailing &";
+        let result = encode_bare_ampersands(input);
+        assert_eq!(result, "trailing &amp;");
+    }
+
+    #[test]
+    fn test_encode_bare_ampersand_mixed() {
+        let input = "Tom & Jerry &amp; friends &lt;3";
+        let result = encode_bare_ampersands(input);
+        assert_eq!(result, "Tom &amp; Jerry &amp; friends &lt;3");
+    }
+
+    #[test]
+    fn test_encode_bare_ampersand_no_semicolon() {
+        // &foo without semicolon is a bare ampersand
+        let input = "&foo bar";
+        let result = encode_bare_ampersands(input);
+        assert_eq!(result, "&amp;foo bar");
+    }
+
+    #[test]
+    fn test_encode_bare_ampersand_preserves_hex_entity_case_insensitive() {
+        let input = "&#xAB; &#XCD;";
+        let result = encode_bare_ampersands(input);
+        assert_eq!(result, "&#xAB; &#XCD;");
+    }
+
+    #[test]
+    fn test_encode_bare_ampersand_empty_string() {
+        let result = encode_bare_ampersands("");
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_encode_bare_ampersand_no_ampersands() {
+        let input = "<p>Hello world</p>";
+        let result = encode_bare_ampersands(input);
+        assert_eq!(result, "<p>Hello world</p>");
+    }
+
+    #[test]
+    fn test_encode_bare_ampersand_via_markdown_to_html() {
+        // Raw HTML block with bare & should get encoded via postprocess
+        let input = "<div>Tom & Jerry</div>";
+        let result = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            result.contains("Tom &amp; Jerry"),
+            "Bare & in HTML block should be encoded. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_encode_bare_ampersand_markdown_text() {
+        // In regular markdown text, pulldown-cmark already encodes &
+        let input = "Tom & Jerry";
+        let result = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            result.contains("Tom &amp; Jerry"),
+            "& in markdown text should be encoded. Got: {}",
+            result
+        );
+        // Verify no double-encoding
+        assert!(
+            !result.contains("&amp;amp;"),
+            "Should not double-encode. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_encode_bare_ampersand_already_encoded_markdown() {
+        // Already-encoded entities in HTML block should not be double-encoded
+        let input = "<div>&amp; &lt; &gt;</div>";
+        let result = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            result.contains("&amp;") && !result.contains("&amp;amp;"),
+            "Should not double-encode &amp;. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("&lt;") && !result.contains("&amp;lt;"),
+            "Should not double-encode &lt;. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_encode_bare_ampersand_with_utf8() {
+        let input = "<div>caf\u{00e9} & th\u{00e9}</div>";
+        let result = encode_bare_ampersands(input);
+        assert_eq!(result, "<div>caf\u{00e9} &amp; th\u{00e9}</div>");
     }
 }
