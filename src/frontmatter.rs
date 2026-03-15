@@ -409,9 +409,21 @@ mod tests {
     #[test]
     fn test_md_code_block() {
         let html = markdown_to_html("```\ncode here\n```");
-        assert!(html.contains("<pre>"));
-        assert!(html.contains("<code>"));
-        assert!(html.contains("code here"));
+        assert!(
+            html.contains("<pre"),
+            "Should contain a pre tag. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<code>"),
+            "Should contain a code tag. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("code here"),
+            "Should contain code content. Got: {}",
+            html
+        );
     }
 
     #[test]
