@@ -77,10 +77,11 @@ jobs:
           git clone --depth 1 https://github.com/alexeygrigorev/kids-horror-stories-ru.git \
             websites/alexeygrigorev/kids-horror-stories-ru
 
-      - name: Clone muan-blog (shallow)
+      - name: Clone muan-blog (pinned commit)
         run: |
-          git clone --depth 1 https://github.com/muan/muan.github.com.git \
+          git clone https://github.com/muan/muan.github.com.git \
             websites/muan-blog
+          cd websites/muan-blog && git checkout 074f11b38203d5f356dff2c21332a54694e53864
 
       - name: Clone documentation-theme-jekyll (shallow)
         run: |
