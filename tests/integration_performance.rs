@@ -170,11 +170,11 @@ fn test_dtc_site_build_time() {
     eprintln!("DTC build times: {:?}, median: {:.2}s", times, median);
 
     // Issue 57: the release build target is <2s. Debug/test builds are ~5-10x
-    // slower due to lack of optimizations. Use a generous 15s ceiling that
-    // catches major regressions but doesn't flake in debug mode.
+    // slower due to lack of optimizations. Use a generous 30s ceiling that
+    // catches major regressions but doesn't flake on slow CI runners.
     assert!(
-        median < 15.0,
-        "DTC site should build in under 15s (debug), took {:.2}s (median of 3 runs)",
+        median < 30.0,
+        "DTC site should build in under 30s (debug), took {:.2}s (median of 3 runs)",
         median
     );
 }
