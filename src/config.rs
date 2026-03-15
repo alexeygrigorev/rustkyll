@@ -149,7 +149,7 @@ where
 }
 
 fn default_permalink() -> String {
-    "/:title.html".to_string()
+    "date".to_string()
 }
 
 impl Default for SiteConfig {
@@ -1037,7 +1037,7 @@ sass:
     fn test_null_permalink_defaults_to_default() {
         let yaml = "permalink:\nurl: https://example.com\n";
         let config = SiteConfig::from_yaml_str(yaml).unwrap();
-        assert_eq!(config.permalink, "/:title.html");
+        assert_eq!(config.permalink, "date");
     }
 
     #[test]
@@ -1058,7 +1058,22 @@ repository:
         assert_eq!(config.baseurl, "");
         assert_eq!(config.name, "");
         assert_eq!(config.title, "");
-        assert_eq!(config.permalink, "/:title.html");
+        assert_eq!(config.permalink, "date");
+    }
+
+    #[test]
+    fn test_default_permalink_is_date() {
+        // Jekyll's default permalink is "date" which expands to
+        // /:categories/:year/:month/:day/:title.html
+        let config = SiteConfig::default();
+        assert_eq!(config.permalink, "date");
+    }
+
+    #[test]
+    fn test_explicit_permalink_overrides_default() {
+        let yaml = "permalink: pretty\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.permalink, "pretty");
     }
 
     #[test]

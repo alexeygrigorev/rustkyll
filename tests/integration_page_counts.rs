@@ -128,3 +128,152 @@ fn test_muan_blog_stories_exist() {
         stories_count
     );
 }
+
+// ========================================================================
+// Issue 82: New test sites page count verification
+// ========================================================================
+
+#[test]
+#[ignore]
+fn test_mojombo_blog_page_count() {
+    let tmp = build_site("mojombo-blog");
+    let count = count_html_files(tmp.path());
+    assert_eq!(
+        count, 17,
+        "mojombo-blog: expected 17 HTML files, got {}",
+        count
+    );
+}
+
+#[test]
+#[ignore]
+fn test_mojombo_blog_date_permalinks() {
+    // Verifies the default permalink 'date' generates correct URLs
+    let tmp = build_site("mojombo-blog");
+    let post = tmp.path().join("2008/11/17/blogging-like-a-hacker.html");
+    assert!(
+        post.exists(),
+        "mojombo-blog: post should be at date-based permalink path: {}",
+        post.display()
+    );
+}
+
+#[test]
+#[ignore]
+fn test_just_the_docs_page_count() {
+    let tmp = build_site("just-the-docs");
+    let count = count_html_files(tmp.path());
+    assert_eq!(
+        count, 47,
+        "just-the-docs: expected 47 HTML files, got {}",
+        count
+    );
+}
+
+#[test]
+#[ignore]
+fn test_cayman_theme_page_count() {
+    let tmp = build_site("cayman-theme");
+    let count = count_html_files(tmp.path());
+    assert_eq!(
+        count, 2,
+        "cayman-theme: expected 2 HTML files, got {}",
+        count
+    );
+}
+
+#[test]
+#[ignore]
+fn test_slate_theme_page_count() {
+    let tmp = build_site("slate-theme");
+    let count = count_html_files(tmp.path());
+    assert_eq!(
+        count, 2,
+        "slate-theme: expected 2 HTML files, got {}",
+        count
+    );
+}
+
+#[test]
+#[ignore]
+fn test_leap_day_theme_page_count() {
+    let tmp = build_site("leap-day-theme");
+    let count = count_html_files(tmp.path());
+    assert_eq!(
+        count, 2,
+        "leap-day-theme: expected 2 HTML files, got {}",
+        count
+    );
+}
+
+#[test]
+#[ignore]
+fn test_midnight_theme_page_count() {
+    let tmp = build_site("midnight-theme");
+    let count = count_html_files(tmp.path());
+    assert_eq!(
+        count, 2,
+        "midnight-theme: expected 2 HTML files, got {}",
+        count
+    );
+}
+
+#[test]
+#[ignore]
+fn test_hacker_theme_page_count() {
+    let tmp = build_site("hacker-theme");
+    let count = count_html_files(tmp.path());
+    assert_eq!(
+        count, 2,
+        "hacker-theme: expected 2 HTML files, got {}",
+        count
+    );
+}
+
+#[test]
+#[ignore]
+fn test_architect_theme_page_count() {
+    let tmp = build_site("architect-theme");
+    let count = count_html_files(tmp.path());
+    assert_eq!(
+        count, 2,
+        "architect-theme: expected 2 HTML files, got {}",
+        count
+    );
+}
+
+#[test]
+#[ignore]
+fn test_time_machine_theme_page_count() {
+    let tmp = build_site("time-machine-theme");
+    let count = count_html_files(tmp.path());
+    assert_eq!(
+        count, 2,
+        "time-machine-theme: expected 2 HTML files, got {}",
+        count
+    );
+}
+
+#[test]
+#[ignore]
+fn test_merlot_theme_page_count() {
+    let tmp = build_site("merlot-theme");
+    let count = count_html_files(tmp.path());
+    assert_eq!(
+        count, 2,
+        "merlot-theme: expected 2 HTML files, got {}",
+        count
+    );
+}
+
+#[test]
+#[ignore]
+fn test_dinky_theme_page_count() {
+    let tmp = build_site("dinky-theme");
+    let count = count_html_files(tmp.path());
+    assert_eq!(
+        count, 2,
+        "dinky-theme: expected 2 HTML files, got {}",
+        count
+    );
+}

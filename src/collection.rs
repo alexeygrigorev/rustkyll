@@ -1,5 +1,7 @@
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+use rayon::prelude::*;
 
 use crate::config::SiteConfig;
 use crate::frontmatter::{self, FrontMatter};
@@ -422,18 +424,27 @@ pub fn load_collection(
             .unwrap_or_else(|| "/:collection/:title.html".to_string())
     };
 
-    let mut items = Vec::new();
-    let mut errors = Vec::new();
+    // Phase 1: Collect all file paths (fast, sequential directory walk)
+    let mut file_paths = Vec::new();
+    collect_collection_paths(&dir, &mut file_paths)?;
+    file_paths.sort();
 
-    load_collection_recursive(
-        &dir,
-        &dir,
-        site_dir,
-        collection_name,
-        &permalink_pattern,
-        &mut items,
-        &mut errors,
-    )?;
+    // Phase 2: Process files in parallel (read, parse, convert markdown)
+    let results: Vec<Result<CollectionItem, CollectionError>> = file_paths
+        .par_iter()
+        .filter_map(|path| {
+            process_collection_file(path, &dir, site_dir, collection_name, &permalink_pattern)
+        })
+        .collect();
+
+    let mut items = Vec::with_capacity(results.len());
+    let mut errors = Vec::new();
+    for result in results {
+        match result {
+            Ok(item) => items.push(item),
+            Err(e) => errors.push(e),
+        }
+    }
 
     // Sort collection items by date ascending (oldest first), with slug as
     // tiebreaker. This matches Jekyll's behavior where all collection documents
@@ -458,46 +469,34 @@ pub fn load_collection(
 /// front matter presence.
 const COLLECTION_EXTENSIONS: &[&str] = &[".md", ".html", ".htm", ".xml", ".json", ".txt"];
 
-/// Recursively load collection items from a directory.
+/// Recursively collect all file paths in a collection directory.
 ///
-/// This handles subdirectories within collection directories (e.g., `_pages/redirect/`)
-/// and non-markdown files that have YAML front matter (e.g., `.html`, `.json`).
-#[allow(clippy::only_used_in_recursion)]
-fn load_collection_recursive(
+/// This is the first phase of collection loading: it walks the directory tree
+/// and collects all candidate file paths. The actual file reading and parsing
+/// is done in parallel in the second phase.
+fn collect_collection_paths(
     current_dir: &Path,
-    collection_dir: &Path,
-    site_dir: &Path,
-    collection_name: &str,
-    permalink_pattern: &str,
-    items: &mut Vec<CollectionItem>,
-    errors: &mut Vec<CollectionError>,
+    file_paths: &mut Vec<PathBuf>,
 ) -> Result<(), CollectionError> {
     let entries = fs::read_dir(current_dir).map_err(|e| CollectionError::ReadDir {
         path: current_dir.display().to_string(),
         source: e,
     })?;
 
-    let mut entry_paths: Vec<_> = entries.filter_map(|e| e.ok()).map(|e| e.path()).collect();
-    entry_paths.sort();
-
-    for path in entry_paths {
+    for entry in entries {
+        let entry = match entry {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+        let path = entry.path();
         let filename = match path.file_name().and_then(|n| n.to_str()) {
             Some(name) => name.to_string(),
             None => continue,
         };
 
         if path.is_dir() {
-            // Recurse into subdirectories (skip hidden/underscore dirs)
             if !filename.starts_with('.') && !filename.starts_with('_') {
-                load_collection_recursive(
-                    &path,
-                    collection_dir,
-                    site_dir,
-                    collection_name,
-                    permalink_pattern,
-                    items,
-                    errors,
-                )?;
+                collect_collection_paths(&path, file_paths)?;
             }
             continue;
         }
@@ -510,124 +509,138 @@ fn load_collection_recursive(
             continue;
         }
 
-        // Determine file extension
-        let ext = COLLECTION_EXTENSIONS
+        // Check file extension
+        let has_valid_ext = COLLECTION_EXTENSIONS
             .iter()
-            .copied()
-            .find(|ext| filename.ends_with(ext));
-
-        let ext = match ext {
-            Some(e) => e,
-            None => continue,
-        };
-
-        let is_markdown = ext == ".md";
-
-        let raw = match fs::read_to_string(&path) {
-            Ok(content) => content,
-            Err(e) => {
-                errors.push(CollectionError::ReadFile {
-                    path: path.display().to_string(),
-                    source: e,
-                });
-                continue;
-            }
-        };
-
-        // For non-markdown files, only process if they have front matter
-        if !is_markdown && !has_front_matter(&raw) {
-            continue;
+            .any(|ext| filename.ends_with(ext));
+        if has_valid_ext {
+            file_paths.push(path);
         }
-
-        let doc = match frontmatter::parse_document(&raw) {
-            Ok(doc) => doc,
-            Err(e) => {
-                errors.push(CollectionError::Parse {
-                    path: path.display().to_string(),
-                    source: e,
-                });
-                continue;
-            }
-        };
-
-        // Skip items with `published: false` (matching Jekyll behavior)
-        if is_published_false(&doc.front_matter) {
-            continue;
-        }
-
-        let is_posts = collection_name == "posts";
-        let stem = filename.strip_suffix(ext).unwrap_or(&filename);
-
-        let (filename_date, slug) = if is_posts {
-            let (date, raw_slug) = parse_post_filename(&filename);
-            (date, sanitize_slug(&raw_slug))
-        } else {
-            (None, sanitize_slug(stem))
-        };
-
-        // Use front matter date if available, falling back to filename date
-        let date = extract_date(&doc.front_matter, filename_date.as_deref());
-        let categories = extract_categories(&doc.front_matter);
-
-        let source_path = path
-            .strip_prefix(site_dir)
-            .map(|p| p.to_string_lossy().replace('\\', "/"))
-            .unwrap_or_else(|_| path.to_string_lossy().replace('\\', "/"));
-
-        // Build source path stem (path without extension, without leading _collection/)
-        let source_path_stem = source_path
-            .strip_suffix(ext)
-            .unwrap_or(&source_path)
-            .strip_prefix(&format!("_{}/", collection_name))
-            .unwrap_or(source_path.strip_suffix(ext).unwrap_or(&source_path))
-            .to_string();
-
-        // Use front matter `permalink` if present, otherwise use the pattern
-        let url = doc
-            .front_matter
-            .get("permalink")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| {
-                let ctx = PermalinkContext {
-                    collection: collection_name.to_string(),
-                    title: slug.clone(),
-                    date: date.clone(),
-                    categories: categories.clone(),
-                    source_path_stem: Some(source_path_stem.clone()),
-                };
-                let mut generated = generate_url_with_context(permalink_pattern, &ctx);
-                // For non-markdown files (e.g., .json, .xml), Jekyll uses the
-                // original file extension as the output extension, not .html.
-                // Replace the trailing .html with the source file's extension.
-                if !is_markdown && ext != ".html" && ext != ".htm" {
-                    if let Some(stripped) = generated.strip_suffix(".html") {
-                        generated = format!("{}{}", stripped, ext);
-                    }
-                }
-                generated
-            });
-
-        let html_content = if is_markdown {
-            frontmatter::markdown_to_html(&doc.content)
-        } else {
-            doc.content.clone()
-        };
-
-        items.push(CollectionItem {
-            slug,
-            front_matter: doc.front_matter,
-            content: doc.content,
-            html_content,
-            excerpt: doc.excerpt,
-            url,
-            date,
-            collection_name: collection_name.to_string(),
-            source_path,
-        });
     }
 
     Ok(())
+}
+
+/// Process a single collection file: read, parse, and convert to CollectionItem.
+///
+/// Returns None if the file should be skipped (no front matter for non-markdown,
+/// published: false, etc.). Returns Some(Ok(item)) on success or Some(Err(e)) on error.
+fn process_collection_file(
+    path: &Path,
+    _collection_dir: &Path,
+    site_dir: &Path,
+    collection_name: &str,
+    permalink_pattern: &str,
+) -> Option<Result<CollectionItem, CollectionError>> {
+    let filename = path.file_name()?.to_str()?.to_string();
+
+    let ext = COLLECTION_EXTENSIONS
+        .iter()
+        .copied()
+        .find(|ext| filename.ends_with(ext))?;
+
+    let is_markdown = ext == ".md";
+
+    let raw = match fs::read_to_string(path) {
+        Ok(content) => content,
+        Err(e) => {
+            return Some(Err(CollectionError::ReadFile {
+                path: path.display().to_string(),
+                source: e,
+            }));
+        }
+    };
+
+    // For non-markdown files, only process if they have front matter
+    if !is_markdown && !has_front_matter(&raw) {
+        return None;
+    }
+
+    let doc = match frontmatter::parse_document(&raw) {
+        Ok(doc) => doc,
+        Err(e) => {
+            return Some(Err(CollectionError::Parse {
+                path: path.display().to_string(),
+                source: e,
+            }));
+        }
+    };
+
+    // Skip items with `published: false` (matching Jekyll behavior)
+    if is_published_false(&doc.front_matter) {
+        return None;
+    }
+
+    let is_posts = collection_name == "posts";
+    let stem = filename.strip_suffix(ext).unwrap_or(&filename);
+
+    let (filename_date, slug) = if is_posts {
+        let (date, raw_slug) = parse_post_filename(&filename);
+        (date, sanitize_slug(&raw_slug))
+    } else {
+        (None, sanitize_slug(stem))
+    };
+
+    // Use front matter date if available, falling back to filename date
+    let date = extract_date(&doc.front_matter, filename_date.as_deref());
+    let categories = extract_categories(&doc.front_matter);
+
+    let source_path = path
+        .strip_prefix(site_dir)
+        .map(|p| p.to_string_lossy().replace('\\', "/"))
+        .unwrap_or_else(|_| path.to_string_lossy().replace('\\', "/"));
+
+    // Build source path stem (path without extension, without leading _collection/)
+    let source_path_stem = source_path
+        .strip_suffix(ext)
+        .unwrap_or(&source_path)
+        .strip_prefix(&format!("_{}/", collection_name))
+        .unwrap_or(source_path.strip_suffix(ext).unwrap_or(&source_path))
+        .to_string();
+
+    // Use front matter `permalink` if present, otherwise use the pattern
+    let url = doc
+        .front_matter
+        .get("permalink")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| {
+            let ctx = PermalinkContext {
+                collection: collection_name.to_string(),
+                title: slug.clone(),
+                date: date.clone(),
+                categories: categories.clone(),
+                source_path_stem: Some(source_path_stem.clone()),
+            };
+            let mut generated = generate_url_with_context(permalink_pattern, &ctx);
+            // For non-markdown files (e.g., .json, .xml), Jekyll uses the
+            // original file extension as the output extension, not .html.
+            // Replace the trailing .html with the source file's extension.
+            if !is_markdown && ext != ".html" && ext != ".htm" {
+                if let Some(stripped) = generated.strip_suffix(".html") {
+                    generated = format!("{}{}", stripped, ext);
+                }
+            }
+            generated
+        });
+
+    let html_content = if is_markdown {
+        frontmatter::markdown_to_html(&doc.content)
+    } else {
+        doc.content.clone()
+    };
+
+    Some(Ok(CollectionItem {
+        slug,
+        front_matter: doc.front_matter,
+        content: doc.content,
+        html_content,
+        excerpt: doc.excerpt,
+        url,
+        date,
+        collection_name: collection_name.to_string(),
+        source_path,
+    }))
 }
 
 /// A standalone page (root-level `.md` file, not part of any collection).
@@ -1671,7 +1684,8 @@ mod tests {
 
     #[test]
     fn test_page_url_suffix_default_permalink() {
-        assert_eq!(page_url_suffix("/:title.html"), ".html");
+        // Default permalink is "date" which maps to .html suffix for pages
+        assert_eq!(page_url_suffix("date"), ".html");
     }
 
     // ========================================================================
@@ -1878,8 +1892,8 @@ mod tests {
         assert!(errors.is_empty());
         assert_eq!(pages.len(), 2);
         let sub_page = pages.iter().find(|p| p.slug == "page").unwrap();
-        // Default permalink "/:title.html" ends in .html -> no suffix for pages
-        assert_eq!(sub_page.url, "/subdir/page");
+        // Default permalink "date" -> .html suffix for pages
+        assert_eq!(sub_page.url, "/subdir/page.html");
     }
     #[test]
     fn test_load_pages_skips_underscore_dirs() {

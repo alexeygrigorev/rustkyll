@@ -10,9 +10,9 @@ Jekyll version: jekyll 4.4.1
 
 ## Summary
 
-rustkyll is faster than Jekyll on 21 of 22 dual-success sites. Speedups range from 1.28x (mlwiki.org) to 175x (data-science-interviews). The one exception is government-github where Jekyll is faster (0.69x) due to rustkyll's slower GitHub API-dependent data fetching. For the primary target site (DataTalksClub/datatalksclub.github.io), rustkyll builds in 1.8s vs Jekyll's 19.8s -- an 11x speedup.
+rustkyll is faster than Jekyll on 32 of 33 dual-success sites. Speedups range from 1.28x (mlwiki.org) to 175x (data-science-interviews). The one exception is government-github where Jekyll is faster (0.69x) due to rustkyll's slower GitHub API-dependent data fetching. For the primary target site (DataTalksClub/datatalksclub.github.io), rustkyll builds in 1.8s vs Jekyll's 19.8s -- an 11x speedup.
 
-22 of 32 sites build successfully with both tools (up from 16 in the previous benchmark). The improvement comes from running `bundle install` for sites that had missing Ruby gems: aihero, data-science-interviews, mlbookcamp-page, DataTalksClub/courses, government-github, and opensource-guide.
+33 of 43 sites build successfully with both tools (up from 22 in the previous benchmark). 11 new sites added in issue 82: mojombo-blog (Tom Preston-Werner's blog), just-the-docs, and 9 GitHub Pages theme sites (cayman, slate, leap-day, midnight, hacker, architect, time-machine, merlot, dinky). All 11 new sites produce matching file counts.
 
 ## All Sites -- Speed Benchmark
 
@@ -50,6 +50,17 @@ rustkyll is faster than Jekyll on 21 of 22 dual-success sites. Speedups range fr
 | so-simple-theme | 11 | 1.526 | 0.031 | 49.22x |
 | uswds-site | N/A | FAIL | FAIL | N/A |
 | wtf-html-css | 1 | FAIL | 0.018 | N/A |
+| architect-theme | 2 | 0.894 | 0.016 | 55.88x |
+| cayman-theme | 2 | 0.896 | 0.015 | 59.73x |
+| dinky-theme | 2 | 0.825 | 0.015 | 55.00x |
+| hacker-theme | 2 | 0.896 | 0.020 | 44.80x |
+| just-the-docs | 47 | 2.601 | 0.290 | 8.97x |
+| leap-day-theme | 2 | 0.907 | 0.016 | 56.69x |
+| merlot-theme | 2 | 0.854 | 0.016 | 53.38x |
+| midnight-theme | 2 | 0.906 | 0.016 | 56.63x |
+| mojombo-blog | 17 | 2.189 | 0.064 | 34.20x |
+| slate-theme | 2 | 0.894 | 0.015 | 59.60x |
+| time-machine-theme | 2 | 0.840 | 0.015 | 56.00x |
 
 ## Dual-Success Sites -- Consolidated Comparison
 
@@ -79,6 +90,17 @@ For every site where both Jekyll and rustkyll succeed, the table below shows spe
 | muan-blog | 2218 | 16.421 | 0.393 | 41.78x | 2218/2218 (100%) | 25/51 (49%) | 22 | SKIP |
 | opensource-guide | 390 | 15.746 | 1.595 | 9.87x | NEW | NEW | NEW | NEW |
 | so-simple-theme | 11 | 1.526 | 0.031 | 49.22x | 11/66 (17%) | 11/11 (100%) | 1 | SKIP |
+| architect-theme | 2 | 0.894 | 0.016 | 55.88x | 2/2 (100%) | N/A | 0 | 0.03% |
+| cayman-theme | 2 | 0.896 | 0.015 | 59.73x | 2/2 (100%) | N/A | 0 | 0.03% |
+| dinky-theme | 2 | 0.825 | 0.015 | 55.00x | 2/2 (100%) | N/A | 0 | 0.04% |
+| hacker-theme | 2 | 0.896 | 0.020 | 44.80x | 2/2 (100%) | N/A | 0 | 0.07% |
+| just-the-docs | 47 | 2.601 | 0.290 | 8.97x | 47/47 (100%) | N/A | 0 | 3.84% |
+| leap-day-theme | 2 | 0.907 | 0.016 | 56.69x | 2/2 (100%) | N/A | 0 | 0.42% |
+| merlot-theme | 2 | 0.854 | 0.016 | 53.38x | 2/2 (100%) | N/A | 0 | 0.08% |
+| midnight-theme | 2 | 0.906 | 0.016 | 56.63x | 2/2 (100%) | N/A | 0 | 0.03% |
+| mojombo-blog | 17 | 2.189 | 0.064 | 34.20x | 17/17 (100%) | N/A | 0 | 0.00% |
+| slate-theme | 2 | 0.894 | 0.015 | 59.60x | 2/2 (100%) | N/A | 0 | 0.04% |
+| time-machine-theme | 2 | 0.840 | 0.015 | 56.00x | 2/2 (100%) | N/A | 0 | 0.13% |
 
 **Column definitions:**
 - **File Match**: rustkyll HTML files / Jekyll HTML files. 100% means identical file tree.
@@ -136,6 +158,30 @@ For every site where both Jekyll and rustkyll succeed, the table below shows spe
 
 **opensource-guide** -- 390 pages, 9.87x speedup. Uses custom theme with Primer CSS.
 
+### Issue 82: New test sites (11 sites added)
+
+**mojombo-blog** (Tom Preston-Werner's blog) -- 17/17 files (100%). Homepage: 0.00% pixel diff (pixel-perfect). Blog posts: 3/5 pages at 0.00%, 2 posts have 1.5-3.5% diff due to kramdown loose list `<p>` wrapping difference.
+
+**just-the-docs** -- 47/47 files (100%). Visual diffs 3-5% due to sidebar navigation using JavaScript-driven table of contents that differs between builds.
+
+**cayman-theme** -- 2/2 files (100%). Another-page: 0.00% (pixel-perfect). Homepage: 0.03% diff in syntax-highlighted code blocks only.
+
+**slate-theme** -- 2/2 files (100%). Another-page: 0.00%. Homepage: 0.04% (code block syntax highlighting).
+
+**leap-day-theme** -- 2/2 files (100%). Another-page: 0.00%. Homepage: 0.42% (sidebar TOC + code blocks).
+
+**midnight-theme** -- 2/2 files (100%). Another-page: 0.00%. Homepage: 0.03% (code blocks).
+
+**hacker-theme** -- 2/2 files (100%). Another-page: 0.00%. Homepage: 0.07% (code blocks).
+
+**architect-theme** -- 2/2 files (100%). Another-page: 0.00%. Homepage: 0.03% (code blocks).
+
+**time-machine-theme** -- 2/2 files (100%). Another-page: 0.00%. Homepage: 0.13% (code blocks).
+
+**merlot-theme** -- 2/2 files (100%). Another-page: 0.00%. Homepage: 0.08% (code blocks).
+
+**dinky-theme** -- 2/2 files (100%). Another-page: 0.00%. Homepage: 0.04% (code blocks).
+
 ## Visual Comparison Details
 
 Visual comparisons were performed by serving both outputs over HTTP and taking full-page Chromium screenshots via Playwright. Pages with >0% diff have root causes noted below.
@@ -147,12 +193,31 @@ Visual comparisons were performed by serving both outputs over HTTP and taking f
 - DataTalksClub/datatalksclub.github.io: blog-post (0.00%), courses (0.00%), people (0.00%)
 - little-book-of-metals-ru: homepage (0.00%)
 - mlwiki.org: homepage (0.00%)
+- mojombo-blog: homepage (0.00%), blogging-like-a-hacker (0.00%), git-parable (0.00%)
+- cayman-theme: another-page (0.00%)
+- slate-theme: another-page (0.00%)
+- leap-day-theme: another-page (0.00%)
+- midnight-theme: another-page (0.00%)
+- hacker-theme: another-page (0.00%)
+- architect-theme: another-page (0.00%)
+- time-machine-theme: another-page (0.00%)
+- merlot-theme: another-page (0.00%)
+- dinky-theme: another-page (0.00%)
 
 ### Pages with <1% diff (near-perfect)
 
 - kids-horror-stories-ru: homepage (0.85%), story-orchid (0.03%), story-silkworm (0.03%)
 - snippets: homepage (0.04%)
 - large-blog-3000: homepage (0.10%)
+- cayman-theme: homepage (0.03%)
+- slate-theme: homepage (0.04%)
+- midnight-theme: homepage (0.03%)
+- architect-theme: homepage (0.03%)
+- dinky-theme: homepage (0.04%)
+- hacker-theme: homepage (0.07%)
+- merlot-theme: homepage (0.08%)
+- time-machine-theme: homepage (0.13%)
+- leap-day-theme: homepage (0.42%)
 
 ### Pages with 1-5% diff (minor differences)
 
@@ -181,7 +246,7 @@ Diff images are saved under `playwright/screenshots/` organized by site name.
 
 ## Compatibility Summary
 
-- Sites that build with both tools: 22 of 32
+- Sites that build with both tools: 33 of 43
 - Sites that build only with rustkyll: 7 (missing Jekyll gems, incompatible plugins, or Ruby version mismatch)
 - Sites that build only with Jekyll: 0
 - Sites that fail with both tools: 3 (bitcoin-org, edition-template, uswds-site)

@@ -61,12 +61,44 @@ const KIDS_PAGES: PageDef[] = [
   { name: 'story-toy', path: '/stories/003-childhood-toy/' },
 ];
 
+const MOJOMBO_PAGES: PageDef[] = [
+  { name: 'homepage', path: '/' },
+  { name: 'post-blogging-hacker', path: '/2008/11/17/blogging-like-a-hacker.html' },
+  { name: 'post-git-parable', path: '/2009/05/19/the-git-parable.html' },
+  { name: 'post-readme-driven', path: '/2010/08/23/readme-driven-development.html' },
+  { name: 'post-open-source', path: '/2011/11/22/open-source-everything.html' },
+];
+
+const JUST_THE_DOCS_PAGES: PageDef[] = [
+  { name: 'homepage', path: '/' },
+  { name: 'configuration', path: '/docs/configuration/' },
+  { name: 'customization', path: '/docs/customization/' },
+  { name: 'navigation', path: '/docs/navigation/' },
+  { name: 'search', path: '/docs/search/' },
+];
+
+// GitHub Pages theme sites all have the same structure: index + another-page
+const GITHUB_THEME_PAGES: PageDef[] = [
+  { name: 'homepage', path: '/' },
+  { name: 'another-page', path: '/another-page.html' },
+];
+
 function getPagesForSite(siteName: string): PageDef[] {
   if (siteName.includes('datatalksclub')) {
     return DTC_PAGES;
   }
   if (siteName.includes('kids-horror')) {
     return KIDS_PAGES;
+  }
+  if (siteName.includes('mojombo')) {
+    return MOJOMBO_PAGES;
+  }
+  if (siteName.includes('just-the-docs')) {
+    return JUST_THE_DOCS_PAGES;
+  }
+  // GitHub Pages theme sites
+  if (siteName.match(/cayman|slate|leap-day|midnight|hacker|architect|time-machine|merlot|dinky/)) {
+    return GITHUB_THEME_PAGES;
   }
   // Fallback: just test homepage
   return [{ name: 'homepage', path: '/' }];
