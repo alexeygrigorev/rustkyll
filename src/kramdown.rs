@@ -6,20 +6,378 @@
 
 use std::collections::HashMap;
 
+/// Mark existing HTML headings with a data attribute so that `add_heading_ids`
+/// will skip them. This should be called on content BEFORE markdown conversion
+/// when the content contains a mix of raw HTML (from includes) and markdown.
+///
+/// D1: Headings from `{% include %}` output should NOT get auto-generated `id`
+/// attributes. Only headings from markdown content should get IDs.
+///
+/// The marker is a `data-raw-html` attribute which makes `add_heading_ids`
+/// see the tag as non-simple (it has attributes) and skip it.
+pub fn mark_existing_html_headings(content: &str) -> String {
+    let mut result = String::with_capacity(content.len());
+    let mut remaining = content;
+
+    while !remaining.is_empty() {
+        // Find next '<h'
+        if let Some(pos) = remaining.find("<h") {
+            // Copy everything before the match
+            result.push_str(&remaining[..pos]);
+            let after = &remaining[pos..];
+
+            // Check if this is a bare <hN> tag (e.g., <h1>, <h2>)
+            if after.len() >= 4 {
+                let level = after.as_bytes()[2];
+                let next = after.as_bytes()[3];
+                if level.is_ascii_digit() && (1..=6).contains(&(level - b'0')) && next == b'>' {
+                    // Found bare <hN> -- add marker
+                    result.push_str(&after[..3]);
+                    result.push_str(" data-raw-html>");
+                    remaining = &after[4..];
+                    continue;
+                }
+            }
+            // Not a bare heading tag -- copy the '<' and continue
+            result.push('<');
+            remaining = &after[1..];
+        } else {
+            // No more '<h' patterns
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    result
+}
+
+/// Remove the `data-raw-html` marker attribute from headings.
+///
+/// Called after kramdown postprocessing to clean up the markers.
+pub fn remove_heading_markers(html: &str) -> String {
+    html.replace(" data-raw-html", "")
+}
+
 /// Apply all kramdown compatibility transformations to HTML output.
 ///
 /// This is the main entry point. It applies, in order:
-/// 1. Auto-generated heading IDs
-/// 2. Inline attribute lists (`{:target="_blank"}`, `{:.class}`, `{:#id}`)
-/// 3. Fenced code block wrapping (no language tag)
-/// 4. Inline code classes (`language-plaintext highlighter-rouge`)
-/// 5. Paragraph spacing (extra newlines after block elements)
+/// 1. Strip unwanted `<p>` tags inside HTML block elements
+/// 2. Auto-generated heading IDs
+/// 3. Inline attribute lists (`{:target="_blank"}`, `{:.class}`, `{:#id}`)
+/// 4. Fenced code block wrapping (no language tag)
+/// 5. Inline code classes (`language-plaintext highlighter-rouge`)
+/// 6. Paragraph spacing (extra newlines after block elements)
+/// 7. Remove `start` attribute from `<ol>` tags (D11)
+/// 8. Remove self-closing slash from void elements (D3)
+/// 9. Normalize boolean HTML attributes (D2, D12)
+/// 10. Normalize `<figcaption>` closing tag whitespace (D6)
 pub fn postprocess(html: &str) -> String {
-    let html = add_heading_ids(html);
+    let html = strip_paragraphs_in_html_blocks(html);
+    let html = add_heading_ids(&html);
     let html = apply_inline_attributes(&html);
     let html = wrap_fenced_code_blocks(&html);
     let html = add_inline_code_classes(&html);
-    add_block_spacing(&html)
+    let html = add_block_spacing(&html);
+    let html = remove_ol_start_attribute(&html);
+    let html = normalize_void_elements(&html);
+    let html = normalize_boolean_attributes(&html);
+    normalize_figcaption_whitespace(&html)
+}
+
+// ============================================================================
+// 0. Strip unwanted <p> tags inside HTML block elements
+// ============================================================================
+
+/// HTML block-level element tag names where pulldown-cmark may incorrectly
+/// wrap inline content in `<p>` tags. kramdown does not do this.
+const BLOCK_PARENT_TAGS: &[&str] = &[
+    "li",
+    "div",
+    "td",
+    "th",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "section",
+    "article",
+    "header",
+    "footer",
+    "nav",
+    "aside",
+    "figure",
+    "figcaption",
+    "details",
+    "summary",
+    "form",
+    "fieldset",
+    "dd",
+    "dt",
+];
+
+/// Strip unwanted `<p>` tags that pulldown-cmark inserts inside HTML block elements.
+///
+/// When Liquid produces HTML like `<li><a href="...">Title</a> text</li>`,
+/// pulldown-cmark wraps the inline content in `<p>` tags:
+/// `<li><p><a href="...">Title</a> text</p></li>`.
+///
+/// kramdown does not do this -- it leaves inline content inside HTML block
+/// elements as-is. This function removes those auto-generated `<p>` wrappers
+/// while preserving intentional `<p>` tags in markdown content.
+///
+/// The algorithm: for each block parent element, check if it contains only
+/// `<p>` wrappers around inline content (no nested block elements). If so,
+/// strip the `<p>`/`</p>` tags.
+fn strip_paragraphs_in_html_blocks(html: &str) -> String {
+    let mut result = html.to_string();
+
+    for &tag in BLOCK_PARENT_TAGS {
+        result = strip_p_in_tag(&result, tag);
+    }
+
+    result
+}
+
+/// Strip `<p>` tags inside all instances of `<tag ...>...</tag>` in the HTML.
+///
+/// Only strips when the block element's content consists entirely of inline
+/// content wrapped in `<p>` tags (no nested block elements).
+fn strip_p_in_tag(html: &str, tag: &str) -> String {
+    let open_pattern = format!("<{}", tag);
+    let close_pattern = format!("</{}>", tag);
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+
+    while !remaining.is_empty() {
+        // Find the next opening tag
+        let open_pos = match remaining.find(&open_pattern) {
+            Some(pos) => {
+                // Verify it's actually the tag (not e.g. <listing> when we search <li>)
+                let after = &remaining[pos + open_pattern.len()..];
+                if after.starts_with('>') || after.starts_with(' ') || after.starts_with('/') {
+                    pos
+                } else {
+                    // Not our tag, skip past this match
+                    result.push_str(&remaining[..pos + open_pattern.len()]);
+                    remaining = &remaining[pos + open_pattern.len()..];
+                    continue;
+                }
+            }
+            None => {
+                result.push_str(remaining);
+                break;
+            }
+        };
+
+        // Copy everything before the tag
+        result.push_str(&remaining[..open_pos]);
+        remaining = &remaining[open_pos..];
+
+        // Find the closing `>` of the opening tag
+        let gt_pos = match remaining.find('>') {
+            Some(pos) => pos,
+            None => {
+                result.push_str(remaining);
+                break;
+            }
+        };
+
+        let opening_tag = &remaining[..=gt_pos];
+
+        // Find the matching closing tag (handle nesting)
+        let inner_start = gt_pos + 1;
+        let inner = &remaining[inner_start..];
+
+        if let Some(close_offset) = find_matching_close(inner, tag) {
+            let inner_content = &inner[..close_offset];
+            let after_close = &inner[close_offset + close_pattern.len()..];
+
+            // Decide whether to strip <p> tags from the inner content
+            let processed_inner = maybe_strip_p_tags(inner_content);
+
+            result.push_str(opening_tag);
+            result.push_str(&processed_inner);
+            result.push_str(&close_pattern);
+            remaining = after_close;
+        } else {
+            // No matching close tag found -- output opening tag and continue
+            result.push_str(opening_tag);
+            remaining = &remaining[gt_pos + 1..];
+        }
+    }
+
+    result
+}
+
+/// Find the position of the matching closing tag, handling nesting.
+/// Returns the byte offset within `inner` where the closing tag starts.
+fn find_matching_close(inner: &str, tag: &str) -> Option<usize> {
+    let open_pattern = format!("<{}", tag);
+    let close_pattern = format!("</{}>", tag);
+    let mut depth = 0usize;
+    let mut search_pos = 0;
+
+    while search_pos < inner.len() {
+        let next_open = inner[search_pos..].find(&open_pattern).map(|p| {
+            let abs = search_pos + p;
+            // Verify it's actually our tag
+            let after = &inner[abs + open_pattern.len()..];
+            if after.starts_with('>') || after.starts_with(' ') || after.starts_with('/') {
+                Some(abs)
+            } else {
+                None
+            }
+        });
+        let next_open = next_open.flatten();
+
+        let next_close = inner[search_pos..]
+            .find(&close_pattern)
+            .map(|p| search_pos + p);
+
+        match (next_open, next_close) {
+            (Some(o), Some(c)) if o < c => {
+                // Nested open tag
+                depth += 1;
+                search_pos = o + open_pattern.len();
+            }
+            (_, Some(c)) => {
+                if depth == 0 {
+                    return Some(c);
+                }
+                depth -= 1;
+                search_pos = c + close_pattern.len();
+            }
+            (Some(o), None) => {
+                // Open without close -- malformed, give up
+                search_pos = o + open_pattern.len();
+            }
+            (None, None) => {
+                return None;
+            }
+        }
+    }
+    None
+}
+
+/// Check if the inner content of a block element should have `<p>` tags stripped.
+///
+/// We strip `<p>` tags when:
+/// 1. The content contains `<p>` tags
+/// 2. The content does NOT contain nested block-level elements (other than `<p>`)
+/// 3. The `<p>` content is only inline elements/text
+///
+/// We do NOT strip `<p>` tags that appear to be intentionally authored (e.g.,
+/// `<div><p class="intro">...</p></div>` -- the `<p>` has attributes).
+fn maybe_strip_p_tags(inner: &str) -> String {
+    // If there are no <p> tags, nothing to do
+    if !inner.contains("<p>") {
+        return inner.to_string();
+    }
+
+    // Check if the content has any block-level children OTHER than <p>
+    // If it does, we should be more careful -- but still strip <p> tags
+    // that wrap only inline content.
+    //
+    // The approach: replace each `<p>` ... `</p>` pair with just its content,
+    // but only if the <p> has no attributes (auto-generated ones don't) and
+    // the content between <p> and </p> is only inline content.
+    let mut result = String::with_capacity(inner.len());
+    let mut remaining = inner;
+
+    while !remaining.is_empty() {
+        if let Some(p_pos) = remaining.find("<p>") {
+            // Check that this is a bare <p> (no attributes -- auto-generated)
+            let before_p = &remaining[..p_pos];
+            result.push_str(before_p);
+
+            let after_p_open = &remaining[p_pos + 3..]; // skip "<p>"
+
+            if let Some(close_p_pos) = find_close_p(after_p_open) {
+                let p_content = &after_p_open[..close_p_pos];
+
+                // Only strip if the <p> content contains no block-level elements
+                if !contains_block_elements(p_content) {
+                    // Strip the <p>...</p> wrapper, keep content
+                    result.push_str(p_content);
+                    remaining = &after_p_open[close_p_pos + 4..]; // skip "</p>"
+                } else {
+                    // Keep the <p> tag as-is
+                    result.push_str("<p>");
+                    remaining = after_p_open;
+                }
+            } else {
+                // No closing </p> found -- keep as-is
+                result.push_str("<p>");
+                remaining = after_p_open;
+            }
+        } else {
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    result
+}
+
+/// Find the position of the matching `</p>` tag, handling nested `<p>` tags.
+fn find_close_p(content: &str) -> Option<usize> {
+    let mut depth = 0usize;
+    let mut pos = 0;
+
+    while pos < content.len() {
+        if content[pos..].starts_with("<p>") || content[pos..].starts_with("<p ") {
+            depth += 1;
+            pos += 3;
+        } else if content[pos..].starts_with("</p>") {
+            if depth == 0 {
+                return Some(pos);
+            }
+            depth -= 1;
+            pos += 4;
+        } else {
+            pos += content[pos..].chars().next().map_or(1, |c| c.len_utf8());
+        }
+    }
+    None
+}
+
+/// Check if HTML content contains any block-level elements.
+///
+/// Used to determine if `<p>` content is truly inline (safe to strip wrapper)
+/// or contains block-level structure (keep wrapper).
+fn contains_block_elements(content: &str) -> bool {
+    let block_tags = [
+        "<div",
+        "<section",
+        "<article",
+        "<header",
+        "<footer",
+        "<nav",
+        "<aside",
+        "<ul",
+        "<ol",
+        "<table",
+        "<blockquote",
+        "<pre",
+        "<figure",
+        "<form",
+        "<fieldset",
+        "<details",
+        "<dl",
+    ];
+
+    for tag in &block_tags {
+        if let Some(pos) = content.find(tag) {
+            // Verify it's actually a tag (not text like "a <division of labor")
+            let after = &content[pos + tag.len()..];
+            if after.starts_with('>') || after.starts_with(' ') || after.starts_with('/') {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 // ============================================================================
@@ -609,6 +967,184 @@ fn add_block_spacing(html: &str) -> String {
 }
 
 // ============================================================================
+// 7. Remove `start` attribute from `<ol>` tags (D11)
+// ============================================================================
+
+/// Remove `start="N"` attributes from `<ol>` tags.
+///
+/// pulldown-cmark adds `start="N"` to ordered lists that don't start at 1.
+/// kramdown never adds this attribute. This normalizes the output to match.
+fn remove_ol_start_attribute(html: &str) -> String {
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+
+    while let Some(pos) = remaining.find("<ol ") {
+        result.push_str(&remaining[..pos]);
+        let after = &remaining[pos..];
+
+        if let Some(gt_pos) = after.find('>') {
+            let tag = &after[..gt_pos + 1];
+            // Remove start="N" attribute
+            if tag.contains("start=\"") {
+                let cleaned = remove_attribute(tag, "start");
+                result.push_str(&cleaned);
+            } else {
+                result.push_str(tag);
+            }
+            remaining = &after[gt_pos + 1..];
+        } else {
+            result.push_str(after);
+            return result;
+        }
+    }
+    result.push_str(remaining);
+    result
+}
+
+/// Remove a specific attribute from an HTML tag string.
+fn remove_attribute(tag: &str, attr_name: &str) -> String {
+    let pattern = format!(" {attr_name}=\"");
+    if let Some(start) = tag.find(&pattern) {
+        let after_eq = start + pattern.len();
+        if let Some(end_quote) = tag[after_eq..].find('"') {
+            let end = after_eq + end_quote + 1;
+            let mut result = tag[..start].to_string();
+            result.push_str(&tag[end..]);
+            // Clean up double spaces
+            result = result.replace("  ", " ");
+            // Clean up space before >
+            result = result.replace(" >", ">");
+            return result;
+        }
+    }
+    tag.to_string()
+}
+
+// ============================================================================
+// 8. Normalize void elements (D3)
+// ============================================================================
+
+/// Remove self-closing slash from void HTML elements.
+///
+/// pulldown-cmark produces `<br />`, `<hr />`, `<input ... />` etc.
+/// kramdown produces `<br>`, `<hr>`, `<input ...>`.
+fn normalize_void_elements(html: &str) -> String {
+    let mut result = html.to_string();
+    // Handle self-closing void elements: replace " />" with ">"
+    // Only for void elements that should not have a closing slash
+    let void_elements = [
+        "br", "hr", "img", "input", "meta", "link", "col", "area", "base", "embed", "source",
+        "track", "wbr",
+    ];
+    for tag in &void_elements {
+        // Replace patterns like <br /> or <br/> or <input ... />
+        let pattern_space = format!("<{} />", tag);
+        let replacement_space = format!("<{}>", tag);
+        result = result.replace(&pattern_space, &replacement_space);
+
+        let pattern_no_space = format!("<{}/>", tag);
+        let replacement_no_space = format!("<{}>", tag);
+        result = result.replace(&pattern_no_space, &replacement_no_space);
+    }
+
+    // Handle void elements with attributes: `<input type="text" />`
+    // We need a more targeted approach for these
+    result = normalize_self_closing_with_attrs(&result);
+
+    result
+}
+
+/// Normalize self-closing tags with attributes (e.g., `<input type="text" />`).
+fn normalize_self_closing_with_attrs(html: &str) -> String {
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+
+    while let Some(pos) = remaining.find(" />") {
+        // Check if this is inside a void element tag
+        let before = &remaining[..pos];
+        if let Some(tag_start) = before.rfind('<') {
+            let tag_content = &before[tag_start + 1..];
+            let tag_name = tag_content
+                .split(|c: char| c.is_whitespace())
+                .next()
+                .unwrap_or("");
+            let void_elements = [
+                "br", "hr", "img", "input", "meta", "link", "col", "area", "base", "embed",
+                "source", "track", "wbr",
+            ];
+            if void_elements.contains(&tag_name) {
+                result.push_str(&remaining[..pos]);
+                result.push('>');
+                remaining = &remaining[pos + 3..];
+                continue;
+            }
+        }
+        result.push_str(&remaining[..pos + 3]);
+        remaining = &remaining[pos + 3..];
+    }
+    result.push_str(remaining);
+    result
+}
+
+// ============================================================================
+// 9. Normalize boolean HTML attributes (D2, D12)
+// ============================================================================
+
+/// Normalize boolean HTML attributes by removing empty string values.
+///
+/// pulldown-cmark produces `required=""`, `novalidate=""`, `itemscope=""`.
+/// kramdown produces `required`, `novalidate`, `itemscope`.
+fn normalize_boolean_attributes(html: &str) -> String {
+    let boolean_attrs = [
+        "required",
+        "novalidate",
+        "itemscope",
+        "checked",
+        "disabled",
+        "readonly",
+        "multiple",
+        "autofocus",
+        "autoplay",
+        "controls",
+        "loop",
+        "muted",
+        "selected",
+        "hidden",
+        "async",
+        "defer",
+        "formnovalidate",
+        "open",
+        "allowfullscreen",
+    ];
+
+    let mut result = html.to_string();
+    for attr in &boolean_attrs {
+        let pattern = format!("{attr}=\"\"");
+        result = result.replace(&pattern, attr);
+    }
+    result
+}
+
+// ============================================================================
+// 10. Normalize figcaption whitespace (D6)
+// ============================================================================
+
+/// Normalize figcaption closing tag to be on the same line as content.
+///
+/// pulldown-cmark produces:
+/// ```html
+/// <figcaption>text
+/// </figcaption>
+/// ```
+/// kramdown produces:
+/// ```html
+/// <figcaption>text</figcaption>
+/// ```
+fn normalize_figcaption_whitespace(html: &str) -> String {
+    html.replace("\n</figcaption>", "</figcaption>")
+}
+
+// ============================================================================
 // Tests
 // ============================================================================
 
@@ -1188,6 +1724,296 @@ mod tests {
             wrapper_count, 1,
             "Only one block should be wrapped. Got: {}",
             result
+        );
+    }
+
+    // ======================================================================
+    // Paragraph stripping inside HTML block elements (issue 92)
+    // ======================================================================
+
+    #[test]
+    fn test_strip_p_in_li_single_line() {
+        let html = "<li class=\"podcast\"><p><a href=\"url\">Title</a> on date by <a href=\"/people/name.html\">Name</a></p></li>";
+        let result = strip_paragraphs_in_html_blocks(html);
+        assert!(
+            !result.contains("<p>"),
+            "Should strip <p> inside <li>. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<li class=\"podcast\"><a href=\"url\">Title</a> on date by <a href=\"/people/name.html\">Name</a></li>"),
+            "Content should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_strip_p_in_li_multiline() {
+        let html = "<li class=\"podcast\">\n<p><a href=\"url\">Title</a>\non date\nby</p>\n<p><a href=\"/people/name.html\">Name</a></p>\n</li>";
+        let result = strip_paragraphs_in_html_blocks(html);
+        assert!(
+            !result.contains("<p>"),
+            "Should strip all <p> tags inside <li>. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<a href=\"url\">Title</a>"),
+            "Links should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_strip_p_in_div() {
+        let html =
+            "<div class=\"book-authors\"><h5><p>by <a href=\"/people/x.html\">Author</a></p></h5></div>";
+        let result = strip_paragraphs_in_html_blocks(html);
+        assert!(
+            !result.contains("<p>"),
+            "Should strip <p> inside <h5> inside <div>. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_strip_p_in_td() {
+        let html = "<td><p>some content with <a href=\"url\">link</a></p></td>";
+        let result = strip_paragraphs_in_html_blocks(html);
+        assert!(
+            !result.contains("<p>"),
+            "Should strip <p> inside <td>. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<td>some content with <a href=\"url\">link</a></td>"),
+            "Content should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_strip_p_in_nested_ul_li() {
+        let html = "<ul><li><p><a href=\"url\">Link</a> text</p></li><li><p>Other</p></li></ul>";
+        let result = strip_paragraphs_in_html_blocks(html);
+        assert!(
+            !result.contains("<p>"),
+            "Should strip <p> in all <li> elements. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_strip_p_in_section_with_nested_div() {
+        let html =
+            "<section><h2><p>Title</p></h2><div><p>Content with <a>link</a></p></div></section>";
+        let result = strip_paragraphs_in_html_blocks(html);
+        assert!(
+            !result.contains("<p>"),
+            "Should strip <p> in nested elements. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_strip_p_preserves_markdown_paragraphs() {
+        // Standalone <p> tags (not inside block elements) should be preserved
+        let html = "<p>First paragraph.</p>\n\n<p>Second paragraph.</p>\n";
+        let result = strip_paragraphs_in_html_blocks(html);
+        assert_eq!(
+            result.matches("<p>").count(),
+            2,
+            "Standalone <p> tags should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_strip_p_preserves_p_with_block_content() {
+        // <p> that contains block-level elements should NOT be stripped
+        let html = "<div><p><div>nested block</div></p></div>";
+        let result = strip_paragraphs_in_html_blocks(html);
+        assert!(
+            result.contains("<p><div>nested block</div></p>"),
+            "<p> with block content should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_strip_p_empty_elements() {
+        let html = "<li></li>";
+        let result = strip_paragraphs_in_html_blocks(html);
+        assert_eq!(result, "<li></li>", "Empty elements should be unchanged");
+    }
+
+    #[test]
+    fn test_strip_p_whitespace_only() {
+        let html = "<li>  </li>";
+        let result = strip_paragraphs_in_html_blocks(html);
+        assert_eq!(
+            result, "<li>  </li>",
+            "Whitespace-only elements should be unchanged"
+        );
+    }
+
+    #[test]
+    fn test_strip_p_preserves_p_with_attributes() {
+        // <p class="..."> is intentionally authored, not auto-generated
+        let html = "<div><p class=\"intro\">Intentional paragraph</p></div>";
+        let result = strip_paragraphs_in_html_blocks(html);
+        assert!(
+            result.contains("<p class=\"intro\">"),
+            "Attributed <p> tags should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_strip_p_mixed_content() {
+        // Markdown paragraphs before/after a div with p-stripped content
+        let html = "<p>Markdown paragraph</p>\n<div><p>inline content</p></div>\n<p>Another paragraph</p>\n";
+        let result = strip_paragraphs_in_html_blocks(html);
+        // The <p> inside <div> should be stripped
+        assert!(
+            result.contains("<div>inline content</div>"),
+            "Should strip <p> inside <div>. Got: {}",
+            result
+        );
+        // But standalone paragraphs should remain
+        assert!(
+            result.contains("<p>Markdown paragraph</p>"),
+            "Standalone <p> should remain. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<p>Another paragraph</p>"),
+            "Standalone <p> should remain. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_strip_p_in_nested_divs() {
+        let html = "<div><div><p>nested content</p></div></div>";
+        let result = strip_paragraphs_in_html_blocks(html);
+        assert!(
+            !result.contains("<p>"),
+            "Should strip <p> in nested divs. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_strip_p_via_markdown_to_html_li() {
+        // Test the full pipeline through markdown_to_html
+        let input = "<li class=\"podcast\">\n<a href=\"url\">Title</a>\non date\nby\n<a href=\"/people/name.html\">Name</a>\n</li>";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<li class=\"podcast\">\n<p>"),
+            "Should not have <p> inside <li> after full pipeline. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_strip_p_via_markdown_to_html_div() {
+        let input = "<div class=\"info\"><h5>by <a href=\"/people/x.html\">Author</a></h5></div>";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<h5><p>") && !html.contains("<h5>\n<p>"),
+            "Should not have <p> inside <h5>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_strip_p_via_markdown_to_html_td() {
+        let input = "<td>some content with <a href=\"url\">link</a></td>";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<td><p>") && !html.contains("<td>\n<p>"),
+            "Should not have <p> inside <td>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_strip_p_preserves_legit_markdown_paragraphs() {
+        let input = "Hello world\n\nSecond paragraph";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert_eq!(
+            html.matches("<p>").count(),
+            2,
+            "Should have two <p> tags for two markdown paragraphs. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_strip_p_heading_then_paragraph() {
+        let input = "# Heading\n\nParagraph text";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<p>Paragraph text</p>"),
+            "Paragraph after heading should still have <p>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_strip_p_mixed_markdown_and_html_blocks() {
+        let input = "Markdown paragraph\n\n<div>inline</div>\n\nAnother paragraph";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<p>Markdown paragraph</p>"),
+            "First paragraph should have <p>. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<p>Another paragraph</p>"),
+            "Second paragraph should have <p>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_strip_p_events_page_pattern() {
+        // Simulates the events.md pattern after Liquid processing
+        let input = r#"<ul>
+<li class="podcast">
+<a href="https://example.com/event" target="_blank">Event Title</a>
+on 16 Mar 2026
+by
+<a href="/people/name.html">Speaker Name</a>
+</li>
+<li class="workshop">
+<a href="https://example.com/workshop" target="_blank">Workshop Title</a>
+on 20 Mar 2026
+</li>
+</ul>"#;
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<li class=\"podcast\">\n<p>"),
+            "Should not wrap event content in <p>. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains("<li class=\"workshop\">\n<p>"),
+            "Should not wrap workshop content in <p>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_strip_p_books_page_pattern() {
+        let input = r#"<div class="book-authors"><h5>by <a href="/people/author.html">Author Name</a></h5></div>"#;
+        let html = crate::frontmatter::markdown_to_html(input);
+        // The <h5> content should not be wrapped in <p>
+        let has_p_in_h5 = html.contains("<h5><p>") || html.contains("<h5>\n<p>");
+        assert!(
+            !has_p_in_h5,
+            "Should not wrap h5 content in <p>. Got: {}",
+            html
         );
     }
 }
