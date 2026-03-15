@@ -55,3 +55,18 @@ All tests should use `std::process::Command` to run the built binary, set up a t
 ### Integration: non-TTY no ANSI codes
 - Run build with stderr captured (which is inherently non-TTY)
 - Assert stderr does not contain \x1b[ sequences
+
+## Log
+
+### [SWE] 2026-03-15
+- Created `tests/integration_progress_output.rs` with 5 subprocess-based integration tests
+- Tests use `std::process::Command` with `env!("CARGO_BIN_EXE_rustkyll")` and temp directories
+- Key finding: in non-TTY mode, only `phase_done()` messages appear (not `phase()`), so tests check for "Loading data files", "Loading collections", etc. instead of "Loading config" (which only has a `phase()` call)
+- Tests:
+  1. `progress_stderr_contains_phase_messages_in_normal_mode` -- verifies phase_done messages on stderr
+  2. `progress_stderr_empty_in_quiet_mode` -- verifies --quiet suppresses all stderr
+  3. `progress_stdout_does_not_contain_phase_indicators` -- verifies stdout has only summary
+  4. `progress_count_matches_known_page_count` -- creates 3 posts + 2 pages, verifies "Total pages: 5"
+  5. `progress_non_tty_no_ansi_escape_codes` -- verifies no \x1b[ or \r in piped stderr
+- Build: 5 tests pass, 0 fail, clippy clean, fmt clean
+- Files created: tests/integration_progress_output.rs
