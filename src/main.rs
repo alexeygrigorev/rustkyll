@@ -123,6 +123,10 @@ struct BuildOptions {
     force: bool,
     /// Whether to suppress all progress output.
     quiet: bool,
+    /// Pre-determined changed file paths (relative to source) for serve-mode
+    /// incremental rebuilds. When `Some`, skips manifest-based change detection
+    /// and uses these paths directly.
+    changed_paths: Option<Vec<String>>,
 }
 
 /// Per-phase timing information for build profiling.
@@ -314,16 +318,28 @@ fn build_site(
     let all_source_paths = collect_all_source_paths(&collections, &pages);
     let current_sources = incremental::collect_source_files(source, &all_source_paths);
 
-    let do_incremental = options.incremental && !options.force;
-    let action = if do_incremental {
-        match incremental::load_manifest(destination) {
-            Some(prev_manifest) => {
-                incremental::determine_action(&prev_manifest, &current_globals, &current_sources)
-            }
-            None => IncrementalAction::FullRebuild, // no manifest = first build
+    // If the caller already determined which files changed (serve mode),
+    // skip the manifest-based detection and use those paths directly.
+    let action = if let Some(ref paths) = options.changed_paths {
+        if paths.is_empty() {
+            IncrementalAction::SkipAll
+        } else {
+            IncrementalAction::RebuildPartial(paths.clone())
         }
     } else {
-        IncrementalAction::FullRebuild
+        let do_incremental = options.incremental && !options.force;
+        if do_incremental {
+            match incremental::load_manifest(destination) {
+                Some(prev_manifest) => incremental::determine_action(
+                    &prev_manifest,
+                    &current_globals,
+                    &current_sources,
+                ),
+                None => IncrementalAction::FullRebuild, // no manifest = first build
+            }
+        } else {
+            IncrementalAction::FullRebuild
+        }
     };
     summary.timing.incremental = phase_start.elapsed();
 
@@ -718,6 +734,7 @@ fn main() {
                 incremental,
                 force,
                 quiet,
+                changed_paths: None,
             };
 
             match build_site(&source, &destination, &options) {
@@ -802,6 +819,7 @@ fn main() {
                 incremental: false,
                 force: false,
                 quiet,
+                changed_paths: None,
             };
             match build_site(&source, &destination, &options) {
                 Ok(summary) if !quiet => {
@@ -840,11 +858,20 @@ fn main() {
                 let watcher_handle = std::thread::spawn(move || {
                     let src = source_clone.clone();
                     let dst = destination_clone.clone();
-                    let build_fn = Box::new(move || {
-                        let opts = BuildOptions {
-                            incremental: false,
-                            force: false,
-                            quiet,
+                    let build_fn = Box::new(move |scope: rustkyll::livereload::RebuildScope| {
+                        let opts = match &scope {
+                            rustkyll::livereload::RebuildScope::Full => BuildOptions {
+                                incremental: false,
+                                force: false,
+                                quiet,
+                                changed_paths: None,
+                            },
+                            rustkyll::livereload::RebuildScope::Partial(paths) => BuildOptions {
+                                incremental: true,
+                                force: false,
+                                quiet,
+                                changed_paths: Some(paths.clone()),
+                            },
                         };
                         build_site(&src, &dst, &opts)
                             .map(|_| ())
@@ -1293,6 +1320,7 @@ mod tests {
             incremental: false,
             force: false,
             quiet: false,
+            changed_paths: None,
         };
 
         // Build using the absolute path (equivalent to passing "." while CWD = site_root)
@@ -1329,6 +1357,7 @@ mod tests {
             incremental: false,
             force: false,
             quiet: false,
+            changed_paths: None,
         };
 
         let result = build_site(empty_dir, &dest, &options);
@@ -1419,6 +1448,7 @@ mod tests {
             incremental: false,
             force: false,
             quiet: true,
+            changed_paths: None,
         };
 
         let result = build_site(site_root, &dest, &options);

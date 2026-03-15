@@ -1,6 +1,7 @@
 //! Live reload support: script injection, WebSocket server, and file watching.
 
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 /// The live-reload script template. The `{}` placeholder is replaced with
 /// the WebSocket URL.
@@ -118,6 +119,107 @@ pub fn is_in_source(path: &Path, source: &Path) -> bool {
     }
 }
 
+/// The kind of file that changed, used to determine rebuild scope.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FileChangeKind {
+    /// Config file (_config.yml) changed -- requires full rebuild.
+    Config,
+    /// Layout file (_layouts/*) changed -- requires full rebuild.
+    Layout,
+    /// Include file (_includes/*) changed -- requires full rebuild.
+    Include,
+    /// Data file (_data/*) changed -- requires full rebuild (data affects many pages).
+    Data,
+    /// Content file (post, page, collection item) changed -- can do partial rebuild.
+    Content,
+    /// Static asset (css, js, image, etc.) that just needs copying.
+    StaticAsset,
+}
+
+/// What scope of rebuild the watcher requests.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RebuildScope {
+    /// Full site rebuild (config, layout, include, or data changed).
+    Full,
+    /// Only rebuild specific content files (relative paths from source).
+    Partial(Vec<String>),
+}
+
+/// Classify a changed file path relative to the source directory.
+///
+/// The `rel_path` should be the path relative to the source root (using forward slashes).
+pub fn classify_changed_file(rel_path: &str) -> FileChangeKind {
+    if rel_path == "_config.yml" || rel_path == "_config.yaml" {
+        FileChangeKind::Config
+    } else if rel_path.starts_with("_layouts/") || rel_path.starts_with("_layouts\\") {
+        FileChangeKind::Layout
+    } else if rel_path.starts_with("_includes/") || rel_path.starts_with("_includes\\") {
+        FileChangeKind::Include
+    } else if rel_path.starts_with("_data/") || rel_path.starts_with("_data\\") {
+        FileChangeKind::Data
+    } else {
+        // Check if it's a static asset (no front matter expected) or content
+        let is_content_ext = rel_path.ends_with(".md")
+            || rel_path.ends_with(".html")
+            || rel_path.ends_with(".htm")
+            || rel_path.ends_with(".markdown");
+        if is_content_ext {
+            FileChangeKind::Content
+        } else {
+            FileChangeKind::StaticAsset
+        }
+    }
+}
+
+/// Analyze a set of changed file paths and determine the rebuild scope.
+///
+/// If any file is config, layout, include, or data, returns `RebuildScope::Full`.
+/// Otherwise returns `RebuildScope::Partial` with the relative paths of changed content files.
+/// Static asset changes also trigger a full rebuild (they need to be re-copied and the
+/// current architecture doesn't support partial static file copy).
+pub fn determine_rebuild_scope(source: &Path, changed_paths: &[PathBuf]) -> RebuildScope {
+    let mut content_paths = Vec::new();
+    let mut needs_full = false;
+
+    for path in changed_paths {
+        let rel = match path.strip_prefix(source) {
+            Ok(r) => r.to_string_lossy().replace('\\', "/"),
+            Err(_) => {
+                // If we can't make it relative, try canonical
+                if let (Ok(canon_path), Ok(canon_source)) =
+                    (path.canonicalize(), source.canonicalize())
+                {
+                    match canon_path.strip_prefix(&canon_source) {
+                        Ok(r) => r.to_string_lossy().replace('\\', "/"),
+                        Err(_) => continue,
+                    }
+                } else {
+                    continue;
+                }
+            }
+        };
+
+        match classify_changed_file(&rel) {
+            FileChangeKind::Config
+            | FileChangeKind::Layout
+            | FileChangeKind::Include
+            | FileChangeKind::Data
+            | FileChangeKind::StaticAsset => {
+                needs_full = true;
+            }
+            FileChangeKind::Content => {
+                content_paths.push(rel);
+            }
+        }
+    }
+
+    if needs_full || content_paths.is_empty() {
+        RebuildScope::Full
+    } else {
+        RebuildScope::Partial(content_paths)
+    }
+}
+
 /// Start a WebSocket server on the given port that sends "reload" messages
 /// to all connected clients when `reload_rx` receives a signal.
 ///
@@ -198,12 +300,15 @@ pub fn start_websocket_server(
 /// and sending reload signals.
 ///
 /// This function blocks and should be run in a dedicated thread.
+///
+/// The `build_fn` receives a `RebuildScope` indicating whether a full or
+/// partial rebuild is needed, along with the list of changed relative paths.
 pub fn start_file_watcher(
     source: PathBuf,
     destination: PathBuf,
     reload_tx: std::sync::mpsc::Sender<()>,
     shutdown: std::sync::Arc<std::sync::atomic::AtomicBool>,
-    build_fn: Box<dyn Fn() -> Result<(), String> + Send>,
+    build_fn: Box<dyn Fn(RebuildScope) -> Result<(), String> + Send>,
 ) -> Result<(), String> {
     use notify_debouncer_mini::new_debouncer;
     use std::time::Duration;
@@ -224,23 +329,43 @@ pub fn start_file_watcher(
         match rx.recv_timeout(Duration::from_millis(200)) {
             Ok(Ok(events)) => {
                 // Filter events: ignore destination dir and non-content files
-                let relevant: Vec<_> = events
+                let relevant_paths: Vec<PathBuf> = events
                     .iter()
                     .filter(|e| {
                         is_in_source(&e.path, &source)
                             && !is_in_destination(&e.path, &destination)
                             && should_watch_file(&e.path)
                     })
+                    .map(|e| e.path.clone())
                     .collect();
 
-                if relevant.is_empty() {
+                if relevant_paths.is_empty() {
                     continue;
                 }
 
-                println!("File change detected, rebuilding...");
-                match build_fn() {
+                let scope = determine_rebuild_scope(&source, &relevant_paths);
+
+                let start = Instant::now();
+                match &scope {
+                    RebuildScope::Full => {
+                        println!("File change detected, full rebuild...");
+                    }
+                    RebuildScope::Partial(paths) => {
+                        println!(
+                            "File change detected, incremental rebuild ({} file{})...",
+                            paths.len(),
+                            if paths.len() == 1 { "" } else { "s" }
+                        );
+                        for p in paths {
+                            println!("  changed: {}", p);
+                        }
+                    }
+                }
+
+                match build_fn(scope) {
                     Ok(()) => {
-                        println!("Rebuild complete.");
+                        let elapsed = start.elapsed();
+                        println!("Rebuild complete in {:.0}ms.", elapsed.as_millis());
                         let _ = reload_tx.send(());
                     }
                     Err(e) => {
@@ -469,5 +594,236 @@ mod tests {
         std::fs::write(&file, "test").unwrap();
         assert!(is_in_source(&file, &source)); // it IS in source
         assert!(!should_watch_file(&file)); // but should NOT be watched
+    }
+
+    // --- File change classification tests ---
+
+    #[test]
+    fn test_classify_config_yml() {
+        assert_eq!(classify_changed_file("_config.yml"), FileChangeKind::Config);
+    }
+
+    #[test]
+    fn test_classify_config_yaml() {
+        assert_eq!(
+            classify_changed_file("_config.yaml"),
+            FileChangeKind::Config
+        );
+    }
+
+    #[test]
+    fn test_classify_layout_file() {
+        assert_eq!(
+            classify_changed_file("_layouts/default.html"),
+            FileChangeKind::Layout
+        );
+    }
+
+    #[test]
+    fn test_classify_layout_nested() {
+        assert_eq!(
+            classify_changed_file("_layouts/post.html"),
+            FileChangeKind::Layout
+        );
+    }
+
+    #[test]
+    fn test_classify_include_file() {
+        assert_eq!(
+            classify_changed_file("_includes/header.html"),
+            FileChangeKind::Include
+        );
+    }
+
+    #[test]
+    fn test_classify_data_file() {
+        assert_eq!(
+            classify_changed_file("_data/people.yml"),
+            FileChangeKind::Data
+        );
+    }
+
+    #[test]
+    fn test_classify_data_nested() {
+        assert_eq!(
+            classify_changed_file("_data/events/2024.yml"),
+            FileChangeKind::Data
+        );
+    }
+
+    #[test]
+    fn test_classify_content_markdown() {
+        assert_eq!(
+            classify_changed_file("_posts/2024-01-01-hello.md"),
+            FileChangeKind::Content
+        );
+    }
+
+    #[test]
+    fn test_classify_content_html() {
+        assert_eq!(classify_changed_file("about.html"), FileChangeKind::Content);
+    }
+
+    #[test]
+    fn test_classify_content_markdown_ext() {
+        assert_eq!(
+            classify_changed_file("_posts/test.markdown"),
+            FileChangeKind::Content
+        );
+    }
+
+    #[test]
+    fn test_classify_static_css() {
+        assert_eq!(
+            classify_changed_file("assets/style.css"),
+            FileChangeKind::StaticAsset
+        );
+    }
+
+    #[test]
+    fn test_classify_static_js() {
+        assert_eq!(
+            classify_changed_file("assets/script.js"),
+            FileChangeKind::StaticAsset
+        );
+    }
+
+    #[test]
+    fn test_classify_static_image() {
+        assert_eq!(
+            classify_changed_file("images/photo.png"),
+            FileChangeKind::StaticAsset
+        );
+    }
+
+    // --- Rebuild scope determination tests ---
+
+    #[test]
+    fn test_scope_content_only_is_partial() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path();
+        // Create the files so strip_prefix works
+        let posts_dir = source.join("_posts");
+        std::fs::create_dir_all(&posts_dir).unwrap();
+        let f1 = posts_dir.join("hello.md");
+        std::fs::write(&f1, "test").unwrap();
+
+        let changed = vec![f1];
+        let scope = determine_rebuild_scope(source, &changed);
+        assert_eq!(
+            scope,
+            RebuildScope::Partial(vec!["_posts/hello.md".to_string()])
+        );
+    }
+
+    #[test]
+    fn test_scope_config_change_is_full() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path();
+        let config = source.join("_config.yml");
+        std::fs::write(&config, "title: test").unwrap();
+
+        let changed = vec![config];
+        let scope = determine_rebuild_scope(source, &changed);
+        assert_eq!(scope, RebuildScope::Full);
+    }
+
+    #[test]
+    fn test_scope_layout_change_is_full() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path();
+        let layouts_dir = source.join("_layouts");
+        std::fs::create_dir_all(&layouts_dir).unwrap();
+        let layout = layouts_dir.join("default.html");
+        std::fs::write(&layout, "<html></html>").unwrap();
+
+        let changed = vec![layout];
+        let scope = determine_rebuild_scope(source, &changed);
+        assert_eq!(scope, RebuildScope::Full);
+    }
+
+    #[test]
+    fn test_scope_include_change_is_full() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path();
+        let includes_dir = source.join("_includes");
+        std::fs::create_dir_all(&includes_dir).unwrap();
+        let include = includes_dir.join("header.html");
+        std::fs::write(&include, "<header></header>").unwrap();
+
+        let changed = vec![include];
+        let scope = determine_rebuild_scope(source, &changed);
+        assert_eq!(scope, RebuildScope::Full);
+    }
+
+    #[test]
+    fn test_scope_data_change_is_full() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path();
+        let data_dir = source.join("_data");
+        std::fs::create_dir_all(&data_dir).unwrap();
+        let data_file = data_dir.join("people.yml");
+        std::fs::write(&data_file, "- name: Alice").unwrap();
+
+        let changed = vec![data_file];
+        let scope = determine_rebuild_scope(source, &changed);
+        assert_eq!(scope, RebuildScope::Full);
+    }
+
+    #[test]
+    fn test_scope_mixed_content_and_layout_is_full() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path();
+        let posts_dir = source.join("_posts");
+        std::fs::create_dir_all(&posts_dir).unwrap();
+        let layouts_dir = source.join("_layouts");
+        std::fs::create_dir_all(&layouts_dir).unwrap();
+
+        let post = posts_dir.join("hello.md");
+        std::fs::write(&post, "test").unwrap();
+        let layout = layouts_dir.join("post.html");
+        std::fs::write(&layout, "<html></html>").unwrap();
+
+        let changed = vec![post, layout];
+        let scope = determine_rebuild_scope(source, &changed);
+        assert_eq!(scope, RebuildScope::Full);
+    }
+
+    #[test]
+    fn test_scope_multiple_content_files_is_partial() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path();
+        let posts_dir = source.join("_posts");
+        std::fs::create_dir_all(&posts_dir).unwrap();
+
+        let f1 = posts_dir.join("a.md");
+        let f2 = posts_dir.join("b.md");
+        std::fs::write(&f1, "test a").unwrap();
+        std::fs::write(&f2, "test b").unwrap();
+
+        let changed = vec![f1, f2];
+        let scope = determine_rebuild_scope(source, &changed);
+        match scope {
+            RebuildScope::Partial(paths) => {
+                assert_eq!(paths.len(), 2);
+                assert!(paths.contains(&"_posts/a.md".to_string()));
+                assert!(paths.contains(&"_posts/b.md".to_string()));
+            }
+            other => panic!("Expected Partial, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_scope_static_asset_is_full() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path();
+        let assets_dir = source.join("assets");
+        std::fs::create_dir_all(&assets_dir).unwrap();
+        let css = assets_dir.join("style.css");
+        std::fs::write(&css, "body{}").unwrap();
+
+        let changed = vec![css];
+        let scope = determine_rebuild_scope(source, &changed);
+        assert_eq!(scope, RebuildScope::Full);
     }
 }
