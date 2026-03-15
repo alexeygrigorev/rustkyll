@@ -139,16 +139,36 @@ impl Renderable for SeoRenderable {
         let site_author = get_nested_str(runtime, &["site", "author"]);
 
         // 1. Title
-        let title = match (&page_title, &site_title) {
-            (Some(pt), Some(st)) => Some(format!("{} - {}", pt, st)),
-            (Some(pt), None) => Some(pt.clone()),
-            (None, Some(st)) => Some(st.clone()),
-            (None, None) => None,
+        // Match Jekyll's jekyll-seo-tag behavior:
+        // - Use &ndash; (en-dash) as separator, not hyphen
+        // - Don't append site title if page title already contains it
+        let (title, title_html) = match (&page_title, &site_title) {
+            (Some(pt), Some(st)) => {
+                if pt.contains(st.as_str()) {
+                    // Page title already contains site title, don't append
+                    let escaped = html_escape(pt);
+                    (Some(pt.clone()), Some(escaped))
+                } else {
+                    let raw = format!("{} \u{2013} {}", pt, st);
+                    // Build HTML with &ndash; entity (escape parts separately)
+                    let escaped = format!("{} &ndash; {}", html_escape(pt), html_escape(st));
+                    (Some(raw), Some(escaped))
+                }
+            }
+            (Some(pt), None) => {
+                let escaped = html_escape(pt);
+                (Some(pt.clone()), Some(escaped))
+            }
+            (None, Some(st)) => {
+                let escaped = html_escape(st);
+                (Some(st.clone()), Some(escaped))
+            }
+            (None, None) => (None, None),
         };
 
         if !self.suppress_title {
-            if let Some(ref t) = title {
-                output.push_str(&format!("<title>{}</title>\n", html_escape(t)));
+            if let Some(ref t) = title_html {
+                output.push_str(&format!("<title>{}</title>\n", t));
             }
         }
 
@@ -188,10 +208,10 @@ impl Renderable for SeoRenderable {
         }
 
         // 4-10. Open Graph tags
-        if let Some(ref t) = title {
+        if let Some(ref t) = title_html {
             output.push_str(&format!(
                 "<meta property=\"og:title\" content=\"{}\" />\n",
-                html_escape(t)
+                t
             ));
         }
 
@@ -454,7 +474,29 @@ mod tests {
             None,
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
-        assert!(out.contains("<title>My Page - My Site</title>"));
+        assert!(out.contains("<title>My Page &ndash; My Site</title>"));
+    }
+
+    #[test]
+    fn test_title_page_contains_site_title() {
+        // When page title already contains the site title, don't append it
+        // This matches Jekyll's jekyll-seo-tag behavior
+        let eng = engine();
+        let ctx = make_context(
+            Some("Welcome to My Site"),
+            Some("My Site"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(out.contains("<title>Welcome to My Site</title>"));
+        assert!(!out.contains("&ndash;"));
     }
 
     #[test]
@@ -615,7 +657,7 @@ mod tests {
             None,
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
-        assert!(out.contains("<meta property=\"og:title\" content=\"My Page - My Site\" />"));
+        assert!(out.contains("<meta property=\"og:title\" content=\"My Page &ndash; My Site\" />"));
     }
 
     #[test]
@@ -959,7 +1001,7 @@ mod tests {
             Some("mysite"),
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
-        assert!(out.contains("<title>My Page - My Site</title>"));
+        assert!(out.contains("<title>My Page &ndash; My Site</title>"));
         assert!(out.contains("name=\"description\""));
         assert!(out.contains("rel=\"canonical\""));
         assert!(out.contains("og:title"));

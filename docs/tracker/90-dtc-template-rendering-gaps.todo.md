@@ -24,6 +24,27 @@ Every Liquid template and include used by the DTC site must produce identical ou
 
 - Issue 87 (visual parity audit) will identify the specific rendering gaps
 
+## Specific Differences Found (from Issue 87 audit)
+
+See `docs/audit/87-visual-parity-report.md` for full details.
+
+### High Priority
+- **D8**: Include output within markdown is being re-processed through markdown converter. Author links get wrapped in `<p>` tags, indented text becomes code blocks. Affects books.html, podcast.html, events.html, articles.html, tools.html.
+- **D10**: `date_to_string` filter off by 1 day due to timezone handling. Affects books listing and book detail pages.
+- **D18-D22**: feed.xml differences -- entry count (20 vs 10), missing `<subtitle>`, entity encoding vs CDATA, timezone differences.
+
+### Medium Priority
+- **D1**: Headings inside includes get auto-generated `id` attributes that Jekyll does not add.
+- **D5**: Smart quote (curly vs straight) conversion differences.
+- **D11**: `<ol start="N">` attribute added for non-1 list starts (Jekyll does not add this).
+- **D13**: Podcast timestamp format for sub-minute times: `0.0` in Jekyll vs `0:00` in rustkyll.
+- **D17**: HTML entity encoding differences (`&amp;` vs `&` in some contexts).
+
+### Low Priority (no visual impact)
+- **D2,D3,D12**: Boolean attribute formatting (`required=""` vs `required`, `<input />` vs `<input>`, `itemscope=""` vs `itemscope`).
+- **D4,D6,D7,D16**: Whitespace, indentation, and blank line differences.
+- **D14,D15**: JSON-LD date metadata uses different values.
+
 ## Acceptance criteria
 
 - All Liquid templates produce identical output to Jekyll

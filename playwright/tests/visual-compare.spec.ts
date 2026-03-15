@@ -26,10 +26,17 @@ const DTC_PAGES: PageDef[] = [
   { name: 'homepage', path: '/' },
   { name: 'blog-post', path: '/blog/segmentation.html' },
   { name: 'books-listing', path: '/books.html' },
+  { name: 'book-detail', path: '/books/20230529-modeling-mindsets.html' },
+  { name: 'podcast-listing', path: '/podcast.html' },
+  { name: 'podcast-episode', path: '/podcast/machine-learning-decision-optimization.html' },
   { name: 'events-listing', path: '/events.html' },
   { name: 'courses', path: '/courses.html' },
   { name: 'people-listing', path: '/people.html' },
+  { name: 'person-detail', path: '/people/andrewmcmahon.html' },
   { name: 'articles-listing', path: '/articles.html' },
+  { name: 'slack-community', path: '/slack.html' },
+  { name: 'support', path: '/support.html' },
+  { name: 'tools', path: '/tools.html' },
 ];
 
 const KIDS_PAGES: PageDef[] = [
