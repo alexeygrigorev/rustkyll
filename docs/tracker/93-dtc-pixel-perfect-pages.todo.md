@@ -60,9 +60,12 @@ For pages 1-22:
 - No extra `<p>` wrapping (issue #92)
 - CSS styling matches (same classes, same visual appearance)
 
-For pages 23-24:
-- Valid XML
-- Same entries/URLs as Jekyll output
+For pages 23-24 (feed.xml, sitemap.xml — NOT web pages, no pixel-perfect needed):
+- Valid XML (parses without errors)
+- Structural match: same entries/URLs as Jekyll output (within 5% tolerance)
+- Same entry titles, links, dates in feed
+- No raw Liquid tags
+- No Playwright screenshot comparison needed for these — they are data files, not rendered pages
 
 ## How to verify
 
