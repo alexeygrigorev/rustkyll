@@ -984,6 +984,16 @@ fn get_unique_id(used: &mut HashMap<String, usize>, base: &str) -> String {
 /// ```html
 /// <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>...</code></pre></div></div>
 /// ```
+/// Reverse common HTML entity escaping so that raw source code can be passed
+/// to the syntax highlighter (which re-escapes as needed).
+fn html_unescape(s: &str) -> String {
+    s.replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&#39;", "'")
+}
+
 fn wrap_fenced_code_blocks(html: &str) -> String {
     let mut result = String::with_capacity(html.len());
     let mut remaining = html;
@@ -1033,7 +1043,13 @@ fn wrap_fenced_code_blocks(html: &str) -> String {
                     "<div class=\"language-{} highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>",
                     lang
                 ));
-                result.push_str(code_content);
+                // Try syntax highlighting; fall back to plain code if unsupported
+                let raw_code = html_unescape(code_content);
+                if let Some(highlighted) = crate::syntax::highlight_code(&lang, &raw_code) {
+                    result.push_str(&highlighted);
+                } else {
+                    result.push_str(code_content);
+                }
                 result.push_str("</code></pre></div></div>");
                 remaining = &after_open_tag[close_pos + 13..]; // skip "</code></pre>"
             } else {

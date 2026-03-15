@@ -13,6 +13,7 @@ pub mod progress;
 pub mod server;
 pub mod sitemap;
 pub mod static_files;
+pub mod syntax;
 pub mod template;
 pub mod yaml;
 
