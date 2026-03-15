@@ -248,9 +248,10 @@ fn test_qa_text_newline_to_br_markdownify() {
         return;
     }
     let html = render_book("20201214-ml-bookcamp");
+    // D3: Void elements are normalized to not have self-closing slash
     assert!(
-        html.contains("<br />"),
-        "Q&A text should contain <br /> from newline_to_br filter"
+        html.contains("<br>") || html.contains("<br />"),
+        "Q&A text should contain <br> from newline_to_br filter"
     );
 }
 

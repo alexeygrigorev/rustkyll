@@ -79,9 +79,20 @@ pub fn postprocess(html: &str) -> String {
     let html = add_inline_code_classes(&html);
     let html = add_block_spacing(&html);
     let html = remove_ol_start_attribute(&html);
-    let html = normalize_void_elements(&html);
-    let html = normalize_boolean_attributes(&html);
     normalize_figcaption_whitespace(&html)
+}
+
+/// Apply final HTML output normalization to match Jekyll/kramdown conventions.
+///
+/// This should be applied to the FINAL rendered HTML before writing to disk,
+/// after all template rendering, layout wrapping, and postprocessing is done.
+///
+/// Includes:
+/// - D2, D12: Boolean HTML attribute normalization (`required=""` -> `required`)
+/// - D3: Void element self-closing slash removal (`<br />` -> `<br>`)
+pub fn normalize_html_output(html: &str) -> String {
+    let html = normalize_void_elements(html);
+    normalize_boolean_attributes(&html)
 }
 
 // ============================================================================
@@ -2015,5 +2026,168 @@ on 20 Mar 2026
             "Should not wrap h5 content in <p>. Got: {}",
             html
         );
+    }
+
+    // ========================================================================
+    // D1: Heading ID marking for include content
+    // ========================================================================
+
+    #[test]
+    fn test_d1_mark_bare_heading_tags() {
+        let input = "<h2>Title</h2>";
+        let marked = mark_existing_html_headings(input);
+        assert_eq!(marked, "<h2 data-raw-html>Title</h2>");
+    }
+
+    #[test]
+    fn test_d1_mark_does_not_affect_headings_with_attrs() {
+        let input = r#"<h2 class="title">Title</h2>"#;
+        let marked = mark_existing_html_headings(input);
+        assert_eq!(
+            marked, input,
+            "Headings with attributes should not be marked"
+        );
+    }
+
+    #[test]
+    fn test_d1_remove_heading_markers() {
+        let input = "<h2 data-raw-html>Title</h2>";
+        let cleaned = remove_heading_markers(input);
+        assert_eq!(cleaned, "<h2>Title</h2>");
+    }
+
+    #[test]
+    fn test_d1_marked_heading_skipped_by_add_heading_ids() {
+        let input = "<h2 data-raw-html>Include Title</h2>";
+        let result = add_heading_ids(input);
+        // Should NOT get an id because it has attributes
+        assert!(
+            !result.contains("id=\"include-title\""),
+            "Marked heading should not get auto-generated ID. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_d1_markdown_heading_still_gets_id() {
+        // Markdown-generated heading (bare <h2>)
+        let input = "<h2>Markdown Title</h2>";
+        let result = add_heading_ids(input);
+        assert!(
+            result.contains("id=\"markdown-title\""),
+            "Markdown heading should get auto-generated ID. Got: {}",
+            result
+        );
+    }
+
+    // ========================================================================
+    // D11: Remove <ol start="N"> attribute
+    // ========================================================================
+
+    #[test]
+    fn test_d11_remove_ol_start_attribute() {
+        let input = "<ol start=\"2\">\n<li>Item</li>\n</ol>";
+        let result = remove_ol_start_attribute(input);
+        assert!(
+            !result.contains("start="),
+            "start attribute should be removed. Got: {}",
+            result
+        );
+        assert!(result.contains("<ol>"), "Should have bare <ol> tag");
+    }
+
+    #[test]
+    fn test_d11_ol_without_start_unchanged() {
+        let input = "<ol>\n<li>Item</li>\n</ol>";
+        let result = remove_ol_start_attribute(input);
+        assert_eq!(result, input);
+    }
+
+    #[test]
+    fn test_d11_ol_start_1_also_removed() {
+        let input = "<ol start=\"1\">\n<li>Item</li>\n</ol>";
+        let result = remove_ol_start_attribute(input);
+        assert!(
+            !result.contains("start="),
+            "start='1' should also be removed. Got: {}",
+            result
+        );
+    }
+
+    // ========================================================================
+    // D2, D3, D12: Boolean attributes and self-closing tags
+    // ========================================================================
+
+    #[test]
+    fn test_d2_boolean_required_normalized() {
+        let result = normalize_boolean_attributes(r#"<input required="" type="text">"#);
+        assert_eq!(result, r#"<input required type="text">"#);
+    }
+
+    #[test]
+    fn test_d12_itemscope_normalized() {
+        let result =
+            normalize_boolean_attributes(r#"<div itemscope="" itemtype="http://schema.org">"#);
+        assert_eq!(result, r#"<div itemscope itemtype="http://schema.org">"#);
+    }
+
+    #[test]
+    fn test_d2_novalidate_normalized() {
+        let result = normalize_boolean_attributes(r#"<form novalidate="">"#);
+        assert_eq!(result, "<form novalidate>");
+    }
+
+    #[test]
+    fn test_d3_br_self_closing_removed() {
+        let result = normalize_void_elements("<br />");
+        assert_eq!(result, "<br>");
+    }
+
+    #[test]
+    fn test_d3_input_self_closing_removed() {
+        let result = normalize_void_elements(r#"<input type="text" />"#);
+        assert_eq!(result, r#"<input type="text">"#);
+    }
+
+    #[test]
+    fn test_d3_hr_self_closing_removed() {
+        let result = normalize_void_elements("<hr />");
+        assert_eq!(result, "<hr>");
+    }
+
+    #[test]
+    fn test_d3_non_void_element_unchanged() {
+        let result = normalize_void_elements("<div />");
+        // div is not a void element, so " />" should be preserved
+        assert_eq!(result, "<div />");
+    }
+
+    // ========================================================================
+    // D6: Figcaption whitespace normalization
+    // ========================================================================
+
+    #[test]
+    fn test_d6_figcaption_newline_removed() {
+        let input = "<figcaption>Caption text\n</figcaption>";
+        let result = normalize_figcaption_whitespace(input);
+        assert_eq!(result, "<figcaption>Caption text</figcaption>");
+    }
+
+    #[test]
+    fn test_d6_figcaption_same_line_unchanged() {
+        let input = "<figcaption>Caption text</figcaption>";
+        let result = normalize_figcaption_whitespace(input);
+        assert_eq!(result, input);
+    }
+
+    // ========================================================================
+    // normalize_html_output combines D2+D3+D12
+    // ========================================================================
+
+    #[test]
+    fn test_normalize_html_output_combined() {
+        let input = r#"<input required="" type="text" /><br /><div itemscope="">"#;
+        let result = normalize_html_output(input);
+        assert_eq!(result, r#"<input required type="text"><br><div itemscope>"#);
     }
 }

@@ -64,10 +64,15 @@ pub(crate) fn safe_chrono_format(formatted: &impl std::fmt::Display) -> Option<S
 /// Parse a date string trying multiple formats commonly found in Jekyll YAML.
 ///
 /// Returns a `NaiveDateTime` on success, `None` if no format matches.
+///
+/// Uses `naive_local()` (not `naive_utc()`) for timezone-aware dates so that
+/// the date portion is preserved as written in the front matter. Jekyll's
+/// `date_to_string` uses the date as-is without converting to UTC, so a date
+/// like `2023-10-11 00:00:00 +0200` should remain Oct 11, not become Oct 10.
 pub(crate) fn parse_date_string(s: &str) -> Option<NaiveDateTime> {
     // Try ISO 8601 with timezone offset (e.g. "2024-01-15T00:00:00+00:00")
     if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(s) {
-        return Some(dt.naive_utc());
+        return Some(dt.naive_local());
     }
     // Try "YYYY-MM-DDTHH:MM:SS" without timezone
     if let Ok(dt) = NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S") {
@@ -79,7 +84,7 @@ pub(crate) fn parse_date_string(s: &str) -> Option<NaiveDateTime> {
     }
     // Try "YYYY-MM-DD HH:MM:SS +HHMM" (Jekyll-style with space before offset)
     if let Ok(dt) = chrono::DateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S %z") {
-        return Some(dt.naive_utc());
+        return Some(dt.naive_local());
     }
     // Try date-only "YYYY-MM-DD"
     if let Ok(d) = chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d") {

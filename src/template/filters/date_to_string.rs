@@ -102,4 +102,40 @@ mod tests {
         let result = liquid_core::call_filter!(DateToString, "").unwrap();
         assert_eq!(result.to_kstr(), "");
     }
+
+    // ========================================================================
+    // D10: Timezone handling -- use naive_local, not naive_utc
+    // ========================================================================
+
+    #[test]
+    fn test_d10_positive_offset_preserves_date() {
+        // "2023-10-11 00:00:00 +0200" should remain Oct 11, not become Oct 10 (UTC)
+        let result = liquid_core::call_filter!(DateToString, "2023-10-11 00:00:00 +0200").unwrap();
+        assert_eq!(result.to_kstr(), "11 Oct 2023");
+    }
+
+    #[test]
+    fn test_d10_negative_offset_preserves_date() {
+        // "2024-06-15 23:30:00 -0500" should remain Jun 15, not become Jun 16 (UTC)
+        let result = liquid_core::call_filter!(DateToString, "2024-06-15 23:30:00 -0500").unwrap();
+        assert_eq!(result.to_kstr(), "15 Jun 2024");
+    }
+
+    #[test]
+    fn test_d10_utc_offset_unchanged() {
+        let result = liquid_core::call_filter!(DateToString, "2024-12-31 23:00:00 +0000").unwrap();
+        assert_eq!(result.to_kstr(), "31 Dec 2024");
+    }
+
+    #[test]
+    fn test_d10_rfc3339_positive_offset() {
+        let result = liquid_core::call_filter!(DateToString, "2024-03-22T10:00:00+00:00").unwrap();
+        assert_eq!(result.to_kstr(), "22 Mar 2024");
+    }
+
+    #[test]
+    fn test_d10_date_only_no_tz() {
+        let result = liquid_core::call_filter!(DateToString, "2024-01-15").unwrap();
+        assert_eq!(result.to_kstr(), "15 Jan 2024");
+    }
 }

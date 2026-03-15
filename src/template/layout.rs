@@ -256,12 +256,14 @@ impl LayoutEngine {
             raw_content.to_string()
         };
 
-        self.render_with_cached_site(
+        let result = self.render_with_cached_site(
             layout_name,
             &rendered_content,
             page_front_matter,
             cached_site,
-        )
+        )?;
+        // D2, D3, D12: Normalize boolean attributes and void elements
+        Ok(crate::kramdown::normalize_html_output(&result))
     }
 
     /// Render raw markdown content that may contain Liquid tags, converting
@@ -293,11 +295,26 @@ impl LayoutEngine {
         // from {% for %} loops, which CommonMark interprets as code blocks.
         let dedented = crate::frontmatter::dedent_html_lines(&after_liquid);
 
+        // Step 2.5 (D1): Mark existing HTML headings from include output so
+        // that add_heading_ids() in kramdown::postprocess() will skip them.
+        // Only markdown-sourced headings should get auto-generated IDs.
+        let marked = crate::kramdown::mark_existing_html_headings(&dedented);
+
         // Step 3: Convert markdown to HTML
-        let html_content = crate::frontmatter::markdown_to_html(&dedented);
+        let html_content = crate::frontmatter::markdown_to_html(&marked);
+
+        // Step 3.5 (D1): Remove the heading markers after postprocessing
+        let html_content = crate::kramdown::remove_heading_markers(&html_content);
 
         // Step 4: Wrap in layout
-        self.render_with_cached_site(layout_name, &html_content, page_front_matter, cached_site)
+        let result = self.render_with_cached_site(
+            layout_name,
+            &html_content,
+            page_front_matter,
+            cached_site,
+        )?;
+        // D2, D3, D12: Normalize boolean attributes and void elements
+        Ok(crate::kramdown::normalize_html_output(&result))
     }
 
     /// Render raw (non-markdown) content through the Liquid engine WITHOUT

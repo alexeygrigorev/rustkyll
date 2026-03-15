@@ -10,7 +10,8 @@ use crate::collection::CollectionItem;
 use crate::config::SiteConfig;
 
 /// Maximum number of posts to include in the feed.
-const DEFAULT_MAX_POSTS: usize = 20;
+/// Jekyll's `jekyll-feed` plugin defaults to 10.
+const DEFAULT_MAX_POSTS: usize = 10;
 
 /// Errors that can occur during feed generation.
 #[derive(Debug, thiserror::Error)]
@@ -88,6 +89,15 @@ pub fn generate_atom_feed(
     xml.push_str(&format!("  <id>{site_url}/feed.xml</id>\n"));
     xml.push_str(&format!("  <title type=\"html\">{site_title}</title>\n"));
 
+    // D19: Emit <subtitle> if site has a description configured
+    // jekyll-feed uses site.description for this element
+    let description = get_site_description(config);
+    if let Some(desc) = &description {
+        if !desc.is_empty() {
+            xml.push_str(&format!("  <subtitle>{}</subtitle>\n", xml_escape(desc)));
+        }
+    }
+
     for post in &dated_posts {
         write_entry(&mut xml, post, config);
     }
@@ -96,12 +106,32 @@ pub fn generate_atom_feed(
     xml
 }
 
+/// Get the site description from config.
+///
+/// Checks `config.extras` for "description", "tagline", or "subtitle" keys,
+/// matching how jekyll-feed finds the subtitle.
+fn get_site_description(config: &SiteConfig) -> Option<String> {
+    for key in &["description", "tagline", "subtitle"] {
+        if let Some(val) = config.extras.get(*key) {
+            if let Some(s) = val.as_str() {
+                if !s.is_empty() {
+                    return Some(s.to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
 /// Write a single Atom entry for a blog post.
 fn write_entry(xml: &mut String, post: &CollectionItem, config: &SiteConfig) {
     let site_url = &config.url;
     let post_url = format!("{site_url}{}", post.url);
     let date = post.date.as_deref().unwrap_or("");
     let published = format_date_to_rfc3339(date);
+
+    // D22: Entry <id> uses URL without .html extension, matching jekyll-feed format
+    let entry_id = format!("{site_url}{}", post.url.trim_end_matches(".html"));
 
     // Title from front matter, fallback to slug
     let title = post
@@ -130,9 +160,9 @@ fn write_entry(xml: &mut String, post: &CollectionItem, config: &SiteConfig) {
     ));
     xml.push_str(&format!("    <published>{published}</published>\n"));
     xml.push_str(&format!("    <updated>{published}</updated>\n"));
-    xml.push_str(&format!("    <id>{post_url}</id>\n"));
+    xml.push_str(&format!("    <id>{entry_id}</id>\n"));
 
-    // Content: use HTML content if available, otherwise use excerpt or description
+    // D20: Content uses CDATA wrapping with xml:base attribute, matching jekyll-feed
     let content = if !post.html_content.is_empty() {
         Some(&post.html_content)
     } else {
@@ -141,8 +171,7 @@ fn write_entry(xml: &mut String, post: &CollectionItem, config: &SiteConfig) {
 
     if let Some(html) = content {
         xml.push_str(&format!(
-            "    <content type=\"html\">{}</content>\n",
-            xml_escape(html)
+            "    <content type=\"html\" xml:base=\"{post_url}\"><![CDATA[{html}]]></content>\n"
         ));
     }
 
@@ -182,16 +211,37 @@ fn extract_author(post: &CollectionItem) -> Option<String> {
     None
 }
 
-/// Format a date string (YYYY-MM-DD) to RFC 3339 / Atom format.
+/// Format a date string to RFC 3339 / Atom format, preserving original timezone.
 ///
-/// Returns `YYYY-MM-DDT00:00:00+00:00` for date-only strings.
-/// Already-formatted strings are returned as-is.
+/// D21: Preserves the original timezone offset from the date string.
+/// - `"2024-01-15"` -> `"2024-01-15T00:00:00+00:00"` (no tz info, default to +00:00)
+/// - `"2024-01-15 00:00:00 +0200"` -> `"2024-01-15T00:00:00+02:00"` (preserve tz)
+/// - Already RFC 3339 -> returned as-is
 fn format_date_to_rfc3339(date: &str) -> String {
     let trimmed = date.trim();
     // If it already contains 'T', assume it's already formatted
     if trimmed.contains('T') {
         return trimmed.to_string();
     }
+
+    // Try "YYYY-MM-DD HH:MM:SS +HHMM" (Jekyll-style with space before offset)
+    if let Ok(dt) = chrono::DateTime::parse_from_str(trimmed, "%Y-%m-%d %H:%M:%S %z") {
+        return dt.format("%Y-%m-%dT%H:%M:%S%:z").to_string();
+    }
+
+    // Try "YYYY-MM-DD HH:MM:SS" (no timezone -> use +00:00)
+    if trimmed.len() > 10 && trimmed.contains(' ') {
+        // Has time but no timezone
+        if let Some((date_part, time_part)) = trimmed.split_once(' ') {
+            // Check if there's a timezone offset after the time
+            if let Some((time, _tz)) = time_part.split_once(' ') {
+                // Already handled above by parse_from_str
+                return format!("{date_part}T{time}+00:00");
+            }
+            return format!("{date_part}T{time_part}+00:00");
+        }
+    }
+
     // Date-only: append time and timezone
     format!("{trimmed}T00:00:00+00:00")
 }
@@ -451,7 +501,8 @@ mod tests {
             vec![],
         )];
         let xml = generate_atom_feed(&posts, &config, &FeedOptions::default());
-        assert!(xml.contains("<id>https://example.com/blog/hello.html</id>"));
+        // D22: Entry <id> uses URL without .html extension
+        assert!(xml.contains("<id>https://example.com/blog/hello</id>"));
     }
 
     #[test]
@@ -466,7 +517,9 @@ mod tests {
             vec![],
         )];
         let xml = generate_atom_feed(&posts, &config, &FeedOptions::default());
-        assert!(xml.contains("<content type=\"html\">"));
+        // D20: Content uses CDATA wrapping with xml:base attribute
+        assert!(xml.contains("<content type=\"html\" xml:base="));
+        assert!(xml.contains("<![CDATA["));
         assert!(xml.contains("My content"));
     }
 
@@ -856,6 +909,182 @@ mod tests {
         assert_eq!(
             xml.matches("<entry>").count(),
             xml.matches("<published>").count()
+        );
+    }
+
+    // ========================================================================
+    // D18: Default feed entry count is 10 (not 20)
+    // ========================================================================
+
+    #[test]
+    fn test_d18_default_max_posts_is_10() {
+        assert_eq!(DEFAULT_MAX_POSTS, 10);
+    }
+
+    #[test]
+    fn test_d18_default_options_limit_to_10() {
+        let config = test_config();
+        let posts: Vec<CollectionItem> = (0..30)
+            .map(|i| {
+                make_post(
+                    &format!("post-{i}"),
+                    &format!("Post {i}"),
+                    &format!("2024-01-{:02}", (i % 28) + 1),
+                    "content",
+                    None,
+                    vec![],
+                )
+            })
+            .collect();
+        let xml = generate_atom_feed(&posts, &config, &FeedOptions::default());
+        let entry_count = xml.matches("<entry>").count();
+        assert_eq!(entry_count, 10, "Default feed should have 10 entries");
+    }
+
+    // ========================================================================
+    // D19: Feed subtitle from site description
+    // ========================================================================
+
+    #[test]
+    fn test_d19_subtitle_present_when_description_set() {
+        let mut config = test_config();
+        config.extras.insert(
+            "description".to_string(),
+            serde_yaml::Value::String("A great blog about testing".to_string()),
+        );
+        let posts = vec![];
+        let xml = generate_atom_feed(&posts, &config, &FeedOptions::default());
+        assert!(
+            xml.contains("<subtitle>A great blog about testing</subtitle>"),
+            "Feed should contain subtitle from config description"
+        );
+    }
+
+    #[test]
+    fn test_d19_no_subtitle_when_description_not_set() {
+        let config = test_config();
+        let posts = vec![];
+        let xml = generate_atom_feed(&posts, &config, &FeedOptions::default());
+        assert!(
+            !xml.contains("<subtitle>"),
+            "Feed should not contain subtitle when no description"
+        );
+    }
+
+    #[test]
+    fn test_d19_subtitle_from_tagline() {
+        let mut config = test_config();
+        config.extras.insert(
+            "tagline".to_string(),
+            serde_yaml::Value::String("My tagline".to_string()),
+        );
+        let xml = generate_atom_feed(&[], &config, &FeedOptions::default());
+        assert!(xml.contains("<subtitle>My tagline</subtitle>"));
+    }
+
+    // ========================================================================
+    // D20: Feed content uses CDATA wrapping
+    // ========================================================================
+
+    #[test]
+    fn test_d20_content_uses_cdata() {
+        let config = test_config();
+        let posts = vec![make_post(
+            "hello",
+            "Hello",
+            "2024-01-15",
+            "Test content",
+            None,
+            vec![],
+        )];
+        let xml = generate_atom_feed(&posts, &config, &FeedOptions::default());
+        assert!(
+            xml.contains("<![CDATA["),
+            "Content should use CDATA wrapping"
+        );
+        assert!(
+            xml.contains("]]></content>"),
+            "Content should end with CDATA close"
+        );
+    }
+
+    #[test]
+    fn test_d20_content_has_xml_base() {
+        let config = test_config();
+        let posts = vec![make_post(
+            "hello",
+            "Hello",
+            "2024-01-15",
+            "Test content",
+            None,
+            vec![],
+        )];
+        let xml = generate_atom_feed(&posts, &config, &FeedOptions::default());
+        assert!(
+            xml.contains("xml:base=\"https://example.com/blog/hello.html\""),
+            "Content should have xml:base attribute"
+        );
+    }
+
+    // ========================================================================
+    // D21: Feed timezone preservation
+    // ========================================================================
+
+    #[test]
+    fn test_d21_date_preserves_timezone_offset() {
+        assert_eq!(
+            format_date_to_rfc3339("2024-01-15 00:00:00 +0200"),
+            "2024-01-15T00:00:00+02:00"
+        );
+    }
+
+    #[test]
+    fn test_d21_date_preserves_negative_offset() {
+        assert_eq!(
+            format_date_to_rfc3339("2024-06-15 23:30:00 -0500"),
+            "2024-06-15T23:30:00-05:00"
+        );
+    }
+
+    #[test]
+    fn test_d21_date_only_uses_utc() {
+        assert_eq!(
+            format_date_to_rfc3339("2024-01-15"),
+            "2024-01-15T00:00:00+00:00"
+        );
+    }
+
+    #[test]
+    fn test_d21_date_with_time_no_tz_uses_utc() {
+        assert_eq!(
+            format_date_to_rfc3339("2024-01-15 14:30:00"),
+            "2024-01-15T14:30:00+00:00"
+        );
+    }
+
+    // ========================================================================
+    // D22: Feed entry ID without .html
+    // ========================================================================
+
+    #[test]
+    fn test_d22_entry_id_without_html_extension() {
+        let config = test_config();
+        let posts = vec![make_post(
+            "hello",
+            "Hello",
+            "2024-01-15",
+            "content",
+            None,
+            vec![],
+        )];
+        let xml = generate_atom_feed(&posts, &config, &FeedOptions::default());
+        assert!(
+            xml.contains("<id>https://example.com/blog/hello</id>"),
+            "Entry ID should not have .html extension"
+        );
+        assert!(
+            !xml.contains("<id>https://example.com/blog/hello.html</id>"),
+            "Entry ID should NOT have .html extension"
         );
     }
 }
