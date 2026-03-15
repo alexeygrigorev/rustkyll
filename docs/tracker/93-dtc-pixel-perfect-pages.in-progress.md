@@ -252,6 +252,7 @@ First run: 7/22 pages at 0%, 5 with small diffs, 10 with visible differences.
 
 ### Blocking issues (must be resolved before re-running #93)
 
+- Issue #97: DOM tree comparison tool (needed to find exact structural differences)
 - Issue #105: Fix whitespace in Liquid include output (affects pages 1-5, 9)
 - Issue #106: Add syntax highlighting / Rouge-compatible spans (affects page 13)
 - Issue #107: Fix where_exp date comparison (affects pages 21, 22)
@@ -259,8 +260,12 @@ First run: 7/22 pages at 0%, 5 with small diffs, 10 with visible differences.
 
 ### Re-run procedure
 
-After all blocking issues are resolved, re-run this issue:
-1. Rebuild both sites
-2. Run Playwright on all 22 pages at 0% threshold
-3. Verify all 22 pass
-4. Re-validate feed.xml and sitemap.xml
+After all blocking issues are resolved:
+1. Rebuild both sites with Jekyll and rustkyll
+2. Run DOM tree comparison (#97) on ALL 787 HTML files — identify any remaining structural differences
+3. Fix any DOM differences found
+4. Run Playwright on all 22 pages at 0% threshold
+5. Verify all 22 pass at 0% pixel diff
+6. Re-validate feed.xml and sitemap.xml
+
+Order: DOM check first (find exact differences) → fix → pixel check (verify visual match). After fixing all issues, re-run #93 to verify everything passes.
