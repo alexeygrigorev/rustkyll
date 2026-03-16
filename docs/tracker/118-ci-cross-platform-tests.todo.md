@@ -16,9 +16,11 @@ Add Windows and macOS jobs to the integration workflow (integration.yml). At min
 
 GitHub Actions provides windows-latest and macos-latest runners. Add matrix jobs:
 1. Build with cargo build --release
-2. Run cargo test (unit tests only — no ignored integration tests since sites aren't cloned)
-3. Clone DTC site and run rustkyll build
+2. Run cargo test (unit tests only)
+3. Clone DTC site only and run rustkyll build
 4. Verify output page count matches Linux
+
+Only DTC site needed for cross-platform — no need to clone all 16 sites on Windows/macOS.
 
 ## Dependencies
 
