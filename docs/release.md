@@ -68,8 +68,10 @@ PM reviews the issue list, writes release notes, verifies the version bump is co
 ### 5. PM accepts and publishes release notes
 
 - Verify all wheels are on PyPI (done means DONE)
-- Write and publish release notes on the GitHub Release page (not just auto-generated — proper human-readable notes with highlights, breaking changes, and performance numbers)
-- Update the GitHub Release description via `gh release edit vX.Y.Z --notes "..."`
+- Write proper release notes with: highlights, new features, bug fixes, installation, platform table
+- Publish via: `gh release edit vX.Y.Z --repo alexeygrigorev/rustkyll --notes "$(cat release-notes.md)"`
+- The `--notes` flag replaces the auto-generated notes with proper human-readable content
+- Do NOT leave the release with just "Full Changelog" — write real notes
 
 ## Release workflow
 
