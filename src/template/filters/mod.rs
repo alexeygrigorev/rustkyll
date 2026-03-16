@@ -17,7 +17,7 @@ mod newline_to_br;
 mod normalize_whitespace;
 mod number_of_words;
 pub(crate) mod passthrough;
-mod relative_url;
+pub(crate) mod relative_url;
 mod sort;
 mod truncatewords;
 mod where_exp;

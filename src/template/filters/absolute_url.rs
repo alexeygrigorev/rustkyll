@@ -4,6 +4,8 @@ use liquid_core::Runtime;
 use liquid_core::{Display_filter, Filter, FilterReflection, ParseFilter};
 use liquid_core::{Value, ValueView};
 
+use super::relative_url::encode_url_spaces;
+
 /// Prepend the site's url and baseurl to a path, producing an absolute URL.
 #[derive(Clone, ParseFilter, FilterReflection)]
 #[filter(
@@ -66,7 +68,8 @@ impl Filter for AbsoluteUrlFilter {
             format!("{site_url}{baseurl}{path}")
         };
 
-        Ok(Value::scalar(result))
+        // Percent-encode spaces in the URL, matching Jekyll behavior
+        Ok(Value::scalar(encode_url_spaces(&result)))
     }
 }
 
@@ -78,5 +81,12 @@ mod tests {
     fn test_no_context_returns_path() {
         let result = liquid_core::call_filter!(AbsoluteUrl, "/about.html").unwrap();
         assert_eq!(result.to_kstr(), "/about.html");
+    }
+
+    #[test]
+    fn test_spaces_encoded_as_percent20() {
+        let result =
+            liquid_core::call_filter!(AbsoluteUrl, "/images/podcast/hybrid search.jpg").unwrap();
+        assert_eq!(result.to_kstr(), "/images/podcast/hybrid%20search.jpg");
     }
 }

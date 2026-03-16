@@ -33,25 +33,36 @@ impl Filter for RelativeUrlFilter {
                 }
             });
 
-        match baseurl {
+        let result = match baseurl {
             Some(base) => {
                 let base = base.trim_end_matches('/');
                 if path.starts_with('/') {
-                    Ok(Value::scalar(format!("{base}{path}")))
+                    format!("{base}{path}")
                 } else {
-                    Ok(Value::scalar(format!("{base}/{path}")))
+                    format!("{base}/{path}")
                 }
             }
             None => {
                 // No baseurl set: ensure path starts with /
                 if path.is_empty() || path.starts_with('/') {
-                    Ok(Value::scalar(path.to_string()))
+                    path.to_string()
                 } else {
-                    Ok(Value::scalar(format!("/{path}")))
+                    format!("/{path}")
                 }
             }
-        }
+        };
+
+        // Percent-encode spaces in the URL path, matching Jekyll behavior
+        Ok(Value::scalar(encode_url_spaces(&result)))
     }
+}
+
+/// Percent-encode spaces in a URL path as `%20`, matching Jekyll's behavior.
+///
+/// Jekyll's `relative_url` and `absolute_url` filters percent-encode spaces
+/// in the resulting URL. This function does the same minimal encoding.
+pub(crate) fn encode_url_spaces(url: &str) -> String {
+    url.replace(' ', "%20")
 }
 
 #[cfg(test)]
@@ -74,5 +85,26 @@ mod tests {
     fn test_empty_string_no_baseurl() {
         let result = liquid_core::call_filter!(RelativeUrl, "").unwrap();
         assert_eq!(result.to_kstr(), "");
+    }
+
+    #[test]
+    fn test_spaces_encoded_as_percent20() {
+        let result =
+            liquid_core::call_filter!(RelativeUrl, "images/podcast/hybrid search.jpg").unwrap();
+        assert_eq!(result.to_kstr(), "/images/podcast/hybrid%20search.jpg");
+    }
+
+    #[test]
+    fn test_path_with_leading_slash_and_spaces_encoded() {
+        let result =
+            liquid_core::call_filter!(RelativeUrl, "/images/podcast/hybrid search.jpg").unwrap();
+        assert_eq!(result.to_kstr(), "/images/podcast/hybrid%20search.jpg");
+    }
+
+    #[test]
+    fn test_no_spaces_unchanged() {
+        let result =
+            liquid_core::call_filter!(RelativeUrl, "images/podcast/no-spaces.jpg").unwrap();
+        assert_eq!(result.to_kstr(), "/images/podcast/no-spaces.jpg");
     }
 }
