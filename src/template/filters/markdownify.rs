@@ -119,6 +119,24 @@ mod tests {
         );
     }
 
+    /// Issue #146: markdownify must not produce <ol start="N"> attributes.
+    /// Book archive threads with numbered lists that don't start at 1 were
+    /// getting start attributes that Jekyll/kramdown never produces.
+    #[test]
+    fn test_markdownify_no_ol_start_attribute() {
+        // Markdown with a list that starts at a number other than 1
+        let input = "2. Second item\n3. Third item\n";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            !html.contains("start="),
+            "markdownify should not produce ol start attribute. Got: {html}"
+        );
+        assert!(
+            html.contains("<ol>"),
+            "Should have bare <ol> tag. Got: {html}"
+        );
+    }
+
     #[test]
     fn test_markdownify_preserves_br_self_closing_slash() {
         // When input contains <br /> from newline_to_br, markdownify must not strip the slash
