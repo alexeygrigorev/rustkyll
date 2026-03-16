@@ -67,6 +67,7 @@ pub fn remove_heading_markers(html: &str) -> String {
 /// 3. Inline attribute lists (`{:target="_blank"}`, `{:.class}`, `{:#id}`)
 /// 4. Fenced code block wrapping (no language tag)
 /// 5. Inline code classes (`language-plaintext highlighter-rouge`)
+///    5b. Wrap bare text between block elements in `<p>` tags
 /// 6. Paragraph spacing (extra newlines after block elements)
 /// 7. Remove `start` attribute from `<ol>` tags (D11)
 /// 8. Remove self-closing slash from void elements (D3)
@@ -79,6 +80,7 @@ pub fn postprocess(html: &str) -> String {
     let html = apply_inline_attributes(&html);
     let html = wrap_fenced_code_blocks(&html);
     let html = add_inline_code_classes(&html);
+    let html = wrap_bare_text_in_paragraphs(&html);
     let html = add_block_spacing(&html);
     let html = remove_ol_start_attribute(&html);
     let html = normalize_figcaption_whitespace(&html);
@@ -1158,6 +1160,270 @@ fn add_inline_code_classes(html: &str) -> String {
     }
 
     result
+}
+
+// ============================================================================
+// 4b. Wrap bare text between block elements in <p> tags
+// ============================================================================
+
+/// Wrap bare inline text between block-level elements in `<p>` tags.
+///
+/// Kramdown auto-wraps loose inline text that sits between block elements
+/// (e.g. between `</h3>` and `<ul>`) in `<p>` tags. Pulldown-cmark does not
+/// do this for text that originates from raw HTML / Liquid template output.
+///
+/// This function detects such bare text regions and wraps them in `<p>...</p>`.
+/// It only wraps text at the top level -- text inside container elements like
+/// `<ul>`, `<div>`, `<pre>`, etc. is left alone.
+fn wrap_bare_text_in_paragraphs(html: &str) -> String {
+    /// Block-level tags that act as containers (can have children).
+    const CONTAINER_TAGS: &[&str] = &[
+        "ul",
+        "ol",
+        "li",
+        "div",
+        "table",
+        "thead",
+        "tbody",
+        "tr",
+        "td",
+        "th",
+        "blockquote",
+        "pre",
+        "center",
+        "form",
+        "figure",
+        "figcaption",
+        "details",
+        "summary",
+        "nav",
+        "header",
+        "footer",
+        "section",
+        "article",
+        "aside",
+        "main",
+        "dl",
+        "dd",
+        "dt",
+    ];
+
+    /// Block-level tags (includes void/self-closing like hr).
+    const BLOCK_TAGS: &[&str] = &[
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "ul",
+        "ol",
+        "li",
+        "div",
+        "table",
+        "thead",
+        "tbody",
+        "tr",
+        "td",
+        "th",
+        "blockquote",
+        "pre",
+        "hr",
+        "center",
+        "form",
+        "figure",
+        "figcaption",
+        "details",
+        "summary",
+        "nav",
+        "header",
+        "footer",
+        "section",
+        "article",
+        "aside",
+        "main",
+        "dl",
+        "dd",
+        "dt",
+        "p",
+    ];
+
+    let lines: Vec<&str> = html.split('\n').collect();
+    let len = lines.len();
+    let mut result = Vec::with_capacity(len);
+    let mut depth: i32 = 0; // nesting depth inside container elements
+    let mut i = 0;
+
+    while i < len {
+        let trimmed = lines[i].trim();
+
+        // Track container nesting depth
+        let depth_delta = compute_depth_delta(trimmed, CONTAINER_TAGS);
+
+        // If we're entering a container (opening tag), increase depth before
+        // processing this line. If leaving (closing tag), decrease after.
+        let entering = depth_delta > 0;
+        let leaving = depth_delta < 0;
+
+        if entering {
+            // Push line first, then increase depth
+            result.push(lines[i].to_string());
+            depth += depth_delta;
+            i += 1;
+            continue;
+        }
+
+        if leaving {
+            // Decrease depth, then push line
+            depth += depth_delta;
+            if depth < 0 {
+                depth = 0;
+            }
+            result.push(lines[i].to_string());
+            i += 1;
+            continue;
+        }
+
+        // Only wrap bare text at the top level (depth == 0)
+        if depth > 0 {
+            result.push(lines[i].to_string());
+            i += 1;
+            continue;
+        }
+
+        // Skip empty lines and block-level element lines
+        if trimmed.is_empty() || is_block_line(trimmed, BLOCK_TAGS) {
+            result.push(lines[i].to_string());
+            i += 1;
+            continue;
+        }
+
+        // Found a non-empty, non-block line at top level.
+        // Check if it's bare text between block elements.
+        if is_bare_text_context(&lines, i, BLOCK_TAGS) {
+            // Collect consecutive bare text lines
+            let start = i;
+            while i < len {
+                let t = lines[i].trim();
+                if t.is_empty() || is_block_line(t, BLOCK_TAGS) {
+                    break;
+                }
+                // Stop if we hit a container opening
+                if compute_depth_delta(t, CONTAINER_TAGS) != 0 {
+                    break;
+                }
+                i += 1;
+            }
+            // Wrap the collected lines in <p>
+            let bare_text: String = lines[start..i]
+                .iter()
+                .map(|l| l.trim())
+                .collect::<Vec<_>>()
+                .join(" ");
+            result.push(format!("<p>{}</p>", bare_text));
+        } else {
+            result.push(lines[i].to_string());
+            i += 1;
+        }
+    }
+
+    result.join("\n")
+}
+
+/// Compute the nesting depth change for a line based on container tags.
+/// Returns positive for opening tags, negative for closing tags, 0 for neither.
+fn compute_depth_delta(trimmed: &str, container_tags: &[&str]) -> i32 {
+    let mut delta = 0i32;
+    for tag in container_tags {
+        let open = format!("<{}", tag);
+        let close = format!("</{}>", tag);
+
+        // Count opening tags on this line
+        if trimmed.contains(&open) {
+            let rest_after_open = &trimmed[trimmed.find(&open).unwrap() + open.len()..];
+            if rest_after_open.starts_with('>')
+                || rest_after_open.starts_with(' ')
+                || rest_after_open.starts_with('/')
+            {
+                delta += 1;
+            }
+        }
+
+        // Count closing tags on this line
+        if trimmed.contains(&close) {
+            delta -= 1;
+        }
+    }
+    delta
+}
+
+/// Check if a trimmed line starts/ends with a block-level HTML element.
+fn is_block_line(trimmed: &str, block_tags: &[&str]) -> bool {
+    for tag in block_tags {
+        // Opening tag: <tag> or <tag ...>
+        let open = format!("<{}", tag);
+        if trimmed.starts_with(&open) {
+            let rest = &trimmed[open.len()..];
+            if rest.starts_with('>') || rest.starts_with(' ') || rest.starts_with('/') {
+                return true;
+            }
+        }
+        // Closing tag: </tag>
+        let close = format!("</{}>", tag);
+        if trimmed.starts_with(&close) || trimmed.ends_with(&close) {
+            return true;
+        }
+    }
+
+    false
+}
+
+/// Check whether the bare text at line index `i` is between block elements.
+fn is_bare_text_context(lines: &[&str], i: usize, block_tags: &[&str]) -> bool {
+    // Look backward: skip empty lines, find a block element or start of content
+    let has_preceding_block = if i == 0 {
+        true
+    } else {
+        let mut j = i - 1;
+        loop {
+            let t = lines[j].trim();
+            if !t.is_empty() {
+                break is_block_line(t, block_tags);
+            }
+            if j == 0 {
+                break true;
+            }
+            j -= 1;
+        }
+    };
+
+    if !has_preceding_block {
+        return false;
+    }
+
+    // Look forward: skip the current bare text lines, skip empty lines,
+    // find a block element or end of content
+    let len = lines.len();
+    let mut j = i;
+    // Skip current bare text region
+    while j < len {
+        let t = lines[j].trim();
+        if t.is_empty() || is_block_line(t, block_tags) {
+            break;
+        }
+        j += 1;
+    }
+    // Skip empty lines
+    while j < len && lines[j].trim().is_empty() {
+        j += 1;
+    }
+
+    if j >= len {
+        return true;
+    }
+
+    let t = lines[j].trim();
+    is_block_line(t, block_tags)
 }
 
 // ============================================================================
@@ -3035,6 +3301,152 @@ by <a href="/people/author.html">Author Name</a>
         assert_eq!(
             normalize_html_output(r#"<br /><input required="">"#),
             "<br><input required>"
+        );
+    }
+
+    // --- wrap_bare_text_in_paragraphs tests ---
+
+    #[test]
+    fn test_wrap_bare_text_between_h3_and_ul() {
+        let html = "<h3 id=\"intro\">Intro</h3>\n\nSome bare text here\n<ul>\n<li>item</li>\n</ul>";
+        let result = wrap_bare_text_in_paragraphs(html);
+        assert!(
+            result.contains("<p>Some bare text here</p>"),
+            "Bare text between h3 and ul should be wrapped in <p>. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_wrap_bare_text_with_inline_html() {
+        let html = "<h3>Title</h3>\n\nText with <span class=\"cls\">span</span>\n<ul>\n<li>item</li>\n</ul>";
+        let result = wrap_bare_text_in_paragraphs(html);
+        assert!(
+            result.contains("<p>Text with <span class=\"cls\">span</span></p>"),
+            "Bare text with inline elements should be wrapped. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_wrap_bare_text_does_not_wrap_inside_ul() {
+        let html = "<ul>\n<li>item 1</li>\nbare text\n<li>item 2</li>\n</ul>";
+        let result = wrap_bare_text_in_paragraphs(html);
+        assert!(
+            !result.contains("<p>bare text</p>"),
+            "Text inside ul should NOT be wrapped. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_wrap_bare_text_does_not_wrap_inside_div() {
+        let html = "<div>\nsome text\n</div>";
+        let result = wrap_bare_text_in_paragraphs(html);
+        assert!(
+            !result.contains("<p>some text</p>"),
+            "Text inside div should NOT be wrapped. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_wrap_bare_text_preserves_existing_p_tags() {
+        let html = "<h3>Title</h3>\n<p>Already wrapped</p>\n<ul>\n<li>item</li>\n</ul>";
+        let result = wrap_bare_text_in_paragraphs(html);
+        assert!(
+            result.contains("<p>Already wrapped</p>"),
+            "Existing p tags should be preserved. Got: {}",
+            result
+        );
+        // Should not double-wrap
+        assert!(
+            !result.contains("<p><p>"),
+            "Should not double-wrap. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_wrap_bare_text_does_not_wrap_inside_pre() {
+        let html = "<pre><code>line 1\nline 2\n</code></pre>";
+        let result = wrap_bare_text_in_paragraphs(html);
+        assert!(
+            !result.contains("<p>line"),
+            "Text inside pre should NOT be wrapped. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_wrap_bare_text_course_page_pattern() {
+        // This is the exact pattern from the course page
+        let html = concat!(
+            "<h3 id=\"intro\">Introduction to Machine Learning</h3>\n",
+            "Course overview &ndash; <span class=\"datetime\">Monday</span>\n",
+            "<ul>\n",
+            "<li>item 1</li>\n",
+            "<li>item 2</li>\n",
+            "</ul>\n",
+            "<p><a href=\"url\">Lesson materials</a></p>\n",
+        );
+        let result = wrap_bare_text_in_paragraphs(html);
+        assert!(
+            result
+                .contains("<p>Course overview &ndash; <span class=\"datetime\">Monday</span></p>"),
+            "Course subtitle should be wrapped in <p>. Got: {}",
+            result
+        );
+        // Lesson materials should still be wrapped
+        assert!(
+            result.contains("<p><a href=\"url\">Lesson materials</a></p>"),
+            "Existing p-wrapped content should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_wrap_bare_text_multiple_sections() {
+        let html = concat!(
+            "<h3>Section 1</h3>\n",
+            "Subtitle 1\n",
+            "<ul>\n<li>a</li>\n</ul>\n",
+            "<h3>Section 2</h3>\n",
+            "Subtitle 2\n",
+            "<ul>\n<li>b</li>\n</ul>\n",
+        );
+        let result = wrap_bare_text_in_paragraphs(html);
+        assert!(
+            result.contains("<p>Subtitle 1</p>"),
+            "First subtitle should be wrapped. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<p>Subtitle 2</p>"),
+            "Second subtitle should be wrapped. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_wrap_bare_text_no_wrapping_needed() {
+        let html = "<h3>Title</h3>\n<p>Content</p>\n<ul>\n<li>item</li>\n</ul>";
+        let result = wrap_bare_text_in_paragraphs(html);
+        assert_eq!(
+            result, html,
+            "When no bare text exists, output should be unchanged"
+        );
+    }
+
+    #[test]
+    fn test_wrap_bare_text_via_postprocess() {
+        // Test that it works through the full postprocess pipeline
+        let html = "<h3>Title</h3>\nBare text here\n<ul>\n<li>item</li>\n</ul>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("<p>Bare text here</p>"),
+            "Bare text should be wrapped via postprocess. Got: {}",
+            result
         );
     }
 }
