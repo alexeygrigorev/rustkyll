@@ -4,7 +4,7 @@
 //! time limits and produce correct output. All tests that build large sites
 //! are marked with `#[ignore]` to keep the default test suite fast.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -46,7 +46,7 @@ fn build_site_cached(source: &Path, destination: &Path) -> (usize, usize, Vec<St
     let data_tree = if data_dir.exists() {
         data::load_data(&data_dir).unwrap()
     } else {
-        HashMap::new()
+        data::DataTree::new()
     };
 
     let mut collections: HashMap<String, Vec<CollectionItem>> = HashMap::new();
@@ -688,7 +688,7 @@ fn test_slim_site_context_excludes_large_arrays() {
     collections.insert("podcast".to_string(), vec![item]);
 
     let config = SiteConfig::default();
-    let data = HashMap::new();
+    let data = BTreeMap::new();
     let pages = vec![];
 
     let site = generator::build_site_context(&config, &collections, &data, None, &pages);
@@ -771,7 +771,7 @@ fn test_slim_site_context_keeps_small_arrays() {
     collections.insert("people".to_string(), vec![item]);
 
     let config = SiteConfig::default();
-    let data = HashMap::new();
+    let data = BTreeMap::new();
     let pages = vec![];
 
     let site = generator::build_site_context(&config, &collections, &data, None, &pages);

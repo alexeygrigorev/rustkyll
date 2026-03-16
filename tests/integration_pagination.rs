@@ -3,7 +3,7 @@
 //! Tests the full pagination pipeline: config extraction, paginator variable
 //! in templates, page generation, and prev/next navigation links.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fs;
 use std::path::Path;
 
@@ -123,7 +123,7 @@ title: Home
     // Build site context
     let mut collections: HashMap<String, Vec<CollectionItem>> = HashMap::new();
     collections.insert("posts".to_string(), posts.clone());
-    let data = HashMap::new();
+    let data = BTreeMap::new();
     let site_context =
         generator::build_site_context(&config, &collections, &data, Some(site_dir), &pages);
 
@@ -203,7 +203,7 @@ title: Home
 
     let mut collections: HashMap<String, Vec<CollectionItem>> = HashMap::new();
     collections.insert("posts".to_string(), posts.clone());
-    let data = HashMap::new();
+    let data = BTreeMap::new();
     let site_context =
         generator::build_site_context(&config, &collections, &data, Some(site_dir), &pages);
 
@@ -314,7 +314,7 @@ title: Home
 
     let mut collections: HashMap<String, Vec<CollectionItem>> = HashMap::new();
     collections.insert("posts".to_string(), posts.clone());
-    let data = HashMap::new();
+    let data = BTreeMap::new();
     let site_context =
         generator::build_site_context(&config, &collections, &data, Some(site_dir), &pages);
 
@@ -411,7 +411,7 @@ title: Home
 
     let mut collections: HashMap<String, Vec<CollectionItem>> = HashMap::new();
     collections.insert("posts".to_string(), posts.clone());
-    let data = HashMap::new();
+    let data = BTreeMap::new();
     let site_context =
         generator::build_site_context(&config, &collections, &data, Some(site_dir), &pages);
 

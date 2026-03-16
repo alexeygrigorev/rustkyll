@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
@@ -28,7 +28,10 @@ pub enum DataError {
 }
 
 /// A data tree mapping keys (derived from filenames) to parsed YAML values.
-pub type DataTree = HashMap<String, serde_yaml::Value>;
+///
+/// Uses `BTreeMap` to ensure deterministic alphabetical iteration order,
+/// matching Jekyll's behavior of iterating data files in sorted order.
+pub type DataTree = BTreeMap<String, serde_yaml::Value>;
 
 /// Load all YAML data files from the given directory into a data tree.
 ///
@@ -47,16 +50,22 @@ pub fn load_data(data_dir: &Path) -> Result<DataTree, DataError> {
 
     let mut tree = DataTree::new();
 
-    let entries = fs::read_dir(data_dir).map_err(|e| DataError::ReadDir {
-        path: data_dir.display().to_string(),
-        source: e,
-    })?;
-
-    for entry in entries {
-        let entry = entry.map_err(|e| DataError::ReadDir {
+    // Collect and sort directory entries to ensure deterministic order.
+    // Jekyll processes data files in alphabetical order; fs::read_dir does not
+    // guarantee any particular ordering.
+    let mut paths: Vec<_> = fs::read_dir(data_dir)
+        .map_err(|e| DataError::ReadDir {
+            path: data_dir.display().to_string(),
+            source: e,
+        })?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| DataError::ReadDir {
             path: data_dir.display().to_string(),
             source: e,
         })?;
+    paths.sort_by_key(|e| e.file_name());
+
+    for entry in paths {
         let path = entry.path();
 
         if path.is_dir() {
@@ -65,7 +74,8 @@ pub fn load_data(data_dir: &Path) -> Result<DataTree, DataError> {
                 None => continue,
             };
             let sub_tree = load_directory_files(&path)?;
-            // Convert the sub-tree HashMap into a serde_yaml::Value::Mapping
+            // Convert the sub-tree BTreeMap into a serde_yaml::Value::Mapping
+            // (serde_yaml::Mapping preserves insertion order)
             let mut mapping = serde_yaml::Mapping::new();
             for (key, value) in sub_tree {
                 mapping.insert(serde_yaml::Value::String(key), value);
@@ -83,20 +93,27 @@ pub fn load_data(data_dir: &Path) -> Result<DataTree, DataError> {
     Ok(tree)
 }
 
-/// Load all YAML files in a single directory (non-recursive) into a HashMap.
-fn load_directory_files(dir: &Path) -> Result<HashMap<String, serde_yaml::Value>, DataError> {
-    let mut map = HashMap::new();
+/// Load all YAML files in a single directory (non-recursive) into a BTreeMap.
+///
+/// Uses `BTreeMap` so that keys are in sorted order, matching Jekyll's
+/// alphabetical iteration over data subdirectory files.
+fn load_directory_files(dir: &Path) -> Result<BTreeMap<String, serde_yaml::Value>, DataError> {
+    let mut map = BTreeMap::new();
 
-    let entries = fs::read_dir(dir).map_err(|e| DataError::ReadDir {
-        path: dir.display().to_string(),
-        source: e,
-    })?;
-
-    for entry in entries {
-        let entry = entry.map_err(|e| DataError::ReadDir {
+    // Collect and sort entries for deterministic ordering
+    let mut paths: Vec<_> = fs::read_dir(dir)
+        .map_err(|e| DataError::ReadDir {
+            path: dir.display().to_string(),
+            source: e,
+        })?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| DataError::ReadDir {
             path: dir.display().to_string(),
             source: e,
         })?;
+    paths.sort_by_key(|e| e.file_name());
+
+    for entry in paths {
         let path = entry.path();
 
         if path.is_file() && is_yaml_file(&path) {
@@ -143,7 +160,6 @@ fn load_yaml_file(path: &Path) -> Result<serde_yaml::Value, DataError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
     use tempfile::TempDir;
 
     // ========================================================================
@@ -426,6 +442,66 @@ mod tests {
                 .and_then(|v| v.as_str()),
             Some("second")
         );
+    }
+
+    // ========================================================================
+    // Issue 122: Data listing order is deterministic and sorted
+    // ========================================================================
+
+    #[test]
+    fn test_data_tree_keys_sorted_alphabetically() {
+        let dir = TempDir::new().unwrap();
+        // Create files in non-alphabetical order
+        fs::write(dir.path().join("zebra.yaml"), "value: 3\n").unwrap();
+        fs::write(dir.path().join("alpha.yml"), "value: 1\n").unwrap();
+        fs::write(dir.path().join("middle.yaml"), "value: 2\n").unwrap();
+
+        let tree = load_data(dir.path()).unwrap();
+        let keys: Vec<&String> = tree.keys().collect();
+        assert_eq!(
+            keys,
+            vec!["alpha", "middle", "zebra"],
+            "DataTree keys should be in sorted order"
+        );
+    }
+
+    #[test]
+    fn test_subdirectory_keys_sorted_alphabetically() {
+        let dir = TempDir::new().unwrap();
+        let sub = dir.path().join("faqs");
+        fs::create_dir(&sub).unwrap();
+        // Create files in non-alphabetical order
+        fs::write(sub.join("zebra-faq.yml"), "- q: z\n").unwrap();
+        fs::write(sub.join("alpha-faq.yml"), "- q: a\n").unwrap();
+        fs::write(sub.join("middle-faq.yml"), "- q: m\n").unwrap();
+
+        let tree = load_data(dir.path()).unwrap();
+        let faqs = tree["faqs"].as_mapping().unwrap();
+        let keys: Vec<&str> = faqs.keys().filter_map(|k| k.as_str()).collect();
+        assert_eq!(
+            keys,
+            vec!["alpha-faq", "middle-faq", "zebra-faq"],
+            "Subdirectory keys should be in sorted order"
+        );
+    }
+
+    #[test]
+    fn test_data_order_deterministic_across_loads() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("c.yaml"), "value: 3\n").unwrap();
+        fs::write(dir.path().join("a.yaml"), "value: 1\n").unwrap();
+        fs::write(dir.path().join("b.yaml"), "value: 2\n").unwrap();
+
+        // Load multiple times and verify order is always the same
+        for _ in 0..5 {
+            let tree = load_data(dir.path()).unwrap();
+            let keys: Vec<&String> = tree.keys().collect();
+            assert_eq!(
+                keys,
+                vec!["a", "b", "c"],
+                "DataTree keys must be deterministically sorted"
+            );
+        }
     }
 
     #[test]
