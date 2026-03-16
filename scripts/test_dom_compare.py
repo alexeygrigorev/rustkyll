@@ -306,6 +306,105 @@ class TestRegressionDetection(unittest.TestCase):
         self.assertGreater(len(diffs), 0, "Expected missing data attribute diff")
 
 
+class TestHTMLFragments(unittest.TestCase):
+    """Tests for HTML fragments without <html> root element.
+
+    Theme sites (e.g. just-the-docs) may produce HTML without proper
+    <html> root. DOM comparison must handle these gracefully.
+    """
+
+    def test_fragment_identical(self):
+        """Two identical HTML fragments (no <html> root) should have 0 diffs."""
+        html = '<div class="container"><h1>Hello</h1><p>World</p></div>'
+        tree1 = parse_and_normalize(html)
+        tree2 = parse_and_normalize(html)
+        diffs = compare_trees(tree1, tree2)
+        self.assertEqual(len(diffs), 0, f"Expected no diffs, got: {diffs}")
+
+    def test_fragment_with_differences(self):
+        """HTML fragments with differences should detect them."""
+        html1 = '<div><h1>Jekyll</h1><p>Content A</p></div>'
+        html2 = '<div><h1>Rustkyll</h1><p>Content B</p></div>'
+        tree1 = parse_and_normalize(html1)
+        tree2 = parse_and_normalize(html2)
+        diffs = compare_trees(tree1, tree2)
+        self.assertGreater(len(diffs), 0, "Expected diffs in fragments")
+        has_text_diff = any(d.diff_type == "text_differs" for d in diffs)
+        self.assertTrue(has_text_diff, f"Expected text_differs, got: {diffs}")
+
+    def test_fragment_multiple_roots(self):
+        """Multiple root-level elements (no single <html> root) should work."""
+        html = '<header>Nav</header><main>Content</main><footer>Foot</footer>'
+        tree1 = parse_and_normalize(html)
+        tree2 = parse_and_normalize(html)
+        diffs = compare_trees(tree1, tree2)
+        self.assertEqual(len(diffs), 0, f"Expected no diffs, got: {diffs}")
+
+    def test_fragment_vs_fragment_missing_element(self):
+        """Missing element in a fragment should be detected."""
+        html1 = '<header>Nav</header><main>Content</main><footer>Foot</footer>'
+        html2 = '<header>Nav</header><main>Content</main>'
+        tree1 = parse_and_normalize(html1)
+        tree2 = parse_and_normalize(html2)
+        diffs = compare_trees(tree1, tree2)
+        self.assertGreater(len(diffs), 0, "Expected missing element diff")
+        has_missing = any("missing" in d.diff_type for d in diffs)
+        self.assertTrue(has_missing, f"Expected missing element, got: {diffs}")
+
+    def test_bare_text_fragment(self):
+        """Bare text content (no tags at all) should be handled."""
+        html = 'Just some plain text'
+        tree1 = parse_and_normalize(html)
+        tree2 = parse_and_normalize(html)
+        diffs = compare_trees(tree1, tree2)
+        self.assertEqual(len(diffs), 0, f"Expected no diffs, got: {diffs}")
+
+    def test_fragment_with_doctype_only(self):
+        """Fragment with doctype but no <html> tag should work."""
+        html1 = '<!DOCTYPE html><div>Content</div>'
+        html2 = '<!DOCTYPE html><div>Content</div>'
+        tree1 = parse_and_normalize(html1)
+        tree2 = parse_and_normalize(html2)
+        diffs = compare_trees(tree1, tree2)
+        self.assertEqual(len(diffs), 0, f"Expected no diffs, got: {diffs}")
+
+    def test_fragment_file_comparison(self):
+        """compare_html_files should work with fragment HTML files."""
+        import tempfile
+        import shutil
+        tmpdir = tempfile.mkdtemp()
+        try:
+            j_path = os.path.join(tmpdir, "j.html")
+            r_path = os.path.join(tmpdir, "r.html")
+            with open(j_path, "w") as f:
+                f.write('<div class="content"><p>Hello</p></div>')
+            with open(r_path, "w") as f:
+                f.write('<div class="content"><p>Hello</p></div>')
+            diffs = compare_html_files(j_path, r_path)
+            self.assertEqual(len(diffs), 0, f"Expected no diffs, got: {diffs}")
+        finally:
+            shutil.rmtree(tmpdir)
+
+    def test_fragment_directory_comparison(self):
+        """compare_directories should work when all files are HTML fragments."""
+        import shutil
+        tmpdir = tempfile.mkdtemp()
+        try:
+            j_dir = os.path.join(tmpdir, "jekyll")
+            r_dir = os.path.join(tmpdir, "rustkyll")
+            os.makedirs(j_dir)
+            os.makedirs(r_dir)
+            fragment = '<nav>Menu</nav><main><h1>Page</h1></main>'
+            with open(os.path.join(j_dir, "index.html"), "w") as f:
+                f.write(fragment)
+            with open(os.path.join(r_dir, "index.html"), "w") as f:
+                f.write(fragment)
+            exit_code = compare_directories(j_dir, r_dir)
+            self.assertEqual(exit_code, 0)
+        finally:
+            shutil.rmtree(tmpdir)
+
+
 class TestCLI(unittest.TestCase):
     """Test the command-line interface."""
 

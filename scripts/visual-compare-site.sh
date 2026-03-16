@@ -75,10 +75,12 @@ JPID=$!
 python3 -m http.server "$RUSTKYLL_PORT" --directory "$RUSTKYLL_DIR" --bind 127.0.0.1 &>/dev/null &
 RPID=$!
 
-# Wait for servers
+# Wait for servers (accept any HTTP response, not just 200,
+# since sites without index.html return 404 but still work)
 for i in $(seq 1 15); do
-  if curl -sf "http://localhost:$JEKYLL_PORT/" >/dev/null 2>&1 && \
-     curl -sf "http://localhost:$RUSTKYLL_PORT/" >/dev/null 2>&1; then
+  J_CODE=$(curl -so /dev/null -w '%{http_code}' --max-time 2 "http://localhost:$JEKYLL_PORT/" 2>/dev/null || echo "000")
+  R_CODE=$(curl -so /dev/null -w '%{http_code}' --max-time 2 "http://localhost:$RUSTKYLL_PORT/" 2>/dev/null || echo "000")
+  if [[ "$J_CODE" != "000" ]] && [[ "$R_CODE" != "000" ]]; then
     break
   fi
   sleep 0.5

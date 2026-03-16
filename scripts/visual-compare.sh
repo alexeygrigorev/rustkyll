@@ -172,12 +172,14 @@ python3 -m http.server "$RUSTKYLL_PORT" --directory "$RUSTKYLL_DIR" --bind 127.0
 RUSTKYLL_SERVER_PID=$!
 echo "  Rustkyll server: http://localhost:$RUSTKYLL_PORT (PID $RUSTKYLL_SERVER_PID)"
 
-# Wait for servers to be ready
+# Wait for servers to be ready (accept any HTTP response, not just 200,
+# since sites without index.html at root will return 404 but still work)
 echo "  Waiting for servers..."
 for i in $(seq 1 30); do
-    if curl -sf "http://localhost:$JEKYLL_PORT/" >/dev/null 2>&1 && \
-       curl -sf "http://localhost:$RUSTKYLL_PORT/" >/dev/null 2>&1; then
-        echo "  Both servers are ready."
+    J_CODE=$(curl -so /dev/null -w '%{http_code}' --max-time 2 "http://localhost:$JEKYLL_PORT/" 2>/dev/null || echo "000")
+    R_CODE=$(curl -so /dev/null -w '%{http_code}' --max-time 2 "http://localhost:$RUSTKYLL_PORT/" 2>/dev/null || echo "000")
+    if [[ "$J_CODE" != "000" ]] && [[ "$R_CODE" != "000" ]]; then
+        echo "  Both servers are ready (Jekyll: HTTP $J_CODE, Rustkyll: HTTP $R_CODE)."
         break
     fi
     if [[ "$i" -eq 30 ]]; then
@@ -187,23 +189,10 @@ for i in $(seq 1 30); do
     sleep 1
 done
 
-# Verify servers return HTML (write to temp file to avoid pipefail/SIGPIPE issues)
-verify_html() {
-    local url="$1"
-    local label="$2"
-    local tmpfile
-    tmpfile=$(mktemp)
-    curl -sf --max-time 10 "$url" > "$tmpfile" 2>/dev/null || true
-    if ! grep -qi '<html' "$tmpfile"; then
-        echo "ERROR: $label server did not return valid HTML at $url"
-        rm -f "$tmpfile"
-        exit 1
-    fi
-    rm -f "$tmpfile"
-}
-verify_html "http://localhost:$JEKYLL_PORT/" "Jekyll"
-verify_html "http://localhost:$RUSTKYLL_PORT/" "Rustkyll"
-echo "  Both servers returning valid HTML."
+# Note: We intentionally do NOT verify that servers return valid HTML with
+# an <html> root element. Many theme sites produce HTML fragments (no <html>
+# tag), and browsers render them just fine. BeautifulSoup also handles them.
+echo "  Both servers responding."
 
 # Set up Playwright if needed
 echo ""
