@@ -1133,10 +1133,7 @@ fn wrap_fenced_code_blocks(html: &str) -> String {
                 // Try syntax highlighting; fall back to plain code if unsupported
                 let raw_code = html_unescape(code_content);
                 if let Some(highlighted) = crate::syntax::highlight_code(&lang, &raw_code) {
-                    // Move trailing newlines from inside spans to outside,
-                    // matching Rouge behavior.
-                    let fixed = highlighted.replace("\n</span>", "</span>\n");
-                    result.push_str(&fixed);
+                    result.push_str(&highlighted);
                 } else {
                     result.push_str(code_content);
                 }
@@ -1887,21 +1884,11 @@ fn indent_list_items(html: &str) -> String {
                 result.push_str(close_tag);
                 remaining = &remaining[close_pos + close_tag.len()..];
             } else {
-                // Tight list: kramdown indents <li> items by 2 spaces.
+                // Tight list: kramdown does NOT indent <li> items.
+                // Just pass through the list content as-is.
                 result.push_str(list_tag);
                 result.push('\n');
-                for line in list_content.lines() {
-                    if line.starts_with("<li") || line.starts_with("</li>") {
-                        result.push_str("  ");
-                        result.push_str(line);
-                        result.push('\n');
-                    } else if !line.is_empty() {
-                        result.push_str(line);
-                        result.push('\n');
-                    } else {
-                        result.push('\n');
-                    }
-                }
+                result.push_str(list_content);
                 result.push_str(close_tag);
                 remaining = &remaining[close_pos + close_tag.len()..];
             }
@@ -4449,12 +4436,50 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     #[test]
-    fn test_issue164_tight_list_indent() {
+    fn test_issue166_tight_list_no_indent() {
+        // Issue 166: Jekyll/kramdown does NOT indent <li> items in tight lists.
+        // Verified against actual Jekyll output for blog/how-to-run-postgresql-and-pgadmin-with-docker.html.
         let input = "<ul>\n<li>Item one</li>\n<li>Item two</li>\n</ul>\n";
         let result = indent_list_items(input);
+        assert_eq!(
+            result, "<ul>\n<li>Item one</li>\n<li>Item two</li>\n</ul>\n",
+            "Tight list <li> should NOT be indented (matches Jekyll). Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue166_tight_list_ol_no_indent() {
+        // Ordered tight lists also should not be indented
+        let input = "<ol>\n<li>First</li>\n<li>Second</li>\n<li>Third</li>\n</ol>\n";
+        let result = indent_list_items(input);
+        assert_eq!(
+            result, "<ol>\n<li>First</li>\n<li>Second</li>\n<li>Third</li>\n</ol>\n",
+            "Tight ordered list <li> should NOT be indented. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue166_loose_list_still_indented() {
+        // Loose lists (with <p> inside <li>) should still be indented.
+        let input = "<ul>\n<li>\n<p>Item one</p>\n</li>\n<li>\n<p>Item two</p>\n</li>\n</ul>\n";
+        let result = indent_list_items(input);
         assert!(
-            result.contains("  <li>Item one</li>"),
-            "Tight list <li> should be indented. Got:\n{}",
+            result.contains("  <li>\n    <p>Item one</p>\n  </li>"),
+            "Loose list items should still be indented. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue166_tight_list_end_to_end() {
+        // End-to-end test: markdown with tight list should produce non-indented <li>
+        let md = "Some text:\n\n- Item A\n- Item B\n- Item C\n\nMore text.\n";
+        let result = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            result.contains("<ul>\n<li>Item A</li>\n<li>Item B</li>\n<li>Item C</li>\n</ul>"),
+            "End-to-end tight list should have non-indented <li>. Got:\n{}",
             result
         );
     }
@@ -4472,6 +4497,42 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             result.contains("</p>\n\n</blockquote>"),
             "Blank line before </blockquote> expected (matches Jekyll). Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue165_tight_list_no_indent() {
+        // Jekyll/kramdown does NOT indent <li> in tight lists.
+        // Verified against actual Jekyll output for blog/ner-reformers.html.
+        let input = "<ul>\n<li>Item one</li>\n<li>Item two</li>\n</ul>\n";
+        let result = indent_list_items(input);
+        assert!(
+            result.contains("<li>Item one</li>"),
+            "Tight list <li> should appear in output. Got:\n{}",
+            result
+        );
+        assert!(
+            !result.contains("  <li>Item one</li>"),
+            "Tight list <li> should NOT be indented (matches Jekyll). Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue165_python_comment_newline_in_code_block() {
+        // Jekyll/Rouge keeps trailing newline INSIDE the comment span.
+        // Verified against actual Jekyll output for blog/ner-reformers.html.
+        let input = "<pre><code class=\"language-python\">import trax # comment\n</code></pre>\n";
+        let result = wrap_fenced_code_blocks(input);
+        assert!(
+            result.contains("# comment\n</span>"),
+            "Comment span should keep trailing newline inside (matching Rouge). Got:\n{}",
+            result
+        );
+        assert!(
+            !result.contains("# comment</span>\n"),
+            "Comment closing tag should NOT be before the newline. Got:\n{}",
             result
         );
     }

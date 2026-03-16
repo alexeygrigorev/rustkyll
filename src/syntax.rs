@@ -1557,6 +1557,17 @@ mod tests {
     }
 
     #[test]
+    fn test_issue165_python_comment_trailing_newline_inside_span() {
+        // Rouge/Jekyll keeps trailing newlines INSIDE comment spans for Python.
+        let code = "import trax # Our Main Library\nfrom trax import layers as tl\n";
+        let html = highlight_code("python", code).unwrap();
+        assert!(
+            html.contains("<span class=\"c1\"># Our Main Library\n</span>"),
+            "Python comment span should include trailing newline (matching Rouge). Got:\n{html}"
+        );
+    }
+
+    #[test]
     fn test_issue163_yaml_comment_trailing_newline_inside_span() {
         // Rouge/Jekyll keeps trailing newlines INSIDE spans.
         let code = "# This is a comment\nkey: value\n";
