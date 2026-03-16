@@ -414,8 +414,18 @@ fn strip_p_in_tag(html: &str, tag: &str) -> String {
             let inner_content = &inner[..close_offset];
             let after_close = &inner[close_offset + close_pattern.len()..];
 
-            // Decide whether to strip <p> tags from the inner content
-            let processed_inner = maybe_strip_p_tags(inner_content);
+            // For <li> elements: bare <li> (no attributes) comes from markdown
+            // list syntax. In loose lists (items separated by blank lines),
+            // kramdown wraps content in <p> tags -- and so does pulldown-cmark.
+            // We must preserve those <p> tags. Only strip <p> from <li> elements
+            // with attributes (e.g. <li class="podcast">), which come from raw
+            // HTML / Liquid includes where pulldown-cmark erroneously adds <p>.
+            let is_bare_li = tag == "li" && opening_tag == "<li>";
+            let processed_inner = if is_bare_li {
+                inner_content.to_string()
+            } else {
+                maybe_strip_p_tags(inner_content)
+            };
 
             result.push_str(opening_tag);
             result.push_str(&processed_inner);
@@ -2531,12 +2541,26 @@ mod tests {
     }
 
     #[test]
-    fn test_strip_p_in_nested_ul_li() {
-        let html = "<ul><li><p><a href=\"url\">Link</a> text</p></li><li><p>Other</p></li></ul>";
+    fn test_strip_p_in_nested_ul_li_with_attrs() {
+        // Raw HTML <li> with attributes (from Liquid includes) should strip <p>.
+        // Bare <li> (from markdown) should preserve <p> for loose list support.
+        let html = "<ul><li class=\"item\"><p><a href=\"url\">Link</a> text</p></li><li class=\"item\"><p>Other</p></li></ul>";
         let result = strip_paragraphs_in_html_blocks(html);
         assert!(
             !result.contains("<p>"),
-            "Should strip <p> in all <li> elements. Got: {}",
+            "Should strip <p> in <li> elements with attributes. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_preserve_p_in_bare_li() {
+        // Bare <li> (from markdown loose lists) should preserve <p> tags.
+        let html = "<ul>\n<li><p>First item</p></li>\n<li><p>Second item</p></li>\n</ul>";
+        let result = strip_paragraphs_in_html_blocks(html);
+        assert!(
+            result.contains("<li><p>First item</p></li>"),
+            "Should preserve <p> in bare <li> elements. Got: {}",
             result
         );
     }
@@ -3506,6 +3530,93 @@ by <a href="/people/author.html">Author Name</a>
             result.contains("<p>Bare text here</p>"),
             "Bare text should be wrapped via postprocess. Got: {}",
             result
+        );
+    }
+
+    // ========================================================================
+    // Issue 124: Kramdown loose list <p> wrapping
+    // ========================================================================
+
+    #[test]
+    fn test_loose_list_preserves_p_tags_in_li() {
+        // Markdown loose list (blank lines between items) should wrap each
+        // item's content in <p> tags, matching kramdown behavior.
+        let input =
+            "* First item paragraph.\n\n* Second item paragraph.\n\n* Third item paragraph.\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        // Each <li> should contain a <p> tag
+        assert!(
+            html.contains("<li>\n<p>First item paragraph.</p>"),
+            "Loose list <li> should preserve <p> wrapping. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<li>\n<p>Second item paragraph.</p>"),
+            "Loose list <li> should preserve <p> wrapping. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<li>\n<p>Third item paragraph.</p>"),
+            "Loose list <li> should preserve <p> wrapping. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_tight_list_no_p_tags_in_li() {
+        // Tight list (no blank lines) should NOT have <p> tags in <li>.
+        let input = "* First item\n* Second item\n* Third item\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        // Count <p> tags - there should be none inside <li> for tight lists
+        assert!(
+            !html.contains("<li>\n<p>"),
+            "Tight list should not have <p> inside <li>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_loose_list_multi_paragraph_item() {
+        // A loose list item with multiple paragraphs should preserve all <p> tags.
+        let input =
+            "* First paragraph of item.\n\n  Second paragraph of same item.\n\n* Another item.\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<p>First paragraph of item.</p>"),
+            "First paragraph in multi-paragraph item should be <p>-wrapped. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<p>Second paragraph of same item.</p>"),
+            "Second paragraph in multi-paragraph item should be <p>-wrapped. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_html_li_with_attributes_still_strips_p() {
+        // Raw HTML <li> with attributes (from Liquid includes) should still strip <p>.
+        let html = "<li class=\"podcast\"><p><a href=\"url\">Title</a> on date</p></li>";
+        let result = strip_paragraphs_in_html_blocks(html);
+        assert!(
+            !result.contains("<p>"),
+            "HTML <li> with attributes should still strip <p>. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_readme_driven_development_loose_list() {
+        // The actual pattern from mojombo-blog readme-driven-development post:
+        // a loose list where items are long paragraphs separated by blank lines.
+        let input = "* Most importantly, you\u{2019}re giving yourself a chance to think through the project.\n\n* As a byproduct of writing a Readme, you\u{2019}ll have nice documentation.\n\n* If you\u{2019}re working with a team, everyone can start work on other projects.\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        // Each item should be wrapped in <p> (loose list behavior)
+        let li_p_count = html.matches("<li>\n<p>").count();
+        assert_eq!(
+            li_p_count, 3,
+            "All 3 loose list items should have <p> wrapping. Got: {}",
+            html
         );
     }
 }
