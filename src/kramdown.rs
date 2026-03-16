@@ -1160,6 +1160,7 @@ fn wrap_bare_text_in_paragraphs(html: &str) -> String {
         "dl",
         "dd",
         "dt",
+        "script",
     ];
 
     /// Block-level tags (includes void/self-closing like hr).
@@ -1200,6 +1201,7 @@ fn wrap_bare_text_in_paragraphs(html: &str) -> String {
         "dd",
         "dt",
         "p",
+        "script",
     ];
 
     let lines: Vec<&str> = html.split('\n').collect();
@@ -1313,6 +1315,12 @@ fn compute_depth_delta(trimmed: &str, container_tags: &[&str]) -> i32 {
 
 /// Check if a trimmed line starts/ends with a block-level HTML element.
 fn is_block_line(trimmed: &str, block_tags: &[&str]) -> bool {
+    // HTML comments are block-level elements (CommonMark type 2).
+    // They must not be wrapped in <p> tags.
+    if trimmed.starts_with("<!--") {
+        return true;
+    }
+
     for tag in block_tags {
         // Opening tag: <tag> or <tag ...>
         let open = format!("<{}", tag);
@@ -3611,6 +3619,168 @@ by <a href="/people/author.html">Author Name</a>
         assert_eq!(
             li_p_count, 3,
             "All 3 loose list items should have <p> wrapping. Got: {}",
+            html
+        );
+    }
+
+    // ========================================================================
+    // Issue 144: HTML comments and script tags must not be wrapped in <p>
+    // ========================================================================
+
+    #[test]
+    fn test_html_comment_not_wrapped_in_p_by_wrap_bare_text() {
+        // HTML comments between block elements should not be wrapped in <p> tags
+        let input = "<h2>Heading</h2>\n<!-- FAQ Accordion Component -->\n<div class=\"faq\">\ncontent\n</div>";
+        let result = wrap_bare_text_in_paragraphs(input);
+        assert!(
+            !result.contains("<p><!--"),
+            "HTML comment should not be wrapped in <p>, got: {}",
+            result
+        );
+        assert!(
+            result.contains("<!-- FAQ Accordion Component -->"),
+            "HTML comment should be preserved, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_script_tag_not_wrapped_in_p_by_wrap_bare_text() {
+        // Script tags between block elements should not be wrapped in <p> tags
+        let input =
+            "</div>\n<script src=\"/assets/accordion.js\"></script>\n<div>\ncontent\n</div>";
+        let result = wrap_bare_text_in_paragraphs(input);
+        assert!(
+            !result.contains("<p><script"),
+            "Script tag should not be wrapped in <p>, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_accordion_include_output_not_wrapped_in_p() {
+        // Full accordion include output pattern: comment + div + JSON-LD script + accordion.js script
+        let input = "<h2>FAQ</h2>\n\
+                      <!-- FAQ Accordion Component -->\n\
+                      <div class=\"faq-accordion\">\n\
+                      <div class=\"faq-item\">Q&A</div>\n\
+                      </div>\n\
+                      \n\
+                      <!-- FAQ Schema Markup (JSON-LD) -->\n\
+                      <script type=\"application/ld+json\">\n\
+                      {\"@type\": \"FAQPage\"}\n\
+                      </script>\n\
+                      \n\
+                      <!-- Load accordion JavaScript -->\n\
+                      <script src=\"/assets/accordion.js\"></script>";
+        let result = wrap_bare_text_in_paragraphs(input);
+        assert!(
+            !result.contains("<p><!--"),
+            "HTML comments should not be wrapped in <p>, got: {}",
+            result
+        );
+        assert!(
+            !result.contains("<p><script"),
+            "Script tags should not be wrapped in <p>, got: {}",
+            result
+        );
+        assert!(
+            result.contains("<script src=\"/assets/accordion.js\"></script>"),
+            "Accordion script tag should be preserved intact, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_postprocess_preserves_accordion_script() {
+        // End-to-end test through postprocess
+        let input = "<h2>FAQ</h2>\n\
+                      <!-- FAQ Accordion Component -->\n\
+                      <div class=\"faq-accordion\">\n\
+                      <div class=\"faq-item\">Q&A</div>\n\
+                      </div>\n\
+                      \n\
+                      <script type=\"application/ld+json\">\n\
+                      {\"@type\": \"FAQPage\"}\n\
+                      </script>\n\
+                      \n\
+                      <!-- Load accordion JavaScript -->\n\
+                      <script src=\"/assets/accordion.js\"></script>";
+        let result = postprocess(input);
+        assert!(
+            !result.contains("<p><!--"),
+            "HTML comments should not be wrapped in <p> after postprocess, got: {}",
+            result
+        );
+        assert!(
+            !result.contains("<p><script"),
+            "Script tags should not be wrapped in <p> after postprocess, got: {}",
+            result
+        );
+        assert!(
+            result.contains("<script src=\"/assets/accordion.js\"></script>"),
+            "Accordion script tag should be present after postprocess, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_course_structured_data_script_not_wrapped_in_p() {
+        // Course structured data include: comment followed by script tag
+        let input = "</div>\n\
+                      \n\
+                      <!-- Course Structured Data -->\n\
+                      <script type=\"application/ld+json\">\n\
+                      {\"@type\": \"Course\"}\n\
+                      </script>";
+        let result = wrap_bare_text_in_paragraphs(input);
+        assert!(
+            !result.contains("<p><!--"),
+            "Comment before script should not be wrapped in <p>, got: {}",
+            result
+        );
+        assert!(
+            !result.contains("<p><script"),
+            "Script tag should not be wrapped in <p>, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_full_pipeline_accordion_script_placement() {
+        // Full pipeline test: markdown_to_html (which includes postprocess)
+        // simulating the content after Liquid processing
+        let input = "## Frequently Asked Questions\n\
+                      \n\
+                      <!-- FAQ Accordion Component -->\n\
+                      <div class=\"faq-accordion\">\n\
+                      <div class=\"faq-item\">\n\
+                      <button>Q1</button>\n\
+                      </div>\n\
+                      </div>\n\
+                      \n\
+                      <!-- FAQ Schema Markup (JSON-LD) -->\n\
+                      <script type=\"application/ld+json\">\n\
+                      {\"@type\": \"FAQPage\"}\n\
+                      </script>\n\
+                      \n\
+                      <!-- Load accordion JavaScript -->\n\
+                      <script src=\"/assets/accordion.js\"></script>\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<p><!--"),
+            "HTML comments should not be wrapped in <p> in full pipeline, got: {}",
+            html
+        );
+        assert!(
+            html.contains("<script src=\"/assets/accordion.js\"></script>"),
+            "Accordion script tag should be present in full pipeline, got: {}",
+            html
+        );
+        // The script tag should NOT be inside a <p>
+        assert!(
+            !html.contains("<p><script"),
+            "Script tag should not be inside <p> in full pipeline, got: {}",
             html
         );
     }
