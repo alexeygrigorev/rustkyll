@@ -1,0 +1,938 @@
+{
+  "text-content-differs": {
+    "count": 1347,
+    "file_count": 263,
+    "examples": [
+      {
+        "file": "blog/data-narrative.html",
+        "path": "body > div > div > div > div > p",
+        "expected": "'I have a good friend who is terrible at telling stories. No matter how interesting the topic, his stories always seem to fall flat. He tends to focus on facts and is generally unable to create confli",
+        "actual": "'Great stories don\u2019t simply communicate events and facts. They frame them in a way that engages the audience from start to finish. Great stories have 3 essential parts: characters, conflicts, and a co"
+      },
+      {
+        "file": "blog/data-narrative.html",
+        "path": "body > div > div > div > div > p",
+        "expected": "'My sister, however, is a fantastic storyteller. She is able to make the most mundane events engaging. Her stories seem to connect with \\u200b'",
+        "actual": "'I have a good friend who is terrible at telling stories. No matter how interesting the topic, his stories always seem to fall flat. He tends to focus on facts and is generally unable to create confli"
+      },
+      {
+        "file": "blog/data-narrative.html",
+        "path": "body > div > div > div > div > p",
+        "expected": "'Next, identify your conflict. It should relate directly to what the characters are experiencing. What problems are they facing? Why are these problems so important? How are these issues affecting the",
+        "actual": "'First, every story needs characters. Data affects somebody. Identify these people. It could be stakeholders such as customers or employees. It could be the general public. It could even be your audie"
+      }
+    ]
+  },
+  "attribute-differs-unknown": {
+    "count": 590,
+    "file_count": 25,
+    "examples": [
+      {
+        "file": "blog/data-roles.html",
+        "path": "body > div > div > div > div > h2",
+        "expected": "\"id='devops--site-reliability-engineer'\"",
+        "actual": "\"id='devops-site-reliability-engineer'\""
+      },
+      {
+        "file": "blog/datatalks-club-community-demographics.html",
+        "path": "body > div > div > div > div > h2",
+        "expected": "\"id='career-level--seniority'\"",
+        "actual": "\"id='career-level-seniority'\""
+      },
+      {
+        "file": "blog/datatalks-club-community-demographics.html",
+        "path": "body > div > div > div > div > h2",
+        "expected": "\"id='industry--sector'\"",
+        "actual": "\"id='industry-sector'\""
+      }
+    ]
+  },
+  "paragraph-wrapping": {
+    "count": 512,
+    "file_count": 42,
+    "examples": [
+      {
+        "file": "blog/ai-dev-tools-zoomcamp-2025-free-course-to-master-coding-assistants-agents-and-automation.html",
+        "path": "body > div > div > div > div > child[52]",
+        "expected": "'div'",
+        "actual": "'p'"
+      },
+      {
+        "file": "blog/ai-dev-tools-zoomcamp-2025-free-course-to-master-coding-assistants-agents-and-automation.html",
+        "path": "body > div > div > div > div > child[56]",
+        "expected": "'p'",
+        "actual": "'div'"
+      },
+      {
+        "file": "blog/ai-dev-tools-zoomcamp-2025-free-course-to-master-coding-assistants-agents-and-automation.html",
+        "path": "body > div > div > div > div > child[57]",
+        "expected": "'div'",
+        "actual": "'p'"
+      }
+    ]
+  },
+  "expected-element-got-text": {
+    "count": 356,
+    "file_count": 36,
+    "examples": [
+      {
+        "file": "blog/building-data-science-team.html",
+        "path": "body > div > div > div > div > ul > li",
+        "expected": "'<p>'",
+        "actual": "'Very customer-centric'"
+      },
+      {
+        "file": "blog/building-data-science-team.html",
+        "path": "body > div > div > div > div > ul > li",
+        "expected": "'<p>'",
+        "actual": "'Delivering features very fast'"
+      },
+      {
+        "file": "blog/building-data-science-team.html",
+        "path": "body > div > div > div > div > ul > li",
+        "expected": "'<p>'",
+        "actual": "'Testing these things out with customers very fast.'"
+      }
+    ]
+  },
+  "missing-element-span": {
+    "count": 299,
+    "file_count": 8,
+    "examples": [
+      {
+        "file": "blog/do-you-know-golden-rules-while-working-with-data.html",
+        "path": "body > div > div > div > div > div > div > pre > code > span",
+        "expected": "'<span>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/do-you-know-golden-rules-while-working-with-data.html",
+        "path": "body > div > div > div > div > div > div > pre > code > span",
+        "expected": "'<span>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/do-you-know-golden-rules-while-working-with-data.html",
+        "path": "body > div > div > div > div > div > div > pre > code > span",
+        "expected": "'<span>'",
+        "actual": "'(none)'"
+      }
+    ]
+  },
+  "missing-paragraph-or-br": {
+    "count": 260,
+    "file_count": 38,
+    "examples": [
+      {
+        "file": "blog/building-data-science-team.html",
+        "path": "body > div > div > div > div > ul > li > p",
+        "expected": "'<p>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/building-data-science-team.html",
+        "path": "body > div > div > div > div > ul > li > p",
+        "expected": "'<p>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/building-data-science-team.html",
+        "path": "body > div > div > div > div > ul > li > p",
+        "expected": "'<p>'",
+        "actual": "'(none)'"
+      }
+    ]
+  },
+  "jsonld-text-content-diff": {
+    "count": 256,
+    "file_count": 256,
+    "examples": [
+      {
+        "file": "blog/8-newsletters-for-data-science-ai-and-ml-enthusiasts.html",
+        "path": "body > script",
+        "expected": "'{ \"@context\": \"https://schema.org\", \"@graph\": [ { \"@type\": \"Article\", \"@id\": \"https://datatalks.club/blog/8-newsletters-for-data-science-ai-and-ml-enthusiasts.html\", \"headline\": \"8 Newsletters for Da",
+        "actual": "'{ \"@context\": \"https://schema.org\", \"@graph\": [ { \"@type\": \"Article\", \"@id\": \"https://datatalks.club/blog/8-newsletters-for-data-science-ai-and-ml-enthusiasts.html\", \"headline\": \"8 Newsletters for Da"
+      },
+      {
+        "file": "blog/ai-dev-tools-zoomcamp-2025-free-course-to-master-coding-assistants-agents-and-automation.html",
+        "path": "body > script",
+        "expected": "'{ \"@context\": \"https://schema.org\", \"@graph\": [ { \"@type\": \"Article\", \"@id\": \"https://datatalks.club/blog/ai-dev-tools-zoomcamp-2025-free-course-to-master-coding-assistants-agents-and-automation.html",
+        "actual": "'{ \"@context\": \"https://schema.org\", \"@graph\": [ { \"@type\": \"Article\", \"@id\": \"https://datatalks.club/blog/ai-dev-tools-zoomcamp-2025-free-course-to-master-coding-assistants-agents-and-automation.html"
+      },
+      {
+        "file": "blog/ai-tools-for-personal-productivity.html",
+        "path": "body > script",
+        "expected": "'{ \"@context\": \"https://schema.org\", \"@graph\": [ { \"@type\": \"Article\", \"@id\": \"https://datatalks.club/blog/ai-tools-for-personal-productivity.html\", \"headline\": \"How Do Professionals Use AI Tools for ",
+        "actual": "'{ \"@context\": \"https://schema.org\", \"@graph\": [ { \"@type\": \"Article\", \"@id\": \"https://datatalks.club/blog/ai-tools-for-personal-productivity.html\", \"headline\": \"How Do Professionals Use AI Tools for "
+      }
+    ]
+  },
+  "extra-text": {
+    "count": 180,
+    "file_count": 38,
+    "examples": [
+      {
+        "file": "blog/ai-dev-tools-zoomcamp-2025-free-course-to-master-coding-assistants-agents-and-automation.html",
+        "path": "body > div > div > div > div > script",
+        "expected": "'(none)'",
+        "actual": "'{ \"@context\": \"https://schema.org\", \"@type\": \"FAQPage\", \"mainEntity\": [ { \"@type\": \"Question\", \"name'"
+      },
+      {
+        "file": "blog/ai-tools-for-personal-productivity.html",
+        "path": "body > div > div > div > div > ol > li",
+        "expected": "'(none)'",
+        "actual": "'Many professionals use AI for coding and research. However, embedding these tools into broader workf'"
+      },
+      {
+        "file": "blog/ai-tools-for-personal-productivity.html",
+        "path": "body > div > div > div > div > ol > li",
+        "expected": "'(none)'",
+        "actual": "'Many users still struggle to obtain high-quality, contextually relevant outputs. As AI becomes more '"
+      }
+    ]
+  },
+  "extra-script-element": {
+    "count": 101,
+    "file_count": 100,
+    "examples": [
+      {
+        "file": "blog/guide-to-free-online-courses-at-datatalks-club.html",
+        "path": "body > div > div > div > div > script",
+        "expected": "'(none)'",
+        "actual": "'<script>'"
+      },
+      {
+        "file": "blog/how-do-data-professionals-use-data-engineering-tools-and-practices.html",
+        "path": "head > meta > link > link > link > link > script",
+        "expected": "'(none)'",
+        "actual": "'<script>'"
+      },
+      {
+        "file": "blog/how-do-data-professionals-use-data-engineering-tools-and-practices.html",
+        "path": "head > meta > link > link > link > link > script",
+        "expected": "'(none)'",
+        "actual": "'<script>'"
+      }
+    ]
+  },
+  "missing-text": {
+    "count": 79,
+    "file_count": 22,
+    "examples": [
+      {
+        "file": "blog/ai-tools-for-personal-productivity.html",
+        "path": "body > div > div > div > div > div > p",
+        "expected": "\"We'll keep you informed about our events, articles, courses, and everything else happening in the Cl\"",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/data-engineering-zoomcamp.html",
+        "path": "body > div > div > div > div > div > p",
+        "expected": "\"We'll keep you informed about our events, articles, courses, and everything else happening in the Cl\"",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/data-narrative.html",
+        "path": "body > div > div > div > div > p",
+        "expected": "'. \\u200b People laugh. Listeners pay attention. Others retell her stories. She combines characters, confl'",
+        "actual": "'(none)'"
+      }
+    ]
+  },
+  "tag-name-differs-other": {
+    "count": 69,
+    "file_count": 18,
+    "examples": [
+      {
+        "file": "blog/essentials-of-public-speaking-for-career-in-data-science.html",
+        "path": "body > div > div > div > div > child[6]",
+        "expected": "'ul'",
+        "actual": "'h2'"
+      },
+      {
+        "file": "blog/essentials-of-public-speaking-for-career-in-data-science.html",
+        "path": "body > div > div > div > div > child[15]",
+        "expected": "'ul'",
+        "actual": "'figure'"
+      },
+      {
+        "file": "blog/essentials-of-public-speaking-for-career-in-data-science.html",
+        "path": "body > div > div > div > div > child[22]",
+        "expected": "'figure'",
+        "actual": "'h3'"
+      }
+    ]
+  },
+  "extra-attribute-unknown": {
+    "count": 55,
+    "file_count": 30,
+    "examples": [
+      {
+        "file": "blog/ai-dev-tools-zoomcamp-2025-free-course-to-master-coding-assistants-agents-and-automation.html",
+        "path": "body > div > div > div > div > script",
+        "expected": "'(none)'",
+        "actual": "\"type='application/ld+json'\""
+      },
+      {
+        "file": "blog/data-engineering-zoomcamp.html",
+        "path": "body > div > div > div > div > script",
+        "expected": "'(none)'",
+        "actual": "\"type='application/ld+json'\""
+      },
+      {
+        "file": "blog/essentials-of-public-speaking-for-career-in-data-science.html",
+        "path": "body > div > div > div > div > figure",
+        "expected": "'(none)'",
+        "actual": "\"target='_blank'\""
+      }
+    ]
+  },
+  "element-type-mismatch": {
+    "count": 46,
+    "file_count": 18,
+    "examples": [
+      {
+        "file": "blog/ai-dev-tools-zoomcamp-2025-free-course-to-master-coding-assistants-agents-and-automation.html",
+        "path": "body > div > div > div > div > child[53]",
+        "expected": "'script'",
+        "actual": "'div'"
+      },
+      {
+        "file": "blog/ai-dev-tools-zoomcamp-2025-free-course-to-master-coding-assistants-agents-and-automation.html",
+        "path": "body > div > div > div > div > child[55]",
+        "expected": "'div'",
+        "actual": "'script'"
+      },
+      {
+        "file": "blog/ai-dev-tools-zoomcamp-2025-free-course-to-master-coding-assistants-agents-and-automation.html",
+        "path": "body > div > div > div > div > child[58]",
+        "expected": "'script'",
+        "actual": "'div'"
+      }
+    ]
+  },
+  "extra-element-span": {
+    "count": 43,
+    "file_count": 2,
+    "examples": [
+      {
+        "file": "blog/ner-reformers.html",
+        "path": "body > div > div > div > div > div > div > pre > code > span",
+        "expected": "'(none)'",
+        "actual": "'<span>'"
+      },
+      {
+        "file": "blog/ner-reformers.html",
+        "path": "body > div > div > div > div > div > div > pre > code > span",
+        "expected": "'(none)'",
+        "actual": "'<span>'"
+      },
+      {
+        "file": "blog/ner-reformers.html",
+        "path": "body > div > div > div > div > div > div > pre > code > span",
+        "expected": "'(none)'",
+        "actual": "'<span>'"
+      }
+    ]
+  },
+  "missing-attribute-unknown": {
+    "count": 31,
+    "file_count": 10,
+    "examples": [
+      {
+        "file": "blog/ai-dev-tools-zoomcamp-2025-free-course-to-master-coding-assistants-agents-and-automation.html",
+        "path": "body > div > div > div > div > script",
+        "expected": "\"src='/assets/accordion.js'\"",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/data-engineering-zoomcamp.html",
+        "path": "body > div > div > div > div > script",
+        "expected": "\"src='/assets/accordion.js'\"",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/free-machine-learning-courses.html",
+        "path": "body > div > div > div > div > script",
+        "expected": "\"src='/assets/accordion.js'\"",
+        "actual": "'(none)'"
+      }
+    ]
+  },
+  "expected-text-got-element": {
+    "count": 28,
+    "file_count": 10,
+    "examples": [
+      {
+        "file": "blog/data-narrative.html",
+        "path": "body > div > div > div > div > p",
+        "expected": "'Great stories don\u2019t simply communicate events and facts. They frame them in a way that engages the a'",
+        "actual": "'<em>'"
+      },
+      {
+        "file": "blog/data-narrative.html",
+        "path": "body > div > div > div > div > p",
+        "expected": "'This approach, however, lacks engagement.'",
+        "actual": "'<em>'"
+      },
+      {
+        "file": "blog/data-narrative.html",
+        "path": "body > div > div > div > div > p",
+        "expected": "'After hooking your audience during an introduction, you\u2019d then go on to explain the issue more in-de'",
+        "actual": "'<em>'"
+      }
+    ]
+  },
+  "extra-element-a": {
+    "count": 26,
+    "file_count": 15,
+    "examples": [
+      {
+        "file": "blog/data-engineers-arent-plumbers.html",
+        "path": "body > div > div > div > div > figure > figcaption > a",
+        "expected": "'(none)'",
+        "actual": "'<a>'"
+      },
+      {
+        "file": "blog/data-engineers-arent-plumbers.html",
+        "path": "body > div > div > div > div > figure > figcaption > a",
+        "expected": "'(none)'",
+        "actual": "'<a>'"
+      },
+      {
+        "file": "blog/data-engineers-arent-plumbers.html",
+        "path": "body > div > div > div > div > figure > figcaption > a",
+        "expected": "'(none)'",
+        "actual": "'<a>'"
+      }
+    ]
+  },
+  "extra-paragraph-or-br": {
+    "count": 25,
+    "file_count": 19,
+    "examples": [
+      {
+        "file": "blog/ai-dev-tools-zoomcamp-2025-free-course-to-master-coding-assistants-agents-and-automation.html",
+        "path": "body > div > div > div > div > p",
+        "expected": "'(none)'",
+        "actual": "'<p>'"
+      },
+      {
+        "file": "blog/data-engineering-zoomcamp.html",
+        "path": "body > div > div > div > div > p",
+        "expected": "'(none)'",
+        "actual": "'<p>'"
+      },
+      {
+        "file": "blog/data-narrative.html",
+        "path": "body > div > div > div > div > p",
+        "expected": "'(none)'",
+        "actual": "'<p>'"
+      }
+    ]
+  },
+  "missing-element-li": {
+    "count": 21,
+    "file_count": 5,
+    "examples": [
+      {
+        "file": "blog/how-do-data-professionals-use-data-engineering-tools-and-practices.html",
+        "path": "body > div > div > div > div > ul > li",
+        "expected": "'<li>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/how-do-data-professionals-use-data-engineering-tools-and-practices.html",
+        "path": "body > div > div > div > div > ul > li",
+        "expected": "'<li>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/how-do-data-professionals-use-data-engineering-tools-and-practices.html",
+        "path": "body > div > div > div > div > ul > li",
+        "expected": "'<li>'",
+        "actual": "'(none)'"
+      }
+    ]
+  },
+  "extra-element-ul": {
+    "count": 20,
+    "file_count": 8,
+    "examples": [
+      {
+        "file": "blog/ml-deployment-lambda.html",
+        "path": "body > div > div > div > div > ul",
+        "expected": "'(none)'",
+        "actual": "'<ul>'"
+      },
+      {
+        "file": "blog/ner-reformers.html",
+        "path": "body > div > div > div > div > ul",
+        "expected": "'(none)'",
+        "actual": "'<ul>'"
+      },
+      {
+        "file": "blog/segmentation.html",
+        "path": "body > div > div > div > div > ul",
+        "expected": "'(none)'",
+        "actual": "'<ul>'"
+      }
+    ]
+  },
+  "missing-element-ul": {
+    "count": 16,
+    "file_count": 7,
+    "examples": [
+      {
+        "file": "blog/how-do-data-professionals-use-data-engineering-tools-and-practices.html",
+        "path": "body > div > div > div > div > ul",
+        "expected": "'<ul>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/how-do-data-professionals-use-data-engineering-tools-and-practices.html",
+        "path": "body > div > div > div > div > ul",
+        "expected": "'<ul>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/how-do-data-professionals-use-data-engineering-tools-and-practices.html",
+        "path": "body > div > div > div > div > ul",
+        "expected": "'<ul>'",
+        "actual": "'(none)'"
+      }
+    ]
+  },
+  "missing-element-em": {
+    "count": 14,
+    "file_count": 6,
+    "examples": [
+      {
+        "file": "blog/data-narrative.html",
+        "path": "body > div > div > div > div > p > em",
+        "expected": "'<em>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/data-narrative.html",
+        "path": "body > div > div > div > div > p > em",
+        "expected": "'<em>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/data-narrative.html",
+        "path": "body > div > div > div > div > p > em",
+        "expected": "'<em>'",
+        "actual": "'(none)'"
+      }
+    ]
+  },
+  "extra-element-em": {
+    "count": 12,
+    "file_count": 8,
+    "examples": [
+      {
+        "file": "blog/data-narrative.html",
+        "path": "body > div > div > div > div > p > em",
+        "expected": "'(none)'",
+        "actual": "'<em>'"
+      },
+      {
+        "file": "blog/data-narrative.html",
+        "path": "body > div > div > div > div > p > em",
+        "expected": "'(none)'",
+        "actual": "'<em>'"
+      },
+      {
+        "file": "blog/data-narrative.html",
+        "path": "body > div > div > div > div > p > em",
+        "expected": "'(none)'",
+        "actual": "'<em>'"
+      }
+    ]
+  },
+  "missing-anchor-element": {
+    "count": 11,
+    "file_count": 6,
+    "examples": [
+      {
+        "file": "blog/essentials-of-public-speaking-for-career-in-data-science.html",
+        "path": "body > div > div > div > div > p > a",
+        "expected": "'<a>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/essentials-of-public-speaking-for-career-in-data-science.html",
+        "path": "body > div > div > div > div > p > a",
+        "expected": "'<a>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/how-to-run-postgresql-and-pgadmin-with-docker.html",
+        "path": "body > div > div > div > div > p > a",
+        "expected": "'<a>'",
+        "actual": "'(none)'"
+      }
+    ]
+  },
+  "extra-element-code": {
+    "count": 10,
+    "file_count": 3,
+    "examples": [
+      {
+        "file": "blog/how-to-setup-lightweight-local-version-for-airflow.html",
+        "path": "body > div > div > div > div > ul > li > code",
+        "expected": "'(none)'",
+        "actual": "'<code>'"
+      },
+      {
+        "file": "blog/how-to-setup-lightweight-local-version-for-airflow.html",
+        "path": "body > div > div > div > div > ul > li > code",
+        "expected": "'(none)'",
+        "actual": "'<code>'"
+      },
+      {
+        "file": "blog/ml-deployment-lambda.html",
+        "path": "body > div > div > div > div > p > code",
+        "expected": "'(none)'",
+        "actual": "'<code>'"
+      }
+    ]
+  },
+  "extra-element-ol": {
+    "count": 10,
+    "file_count": 5,
+    "examples": [
+      {
+        "file": "books/20210405-the-practitioners-guide-to-graph-data.html",
+        "path": "body > div > div > div > div > div > div > ol",
+        "expected": "'(none)'",
+        "actual": "'<ol>'"
+      },
+      {
+        "file": "books/20210823-business-skills-for-data-scientists.html",
+        "path": "body > div > div > div > div > div > div > ol",
+        "expected": "'(none)'",
+        "actual": "'<ol>'"
+      },
+      {
+        "file": "books/20231106-analytics-engineering-with-sql-and-dbt.html",
+        "path": "body > div > div > div > div > div > div > ol",
+        "expected": "'(none)'",
+        "actual": "'<ol>'"
+      }
+    ]
+  },
+  "missing-element-code": {
+    "count": 9,
+    "file_count": 7,
+    "examples": [
+      {
+        "file": "blog/ml-deployment-lambda.html",
+        "path": "body > div > div > div > div > p > code",
+        "expected": "'<code>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/ml-deployment-lambda.html",
+        "path": "body > div > div > div > div > p > code",
+        "expected": "'<code>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/practical-guide-better-code.html",
+        "path": "body > div > div > div > div > p > code",
+        "expected": "'<code>'",
+        "actual": "'(none)'"
+      }
+    ]
+  },
+  "missing-element-strong": {
+    "count": 7,
+    "file_count": 3,
+    "examples": [
+      {
+        "file": "blog/essentials-of-public-speaking-for-career-in-data-science.html",
+        "path": "body > div > div > div > div > p > strong",
+        "expected": "'<strong>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/how-do-data-professionals-use-data-engineering-tools-and-practices.html",
+        "path": "body > div > div > div > div > ul > li > strong",
+        "expected": "'<strong>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/ml-deployment-lambda.html",
+        "path": "body > div > div > div > div > p > strong",
+        "expected": "'<strong>'",
+        "actual": "'(none)'"
+      }
+    ]
+  },
+  "missing-element-h2": {
+    "count": 5,
+    "file_count": 1,
+    "examples": [
+      {
+        "file": "blog/how-do-data-professionals-use-data-engineering-tools-and-practices.html",
+        "path": "body > div > div > div > div > h2",
+        "expected": "'<h2>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/how-do-data-professionals-use-data-engineering-tools-and-practices.html",
+        "path": "body > div > div > div > div > h2",
+        "expected": "'<h2>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/how-do-data-professionals-use-data-engineering-tools-and-practices.html",
+        "path": "body > div > div > div > div > h2",
+        "expected": "'<h2>'",
+        "actual": "'(none)'"
+      }
+    ]
+  },
+  "missing-element-h3": {
+    "count": 5,
+    "file_count": 2,
+    "examples": [
+      {
+        "file": "blog/how-do-data-professionals-use-data-engineering-tools-and-practices.html",
+        "path": "body > div > div > div > div > h3",
+        "expected": "'<h3>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/how-do-data-professionals-use-data-engineering-tools-and-practices.html",
+        "path": "body > div > div > div > div > h3",
+        "expected": "'<h3>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/how-do-data-professionals-use-data-engineering-tools-and-practices.html",
+        "path": "body > div > div > div > div > h3",
+        "expected": "'<h3>'",
+        "actual": "'(none)'"
+      }
+    ]
+  },
+  "extra-element-strong": {
+    "count": 4,
+    "file_count": 2,
+    "examples": [
+      {
+        "file": "blog/devops-and-mlops-same-thing.html",
+        "path": "body > div > div > div > div > ul > li > strong",
+        "expected": "'(none)'",
+        "actual": "'<strong>'"
+      },
+      {
+        "file": "blog/devops-and-mlops-same-thing.html",
+        "path": "body > div > div > div > div > ul > li > strong",
+        "expected": "'(none)'",
+        "actual": "'<strong>'"
+      },
+      {
+        "file": "blog/devops-and-mlops-same-thing.html",
+        "path": "body > div > div > div > div > ul > li > strong",
+        "expected": "'(none)'",
+        "actual": "'<strong>'"
+      }
+    ]
+  },
+  "extra-element-div": {
+    "count": 4,
+    "file_count": 4,
+    "examples": [
+      {
+        "file": "books/20210222-ml-algotrading-2ed.html",
+        "path": "body > div > div > div > div > div > div",
+        "expected": "'(none)'",
+        "actual": "'<div>'"
+      },
+      {
+        "file": "books/20211206-deep-learning-with-fastai-cookbook.html",
+        "path": "body > div > div > div > div > div > div",
+        "expected": "'(none)'",
+        "actual": "'<div>'"
+      },
+      {
+        "file": "books/20241017-build-large-language-model-from-scratch.html",
+        "path": "body > div > div > div > div > div > div",
+        "expected": "'(none)'",
+        "actual": "'<div>'"
+      }
+    ]
+  },
+  "extra-element-pre": {
+    "count": 4,
+    "file_count": 3,
+    "examples": [
+      {
+        "file": "books/20210322-street-coder.html",
+        "path": "body > div > div > div > div > div > div > pre",
+        "expected": "'(none)'",
+        "actual": "'<pre>'"
+      },
+      {
+        "file": "books/20211213-mastering-spacy.html",
+        "path": "body > div > div > div > div > div > div > pre",
+        "expected": "'(none)'",
+        "actual": "'<pre>'"
+      },
+      {
+        "file": "books/20211213-mastering-spacy.html",
+        "path": "body > div > div > div > div > div > div > pre",
+        "expected": "'(none)'",
+        "actual": "'<pre>'"
+      }
+    ]
+  },
+  "missing-element-ol": {
+    "count": 4,
+    "file_count": 4,
+    "examples": [
+      {
+        "file": "books/20210823-business-skills-for-data-scientists.html",
+        "path": "body > div > div > div > div > div > div > ul > li > ol",
+        "expected": "'<ol>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "books/20220926-graph-algorithms-for-data-science.html",
+        "path": "body > div > div > div > div > div > div > ol",
+        "expected": "'<ol>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "books/20221121-reliable-machine-learning.html",
+        "path": "body > div > div > div > div > div > div > ol",
+        "expected": "'<ol>'",
+        "actual": "'(none)'"
+      }
+    ]
+  },
+  "extra-element-figcaption": {
+    "count": 3,
+    "file_count": 1,
+    "examples": [
+      {
+        "file": "blog/how-do-professionals-use-llm-tools-and-frameworks.html",
+        "path": "body > div > div > div > div > figure > figcaption",
+        "expected": "'(none)'",
+        "actual": "'<figcaption>'"
+      },
+      {
+        "file": "blog/how-do-professionals-use-llm-tools-and-frameworks.html",
+        "path": "body > div > div > div > div > figure > figcaption",
+        "expected": "'(none)'",
+        "actual": "'<figcaption>'"
+      },
+      {
+        "file": "blog/how-do-professionals-use-llm-tools-and-frameworks.html",
+        "path": "body > div > div > div > div > figure > figcaption",
+        "expected": "'(none)'",
+        "actual": "'<figcaption>'"
+      }
+    ]
+  },
+  "extra-element-blockquote": {
+    "count": 3,
+    "file_count": 1,
+    "examples": [
+      {
+        "file": "books/20231106-analytics-engineering-with-sql-and-dbt.html",
+        "path": "body > div > div > div > div > div > div > blockquote",
+        "expected": "'(none)'",
+        "actual": "'<blockquote>'"
+      },
+      {
+        "file": "books/20231106-analytics-engineering-with-sql-and-dbt.html",
+        "path": "body > div > div > div > div > div > div > blockquote",
+        "expected": "'(none)'",
+        "actual": "'<blockquote>'"
+      },
+      {
+        "file": "books/20231106-analytics-engineering-with-sql-and-dbt.html",
+        "path": "body > div > div > div > div > div > div > blockquote",
+        "expected": "'(none)'",
+        "actual": "'<blockquote>'"
+      }
+    ]
+  },
+  "missing-div-element": {
+    "count": 2,
+    "file_count": 2,
+    "examples": [
+      {
+        "file": "blog/free-machine-learning-courses.html",
+        "path": "body > div > div > div > div > div",
+        "expected": "'<div>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "books/20231106-analytics-engineering-with-sql-and-dbt.html",
+        "path": "body > div > div > div > div > div > div",
+        "expected": "'<div>'",
+        "actual": "'(none)'"
+      }
+    ]
+  },
+  "missing-element-img": {
+    "count": 2,
+    "file_count": 1,
+    "examples": [
+      {
+        "file": "blog/how-to-build-waste-classifier-case-study-from-ml-zoomcamp.html",
+        "path": "body > div > div > div > div > blockquote > figure > img",
+        "expected": "'<img>'",
+        "actual": "'(none)'"
+      },
+      {
+        "file": "blog/how-to-build-waste-classifier-case-study-from-ml-zoomcamp.html",
+        "path": "body > div > div > div > div > blockquote > figure > img",
+        "expected": "'<img>'",
+        "actual": "'(none)'"
+      }
+    ]
+  },
+  "extra-element-h3": {
+    "count": 1,
+    "file_count": 1,
+    "examples": [
+      {
+        "file": "blog/regularization-in-regression.html",
+        "path": "body > div > div > div > div > h3",
+        "expected": "'(none)'",
+        "actual": "'<h3>'"
+      }
+    ]
+  },
+  "missing-element-h1": {
+    "count": 1,
+    "file_count": 1,
+    "examples": [
+      {
+        "file": "books/20211213-mastering-spacy.html",
+        "path": "body > div > div > div > div > div > div > ul > li > h1",
+        "expected": "'<h1>'",
+        "actual": "'(none)'"
+      }
+    ]
+  },
+  "jsonld-null-vs-empty": {
+    "count": 1,
+    "file_count": 1,
+    "examples": [
+      {
+        "file": "slack/guidelines.html",
+        "path": "body > script",
+        "expected": "'{ \"@context\": \"https://schema.org\", \"@graph\": [ { \"@type\": \"Article\", \"@id\": \"https://datatalks.club/slack/guidelines\", \"headline\": \"Our Slack Community Guidelines\", \"alternativeHeadline\": \"Welcome t",
+        "actual": "'{ \"@context\": \"https://schema.org\", \"@graph\": [ { \"@type\": \"Article\", \"@id\": \"https://datatalks.club/slack/guidelines\", \"headline\": \"Our Slack Community Guidelines\", \"alternativeHeadline\": \"Welcome t"
+      }
+    ]
+  }
+}
