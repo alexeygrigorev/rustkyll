@@ -164,3 +164,55 @@ jobs:
             echo "=== Validating $site ==="
             ./scripts/compare-output.sh --validate-only --site "$site" || echo "WARN: $site validation failed"
           done
+
+  # Cross-platform integration tests (DTC site only, no Ruby/Jekyll)
+  cross-platform:
+    name: Cross-Platform (${{ matrix.os }})
+    needs: check-changes
+    if: needs.check-changes.outputs.has_changes == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            binary: target/release/rustkyll.exe
+          - os: macos-latest
+            binary: target/release/rustkyll
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry and target
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build rustkyll (release)
+        run: cargo build --release --verbose
+
+      - name: Run unit tests
+        run: cargo test --verbose
+
+      - name: Clone DTC site (shallow)
+        run: git clone --depth 1 https://github.com/DataTalksClub/datatalksclub.github.io.git dtc-site
+
+      - name: Build DTC site with rustkyll
+        shell: bash
+        run: |
+          "${{ matrix.binary }}" build --source dtc-site --destination "$RUNNER_TEMP/dtc-output"
+
+      - name: Validate HTML file count
+        shell: bash
+        run: |
+          MIN_HTML_FILES=100
+          HTML_COUNT=$(find "$RUNNER_TEMP/dtc-output" -name "*.html" -type f | wc -l)
+          echo "HTML files generated: $HTML_COUNT"
+          echo "Minimum required: $MIN_HTML_FILES"
+          if [ "$HTML_COUNT" -lt "$MIN_HTML_FILES" ]; then
+            echo "FAIL: HTML file count ($HTML_COUNT) is below minimum ($MIN_HTML_FILES)"
+            exit 1
+          else
+            echo "PASS: HTML file count ($HTML_COUNT) meets minimum ($MIN_HTML_FILES)"
+          fi
