@@ -1876,6 +1876,114 @@ mod tests {
         assert_eq!(out, "15 Mar 2024");
     }
 
+    /// Issue 140: naive YAML timestamp "2025-10-10 23:59:59" should produce
+    /// "11 Oct 2025" (not "10 Oct 2025") when the site timezone is Europe/Berlin,
+    /// because Ruby YAML treats this as UTC and Jekyll converts to local time.
+    #[test]
+    fn test_integration_date_to_string_book_end_date_with_timezone() {
+        let eng = engine();
+        let mut book = Object::new();
+        book.insert("end".into(), LiquidValue::scalar("2025-10-10 23:59:59"));
+        let mut site = Object::new();
+        site.insert("timezone".into(), LiquidValue::scalar("Europe/Berlin"));
+        let mut ctx = Object::new();
+        ctx.insert("book".into(), LiquidValue::Object(book));
+        ctx.insert("site".into(), LiquidValue::Object(site));
+        let out = eng
+            .parse_and_render("{{ book.end | date_to_string }}", &ctx)
+            .unwrap();
+        // CET (UTC+1 in Oct) shifts 23:59 UTC to 01:59 next day
+        assert_eq!(out, "11 Oct 2025");
+    }
+
+    /// Issue 140: with UTC timezone, the naive datetime stays on same day
+    /// since UTC->UTC conversion doesn't shift the date.
+    #[test]
+    fn test_integration_date_to_string_book_end_date_utc() {
+        let eng = engine();
+        let mut book = Object::new();
+        book.insert("end".into(), LiquidValue::scalar("2025-10-10 23:59:59"));
+        let mut site = Object::new();
+        site.insert("timezone".into(), LiquidValue::scalar("UTC"));
+        let mut ctx = Object::new();
+        ctx.insert("book".into(), LiquidValue::Object(book));
+        ctx.insert("site".into(), LiquidValue::Object(site));
+        let out = eng
+            .parse_and_render("{{ book.end | date_to_string }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "10 Oct 2025");
+    }
+
+    /// Issue 140: full YAML-to-template pipeline for book date range.
+    /// Parses YAML front matter, converts to Liquid values, and renders
+    /// the same template pattern used on books.html.
+    #[test]
+    fn test_integration_book_date_range_yaml_pipeline() {
+        let eng = engine();
+        let yaml_str = r#"
+start: 2025-10-06 00:00:00
+end: 2025-10-10 23:59:59
+title: "Test Book"
+"#;
+        let yaml: serde_yaml::Value = crate::yaml::parse_yaml_lenient(yaml_str).unwrap();
+        let book_liquid = crate::template::context::yaml_to_liquid(&yaml);
+
+        let mut site = Object::new();
+        site.insert("timezone".into(), LiquidValue::scalar("Europe/Berlin"));
+        let mut ctx = Object::new();
+        ctx.insert("book".into(), book_liquid);
+        ctx.insert("site".into(), LiquidValue::Object(site));
+        let out = eng
+            .parse_and_render(
+                "(from {{ book.start | date_to_string }} to {{ book.end | date_to_string }})",
+                &ctx,
+            )
+            .unwrap();
+        // Europe/Berlin in October is CET (UTC+1):
+        // start 2025-10-06 00:00:00 UTC -> 2025-10-06 01:00:00 CET -> "06 Oct 2025"
+        // end   2025-10-10 23:59:59 UTC -> 2025-10-11 00:59:59 CET -> "11 Oct 2025"
+        assert_eq!(out, "(from 06 Oct 2025 to 11 Oct 2025)");
+    }
+
+    /// Issue 140: multiple book end dates that historically had off-by-one.
+    /// Covers different months and DST vs non-DST periods.
+    #[test]
+    fn test_integration_book_end_dates_various_months() {
+        let eng = engine();
+        let mut site = Object::new();
+        site.insert("timezone".into(), LiquidValue::scalar("Europe/Berlin"));
+
+        // Each (input, expected_output) pair
+        let cases = [
+            // December: CET (UTC+1), 23:59 UTC -> 00:59+1 CET next day
+            ("2020-12-18 23:59:59", "19 Dec 2020"),
+            // September: CEST (UTC+2), 22:59 UTC -> 00:59+1 CEST next day
+            ("2021-09-10 22:59:58", "11 Sep 2021"),
+            // July: CEST (UTC+2), 22:59 UTC -> 00:59+1 CEST next day
+            ("2021-07-16 22:59:58", "17 Jul 2021"),
+            // March: CET (UTC+1), 22:59 UTC -> 23:59 CET same day
+            ("2021-03-12 22:59:58", "12 Mar 2021"),
+            // Start date at midnight UTC -> stays same day
+            ("2020-12-14 00:00:00", "14 Dec 2020"),
+        ];
+
+        for (input, expected) in &cases {
+            let mut book = Object::new();
+            book.insert("end".into(), LiquidValue::scalar(*input));
+            let mut ctx = Object::new();
+            ctx.insert("book".into(), LiquidValue::Object(book));
+            ctx.insert("site".into(), LiquidValue::Object(site.clone()));
+            let out = eng
+                .parse_and_render("{{ book.end | date_to_string }}", &ctx)
+                .unwrap();
+            assert_eq!(
+                out, *expected,
+                "Input '{}' should produce '{}', got '{}'",
+                input, expected, out
+            );
+        }
+    }
+
     #[test]
     fn test_integration_date_to_xmlschema_and_jsonify_chained() {
         let eng = engine();
