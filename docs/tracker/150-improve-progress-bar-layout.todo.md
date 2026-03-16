@@ -11,15 +11,18 @@ Two-line layout during rendering:
 - Line 2: Current file being rendered (updates independently)
 
 ```
-Rendering pages [████████████░░░░░░░░] 650/789
+Rendering pages [████████████░░░░░░░░] 650/789 (1.2s)
   → podcast/ai-for-ecology-biodiversity-and-conservation.html
 ```
+
+The elapsed time shows how long the build has been running so far.
 
 The progress bar stays stable while the filename updates below it.
 
 ## Acceptance criteria
 
-- Progress bar on line 1, current file on line 2
+- Progress bar on line 1 with elapsed time
+- Current file on line 2
 - Progress bar doesn't shift/jump when filename changes
 - Works on TTY (ANSI escape codes for cursor positioning)
 - Non-TTY: just print filename per line (no cursor tricks)
