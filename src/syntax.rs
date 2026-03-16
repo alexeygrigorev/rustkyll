@@ -105,6 +105,9 @@ fn build_scope_map() -> Vec<ScopeMapping> {
         ("support.class", "nb"),
         ("support.other", "n"),
         // ── Punctuation ──
+        // Bash line continuation (\<newline>) is `p` (punctuation) in Rouge.
+        // Note: `\\` (escaped backslash) is handled by constant.character.escape -> se.
+        ("punctuation.separator.continuation.line", "p"),
         // YAML-specific punctuation: key-value separator, block sequence item,
         // and flow sequence delimiters should map to `pi` (punctuation indicator)
         // to match Rouge.
@@ -169,7 +172,9 @@ fn find_syntax(lang: &str) -> Option<&'static SyntaxReference> {
         "js" => "javascript",
         "ts" => "typescript",
         "sh" | "shell" | "console" => "bash",
-        "dockerfile" => "Dockerfile",
+        // Note: "dockerfile"/"docker" is intentionally NOT aliased -- syntect has
+        // no Dockerfile grammar, and Rouge treats it as plaintext. Returning None
+        // triggers the plaintext fallback, matching Jekyll/Rouge behavior.
         "rb" => "ruby",
         "py" => "python",
         _ => return None,
@@ -783,6 +788,293 @@ mod tests {
         assert!(
             html.contains("\"hello\""),
             "quotes should be literal: {html}"
+        );
+    }
+
+    // ── SQL token mapping tests ──
+    // Rouge maps: SELECT/FROM/WHERE/JOIN/ON/AS/AND/NULL -> k (keyword),
+    // COUNT -> nb (built-in), column refs -> no, operators -> o
+
+    #[test]
+    fn test_sql_supported() {
+        let code = "SELECT 1\n";
+        let html = highlight_code("sql", code);
+        assert!(html.is_some(), "sql should be a known language");
+    }
+
+    #[test]
+    fn test_sql_select_is_k() {
+        let html = highlight_code("sql", "SELECT COUNT(c.nickname) AS number_nickname\n").unwrap();
+        assert!(
+            html.contains("<span class=\"k\">SELECT</span>"),
+            "SQL SELECT should map to k: {html}"
+        );
+    }
+
+    #[test]
+    fn test_sql_count_is_nb() {
+        let html = highlight_code("sql", "SELECT COUNT(c.nickname) AS number_nickname\n").unwrap();
+        assert!(
+            html.contains("<span class=\"nb\">COUNT</span>"),
+            "SQL COUNT should map to nb: {html}"
+        );
+    }
+
+    #[test]
+    fn test_sql_from_is_k() {
+        let html = highlight_code("sql", "SELECT 1\nFROM clients c\n").unwrap();
+        assert!(
+            html.contains("<span class=\"k\">FROM</span>"),
+            "SQL FROM should map to k: {html}"
+        );
+    }
+
+    #[test]
+    fn test_sql_left_join_is_k() {
+        let html =
+            highlight_code("sql", "SELECT 1\nFROM t1\nLEFT JOIN t2 ON t1.id=t2.id\n").unwrap();
+        assert!(
+            html.contains("<span class=\"k\">LEFT JOIN</span>")
+                || (html.contains("<span class=\"k\">LEFT</span>")
+                    && html.contains("<span class=\"k\">JOIN</span>")),
+            "SQL LEFT JOIN should map to k: {html}"
+        );
+    }
+
+    #[test]
+    fn test_sql_where_is_k() {
+        let html = highlight_code("sql", "SELECT 1\nFROM t\nWHERE t.id IS NULL\n").unwrap();
+        assert!(
+            html.contains("<span class=\"k\">WHERE</span>"),
+            "SQL WHERE should map to k: {html}"
+        );
+    }
+
+    #[test]
+    fn test_sql_null_is_k() {
+        let html = highlight_code("sql", "SELECT 1\nFROM t\nWHERE t.id IS NULL\n").unwrap();
+        assert!(
+            html.contains("<span class=\"k\">NULL</span>")
+                || html.contains("<span class=\"kc\">NULL</span>"),
+            "SQL NULL should map to k or kc: {html}"
+        );
+    }
+
+    #[test]
+    fn test_sql_as_is_k() {
+        let html = highlight_code("sql", "SELECT COUNT(1) AS cnt\n").unwrap();
+        assert!(
+            html.contains("<span class=\"k\">AS</span>"),
+            "SQL AS should map to k: {html}"
+        );
+    }
+
+    #[test]
+    fn test_sql_number_is_m() {
+        let html =
+            highlight_code("sql", "SELECT MONTH(current_date) - 1 AS previous_month\n").unwrap();
+        assert!(
+            html.contains("<span class=\"mi\">1</span>")
+                || html.contains("<span class=\"m\">1</span>"),
+            "SQL number should map to mi or m: {html}"
+        );
+    }
+
+    #[test]
+    fn test_sql_operator_is_o() {
+        let html =
+            highlight_code("sql", "SELECT MONTH(current_date) - 1 AS previous_month\n").unwrap();
+        assert!(
+            html.contains("<span class=\"o\">-</span>"),
+            "SQL minus operator should map to o: {html}"
+        );
+    }
+
+    // ── Docker (Dockerfile) tests ──
+    // Rouge treats "docker" language as plaintext (no syntax highlighting spans).
+    // Syntect's default set does not include Dockerfile syntax. Our highlighter
+    // correctly returns None for unknown languages, matching Rouge behavior.
+
+    #[test]
+    fn test_docker_returns_none() {
+        // "docker" is not a recognized language in syntect defaults, and Rouge
+        // treats it as plaintext, so returning None is correct behavior.
+        assert!(
+            highlight_code("docker", "FROM ubuntu:latest\n").is_none(),
+            "docker should return None (plaintext fallback, matching Rouge)"
+        );
+        assert!(
+            highlight_code("dockerfile", "FROM ubuntu:latest\n").is_none(),
+            "dockerfile should return None since syntect has no Dockerfile grammar"
+        );
+    }
+
+    // ── Regression tests: real DTC site code blocks ──
+    // These verify that our output matches Rouge for actual code from the
+    // DataTalks.Club blog posts.
+
+    #[test]
+    fn test_regression_bash_docker_volume() {
+        // From blog/how-to-run-postgresql-and-pgadmin-with-docker.html
+        let code = "docker volume create --name postgres_volume_local -d local\n";
+        let html = highlight_code("bash", code).unwrap();
+        // Rouge output: docker volume create <span class="nt">--name</span> ... <span class="nt">-d</span> local
+        assert!(
+            html.contains("<span class=\"nt\">--name</span>"),
+            "bash --name flag should be nt: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nt\">-d</span>"),
+            "bash -d flag should be nt: {html}"
+        );
+    }
+
+    #[test]
+    fn test_regression_bash_escaped_backslash_is_se() {
+        // From blog/how-to-run-postgresql-and-pgadmin-with-docker.html
+        // The markdown source has \\ (double backslash = literal backslash),
+        // which Rouge highlights as `se` (string escape).
+        let code = "docker run -it \\\\\n  --rm --name postgresql \\\\\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nt\">-it</span>"),
+            "bash -it flag should be nt: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"se\">\\\\</span>"),
+            "bash escaped backslash (\\\\) should be se: {html}"
+        );
+    }
+
+    #[test]
+    fn test_regression_bash_line_continuation_is_p() {
+        // From blog/ml-deployment-lambda.html
+        // Single backslash + newline (line continuation) is `p` in Rouge.
+        let code = "curl -XPOST http://example.com \\\n    -d '{\"data\":\".10\"}'\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains("<span class=\"p\">\\"),
+            "bash line continuation (single \\) should be p: {html}"
+        );
+    }
+
+    #[test]
+    fn test_regression_bash_env_var_string() {
+        // From blog/how-to-run-postgresql-and-pgadmin-with-docker.html
+        let code = "docker run -e POSTGRES_USER=\"root\"\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains("class=\"s2\""),
+            "bash double-quoted env value should contain s2: {html}"
+        );
+    }
+
+    #[test]
+    fn test_regression_yaml_services() {
+        // From blog/how-to-run-postgresql-and-pgadmin-with-docker.html
+        let code = "services:\n pgdatabase:\n   image: postgres:13\n";
+        let html = highlight_code("yaml", code).unwrap();
+        assert!(
+            html.contains("<span class=\"na\">services</span>"),
+            "YAML services key should be na: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"na\">image</span>"),
+            "YAML image key should be na: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"s\">postgres:13</span>"),
+            "YAML image value should be s: {html}"
+        );
+    }
+
+    #[test]
+    fn test_regression_yaml_boolean_true() {
+        // From blog/how-to-run-postgresql-and-pgadmin-with-docker.html
+        let html = highlight_code("yaml", "external: true\n").unwrap();
+        assert!(
+            html.contains("<span class=\"kc\">true</span>"),
+            "YAML true should be kc: {html}"
+        );
+    }
+
+    #[test]
+    fn test_regression_python_conditional() {
+        // From blog/do-you-know-golden-rules-while-working-with-data.html
+        let code = "if City_Name == 'Lisboa' OR City_Name == 'Lisbon':\n";
+        let html = highlight_code("python", code).unwrap();
+        assert!(
+            html.contains("<span class=\"k\">if</span>"),
+            "Python if should be k: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"o\">==</span>"),
+            "Python == should be o: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"s\">'Lisboa'</span>"),
+            "Python single-quoted string should be s: {html}"
+        );
+    }
+
+    #[test]
+    fn test_regression_python_simple_condition() {
+        // From blog/naming-variables-in-machine-learning.html
+        let code = "if e > 10:\n    break\n";
+        let html = highlight_code("python", code).unwrap();
+        assert!(
+            html.contains("<span class=\"k\">if</span>"),
+            "Python if should be k: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"mi\">10</span>"),
+            "Python integer literal should be mi: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"k\">break</span>"),
+            "Python break should be k: {html}"
+        );
+    }
+
+    #[test]
+    fn test_regression_sql_select_count_join() {
+        // From blog/important-sql-fact-that-everyone-should-know.html
+        let code = "SELECT COUNT(c.nickname) AS number_nickname\nFROM clients c\nLEFT JOIN client_invoice ci ON c.id=ci.user_id\nWHERE ci.id IS NULL\n";
+        let html = highlight_code("sql", code).unwrap();
+        assert!(
+            html.contains("<span class=\"k\">SELECT</span>"),
+            "SQL SELECT should be k: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nb\">COUNT</span>"),
+            "SQL COUNT should be nb: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"k\">FROM</span>"),
+            "SQL FROM should be k: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"k\">WHERE</span>"),
+            "SQL WHERE should be k: {html}"
+        );
+    }
+
+    #[test]
+    fn test_regression_sql_month_function() {
+        // From blog/do-you-know-golden-rules-while-working-with-data.html
+        let code = "SELECT MONTH(current_date) - 1 AS previous_month\nFROM table\n";
+        let html = highlight_code("sql", code).unwrap();
+        assert!(
+            html.contains("<span class=\"k\">SELECT</span>"),
+            "SQL SELECT should be k: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"k\">AS</span>"),
+            "SQL AS should be k: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"o\">-</span>"),
+            "SQL minus operator should be o: {html}"
         );
     }
 }
