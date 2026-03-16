@@ -6,16 +6,20 @@ use liquid::Object;
 /// Convert a `serde_yaml::Value` to a `liquid::model::Value`.
 ///
 /// Recursively converts all YAML types to their Liquid equivalents:
-/// - String -> Scalar (string)
+/// - String -> Scalar (string), with date-only strings expanded to full datetime
 /// - Integer -> Scalar (integer)
 /// - Float -> Scalar (float)
 /// - Bool -> Scalar (bool)
 /// - Null -> Nil
 /// - Sequence -> Array
 /// - Mapping -> Object
+///
+/// Date-only strings (`YYYY-MM-DD`) are expanded to `YYYY-MM-DD 00:00:00 +0000`
+/// to match Jekyll's behavior, where YAML date values are parsed as Ruby Time
+/// objects and render with full datetime and timezone.
 pub fn yaml_to_liquid(yaml: &serde_yaml::Value) -> LiquidValue {
     match yaml {
-        serde_yaml::Value::String(s) => LiquidValue::scalar(s.clone()),
+        serde_yaml::Value::String(s) => LiquidValue::scalar(expand_date_only_string(s)),
         serde_yaml::Value::Number(n) => {
             if let Some(i) = n.as_i64() {
                 LiquidValue::scalar(i)
@@ -40,6 +44,35 @@ pub fn yaml_to_liquid(yaml: &serde_yaml::Value) -> LiquidValue {
             // Strip the tag and convert the inner value
             yaml_to_liquid(&tagged.value)
         }
+    }
+}
+
+/// Expand a date-only string to full datetime format to match Jekyll behavior.
+///
+/// In Ruby YAML (used by Jekyll), bare date values like `2025-11-07` are parsed
+/// as Time objects and render as `"2025-11-07 00:00:00 +0100"` (with local timezone).
+/// In our Rust YAML parser, they remain plain strings. This function detects
+/// date-only strings matching `YYYY-MM-DD` and expands them to
+/// `"YYYY-MM-DD 00:00:00 +0000"` (using UTC since we don't track the build timezone).
+///
+/// Strings that don't match the exact `YYYY-MM-DD` pattern are returned unchanged.
+fn expand_date_only_string(s: &str) -> String {
+    // Must be exactly 10 characters: YYYY-MM-DD
+    if s.len() != 10 {
+        return s.to_string();
+    }
+
+    let bytes = s.as_bytes();
+    // Check format: 4 digits, dash, 2 digits, dash, 2 digits
+    if bytes[4] == b'-'
+        && bytes[7] == b'-'
+        && bytes[..4].iter().all(|b| b.is_ascii_digit())
+        && bytes[5..7].iter().all(|b| b.is_ascii_digit())
+        && bytes[8..10].iter().all(|b| b.is_ascii_digit())
+    {
+        format!("{s} 00:00:00 +0000")
+    } else {
+        s.to_string()
     }
 }
 
@@ -450,5 +483,90 @@ transcript:
         } else {
             panic!("Expected root Object");
         }
+    }
+
+    // ========================================================================
+    // Date-only string expansion (Issue 138)
+    // ========================================================================
+
+    #[test]
+    fn test_expand_date_only_string_basic() {
+        assert_eq!(
+            expand_date_only_string("2025-11-07"),
+            "2025-11-07 00:00:00 +0000"
+        );
+    }
+
+    #[test]
+    fn test_expand_date_only_string_leaves_full_datetime() {
+        // Already has time component -- should not be modified
+        assert_eq!(
+            expand_date_only_string("2025-11-07 00:00:00 +0000"),
+            "2025-11-07 00:00:00 +0000"
+        );
+    }
+
+    #[test]
+    fn test_expand_date_only_string_leaves_non_date() {
+        assert_eq!(expand_date_only_string("hello"), "hello");
+        assert_eq!(expand_date_only_string(""), "");
+        assert_eq!(expand_date_only_string("12345"), "12345");
+        assert_eq!(expand_date_only_string("not-a-date"), "not-a-date");
+    }
+
+    #[test]
+    fn test_yaml_to_liquid_expands_date_only_strings() {
+        // When a YAML string looks like YYYY-MM-DD, it should be expanded
+        // to full datetime format in the Liquid context.
+        let yaml_str = r#"
+date: 2025-11-07
+dateadded: 2022-02-27
+title: Not a date
+"#;
+        let yaml: YamlValue = crate::yaml::parse_yaml_lenient(yaml_str).unwrap();
+        let liquid = yaml_to_liquid(&yaml);
+
+        if let LiquidValue::Object(obj) = &liquid {
+            assert_eq!(
+                obj.get("date"),
+                Some(&LiquidValue::scalar("2025-11-07 00:00:00 +0000")),
+                "date-only YAML string should be expanded to full datetime"
+            );
+            assert_eq!(
+                obj.get("dateadded"),
+                Some(&LiquidValue::scalar("2022-02-27 00:00:00 +0000")),
+                "dateadded should also be expanded"
+            );
+            assert_eq!(
+                obj.get("title"),
+                Some(&LiquidValue::scalar("Not a date")),
+                "Non-date strings should remain unchanged"
+            );
+        } else {
+            panic!("Expected Object");
+        }
+    }
+
+    #[test]
+    fn test_date_expansion_in_template_rendering() {
+        // Verify that date-only values render as full datetime in Liquid templates
+        let yaml_str = "date: 2025-11-07\ndateadded: 2022-02-27";
+        let yaml: YamlValue = serde_yaml::from_str(yaml_str).unwrap();
+        let mapping = yaml.as_mapping().unwrap();
+
+        let mut ctx = Object::new();
+        ctx.insert(
+            "page".into(),
+            LiquidValue::Object(yaml_mapping_to_object(mapping)),
+        );
+
+        let engine = crate::template::TemplateEngine::new().unwrap();
+        let output = engine
+            .parse_and_render("{{ page.date }} / {{ page.dateadded }}", &ctx)
+            .unwrap();
+        assert_eq!(
+            output,
+            "2025-11-07 00:00:00 +0000 / 2022-02-27 00:00:00 +0000"
+        );
     }
 }
