@@ -34,6 +34,17 @@ fn build_scope_map() -> Vec<ScopeMapping> {
         ("source.yaml punctuation.separator.sequence", "pi"),
         // YAML: block scalar indicators (| and >) are `pi` in Rouge
         ("source.yaml keyword.control.flow.block-scalar", "pi"),
+        // SQL: Rouge treats aggregate/builtin functions (COUNT, SUM, etc.) as keywords (k),
+        // not builtins (nb). Override the generic support.function -> nb mapping.
+        ("source.sql support.function", "k"),
+        // SQL: Rouge maps database-name and table-name identifiers to n (name),
+        // not no (name other / constant.other). Override generic constant.other -> no.
+        ("source.sql constant.other.database-name", "n"),
+        ("source.sql constant.other.table-name", "n"),
+        ("source.sql constant.other", "n"),
+        // SQL: Rouge maps all SQL numbers to mi (integer), not m (generic numeric).
+        // Syntect uses constant.numeric without .integer suffix for SQL.
+        ("source.sql constant.numeric", "mi"),
         // ── Entity names (MUST come before strings so YAML keys get `na` not `s`) ──
         ("entity.name.function", "nf"),
         ("entity.name.class", "nc"),
@@ -108,6 +119,8 @@ fn build_scope_map() -> Vec<ScopeMapping> {
         // Bash line continuation (\<newline>) is `p` (punctuation) in Rouge.
         // Note: `\\` (escaped backslash) is handled by constant.character.escape -> se.
         ("punctuation.separator.continuation.line", "p"),
+        // Python dict colons are "p" in Rouge, not "pi". Must come before YAML rule.
+        ("source.python punctuation.separator.key-value", "p"),
         // YAML-specific punctuation: key-value separator, block sequence item,
         // and flow sequence delimiters should map to `pi` (punctuation indicator)
         // to match Rouge.
@@ -278,6 +291,36 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
     // Flush any remaining pending text
     flush_pending(&mut html, &pending_class, &mut pending_text);
 
+    // Python post-processing
+    if lang == "python" || lang == "py" {
+        // Merge dotted module names in import statements.
+        // Syntect splits "arize.otel" into separate tokens (arize, ., otel) but
+        // Rouge keeps the whole qualified name in one <span class="nn"> span.
+        html = merge_python_dotted_modules(&html);
+
+        // Rouge classifies `print` as `k` (keyword, Python 2 legacy) while
+        // syntect classifies it as `nb` (builtin). Match Rouge.
+        html = html.replace(
+            "<span class=\"nb\">print</span>",
+            "<span class=\"k\">print</span>",
+        );
+
+        // Rouge classifies `input` as a builtin (`nb`) when used as an
+        // identifier/parameter name. Syntect uses `n` (generic name).
+        // Match Rouge for `input` used as parameter name.
+        html = html.replace(
+            "<span class=\"n\">input</span>",
+            "<span class=\"nb\">input</span>",
+        );
+    }
+
+    // SQL post-processing: Rouge wraps every token in SQL in a span.
+    // Syntect's SQL grammar leaves many tokens bare (punctuation, identifiers,
+    // some keywords like IS/IN/NOT). Post-process to wrap them.
+    if lang == "sql" {
+        html = postprocess_sql_highlighting(&html);
+    }
+
     Some(html)
 }
 
@@ -347,6 +390,359 @@ static SCOPE_MAP: OnceLock<Vec<ScopeMapping>> = OnceLock::new();
 
 fn scope_map() -> &'static Vec<ScopeMapping> {
     SCOPE_MAP.get_or_init(build_scope_map)
+}
+
+/// Merge dotted Python module names in import statements.
+///
+/// Syntect tokenizes `arize.otel` as three tokens: `arize`, `.`, `otel`, producing:
+/// `<span class="nn">arize</span><span class="p">.</span><span class="nn">otel</span>`
+///
+/// Rouge keeps the whole qualified name together:
+/// `<span class="nn">arize.otel</span>`
+///
+/// This function merges `<span class="nn">X</span><span class="p">.</span><span class="nn">Y</span>`
+/// into `<span class="nn">X.Y</span>`, repeatedly, to handle multi-level dotted names.
+fn merge_python_dotted_modules(html: &str) -> String {
+    let pattern = "</span><span class=\"p\">.</span><span class=\"nn\">";
+    let mut result = html.to_string();
+
+    // Repeatedly merge until no more patterns found
+    while result.contains(pattern) {
+        // Find: <span class="nn">X</span><span class="p">.</span><span class="nn">Y</span>
+        // Replace the separator, keeping X and Y as part of one span
+        let nn_open = "<span class=\"nn\">";
+        let mut new_result = String::with_capacity(result.len());
+        let mut remaining = result.as_str();
+
+        while !remaining.is_empty() {
+            if let Some(pos) = remaining.find(nn_open) {
+                new_result.push_str(&remaining[..pos + nn_open.len()]);
+                remaining = &remaining[pos + nn_open.len()..];
+
+                // Find the closing </span> for this nn span
+                if let Some(close_pos) = remaining.find("</span>") {
+                    let name = &remaining[..close_pos];
+                    let after_close = &remaining[close_pos + 7..]; // skip </span>
+
+                    // Check if followed by <span class="p">.</span><span class="nn">
+                    if let Some(after_pattern) =
+                        after_close.strip_prefix("<span class=\"p\">.</span><span class=\"nn\">")
+                    {
+                        // Find the closing </span> for the next nn span
+                        if let Some(next_close) = after_pattern.find("</span>") {
+                            let next_name = &after_pattern[..next_close];
+                            // Merge: write "X.Y" and continue after the second </span>
+                            new_result.push_str(name);
+                            new_result.push('.');
+                            new_result.push_str(next_name);
+                            new_result.push_str("</span>");
+                            remaining = &after_pattern[next_close + 7..];
+                            continue;
+                        }
+                    }
+
+                    // No merge possible -- write name and closing tag normally
+                    new_result.push_str(name);
+                    new_result.push_str("</span>");
+                    remaining = after_close;
+                } else {
+                    // No closing tag, copy rest
+                    new_result.push_str(remaining);
+                    break;
+                }
+            } else {
+                new_result.push_str(remaining);
+                break;
+            }
+        }
+
+        if new_result == result {
+            break; // No more merges possible
+        }
+        result = new_result;
+    }
+
+    result
+}
+
+/// SQL keywords that syntect's grammar does not assign scopes to.
+/// Rouge treats these as keywords (class `k`).
+const SQL_EXTRA_KEYWORDS: &[&str] = &[
+    "IS",
+    "IN",
+    "NOT",
+    "BETWEEN",
+    "LIKE",
+    "ILIKE",
+    "EXISTS",
+    "ANY",
+    "ALL",
+    "SOME",
+    "CASE",
+    "WHEN",
+    "THEN",
+    "ELSE",
+    "END",
+    "CAST",
+    "COALESCE",
+    "NULLIF",
+    "TRUE",
+    "FALSE",
+    "DISTINCT",
+    "ASC",
+    "DESC",
+    "OFFSET",
+    "FETCH",
+    "FIRST",
+    "NEXT",
+    "ROWS",
+    "ONLY",
+    "UNION",
+    "INTERSECT",
+    "EXCEPT",
+    "WITH",
+    "RECURSIVE",
+    "AS",
+    "INTO",
+    "VALUES",
+    "SET",
+    "DEFAULT",
+    "CHECK",
+    "CONSTRAINT",
+    "REFERENCES",
+    "PRIMARY",
+    "FOREIGN",
+    "KEY",
+    "INDEX",
+    "UNIQUE",
+    "CASCADE",
+    "RESTRICT",
+    "NO",
+    "ACTION",
+    "DEFERRABLE",
+    "INITIALLY",
+    "DEFERRED",
+    "IMMEDIATE",
+    "CROSS",
+    "NATURAL",
+    "USING",
+    "LATERAL",
+    "TABLESAMPLE",
+    "UNNEST",
+    "GRANT",
+    "REVOKE",
+    "PRIVILEGES",
+    "PUBLIC",
+    "ROLE",
+    "SESSION",
+    "BEGIN",
+    "COMMIT",
+    "ROLLBACK",
+    "SAVEPOINT",
+    "RELEASE",
+    "TRIGGER",
+    "BEFORE",
+    "AFTER",
+    "FOR",
+    "EACH",
+    "ROW",
+    "EXECUTE",
+    "PROCEDURE",
+    "FUNCTION",
+    "RETURNS",
+    "LANGUAGE",
+    "SECURITY",
+    "DEFINER",
+    "INVOKER",
+    "SCHEMA",
+    "DATABASE",
+    "TABLESPACE",
+    "EXTENSION",
+    "SEQUENCE",
+    "VIEW",
+    "MATERIALIZED",
+    "REFRESH",
+    "CONCURRENTLY",
+    "ANALYZE",
+    "EXPLAIN",
+    "VERBOSE",
+    "COSTS",
+    "BUFFERS",
+    "TIMING",
+    "SUMMARY",
+    "VACUUM",
+    "REINDEX",
+    "CLUSTER",
+    "COPY",
+    "DELIMITER",
+    "CSV",
+    "HEADER",
+    "TEMPORARY",
+    "TEMP",
+    "UNLOGGED",
+    "IF",
+    "REPLACE",
+    "OWNER",
+    "TO",
+    "RENAME",
+    "COLUMN",
+    "TYPE",
+    "ADD",
+    "DROP",
+    "ENABLE",
+    "DISABLE",
+    "ALWAYS",
+    "IDENTITY",
+    "GENERATED",
+    "BY",
+    "PARTITION",
+    "RANGE",
+    "LIST",
+    "HASH",
+    "INCLUDING",
+    "EXCLUDING",
+    "PARALLEL",
+    "SAFE",
+    "UNSAFE",
+];
+
+/// Post-process SQL highlighted HTML to wrap bare tokens in spans,
+/// matching Rouge's behavior where every token gets a span class.
+fn postprocess_sql_highlighting(html: &str) -> String {
+    use std::collections::HashSet;
+    use std::sync::OnceLock;
+
+    static KW_SET: OnceLock<HashSet<&'static str>> = OnceLock::new();
+    let keywords = KW_SET.get_or_init(|| SQL_EXTRA_KEYWORDS.iter().copied().collect());
+
+    let mut result = String::with_capacity(html.len() + html.len() / 4);
+    let mut remaining = html;
+
+    while !remaining.is_empty() {
+        if remaining.starts_with("<span class=\"") {
+            if let Some(end) = remaining.find("</span>") {
+                let span_end = end + "</span>".len();
+                let span_html = &remaining[..span_end];
+                // Split multi-word keyword spans (e.g. "LEFT JOIN" -> "LEFT" + "JOIN")
+                // Rouge outputs each SQL keyword as a separate span.
+                if span_html.starts_with("<span class=\"k\">") {
+                    let content_start = "<span class=\"k\">".len();
+                    let content_end = span_html.len() - "</span>".len();
+                    let content = &span_html[content_start..content_end];
+                    if content.contains(' ') {
+                        let words: Vec<&str> = content.split(' ').collect();
+                        for (i, word) in words.iter().enumerate() {
+                            if i > 0 {
+                                result.push(' ');
+                            }
+                            if !word.is_empty() {
+                                result.push_str("<span class=\"k\">");
+                                result.push_str(word);
+                                result.push_str("</span>");
+                            }
+                        }
+                    } else {
+                        result.push_str(span_html);
+                    }
+                } else {
+                    result.push_str(span_html);
+                }
+                remaining = &remaining[span_end..];
+            } else {
+                result.push_str(remaining);
+                break;
+            }
+        } else if remaining.starts_with('<') {
+            if let Some(end) = remaining.find('>') {
+                result.push_str(&remaining[..=end]);
+                remaining = &remaining[end + 1..];
+            } else {
+                result.push_str(remaining);
+                break;
+            }
+        } else {
+            let text_end = remaining.find('<').unwrap_or(remaining.len());
+            let bare_text = &remaining[..text_end];
+            remaining = &remaining[text_end..];
+            wrap_sql_bare_tokens(bare_text, keywords, &mut result);
+        }
+    }
+
+    result
+}
+
+/// Wrap individual bare tokens in SQL highlighted output with appropriate spans.
+fn wrap_sql_bare_tokens(
+    bare_text: &str,
+    keywords: &std::collections::HashSet<&str>,
+    result: &mut String,
+) {
+    let mut chars = bare_text.char_indices().peekable();
+
+    while let Some(&(i, c)) = chars.peek() {
+        if c == '\n' || c == ' ' || c == '\t' {
+            result.push(c);
+            chars.next();
+        } else if is_sql_punctuation(c) {
+            result.push_str("<span class=\"p\">");
+            result.push(c);
+            result.push_str("</span>");
+            chars.next();
+        } else if c == '*' {
+            result.push_str("<span class=\"o\">*</span>");
+            chars.next();
+        } else if c.is_alphanumeric() || c == '_' {
+            let start = i;
+            let mut end = i;
+            while let Some(&(j, ch)) = chars.peek() {
+                if ch.is_alphanumeric() || ch == '_' {
+                    end = j + ch.len_utf8();
+                    chars.next();
+                } else {
+                    break;
+                }
+            }
+            let word = &bare_text[start..end];
+            let upper = word.to_uppercase();
+
+            if keywords.contains(upper.as_str()) {
+                result.push_str("<span class=\"k\">");
+                result.push_str(word);
+                result.push_str("</span>");
+            } else {
+                result.push_str("<span class=\"n\">");
+                result.push_str(word);
+                result.push_str("</span>");
+            }
+        } else if c == '&' {
+            // HTML entity -- copy through and classify
+            let start = i;
+            chars.next();
+            let mut entity_end = start + 1;
+            while let Some(&(j, ch)) = chars.peek() {
+                entity_end = j + ch.len_utf8();
+                chars.next();
+                if ch == ';' {
+                    break;
+                }
+            }
+            let entity = &bare_text[start..entity_end];
+            if entity == "&amp;" || entity == "&lt;" || entity == "&gt;" {
+                result.push_str("<span class=\"o\">");
+                result.push_str(entity);
+                result.push_str("</span>");
+            } else {
+                result.push_str(entity);
+            }
+        } else {
+            result.push(c);
+            chars.next();
+        }
+    }
+}
+
+fn is_sql_punctuation(c: char) -> bool {
+    matches!(c, '(' | ')' | '.' | ',' | ';' | ':')
 }
 
 #[cfg(test)]
@@ -656,10 +1052,12 @@ mod tests {
 
     #[test]
     fn test_python_builtin_is_nb() {
+        // Rouge classifies `print` as `k` (keyword, Python 2 legacy).
+        // Our post-processing maps `nb` -> `k` for `print` to match Rouge.
         let html = highlight_code("python", "print(\"hello\")\n").unwrap();
         assert!(
-            html.contains("<span class=\"nb\">print</span>"),
-            "built-in function should be nb: {html}"
+            html.contains("<span class=\"k\">print</span>"),
+            "print should be k (matching Rouge): {html}"
         );
     }
 
@@ -812,11 +1210,12 @@ mod tests {
     }
 
     #[test]
-    fn test_sql_count_is_nb() {
+    fn test_sql_count_is_k() {
+        // Issue 160: Rouge treats SQL aggregate functions as keywords (k), not builtins (nb)
         let html = highlight_code("sql", "SELECT COUNT(c.nickname) AS number_nickname\n").unwrap();
         assert!(
-            html.contains("<span class=\"nb\">COUNT</span>"),
-            "SQL COUNT should map to nb: {html}"
+            html.contains("<span class=\"k\">COUNT</span>"),
+            "SQL COUNT should map to k (matching Rouge): {html}"
         );
     }
 
@@ -1039,15 +1438,17 @@ mod tests {
     #[test]
     fn test_regression_sql_select_count_join() {
         // From blog/important-sql-fact-that-everyone-should-know.html
+        // Rouge wraps every SQL token: keywords=k, functions=k, names=n, punct=p
         let code = "SELECT COUNT(c.nickname) AS number_nickname\nFROM clients c\nLEFT JOIN client_invoice ci ON c.id=ci.user_id\nWHERE ci.id IS NULL\n";
         let html = highlight_code("sql", code).unwrap();
         assert!(
             html.contains("<span class=\"k\">SELECT</span>"),
             "SQL SELECT should be k: {html}"
         );
+        // Issue 160: Rouge maps SQL aggregate functions (COUNT, SUM) to k (keyword)
         assert!(
-            html.contains("<span class=\"nb\">COUNT</span>"),
-            "SQL COUNT should be nb: {html}"
+            html.contains("<span class=\"k\">COUNT</span>"),
+            "SQL COUNT should be k (matching Rouge): {html}"
         );
         assert!(
             html.contains("<span class=\"k\">FROM</span>"),
@@ -1056,6 +1457,29 @@ mod tests {
         assert!(
             html.contains("<span class=\"k\">WHERE</span>"),
             "SQL WHERE should be k: {html}"
+        );
+        // Issue 160: Rouge maps SQL identifiers to n
+        assert!(
+            html.contains("<span class=\"n\">nickname</span>"),
+            "SQL column name should be n: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"n\">clients</span>"),
+            "SQL table name should be n: {html}"
+        );
+        // Issue 160: Rouge wraps SQL punctuation in p spans
+        assert!(
+            html.contains("<span class=\"p\">(</span>"),
+            "SQL open paren should be p: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"p\">.</span>"),
+            "SQL dot should be p: {html}"
+        );
+        // Issue 160: IS should be keyword
+        assert!(
+            html.contains("<span class=\"k\">IS</span>"),
+            "SQL IS should be k: {html}"
         );
     }
 
@@ -1075,6 +1499,41 @@ mod tests {
         assert!(
             html.contains("<span class=\"o\">-</span>"),
             "SQL minus operator should be o: {html}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 158: Python dict colon should be "p" not "pi"
+    // ========================================================================
+
+    #[test]
+    fn test_issue158_python_dict_colon_is_p() {
+        // Python dict: {"role": "user"} -- colon should be "p" (punctuation),
+        // not "pi" (punctuation indicator, which is YAML-specific).
+        // Jekyll/Rouge outputs <span class="p">:</span> for Python dict colons.
+        let code = "{\"role\": \"user\"}\n";
+        let html = highlight_code("python", code).unwrap();
+        // The colon should NOT be "pi"
+        assert!(
+            !html.contains("<span class=\"pi\">:</span>"),
+            "Python dict colon should NOT be pi (YAML-only). Got: {html}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 158: Python module dot should be part of module name span
+    // ========================================================================
+
+    #[test]
+    fn test_issue158_python_import_module_dot() {
+        // "from arize.otel import register" -- Jekyll/Rouge outputs:
+        // <span class="nn">arize.otel</span>
+        // NOT: <span class="nn">arize</span><span class="p">.</span><span class="nn">otel</span>
+        let code = "from arize.otel import register\n";
+        let html = highlight_code("python", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nn\">arize.otel</span>"),
+            "Python dotted module name should keep dot inside nn span. Got: {html}"
         );
     }
 }

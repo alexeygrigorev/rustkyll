@@ -73,6 +73,7 @@ pub fn remove_heading_markers(html: &str) -> String {
 /// 8. Remove self-closing slash from void elements (D3)
 /// 9. Normalize boolean HTML attributes (D2, D12)
 /// 10. Normalize `<figcaption>` closing tag whitespace (D6)
+/// 11. Indent loose list items to match kramdown formatting
 pub fn postprocess(html: &str) -> String {
     let html = strip_paragraphs_in_html_blocks(html);
     let html = encode_bare_ampersands(&html);
@@ -83,6 +84,7 @@ pub fn postprocess(html: &str) -> String {
     let html = wrap_bare_text_in_paragraphs(&html);
     let html = add_block_spacing(&html);
     let html = remove_ol_start_attribute(&html);
+    let html = indent_list_items(&html);
     let html = normalize_figcaption_whitespace(&html);
     // D2, D12: Normalize boolean attributes in the markdown output early
     // (during collection loading). This ensures that the final
@@ -323,20 +325,13 @@ const BLOCK_PARENT_TAGS: &[&str] = &[
 /// inline content in `<p>` tags during markdown processing, typically from
 /// Liquid include output that mixes inline content inside block elements.
 const STRIP_P_PARENT_TAGS: &[&str] = &[
-    "li",
-    "td",
-    "th",
-    "h1",
-    "h2",
-    "h3",
-    "h4",
-    "h5",
-    "h6",
-    "figure",
-    "figcaption",
-    "summary",
-    "dd",
-    "dt",
+    "li", "td", "th", "h1", "h2", "h3", "h4", "h5", "h6", "figure",
+    // Note: figcaption is intentionally NOT included here.
+    // In the DTC site (and typical Jekyll usage), <figcaption><p>...</p></figcaption>
+    // is raw HTML in the source markdown. Jekyll/kramdown passes it through unchanged.
+    // pulldown-cmark also passes HTML blocks through unchanged, so the <p> is original,
+    // not auto-inserted. Stripping it would differ from Jekyll output.
+    "summary", "dd", "dt",
 ];
 
 /// Strip unwanted `<p>` tags that pulldown-cmark inserts inside HTML block elements.
@@ -516,9 +511,40 @@ fn maybe_strip_p_tags(inner: &str) -> String {
     // the content between <p> and </p> is only inline content.
     let mut result = String::with_capacity(inner.len());
     let mut remaining = inner;
+    let mut figcaption_depth = 0usize;
 
     while !remaining.is_empty() {
+        // Track whether we're inside a <figcaption> element.
+        // <p> tags inside <figcaption> must be preserved (they're from the
+        // original source HTML, not auto-inserted by pulldown-cmark).
+        if remaining.starts_with("<figcaption") {
+            figcaption_depth += 1;
+        }
+        if remaining.starts_with("</figcaption>") && figcaption_depth > 0 {
+            figcaption_depth -= 1;
+        }
+
+        if figcaption_depth > 0 {
+            // Inside <figcaption>: copy char-by-char without stripping <p>
+            let ch = remaining.chars().next().unwrap();
+            result.push(ch);
+            remaining = &remaining[ch.len_utf8()..];
+            continue;
+        }
+
         if let Some(p_pos) = remaining.find("<p>") {
+            // Check if there's a <figcaption> before this <p>
+            let figcap_pos = remaining.find("<figcaption");
+            if let Some(fp) = figcap_pos {
+                if fp < p_pos {
+                    // <figcaption> comes before <p> -- copy up to <figcaption>
+                    // and let the loop handle it
+                    result.push_str(&remaining[..fp]);
+                    remaining = &remaining[fp..];
+                    continue;
+                }
+            }
+
             // Check that this is a bare <p> (no attributes -- auto-generated)
             let before_p = &remaining[..p_pos];
             result.push_str(before_p);
@@ -1490,6 +1516,7 @@ fn add_block_spacing(html: &str) -> String {
         "</div>",
         "</pre>",
         "</table>",
+        "</figure>",
     ];
 
     let mut result = String::with_capacity(html.len() + html.len() / 10);
@@ -1516,6 +1543,16 @@ fn add_block_spacing(html: &str) -> String {
         if let Some((_, tag_end)) = earliest {
             result.push_str(&remaining[..tag_end]);
             remaining = &remaining[tag_end..];
+
+            // Do NOT add spacing after </pre> or </div> when they are part of the
+            // code block wrapper `</code></pre></div></div>`. Jekyll keeps these
+            // closing tags on one line.
+            if remaining.starts_with("</div></div>") || remaining.starts_with("</div>") {
+                // Check if we just wrote </pre> or </div> as part of code wrapper
+                if result.ends_with("</code></pre>") || result.ends_with("</pre></div>") {
+                    continue; // Skip spacing -- keep tags on same line
+                }
+            }
 
             // Add extra newline if not already followed by two newlines,
             // but NOT at the very end of content (trailing \n should stay single).
@@ -1744,6 +1781,121 @@ fn is_boolean_attribute(attr: &str) -> bool {
             | "open"
             | "allowfullscreen"
     )
+}
+
+// ============================================================================
+// 11. Indent loose list items to match kramdown formatting
+// ============================================================================
+
+/// Indent `<li>` items inside `<ul>` and `<ol>` to match kramdown output.
+///
+/// kramdown indents loose list items (those containing `<p>` tags) like:
+/// ```html
+/// <ul>
+///   <li>
+///     <p>text</p>
+///   </li>
+/// </ul>
+/// ```
+///
+/// pulldown-cmark outputs them without indentation:
+/// ```html
+/// <ul>
+/// <li>
+/// <p>text</p>
+/// </li>
+/// </ul>
+/// ```
+fn indent_list_items(html: &str) -> String {
+    let mut result = String::with_capacity(html.len() + html.len() / 20);
+    let mut remaining = html;
+
+    while !remaining.is_empty() {
+        // Find the next <ul> or <ol> tag at line start (not inside code blocks)
+        let next_ul = remaining.find("<ul>\n");
+        let next_ol = remaining.find("<ol>\n");
+
+        let list_pos = match (next_ul, next_ol) {
+            (Some(a), Some(b)) => Some(a.min(b)),
+            (Some(a), None) => Some(a),
+            (None, Some(b)) => Some(b),
+            (None, None) => None,
+        };
+
+        let list_pos = match list_pos {
+            Some(p) => p,
+            None => {
+                result.push_str(remaining);
+                break;
+            }
+        };
+
+        // Copy everything before the list
+        result.push_str(&remaining[..list_pos]);
+        remaining = &remaining[list_pos..];
+
+        // Find the list tag (first 4 or 5 chars)
+        let tag_end = remaining.find('\n').unwrap_or(remaining.len());
+        let list_tag = &remaining[..tag_end];
+        let close_tag = if list_tag.starts_with("<ul") {
+            "</ul>"
+        } else {
+            "</ol>"
+        };
+
+        // Find the matching close tag
+        if let Some(close_pos) = remaining.find(close_tag) {
+            let list_content = &remaining[tag_end + 1..close_pos];
+
+            // Check if this is a loose list (contains <p> inside <li>)
+            let is_loose = list_content.contains("<li>\n<p>");
+
+            if is_loose {
+                result.push_str(list_tag);
+                result.push('\n');
+                // Indent each line of content by 2 spaces, and content inside <li> by 4.
+                // Skip blank lines inside <li> (added by add_block_spacing after </p>).
+                let mut in_li = false;
+                let lines: Vec<&str> = list_content.lines().collect();
+                for line in lines.iter() {
+                    if *line == "<li>" {
+                        result.push_str("  <li>\n");
+                        in_li = true;
+                    } else if *line == "</li>" {
+                        result.push_str("  </li>\n");
+                        in_li = false;
+                    } else if in_li && line.is_empty() {
+                        // Skip blank lines inside <li> -- kramdown doesn't have them
+                        continue;
+                    } else if in_li && !line.is_empty() {
+                        result.push_str("    ");
+                        result.push_str(line);
+                        result.push('\n');
+                    } else if !line.is_empty() {
+                        result.push_str(line);
+                        result.push('\n');
+                    } else if !in_li {
+                        // Blank line outside <li> -- preserve
+                        result.push('\n');
+                    }
+                }
+                let _ = lines; // suppress unused warning
+                result.push_str(close_tag);
+                remaining = &remaining[close_pos + close_tag.len()..];
+            } else {
+                // Tight list: no indentation needed
+                let end = close_pos + close_tag.len();
+                result.push_str(&remaining[..end]);
+                remaining = &remaining[end..];
+            }
+        } else {
+            // No matching close tag, copy as-is
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    result
 }
 
 // ============================================================================
@@ -3721,23 +3873,24 @@ by <a href="/people/author.html">Author Name</a>
     fn test_loose_list_preserves_p_tags_in_li() {
         // Markdown loose list (blank lines between items) should wrap each
         // item's content in <p> tags, matching kramdown behavior.
+        // After issue 158, loose list items are also indented to match kramdown.
         let input =
             "* First item paragraph.\n\n* Second item paragraph.\n\n* Third item paragraph.\n";
         let html = crate::frontmatter::markdown_to_html(input);
-        // Each <li> should contain a <p> tag
+        // Each <li> should contain a <p> tag (with kramdown indentation)
         assert!(
-            html.contains("<li>\n<p>First item paragraph.</p>"),
-            "Loose list <li> should preserve <p> wrapping. Got: {}",
+            html.contains("  <li>\n    <p>First item paragraph.</p>"),
+            "Loose list <li> should preserve <p> wrapping with indentation. Got: {}",
             html
         );
         assert!(
-            html.contains("<li>\n<p>Second item paragraph.</p>"),
-            "Loose list <li> should preserve <p> wrapping. Got: {}",
+            html.contains("  <li>\n    <p>Second item paragraph.</p>"),
+            "Loose list <li> should preserve <p> wrapping with indentation. Got: {}",
             html
         );
         assert!(
-            html.contains("<li>\n<p>Third item paragraph.</p>"),
-            "Loose list <li> should preserve <p> wrapping. Got: {}",
+            html.contains("  <li>\n    <p>Third item paragraph.</p>"),
+            "Loose list <li> should preserve <p> wrapping with indentation. Got: {}",
             html
         );
     }
@@ -3789,13 +3942,14 @@ by <a href="/people/author.html">Author Name</a>
     fn test_readme_driven_development_loose_list() {
         // The actual pattern from mojombo-blog readme-driven-development post:
         // a loose list where items are long paragraphs separated by blank lines.
+        // After issue 158, loose list items are indented to match kramdown.
         let input = "* Most importantly, you\u{2019}re giving yourself a chance to think through the project.\n\n* As a byproduct of writing a Readme, you\u{2019}ll have nice documentation.\n\n* If you\u{2019}re working with a team, everyone can start work on other projects.\n";
         let html = crate::frontmatter::markdown_to_html(input);
-        // Each item should be wrapped in <p> (loose list behavior)
-        let li_p_count = html.matches("<li>\n<p>").count();
+        // Each item should be wrapped in <p> with kramdown indentation
+        let li_p_count = html.matches("  <li>\n    <p>").count();
         assert_eq!(
             li_p_count, 3,
-            "All 3 loose list items should have <p> wrapping. Got: {}",
+            "All 3 loose list items should have <p> wrapping with indentation. Got: {}",
             html
         );
     }
@@ -3963,48 +4117,49 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     // ========================================================================
-    // Issue 156: figcaption <p> wrapping -- verify stripping matches Jekyll
+    // Issue 158: figcaption <p> tags must be PRESERVED (not stripped)
     // ========================================================================
+    // In the DTC site, <figcaption><p>...</p></figcaption> is raw HTML in the
+    // source markdown. Jekyll/kramdown passes it through unchanged. We must too.
 
     #[test]
-    fn test_issue156_figcaption_p_tags_stripped() {
-        // pulldown-cmark auto-wraps figcaption text in <p> tags.
-        // Jekyll/kramdown does NOT have <p> inside figcaption, so we must strip them.
+    fn test_issue158_figcaption_p_tags_preserved() {
+        // <figcaption><p>text</p></figcaption> is raw HTML from source.
+        // Jekyll preserves the <p> tag. We must NOT strip it.
         let input = "<figcaption><p>Caption text</p></figcaption>";
         let result = strip_paragraphs_in_html_blocks(input);
         assert_eq!(
-            result, "<figcaption>Caption text</figcaption>",
-            "strip_paragraphs_in_html_blocks should strip <p> inside <figcaption>"
+            result, "<figcaption><p>Caption text</p></figcaption>",
+            "strip_paragraphs_in_html_blocks should preserve <p> inside <figcaption>"
         );
     }
 
     #[test]
-    fn test_issue156_figure_with_figcaption_strips_all_p() {
-        // Both <figure> and <figcaption> should have their <p> tags stripped.
-        // Jekyll output never has <p> in either element.
+    fn test_issue158_figure_strips_p_but_figcaption_preserves() {
+        // <figure> strips <p>, but <figcaption> preserves it.
         let input =
             "<figure><p>Image content</p><figcaption><p>Caption text</p></figcaption></figure>";
         let result = strip_paragraphs_in_html_blocks(input);
         assert_eq!(
             result,
-            "<figure>Image content<figcaption>Caption text</figcaption></figure>"
+            "<figure>Image content<figcaption><p>Caption text</p></figcaption></figure>"
         );
     }
 
     #[test]
-    fn test_issue156_figcaption_p_stripped_in_postprocess() {
-        // End-to-end: postprocess should strip <p> inside <figcaption>
+    fn test_issue158_figcaption_p_preserved_in_postprocess() {
+        // End-to-end: postprocess should preserve <p> inside <figcaption>
         let input = "<figcaption><p>Caption</p></figcaption>";
         let result = postprocess(input);
         assert!(
-            result.contains("<figcaption>Caption</figcaption>"),
-            "postprocess should strip <p> inside <figcaption>, got: {}",
+            result.contains("<figcaption><p>Caption</p></figcaption>"),
+            "postprocess should preserve <p> inside <figcaption>, got: {}",
             result
         );
     }
 
     #[test]
-    fn test_issue156_figcaption_without_p_unchanged() {
+    fn test_issue158_figcaption_without_p_unchanged() {
         // figcaption without <p> should pass through unchanged
         let input = "<figcaption>Plain caption</figcaption>";
         let result = strip_paragraphs_in_html_blocks(input);
@@ -4012,15 +4167,76 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     #[test]
-    fn test_issue156_figcaption_with_link_p_stripped() {
+    fn test_issue158_figcaption_with_link_p_preserved() {
         // Real-world case from DTC site: figcaption with inline content and links.
-        // pulldown-cmark wraps in <p>, which must be stripped to match Jekyll.
+        // The <p> is from the original source HTML, not auto-inserted.
         let input =
             "<figcaption><p>Image from <a href=\"https://example.com\">Source</a></p></figcaption>";
         let result = strip_paragraphs_in_html_blocks(input);
         assert_eq!(
             result,
-            "<figcaption>Image from <a href=\"https://example.com\">Source</a></figcaption>"
+            "<figcaption><p>Image from <a href=\"https://example.com\">Source</a></p></figcaption>"
+        );
+    }
+
+    // ========================================================================
+    // Issue 158: Code block closing divs must stay on one line
+    // ========================================================================
+
+    #[test]
+    fn test_issue158_code_block_closing_divs_one_line() {
+        // Jekyll outputs code block closing tags on one line:
+        // </code></pre></div></div>
+        // add_block_spacing must not split them across multiple lines.
+        let input = "<div class=\"language-python highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>x = 1\n</code></pre></div></div>\n<p>Next.</p>\n";
+        let result = add_block_spacing(input);
+        assert!(
+            result.contains("</code></pre></div></div>"),
+            "Code block closing tags should stay on one line. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue158_code_block_closing_in_postprocess() {
+        // End-to-end: postprocess should keep code block closing on one line
+        let input = "<pre><code class=\"language-python\">x = 1\n</code></pre>\n";
+        let result = postprocess(input);
+        assert!(
+            result.contains("</code></pre></div></div>"),
+            "postprocess should keep code block closing tags on one line. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue158_regular_div_still_gets_spacing() {
+        // Regular </div> not part of code block wrapper should still get spacing.
+        let input = "<div>content</div>\n<p>Next.</p>\n";
+        let result = add_block_spacing(input);
+        assert!(
+            result.contains("</div>\n\n<p>"),
+            "Regular </div> should still get block spacing. Got: {}",
+            result
+        );
+    }
+
+    // ========================================================================
+    // Issue 158: Loose list indentation must match Jekyll
+    // ========================================================================
+
+    #[test]
+    fn test_issue158_loose_list_indentation() {
+        // Jekyll indents loose list item content with 2+2 spaces:
+        //   <li>\n    <p>text</p>\n  </li>
+        // pulldown-cmark outputs:
+        //   <li>\n<p>text</p>\n</li>
+        let input = "<ul>\n<li>\n<p>Item one</p>\n</li>\n<li>\n<p>Item two</p>\n</li>\n</ul>\n";
+        let result = indent_list_items(input);
+        assert!(
+            result.contains("  <li>\n    <p>Item one</p>\n  </li>"),
+            "Loose list items should be indented. Got: {}",
+            result
         );
     }
 }
