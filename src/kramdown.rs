@@ -66,8 +66,7 @@ pub fn remove_heading_markers(html: &str) -> String {
 /// 2. Auto-generated heading IDs
 /// 3. Inline attribute lists (`{:target="_blank"}`, `{:.class}`, `{:#id}`)
 /// 4. Fenced code block wrapping (no language tag)
-/// 5. Inline code classes (`language-plaintext highlighter-rouge`)
-///    5b. Wrap bare text between block elements in `<p>` tags
+/// 5. Wrap bare text between block elements in `<p>` tags
 /// 6. Paragraph spacing (extra newlines after block elements)
 /// 7. Remove `start` attribute from `<ol>` tags (D11)
 /// 8. Remove self-closing slash from void elements (D3)
@@ -79,7 +78,6 @@ pub fn postprocess(html: &str) -> String {
     let html = add_heading_ids(&html);
     let html = apply_inline_attributes(&html);
     let html = wrap_fenced_code_blocks(&html);
-    let html = add_inline_code_classes(&html);
     let html = wrap_bare_text_in_paragraphs(&html);
     let html = add_block_spacing(&html);
     let html = remove_ol_start_attribute(&html);
@@ -102,12 +100,11 @@ pub fn postprocess(html: &str) -> String {
 /// the template already supplies the next newline.
 ///
 /// This variant applies only the transformations relevant to short inline
-/// markdown (inline code classes, boolean attributes) and skips heavy
+/// markdown (boolean attributes, ol start removal) and skips heavy
 /// block-level processing (heading IDs, fenced code wrapping, block spacing,
 /// bare text wrapping, etc.).
 pub fn postprocess_for_filter(html: &str) -> String {
-    let html = add_inline_code_classes(html);
-    let html = remove_ol_start_attribute(&html);
+    let html = remove_ol_start_attribute(html);
     normalize_boolean_attributes(&html)
 }
 
@@ -1119,78 +1116,7 @@ fn wrap_fenced_code_blocks(html: &str) -> String {
 }
 
 // ============================================================================
-// 4. Inline code classes
-// ============================================================================
-
-/// Add `class="language-plaintext highlighter-rouge"` to inline `<code>` elements.
-///
-/// Only modifies `<code>` tags that:
-/// - Don't already have a class attribute (i.e., not language-tagged fenced blocks)
-/// - Are NOT inside a `<pre>` tag (fenced code blocks)
-fn add_inline_code_classes(html: &str) -> String {
-    let mut result = String::with_capacity(html.len());
-    let mut remaining = html;
-    let mut in_pre = false;
-
-    while !remaining.is_empty() {
-        if in_pre {
-            // Inside a <pre> block, look for </pre>
-            if let Some(close_pos) = remaining.find("</pre>") {
-                let end = close_pos + 6;
-                result.push_str(&remaining[..end]);
-                remaining = &remaining[end..];
-                in_pre = false;
-            } else {
-                result.push_str(remaining);
-                break;
-            }
-        } else if remaining.starts_with("<pre") {
-            in_pre = true;
-            // Copy the <pre tag
-            if let Some(gt) = remaining.find('>') {
-                result.push_str(&remaining[..=gt]);
-                remaining = &remaining[gt + 1..];
-            } else {
-                result.push_str(remaining);
-                break;
-            }
-        } else if remaining.starts_with("<code>") {
-            // Inline code without class - add kramdown classes
-            result.push_str("<code class=\"language-plaintext highlighter-rouge\">");
-            remaining = &remaining[6..]; // skip past "<code>"
-        } else {
-            // Find next interesting point
-            let next_pre = remaining.find("<pre");
-            let next_code = remaining.find("<code>");
-            let next = match (next_pre, next_code) {
-                (Some(a), Some(b)) => Some(a.min(b)),
-                (Some(a), None) => Some(a),
-                (None, Some(b)) => Some(b),
-                (None, None) => None,
-            };
-            if let Some(pos) = next {
-                if pos > 0 {
-                    result.push_str(&remaining[..pos]);
-                    remaining = &remaining[pos..];
-                } else {
-                    // Already at the position, push one char to avoid infinite loop
-                    // This shouldn't happen given the if/else above, but be safe
-                    let ch = remaining.chars().next().unwrap();
-                    result.push(ch);
-                    remaining = &remaining[ch.len_utf8()..];
-                }
-            } else {
-                result.push_str(remaining);
-                break;
-            }
-        }
-    }
-
-    result
-}
-
-// ============================================================================
-// 4b. Wrap bare text between block elements in <p> tags
+// 4. Wrap bare text between block elements in <p> tags
 // ============================================================================
 
 /// Wrap bare inline text between block-level elements in `<p>` tags.
@@ -2166,14 +2092,18 @@ mod tests {
     }
 
     #[test]
-    fn test_postprocess_inline_code_class() {
+    fn test_postprocess_inline_code_no_extra_class() {
+        // Issue #145: Jekyll does NOT add classes to inline <code> elements
         let html = "<p>Use <code>pip install</code> to install.</p>\n";
         let result = postprocess(html);
         assert!(
-            result.contains(
-                "<code class=\"language-plaintext highlighter-rouge\">pip install</code>"
-            ),
-            "Inline code should have kramdown classes. Got: {}",
+            result.contains("<code>pip install</code>"),
+            "Inline code should NOT have extra classes. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("language-plaintext"),
+            "Inline code should NOT have language-plaintext class. Got: {}",
             result
         );
     }
@@ -2269,9 +2199,15 @@ mod tests {
             "Raw IAL should be removed. Got: {}",
             result
         );
+        // Issue #145: inline code stays bare
         assert!(
-            result.contains("language-plaintext"),
-            "Inline code should have class. Got: {}",
+            result.contains("<code>pip</code>"),
+            "Inline code should stay bare. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("language-plaintext"),
+            "Inline code should NOT have language-plaintext class. Got: {}",
             result
         );
     }
@@ -2450,11 +2386,10 @@ mod tests {
     fn test_fenced_code_wrapping_no_interference_with_inline() {
         let html = "<p>Use <code>pip install</code> to install.</p>\n";
         let result = postprocess(html);
+        // Issue #145: inline code stays bare - no extra classes
         assert!(
-            result.contains(
-                "<code class=\"language-plaintext highlighter-rouge\">pip install</code>"
-            ),
-            "Inline code should get class attribute, not div wrapper. Got: {}",
+            result.contains("<code>pip install</code>"),
+            "Inline code should stay bare, no extra class. Got: {}",
             result
         );
         assert!(
@@ -2470,10 +2405,10 @@ mod tests {
     fn test_fenced_code_wrapping_mixed_inline_and_fenced() {
         let html = "<p>Use <code>pip</code> command.</p>\n<pre><code>bare code\n</code></pre>\n";
         let result = postprocess(html);
-        // Inline code gets class attribute
+        // Issue #145: inline code stays bare
         assert!(
-            result.contains("<code class=\"language-plaintext highlighter-rouge\">pip</code>"),
-            "Inline code should get class. Got: {}",
+            result.contains("<code>pip</code>"),
+            "Inline code should stay bare, no extra class. Got: {}",
             result
         );
         // Fenced code gets div wrapper
@@ -2489,10 +2424,10 @@ mod tests {
         // Document with inline code, fenced-with-language, and fenced-without-language
         let html = "<p>Use <code>pip</code>.</p>\n<pre><code class=\"language-python\">import os\n</code></pre>\n<pre><code>plain\n</code></pre>\n";
         let result = postprocess(html);
-        // Inline: gets class
+        // Issue #145: inline code stays bare
         assert!(
-            result.contains("<code class=\"language-plaintext highlighter-rouge\">pip</code>"),
-            "Inline code should get class. Got: {}",
+            result.contains("<code>pip</code>"),
+            "Inline code should stay bare, no extra class. Got: {}",
             result
         );
         // Fenced with language: wrapped with language class

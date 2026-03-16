@@ -51,11 +51,16 @@ mod tests {
 
     #[test]
     fn test_inline_code() {
+        // Issue #145: inline code should NOT get extra classes
         let result = liquid_core::call_filter!(Markdownify, "`code`").unwrap();
         let s = result.to_kstr().to_string();
         assert!(
-            s.contains("<code class=\"language-plaintext highlighter-rouge\">code</code>"),
-            "got: {s}"
+            s.contains("<code>code</code>"),
+            "Inline code should stay bare. got: {s}"
+        );
+        assert!(
+            !s.contains("language-plaintext"),
+            "Inline code should NOT have language-plaintext class. got: {s}"
         );
     }
 
