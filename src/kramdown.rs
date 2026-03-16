@@ -84,11 +84,29 @@ pub fn postprocess(html: &str) -> String {
     let html = add_block_spacing(&html);
     let html = remove_ol_start_attribute(&html);
     let html = normalize_figcaption_whitespace(&html);
-    // D3, D2, D12: Normalize void elements and boolean attributes in the markdown
-    // output early (during collection loading). This ensures that the final
+    // D2, D12: Normalize boolean attributes in the markdown output early
+    // (during collection loading). This ensures that the final
     // normalize_html_output() call after layout wrapping finds nothing to change
     // and exits early, avoiding a full scan of the (often 100-300KB) page HTML.
-    let html = normalize_void_elements(&html);
+    // Note: void element self-closing slashes are NOT removed because
+    // Jekyll/kramdown outputs XHTML-style self-closing tags (e.g. <br />).
+    normalize_boolean_attributes(&html)
+}
+
+/// Lighter postprocessing for the `markdownify` Liquid filter.
+///
+/// Jekyll's `markdownify` filter runs kramdown, which produces `<p>text</p>\n`
+/// (single trailing newline after block elements). The full `postprocess`
+/// adds `add_block_spacing` which doubles the newline, but that extra spacing
+/// is only correct for page body content -- not for inline filter output where
+/// the template already supplies the next newline.
+///
+/// This variant applies only the transformations relevant to short inline
+/// markdown (inline code classes, boolean attributes) and skips heavy
+/// block-level processing (heading IDs, fenced code wrapping, block spacing,
+/// bare text wrapping, etc.).
+pub fn postprocess_for_filter(html: &str) -> String {
+    let html = add_inline_code_classes(html);
     normalize_boolean_attributes(&html)
 }
 
@@ -99,24 +117,15 @@ pub fn postprocess(html: &str) -> String {
 ///
 /// Includes:
 /// - D2, D12: Boolean HTML attribute normalization (`required=""` -> `required`)
-/// - D3: Void element self-closing slash removal (`<br />` -> `<br>`)
+///
+/// Note: void element self-closing slashes are NOT removed because
+/// Jekyll/kramdown outputs XHTML-style self-closing tags (e.g. `<br />`).
 pub fn normalize_html_output(html: &str) -> String {
-    // Quick check: if the HTML has neither "/>" nor `=""`, nothing to normalize.
-    let has_void = html.contains("/>");
-    let has_bool = html.contains("=\"\"");
-    if !has_void && !has_bool {
+    // Quick check: if the HTML has no `=""`, nothing to normalize.
+    if !html.contains("=\"\"") {
         return html.to_string();
     }
-    // If only one kind of normalization is needed, do a single pass.
-    if has_void && !has_bool {
-        return normalize_void_elements(html);
-    }
-    if has_bool && !has_void {
-        return normalize_boolean_attributes(html);
-    }
-    // Both needed: apply sequentially (each is already single-pass).
-    let html = normalize_void_elements(html);
-    normalize_boolean_attributes(&html)
+    normalize_boolean_attributes(html)
 }
 
 // ============================================================================
@@ -769,8 +778,12 @@ fn insert_attributes_at(html: &mut String, open_pos: usize, attrs: &[(String, St
 /// - `key="value"` -> ("key", "value")
 /// - `key='value'` -> ("key", "value")
 fn parse_ial_attributes(attr_str: &str) -> Vec<(String, String)> {
+    // Decode HTML entities before parsing -- comrak HTML-encodes quotes in
+    // IAL text (e.g. {:target=&quot;_blank&quot;}) since it treats IALs as
+    // plain text, not kramdown syntax.
+    let decoded = html_unescape(attr_str);
     let mut attrs = Vec::new();
-    let mut remaining = attr_str.trim();
+    let mut remaining = decoded.trim();
 
     while !remaining.is_empty() {
         remaining = remaining.trim_start();
@@ -1182,6 +1195,7 @@ fn wrap_bare_text_in_paragraphs(html: &str) -> String {
         "ol",
         "li",
         "div",
+        "p",
         "table",
         "thead",
         "tbody",
@@ -1552,13 +1566,10 @@ fn remove_attribute(tag: &str, attr_name: &str) -> String {
 
 /// Remove self-closing slash from void HTML elements (single-pass).
 ///
-/// pulldown-cmark produces `<br />`, `<hr />`, `<input ... />` etc.
-/// kramdown produces `<br>`, `<hr>`, `<input ...>`.
-///
-/// This implementation scans the HTML once, finding all `/>` sequences and
-/// checking if they are inside void element tags. This replaces the prior
-/// approach of 26+ individual `replace()` calls which each scanned the
-/// entire string.
+/// Note: This function is no longer called in production because
+/// Jekyll/kramdown outputs XHTML-style self-closing tags (e.g. `<br />`).
+/// Kept for test coverage only.
+#[cfg(test)]
 fn normalize_void_elements(html: &str) -> String {
     // Quick check: if there's no "/>", nothing to normalize
     if !html.contains("/>") {
@@ -1606,6 +1617,7 @@ fn normalize_void_elements(html: &str) -> String {
 }
 
 /// Check if a tag name is a void (self-closing) HTML element.
+#[cfg(test)]
 fn is_void_element(tag_name: &str) -> bool {
     matches!(
         tag_name,
@@ -1877,6 +1889,25 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_parse_ial_html_encoded_quotes() {
+        // When comrak HTML-encodes the IAL text, quotes become &quot;
+        let attrs = parse_ial_attributes("target=&quot;_blank&quot;");
+        assert_eq!(attrs, vec![("target".into(), "_blank".into())]);
+    }
+
+    #[test]
+    fn test_parse_ial_html_encoded_multiple() {
+        let attrs = parse_ial_attributes("target=&quot;_blank&quot; rel=&quot;noopener&quot;");
+        assert_eq!(
+            attrs,
+            vec![
+                ("target".into(), "_blank".into()),
+                ("rel".into(), "noopener".into()),
+            ]
+        );
+    }
+
     // --- Slugify tests ---
 
     #[test]
@@ -1939,6 +1970,28 @@ mod tests {
         assert!(
             result.contains("<a href=\"https://example.com\" target=\"_blank\">text</a>"),
             "Attribute should be on the a tag. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_postprocess_link_with_html_encoded_target_blank() {
+        // When comrak HTML-encodes the IAL, quotes become &quot;
+        let html = "<p><a href=\"https://example.com\">text</a>{:target=&quot;_blank&quot;}</p>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("target=\"_blank\""),
+            "Should contain target attribute with proper quotes. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("{:target"),
+            "Should not contain raw IAL. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("&quot;"),
+            "Should not contain HTML-encoded quotes. Got: {}",
             result
         );
     }
@@ -2866,14 +2919,19 @@ on 20 Mar 2026
     }
 
     // ========================================================================
-    // normalize_html_output combines D2+D3+D12
+    // normalize_html_output normalizes boolean attributes only (D2+D12)
+    // Void element self-closing slashes are preserved to match Jekyll/kramdown.
     // ========================================================================
 
     #[test]
     fn test_normalize_html_output_combined() {
         let input = r#"<input required="" type="text" /><br /><div itemscope="">"#;
         let result = normalize_html_output(input);
-        assert_eq!(result, r#"<input required type="text"><br><div itemscope>"#);
+        // Void elements keep their self-closing slashes; boolean attrs are normalized
+        assert_eq!(
+            result,
+            r#"<input required type="text" /><br /><div itemscope>"#
+        );
     }
 
     // ========================================================================
@@ -3297,10 +3355,11 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     #[test]
-    fn test_normalize_html_output_both_patterns() {
+    fn test_normalize_html_output_bool_attrs_only() {
+        // Void elements keep self-closing slashes; only boolean attrs are normalized
         assert_eq!(
             normalize_html_output(r#"<br /><input required="">"#),
-            "<br><input required>"
+            "<br /><input required>"
         );
     }
 

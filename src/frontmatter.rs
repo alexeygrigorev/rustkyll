@@ -163,6 +163,30 @@ pub fn markdown_to_html(markdown: &str) -> String {
     crate::kramdown::postprocess(&html_output)
 }
 
+/// Convert Markdown to HTML with lighter postprocessing, for the `markdownify` filter.
+///
+/// Jekyll's `markdownify` filter runs kramdown which outputs `<p>text</p>\n`.
+/// The full `markdown_to_html` applies `add_block_spacing` which adds an extra
+/// newline after block tags, but that's only needed for page body content.
+/// In a filter context the template supplies the trailing newline.
+pub fn markdown_to_html_for_filter(markdown: &str) -> String {
+    let mut options = Options::empty();
+    options.insert(Options::ENABLE_TABLES);
+    options.insert(Options::ENABLE_STRIKETHROUGH);
+    options.insert(Options::ENABLE_SMART_PUNCTUATION);
+
+    let markdown = escape_paren_list_markers(markdown);
+    let protected = protect_liquid_quotes(&markdown);
+
+    let parser = Parser::new_ext(&protected, options);
+    let mut html_output = String::new();
+    html::push_html(&mut html_output, parser);
+
+    let html_output = restore_liquid_quotes(&html_output);
+
+    crate::kramdown::postprocess_for_filter(&html_output)
+}
+
 /// Escape parenthesis-style ordered list markers to prevent pulldown-cmark
 /// from treating them as ordered lists. Kramdown only uses `.` as a list
 /// delimiter, not `)`, so `1) text` should be treated as a paragraph.
@@ -231,8 +255,13 @@ fn escape_paren_list_markers(markdown: &str) -> String {
     result
 }
 
-/// Replace double quotes inside Liquid tags with a placeholder to prevent
-/// smart punctuation from converting them to curly quotes.
+/// Replace double quotes inside Liquid tags and kramdown IALs with a
+/// placeholder to prevent smart punctuation from converting them to curly
+/// quotes.
+///
+/// Protects both Liquid tags (`{{`, `{%`) and kramdown inline attribute
+/// lists (`{:`) since pulldown-cmark's smart punctuation would otherwise
+/// turn `"_blank"` into curly quotes, breaking IAL attribute parsing.
 fn protect_liquid_quotes(input: &str) -> String {
     // Sentinel that won't appear in normal text and won't be modified by markdown
     const QUOTE_PLACEHOLDER: &str = "\x00QUOT\x00";
@@ -241,15 +270,25 @@ fn protect_liquid_quotes(input: &str) -> String {
     let mut remaining = input;
 
     while !remaining.is_empty() {
-        // Find next Liquid tag opening
-        let tag_start = remaining.find("{%").or_else(|| remaining.find("{{"));
+        // Find next Liquid tag or kramdown IAL opening
+        let tag_start = remaining
+            .find("{%")
+            .or_else(|| remaining.find("{{"))
+            .or_else(|| remaining.find("{:"));
 
         if let Some(start) = tag_start {
             // Copy everything before the tag
             result.push_str(&remaining[..start]);
 
             let opener = &remaining[start..start + 2];
-            let closer = if opener == "{%" { "%}" } else { "}}" };
+            let closer = if opener == "{%" {
+                "%}"
+            } else if opener == "{{" {
+                "}}"
+            } else {
+                // kramdown IAL: {:...}
+                "}"
+            };
 
             if let Some(end) = remaining[start + 2..].find(closer) {
                 let tag_end = start + 2 + end + closer.len();
@@ -1305,6 +1344,43 @@ Each week we have a book author coming.
         assert!(
             html.contains("<p>"),
             "Escaped paren marker should produce <p>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_protect_liquid_quotes_covers_kramdown_ial() {
+        // IAL quotes should be protected from smart punctuation
+        let input = r#"[link](/url){:target="_blank"}"#;
+        let protected = protect_liquid_quotes(input);
+        // The quotes inside {:...} should be replaced with placeholders
+        assert!(
+            !protected.contains(r#"target="_blank""#),
+            "IAL quotes should be replaced. Got: {}",
+            protected
+        );
+        // Restore should bring them back
+        let restored = restore_liquid_quotes(&protected);
+        assert!(
+            restored.contains(r#"target="_blank""#),
+            "Restored quotes should match original. Got: {}",
+            restored
+        );
+    }
+
+    #[test]
+    fn test_markdown_to_html_kramdown_ial_target_blank() {
+        // Smart punctuation must not convert IAL quotes to curly quotes
+        let input = r#"[Register](/slack.html){:target="_blank"}"#;
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains(r#"target="_blank""#),
+            "IAL target attribute should have straight quotes. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains('\u{201c}') && !html.contains('\u{201d}'),
+            "Should not contain curly quotes. Got: {}",
             html
         );
     }
