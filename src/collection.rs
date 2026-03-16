@@ -694,6 +694,14 @@ pub fn load_pages(
 
     load_pages_recursive(site_dir, site_dir, config, &mut pages, &mut errors)?;
 
+    // Sort pages by (basename, full URL) to match Jekyll's site.pages order.
+    // Jekyll sorts pages by filename first, then by full path for stability.
+    pages.sort_by(|a, b| {
+        let basename_a = a.url.rsplit('/').next().unwrap_or(&a.url);
+        let basename_b = b.url.rsplit('/').next().unwrap_or(&b.url);
+        basename_a.cmp(basename_b).then_with(|| a.url.cmp(&b.url))
+    });
+
     Ok((pages, errors))
 }
 
@@ -2177,5 +2185,75 @@ mod tests {
 
         assert_eq!(items[0].date.as_deref(), Some("2023-06-01"));
         assert_eq!(items[1].date.as_deref(), Some(build_time));
+    }
+
+    // ========================================================================
+    // Unit: Page sort order (Issue 121)
+    // ========================================================================
+
+    /// Jekyll sorts site.pages by (basename, full URL). This test verifies
+    /// that load_pages produces pages in that order by testing the sort logic
+    /// directly on a Vec<Page>.
+    #[test]
+    fn test_pages_sorted_by_basename_then_url() {
+        use tempfile::TempDir;
+
+        let tmp = TempDir::new().unwrap();
+        let site = tmp.path();
+
+        // Create _config.yml
+        std::fs::write(site.join("_config.yml"), "title: test\n").unwrap();
+
+        // Create pages in subdirectories to test cross-directory sort order.
+        // Jekyll sorts by filename first, so page-1.html < page-10.html < page-2.html
+        // (string sort, not numeric), and pages from different dirs interleave by filename.
+        let dir_a = site.join("docs").join("alpha");
+        let dir_b = site.join("docs").join("beta");
+        std::fs::create_dir_all(&dir_a).unwrap();
+        std::fs::create_dir_all(&dir_b).unwrap();
+
+        // page-1.md in alpha, page-10.md in beta, page-2.md in alpha
+        std::fs::write(
+            dir_a.join("page-1.md"),
+            "---\ntitle: Alpha Page 1\n---\nContent",
+        )
+        .unwrap();
+        std::fs::write(
+            dir_b.join("page-10.md"),
+            "---\ntitle: Beta Page 10\n---\nContent",
+        )
+        .unwrap();
+        std::fs::write(
+            dir_a.join("page-2.md"),
+            "---\ntitle: Alpha Page 2\n---\nContent",
+        )
+        .unwrap();
+        // Same filename in different dirs: beta/page-1.md should come after alpha/page-1.md
+        std::fs::write(
+            dir_b.join("page-1.md"),
+            "---\ntitle: Beta Page 1\n---\nContent",
+        )
+        .unwrap();
+
+        let config = SiteConfig::from_file(&site.join("_config.yml")).unwrap();
+        let (pages, errors) = load_pages(site, &config).unwrap();
+        assert!(errors.is_empty(), "Should have no errors: {:?}", errors);
+
+        let urls: Vec<&str> = pages.iter().map(|p| p.url.as_str()).collect();
+
+        // Expected order: sort by basename first, then full URL
+        // page-1.html (alpha) < page-1.html (beta) [same basename, alpha < beta]
+        // page-10.html (beta) [next basename]
+        // page-2.html (alpha) [next basename]
+        assert_eq!(
+            urls,
+            vec![
+                "/docs/alpha/page-1.html",
+                "/docs/beta/page-1.html",
+                "/docs/beta/page-10.html",
+                "/docs/alpha/page-2.html",
+            ],
+            "Pages should be sorted by (basename, full URL) to match Jekyll"
+        );
     }
 }

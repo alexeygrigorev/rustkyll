@@ -32,7 +32,7 @@ fn run_build(source: &Path, destination: &Path) -> (usize, usize, usize, usize, 
     let data_tree = if data_dir.exists() {
         data::load_data(&data_dir).unwrap()
     } else {
-        HashMap::new()
+        data::DataTree::new()
     };
 
     // Load collections

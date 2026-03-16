@@ -258,7 +258,7 @@ fn build_site(
     let data_tree = if data_dir.exists() {
         data::load_data(&data_dir)?
     } else {
-        HashMap::new()
+        data::DataTree::new()
     };
     let data_file_count = data_tree.len();
     progress.phase_done(&format!("Loading data files... {} files", data_file_count));
