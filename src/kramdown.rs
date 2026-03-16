@@ -3961,4 +3961,66 @@ by <a href="/people/author.html">Author Name</a>
             html
         );
     }
+
+    // ========================================================================
+    // Issue 156: figcaption <p> wrapping -- verify stripping matches Jekyll
+    // ========================================================================
+
+    #[test]
+    fn test_issue156_figcaption_p_tags_stripped() {
+        // pulldown-cmark auto-wraps figcaption text in <p> tags.
+        // Jekyll/kramdown does NOT have <p> inside figcaption, so we must strip them.
+        let input = "<figcaption><p>Caption text</p></figcaption>";
+        let result = strip_paragraphs_in_html_blocks(input);
+        assert_eq!(
+            result, "<figcaption>Caption text</figcaption>",
+            "strip_paragraphs_in_html_blocks should strip <p> inside <figcaption>"
+        );
+    }
+
+    #[test]
+    fn test_issue156_figure_with_figcaption_strips_all_p() {
+        // Both <figure> and <figcaption> should have their <p> tags stripped.
+        // Jekyll output never has <p> in either element.
+        let input =
+            "<figure><p>Image content</p><figcaption><p>Caption text</p></figcaption></figure>";
+        let result = strip_paragraphs_in_html_blocks(input);
+        assert_eq!(
+            result,
+            "<figure>Image content<figcaption>Caption text</figcaption></figure>"
+        );
+    }
+
+    #[test]
+    fn test_issue156_figcaption_p_stripped_in_postprocess() {
+        // End-to-end: postprocess should strip <p> inside <figcaption>
+        let input = "<figcaption><p>Caption</p></figcaption>";
+        let result = postprocess(input);
+        assert!(
+            result.contains("<figcaption>Caption</figcaption>"),
+            "postprocess should strip <p> inside <figcaption>, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue156_figcaption_without_p_unchanged() {
+        // figcaption without <p> should pass through unchanged
+        let input = "<figcaption>Plain caption</figcaption>";
+        let result = strip_paragraphs_in_html_blocks(input);
+        assert_eq!(result, input);
+    }
+
+    #[test]
+    fn test_issue156_figcaption_with_link_p_stripped() {
+        // Real-world case from DTC site: figcaption with inline content and links.
+        // pulldown-cmark wraps in <p>, which must be stripped to match Jekyll.
+        let input =
+            "<figcaption><p>Image from <a href=\"https://example.com\">Source</a></p></figcaption>";
+        let result = strip_paragraphs_in_html_blocks(input);
+        assert_eq!(
+            result,
+            "<figcaption>Image from <a href=\"https://example.com\">Source</a></figcaption>"
+        );
+    }
 }
