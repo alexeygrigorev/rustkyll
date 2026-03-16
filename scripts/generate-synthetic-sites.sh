@@ -208,11 +208,7 @@ This concludes post number ${post_num} in the ${category} category.
 EOF
     done
 
-    # Initialize git repo for benchmark compatibility
     cd "$site_dir"
-    if [[ ! -d ".git" ]]; then
-        # No git init needed -- just a directory with files
-    fi
 
     echo "Generated large-blog-3000 with 3000 posts."
 }
@@ -380,12 +376,7 @@ EOF
         done
     done
 
-    # Initialize git repo for benchmark compatibility
     cd "$site_dir"
-    if [[ ! -d ".git" ]]; then
-        # No git init needed -- just a directory with files
-        # No git init needed -- just a directory with files
-    fi
 
     echo "Generated large-docs-site with $page_num pages across ${#sections[@]} sections."
 }
