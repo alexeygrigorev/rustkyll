@@ -83,6 +83,10 @@ enum Commands {
         /// Suppress all progress output (only errors are shown)
         #[arg(long, default_value_t = false)]
         quiet: bool,
+
+        /// Do not open the browser automatically
+        #[arg(long, default_value_t = false)]
+        no_browser: bool,
     },
 }
 
@@ -817,7 +821,9 @@ fn main() {
             no_livereload,
             no_watch,
             quiet,
+            no_browser,
         }) => {
+            let auto_open_browser = !no_browser;
             let livereload_enabled = livereload && !no_livereload && !no_watch;
 
             // Build the site first
@@ -898,7 +904,12 @@ fn main() {
                 });
 
                 // Start HTTP server (blocks)
-                if let Err(e) = rustkyll::server::start_server(&destination, port, Some(ws_port)) {
+                if let Err(e) = rustkyll::server::start_server_with_options(
+                    &destination,
+                    port,
+                    Some(ws_port),
+                    auto_open_browser,
+                ) {
                     eprintln!("Server error: {}", e);
                     std::process::exit(1);
                 }
@@ -914,7 +925,12 @@ fn main() {
                 if !quiet {
                     println!("Live reload disabled.");
                 }
-                if let Err(e) = rustkyll::server::start_server(&destination, port, None) {
+                if let Err(e) = rustkyll::server::start_server_with_options(
+                    &destination,
+                    port,
+                    None,
+                    auto_open_browser,
+                ) {
                     eprintln!("Server error: {}", e);
                     std::process::exit(1);
                 }
@@ -1423,6 +1439,54 @@ mod tests {
         match cli.command {
             Some(Commands::Serve { quiet, .. }) => {
                 assert!(!quiet, "--quiet should default to false for serve");
+            }
+            _ => panic!("Expected Serve command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_serve_no_browser_flag() {
+        let cli = Cli::try_parse_from(["rustkyll", "serve", "--no-browser"]).unwrap();
+        match cli.command {
+            Some(Commands::Serve { no_browser, .. }) => {
+                assert!(no_browser, "--no-browser flag should be true");
+            }
+            _ => panic!("Expected Serve command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_serve_no_browser_defaults_false() {
+        let cli = Cli::try_parse_from(["rustkyll", "serve"]).unwrap();
+        match cli.command {
+            Some(Commands::Serve { no_browser, .. }) => {
+                assert!(!no_browser, "--no-browser should default to false");
+            }
+            _ => panic!("Expected Serve command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_serve_no_browser_with_other_flags() {
+        let cli = Cli::try_parse_from([
+            "rustkyll",
+            "serve",
+            "--no-browser",
+            "--no-watch",
+            "--port",
+            "8080",
+        ])
+        .unwrap();
+        match cli.command {
+            Some(Commands::Serve {
+                no_browser,
+                no_watch,
+                port,
+                ..
+            }) => {
+                assert!(no_browser);
+                assert!(no_watch);
+                assert_eq!(port, 8080);
             }
             _ => panic!("Expected Serve command"),
         }
