@@ -1384,4 +1384,54 @@ Each week we have a book author coming.
             html
         );
     }
+
+    #[test]
+    fn test_markdown_to_html_single_paragraph_trailing_newline() {
+        // Jekyll/kramdown outputs <p>text</p>\n for a single paragraph.
+        // The html_content should end with a single \n, not \n\n.
+        // This matters because collection item content (e.g., person bios)
+        // gets embedded in JSON-LD via strip_html | jsonify, and an extra
+        // trailing newline causes description fields to have \n\n instead of \n.
+        let input = "Valeriia Kuka is a Content Manager at DataTalks.Club.\n";
+        let html = markdown_to_html(input);
+        assert_eq!(
+            html, "<p>Valeriia Kuka is a Content Manager at DataTalks.Club.</p>\n",
+            "Single paragraph should end with exactly one trailing newline"
+        );
+    }
+
+    #[test]
+    fn test_markdown_to_html_no_trailing_newline_source() {
+        // When source content has no trailing newline, pulldown-cmark still adds \n.
+        // The add_block_spacing should NOT double it to \n\n.
+        let input = "Some text without trailing newline";
+        let html = markdown_to_html(input);
+        assert!(
+            html.ends_with("</p>\n"),
+            "Output should end with </p>\\n, got: {:?}",
+            &html[html.len().saturating_sub(30)..]
+        );
+        assert!(
+            !html.ends_with("</p>\n\n"),
+            "Output should NOT end with </p>\\n\\n, got: {:?}",
+            &html[html.len().saturating_sub(30)..]
+        );
+    }
+
+    #[test]
+    fn test_markdown_to_html_multi_paragraph_trailing_newline() {
+        // Multiple paragraphs should have \n\n between them but end with single \n.
+        let input = "First paragraph.\n\nSecond paragraph.\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.ends_with("</p>\n"),
+            "Multi-paragraph content should end with </p>\\n, got: {:?}",
+            &html[html.len().saturating_sub(30)..]
+        );
+        assert!(
+            !html.ends_with("</p>\n\n"),
+            "Multi-paragraph content should NOT end with </p>\\n\\n, got: {:?}",
+            &html[html.len().saturating_sub(30)..]
+        );
+    }
 }

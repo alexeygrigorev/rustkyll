@@ -1497,8 +1497,11 @@ fn add_block_spacing(html: &str) -> String {
             result.push_str(&remaining[..tag_end]);
             remaining = &remaining[tag_end..];
 
-            // Add extra newline if not already followed by two newlines
-            if !remaining.starts_with("\n\n") && remaining.starts_with('\n') {
+            // Add extra newline if not already followed by two newlines,
+            // but NOT at the very end of content (trailing \n should stay single).
+            // Jekyll/kramdown ends content with </p>\n, not </p>\n\n.
+            if !remaining.starts_with("\n\n") && remaining.starts_with('\n') && remaining.len() > 1
+            {
                 result.push('\n'); // Add one extra newline (already has one from pulldown-cmark)
             } else if remaining.is_empty() || !remaining.starts_with('\n') {
                 // No newline at all after the tag; add two (block-level separation)
