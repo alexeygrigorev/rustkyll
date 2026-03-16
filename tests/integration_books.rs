@@ -106,11 +106,11 @@ fn test_render_ml_bookcamp() {
     assert!(html.contains("/people/alexeygrigorev.html"));
     assert!(html.contains("images/books/20201214-ml-bookcamp/cover.jpg"));
     assert!(html.contains("14 Dec 2020"), "Should contain start date");
-    // End date: YAML has "2020-12-18 23:59:59" which is treated as UTC.
-    // Jekyll converts to system timezone (CET = UTC+1), rolling to Dec 19.
+    // End date: YAML has "2020-12-18 23:59:59" -- naive datetime preserved as-is.
+    // Jekyll's Time.parse treats naive dates as local time, so 23:59:59 stays Dec 18.
     assert!(
-        html.contains("19 Dec 2020") || html.contains("18 Dec 2020"),
-        "Should contain end date (19 Dec in CET, 18 Dec in UTC)"
+        html.contains("18 Dec 2020"),
+        "Should contain end date Dec 18 (naive datetime preserved as-is)"
     );
 }
 
@@ -253,10 +253,10 @@ fn test_qa_text_newline_to_br_markdownify() {
         return;
     }
     let html = render_book("20201214-ml-bookcamp");
-    // D3: Void elements are normalized to not have self-closing slash
+    // Jekyll/kramdown outputs XHTML-style <br /> tags
     assert!(
-        html.contains("<br>") || html.contains("<br />"),
-        "Q&A text should contain <br> from newline_to_br filter"
+        html.contains("<br />"),
+        "Q&A text should contain <br /> from newline_to_br filter"
     );
 }
 
