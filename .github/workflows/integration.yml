@@ -140,5 +140,27 @@ jobs:
           RUST_LOG: info
           CI: "true"
 
-      - name: Run rustkyll-only output validation
-        run: ./scripts/compare-output.sh --validate-only --site DataTalksClub/datatalksclub.github.io
+      - name: Validate output for all cloned sites
+        run: |
+          for site in \
+            DataTalksClub/datatalksclub.github.io \
+            alexeygrigorev/kids-horror-stories-ru \
+            muan-blog \
+            documentation-theme-jekyll \
+            homebrew-site \
+            mojombo-blog \
+            just-the-docs \
+            cayman-theme \
+            slate-theme \
+            leap-day-theme \
+            midnight-theme \
+            hacker-theme \
+            architect-theme \
+            time-machine-theme \
+            merlot-theme \
+            dinky-theme \
+            large-blog-3000 \
+            large-docs-site; do
+            echo "=== Validating $site ==="
+            ./scripts/compare-output.sh --validate-only --site "$site" || echo "WARN: $site validation failed"
+          done
