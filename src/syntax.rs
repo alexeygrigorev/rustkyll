@@ -25,33 +25,58 @@ struct ScopeMapping {
 /// match wins.
 fn build_scope_map() -> Vec<ScopeMapping> {
     let rules: &[(&str, &str)] = &[
-        // Comments
+        // ── Language-specific overrides (checked first) ──
+        // YAML: Rouge does not use numeric classes; numbers in flow sequences
+        // are `nv` (variable value), other numbers are `s` (string).
+        ("source.yaml meta.flow-sequence constant.numeric", "nv"),
+        ("source.yaml constant.numeric", "s"),
+        // YAML: commas in flow sequences are `pi` (punctuation indicator)
+        ("source.yaml punctuation.separator.sequence", "pi"),
+        // YAML: block scalar indicators (| and >) are `pi` in Rouge
+        ("source.yaml keyword.control.flow.block-scalar", "pi"),
+        // ── Entity names (MUST come before strings so YAML keys get `na` not `s`) ──
+        ("entity.name.function", "nf"),
+        ("entity.name.class", "nc"),
+        ("entity.name.tag", "na"),
+        ("entity.name.namespace", "nn"),
+        ("entity.name.type", "nc"),
+        ("entity.other.attribute-name", "na"),
+        ("entity.other.inherited-class", "nb"),
+        // ── Comments ──
+        // comment.block.documentation covers Python docstrings (""" ... """).
+        // Rouge treats these as generic strings `s`, not `sd`.
+        ("comment.block.documentation", "s"),
         ("comment.line.number-sign", "c1"),
         ("comment.line.double-slash", "c1"),
         ("comment.line", "c1"),
-        ("comment.block.documentation", "sd"),
         ("comment.block", "cm"),
         ("comment", "c"),
-        // Strings
+        // ── Strings ──
+        // Python: Rouge uses generic `s` for all Python string literals,
+        // not `s2`/`s1`. Other languages (Bash, YAML) use `s2`/`s1`.
+        ("source.python string.quoted.double", "s"),
+        ("source.python string.quoted.single", "s"),
         ("string.quoted.double", "s2"),
         ("string.quoted.single", "s1"),
         ("string.quoted.triple", "sd"),
         ("string.interpolated", "si"),
         ("string.regexp", "sr"),
         ("string.other", "sx"),
+        ("string.unquoted.plain.in", "nv"),
         ("string", "s"),
-        // Numbers
+        // ── Numbers ──
         ("constant.numeric.float", "mf"),
         ("constant.numeric.integer.hexadecimal", "mh"),
         ("constant.numeric.integer.octal", "mo"),
         ("constant.numeric.integer.binary", "mb"),
         ("constant.numeric.integer", "mi"),
         ("constant.numeric", "m"),
-        // Constants
+        // ── Constants ──
         ("constant.language", "kc"),
         ("constant.other", "no"),
         ("constant.character.escape", "se"),
-        // Keywords
+        // ── Keywords ──
+        ("keyword.control.import.as", "k"),
         ("keyword.control.import", "kn"),
         ("keyword.control", "k"),
         ("keyword.operator.logical", "ow"),
@@ -59,40 +84,53 @@ fn build_scope_map() -> Vec<ScopeMapping> {
         ("keyword.other", "k"),
         ("keyword.declaration", "kd"),
         ("keyword", "k"),
-        // Storage (def, class, var, let, etc.)
+        // ── Storage (def, class, var, let, etc.) ──
         ("storage.type.function", "k"),
         ("storage.type.class", "k"),
         ("storage.type", "kt"),
         ("storage.modifier", "k"),
         ("storage", "k"),
-        // Entity names
-        ("entity.name.function", "nf"),
-        ("entity.name.class", "nc"),
-        ("entity.name.tag", "nt"),
-        ("entity.name.namespace", "nn"),
-        ("entity.name.type", "nc"),
-        ("entity.other.attribute-name", "na"),
-        ("entity.other.inherited-class", "nb"),
-        // Variables
-        ("variable.parameter", "nv"),
+        // ── Variables ──
+        ("variable.parameter.option", "nt"),
+        ("variable.parameter", "n"),
+        ("variable.annotation", "n"),
+        // Python: function names in calls are `n`; Bash: command names are plain
+        ("source.python variable.function", "n"),
         ("variable.language", "bp"),
         ("variable.other", "n"),
-        // Support (built-in functions/types)
+        // ── Support (built-in functions/types) ──
         ("support.function.builtin", "nb"),
         ("support.function", "nb"),
         ("support.type", "nb"),
         ("support.class", "nb"),
         ("support.other", "n"),
-        // Punctuation
+        // ── Punctuation ──
+        // YAML-specific punctuation: key-value separator, block sequence item,
+        // and flow sequence delimiters should map to `pi` (punctuation indicator)
+        // to match Rouge.
+        ("punctuation.separator.key-value", "pi"),
+        ("punctuation.definition.block.sequence.item", "pi"),
+        ("punctuation.definition.sequence", "pi"),
+        ("punctuation.definition.parameter", "nt"),
+        ("punctuation.definition.annotation", "o"),
+        ("punctuation.definition.comment", "c1"),
         ("punctuation.definition.string", "s"),
+        ("punctuation.separator.annotation.return", "o"),
         ("punctuation.separator", "p"),
         ("punctuation.section", "p"),
-        ("punctuation.accessor", "o"),
+        ("punctuation.accessor", "p"),
         ("punctuation", "p"),
-        // Meta (decorators)
+        // ── Meta ──
         ("meta.function.decorator", "nd"),
-        ("meta.function-call.arguments", "n"),
-        // Operators not already caught
+        // Python: module names in import statements.
+        // `import scipy` -> `scipy` has meta.qualified-name + meta.generic-name -> nn
+        // `from X import Y` -> `X` has meta.import-name -> nn
+        // `from X import Y` -> `Y` has only meta.generic-name (no meta.qualified-name) -> n
+        ("meta.statement.import meta.qualified-name", "nn"),
+        ("meta.import-name", "nn"),
+        // Plain variables (e.g., `inputs`, `fizz_buzz` used as name)
+        ("meta.generic-name", "n"),
+        // ── Operators not already caught ──
         ("keyword.operator.assignment", "o"),
     ];
 
@@ -155,6 +193,8 @@ fn scope_to_css_class(
 }
 
 /// HTML-escape a string (only the characters that matter inside a `<code>` block).
+/// Note: `"` is NOT escaped because Rouge/Jekyll do not escape it inside code spans,
+/// and it is valid HTML inside `<code>` / `<span>` elements.
 fn html_escape(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
@@ -162,7 +202,6 @@ fn html_escape(s: &str) -> String {
             '&' => out.push_str("&amp;"),
             '<' => out.push_str("&lt;"),
             '>' => out.push_str("&gt;"),
-            '"' => out.push_str("&quot;"),
             _ => out.push(c),
         }
     }
@@ -181,69 +220,122 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
 
     let syntax = find_syntax(lang)?;
     let ss = get_syntax_set();
-    let scope_map = scope_map();
+    let sm = scope_map();
 
+    // First pass: collect (text, css_class) fragments per line, then merge
+    // adjacent fragments with the same class before emitting HTML.
     let mut html = String::with_capacity(code.len() * 2);
     let mut parse_state = syntect::parsing::ParseState::new(syntax);
     let mut scope_stack = syntect::parsing::ScopeStack::new();
+
+    // Accumulator for merging: (css_class_option, accumulated_text)
+    let mut pending_class: Option<&'static str> = None;
+    let mut pending_text = String::new();
 
     for line in syntect::util::LinesWithEndings::from(code) {
         let ops = parse_state.parse_line(line, ss).ok()?;
         let mut cur_pos = 0;
 
-        for (byte_offset, op) in ops {
-            // Emit text before this operation
-            if byte_offset > cur_pos {
-                let text = &line[cur_pos..byte_offset];
-                emit_text(&mut html, text, &scope_stack, scope_map);
+        for (byte_offset, op) in &ops {
+            if *byte_offset > cur_pos {
+                let text = &line[cur_pos..*byte_offset];
+                let css_class = scope_to_css_class(sm, &scope_stack);
+                accumulate_and_emit(
+                    &mut html,
+                    &mut pending_class,
+                    &mut pending_text,
+                    text,
+                    css_class,
+                );
             }
-            cur_pos = byte_offset;
-            scope_stack.apply(&op).ok()?;
+            cur_pos = *byte_offset;
+            scope_stack.apply(op).ok()?;
         }
 
-        // Emit remaining text on this line
         if cur_pos < line.len() {
             let text = &line[cur_pos..];
-            emit_text(&mut html, text, &scope_stack, scope_map);
+            let css_class = scope_to_css_class(sm, &scope_stack);
+            accumulate_and_emit(
+                &mut html,
+                &mut pending_class,
+                &mut pending_text,
+                text,
+                css_class,
+            );
         }
+
+        // Flush at end of each line to prevent merging across line boundaries.
+        // This ensures e.g. consecutive comment lines get separate spans
+        // (matching Rouge behavior) while still merging fragments within a line.
+        flush_pending(&mut html, &pending_class, &mut pending_text);
     }
+
+    // Flush any remaining pending text
+    flush_pending(&mut html, &pending_class, &mut pending_text);
 
     Some(html)
 }
 
-/// Emit a text fragment, wrapped in a `<span>` if it has a CSS class.
-fn emit_text(
+/// Accumulate text into the pending buffer if it has the same CSS class,
+/// or flush the old pending and start a new one.
+fn accumulate_and_emit(
     html: &mut String,
+    pending_class: &mut Option<&'static str>,
+    pending_text: &mut String,
     text: &str,
-    scope_stack: &syntect::parsing::ScopeStack,
-    scope_map: &[ScopeMapping],
+    css_class: Option<&'static str>,
 ) {
-    if text.is_empty() {
+    if css_class == *pending_class {
+        // Same class: just accumulate
+        pending_text.push_str(text);
+    } else {
+        // Different class: flush old, start new
+        flush_pending(html, pending_class, pending_text);
+        *pending_class = css_class;
+        pending_text.push_str(text);
+    }
+}
+
+/// Flush pending accumulated text to HTML.
+///
+/// Rouge does not wrap leading/trailing whitespace inside `<span>` elements.
+/// This function strips leading whitespace (spaces/tabs) and emits it as
+/// plain text before the span, matching Rouge behavior. Newlines inside
+/// spans are preserved (Rouge does not split spans at line boundaries).
+fn flush_pending(
+    html: &mut String,
+    pending_class: &Option<&'static str>,
+    pending_text: &mut String,
+) {
+    if pending_text.is_empty() {
         return;
     }
+    if let Some(css_class) = pending_class {
+        // Strip leading whitespace (spaces/tabs only, not newlines) from the token
+        // and emit it as plain text before the span, matching Rouge behavior.
+        let leading_ws_end = pending_text
+            .find(|c: char| c != ' ' && c != '\t')
+            .unwrap_or(pending_text.len());
+        let leading_ws = &pending_text[..leading_ws_end];
+        let content = &pending_text[leading_ws_end..];
 
-    let escaped = html_escape(text);
+        if !leading_ws.is_empty() {
+            html.push_str(leading_ws);
+        }
 
-    if let Some(css_class) = scope_to_css_class(scope_map, scope_stack) {
-        // Split by newlines to avoid wrapping newlines inside spans
-        // (Rouge outputs spans that don't cross line boundaries)
-        let mut first = true;
-        for part in escaped.split('\n') {
-            if !first {
-                html.push('\n');
-            }
-            first = false;
-            if !part.is_empty() {
-                html.push_str("<span class=\"");
-                html.push_str(css_class);
-                html.push_str("\">");
-                html.push_str(part);
-                html.push_str("</span>");
-            }
+        if !content.is_empty() {
+            let escaped = html_escape(content);
+            html.push_str("<span class=\"");
+            html.push_str(css_class);
+            html.push_str("\">");
+            html.push_str(&escaped);
+            html.push_str("</span>");
         }
     } else {
+        let escaped = html_escape(pending_text);
         html.push_str(&escaped);
     }
+    pending_text.clear();
 }
 
 static SCOPE_MAP: OnceLock<Vec<ScopeMapping>> = OnceLock::new();
@@ -288,13 +380,10 @@ mod tests {
     fn test_highlight_python_string() {
         let code = "x = \"hello\"\n";
         let html = highlight_code("python", code).unwrap();
-        // The string should be highlighted with an s-family class
+        // Rouge uses generic `s` for Python strings (not s2/s1)
         assert!(
-            html.contains("<span class=\"s2\">&quot;hello&quot;</span>")
-                || html.contains("<span class=\"s\">")
-                || html.contains("class=\"s1\"")
-                || html.contains("class=\"s2\""),
-            "string should be highlighted: {html}"
+            html.contains("class=\"s\""),
+            "python string should be highlighted as s: {html}"
         );
     }
 
@@ -371,5 +460,329 @@ mod tests {
         let code = "echo hello\n";
         let html = highlight_code("sh", code);
         assert!(html.is_some(), "sh should resolve to bash");
+    }
+
+    // ── YAML token mapping tests ──
+
+    #[test]
+    fn test_yaml_keys_are_na() {
+        let html = highlight_code("yaml", "name: CI\n").unwrap();
+        assert!(
+            html.contains("<span class=\"na\">name</span>"),
+            "YAML keys should map to na: {html}"
+        );
+    }
+
+    #[test]
+    fn test_yaml_colon_is_pi() {
+        let html = highlight_code("yaml", "name: CI\n").unwrap();
+        assert!(
+            html.contains("<span class=\"pi\">:</span>"),
+            "YAML colon should map to pi: {html}"
+        );
+    }
+
+    #[test]
+    fn test_yaml_string_value_is_s() {
+        let html = highlight_code("yaml", "name: CI\n").unwrap();
+        assert!(
+            html.contains("<span class=\"s\">CI</span>"),
+            "YAML string value should map to s: {html}"
+        );
+    }
+
+    #[test]
+    fn test_yaml_comment_is_c1() {
+        let html = highlight_code("yaml", "# this is a comment\n").unwrap();
+        assert!(
+            html.contains("<span class=\"c1\"># this is a comment"),
+            "YAML comments should map to c1: {html}"
+        );
+    }
+
+    #[test]
+    fn test_yaml_comment_merged() {
+        // The # and comment text should be merged into one span
+        let html = highlight_code("yaml", "# comment\n").unwrap();
+        assert!(
+            !html.contains("<span class=\"c1\">#</span><span class=\"c1\">"),
+            "YAML comment # and text should be merged: {html}"
+        );
+    }
+
+    #[test]
+    fn test_yaml_boolean_is_kc() {
+        let html = highlight_code("yaml", "fail-fast: false\n").unwrap();
+        assert!(
+            html.contains("<span class=\"kc\">false</span>"),
+            "YAML booleans should map to kc: {html}"
+        );
+    }
+
+    #[test]
+    fn test_yaml_dash_is_pi() {
+        let html = highlight_code("yaml", "- repo: example\n").unwrap();
+        assert!(
+            html.contains("<span class=\"pi\">-</span>"),
+            "YAML dash should map to pi: {html}"
+        );
+    }
+
+    #[test]
+    fn test_yaml_flow_brackets_are_pi() {
+        let html = highlight_code("yaml", "branches: [ main ]\n").unwrap();
+        assert!(
+            html.contains("<span class=\"pi\">[</span>"),
+            "YAML flow sequence bracket should map to pi: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"pi\">]</span>"),
+            "YAML flow sequence bracket should map to pi: {html}"
+        );
+    }
+
+    #[test]
+    fn test_yaml_flow_value_is_nv() {
+        let html = highlight_code("yaml", "branches: [ main ]\n").unwrap();
+        assert!(
+            html.contains("<span class=\"nv\">main</span>"),
+            "YAML values in flow sequences should map to nv: {html}"
+        );
+    }
+
+    #[test]
+    fn test_yaml_pipe_is_pi() {
+        let html = highlight_code("yaml", "key: |\n  value\n").unwrap();
+        assert!(
+            html.contains("<span class=\"pi\">|</span>"),
+            "YAML block scalar pipe should map to pi: {html}"
+        );
+    }
+
+    #[test]
+    fn test_yaml_version_number_is_s() {
+        let html = highlight_code("yaml", "rev: 3.7.9\n").unwrap();
+        assert!(
+            html.contains("<span class=\"s\">3.7.9</span>"),
+            "YAML version-like numbers should map to s: {html}"
+        );
+    }
+
+    // ── Python token mapping tests ──
+
+    #[test]
+    fn test_python_import_module_is_nn() {
+        let html = highlight_code("python", "import scipy\n").unwrap();
+        assert!(
+            html.contains("<span class=\"kn\">import</span>"),
+            "import keyword should be kn: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nn\">scipy</span>"),
+            "module name after import should be nn: {html}"
+        );
+    }
+
+    #[test]
+    fn test_python_from_import_classes() {
+        let html = highlight_code("python", "from matplotlib import pyplot as plt\n").unwrap();
+        assert!(
+            html.contains("<span class=\"nn\">matplotlib</span>"),
+            "from module should be nn: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"n\">pyplot</span>"),
+            "imported name should be n: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"k\">as</span>"),
+            "as keyword should be k: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"n\">plt</span>"),
+            "alias should be n: {html}"
+        );
+    }
+
+    #[test]
+    fn test_python_def_and_function_name() {
+        let html = highlight_code("python", "def fizz_buzz(n: int) -> str:\n").unwrap();
+        assert!(
+            html.contains("<span class=\"k\">def</span>"),
+            "def should be k: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nf\">fizz_buzz</span>"),
+            "function name should be nf: {html}"
+        );
+    }
+
+    #[test]
+    fn test_python_parameter_is_n() {
+        let html = highlight_code("python", "def fizz_buzz(n: int) -> str:\n").unwrap();
+        assert!(
+            html.contains("<span class=\"n\">n</span>"),
+            "parameter should be n: {html}"
+        );
+    }
+
+    #[test]
+    fn test_python_return_arrow_is_o() {
+        let html = highlight_code("python", "def fizz_buzz(n: int) -> str:\n").unwrap();
+        assert!(
+            html.contains("<span class=\"o\">-&gt;</span>"),
+            "return arrow -> should be o: {html}"
+        );
+    }
+
+    #[test]
+    fn test_python_docstring_is_s() {
+        let html = highlight_code(
+            "python",
+            "\"\"\"Function to solve the fizzbuzz problem.\"\"\"\n",
+        )
+        .unwrap();
+        // Rouge uses `s` for Python docstrings (triple-quoted strings)
+        assert!(
+            html.contains("<span class=\"s\">\"\"\"Function"),
+            "docstring should be s: {html}"
+        );
+    }
+
+    #[test]
+    fn test_python_builtin_is_nb() {
+        let html = highlight_code("python", "print(\"hello\")\n").unwrap();
+        assert!(
+            html.contains("<span class=\"nb\">print</span>"),
+            "built-in function should be nb: {html}"
+        );
+    }
+
+    #[test]
+    fn test_python_variable_is_n() {
+        let html = highlight_code("python", "inputs = [3, 5]\n").unwrap();
+        assert!(
+            html.contains("<span class=\"n\">inputs</span>"),
+            "variable should be n: {html}"
+        );
+    }
+
+    #[test]
+    fn test_python_string_is_s() {
+        let html = highlight_code("python", "x = \"hello\"\n").unwrap();
+        // Rouge uses generic `s` for all Python strings
+        assert!(
+            html.contains("class=\"s\""),
+            "python string should be s (not s2): {html}"
+        );
+    }
+
+    #[test]
+    fn test_python_function_call_is_n() {
+        let html = highlight_code("python", "assert fizz_buzz(inp) == out\n").unwrap();
+        assert!(
+            html.contains("<span class=\"n\">fizz_buzz</span>"),
+            "function name in call should be n: {html}"
+        );
+    }
+
+    #[test]
+    fn test_python_decorator_at_is_o() {
+        let html = highlight_code("python", "@pytest.mark.parametrize\n").unwrap();
+        assert!(
+            html.contains("<span class=\"o\">@</span>"),
+            "@ in decorator should be o: {html}"
+        );
+    }
+
+    #[test]
+    fn test_python_dot_accessor_is_p() {
+        let html = highlight_code("python", "@pytest.mark.parametrize\n").unwrap();
+        assert!(
+            html.contains("<span class=\"p\">.</span>"),
+            ". accessor should be p: {html}"
+        );
+    }
+
+    // ── Bash token mapping tests ──
+
+    #[test]
+    fn test_bash_command_is_plain() {
+        let html = highlight_code("bash", "git checkout -b dev\n").unwrap();
+        // Command name (git) should not be wrapped in a span
+        assert!(
+            html.starts_with("git checkout"),
+            "bash command and args should be plain text: {html}"
+        );
+    }
+
+    #[test]
+    fn test_bash_flag_is_nt() {
+        let html = highlight_code("bash", "git checkout -b dev\n").unwrap();
+        assert!(
+            html.contains("<span class=\"nt\">-b</span>"),
+            "bash flag should be nt: {html}"
+        );
+    }
+
+    #[test]
+    fn test_bash_string_is_s2() {
+        let html = highlight_code("bash", "git commit -m \"<commit message>\"\n").unwrap();
+        assert!(
+            html.contains("class=\"s2\""),
+            "bash double-quoted string should be s2: {html}"
+        );
+    }
+
+    #[test]
+    fn test_bash_comment_is_c1() {
+        let html = highlight_code("bash", "# comment\n").unwrap();
+        assert!(
+            html.contains("<span class=\"c1\"># comment"),
+            "bash comment should be c1: {html}"
+        );
+    }
+
+    // ── Span merging tests ──
+
+    #[test]
+    fn test_comment_fragments_merged() {
+        // In syntect, the # and comment text may be separate tokens, both c1.
+        // They should be merged into a single span.
+        let html = highlight_code("python", "# hello world\n").unwrap();
+        // Should NOT have two adjacent c1 spans
+        assert!(
+            !html.contains("</span><span class=\"c1\">"),
+            "adjacent c1 fragments should be merged: {html}"
+        );
+        // Should have one c1 span containing the whole comment
+        assert!(
+            html.contains("<span class=\"c1\"># hello world"),
+            "comment should be one merged span: {html}"
+        );
+    }
+
+    #[test]
+    fn test_whitespace_only_not_wrapped() {
+        let html = highlight_code("yaml", "name: CI\n").unwrap();
+        // The space between : and CI should not be inside a span
+        assert!(
+            !html.contains("<span class=\"s\"> </span>"),
+            "whitespace-only text should not be wrapped in span: {html}"
+        );
+    }
+
+    #[test]
+    fn test_quotes_not_html_escaped() {
+        let html = highlight_code("python", "x = \"hello\"\n").unwrap();
+        // Quotes should NOT be escaped as &quot; (matching Rouge/Jekyll)
+        assert!(
+            !html.contains("&quot;"),
+            "quotes should not be html-escaped: {html}"
+        );
+        assert!(
+            html.contains("\"hello\""),
+            "quotes should be literal: {html}"
+        );
     }
 }
