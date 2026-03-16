@@ -2018,4 +2018,118 @@ mod tests {
             result
         );
     }
+
+    #[test]
+    fn test_podcast_jsonld_resolves_people_picture() {
+        // The podcast layout's JSON-LD should resolve site.people references
+        // to actual image URLs instead of leaving literal strings like
+        // "site.people.alexeygrigorev.picture".
+        let podcast_layout_source = r#"<html><body>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [{
+    "@type": "PodcastEpisode",
+    "name": {{ page.title | jsonify }},
+    {% assign host_person = site.people | where: "short", "alexeygrigorev" | first %}
+    "about": [{
+      "@type": "Person",
+      "name": "Alexey Grigorev",
+      "image": "{{ site.url }}/{{ host_person.picture }}"
+    }
+    {% if page.guests %}
+      {% for guest_short in page.guests %}
+        {% assign guest = site.people | where: "short", guest_short | first %}
+        ,{
+          "@type": "Person",
+          "name": {% if guest %}{{ guest.title | jsonify }}{% else %}{{ guest_short | jsonify }}{% endif %}
+          {% if guest and guest.picture %}
+          ,"image": "{{ site.url }}/{{ guest.picture }}"
+          {% endif %}
+        }
+      {% endfor %}
+    {% endif %}
+    ]
+  }]
+}
+</script>
+{{ content }}
+</body></html>"#;
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "podcast".to_string(),
+            Layout {
+                source: podcast_layout_source.to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let mut fm = FrontMatter::new();
+        fm.insert(
+            "title".to_string(),
+            serde_yaml::Value::String("Test Episode".to_string()),
+        );
+        fm.insert(
+            "guests".to_string(),
+            serde_yaml::Value::Sequence(vec![serde_yaml::Value::String("janedoe".to_string())]),
+        );
+
+        let mut site = Object::new();
+        site.insert("url".into(), LiquidValue::scalar("https://datatalks.club"));
+
+        // Build the people collection with picture fields
+        let mut host_obj = Object::new();
+        host_obj.insert("short".into(), LiquidValue::scalar("alexeygrigorev"));
+        host_obj.insert("title".into(), LiquidValue::scalar("Alexey Grigorev"));
+        host_obj.insert(
+            "picture".into(),
+            LiquidValue::scalar("images/authors/alexeygrigorev.jpg"),
+        );
+
+        let mut guest_obj = Object::new();
+        guest_obj.insert("short".into(), LiquidValue::scalar("janedoe"));
+        guest_obj.insert("title".into(), LiquidValue::scalar("Jane Doe"));
+        guest_obj.insert(
+            "picture".into(),
+            LiquidValue::scalar("images/authors/janedoe.jpg"),
+        );
+
+        site.insert(
+            "people".into(),
+            LiquidValue::Array(vec![
+                LiquidValue::Object(host_obj),
+                LiquidValue::Object(guest_obj),
+            ]),
+        );
+
+        let output = engine
+            .render("podcast", "<p>Episode content</p>", &fm, &site)
+            .unwrap();
+
+        // The host's image should be resolved to the actual URL
+        assert!(
+            output.contains("https://datatalks.club/images/authors/alexeygrigorev.jpg"),
+            "Host image should be resolved from site.people, got: {}",
+            output
+        );
+        // Should NOT contain the unresolved literal
+        assert!(
+            !output.contains("site.people.alexeygrigorev.picture"),
+            "Should not contain unresolved people reference"
+        );
+        // Guest image should also be resolved
+        assert!(
+            output.contains("https://datatalks.club/images/authors/janedoe.jpg"),
+            "Guest image should be resolved from site.people, got: {}",
+            output
+        );
+        // Guest name should be resolved
+        assert!(
+            output.contains("Jane Doe"),
+            "Guest name should be resolved from site.people"
+        );
+    }
 }
