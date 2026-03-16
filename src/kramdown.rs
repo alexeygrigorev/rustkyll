@@ -66,7 +66,7 @@ pub fn remove_heading_markers(html: &str) -> String {
 /// 2. Auto-generated heading IDs
 /// 3. Inline attribute lists (`{:target="_blank"}`, `{:.class}`, `{:#id}`)
 /// 4. Fenced code block wrapping (no language tag)
-/// 5. Inline code classes (`highlighter-rouge`)
+/// 5. Inline code classes (`language-plaintext highlighter-rouge`)
 ///    5b. Wrap bare text between block elements in `<p>` tags
 /// 6. Paragraph spacing (extra newlines after block elements)
 /// 7. Remove `start` attribute from `<ol>` tags (D11)
@@ -1131,9 +1131,9 @@ fn wrap_fenced_code_blocks(html: &str) -> String {
 // 4. Inline code classes
 // ============================================================================
 
-/// Add `class="highlighter-rouge"` to inline `<code>` elements.
+/// Add `class="language-plaintext highlighter-rouge"` to inline `<code>` elements.
 ///
-/// Jekyll/kramdown adds `class="highlighter-rouge"` (without `language-plaintext`)
+/// Jekyll/kramdown adds `class="language-plaintext highlighter-rouge"`
 /// to inline code spans. Only modifies `<code>` tags that:
 /// - Don't already have a class attribute
 /// - Are NOT inside a `<pre>` tag (fenced code blocks are handled separately)
@@ -1166,7 +1166,7 @@ fn add_inline_code_classes(html: &str) -> String {
             }
         } else if remaining.starts_with("<code>") {
             // Inline code without class - add kramdown class
-            result.push_str("<code class=\"highlighter-rouge\">");
+            result.push_str("<code class=\"language-plaintext highlighter-rouge\">");
             remaining = &remaining[6..]; // skip past "<code>"
         } else {
             // Find next interesting point
@@ -2254,17 +2254,14 @@ mod tests {
 
     #[test]
     fn test_postprocess_inline_code_highlighter_rouge_class() {
-        // Jekyll adds class="highlighter-rouge" (without language-plaintext) to inline code
+        // Jekyll adds class="language-plaintext highlighter-rouge" to inline code
         let html = "<p>Use <code>pip install</code> to install.</p>\n";
         let result = postprocess(html);
         assert!(
-            result.contains("<code class=\"highlighter-rouge\">pip install</code>"),
-            "Inline code should have highlighter-rouge class. Got: {}",
-            result
-        );
-        assert!(
-            !result.contains("language-plaintext"),
-            "Inline code should NOT have language-plaintext class. Got: {}",
+            result.contains(
+                "<code class=\"language-plaintext highlighter-rouge\">pip install</code>"
+            ),
+            "Inline code should have language-plaintext highlighter-rouge class. Got: {}",
             result
         );
     }
@@ -2360,15 +2357,10 @@ mod tests {
             "Raw IAL should be removed. Got: {}",
             result
         );
-        // Inline code gets highlighter-rouge class (not language-plaintext)
+        // Inline code gets language-plaintext highlighter-rouge class
         assert!(
-            result.contains("<code class=\"highlighter-rouge\">pip</code>"),
-            "Inline code should have highlighter-rouge class. Got: {}",
-            result
-        );
-        assert!(
-            !result.contains("language-plaintext"),
-            "Inline code should NOT have language-plaintext class. Got: {}",
+            result.contains("<code class=\"language-plaintext highlighter-rouge\">pip</code>"),
+            "Inline code should have language-plaintext highlighter-rouge class. Got: {}",
             result
         );
     }
@@ -2547,10 +2539,12 @@ mod tests {
     fn test_fenced_code_wrapping_no_interference_with_inline() {
         let html = "<p>Use <code>pip install</code> to install.</p>\n";
         let result = postprocess(html);
-        // Inline code gets highlighter-rouge, not div wrapper
+        // Inline code gets language-plaintext highlighter-rouge, not div wrapper
         assert!(
-            result.contains("<code class=\"highlighter-rouge\">pip install</code>"),
-            "Inline code should have highlighter-rouge class. Got: {}",
+            result.contains(
+                "<code class=\"language-plaintext highlighter-rouge\">pip install</code>"
+            ),
+            "Inline code should have language-plaintext highlighter-rouge class. Got: {}",
             result
         );
         assert!(
@@ -2566,10 +2560,10 @@ mod tests {
     fn test_fenced_code_wrapping_mixed_inline_and_fenced() {
         let html = "<p>Use <code>pip</code> command.</p>\n<pre><code>bare code\n</code></pre>\n";
         let result = postprocess(html);
-        // Inline code gets highlighter-rouge class
+        // Inline code gets language-plaintext highlighter-rouge class
         assert!(
-            result.contains("<code class=\"highlighter-rouge\">pip</code>"),
-            "Inline code should have highlighter-rouge class. Got: {}",
+            result.contains("<code class=\"language-plaintext highlighter-rouge\">pip</code>"),
+            "Inline code should have language-plaintext highlighter-rouge class. Got: {}",
             result
         );
         // Fenced code gets div wrapper
@@ -2585,10 +2579,10 @@ mod tests {
         // Document with inline code, fenced-with-language, and fenced-without-language
         let html = "<p>Use <code>pip</code>.</p>\n<pre><code class=\"language-python\">import os\n</code></pre>\n<pre><code>plain\n</code></pre>\n";
         let result = postprocess(html);
-        // Inline code gets highlighter-rouge class
+        // Inline code gets language-plaintext highlighter-rouge class
         assert!(
-            result.contains("<code class=\"highlighter-rouge\">pip</code>"),
-            "Inline code should have highlighter-rouge class. Got: {}",
+            result.contains("<code class=\"language-plaintext highlighter-rouge\">pip</code>"),
+            "Inline code should have language-plaintext highlighter-rouge class. Got: {}",
             result
         );
         // Fenced with language: wrapped with language class
