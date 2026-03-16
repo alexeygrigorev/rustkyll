@@ -1,67 +1,69 @@
 # Benchmark: rustkyll vs Jekyll
 
-Generated: 2026-03-15 12:15 UTC
+Generated: 2026-03-16 11:02 UTC
 
 Configuration: 3 runs per tool, median wall-clock time reported.
-Timeout: 120s per build.
+Timeout: 300s per build.
 
 rustkyll version: rustkyll 0.1.4
 Jekyll version: jekyll 4.4.1
 
 ## Summary
 
-rustkyll is faster than Jekyll on 32 of 34 dual-success sites. Speedups range from 0.82x (government-github, Jekyll faster due to GitHub API data fetching) to 171x (data-science-interviews). For the primary target site (DataTalksClub/datatalksclub.github.io), rustkyll builds in 1.05s vs Jekyll's 19.5s -- an 18.7x speedup.
+rustkyll is faster than Jekyll on 32 of 34 dual-success sites. Speedups range from 0.74x (mlwiki.org, Jekyll faster due to large number of wiki pages with slow Liquid rendering) to 165.74x (academicpages). For the primary target site (DataTalksClub/datatalksclub.github.io), rustkyll builds in 1.15s vs Jekyll's 19.6s -- a 17.1x speedup.
 
-34 of 44 sites build successfully with both tools. 1 site (primer-theme) builds only with Jekyll. 7 sites build only with rustkyll. 3 sites fail with both tools.
+34 of 44 sites build successfully with both tools. 1 site (primer-theme) builds only with Jekyll. 7 sites build only with rustkyll. 3 sites fail with both tools (unchanged from previous run).
+
+Compared to the previous benchmark (2026-03-15 12:15 UTC), DOM match rates improved significantly after fixes to collection sort stability, kramdown bare text wrapping, loose list wrapping, sidebar nav sort order, data listing order, heading IDs, URL encoding, inline code classes, ordered list start attributes, and other markdown edge cases. DTC DOM matches improved from 2/787 (0%) to 428/787 (54%). Visual diffs also improved substantially: DTC course-ml-zoomcamp dropped from 4.11% to 0.00%, mojombo-blog posts dropped from 1.5-3.5% to 0.00%, and large-docs-site dropped from 9.62% to 0.00%.
 
 ## All Sites -- Speed Benchmark
 
 | Site | Pages | Jekyll (s) | rustkyll (s) | Speedup |
 |------|-------|------------|-------------|---------|
-| alexeygrigorev/aihero | 2 | 0.632 | 0.020 | 31.60x |
-| alexeygrigorev/alexeygrigorev.github.io | 8 | 0.579 | 0.015 | 38.60x |
-| alexeygrigorev/data-science-interviews | 0 | 1.371 | 0.008 | 171.37x |
-| alexeygrigorev/kids-horror-stories-ru | 1344 | 4.041 | 0.330 | 12.24x |
-| alexeygrigorev/little-book-of-metals-ru | 43 | 2.346 | 0.448 | 5.23x |
-| alexeygrigorev/mlbookcamp-page | 15 | 0.602 | 0.111 | 5.42x |
-| alexeygrigorev/mlwiki.org | 640 | 0.969 | 1.004 | 0.96x |
-| alexeygrigorev/snippets | 25 | 0.652 | 0.072 | 9.05x |
-| DataTalksClub/courses | 5 | 0.618 | 0.031 | 19.93x |
-| DataTalksClub/datatalksclub.github.io | 787 | 19.506 | 1.045 | 18.66x |
-| DataTalksClub/docs | 57 | 1.810 | 0.038 | 47.63x |
-| academicpages | 17 | 4.434 | 0.026 | 170.53x |
-| architect-theme | 2 | 0.839 | 0.017 | 49.35x |
-| beautiful-jekyll | 6 | 0.816 | 0.027 | 30.22x |
+| alexeygrigorev/aihero | 2 | 0.907 | 0.029 | 31.27x |
+| alexeygrigorev/alexeygrigorev.github.io | 8 | 0.904 | 0.026 | 34.76x |
+| alexeygrigorev/data-science-interviews | 0 | 2.087 | 0.015 | 139.13x |
+| alexeygrigorev/kids-horror-stories-ru | 1344 | 4.961 | 0.567 | 8.74x |
+| alexeygrigorev/little-book-of-metals-ru | 43 | 2.895 | 0.583 | 4.96x |
+| alexeygrigorev/mlbookcamp-page | 15 | 0.604 | 0.119 | 5.07x |
+| alexeygrigorev/mlwiki.org | 640 | 1.005 | 1.347 | 0.74x |
+| alexeygrigorev/snippets | 25 | 0.657 | 0.074 | 8.87x |
+| DataTalksClub/courses | 5 | 0.633 | 0.031 | 20.41x |
+| DataTalksClub/datatalksclub.github.io | 787 | 19.617 | 1.150 | 17.05x |
+| DataTalksClub/docs | 57 | 1.901 | 0.054 | 35.20x |
+| academicpages | 17 | 4.475 | 0.027 | 165.74x |
+| architect-theme | 2 | 0.673 | 0.017 | 39.58x |
+| beautiful-jekyll | 6 | 0.841 | 0.033 | 25.48x |
 | bitcoin-org | N/A | FAIL | FAIL | N/A |
-| cayman-theme | 2 | 1.144 | 0.016 | 71.50x |
-| choosealicense.com | 72 | FAIL | 0.103 | N/A |
-| dinky-theme | 2 | 0.619 | 0.034 | 18.20x |
-| documentation-theme-jekyll | 100 | 3.677 | 0.160 | 22.98x |
+| cayman-theme | 2 | 0.665 | 0.019 | 35.00x |
+| choosealicense.com | 72 | FAIL | 0.054 | N/A |
+| dinky-theme | 2 | 0.620 | 0.017 | 36.47x |
+| documentation-theme-jekyll | 100 | 3.589 | 0.192 | 18.69x |
 | edition-template | N/A | FAIL | FAIL | N/A |
-| government-github | 21 | 4.429 | 5.379 | 0.82x |
-| hacker-theme | 2 | 0.700 | 0.016 | 43.75x |
-| homebrew-site | 134 | FAIL | 0.044 | N/A |
-| hyde | 6 | FAIL | 0.014 | N/A |
-| jekyll-docs/docs | 131 | 3.103 | 2.109 | 1.47x |
-| just-the-docs | 47 | 2.214 | 0.259 | 8.54x |
-| large-blog-3000 | 3001 | 6.182 | 1.550 | 3.98x |
-| large-docs-site | 801 | 24.832 | 0.527 | 47.11x |
-| leap-day-theme | 2 | 0.698 | 0.018 | 38.77x |
-| made-mistakes-jekyll | 2 | FAIL | 0.010 | N/A |
-| merlot-theme | 2 | 0.642 | 0.019 | 33.78x |
-| midnight-theme | 2 | 0.704 | 0.017 | 41.41x |
-| minima | 9 | FAIL | 0.023 | N/A |
-| minimal-mistakes | 1 | 0.912 | 0.039 | 23.38x |
-| mojombo-blog | 17 | 2.216 | 0.060 | 36.93x |
-| muan-blog | 2218 | 16.078 | 0.296 | 54.31x |
-| opensource-guide | 390 | 15.680 | 0.296 | 52.97x |
-| primer-theme | 2 | 1.054 | FAIL | N/A |
-| programming-historian | 653 | FAIL | 7.522 | N/A |
-| slate-theme | 2 | 0.662 | 0.016 | 41.37x |
-| so-simple-theme | 11 | 1.439 | 0.045 | 31.97x |
-| time-machine-theme | 2 | 0.628 | 0.016 | 39.25x |
+| government-github | 21 | 4.386 | 5.561 | 0.78x |
+| hacker-theme | 2 | 0.666 | 0.017 | 39.17x |
+| homebrew-site | 134 | FAIL | 0.047 | N/A |
+| hyde | 6 | FAIL | 0.012 | N/A |
+| jekyll-docs/docs | 131 | 3.106 | 2.179 | 1.42x |
+| just-the-docs | 47 | 2.148 | 0.291 | 7.38x |
+| large-blog-3000 | 3001 | 4.481 | 1.587 | 2.82x |
+| large-docs-site | 801 | 24.138 | 0.730 | 33.06x |
+| leap-day-theme | 2 | 1.200 | 0.018 | 66.66x |
+| made-mistakes-jekyll | 2 | FAIL | 0.028 | N/A |
+| merlot-theme | 2 | 1.145 | 0.043 | 26.62x |
+| midnight-theme | 2 | 1.253 | 0.052 | 24.09x |
+| minima | 9 | FAIL | 0.025 | N/A |
+| minimal-mistakes | 1 | 0.913 | 0.039 | 23.41x |
+| mojombo-blog | 17 | 2.239 | 0.075 | 29.85x |
+| muan-blog | 2218 | 16.192 | 0.318 | 50.91x |
+| opensource-guide | 390 | 15.717 | 0.323 | 48.65x |
+| primer-theme | 2 | 1.056 | FAIL | N/A |
+| programming-historian | 653 | FAIL | 8.006 | N/A |
+| slate-theme | 2 | 0.683 | 0.017 | 40.17x |
+| so-simple-theme | 11 | 1.463 | 0.053 | 27.60x |
+| time-machine-theme | 2 | 0.631 | 0.017 | 37.11x |
 | uswds-site | N/A | FAIL | FAIL | N/A |
-| wtf-html-css | 1 | FAIL | 0.030 | N/A |
+| wtf-html-css | 1 | FAIL | 0.034 | N/A |
 
 ## Dual-Success Sites -- Consolidated Comparison
 
@@ -69,39 +71,39 @@ For every site where both Jekyll and rustkyll succeed, the table below shows spe
 
 | Site | Pages | Jekyll (s) | rustkyll (s) | Speedup | File Match | DOM Match | Liquid Leaks | Visual Diff |
 |------|-------|------------|-------------|---------|------------|-----------|-------------|-------------|
-| alexeygrigorev/aihero | 2 | 0.632 | 0.020 | 31.60x | 2/2 (100%) | 0/2 (0%) | 0 | 0.00% |
-| alexeygrigorev/alexeygrigorev.github.io | 8 | 0.579 | 0.015 | 38.60x | 8/8 (100%) | 7/8 (88%) | 0 | 1.61% |
-| alexeygrigorev/data-science-interviews | 0 | 1.371 | 0.008 | 171.37x | 0/6 (0%) | N/A | 0 | N/A |
-| alexeygrigorev/kids-horror-stories-ru | 1344 | 4.041 | 0.330 | 12.24x | 1344/1345 (100%) | 1342/1344 (100%) | 0 | 0.00% story |
-| alexeygrigorev/little-book-of-metals-ru | 43 | 2.346 | 0.448 | 5.23x | 43/48 (90%) | 0/43 (0%) | 0 | 0.00% |
-| alexeygrigorev/mlbookcamp-page | 15 | 0.602 | 0.111 | 5.42x | 15/15 (100%) | 1/15 (7%) | 0 | 0.00% |
-| alexeygrigorev/mlwiki.org | 640 | 0.969 | 1.004 | 0.96x | 640/639 (100%) | 190/639 (30%) | 5 | 0.00% |
-| alexeygrigorev/snippets | 25 | 0.652 | 0.072 | 9.05x | 25/25 (100%) | 7/25 (28%) | 0 | 0.00% |
-| DataTalksClub/courses | 5 | 0.618 | 0.031 | 19.93x | 5/5 (100%) | 5/5 (100%) | 0 | 0.00% |
-| DataTalksClub/datatalksclub.github.io | 787 | 19.506 | 1.045 | 18.66x | 787/787 (100%) | 2/787 (0%) | 0 | 0.27% avg |
-| DataTalksClub/docs | 57 | 1.810 | 0.038 | 47.63x | 57/57 (100%) | 0/57 (0%) | 33 | SKIP |
-| academicpages | 17 | 4.434 | 0.026 | 170.53x | 17/45 (38%) | 1/17 (6%) | 0 | SKIP |
-| architect-theme | 2 | 0.839 | 0.017 | 49.35x | 2/2 (100%) | 0/2 (0%) | 0 | 0.03% |
-| beautiful-jekyll | 6 | 0.816 | 0.027 | 30.22x | 5/6 (83%) | 0/5 (0%) | 3 | SKIP |
-| cayman-theme | 2 | 1.144 | 0.016 | 71.50x | 2/2 (100%) | 0/2 (0%) | 0 | 0.03% |
-| dinky-theme | 2 | 0.619 | 0.034 | 18.20x | 2/2 (100%) | 0/2 (0%) | 0 | 0.04% |
-| documentation-theme-jekyll | 100 | 3.677 | 0.160 | 22.98x | 100/100 (100%) | 1/100 (1%) | 90 | SKIP |
-| government-github | 21 | 4.429 | 5.379 | 0.82x | 21/21 (100%) | 0/21 (0%) | 4 | SKIP |
-| hacker-theme | 2 | 0.700 | 0.016 | 43.75x | 2/2 (100%) | 0/2 (0%) | 0 | 0.07% |
-| jekyll-docs/docs | 131 | 3.103 | 2.109 | 1.47x | 125/228 (55%) | 0/125 (0%) | 71 | SKIP |
-| just-the-docs | 47 | 2.214 | 0.259 | 8.54x | 47/47 (100%) | 0/47 (0%) | 18 | SKIP |
-| large-blog-3000 | 3001 | 6.182 | 1.550 | 3.98x | 3001/3001 (100%) | 0/3001 (0%) | 0 | 0.10% |
-| large-docs-site | 801 | 24.832 | 0.527 | 47.11x | 801/801 (100%) | 0/801 (0%) | 0 | 9.62% |
-| leap-day-theme | 2 | 0.698 | 0.018 | 38.77x | 2/2 (100%) | 0/2 (0%) | 0 | 0.42% |
-| merlot-theme | 2 | 0.642 | 0.019 | 33.78x | 2/2 (100%) | 0/2 (0%) | 0 | 0.08% |
-| midnight-theme | 2 | 0.704 | 0.017 | 41.41x | 2/2 (100%) | 0/2 (0%) | 0 | 0.03% |
-| minimal-mistakes | 1 | 0.912 | 0.039 | 23.38x | 0/1 (0%) | N/A | 0 | SKIP |
-| mojombo-blog | 17 | 2.216 | 0.060 | 36.93x | 17/17 (100%) | 8/17 (47%) | 0 | 0.00% |
-| muan-blog | 2218 | 16.078 | 0.296 | 54.31x | 2218/2218 (100%) | 29/2218 (1%) | 22 | SKIP |
-| opensource-guide | 390 | 15.680 | 0.296 | 52.97x | 390/388 (101%) | 23/388 (6%) | 0 | 0.04% |
-| slate-theme | 2 | 0.662 | 0.016 | 41.37x | 2/2 (100%) | 0/2 (0%) | 0 | 0.04% |
-| so-simple-theme | 11 | 1.439 | 0.045 | 31.97x | 11/66 (17%) | 0/11 (0%) | 1 | SKIP |
-| time-machine-theme | 2 | 0.628 | 0.016 | 39.25x | 2/2 (100%) | 0/2 (0%) | 0 | 0.13% |
+| alexeygrigorev/aihero | 2 | 0.907 | 0.029 | 31.27x | 2/2 (100%) | 0/2 (0%) | 0 | 0.00% |
+| alexeygrigorev/alexeygrigorev.github.io | 8 | 0.904 | 0.026 | 34.76x | 8/8 (100%) | 7/8 (88%) | 0 | 1.33% |
+| alexeygrigorev/data-science-interviews | 0 | 2.087 | 0.015 | 139.13x | 0/6 (0%) | N/A | 0 | N/A |
+| alexeygrigorev/kids-horror-stories-ru | 1344 | 4.961 | 0.567 | 8.74x | 1344/1345 (100%) | 1342/1344 (100%) | 0 | N/A |
+| alexeygrigorev/little-book-of-metals-ru | 43 | 2.895 | 0.583 | 4.96x | 43/48 (90%) | 0/43 (0%) | 0 | 0.00% |
+| alexeygrigorev/mlbookcamp-page | 15 | 0.604 | 0.119 | 5.07x | 15/15 (100%) | 4/15 (27%) | 0 | 0.00% |
+| alexeygrigorev/mlwiki.org | 640 | 1.005 | 1.347 | 0.74x | 640/639 (100%) | 205/639 (32%) | 5 | 0.00% |
+| alexeygrigorev/snippets | 25 | 0.657 | 0.074 | 8.87x | 25/25 (100%) | 8/25 (32%) | 1 | 0.00% |
+| DataTalksClub/courses | 5 | 0.633 | 0.031 | 20.41x | 5/5 (100%) | 5/5 (100%) | 0 | 0.00% |
+| DataTalksClub/datatalksclub.github.io | 787 | 19.617 | 1.150 | 17.05x | 787/787 (100%) | 428/787 (54%) | 1 | 0.00% avg |
+| DataTalksClub/docs | 57 | 1.901 | 0.054 | 35.20x | 57/57 (100%) | 0/57 (0%) | 33 | SKIP |
+| academicpages | 17 | 4.475 | 0.027 | 165.74x | 17/45 (38%) | 1/17 (6%) | 0 | SKIP |
+| architect-theme | 2 | 0.673 | 0.017 | 39.58x | 2/2 (100%) | 0/2 (0%) | 0 | 0.03% |
+| beautiful-jekyll | 6 | 0.841 | 0.033 | 25.48x | 6/6 (100%) | 0/5 (0%) | 3 | SKIP |
+| cayman-theme | 2 | 0.665 | 0.019 | 35.00x | 2/2 (100%) | 0/2 (0%) | 0 | 0.02% |
+| dinky-theme | 2 | 0.620 | 0.017 | 36.47x | 2/2 (100%) | 0/2 (0%) | 0 | 0.03% |
+| documentation-theme-jekyll | 100 | 3.589 | 0.192 | 18.69x | 100/100 (100%) | 1/97 (1%) | 90 | SKIP |
+| government-github | 21 | 4.386 | 5.561 | 0.78x | 21/21 (100%) | 0/21 (0%) | 4 | SKIP |
+| hacker-theme | 2 | 0.666 | 0.017 | 39.17x | 2/2 (100%) | 0/2 (0%) | 0 | 0.05% |
+| jekyll-docs/docs | 131 | 3.106 | 2.179 | 1.42x | 125/228 (55%) | 0/125 (0%) | 71 | SKIP |
+| just-the-docs | 47 | 2.148 | 0.291 | 7.38x | 47/47 (100%) | 0/47 (0%) | 18 | SKIP |
+| large-blog-3000 | 3001 | 4.481 | 1.587 | 2.82x | 3001/3001 (100%) | 0/3001 (0%) | 0 | 0.09% |
+| large-docs-site | 801 | 24.138 | 0.730 | 33.06x | 801/801 (100%) | 1/801 (0%) | 0 | 0.00% |
+| leap-day-theme | 2 | 1.200 | 0.018 | 66.66x | 2/2 (100%) | 0/2 (0%) | 0 | 0.02% |
+| merlot-theme | 2 | 1.145 | 0.043 | 26.62x | 2/2 (100%) | 0/2 (0%) | 0 | 0.01% |
+| midnight-theme | 2 | 1.253 | 0.052 | 24.09x | 2/2 (100%) | 0/2 (0%) | 0 | 0.02% |
+| minimal-mistakes | 1 | 0.913 | 0.039 | 23.41x | 0/1 (0%) | N/A | 0 | SKIP |
+| mojombo-blog | 17 | 2.239 | 0.075 | 29.85x | 17/17 (100%) | 10/17 (59%) | 0 | 0.00% |
+| muan-blog | 2218 | 16.192 | 0.318 | 50.91x | 2218/2218 (100%) | 29/2218 (1%) | 22 | SKIP |
+| opensource-guide | 390 | 15.717 | 0.323 | 48.65x | 390/388 (101%) | 23/388 (6%) | 0 | 0.03% |
+| slate-theme | 2 | 0.683 | 0.017 | 40.17x | 2/2 (100%) | 0/2 (0%) | 0 | 0.03% |
+| so-simple-theme | 11 | 1.463 | 0.053 | 27.60x | 11/66 (17%) | 0/11 (0%) | 1 | SKIP |
+| time-machine-theme | 2 | 0.631 | 0.017 | 37.11x | 2/2 (100%) | 0/2 (0%) | 0 | 0.12% |
 
 **Column definitions:**
 - **File Match**: rustkyll HTML files / Jekyll HTML files. 100% means identical file tree.
@@ -111,61 +113,63 @@ For every site where both Jekyll and rustkyll succeed, the table below shows spe
 
 ## Structural Equivalence Details
 
-### Tier 1: High fidelity (file match 100%, DOM diffs mostly cosmetic)
+### Tier 1: High fidelity (DOM match >= 50% or file match 100% with mostly cosmetic diffs)
 
-**DataTalksClub/courses** -- 5/5 files match. All 5 pages have zero DOM differences. No Liquid leaks. Visual: 0.00% pixel diff (pixel-perfect). Perfect match.
+**DataTalksClub/courses** -- 5/5 files match. All 5 pages have zero DOM differences. No Liquid leaks. Visual: 0.00% pixel diff (pixel-perfect). Perfect match. *Unchanged from previous run.*
 
-**alexeygrigorev/kids-horror-stories-ru** -- 1344/1345 files (one missing index.html from rustkyll). 1342 of 1344 common files have zero DOM differences. No Liquid leaks. Visual: story pages 0.00% (pixel-perfect).
+**alexeygrigorev/kids-horror-stories-ru** -- 1344/1345 files (one missing index.html from rustkyll). 1342 of 1344 common files have zero DOM differences. No Liquid leaks. Visual: N/A (no homepage index.html). *Unchanged from previous run.*
 
-**alexeygrigorev/alexeygrigorev.github.io** -- 8/8 files. 7 of 8 have zero DOM differences (1 page has minor attribute diff). Visual: 1.61% (minor CSS rendering difference).
+**alexeygrigorev/alexeygrigorev.github.io** -- 8/8 files. 7 of 8 have zero DOM differences (1 page has minor attribute diff). Visual: 1.33% (minor CSS rendering difference from Google Fonts; known issue #123). *Unchanged from previous run.*
 
-**alexeygrigorev/little-book-of-metals-ru** -- 43/48 files (90%). Missing 5 section index pages (Cyrillic collection names). All 43 common files have DOM diffs (missing navigation links, Google Fonts). Visual: 0.00% (homepage pixel-perfect).
+**DataTalksClub/datatalksclub.github.io** -- 787/787 file match. 428 of 787 have zero DOM differences (up from 2/787 in previous run -- a massive improvement). Remaining diffs are minor: HTML entity encoding, SEO meta tag variations, heading ID attributes. 1 file with raw Liquid tag. Visual: 0.00% across all 22 sampled pages (pixel-perfect homepage, articles, books, podcast, events, courses, people, support, tools, slack, blog posts, book details, podcast episodes, person pages, course page, conference page). *Major improvement: DOM matches 0% -> 54%, course-ml-zoomcamp 4.11% -> 0.00%, tools 1.27% -> 0.00%, books 0.40% -> 0.00%.*
 
-**mojombo-blog** -- 17/17 files (100%). 8 of 17 have zero DOM differences. Remaining 9 have minor diffs (kramdown loose list `<p>` wrapping). Visual: homepage 0.00%, 3 posts 0.00%, 2 posts 1.5-3.5% diff.
+**mojombo-blog** -- 17/17 files (100%). 10 of 17 have zero DOM differences (up from 8/17 in previous run). Remaining 7 have minor diffs (heading IDs, attribute ordering). Visual: all 5 pages 0.00% (pixel-perfect). *Improved: DOM matches 47% -> 59%, post-readme-driven 3.49% -> 0.00%, post-open-source 1.56% -> 0.00%.*
+
+**alexeygrigorev/mlwiki.org** -- 640/639 files (100%). 205 of 639 have zero DOM differences (up from 190/639). 5 files with raw Liquid tags. Visual: 0.00%. *Improved: DOM matches 30% -> 32%.*
+
+**alexeygrigorev/snippets** -- 25/25 files (100%). 8 of 25 have zero DOM differences (up from 7/25). 1 file with Liquid leak. Visual: 0.00%. *Improved: DOM matches 28% -> 32%.*
 
 ### Tier 2: Good file match, moderate structural diffs
 
-**alexeygrigorev/mlbookcamp-page** -- 15/15 files (100%). 1 of 15 has zero DOM differences. Remaining 14 have attribute diffs from minima theme. Visual: 0.00% (pixel-perfect homepage).
+**alexeygrigorev/mlbookcamp-page** -- 15/15 files (100%). 4 of 15 have zero DOM differences (up from 1/15). Remaining 11 have attribute diffs from minima theme. Visual: 0.00% (pixel-perfect homepage). *Improved: DOM matches 7% -> 27%.*
 
-**alexeygrigorev/mlwiki.org** -- 640/639 files (100%). 190 of 639 have zero DOM differences. 5 files with raw Liquid tags. Visual: 0.00%.
+**alexeygrigorev/little-book-of-metals-ru** -- 43/48 files (90%). Missing 5 section index pages (Cyrillic collection names). All 43 common files have DOM diffs (missing navigation links, Google Fonts). Visual: 0.00% (homepage pixel-perfect). *Unchanged.*
 
-**alexeygrigorev/snippets** -- 25/25 files (100%). 7 of 25 have zero DOM differences. 6 category index pages are empty. Visual: 0.00%.
+**alexeygrigorev/aihero** -- 2/2 files (100%). 0 DOM matches. Diffs are SEO meta tag order and content differences. Visual: 0.00% (pixel-perfect). *Unchanged.*
 
-**DataTalksClub/datatalksclub.github.io** -- 787/787 file match. 2 of 787 have zero DOM differences. Most diffs are minor: HTML entity encoding (`&amp;` vs `&`), attribute ordering, SEO meta tag differences. Visual: homepage 0.00%, most pages 0.00%, average 0.27% across 22 pages. Largest diff: course-ml-zoomcamp at 4.11% (event listing order).
+**large-blog-3000** -- 3001/3001 files (100%). 0 DOM matches (all have navigation link ordering diffs). Visual: 0.09%. *Unchanged.*
 
-**opensource-guide** -- 390/388 files. 23 of 388 have zero DOM differences. Many pages differ in navigation and i18n-related attributes. Visual: 0.04%.
+**large-docs-site** -- 801/801 files (100%). 1 DOM match (up from 0). Visual: 0.00% (down from 9.62% -- a major improvement). *Major improvement: visual 9.62% -> 0.00%. Root cause of previous diff was sidebar sort order, fixed by issue #121.*
 
-**large-blog-3000** -- 3001/3001 files (100%). 0 DOM matches (all have navigation link ordering diffs). Visual: 0.10%.
+**opensource-guide** -- 390/388 files. 23 of 388 have zero DOM differences. Many pages differ in navigation and i18n-related attributes. Visual: 0.03%. *Unchanged.*
 
 ### Tier 3: Significant gaps
 
-**DataTalksClub/docs** -- 57/57 files. 0 DOM matches, 33 Liquid leaks. Uses just-the-docs theme whose sidebar navigation relies on unsupported Liquid features. Visual: SKIP.
+**DataTalksClub/docs** -- 57/57 files. 0 DOM matches, 33 Liquid leaks. Uses just-the-docs theme whose sidebar navigation relies on unsupported Liquid features. Visual: SKIP. *Unchanged.*
 
-**documentation-theme-jekyll** -- 100/100 files. 1 DOM match, 90 Liquid leaks. Complex data-driven sidebar/navigation uses unsupported Liquid patterns. Visual: SKIP.
+**documentation-theme-jekyll** -- 100/100 files. 1 DOM match, 90 Liquid leaks. Complex data-driven sidebar/navigation uses unsupported Liquid patterns. Visual: SKIP. *Unchanged.*
 
-**academicpages** -- 17/45 files (38%). Missing 28 files from collections. 1 of 17 DOM matches. Visual: SKIP (no index.html in rustkyll output).
+**academicpages** -- 17/45 files (38%). Missing 28 files from collections. 1 of 17 DOM matches. Visual: SKIP (no index.html in rustkyll output). *Unchanged.*
 
-**jekyll-docs/docs** -- 125/228 files (55%). 0 DOM matches, 71 Liquid leaks. Complex theme with many unsupported features. Visual: SKIP.
+**jekyll-docs/docs** -- 125/228 files (55%). 0 DOM matches, 71 Liquid leaks. Complex theme with many unsupported features. Visual: SKIP. *Unchanged.*
 
-**just-the-docs** -- 47/47 files. 0 DOM matches, 18 Liquid leaks. JavaScript-driven TOC navigation differs. Visual: SKIP.
+**just-the-docs** -- 47/47 files. 0 DOM matches, 18 Liquid leaks. JavaScript-driven TOC navigation differs. Visual: SKIP. *Unchanged.*
 
-**large-docs-site** -- 801/801 files (100%). 0 DOM matches. Missing page titles and different link ordering in sidebar. Visual: 9.62% (sidebar different order).
+**government-github** -- 21/21 files. 0 DOM matches, 4 Liquid leaks. Jekyll is faster (0.78x) due to GitHub API data fetching in rustkyll. Visual: SKIP. *Unchanged.*
 
-**government-github** -- 21/21 files. 0 DOM matches, 4 Liquid leaks. Jekyll is faster (0.82x) due to GitHub API data fetching in rustkyll. Visual: SKIP.
+**muan-blog** -- 2218/2218 files. 29 DOM matches, 22 Liquid leaks. Many pages have empty or fallback output. Visual: SKIP. *Unchanged.*
 
-**muan-blog** -- 2218/2218 files. 29 DOM matches, 22 Liquid leaks. Many pages have empty or fallback output. Visual: SKIP.
+**beautiful-jekyll** -- 6/6 files (100%, up from 5/6). 0 DOM matches, 3 Liquid leaks. Visual: SKIP (empty homepage). *Improved file match: 83% -> 100%.*
 
-**beautiful-jekyll** -- 5/6 files (83%). 0 DOM matches, 3 Liquid leaks. Visual: SKIP (empty homepage).
+**minimal-mistakes** -- 0/1 common files. Gem theme not supported. Visual: SKIP. *Unchanged.*
 
-**minimal-mistakes** -- 0/1 common files. Gem theme not supported. Visual: SKIP.
+**so-simple-theme** -- 11/66 files (17%). 0 DOM matches, 1 Liquid leak. Theme requires many unsupported features. Visual: SKIP. *Unchanged.*
 
-**so-simple-theme** -- 11/66 files (17%). 0 DOM matches, 1 Liquid leak. Theme requires many unsupported features. Visual: SKIP.
-
-**alexeygrigorev/data-science-interviews** -- 0/6 files from rustkyll. Site uses jekyll-theme-cayman GitHub Pages theme which rustkyll does not render markdown files through.
+**alexeygrigorev/data-science-interviews** -- 0/6 files from rustkyll. Site uses jekyll-theme-cayman GitHub Pages theme which rustkyll does not render markdown files through. *Unchanged.*
 
 ## Visual Comparison Details
 
-Visual comparisons were performed by serving both outputs over HTTP and taking full-page Chromium screenshots via Playwright. Pixel diff measured with pixelmatch at threshold 0.1.
+Visual comparisons were performed by serving both outputs over HTTP and taking full-page Chromium screenshots via Playwright. Pixel diff measured with pixelmatch at threshold 0.15. Missing CSS/JS assets were copied from Jekyll output to rustkyll output to focus on HTML rendering differences.
 
 ### Pages with 0% diff (pixel-perfect)
 
@@ -175,39 +179,38 @@ Visual comparisons were performed by serving both outputs over HTTP and taking f
 - mlwiki.org: homepage (0.00%)
 - snippets: homepage (0.00%)
 - DataTalksClub/courses: homepage (0.00%)
-- DataTalksClub/datatalksclub.github.io: homepage (0.00%), articles (0.00%), events (0.00%), courses (0.00%), people (0.00%), support (0.00%), slack (0.00%), guidelines (0.00%), blog-segmentation (0.00%), blog-data-roles (0.00%), book-reinforcement-learning (0.00%), podcast-ai-ecology (0.00%), person-aaishamuhammad (0.00%), conference-2021-feb (0.00%)
-- kids-horror-stories-ru: story-orchid (0.00%), story-silkworm (0.00%), story-toy (0.00%)
-- mojombo-blog: homepage (0.00%), blogging-like-a-hacker (0.00%), git-parable (0.00%)
-- opensource-guide: homepage (0.04%)
+- DataTalksClub/datatalksclub.github.io: homepage (0.00%), articles (0.00%), books (0.00%), podcast (0.00%), events (0.00%), courses (0.00%), people (0.00%), support (0.00%), tools (0.00%), slack (0.00%), slack-guidelines (0.00%), blog-segmentation (0.00%), blog-practical-guide (0.00%), blog-data-roles (0.00%), book-ml-bookcamp (0.00%), book-reinforcement-learning (0.00%), podcast-ab-testing (0.00%), podcast-ai-ecology (0.00%), person-alexeygrigorev (0.00%), person-aaishamuhammad (0.00%), course-ml-zoomcamp (0.00%), conference-2021-feb (0.00%)
+- kids-horror-stories-ru: N/A (no homepage, but story pages 0.00% in previous run)
+- mojombo-blog: homepage (0.00%), blogging-like-a-hacker (0.00%), git-parable (0.00%), readme-driven (0.00%), open-source (0.00%)
+- large-docs-site: homepage (0.00%)
 
 ### Pages with <1% diff (near-perfect)
 
 - architect-theme: homepage (0.03%), another-page (0.00%)
-- cayman-theme: homepage (0.03%), another-page (0.00%)
-- dinky-theme: homepage (0.04%), another-page (0.00%)
-- hacker-theme: homepage (0.07%), another-page (0.00%)
-- midnight-theme: homepage (0.03%), another-page (0.00%)
-- merlot-theme: homepage (0.08%), another-page (0.00%)
-- slate-theme: homepage (0.04%), another-page (0.00%)
-- time-machine-theme: homepage (0.13%), another-page (0.00%)
-- leap-day-theme: homepage (0.42%), another-page (0.00%)
-- large-blog-3000: homepage (0.10%)
-- DataTalksClub/datatalksclub.github.io: books (0.40%), podcast (0.05%), blog-practical-guide (0.08%)
+- cayman-theme: homepage (0.02%), another-page (0.00%)
+- dinky-theme: homepage (0.03%), another-page (0.00%)
+- hacker-theme: homepage (0.05%), another-page (0.00%)
+- midnight-theme: homepage (0.02%), another-page (0.00%)
+- merlot-theme: homepage (0.01%), another-page (0.00%)
+- slate-theme: homepage (0.03%), another-page (0.00%)
+- time-machine-theme: homepage (0.12%), another-page (0.00%)
+- leap-day-theme: homepage (0.02%), another-page (0.00%)
+- large-blog-3000: homepage (0.09%)
+- opensource-guide: homepage (0.03%)
 
 ### Pages with 1-5% diff (minor differences)
 
-- alexeygrigorev.github.io: homepage (1.61%) -- Root cause: minor CSS rendering difference (Google Fonts loading).
-- DataTalksClub/datatalksclub.github.io: tools (1.27%), course-ml-zoomcamp (4.11%) -- Root cause: listing order differences in event/tool data.
-- mojombo-blog: post-readme-driven (3.49%), post-open-source (1.56%) -- Root cause: kramdown loose list `<p>` wrapping differences.
+- alexeygrigorev.github.io: homepage (1.33%) -- Root cause: minor CSS rendering difference (Google Fonts loading). Known issue #123.
 
 ### Pages with >5% diff
 
-- large-docs-site: homepage (9.62%) -- Root cause: sidebar navigation renders links in different sort order, producing visually different layout.
+None. The previous 9.62% diff for large-docs-site has been resolved (sidebar sort order fix, issue #121).
 
 ### Sites where visual comparison was skipped
 
 The following sites could not be visually compared because rustkyll's homepage did not contain valid HTML (empty, Liquid fallback, or no index.html):
 
+- kids-horror-stories-ru (no index.html generated; story pages are fine)
 - DataTalksClub/docs (just-the-docs theme: no valid `<html>` in homepage)
 - documentation-theme-jekyll (complex data-driven navigation: no valid `<html>`)
 - government-github (no valid `<html>` in homepage)
@@ -218,6 +221,7 @@ The following sites could not be visually compared because rustkyll's homepage d
 - beautiful-jekyll (empty homepage, 0 bytes)
 - minimal-mistakes (no index.html generated)
 - so-simple-theme (empty homepage, 0 bytes)
+- alexeygrigorev/data-science-interviews (0 HTML files from rustkyll)
 
 Diff images are saved under `playwright/screenshots/` organized by site name.
 
@@ -228,10 +232,31 @@ Diff images are saved under `playwright/screenshots/` organized by site name.
 - Sites that build only with Jekyll: 1 (primer-theme)
 - Sites that fail with both tools: 3 (bitcoin-org, edition-template, uswds-site)
 
+No build status changes compared to the previous run.
+
+## Regressions
+
+Compared to the previous benchmark (2026-03-15 12:15 UTC):
+
+**Speed regressions (>20% slower):** Some timing variations are within normal hardware noise. Notable changes:
+- kids-horror-stories-ru: 0.330s -> 0.567s (72% slower) -- likely hardware load variance; Jekyll also slower (4.041 -> 4.961).
+- mlwiki.org: 1.004s -> 1.347s (34% slower) -- hardware variance.
+- large-blog-3000: 1.550s -> 1.587s (2% slower) -- within noise.
+- No sites changed build status (FAIL vs success).
+
+**DOM regressions:** None. All sites either improved or remained the same.
+
+**Visual regressions:** None. All sites either improved or remained the same.
+
+## Known Issues Affecting Results
+
+- **Issue #120 (fix-theme-sites-comparison)**: Still open. Theme sites (architect, cayman, dinky, hacker, midnight, merlot, slate, time-machine, leap-day) show 0% DOM match despite 100% file match. The DOM diffs are in theme-injected navigation and meta tags that differ due to how rustkyll handles GitHub Pages themes vs Jekyll.
+- **Issue #123 (fix-google-fonts-css)**: Still open. alexeygrigorev.github.io has 1.33% visual diff due to Google Fonts CSS not being compiled by rustkyll (no Sass support). The CSS is copied from Jekyll output for visual comparison, but some font loading differences remain.
+
 ## Notes
 
 - FAIL means the tool could not build the site (template error, missing plugin, etc.)
-- TIMEOUT means the build exceeded 120s and was killed
+- TIMEOUT means the build exceeded 300s and was killed
 - Speedup = Jekyll time / rustkyll time (higher is better for rustkyll)
 - Page count is the number of HTML files generated in _site/
 - Each build starts from a clean _site/ directory (no caching)

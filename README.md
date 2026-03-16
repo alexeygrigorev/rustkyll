@@ -150,11 +150,11 @@ Issues are processed in batches of two, running in parallel. If the tester finds
 
 | Site | Pages | Jekyll | rustkyll | Speedup |
 |------|-------|--------|----------|---------|
-| [datatalksclub.github.io](https://github.com/DataTalksClub/datatalksclub.github.io) | 787 | 19.5s | 1.0s | 19x |
-| [kids-horror-stories-ru](https://github.com/alexeygrigorev/kids-horror-stories-ru) | 1344 | 4.0s | 0.3s | 12x |
-| [muan-blog](https://github.com/muan/site) | 2218 | 16.1s | 0.3s | 54x |
-| [large-docs-site](websites/large-docs-site) | 801 | 24.8s | 0.5s | 47x |
-| [large-blog-3000](websites/large-blog-3000) | 3001 | 6.2s | 1.6s | 4x |
+| [datatalksclub.github.io](https://github.com/DataTalksClub/datatalksclub.github.io) | 787 | 19.6s | 1.2s | 17x |
+| [kids-horror-stories-ru](https://github.com/alexeygrigorev/kids-horror-stories-ru) | 1344 | 5.0s | 0.6s | 9x |
+| [muan-blog](https://github.com/muan/site) | 2218 | 16.2s | 0.3s | 51x |
+| [large-docs-site](websites/large-docs-site) | 801 | 24.1s | 0.7s | 33x |
+| [large-blog-3000](websites/large-blog-3000) | 3001 | 4.5s | 1.6s | 3x |
 
 34 of 44 sites build with both tools. See [docs/benchmark/results.md](docs/benchmark/results.md) for full results including structural equivalence and visual comparison.
 
