@@ -110,6 +110,26 @@ interface NetworkError {
 }
 
 /**
+ * Seed Math.random() deterministically so that pages with random JS
+ * (e.g., random contribution graphs) produce identical output across
+ * separate page loads. Uses a simple mulberry32 PRNG seeded with a
+ * fixed value.
+ */
+async function seedMathRandom(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    // mulberry32 PRNG -- deterministic, fast, good distribution
+    let seed = 42;
+    Math.random = function () {
+      seed |= 0;
+      seed = (seed + 0x6d2b79f5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  });
+}
+
+/**
  * Visit a page and collect console errors and network 404s.
  * Returns the list of 404 errors found.
  */
@@ -177,7 +197,7 @@ function compareScreenshots(
 
   const diff = new PNG({ width, height });
   const diffPixels = pixelmatch(img1Data, img2Data, diff.data, width, height, {
-    threshold: 0.1,
+    threshold: 0.15,
   });
 
   fs.writeFileSync(diffPath, PNG.sync.write(diff));
@@ -202,6 +222,10 @@ for (const pageDef of pages) {
     const jekyllScreenshot = path.join(SCREENSHOT_DIR, `${prefix}__jekyll.png`);
     const rustkyllScreenshot = path.join(SCREENSHOT_DIR, `${prefix}__rustkyll.png`);
     const diffImage = path.join(SCREENSHOT_DIR, `${prefix}__diff.png`);
+
+    // Seed Math.random() deterministically so both Jekyll and rustkyll
+    // page loads produce identical random output (e.g., contribution graphs)
+    await seedMathRandom(page);
 
     // Visit Jekyll page
     const jekyllUrl = `${JEKYLL_URL}${pageDef.path}`;

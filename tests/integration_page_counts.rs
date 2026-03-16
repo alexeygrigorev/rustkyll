@@ -277,3 +277,78 @@ fn test_dinky_theme_page_count() {
         count
     );
 }
+
+// ========================================================================
+// Issue 123: alexeygrigorev.github.io build and content verification
+// ========================================================================
+
+#[test]
+fn test_alexeygrigorev_site_builds_and_has_correct_content() {
+    let source = std::path::Path::new("websites/alexeygrigorev/alexeygrigorev.github.io");
+    if !source.exists() {
+        return;
+    }
+    let tmp = build_site("alexeygrigorev/alexeygrigorev.github.io");
+    let dest = tmp.path();
+
+    // Verify expected pages exist
+    assert!(dest.join("index.html").exists(), "index.html should exist");
+    assert!(
+        dest.join("courses.html").exists(),
+        "courses.html should exist"
+    );
+    assert!(dest.join("cv.html").exists(), "cv.html should exist");
+    assert!(
+        dest.join("projects.html").exists(),
+        "projects.html should exist"
+    );
+    assert!(
+        dest.join("services.html").exists(),
+        "services.html should exist"
+    );
+
+    // Verify correct page count (8 pages as per cross-site-results.md)
+    let count = count_html_files(dest);
+    assert_eq!(
+        count, 8,
+        "alexeygrigorev.github.io: expected 8 HTML files, got {}",
+        count
+    );
+
+    // Verify homepage has Font Awesome CDN link (the CSS reference that matters)
+    let index_html = std::fs::read_to_string(dest.join("index.html")).unwrap();
+    assert!(
+        index_html.contains("cdnjs.cloudflare.com/ajax/libs/font-awesome"),
+        "Homepage should reference Font Awesome CSS from CDN"
+    );
+
+    // Verify homepage has the main.css link
+    assert!(
+        index_html.contains("/assets/css/main.css"),
+        "Homepage should reference main.css"
+    );
+
+    // Verify content renders (not raw Liquid)
+    assert!(
+        !index_html.contains("{{ site.data"),
+        "Homepage should not contain raw Liquid tags"
+    );
+    assert!(
+        index_html.contains("Courses"),
+        "Homepage should contain rendered Courses section"
+    );
+    assert!(
+        index_html.contains("Projects"),
+        "Homepage should contain rendered Projects section"
+    );
+    assert!(
+        index_html.contains("Contribution activity"),
+        "Homepage should contain Contribution activity section"
+    );
+
+    // Verify static CSS file is copied
+    assert!(
+        dest.join("assets/css/main.css").exists(),
+        "main.css should be copied to output"
+    );
+}
