@@ -314,13 +314,26 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
         );
     }
 
+    // YAML post-processing: syntect classifies `on` as constant.language (kc)
+    // since it's a YAML boolean, but Rouge treats it as `na` when used as a mapping key.
+    if lang == "yaml" || lang == "yml" {
+        html = html.replace(
+            "<span class=\"kc\">on</span><span class=\"pi\">:</span>",
+            "<span class=\"na\">on</span><span class=\"pi\">:</span>",
+        );
+    }
+
+    // Bash post-processing: Rouge classifies `install` as builtin (`nb`).
+    if lang == "bash" || lang == "sh" || lang == "shell" {
+        html = postprocess_bash_install(&html);
+    }
+
     // SQL post-processing: Rouge wraps every token in SQL in a span.
     // Syntect's SQL grammar leaves many tokens bare (punctuation, identifiers,
     // some keywords like IS/IN/NOT). Post-process to wrap them.
     if lang == "sql" {
         html = postprocess_sql_highlighting(&html);
     }
-
     Some(html)
 }
 
@@ -372,6 +385,7 @@ fn flush_pending(
         }
 
         if !content.is_empty() {
+            // Keep trailing newlines inside spans to match Rouge/Jekyll output.
             let escaped = html_escape(content);
             html.push_str("<span class=\"");
             html.push_str(css_class);
@@ -605,6 +619,11 @@ const SQL_EXTRA_KEYWORDS: &[&str] = &[
     "SAFE",
     "UNSAFE",
 ];
+
+/// Post-process Bash highlighted HTML to wrap `install` as a builtin (`nb`).
+fn postprocess_bash_install(html: &str) -> String {
+    html.replace(" install ", " <span class=\"nb\">install </span>")
+}
 
 /// Post-process SQL highlighted HTML to wrap bare tokens in spans,
 /// matching Rouge's behavior where every token gets a span class.
@@ -1534,6 +1553,37 @@ mod tests {
         assert!(
             html.contains("<span class=\"nn\">arize.otel</span>"),
             "Python dotted module name should keep dot inside nn span. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue163_yaml_comment_trailing_newline_inside_span() {
+        // Rouge/Jekyll keeps trailing newlines INSIDE spans.
+        let code = "# This is a comment\nkey: value\n";
+        let html = highlight_code("yaml", code).unwrap();
+        assert!(
+            html.contains("<span class=\"c1\"># This is a comment\n</span>"),
+            "YAML comment span should include trailing newline (matching Rouge). Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue163_yaml_on_keyword_is_na() {
+        let code = "on:\n  push:\n";
+        let html = highlight_code("yaml", code).unwrap();
+        assert!(
+            html.contains("<span class=\"na\">on</span>"),
+            "YAML `on` key should be `na`, not `kc`. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue163_bash_install_is_nb() {
+        let code = "pip install pre-commit\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nb\">install </span>"),
+            "Bash `install` should be classified as `nb` (builtin). Got: {html}"
         );
     }
 }

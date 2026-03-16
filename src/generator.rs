@@ -260,10 +260,9 @@ fn collection_item_to_liquid_slim(item: &CollectionItem) -> LiquidValue {
     // In Jekyll, document.content is timing-dependent: raw when accessed before
     // the document is rendered, HTML after. Since we cannot replicate Jekyll's
     // exact rendering order, we use HTML, which is correct for display contexts
-    // like {{ guest.content }} in podcast layouts. For JSON-LD contexts using
-    // `author.content | strip_html | jsonify`, this means minor formatting
-    // differences (e.g., trailing \n from HTML rendering) compared to Jekyll's
-    // raw content. These are acceptable trade-offs.
+    // like {{ guest.content }} in podcast layouts.
+    // Jekyll's content includes trailing newlines (e.g., `author.content |
+    // strip_html | jsonify` preserves them in JSON-LD output).
     obj.insert(
         "content".into(),
         LiquidValue::scalar(item.html_content.clone()),

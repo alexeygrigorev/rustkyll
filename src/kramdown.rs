@@ -1133,7 +1133,10 @@ fn wrap_fenced_code_blocks(html: &str) -> String {
                 // Try syntax highlighting; fall back to plain code if unsupported
                 let raw_code = html_unescape(code_content);
                 if let Some(highlighted) = crate::syntax::highlight_code(&lang, &raw_code) {
-                    result.push_str(&highlighted);
+                    // Move trailing newlines from inside spans to outside,
+                    // matching Rouge behavior.
+                    let fixed = highlighted.replace("\n</span>", "</span>\n");
+                    result.push_str(&fixed);
                 } else {
                     result.push_str(code_content);
                 }
@@ -1884,7 +1887,7 @@ fn indent_list_items(html: &str) -> String {
                 result.push_str(close_tag);
                 remaining = &remaining[close_pos + close_tag.len()..];
             } else {
-                // Tight list: indent <li> items by 2 spaces to match kramdown
+                // Tight list: kramdown indents <li> items by 2 spaces.
                 result.push_str(list_tag);
                 result.push('\n');
                 for line in list_content.lines() {
@@ -1913,44 +1916,33 @@ fn indent_list_items(html: &str) -> String {
 }
 
 // ============================================================================
-// 9b. Indent blockquote content (Issue 163)
+// 9b. Normalize blockquote content (Issue 163, fixed in Issue 164)
 // ============================================================================
 
-/// Indent content inside `<blockquote>` by 2 spaces to match kramdown output.
+/// Ensure blockquote content matches kramdown output format.
 ///
-/// kramdown outputs:
-/// ```html
-/// <blockquote>
-///   <p>text</p>
-/// </blockquote>
-/// ```
+/// kramdown outputs blockquotes with NO indentation on inner content
+/// and a blank line between the last content and closing tag.
 ///
-/// pulldown-cmark outputs:
-/// ```html
-/// <blockquote>
-/// <p>text</p>
-/// </blockquote>
-/// ```
+/// This function ensures the blank line before closing tag.
 fn indent_blockquote_content(html: &str) -> String {
     let mut result = String::with_capacity(html.len() + html.len() / 20);
     let mut remaining = html;
-
     while !remaining.is_empty() {
         if let Some(pos) = remaining.find("<blockquote>\n") {
-            // Copy everything before the blockquote
             result.push_str(&remaining[..pos]);
             let tag = "<blockquote>\n";
             let after_tag = &remaining[pos + tag.len()..];
-
             if let Some(close_pos) = after_tag.find("</blockquote>") {
                 let content = &after_tag[..close_pos];
                 result.push_str("<blockquote>\n");
-                // Indent each non-empty line by 2 spaces, skip blank lines
-                for line in content.lines() {
-                    if !line.is_empty() {
-                        result.push_str("  ");
-                        result.push_str(line);
+                // Jekyll/kramdown: no indentation, preserve blank lines.
+                result.push_str(content);
+                if !content.ends_with("\n\n") {
+                    if content.ends_with('\n') {
                         result.push('\n');
+                    } else {
+                        result.push_str("\n\n");
                     }
                 }
                 result.push_str("</blockquote>");
@@ -1964,7 +1956,6 @@ fn indent_blockquote_content(html: &str) -> String {
             break;
         }
     }
-
     result
 }
 
@@ -4453,6 +4444,34 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             result.contains("</figure>\n\n"),
             "Blank line after </figure> expected. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue164_tight_list_indent() {
+        let input = "<ul>\n<li>Item one</li>\n<li>Item two</li>\n</ul>\n";
+        let result = indent_list_items(input);
+        assert!(
+            result.contains("  <li>Item one</li>"),
+            "Tight list <li> should be indented. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue164_blockquote_format_matches_jekyll() {
+        // Verified against actual Jekyll output: no indent, blank line before close.
+        let md = "> Some quoted text.\n\nNext paragraph.\n";
+        let result = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            result.contains("<blockquote>\n<p>"),
+            "Blockquote <p> should NOT be indented (matches Jekyll). Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("</p>\n\n</blockquote>"),
+            "Blank line before </blockquote> expected (matches Jekyll). Got:\n{}",
             result
         );
     }
