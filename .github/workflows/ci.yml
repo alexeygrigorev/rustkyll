@@ -93,6 +93,24 @@ jobs:
           git clone --depth 1 https://github.com/Homebrew/brew.sh.git \
             websites/homebrew-site
 
+      - name: Clone mojombo-blog (shallow)
+        run: git clone --depth 1 https://github.com/mojombo/mojombo.github.io.git websites/mojombo-blog
+
+      - name: Clone just-the-docs (shallow)
+        run: git clone --depth 1 https://github.com/just-the-docs/just-the-docs.git websites/just-the-docs
+
+      - name: Clone GitHub Pages themes (shallow)
+        run: |
+          git clone --depth 1 https://github.com/pages-themes/cayman.git websites/cayman-theme
+          git clone --depth 1 https://github.com/pages-themes/slate.git websites/slate-theme
+          git clone --depth 1 https://github.com/pages-themes/leap-day.git websites/leap-day-theme
+          git clone --depth 1 https://github.com/pages-themes/midnight.git websites/midnight-theme
+          git clone --depth 1 https://github.com/pages-themes/hacker.git websites/hacker-theme
+          git clone --depth 1 https://github.com/pages-themes/architect.git websites/architect-theme
+          git clone --depth 1 https://github.com/pages-themes/time-machine.git websites/time-machine-theme
+          git clone --depth 1 https://github.com/pages-themes/merlot.git websites/merlot-theme
+          git clone --depth 1 https://github.com/pages-themes/dinky.git websites/dinky-theme
+
       # -- Generate synthetic benchmark sites --
 
       - name: Generate synthetic sites (large-blog-3000, large-docs-site)
