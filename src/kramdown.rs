@@ -66,7 +66,8 @@ pub fn remove_heading_markers(html: &str) -> String {
 /// 2. Auto-generated heading IDs
 /// 3. Inline attribute lists (`{:target="_blank"}`, `{:.class}`, `{:#id}`)
 /// 4. Fenced code block wrapping (no language tag)
-/// 5. Wrap bare text between block elements in `<p>` tags
+/// 5. Inline code classes (`highlighter-rouge`)
+///    5b. Wrap bare text between block elements in `<p>` tags
 /// 6. Paragraph spacing (extra newlines after block elements)
 /// 7. Remove `start` attribute from `<ol>` tags (D11)
 /// 8. Remove self-closing slash from void elements (D3)
@@ -78,6 +79,7 @@ pub fn postprocess(html: &str) -> String {
     let html = add_heading_ids(&html);
     let html = apply_inline_attributes(&html);
     let html = wrap_fenced_code_blocks(&html);
+    let html = add_inline_code_classes(&html);
     let html = wrap_bare_text_in_paragraphs(&html);
     let html = add_block_spacing(&html);
     let html = remove_ol_start_attribute(&html);
@@ -100,11 +102,12 @@ pub fn postprocess(html: &str) -> String {
 /// the template already supplies the next newline.
 ///
 /// This variant applies only the transformations relevant to short inline
-/// markdown (boolean attributes, ol start removal) and skips heavy
-/// block-level processing (heading IDs, fenced code wrapping, block spacing,
-/// bare text wrapping, etc.).
+/// markdown (inline code classes, boolean attributes, ol start removal) and
+/// skips heavy block-level processing (heading IDs, fenced code wrapping,
+/// block spacing, bare text wrapping, etc.).
 pub fn postprocess_for_filter(html: &str) -> String {
-    let html = remove_ol_start_attribute(html);
+    let html = add_inline_code_classes(html);
+    let html = remove_ol_start_attribute(&html);
     normalize_boolean_attributes(&html)
 }
 
@@ -697,6 +700,16 @@ fn apply_attributes_to_last_tag(html: &mut String, attr_str: &str) -> bool {
         let before_close = &html[..=close_tag_end];
         if let Some(close_tag_start) = before_close.rfind("</") {
             let tag_name = html[close_tag_start + 2..close_tag_end].to_string();
+
+            // Don't apply `target` attribute to non-<a> elements.
+            // In kramdown, {:target="_blank"} is only meaningful on links.
+            // When the markdown link wasn't parsed (e.g., due to parentheses
+            // in the URL), the IAL would incorrectly attach to whatever
+            // element precedes it (<figure>, <strong>, <em>, etc.).
+            if tag_name != "a" && attrs.iter().any(|(k, _)| k == "target") {
+                return false;
+            }
+
             // Find the matching opening tag before the closing tag
             let search_area = &html[..close_tag_start];
             if let Some(open_pos) = find_last_opening_tag(search_area, &tag_name) {
@@ -978,18 +991,17 @@ fn strip_html_tags(html: &str) -> String {
 /// Convert heading text to a URL-friendly slug matching kramdown's algorithm.
 ///
 /// Kramdown's `generate_id` does:
-/// 1. Remove leading non-alpha characters
-/// 2. Remove all characters except `[a-zA-Z0-9 -]`
+/// 1. Downcase
+/// 2. Remove all characters except `[a-z0-9 -]`
 /// 3. Replace spaces with hyphens (without collapsing consecutive hyphens)
-/// 4. Downcase
+///
+/// Note: kramdown does NOT strip leading digits. `"1. DataTalksClub"` becomes
+/// `"1-datatalksclub"`, not `"datatalksclub"`.
 fn slugify(text: &str) -> String {
-    // Step 1: Remove leading non-alpha characters
-    let text = text.trim_start_matches(|ch: char| !ch.is_ascii_alphabetic());
-
-    // Step 4 (early): Lowercase
+    // Step 1: Lowercase
     let lower = text.to_lowercase();
 
-    // Step 2: Keep only [a-zA-Z0-9 -], remove everything else
+    // Step 2: Keep only [a-z0-9 -], remove everything else
     let mut slug = String::with_capacity(lower.len());
     for ch in lower.chars() {
         if ch.is_ascii_alphanumeric() || ch == ' ' || ch == '-' {
@@ -1116,7 +1128,77 @@ fn wrap_fenced_code_blocks(html: &str) -> String {
 }
 
 // ============================================================================
-// 4. Wrap bare text between block elements in <p> tags
+// 4. Inline code classes
+// ============================================================================
+
+/// Add `class="highlighter-rouge"` to inline `<code>` elements.
+///
+/// Jekyll/kramdown adds `class="highlighter-rouge"` (without `language-plaintext`)
+/// to inline code spans. Only modifies `<code>` tags that:
+/// - Don't already have a class attribute
+/// - Are NOT inside a `<pre>` tag (fenced code blocks are handled separately)
+fn add_inline_code_classes(html: &str) -> String {
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+    let mut in_pre = false;
+
+    while !remaining.is_empty() {
+        if in_pre {
+            // Inside a <pre> block, look for </pre>
+            if let Some(close_pos) = remaining.find("</pre>") {
+                let end = close_pos + 6;
+                result.push_str(&remaining[..end]);
+                remaining = &remaining[end..];
+                in_pre = false;
+            } else {
+                result.push_str(remaining);
+                break;
+            }
+        } else if remaining.starts_with("<pre") {
+            in_pre = true;
+            // Copy the <pre tag
+            if let Some(gt) = remaining.find('>') {
+                result.push_str(&remaining[..=gt]);
+                remaining = &remaining[gt + 1..];
+            } else {
+                result.push_str(remaining);
+                break;
+            }
+        } else if remaining.starts_with("<code>") {
+            // Inline code without class - add kramdown class
+            result.push_str("<code class=\"highlighter-rouge\">");
+            remaining = &remaining[6..]; // skip past "<code>"
+        } else {
+            // Find next interesting point
+            let next_pre = remaining.find("<pre");
+            let next_code = remaining.find("<code>");
+            let next = match (next_pre, next_code) {
+                (Some(a), Some(b)) => Some(a.min(b)),
+                (Some(a), None) => Some(a),
+                (None, Some(b)) => Some(b),
+                (None, None) => None,
+            };
+            if let Some(pos) = next {
+                if pos > 0 {
+                    result.push_str(&remaining[..pos]);
+                    remaining = &remaining[pos..];
+                } else {
+                    let ch = remaining.chars().next().unwrap();
+                    result.push(ch);
+                    remaining = &remaining[ch.len_utf8()..];
+                }
+            } else {
+                result.push_str(remaining);
+                break;
+            }
+        }
+    }
+
+    result
+}
+
+// ============================================================================
+// 4b. Wrap bare text between block elements in <p> tags
 // ============================================================================
 
 /// Wrap bare inline text between block-level elements in `<p>` tags.
@@ -1908,10 +1990,17 @@ mod tests {
     }
 
     #[test]
-    fn test_slugify_leading_non_alpha_stripped() {
-        // Kramdown strips leading non-alpha characters
-        assert_eq!(slugify("123 Hello"), "hello");
-        assert_eq!(slugify("  Hello"), "hello");
+    fn test_slugify_leading_digits_preserved() {
+        // Kramdown does NOT strip leading digits from heading IDs
+        // "1. DataTalksClub" -> "1-datatalksclub"
+        assert_eq!(slugify("1. DataTalksClub"), "1-datatalksclub");
+        assert_eq!(slugify("123 Hello"), "123-hello");
+    }
+
+    #[test]
+    fn test_slugify_leading_spaces_become_hyphens() {
+        // Leading spaces become leading hyphens (spaces -> hyphens)
+        assert_eq!(slugify("  Hello"), "--hello");
     }
 
     #[test]
@@ -1978,6 +2067,57 @@ mod tests {
         assert!(
             !result.contains("&quot;"),
             "Should not contain HTML-encoded quotes. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_postprocess_target_blank_not_applied_to_non_a_tags() {
+        // When a markdown link isn't parsed (e.g., due to parentheses in URL),
+        // the {:target="_blank"} IAL should NOT be applied to non-<a> elements
+        // like <figure>, <strong>, or <em>.
+
+        // Case 1: target IAL after </figure> (from raw HTML block)
+        let html = "<figure>\n<img src=\"test.jpg\" />\n</figure>{:target=\"_blank\"}\n";
+        let result = postprocess(html);
+        assert!(
+            !result.contains("figure target=\"_blank\""),
+            "target should not be on figure. Got: {}",
+            result
+        );
+
+        // Case 2: target IAL after </strong>
+        let html = "<p><strong>bold text</strong>{:target=\"_blank\"}</p>\n";
+        let result = postprocess(html);
+        assert!(
+            !result.contains("strong target=\"_blank\""),
+            "target should not be on strong. Got: {}",
+            result
+        );
+
+        // Case 3: target IAL after </em>
+        let html = "<p><em>italic text</em>{:target=\"_blank\"}</p>\n";
+        let result = postprocess(html);
+        assert!(
+            !result.contains("em target=\"_blank\""),
+            "target should not be on em. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_postprocess_target_blank_still_works_on_a_tags() {
+        // Ensure the fix doesn't break normal target="_blank" on <a> tags
+        let html = "<p><a href=\"https://example.com\">link</a>{:target=\"_blank\"}</p>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("target=\"_blank\""),
+            "target should be applied to a tag. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<a href=\"https://example.com\" target=\"_blank\">link</a>"),
+            "Attribute should be on the a tag. Got: {}",
             result
         );
     }
@@ -2100,13 +2240,13 @@ mod tests {
     }
 
     #[test]
-    fn test_postprocess_inline_code_no_extra_class() {
-        // Issue #145: Jekyll does NOT add classes to inline <code> elements
+    fn test_postprocess_inline_code_highlighter_rouge_class() {
+        // Jekyll adds class="highlighter-rouge" (without language-plaintext) to inline code
         let html = "<p>Use <code>pip install</code> to install.</p>\n";
         let result = postprocess(html);
         assert!(
-            result.contains("<code>pip install</code>"),
-            "Inline code should NOT have extra classes. Got: {}",
+            result.contains("<code class=\"highlighter-rouge\">pip install</code>"),
+            "Inline code should have highlighter-rouge class. Got: {}",
             result
         );
         assert!(
@@ -2207,10 +2347,10 @@ mod tests {
             "Raw IAL should be removed. Got: {}",
             result
         );
-        // Issue #145: inline code stays bare
+        // Inline code gets highlighter-rouge class (not language-plaintext)
         assert!(
-            result.contains("<code>pip</code>"),
-            "Inline code should stay bare. Got: {}",
+            result.contains("<code class=\"highlighter-rouge\">pip</code>"),
+            "Inline code should have highlighter-rouge class. Got: {}",
             result
         );
         assert!(
@@ -2394,10 +2534,10 @@ mod tests {
     fn test_fenced_code_wrapping_no_interference_with_inline() {
         let html = "<p>Use <code>pip install</code> to install.</p>\n";
         let result = postprocess(html);
-        // Issue #145: inline code stays bare - no extra classes
+        // Inline code gets highlighter-rouge, not div wrapper
         assert!(
-            result.contains("<code>pip install</code>"),
-            "Inline code should stay bare, no extra class. Got: {}",
+            result.contains("<code class=\"highlighter-rouge\">pip install</code>"),
+            "Inline code should have highlighter-rouge class. Got: {}",
             result
         );
         assert!(
@@ -2413,10 +2553,10 @@ mod tests {
     fn test_fenced_code_wrapping_mixed_inline_and_fenced() {
         let html = "<p>Use <code>pip</code> command.</p>\n<pre><code>bare code\n</code></pre>\n";
         let result = postprocess(html);
-        // Issue #145: inline code stays bare
+        // Inline code gets highlighter-rouge class
         assert!(
-            result.contains("<code>pip</code>"),
-            "Inline code should stay bare, no extra class. Got: {}",
+            result.contains("<code class=\"highlighter-rouge\">pip</code>"),
+            "Inline code should have highlighter-rouge class. Got: {}",
             result
         );
         // Fenced code gets div wrapper
@@ -2432,10 +2572,10 @@ mod tests {
         // Document with inline code, fenced-with-language, and fenced-without-language
         let html = "<p>Use <code>pip</code>.</p>\n<pre><code class=\"language-python\">import os\n</code></pre>\n<pre><code>plain\n</code></pre>\n";
         let result = postprocess(html);
-        // Issue #145: inline code stays bare
+        // Inline code gets highlighter-rouge class
         assert!(
-            result.contains("<code>pip</code>"),
-            "Inline code should stay bare, no extra class. Got: {}",
+            result.contains("<code class=\"highlighter-rouge\">pip</code>"),
+            "Inline code should have highlighter-rouge class. Got: {}",
             result
         );
         // Fenced with language: wrapped with language class
