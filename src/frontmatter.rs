@@ -1462,4 +1462,52 @@ Some text after.
             "& should not become &amp; in script blocks"
         );
     }
+
+    // ========================================================================
+    // Issue 162: figcaption <p> preserved through full markdown_to_html pipeline
+    // ========================================================================
+
+    #[test]
+    fn test_issue162_figcaption_p_preserved_through_pipeline() {
+        // Real-world case from blog/how-to-setup-lightweight-local-version-for-airflow:
+        // <figure> block with <figcaption><p>...</p></figcaption>.
+        // The <p> is in the source markdown. Jekyll preserves it.
+        let input =
+            "<figure>\n<img src=\"/images/test.png\"  />\n<figcaption><p>Caption text here</p></figcaption>\n</figure>";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("<figcaption><p>Caption text here</p></figcaption>"),
+            "figcaption <p> should be preserved through full pipeline. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue162_figcaption_p_with_links_preserved_through_pipeline() {
+        // Real-world case: figcaption with inline links inside <p>
+        let input = "<figure>\n<img src=\"/images/test.png\"  />\n<figcaption><p>Forget about issues (logos from <a href=\"https://example.com\"><u>Example</u></a> and <a href=\"https://other.com\"><u>Other</u></a>)</p></figcaption>\n</figure>";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("<figcaption><p>Forget about issues"),
+            "figcaption <p> with links should be preserved. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("</a>)</p></figcaption>"),
+            "figcaption closing </p> should be preserved. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue162_figcaption_p_preceded_by_markdown() {
+        // <figure> block preceded by markdown text (as in the airflow blog post)
+        let input = "\n\n<figure>\n<img src=\"/images/test.png\"  />\n<figcaption><p>Caption text here</p></figcaption>\n</figure>\n\nSome text after.\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("<figcaption><p>Caption text here</p></figcaption>"),
+            "figcaption <p> should be preserved when preceded by markdown. Got:\n{}",
+            html
+        );
+    }
 }

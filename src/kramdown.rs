@@ -85,6 +85,7 @@ pub fn postprocess(html: &str) -> String {
     let html = add_block_spacing(&html);
     let html = remove_ol_start_attribute(&html);
     let html = indent_list_items(&html);
+    let html = indent_blockquote_content(&html);
     let html = normalize_figcaption_whitespace(&html);
     // D2, D12: Normalize boolean attributes in the markdown output early
     // (during collection loading). This ensures that the final
@@ -1883,13 +1884,82 @@ fn indent_list_items(html: &str) -> String {
                 result.push_str(close_tag);
                 remaining = &remaining[close_pos + close_tag.len()..];
             } else {
-                // Tight list: no indentation needed
-                let end = close_pos + close_tag.len();
-                result.push_str(&remaining[..end]);
-                remaining = &remaining[end..];
+                // Tight list: indent <li> items by 2 spaces to match kramdown
+                result.push_str(list_tag);
+                result.push('\n');
+                for line in list_content.lines() {
+                    if line.starts_with("<li") || line.starts_with("</li>") {
+                        result.push_str("  ");
+                        result.push_str(line);
+                        result.push('\n');
+                    } else if !line.is_empty() {
+                        result.push_str(line);
+                        result.push('\n');
+                    } else {
+                        result.push('\n');
+                    }
+                }
+                result.push_str(close_tag);
+                remaining = &remaining[close_pos + close_tag.len()..];
             }
         } else {
             // No matching close tag, copy as-is
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    result
+}
+
+// ============================================================================
+// 9b. Indent blockquote content (Issue 163)
+// ============================================================================
+
+/// Indent content inside `<blockquote>` by 2 spaces to match kramdown output.
+///
+/// kramdown outputs:
+/// ```html
+/// <blockquote>
+///   <p>text</p>
+/// </blockquote>
+/// ```
+///
+/// pulldown-cmark outputs:
+/// ```html
+/// <blockquote>
+/// <p>text</p>
+/// </blockquote>
+/// ```
+fn indent_blockquote_content(html: &str) -> String {
+    let mut result = String::with_capacity(html.len() + html.len() / 20);
+    let mut remaining = html;
+
+    while !remaining.is_empty() {
+        if let Some(pos) = remaining.find("<blockquote>\n") {
+            // Copy everything before the blockquote
+            result.push_str(&remaining[..pos]);
+            let tag = "<blockquote>\n";
+            let after_tag = &remaining[pos + tag.len()..];
+
+            if let Some(close_pos) = after_tag.find("</blockquote>") {
+                let content = &after_tag[..close_pos];
+                result.push_str("<blockquote>\n");
+                // Indent each non-empty line by 2 spaces, skip blank lines
+                for line in content.lines() {
+                    if !line.is_empty() {
+                        result.push_str("  ");
+                        result.push_str(line);
+                        result.push('\n');
+                    }
+                }
+                result.push_str("</blockquote>");
+                remaining = &after_tag[close_pos + "</blockquote>".len()..];
+            } else {
+                result.push_str(&remaining[..pos + tag.len()]);
+                remaining = after_tag;
+            }
+        } else {
             result.push_str(remaining);
             break;
         }
@@ -4180,6 +4250,53 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     // ========================================================================
+    // Issue 162: figcaption <p> with links in <figure> context (airflow blog)
+    // ========================================================================
+
+    #[test]
+    fn test_issue162_figure_with_figcaption_p_links_preserved() {
+        // Exact pattern from the airflow blog post: <figure> wraps <img> and
+        // <figcaption><p>text with <a> links</p></figcaption>.
+        // The strip_paragraphs_in_html_blocks for "figure" must not strip the
+        // <p> inside <figcaption>.
+        let input = "<figure>\n<img src=\"/images/test.png\" />\n<figcaption><p>Forget about issues (logos from <a href=\"https://airflow.apache.org/\"><u>Apache Airflow</u></a> and <a href=\"https://www.docker.com/\"><u>Docker</u></a>)</p></figcaption>\n</figure>";
+        let result = strip_paragraphs_in_html_blocks(input);
+        assert!(
+            result.contains("<figcaption><p>Forget about issues"),
+            "strip_paragraphs_in_html_blocks should preserve <p> inside <figcaption> within <figure>. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("</a>)</p></figcaption>"),
+            "Closing </p> inside <figcaption> should be preserved. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue162_figure_figcaption_postprocess() {
+        // End-to-end postprocess for the airflow blog pattern
+        let input = "<figure>\n<img src=\"/images/test.png\" />\n<figcaption><p>The official logo for Apache Airflow</p></figcaption>\n</figure>";
+        let result = postprocess(input);
+        assert!(
+            result.contains("<figcaption><p>The official logo for Apache Airflow</p></figcaption>"),
+            "postprocess should preserve <p> inside <figcaption> in <figure>. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue162_normalize_figcaption_whitespace_with_p() {
+        // Figcaption with <p> and newline before closing tag
+        let input = "<figcaption><p>Caption text</p>\n</figcaption>";
+        let result = normalize_figcaption_whitespace(input);
+        assert_eq!(
+            result, "<figcaption><p>Caption text</p></figcaption>",
+            "figcaption whitespace normalization should work with <p> content"
+        );
+    }
+
+    // ========================================================================
     // Issue 158: Code block closing divs must stay on one line
     // ========================================================================
 
@@ -4236,6 +4353,106 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             result.contains("  <li>\n    <p>Item one</p>\n  </li>"),
             "Loose list items should be indented. Got: {}",
+            result
+        );
+    }
+
+    // ========================================================================
+    // Issue 164: Regression tests for blog/ml-deployment-lambda.html patterns
+    // ========================================================================
+
+    #[test]
+    fn test_issue164_code_block_closing_divs_on_one_line() {
+        // Jekyll keeps code block closing tags on a single line:
+        //   </code></pre></div></div>
+        // Verify markdown_to_html does not split them across lines.
+        let md = "```bash\n$ sam init\n```\n\nNext paragraph.\n";
+        let result = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            result.contains("</code></pre></div></div>"),
+            "Code block closing tags must be on one line. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue164_figcaption_p_preserved_end_to_end() {
+        // Raw HTML <figcaption><p>text</p></figcaption> in markdown must
+        // pass through the full pipeline with <p> tags intact.
+        let md = concat!(
+            "Some text.\n\n",
+            "<figure>\n",
+            "<img src=\"/images/test.png\" alt=\"test\" />\n",
+            "<figcaption><p>A caption here</p></figcaption>\n",
+            "</figure>\n\n",
+            "More text.\n"
+        );
+        let result = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            result.contains("<figcaption><p>A caption here</p></figcaption>"),
+            "figcaption <p> tags must be preserved. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue164_blank_line_after_figure() {
+        // Jekyll outputs a blank line after </figure> before the next
+        // block element due to block spacing.
+        let md = concat!(
+            "<figure>\n",
+            "<img src=\"/images/test.png\" alt=\"test\" />\n",
+            "<figcaption><p>A caption</p></figcaption>\n",
+            "</figure>\n\n",
+            "Next paragraph.\n"
+        );
+        let result = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            result.contains("</figure>\n\n"),
+            "There should be a blank line after </figure>. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue164_code_block_then_figure_combo() {
+        // Real-world pattern from the ml-deployment-lambda post:
+        // a fenced code block followed by a figure with figcaption.
+        let md = concat!(
+            "Some intro text.\n\n",
+            "```bash\n",
+            "$ sam init\n",
+            "```\n\n",
+            "<figure>\n",
+            "<img src=\"/images/posts/test/sam_init.png\" alt=\"SAM init\" />\n",
+            "<figcaption><p>Initialize a new serverless project</p></figcaption>\n",
+            "</figure>\n\n",
+            "The project structure:\n\n",
+            "```\n",
+            "|-- service\n",
+            "     |-- app.py\n",
+            "```\n"
+        );
+        let result = crate::frontmatter::markdown_to_html(md);
+
+        // Pattern 1: code block closing divs on one line
+        assert!(
+            result.contains("</code></pre></div></div>"),
+            "Code block closing tags must be on one line. Got:\n{}",
+            result
+        );
+
+        // Pattern 2: figcaption <p> preserved
+        assert!(
+            result.contains("<figcaption><p>Initialize a new serverless project</p></figcaption>"),
+            "figcaption <p> tags must be preserved. Got:\n{}",
+            result
+        );
+
+        // Pattern 3: blank line after </figure>
+        assert!(
+            result.contains("</figure>\n\n"),
+            "Blank line after </figure> expected. Got:\n{}",
             result
         );
     }
