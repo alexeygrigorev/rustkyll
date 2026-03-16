@@ -2,6 +2,7 @@
 //!
 //! Verifies that JSON-LD blocks are present, parseable as valid JSON,
 //! and contain the expected Schema.org types for each collection.
+//! Book pages should NOT have JSON-LD (matching Jekyll behavior).
 
 use std::collections::HashMap;
 use std::fs;
@@ -424,11 +425,12 @@ fn test_multiple_people_jsonld_parseable() {
 }
 
 // ========================================================================
-// Book JSON-LD tests
+// Book JSON-LD tests -- Jekyll does NOT emit JSON-LD for book pages
 // ========================================================================
 
 #[test]
-fn test_book_jsonld_is_valid_json() {
+fn test_book_has_no_jsonld() {
+    // Jekyll does not emit JSON-LD for book pages.
     if !site_dir().exists() {
         return;
     }
@@ -441,167 +443,14 @@ fn test_book_jsonld_is_valid_json() {
     let blocks = extract_jsonld_blocks(&html);
 
     assert!(
-        !blocks.is_empty(),
-        "Book page should contain JSON-LD block(s)"
+        blocks.is_empty(),
+        "Book page should NOT contain JSON-LD (matching Jekyll behavior), but found {} block(s)",
+        blocks.len()
     );
 }
 
 #[test]
-fn test_book_jsonld_contains_book_type() {
-    if !site_dir().exists() {
-        return;
-    }
-    let book = FIXTURE
-        .books
-        .iter()
-        .find(|b| b.slug == "20201214-ml-bookcamp")
-        .unwrap();
-    let html = render_item("book", book);
-    let blocks = extract_jsonld_blocks(&html);
-
-    let has_book = blocks.iter().any(|b| jsonld_contains_type(b, "Book"));
-    assert!(has_book, "Book JSON-LD should contain Book type");
-}
-
-#[test]
-fn test_book_jsonld_contains_breadcrumb() {
-    if !site_dir().exists() {
-        return;
-    }
-    let book = FIXTURE
-        .books
-        .iter()
-        .find(|b| b.slug == "20201214-ml-bookcamp")
-        .unwrap();
-    let html = render_item("book", book);
-    let blocks = extract_jsonld_blocks(&html);
-
-    let has_breadcrumb = blocks
-        .iter()
-        .any(|b| jsonld_contains_type(b, "BreadcrumbList"));
-    assert!(
-        has_breadcrumb,
-        "Book JSON-LD should contain BreadcrumbList type"
-    );
-}
-
-#[test]
-fn test_book_jsonld_fields() {
-    if !site_dir().exists() {
-        return;
-    }
-    let book = FIXTURE
-        .books
-        .iter()
-        .find(|b| b.slug == "20201214-ml-bookcamp")
-        .unwrap();
-    let html = render_item("book", book);
-    let blocks = extract_jsonld_blocks(&html);
-
-    let book_block = blocks
-        .iter()
-        .flat_map(|b| {
-            b.get("@graph")
-                .and_then(|g| g.as_array())
-                .cloned()
-                .unwrap_or_default()
-        })
-        .find(|item| item.get("@type").and_then(|t| t.as_str()) == Some("Book"));
-
-    assert!(book_block.is_some(), "Should find Book in JSON-LD");
-    let book_block = book_block.unwrap();
-
-    assert!(book_block.get("name").is_some(), "Book should have name");
-    assert!(book_block.get("url").is_some(), "Book should have url");
-    assert!(
-        book_block.get("publisher").is_some(),
-        "Book should have publisher"
-    );
-    assert!(book_block.get("image").is_some(), "Book should have image");
-}
-
-#[test]
-fn test_book_jsonld_author_resolution() {
-    if !site_dir().exists() {
-        return;
-    }
-    let book = FIXTURE
-        .books
-        .iter()
-        .find(|b| b.slug == "20201214-ml-bookcamp")
-        .unwrap();
-    let html = render_item("book", book);
-    let blocks = extract_jsonld_blocks(&html);
-
-    let book_block = blocks
-        .iter()
-        .flat_map(|b| {
-            b.get("@graph")
-                .and_then(|g| g.as_array())
-                .cloned()
-                .unwrap_or_default()
-        })
-        .find(|item| item.get("@type").and_then(|t| t.as_str()) == Some("Book"));
-
-    assert!(book_block.is_some(), "Should find Book in JSON-LD");
-    let book_block = book_block.unwrap();
-
-    let authors = book_block.get("author").and_then(|a| a.as_array());
-    assert!(authors.is_some(), "Book should have author array");
-    let authors = authors.unwrap();
-
-    assert!(!authors.is_empty(), "Book should have at least one author");
-    let first_author = &authors[0];
-    assert_eq!(
-        first_author.get("@type").and_then(|t| t.as_str()),
-        Some("Person"),
-        "Book author should be Person type"
-    );
-    assert!(
-        first_author
-            .get("name")
-            .and_then(|n| n.as_str())
-            .unwrap_or("")
-            .contains("Alexey Grigorev"),
-        "Author name should be resolved to Alexey Grigorev"
-    );
-}
-
-#[test]
-fn test_book_jsonld_title_matches() {
-    if !site_dir().exists() {
-        return;
-    }
-    let book = FIXTURE
-        .books
-        .iter()
-        .find(|b| b.slug == "20201214-ml-bookcamp")
-        .unwrap();
-    let html = render_item("book", book);
-    let blocks = extract_jsonld_blocks(&html);
-
-    let book_block = blocks
-        .iter()
-        .flat_map(|b| {
-            b.get("@graph")
-                .and_then(|g| g.as_array())
-                .cloned()
-                .unwrap_or_default()
-        })
-        .find(|item| item.get("@type").and_then(|t| t.as_str()) == Some("Book"));
-
-    assert!(book_block.is_some());
-    let book_val = book_block.unwrap();
-    let name = book_val.get("name").and_then(|n| n.as_str()).unwrap_or("");
-    assert!(
-        name.contains("Machine Learning Bookcamp"),
-        "Book name should be Machine Learning Bookcamp, got: {}",
-        name
-    );
-}
-
-#[test]
-fn test_multiple_books_jsonld_parseable() {
+fn test_multiple_books_have_no_jsonld() {
     if !site_dir().exists() {
         return;
     }
@@ -612,8 +461,8 @@ fn test_multiple_books_jsonld_parseable() {
             let html = render_item("book", book);
             let blocks = extract_jsonld_blocks(&html);
             assert!(
-                !blocks.is_empty(),
-                "Book {} should have parseable JSON-LD",
+                blocks.is_empty(),
+                "Book {} should NOT have JSON-LD (matching Jekyll behavior)",
                 slug
             );
         }
@@ -784,7 +633,7 @@ fn test_podcast_jsonld_breadcrumb() {
 // ========================================================================
 
 #[test]
-fn test_all_generated_books_have_parseable_jsonld() {
+fn test_all_generated_books_have_no_jsonld() {
     if !site_dir().exists() {
         return;
     }
@@ -811,15 +660,8 @@ fn test_all_generated_books_have_parseable_jsonld() {
             let content = fs::read_to_string(&path).unwrap();
             let blocks = extract_jsonld_blocks(&content);
             assert!(
-                !blocks.is_empty(),
-                "Book {:?} should have JSON-LD",
-                path.file_name()
-            );
-            // Verify the Book type is present
-            let has_book = blocks.iter().any(|b| jsonld_contains_type(b, "Book"));
-            assert!(
-                has_book,
-                "Book {:?} should have Book schema type",
+                blocks.is_empty(),
+                "Book {:?} should NOT have JSON-LD (matching Jekyll behavior)",
                 path.file_name()
             );
             checked += 1;
