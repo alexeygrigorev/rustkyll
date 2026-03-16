@@ -1779,9 +1779,22 @@ fn encode_bare_ampersands(html: &str) -> String {
     let bytes = html.as_bytes();
     let len = bytes.len();
     let mut i = 0;
+    let mut in_script = false;
 
     while i < len {
-        if bytes[i] == b'&' {
+        // Track whether we are inside a <script> block.
+        // Content inside <script> tags should not have & encoded because
+        // script content is not parsed as HTML entities. This is important
+        // for JSON-LD structured data includes that contain bare & characters
+        // (e.g., "Infrastructure & Prerequisites" in course structured data).
+        // Use byte-level comparison to avoid UTF-8 char boundary issues.
+        if !in_script && i + 7 < len && bytes[i..i + 7] == *b"<script" {
+            in_script = true;
+        } else if in_script && i + 9 <= len && bytes[i..i + 9] == *b"</script>" {
+            in_script = false;
+        }
+
+        if bytes[i] == b'&' && !in_script {
             if is_valid_entity_start(bytes, i, len) {
                 // Part of a valid entity reference -- copy as-is up to and
                 // including the terminating ';'
@@ -3414,6 +3427,36 @@ by <a href="/people/author.html">Author Name</a>
         let input = "<div>caf\u{00e9} & th\u{00e9}</div>";
         let result = encode_bare_ampersands(input);
         assert_eq!(result, "<div>caf\u{00e9} &amp; th\u{00e9}</div>");
+    }
+
+    #[test]
+    fn test_encode_bare_ampersand_skips_script_blocks() {
+        // Content inside <script> tags should not have bare & encoded,
+        // because script content is not parsed as HTML entities.
+        // This is critical for JSON-LD structured data includes.
+        let input = r#"<div>A & B</div>
+<script type="application/ld+json">
+{"name": "Infrastructure & Prerequisites"}
+</script>
+<div>C & D</div>"#;
+        let result = encode_bare_ampersands(input);
+        // & outside script should be encoded
+        assert!(
+            result.contains("<div>A &amp; B</div>"),
+            "& outside script should be encoded, got: {}",
+            result
+        );
+        assert!(
+            result.contains("<div>C &amp; D</div>"),
+            "& after script should be encoded, got: {}",
+            result
+        );
+        // & inside script should NOT be encoded
+        assert!(
+            result.contains("Infrastructure & Prerequisites"),
+            "& inside <script> should not be encoded, got: {}",
+            result
+        );
     }
 
     // --- Optimized normalize_void_elements tests (single-pass) ---

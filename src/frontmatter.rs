@@ -1434,4 +1434,32 @@ Each week we have a book author coming.
             &html[html.len().saturating_sub(30)..]
         );
     }
+
+    #[test]
+    fn test_script_block_ampersand_not_escaped() {
+        // When a <script type="application/ld+json"> block contains &, the markdown
+        // parser should pass it through as a raw HTML block without escaping & to &amp;.
+        // This matters for course structured data includes with names like
+        // "Infrastructure & Prerequisites".
+        let input = r#"Some text before.
+
+<script type="application/ld+json">
+{
+  "name": "Infrastructure & Prerequisites"
+}
+</script>
+
+Some text after.
+"#;
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("Infrastructure & Prerequisites"),
+            "& in <script> block should not be escaped to &amp;, got:\n{}",
+            html
+        );
+        assert!(
+            !html.contains("Infrastructure &amp; Prerequisites"),
+            "& should not become &amp; in script blocks"
+        );
+    }
 }

@@ -256,6 +256,14 @@ fn collection_item_to_liquid_slim(item: &CollectionItem) -> LiquidValue {
         obj.insert("date".into(), LiquidValue::scalar(date.clone()));
     }
 
+    // Use html_content (rendered HTML) for the content field.
+    // In Jekyll, document.content is timing-dependent: raw when accessed before
+    // the document is rendered, HTML after. Since we cannot replicate Jekyll's
+    // exact rendering order, we use HTML, which is correct for display contexts
+    // like {{ guest.content }} in podcast layouts. For JSON-LD contexts using
+    // `author.content | strip_html | jsonify`, this means minor formatting
+    // differences (e.g., trailing \n from HTML rendering) compared to Jekyll's
+    // raw content. These are acceptable trade-offs.
     obj.insert(
         "content".into(),
         LiquidValue::scalar(item.html_content.clone()),
@@ -3636,6 +3644,49 @@ defaults:
             content.contains("<html>"),
             "Item with layout should render through layout, got: {}",
             content
+        );
+    }
+
+    #[test]
+    fn test_collection_item_content_uses_html_content() {
+        // Collection item's content field uses rendered HTML. This is needed for
+        // templates like {{ guest.content }} in podcast layouts that display bios.
+        // In Jekyll, .content is timing-dependent (raw before render, HTML after),
+        // but we consistently use HTML for correct display rendering.
+        let item = CollectionItem {
+            slug: "testperson".to_string(),
+            url: "/people/testperson.html".to_string(),
+            date: None,
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("Test Person".to_string()),
+                );
+                fm
+            },
+            content: "Test Person is a developer.".to_string(),
+            html_content: "<p>Test Person is a developer.</p>\n".to_string(),
+            excerpt: None,
+            collection_name: "people".to_string(),
+            source_path: "_people/testperson.md".to_string(),
+            id: "/people/testperson".to_string(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item);
+        let content_val = liquid_val
+            .as_object()
+            .unwrap()
+            .iter()
+            .find(|(k, _)| k.as_str() == "content")
+            .map(|(_, v)| v.to_kstr().to_string())
+            .unwrap();
+
+        // Content should use html_content for display rendering
+        assert_eq!(
+            content_val, "<p>Test Person is a developer.</p>\n",
+            "Collection item content should use html_content, got: {:?}",
+            content_val
         );
     }
 }
