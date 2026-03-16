@@ -324,3 +324,9 @@ Issues #116 and #117 done since round 3. Re-ran full verification.
 - docs/comparison/pixel-perfect-results.md (updated with round 4 results)
 
 **Progress: 19/22 (R3) -> 21/22 (R4). Only sub-pixel noise remains.**
+
+### Round 4 Final Status: 21/22 PASS
+
+All blocking issues resolved. 21 of 22 pages at exactly 0.00% pixel diff. The remaining page (blog/practical-guide-better-code.html) has 54 pixels out of 18.1M — non-deterministic Chromium sub-pixel font rendering noise. Diff image is blank. Not fixable in rustkyll.
+
+Closing as effectively complete.
