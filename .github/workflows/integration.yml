@@ -1,0 +1,144 @@
+name: Integration Tests
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Daily at 6 AM UTC
+  workflow_dispatch:  # Manual trigger
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Skip if no commits in last 24 hours
+  check-changes:
+    name: Check for recent changes
+    runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.check.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: check
+        run: |
+          LAST_COMMIT=$(git log -1 --format=%ct)
+          NOW=$(date +%s)
+          DIFF=$((NOW - LAST_COMMIT))
+          if [ $DIFF -lt 86400 ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No commits in last 24 hours, skipping integration tests"
+          fi
+
+  integration:
+    name: Integration Tests (All Sites)
+    needs: check-changes
+    if: needs.check-changes.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry and target
+        uses: Swatinem/rust-cache@v2
+
+      # -- Clone all required sites --
+
+      - name: Clone DTC site (shallow)
+        run: |
+          mkdir -p websites/DataTalksClub
+          git clone --depth 1 https://github.com/DataTalksClub/datatalksclub.github.io.git \
+            websites/DataTalksClub/datatalksclub.github.io
+
+      - name: Clone kids-horror-stories-ru (shallow)
+        run: |
+          mkdir -p websites/alexeygrigorev
+          git clone --depth 1 https://github.com/alexeygrigorev/kids-horror-stories-ru.git \
+            websites/alexeygrigorev/kids-horror-stories-ru
+
+      - name: Clone muan-blog (pinned commit)
+        run: |
+          git clone https://github.com/muan/muan.github.com.git \
+            websites/muan-blog
+          cd websites/muan-blog && git checkout 074f11b38203d5f356dff2c21332a54694e53864
+
+      - name: Clone documentation-theme-jekyll (shallow)
+        run: |
+          git clone --depth 1 https://github.com/tomjoht/documentation-theme-jekyll.git \
+            websites/documentation-theme-jekyll
+
+      - name: Clone homebrew-site (shallow)
+        run: |
+          git clone --depth 1 https://github.com/Homebrew/brew.sh.git \
+            websites/homebrew-site
+
+      - name: Clone mojombo-blog (shallow)
+        run: git clone --depth 1 https://github.com/mojombo/mojombo.github.io.git websites/mojombo-blog
+
+      - name: Clone just-the-docs (shallow)
+        run: git clone --depth 1 https://github.com/just-the-docs/just-the-docs.git websites/just-the-docs
+
+      - name: Clone GitHub Pages themes (shallow)
+        run: |
+          git clone --depth 1 https://github.com/pages-themes/cayman.git websites/cayman-theme
+          git clone --depth 1 https://github.com/pages-themes/slate.git websites/slate-theme
+          git clone --depth 1 https://github.com/pages-themes/leap-day.git websites/leap-day-theme
+          git clone --depth 1 https://github.com/pages-themes/midnight.git websites/midnight-theme
+          git clone --depth 1 https://github.com/pages-themes/hacker.git websites/hacker-theme
+          git clone --depth 1 https://github.com/pages-themes/architect.git websites/architect-theme
+          git clone --depth 1 https://github.com/pages-themes/time-machine.git websites/time-machine-theme
+          git clone --depth 1 https://github.com/pages-themes/merlot.git websites/merlot-theme
+          git clone --depth 1 https://github.com/pages-themes/dinky.git websites/dinky-theme
+
+      # -- Generate synthetic benchmark sites --
+
+      - name: Generate synthetic sites (large-blog-3000, large-docs-site)
+        run: ./scripts/generate-synthetic-sites.sh
+
+      # -- Install Ruby and Jekyll --
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+
+      - name: Cache Ruby gems
+        uses: actions/cache@v4
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-gems-
+
+      - name: Install Jekyll and Bundler
+        run: gem install bundler jekyll
+
+      - name: Bundle install for DTC site
+        run: |
+          cd websites/DataTalksClub/datatalksclub.github.io
+          bundle config set --local path '${{ github.workspace }}/vendor/bundle'
+          bundle install --jobs 4 --retry 3
+
+      - name: Bundle install for kids-horror-stories-ru
+        run: |
+          cd websites/alexeygrigorev/kids-horror-stories-ru
+          bundle config set --local path '${{ github.workspace }}/vendor/bundle'
+          bundle install --jobs 4 --retry 3
+
+      # -- Build and test --
+
+      - name: Build rustkyll (release)
+        run: cargo build --release --verbose
+
+      - name: Run ALL integration tests (no skips)
+        run: cargo test -- --ignored
+        env:
+          RUST_LOG: info
+          CI: "true"
+
+      - name: Run rustkyll-only output validation
+        run: ./scripts/compare-output.sh --validate-only --site DataTalksClub/datatalksclub.github.io
