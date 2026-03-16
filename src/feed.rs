@@ -54,7 +54,7 @@ pub fn generate_atom_feed(
     dated_posts.sort_by(|a, b| {
         let da = a.date.as_deref().unwrap_or("");
         let db = b.date.as_deref().unwrap_or("");
-        db.cmp(da)
+        db.cmp(da).then_with(|| a.slug.cmp(&b.slug))
     });
     dated_posts.truncate(options.max_posts);
 

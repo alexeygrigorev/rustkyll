@@ -295,7 +295,9 @@ fn build_related_posts(collections: &HashMap<String, Vec<CollectionItem>>) -> Ve
     sorted.sort_by(|a, b| {
         let date_a = a.date.as_deref().unwrap_or("");
         let date_b = b.date.as_deref().unwrap_or("");
-        date_b.cmp(date_a) // descending
+        date_b
+            .cmp(date_a) // descending
+            .then_with(|| a.slug.cmp(&b.slug))
     });
 
     sorted

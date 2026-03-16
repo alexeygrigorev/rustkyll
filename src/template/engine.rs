@@ -573,6 +573,8 @@ impl TemplateEngine {
             .filter(filters::NormalizeWhitespace)
             // Custom date filter that handles YYYY-MM-DD strings (Issue 72)
             .filter(filters::Date)
+            // Sort with stable tie-breaking by slug (Issue 112)
+            .filter(filters::Sort)
     }
 
     /// Create a `TemplateEngine` from a pre-built `liquid::Parser`.

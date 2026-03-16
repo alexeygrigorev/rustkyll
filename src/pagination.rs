@@ -229,7 +229,7 @@ pub fn generate_pagination_pages(
     sorted_posts.sort_by(|a, b| {
         let date_a = a.date.as_deref().unwrap_or("");
         let date_b = b.date.as_deref().unwrap_or("");
-        date_b.cmp(date_a)
+        date_b.cmp(date_a).then_with(|| a.slug.cmp(&b.slug))
     });
 
     let total_posts = sorted_posts.len();
