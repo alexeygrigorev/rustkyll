@@ -4536,4 +4536,83 @@ by <a href="/people/author.html">Author Name</a>
             result
         );
     }
+
+    // ========================================================================
+    // Issue 168: Tests for the 6 categories of non-syntax-highlighting DOM diffs
+    // ========================================================================
+
+    // Category 3: books.html inline code class
+    // Inline <code> tags outside <pre> blocks must get the
+    // `language-plaintext highlighter-rouge` class to match kramdown output.
+    #[test]
+    fn test_issue168_inline_code_gets_class_outside_pre() {
+        let html = "<p>Use <code>pip install</code> to install.</p>";
+        let result = postprocess(html);
+        assert!(
+            result.contains(
+                "<code class=\"language-plaintext highlighter-rouge\">pip install</code>"
+            ),
+            "Inline <code> should get language-plaintext class. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue168_inline_code_inside_pre_unchanged() {
+        let html = "<pre><code>some code</code></pre>";
+        let result = add_inline_code_classes(html);
+        assert!(
+            !result.contains("language-plaintext highlighter-rouge\">some code"),
+            "Code inside <pre> should NOT get inline class. Got: {}",
+            result
+        );
+    }
+
+    // Category 5: Heading IDs with leading numbers must be preserved.
+    // Kramdown does NOT strip leading digits from heading IDs.
+    // "1. DataTalksClub" -> id="1-datatalksclub", NOT "datatalksclub"
+    #[test]
+    fn test_issue168_heading_id_leading_number_preserved() {
+        let html = "<h2>1. DataTalksClub</h2>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("id=\"1-datatalksclub\""),
+            "Heading ID should preserve leading digit. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue168_heading_id_all_numeric_prefix() {
+        let html = "<h3>8 Newsletters for Data Science</h3>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("id=\"8-newsletters-for-data-science\""),
+            "Heading ID should preserve leading number. Got: {}",
+            result
+        );
+    }
+
+    // Category 6: Book Q&A markdown rendering.
+    // The markdownify filter (used for book Q&A) must handle nested lists
+    // and produce correct HTML without <ol start="N"> attributes.
+    #[test]
+    fn test_issue168_markdownify_no_ol_start() {
+        let html = postprocess_for_filter("<ol start=\"3\">\n<li>Third</li>\n</ol>\n");
+        assert!(
+            !html.contains("start="),
+            "markdownify postprocess should strip ol start. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue168_markdownify_inline_code_class() {
+        let html = postprocess_for_filter("<p>Use <code>pip</code> here</p>\n");
+        assert!(
+            html.contains("<code class=\"language-plaintext highlighter-rouge\">pip</code>"),
+            "markdownify should add inline code class. Got: {}",
+            html
+        );
+    }
 }

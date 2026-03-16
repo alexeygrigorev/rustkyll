@@ -93,4 +93,22 @@ mod tests {
         let result = liquid_core::call_filter!(Truncatewords, "  one  two  ", 1i64).unwrap();
         assert_eq!(result.to_kstr(), "one...");
     }
+
+    // Issue 168, Category 1: truncatewords must preserve dollar signs and
+    // special characters within words. The description "a $500,000 grand prize"
+    // truncated at 3 words should produce "a $500,000 grand..." not "a$500,000 grand..."
+    #[test]
+    fn test_issue168_truncate_preserves_dollar_sign() {
+        let input = "competition with a $500,000 grand prize";
+        let result = liquid_core::call_filter!(Truncatewords, input, 4i64).unwrap();
+        assert_eq!(result.to_kstr(), "competition with a $500,000...");
+    }
+
+    #[test]
+    fn test_issue168_truncate_split_whitespace_consistent() {
+        // Ensure split_whitespace treats multiple spaces correctly
+        let input = "word1  word2  word3  word4";
+        let result = liquid_core::call_filter!(Truncatewords, input, 2i64).unwrap();
+        assert_eq!(result.to_kstr(), "word1 word2...");
+    }
 }
