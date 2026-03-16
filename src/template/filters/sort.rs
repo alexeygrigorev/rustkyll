@@ -41,6 +41,11 @@ struct SortFilter {
 }
 
 /// Compare two Liquid values, treating Nil as less than any non-Nil value.
+///
+/// When both values can be parsed as numbers (integers or floats), they are
+/// compared numerically. This matches Jekyll/Ruby's `<=>` operator behavior
+/// where `9 <=> 23` yields -1, not 1 (which string comparison "9" vs "23"
+/// would give).
 fn nil_safe_compare(a: &dyn ValueView, b: &dyn ValueView) -> cmp::Ordering {
     if a.is_nil() && b.is_nil() {
         cmp::Ordering::Equal
@@ -49,11 +54,17 @@ fn nil_safe_compare(a: &dyn ValueView, b: &dyn ValueView) -> cmp::Ordering {
     } else if b.is_nil() {
         cmp::Ordering::Greater
     } else {
-        // Use the render representation for comparison.
-        // This handles integers, strings, etc. uniformly.
+        // Try numeric comparison first (matches Jekyll/Ruby <=> behavior).
         let a_str = a.to_kstr();
         let b_str = b.to_kstr();
-        a_str.as_str().cmp(b_str.as_str())
+        if let (Ok(a_num), Ok(b_num)) =
+            (a_str.as_str().parse::<f64>(), b_str.as_str().parse::<f64>())
+        {
+            a_num.partial_cmp(&b_num).unwrap_or(cmp::Ordering::Equal)
+        } else {
+            // Fall back to string comparison for non-numeric values
+            a_str.as_str().cmp(b_str.as_str())
+        }
     }
 }
 
@@ -283,10 +294,9 @@ mod tests {
     }
 
     #[test]
-    fn test_sort_integers_as_strings() {
+    fn test_sort_integers_numerically() {
         // When sorting by a property that has integer values,
-        // comparison is done via string representation.
-        // This matches the liquid crate's behavior.
+        // comparison is done numerically (matching Jekyll/Ruby behavior).
         let input = Value::Array(vec![
             make_obj(vec![
                 ("num", Value::scalar(10)),
@@ -314,7 +324,18 @@ mod tests {
                     .to_string()
             })
             .collect();
-        // String comparison: "1" < "10" < "2"
-        assert_eq!(slugs, vec!["one", "ten", "two"]);
+        // Numeric comparison: 1 < 2 < 10
+        assert_eq!(slugs, vec!["one", "two", "ten"]);
+    }
+
+    #[test]
+    fn test_sort_scalars_numerically() {
+        // Sorting bare numeric scalars should also use numeric comparison.
+        let input = Value::Array(vec![Value::scalar(23), Value::scalar(9), Value::scalar(3)]);
+        let result = liquid_core::call_filter!(Sort, input).unwrap();
+        let arr = result.as_array().unwrap();
+        let vals: Vec<_> = arr.values().map(|v| v.to_kstr().to_string()).collect();
+        // Numeric: 3 < 9 < 23 (not string: "23" < "3" < "9")
+        assert_eq!(vals, vec!["3", "9", "23"]);
     }
 }

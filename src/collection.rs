@@ -58,6 +58,13 @@ pub struct CollectionItem {
 
     /// Relative path to the source file (e.g. `_posts/2020-11-29-segmentation.md`).
     pub source_path: String,
+
+    /// Jekyll-compatible document ID (e.g. `/podcast/my-episode` or `/2020/11/29/title`).
+    ///
+    /// Unlike `url`, this preserves spaces from the original filename rather than
+    /// converting them to hyphens. Jekyll computes `document.id` from the raw
+    /// collection-relative path (without extension), not from the permalink URL.
+    pub id: String,
 }
 
 /// Regex-free post filename parsing. Extracts date and slug from `YYYY-MM-DD-title.md`.
@@ -630,6 +637,29 @@ fn process_collection_file(
         doc.content.clone()
     };
 
+    // Compute Jekyll-compatible document.id.
+    // For non-post collections: /<collection>/<raw_stem> (preserves spaces from filename).
+    // For posts: /<YYYY>/<MM>/<DD>/<raw_slug> (date-based path).
+    let id = if is_posts {
+        if let Some(ref d) = date {
+            let date_part = &d[..std::cmp::min(10, d.len())];
+            let parts: Vec<&str> = date_part.split('-').collect();
+            if parts.len() >= 3 {
+                let (_, raw_slug) = parse_post_filename(&filename);
+                format!("/{}/{}/{}/{}", parts[0], parts[1], parts[2], raw_slug)
+            } else {
+                let base = url.trim_end_matches(".html").trim_start_matches('/');
+                format!("/{}", base)
+            }
+        } else {
+            let base = url.trim_end_matches(".html").trim_start_matches('/');
+            format!("/{}", base)
+        }
+    } else {
+        // For non-post collections, id preserves raw filename (including spaces)
+        format!("/{}/{}", collection_name, stem)
+    };
+
     Some(Ok(CollectionItem {
         slug,
         front_matter: doc.front_matter,
@@ -640,6 +670,7 @@ fn process_collection_file(
         date,
         collection_name: collection_name.to_string(),
         source_path,
+        id,
     }))
 }
 
@@ -1880,6 +1911,79 @@ mod tests {
     fn test_sanitize_slug_space_and_hyphen_collapsed() {
         assert_eq!(sanitize_slug("a - b"), "a-b");
     }
+    // ========================================================================
+    // Unit: Document ID preserves spaces (Issue 149)
+    // ========================================================================
+
+    /// Jekyll's document.id preserves spaces from the original filename for
+    /// non-post collection items (e.g. `_podcast/hybrid search.md` produces
+    /// id `/podcast/hybrid search`). The slug and URL have hyphens, but id
+    /// keeps the raw filename stem.
+    #[test]
+    fn test_collection_item_id_preserves_spaces_in_filename() {
+        use tempfile::TempDir;
+
+        let tmp = TempDir::new().unwrap();
+        let site = tmp.path();
+
+        // Create _config.yml with a podcast collection
+        std::fs::write(
+            site.join("_config.yml"),
+            "collections:\n  podcast:\n    output: true\n    permalink: /:collection/:title.html\n",
+        )
+        .unwrap();
+
+        // Create a podcast item with a space in the filename
+        let podcast_dir = site.join("_podcast");
+        std::fs::create_dir_all(&podcast_dir).unwrap();
+        std::fs::write(
+            podcast_dir.join("hybrid search.md"),
+            "---\ntitle: Hybrid Search\nseason: 1\nepisode: 1\n---\nContent\n",
+        )
+        .unwrap();
+
+        let config = crate::config::SiteConfig::from_file(&site.join("_config.yml")).unwrap();
+        let (items, errors) = load_collection("podcast", site, &config).unwrap();
+        assert!(errors.is_empty(), "Unexpected errors: {:?}", errors);
+        assert_eq!(items.len(), 1);
+
+        let item = &items[0];
+        // The slug should have hyphens (sanitized)
+        assert_eq!(item.slug, "hybrid-search");
+        // The URL should have hyphens
+        assert_eq!(item.url, "/podcast/hybrid-search.html");
+        // But the id should preserve the space from the raw filename
+        assert_eq!(item.id, "/podcast/hybrid search");
+    }
+
+    /// For post collections, the id uses the date-based path format
+    /// (e.g. `/2024/01/15/my-post`).
+    #[test]
+    fn test_post_item_id_uses_date_path() {
+        use tempfile::TempDir;
+
+        let tmp = TempDir::new().unwrap();
+        let site = tmp.path();
+
+        std::fs::write(site.join("_config.yml"), "permalink: /blog/:title.html\n").unwrap();
+
+        let posts_dir = site.join("_posts");
+        std::fs::create_dir_all(&posts_dir).unwrap();
+        std::fs::write(
+            posts_dir.join("2024-01-15-my-post.md"),
+            "---\ntitle: My Post\n---\nContent\n",
+        )
+        .unwrap();
+
+        let config = crate::config::SiteConfig::from_file(&site.join("_config.yml")).unwrap();
+        let (items, errors) = load_collection("posts", site, &config).unwrap();
+        assert!(errors.is_empty(), "Unexpected errors: {:?}", errors);
+        assert_eq!(items.len(), 1);
+
+        let item = &items[0];
+        assert_eq!(item.id, "/2024/01/15/my-post");
+    }
+
     #[test]
     fn test_load_pages_discovers_subdirectory() {
         let dir = tempfile::tempdir().unwrap();
@@ -2100,6 +2204,7 @@ mod tests {
             date: None,
             collection_name: "podcast".to_string(),
             source_path: "test-episode.md".to_string(),
+            id: "/podcast/test-episode".to_string(),
         }];
 
         let build_time = "2026-03-15 10:30:00 +0000";
@@ -2132,6 +2237,7 @@ mod tests {
             date: Some("2024-01-15".to_string()),
             collection_name: "posts".to_string(),
             source_path: "2024-01-15-my-post.md".to_string(),
+            id: "/posts/my-post".to_string(),
         }];
 
         let build_time = "2026-03-15 10:30:00 +0000";
@@ -2166,6 +2272,7 @@ mod tests {
                 date: Some("2023-06-01".to_string()),
                 collection_name: "posts".to_string(),
                 source_path: "has-date.md".to_string(),
+                id: "/posts/has-date".to_string(),
             },
             CollectionItem {
                 slug: "no-date".to_string(),
@@ -2177,6 +2284,7 @@ mod tests {
                 date: None,
                 collection_name: "podcast".to_string(),
                 source_path: "no-date.md".to_string(),
+                id: "/podcast/no-date".to_string(),
             },
         ];
 

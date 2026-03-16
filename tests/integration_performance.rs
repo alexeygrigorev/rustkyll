@@ -681,6 +681,7 @@ fn test_slim_site_context_excludes_large_arrays() {
         excerpt: None,
         collection_name: "podcast".to_string(),
         source_path: "_podcast/test-episode.md".to_string(),
+        id: "/podcast/test-episode".to_string(),
     };
 
     // Build site context with this item
@@ -765,6 +766,7 @@ fn test_slim_site_context_keeps_small_arrays() {
         excerpt: None,
         collection_name: "people".to_string(),
         source_path: "_people/alice.md".to_string(),
+        id: "/people/alice".to_string(),
     };
 
     let mut collections = HashMap::new();

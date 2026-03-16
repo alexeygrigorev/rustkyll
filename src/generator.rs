@@ -250,17 +250,7 @@ fn collection_item_to_liquid_slim(item: &CollectionItem) -> LiquidValue {
     // Add computed fields
     obj.insert("url".into(), LiquidValue::scalar(item.url.clone()));
     obj.insert("slug".into(), LiquidValue::scalar(item.slug.clone()));
-    obj.insert(
-        "id".into(),
-        LiquidValue::scalar(format!(
-            "/{}",
-            if item.url.ends_with(".html") {
-                item.url.trim_end_matches(".html").trim_start_matches('/')
-            } else {
-                item.url.trim_start_matches('/')
-            }
-        )),
-    );
+    obj.insert("id".into(), LiquidValue::scalar(item.id.clone()));
 
     if let Some(ref date) = item.date {
         obj.insert("date".into(), LiquidValue::scalar(date.clone()));
@@ -1363,6 +1353,7 @@ mod tests {
             date: Some("2021-01-01".to_string()),
             collection_name: "posts".to_string(),
             source_path: "_posts/2021-01-01-post-a.md".to_string(),
+            id: String::new(),
         };
 
         let post_b = CollectionItem {
@@ -1386,6 +1377,7 @@ mod tests {
             date: Some("2021-02-01".to_string()),
             collection_name: "posts".to_string(),
             source_path: "_posts/2021-02-01-post-b.md".to_string(),
+            id: String::new(),
         };
 
         let post_c = CollectionItem {
@@ -1405,6 +1397,7 @@ mod tests {
             date: Some("2021-03-01".to_string()),
             collection_name: "posts".to_string(),
             source_path: "_posts/2021-03-01-post-c.md".to_string(),
+            id: String::new(),
         };
 
         let mut collections = HashMap::new();
@@ -1467,6 +1460,7 @@ mod tests {
             date: Some("2021-01-01".to_string()),
             collection_name: "posts".to_string(),
             source_path: "_posts/2021-01-01-post-a.md".to_string(),
+            id: String::new(),
         };
 
         let post_b = CollectionItem {
@@ -1492,6 +1486,7 @@ mod tests {
             date: Some("2021-02-01".to_string()),
             collection_name: "posts".to_string(),
             source_path: "_posts/2021-02-01-post-b.md".to_string(),
+            id: String::new(),
         };
 
         let post_c = CollectionItem {
@@ -1511,6 +1506,7 @@ mod tests {
             date: Some("2021-03-01".to_string()),
             collection_name: "posts".to_string(),
             source_path: "_posts/2021-03-01-post-c.md".to_string(),
+            id: String::new(),
         };
 
         let mut collections = HashMap::new();
@@ -1588,6 +1584,7 @@ mod tests {
             date: None,
             collection_name: "people".to_string(),
             source_path: "_people/alice.md".to_string(),
+            id: String::new(),
         };
 
         let mut collections = HashMap::new();
@@ -1701,6 +1698,7 @@ mod tests {
             date: None,
             collection_name: "people".to_string(),
             source_path: "_people/test.md".to_string(),
+            id: String::new(),
         };
         assert_eq!(
             resolve_layout(&item, &config, "people"),
@@ -1726,6 +1724,7 @@ mod tests {
             date: None,
             collection_name: "people".to_string(),
             source_path: "_people/test.md".to_string(),
+            id: String::new(),
         };
         assert_eq!(
             resolve_layout(&item, &config, "people"),
@@ -1746,6 +1745,7 @@ mod tests {
             date: None,
             collection_name: "courses".to_string(),
             source_path: "_courses/test.md".to_string(),
+            id: String::new(),
         };
         // courses has no default layout
         assert_eq!(resolve_layout(&item, &config, "courses"), None);
@@ -2359,6 +2359,7 @@ DONE
                 date: None,
                 collection_name: "people".to_string(),
                 source_path: "_people/alice.md".to_string(),
+                id: String::new(),
             },
             CollectionItem {
                 slug: "bob".to_string(),
@@ -2377,6 +2378,7 @@ DONE
                 date: None,
                 collection_name: "people".to_string(),
                 source_path: "_people/bob.md".to_string(),
+                id: String::new(),
             },
         ];
 
@@ -2471,6 +2473,7 @@ DONE
                 date: None,
                 collection_name: "widgets".to_string(),
                 source_path: "_widgets/widget-a.md".to_string(),
+                id: String::new(),
             },
             CollectionItem {
                 slug: "widget-b".to_string(),
@@ -2489,6 +2492,7 @@ DONE
                 date: None,
                 collection_name: "widgets".to_string(),
                 source_path: "_widgets/widget-b.md".to_string(),
+                id: String::new(),
             },
         ];
 
@@ -2813,6 +2817,7 @@ defaults:
             date: Some("2021-01-01".to_string()),
             collection_name: "posts".to_string(),
             source_path: "_posts/2021-01-01-test-post.md".to_string(),
+            id: String::new(),
         };
 
         let dir = tempfile::TempDir::new().unwrap();
@@ -2885,6 +2890,7 @@ defaults:
             date: Some("2021-01-01".to_string()),
             collection_name: "posts".to_string(),
             source_path: "_posts/2021-01-01-test-post.md".to_string(),
+            id: String::new(),
         };
 
         let dir = tempfile::TempDir::new().unwrap();
@@ -2925,6 +2931,7 @@ defaults:
             date: Some(date.to_string()),
             collection_name: "posts".to_string(),
             source_path: format!("_posts/{date}-{slug}.md"),
+            id: format!("/blog/{slug}"),
         }
     }
 
@@ -3173,6 +3180,7 @@ defaults:
             date: Some(date.to_string()),
             collection_name: "posts".to_string(),
             source_path: format!("_posts/{}-{}.md", date, slug),
+            id: format!("/blog/{}", slug),
         }
     }
 
@@ -3460,6 +3468,7 @@ defaults:
             excerpt: None,
             collection_name: "tools".to_string(),
             source_path: "_tools/modelstore.md".to_string(),
+            id: String::new(),
         };
 
         let tmp = tempfile::tempdir().unwrap();
@@ -3521,6 +3530,7 @@ defaults:
             excerpt: None,
             collection_name: "tools".to_string(),
             source_path: "_tools/sometool.md".to_string(),
+            id: String::new(),
         };
 
         let tmp = tempfile::tempdir().unwrap();
@@ -3583,6 +3593,7 @@ defaults:
             excerpt: None,
             collection_name: "tools".to_string(),
             source_path: "_tools/emptytool.md".to_string(),
+            id: String::new(),
         };
 
         let tmp = tempfile::tempdir().unwrap();

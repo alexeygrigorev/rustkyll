@@ -426,6 +426,7 @@ mod tests {
             source_path: format!("_posts/{}-{}.md", date, slug),
             date: Some(date.to_string()),
             collection_name: "posts".to_string(),
+            id: format!("/posts/{}", slug),
         }
     }
 

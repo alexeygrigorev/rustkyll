@@ -1,16 +1,13 @@
 //! JSON-LD structured data generation and injection.
 //!
-//! This module generates Schema.org JSON-LD blocks and injects them into
-//! rendered HTML pages as a post-processing step. This keeps layout files
-//! clean and makes JSON-LD generation a rustkyll feature rather than a
-//! template concern.
+//! This module previously generated Schema.org JSON-LD blocks and injected
+//! them into rendered HTML pages as a post-processing step. Investigation
+//! of the original Jekyll site revealed that Jekyll does NOT emit JSON-LD
+//! via post-processing -- the JSON-LD on people/podcast/post pages comes
+//! from the layout templates themselves. Book pages have no JSON-LD at all.
 //!
-//! Currently supports:
-//! - `Book` + `BreadcrumbList` for book pages
-//!
-//! The injection happens after template rendering but before writing to disk.
-
-use std::collections::HashMap;
+//! The `inject_jsonld` function is now a no-op that returns HTML unchanged.
+//! The helper functions are retained under `#[cfg(test)]` for test coverage.
 
 use crate::collection::CollectionItem;
 use crate::config::SiteConfig;
@@ -18,36 +15,31 @@ use crate::frontmatter::FrontMatter;
 
 /// Inject JSON-LD structured data into rendered HTML based on the layout type.
 ///
-/// This is the main entry point for post-processing. It checks the layout name
-/// and generates appropriate JSON-LD if applicable, injecting it before `</body>`.
-///
-/// Returns the HTML with JSON-LD injected, or the original HTML unchanged if
-/// no JSON-LD is applicable for this layout type.
+/// Currently a no-op: returns the HTML unchanged. Jekyll does not inject
+/// post-processing JSON-LD for any layout. The JSON-LD that appears on
+/// people/podcast/post pages comes from the layout templates themselves.
+/// Book pages have no JSON-LD in Jekyll at all.
 pub fn inject_jsonld(
     html: &str,
-    layout_name: &str,
-    page_fm: &FrontMatter,
-    config: &SiteConfig,
-    people: &[CollectionItem],
+    _layout_name: &str,
+    _page_fm: &FrontMatter,
+    _config: &SiteConfig,
+    _people: &[CollectionItem],
 ) -> String {
-    let jsonld = match layout_name {
-        "book" => generate_book_jsonld(page_fm, config, people),
-        _ => return html.to_string(),
-    };
-
-    inject_before_body_close(html, &jsonld)
+    html.to_string()
 }
 
-/// Generate JSON-LD for a book page.
-///
-/// Produces a `@graph` containing:
-/// - `Book` with name, description, image, url, datePublished, author array, publisher
-/// - `BreadcrumbList` with Home > Books > [Book Title]
+// The following helper functions are retained for test coverage but no longer
+// called in production.
+
+#[cfg(test)]
 fn generate_book_jsonld(
     page_fm: &FrontMatter,
     config: &SiteConfig,
     people: &[CollectionItem],
 ) -> String {
+    use std::collections::HashMap;
+
     let site_url = &config.url;
     let site_name = &config.name;
 
@@ -55,7 +47,6 @@ fn generate_book_jsonld(
     let page_url = fm_str(page_fm, "url").unwrap_or_default();
     let full_url = format!("{site_url}{page_url}");
 
-    // Build the Book object
     let mut book = serde_json::Map::new();
     book.insert("@type".into(), serde_json::Value::String("Book".into()));
     book.insert("@id".into(), serde_json::Value::String(full_url.clone()));
@@ -82,14 +73,12 @@ fn generate_book_jsonld(
     book.insert("url".into(), serde_json::Value::String(full_url.clone()));
 
     if let Some(start) = fm_str(page_fm, "start") {
-        // Format date as ISO 8601 (just the date part)
         let date_str = normalize_date(start);
         if !date_str.is_empty() {
             book.insert("datePublished".into(), serde_json::Value::String(date_str));
         }
     }
 
-    // Build author array by resolving slugs against the people collection
     if let Some(authors) = fm_string_array(page_fm, "authors") {
         if !authors.is_empty() {
             let people_map: HashMap<&str, &CollectionItem> = people
@@ -113,7 +102,6 @@ fn generate_book_jsonld(
         }
     }
 
-    // Publisher
     let mut publisher = serde_json::Map::new();
     publisher.insert(
         "@type".into(),
@@ -123,7 +111,6 @@ fn generate_book_jsonld(
     publisher.insert("url".into(), serde_json::Value::String(site_url.clone()));
     book.insert("publisher".into(), serde_json::Value::Object(publisher));
 
-    // Build BreadcrumbList
     let breadcrumb = build_breadcrumb_list(
         site_url,
         &[
@@ -133,7 +120,6 @@ fn generate_book_jsonld(
         ],
     );
 
-    // Wrap in @graph
     let mut root = serde_json::Map::new();
     root.insert(
         "@context".into(),
@@ -144,21 +130,19 @@ fn generate_book_jsonld(
         serde_json::Value::Array(vec![serde_json::Value::Object(book), breadcrumb]),
     );
 
-    // Serialize with pretty printing for readability
     serde_json::to_string_pretty(&serde_json::Value::Object(root)).unwrap_or_default()
 }
 
-/// Build a Person JSON-LD object for a book author.
+#[cfg(test)]
 fn build_author_person(
     slug: &str,
-    people_map: &HashMap<&str, &CollectionItem>,
+    people_map: &std::collections::HashMap<&str, &CollectionItem>,
     site_url: &str,
 ) -> serde_json::Value {
     let mut person = serde_json::Map::new();
     person.insert("@type".into(), serde_json::Value::String("Person".into()));
 
     if let Some(item) = people_map.get(slug) {
-        // Resolved author -- use their title as name
         let name = item
             .front_matter
             .get("title")
@@ -171,7 +155,6 @@ fn build_author_person(
 
         if let Some(pic) = item.front_matter.get("picture").and_then(|v| v.as_str()) {
             if !pic.is_empty() {
-                // Use the same logic as relative_url filter: prepend baseurl or /
                 let image_url = if pic.starts_with('/') {
                     format!("{site_url}{pic}")
                 } else {
@@ -181,14 +164,13 @@ fn build_author_person(
             }
         }
     } else {
-        // Unresolved author -- use the slug as the name
         person.insert("name".into(), serde_json::Value::String(slug.to_string()));
     }
 
     serde_json::Value::Object(person)
 }
 
-/// Build a BreadcrumbList JSON-LD object from a list of (name, url) pairs.
+#[cfg(test)]
 fn build_breadcrumb_list(_site_url: &str, items: &[(&str, &str)]) -> serde_json::Value {
     let list_items: Vec<serde_json::Value> = items
         .iter()
@@ -219,14 +201,11 @@ fn build_breadcrumb_list(_site_url: &str, items: &[(&str, &str)]) -> serde_json:
     serde_json::Value::Object(breadcrumb)
 }
 
-/// Inject a JSON-LD script block before `</body>` in the HTML.
-///
-/// If no `</body>` tag is found, appends at the end.
+#[cfg(test)]
 fn inject_before_body_close(html: &str, jsonld: &str) -> String {
     let script_block =
         format!("\n  <script type=\"application/ld+json\">\n{jsonld}\n  </script>\n");
 
-    // Case-insensitive search for </body>
     if let Some(pos) = html.to_lowercase().rfind("</body>") {
         let mut result = String::with_capacity(html.len() + script_block.len());
         result.push_str(&html[..pos]);
@@ -234,21 +213,18 @@ fn inject_before_body_close(html: &str, jsonld: &str) -> String {
         result.push_str(&html[pos..]);
         result
     } else {
-        // No </body> tag found -- append at end
         let mut result = html.to_string();
         result.push_str(&script_block);
         result
     }
 }
 
-/// Extract a string value from front matter.
+#[cfg(test)]
 fn fm_str<'a>(fm: &'a FrontMatter, key: &str) -> Option<&'a str> {
     fm.get(key).and_then(|v| v.as_str())
 }
 
-/// Extract a string array from front matter.
-///
-/// Handles both YAML sequences and single string values.
+#[cfg(test)]
 fn fm_string_array(fm: &FrontMatter, key: &str) -> Option<Vec<String>> {
     let val = fm.get(key)?;
     match val {
@@ -268,49 +244,36 @@ fn fm_string_array(fm: &FrontMatter, key: &str) -> Option<Vec<String>> {
     }
 }
 
-/// Normalize a date string to ISO 8601 format (YYYY-MM-DDTHH:MM:SS+00:00).
-///
-/// Handles various formats:
-/// - "2020-12-14 00:00:00" -> "2020-12-14T00:00:00+00:00"
-/// - "2020-12-14 00:00:00 +0000" -> "2020-12-14T00:00:00+00:00"
-/// - "2020-12-14" -> "2020-12-14T00:00:00+00:00"
+#[cfg(test)]
 fn normalize_date(date_str: &str) -> String {
     let trimmed = date_str.trim();
     if trimmed.is_empty() {
         return String::new();
     }
 
-    // If it already has a T, assume it's already ISO-ish
     if trimmed.contains('T') {
         return trimmed.to_string();
     }
 
-    // Try "YYYY-MM-DD HH:MM:SS [+/-HHMM]" format
-    // Split into at most 3 parts: date, time, optional timezone
     let parts: Vec<&str> = trimmed.splitn(3, ' ').collect();
     match parts.len() {
         3 => {
-            // "YYYY-MM-DD HH:MM:SS +HHMM" -> convert tz from "+HHMM" to "+HH:MM"
             let date_part = parts[0];
             let time_part = parts[1];
             let tz_raw = parts[2].trim();
             let tz = if tz_raw.len() == 5 && (tz_raw.starts_with('+') || tz_raw.starts_with('-')) {
-                // "+0000" -> "+00:00"
                 format!("{}:{}", &tz_raw[..3], &tz_raw[3..])
             } else {
-                // Already has colon or unexpected format -- use as-is
                 tz_raw.to_string()
             };
             format!("{date_part}T{time_part}{tz}")
         }
         2 => {
-            // "YYYY-MM-DD HH:MM:SS" -> append +00:00
             let date_part = parts[0];
             let time_part = parts[1];
             format!("{date_part}T{time_part}+00:00")
         }
         _ => {
-            // Just a date: "YYYY-MM-DD"
             format!("{trimmed}T00:00:00+00:00")
         }
     }
@@ -345,6 +308,7 @@ mod tests {
             date: None,
             collection_name: "people".to_string(),
             source_path: String::new(),
+            id: format!("/people/{slug}"),
         }
     }
 
@@ -463,10 +427,7 @@ mod tests {
 
     #[test]
     fn test_book_jsonld_author_resolution_from_any_collection() {
-        // Verify that author resolution works regardless of the collection name.
-        // The JSON-LD code does not assume "people" -- it takes a flat slice of items.
         let config = make_config("https://example.com", "Test");
-        // Create an author item with collection_name "team" instead of "people"
         let mut fm = FrontMatter::new();
         fm.insert(
             "short".into(),
@@ -486,6 +447,7 @@ mod tests {
             date: None,
             collection_name: "team".to_string(),
             source_path: String::new(),
+            id: "/team/jdoe".to_string(),
         };
 
         let book_fm = make_book_fm("My Book", &["jdoe"], None, None, None);
@@ -595,7 +557,6 @@ mod tests {
 
     #[test]
     fn test_book_jsonld_date_published_with_timezone() {
-        // Build-timestamp-style date with timezone suffix
         let config = make_config("https://example.com", "Test");
         let people = vec![];
         let fm = make_book_fm("Test", &[], None, Some("2026-03-15 10:30:00 +0000"), None);
@@ -667,7 +628,6 @@ mod tests {
 
         assert!(result.contains(r#"<script type="application/ld+json">"#));
         assert!(result.contains(r#"{"@type": "Book"}"#));
-        // JSON-LD should come before </body>
         let script_pos = result.find("application/ld+json").unwrap();
         let body_pos = result.find("</body>").unwrap();
         assert!(script_pos < body_pos);
@@ -679,7 +639,6 @@ mod tests {
         let jsonld = r#"{"@type": "Book"}"#;
         let result = inject_before_body_close(html, jsonld);
 
-        // Should still contain the JSON-LD (appended at end)
         assert!(result.contains(r#"<script type="application/ld+json">"#));
     }
 
@@ -695,15 +654,15 @@ mod tests {
     }
 
     #[test]
-    fn test_inject_jsonld_book_layout_adds_jsonld() {
+    fn test_inject_jsonld_book_layout_unchanged() {
+        // Jekyll does not emit JSON-LD for book pages, so neither should we.
         let html = "<html><body><p>Hello</p></body></html>";
         let fm = make_book_fm("Test Book", &[], None, None, None);
         let config = make_config("https://example.com", "Test");
         let people = vec![];
 
         let result = inject_jsonld(html, "book", &fm, &config, &people);
-        assert!(result.contains("application/ld+json"));
-        assert!(result.contains("Book"));
+        assert_eq!(result, html, "Book pages should not get JSON-LD injected");
     }
 
     #[test]
@@ -726,7 +685,6 @@ mod tests {
 
     #[test]
     fn test_normalize_date_with_time_and_timezone() {
-        // Jekyll build-timestamp format: "YYYY-MM-DD HH:MM:SS +0000"
         assert_eq!(
             normalize_date("2026-03-15 10:30:00 +0000"),
             "2026-03-15T10:30:00+00:00"
@@ -751,7 +709,6 @@ mod tests {
 
     #[test]
     fn test_normalize_date_iso_passthrough() {
-        // Already ISO format with T -- should pass through
         assert_eq!(
             normalize_date("2024-01-15T14:30:00+00:00"),
             "2024-01-15T14:30:00+00:00"
@@ -794,7 +751,6 @@ mod tests {
         );
 
         let jsonld = generate_book_jsonld(&fm, &config, &people);
-        // Must be valid JSON
         let result: Result<serde_json::Value, _> = serde_json::from_str(&jsonld);
         assert!(
             result.is_ok(),

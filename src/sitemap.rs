@@ -133,6 +133,7 @@ mod tests {
             date: None,
             collection_name: collection.to_string(),
             source_path: format!("_{collection}/{slug}.md"),
+            id: format!("/{collection}/{slug}"),
         }
     }
 
