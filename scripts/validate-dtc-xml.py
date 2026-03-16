@@ -8,7 +8,7 @@ Compares rustkyll output against Jekyll output for:
 - Matching feed entry titles and links
 
 Usage:
-    python3 scripts/validate-dtc-xml.py --jekyll-dir /path/to/jekyll --rustkyll-dir /path/to/rustkyll
+    uv run python scripts/validate-dtc-xml.py --jekyll-dir /path/to/jekyll --rustkyll-dir /path/to/rustkyll
 """
 
 import argparse

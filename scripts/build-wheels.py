@@ -2,7 +2,7 @@
 """Build platform-tagged wheels for rustkyll.
 
 Usage:
-    python scripts/build-wheels.py --binaries-dir ./artifacts --output-dir ./dist
+    uv run python scripts/build-wheels.py --binaries-dir ./artifacts --output-dir ./dist
 
 The binaries-dir should contain the release binaries with names:
     rustkyll-linux-amd64

@@ -157,6 +157,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -171,19 +174,19 @@ jobs:
         run: find artifacts -type f
 
       - name: Build platform-tagged wheels
-        run: python scripts/build-wheels.py --binaries-dir ./artifacts --output-dir ./dist
+        run: uv run python scripts/build-wheels.py --binaries-dir ./artifacts --output-dir ./dist
 
       - name: List wheels
         run: ls -la dist/
 
       - name: Install twine
-        run: pip install twine
+        run: uv pip install twine --system
 
       - name: Publish to TestPyPI
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
-        run: twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+        run: uv run twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
   publish-pypi:
     name: Publish to PyPI
@@ -192,6 +195,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -206,16 +212,16 @@ jobs:
         run: find artifacts -type f
 
       - name: Build platform-tagged wheels
-        run: python scripts/build-wheels.py --binaries-dir ./artifacts --output-dir ./dist
+        run: uv run python scripts/build-wheels.py --binaries-dir ./artifacts --output-dir ./dist
 
       - name: List wheels
         run: ls -la dist/
 
       - name: Install twine
-        run: pip install twine
+        run: uv pip install twine --system
 
       - name: Publish to PyPI
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: twine upload dist/*.whl
+        run: uv run twine upload dist/*.whl

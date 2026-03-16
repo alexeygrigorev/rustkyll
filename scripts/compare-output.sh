@@ -270,7 +270,7 @@ echo ""
 echo "--- DOM Tree Comparison ---"
 
 DOM_COMPARE_FAIL=0
-python3 "$SCRIPT_DIR/dom_compare.py" \
+uv run python "$SCRIPT_DIR/dom_compare.py" \
     --jekyll-dir "$JEKYLL_DIR" \
     --rustkyll-dir "$RUSTKYLL_DIR" || DOM_COMPARE_FAIL=1
 

@@ -17,7 +17,7 @@
 #
 # Prerequisites:
 #   - Node.js and npm
-#   - Python 3 (for http.server)
+#   - uv (for running Python http.server)
 #   - Playwright browsers installed (run: cd playwright && npm install && npx playwright install chromium)
 #   - rustkyll binary built (cargo build --release)
 #   - Jekyll installed (for --site mode without --skip-build)
@@ -163,12 +163,12 @@ echo ""
 echo "=== Starting HTTP servers ==="
 
 # Start Jekyll server
-python3 -m http.server "$JEKYLL_PORT" --directory "$JEKYLL_DIR" --bind 127.0.0.1 &>/dev/null &
+uv run python -m http.server "$JEKYLL_PORT" --directory "$JEKYLL_DIR" --bind 127.0.0.1 &>/dev/null &
 JEKYLL_SERVER_PID=$!
 echo "  Jekyll server: http://localhost:$JEKYLL_PORT (PID $JEKYLL_SERVER_PID)"
 
 # Start rustkyll server
-python3 -m http.server "$RUSTKYLL_PORT" --directory "$RUSTKYLL_DIR" --bind 127.0.0.1 &>/dev/null &
+uv run python -m http.server "$RUSTKYLL_PORT" --directory "$RUSTKYLL_DIR" --bind 127.0.0.1 &>/dev/null &
 RUSTKYLL_SERVER_PID=$!
 echo "  Rustkyll server: http://localhost:$RUSTKYLL_PORT (PID $RUSTKYLL_SERVER_PID)"
 

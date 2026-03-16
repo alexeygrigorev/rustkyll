@@ -7,8 +7,8 @@ and performs recursive comparison to detect ALL differences: missing elements,
 extra elements, attribute differences, text content differences, etc.
 
 Usage:
-    python scripts/dom_compare.py --jekyll-dir /path/to/jekyll --rustkyll-dir /path/to/rustkyll
-    python scripts/dom_compare.py --jekyll-dir /path/to/jekyll --rustkyll-dir /path/to/rustkyll --output report.txt
+    uv run python scripts/dom_compare.py --jekyll-dir /path/to/jekyll --rustkyll-dir /path/to/rustkyll
+    uv run python scripts/dom_compare.py --jekyll-dir /path/to/jekyll --rustkyll-dir /path/to/rustkyll --output report.txt
 """
 
 import argparse

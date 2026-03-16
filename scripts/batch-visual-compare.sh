@@ -62,9 +62,9 @@ for site in "${SITES[@]}"; do
   RUSTKYLL_PORT=$((4200 + RANDOM % 100))
 
   # Start HTTP servers
-  python3 -m http.server "$JEKYLL_PORT" --directory "$JEKYLL_DIR" --bind 127.0.0.1 &>/dev/null &
+  uv run python -m http.server "$JEKYLL_PORT" --directory "$JEKYLL_DIR" --bind 127.0.0.1 &>/dev/null &
   JEKYLL_PID=$!
-  python3 -m http.server "$RUSTKYLL_PORT" --directory "$RUSTKYLL_DIR" --bind 127.0.0.1 &>/dev/null &
+  uv run python -m http.server "$RUSTKYLL_PORT" --directory "$RUSTKYLL_DIR" --bind 127.0.0.1 &>/dev/null &
   RUSTKYLL_PID=$!
 
   # Wait for servers (accept any HTTP response, not just 200,
