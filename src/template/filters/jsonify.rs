@@ -19,17 +19,16 @@ struct JsonifyFilter;
 fn liquid_to_json(value: &Value) -> serde_json::Value {
     match value {
         Value::Scalar(s) => {
-            if let Some(b) = s.to_bool() {
-                serde_json::Value::Bool(b)
-            } else if let Some(i) = s.to_integer() {
-                serde_json::Value::Number(serde_json::Number::from(i))
-            } else if let Some(f) = s.to_float() {
-                serde_json::Number::from_f64(f)
-                    .map(serde_json::Value::Number)
-                    .unwrap_or(serde_json::Value::Null)
-            } else {
-                serde_json::Value::String(s.to_kstr().to_string())
-            }
+            // Use serde serialization to preserve the original scalar type.
+            // ScalarCow uses #[serde(transparent)] over an untagged enum, so:
+            //   ScalarCowEnum::Integer(42)  -> JSON 42
+            //   ScalarCowEnum::Str("42")    -> JSON "42"
+            //   ScalarCowEnum::Float(1.5)   -> JSON 1.5
+            //   ScalarCowEnum::Bool(true)   -> JSON true
+            // This matches Jekyll's jsonify behavior where YAML strings that
+            // look like numbers (e.g., tag "2024") stay as JSON strings.
+            serde_json::to_value(s)
+                .unwrap_or_else(|_| serde_json::Value::String(s.to_kstr().to_string()))
         }
         Value::Array(arr) => {
             let items: Vec<serde_json::Value> = arr.iter().map(liquid_to_json).collect();
@@ -123,5 +122,43 @@ mod tests {
     fn test_jsonify_empty_string() {
         let result = liquid_core::call_filter!(Jsonify, "").unwrap();
         assert_eq!(result.to_kstr(), "\"\"");
+    }
+
+    #[test]
+    fn test_jsonify_numeric_string_stays_string() {
+        // A string that looks like a number (e.g., YAML tag "2024") must stay
+        // a JSON string, not be coerced to a JSON number. This matches Jekyll's
+        // jsonify behavior where `"2024".to_json` produces `"2024"`, not `2024`.
+        let input = Value::scalar("2024");
+        let result = liquid_core::call_filter!(Jsonify, input).unwrap();
+        assert_eq!(
+            result.to_kstr(),
+            "\"2024\"",
+            "String '2024' should serialize as JSON string, not number"
+        );
+    }
+
+    #[test]
+    fn test_jsonify_array_with_numeric_string() {
+        // Simulates `page.tags | jsonify` where tags are ["survey", "ai", "2024"]
+        let input = Value::Array(vec![
+            Value::scalar("survey"),
+            Value::scalar("ai"),
+            Value::scalar("2024"),
+        ]);
+        let result = liquid_core::call_filter!(Jsonify, input).unwrap();
+        assert_eq!(
+            result.to_kstr(),
+            "[\"survey\",\"ai\",\"2024\"]",
+            "All tags should be JSON strings, including numeric-looking ones"
+        );
+    }
+
+    #[test]
+    fn test_jsonify_actual_integer_stays_number() {
+        // An actual integer (not a string) should still serialize as a number
+        let input = Value::scalar(2024i64);
+        let result = liquid_core::call_filter!(Jsonify, input).unwrap();
+        assert_eq!(result.to_kstr(), "2024");
     }
 }

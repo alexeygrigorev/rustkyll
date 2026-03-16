@@ -20,6 +20,11 @@ struct DateToXmlschemaFilter;
 
 impl Filter for DateToXmlschemaFilter {
     fn evaluate(&self, input: &dyn ValueView, runtime: &dyn Runtime) -> Result<Value> {
+        // If input is nil, return nil so that `nil | date_to_xmlschema | jsonify`
+        // produces `null` (not `""`), matching Jekyll's behavior.
+        if input.is_nil() {
+            return Ok(Value::Nil);
+        }
         let input_str = input.to_kstr();
         let s = input_str.trim();
         if s.is_empty() {
@@ -81,5 +86,18 @@ mod tests {
     fn test_invalid_date_passthrough() {
         let result = liquid_core::call_filter!(DateToXmlschema, "not-a-date").unwrap();
         assert_eq!(result.to_kstr(), "not-a-date");
+    }
+
+    #[test]
+    fn test_nil_input_returns_nil() {
+        // When page.date is nil, date_to_xmlschema should return nil (not ""),
+        // so that `nil | date_to_xmlschema | jsonify` produces `null`.
+        let input = Value::Nil;
+        let result = liquid_core::call_filter!(DateToXmlschema, input).unwrap();
+        assert_eq!(
+            result,
+            Value::Nil,
+            "nil input should produce nil output, not empty string"
+        );
     }
 }
