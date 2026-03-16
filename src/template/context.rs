@@ -6,7 +6,7 @@ use liquid::Object;
 /// Convert a `serde_yaml::Value` to a `liquid::model::Value`.
 ///
 /// Recursively converts all YAML types to their Liquid equivalents:
-/// - String -> Scalar (string), with date-only strings expanded to full datetime
+/// - String -> Scalar (string)
 /// - Integer -> Scalar (integer)
 /// - Float -> Scalar (float)
 /// - Bool -> Scalar (bool)
@@ -14,12 +14,15 @@ use liquid::Object;
 /// - Sequence -> Array
 /// - Mapping -> Object
 ///
-/// Date-only strings (`YYYY-MM-DD`) are expanded to `YYYY-MM-DD 00:00:00 +0000`
-/// to match Jekyll's behavior, where YAML date values are parsed as Ruby Time
-/// objects and render with full datetime and timezone.
+/// Note: date-only string expansion (`YYYY-MM-DD` -> `YYYY-MM-DD 00:00:00 +0000`)
+/// is only applied to the `date` key in mappings (see `yaml_mapping_to_object`),
+/// matching Jekyll's behavior where only the special `date` field is converted
+/// to a Ruby Time object. Other date-like strings (e.g., `dateadded`, `start`)
+/// remain as plain date strings since Ruby YAML parses them as Date objects
+/// whose `to_s` returns just `YYYY-MM-DD`.
 pub fn yaml_to_liquid(yaml: &serde_yaml::Value) -> LiquidValue {
     match yaml {
-        serde_yaml::Value::String(s) => LiquidValue::scalar(expand_date_only_string(s)),
+        serde_yaml::Value::String(s) => LiquidValue::scalar(s.clone()),
         serde_yaml::Value::Number(n) => {
             if let Some(i) = n.as_i64() {
                 LiquidValue::scalar(i)
@@ -80,6 +83,12 @@ fn expand_date_only_string(s: &str) -> String {
 ///
 /// Keys are converted to strings (non-string keys use their debug representation).
 /// Values are recursively converted via `yaml_to_liquid`.
+///
+/// The special `date` key gets date-only string expansion (`YYYY-MM-DD` ->
+/// `YYYY-MM-DD 00:00:00 +0000`) to match Jekyll's behavior, where the `date`
+/// frontmatter field is converted to a Ruby Time object. Other date-like fields
+/// (e.g., `dateadded`, `start`) remain as plain `YYYY-MM-DD` strings, matching
+/// Ruby's Date#to_s behavior.
 pub fn yaml_mapping_to_object(mapping: &serde_yaml::Mapping) -> Object {
     let mut obj = Object::new();
     for (key, value) in mapping {
@@ -87,7 +96,20 @@ pub fn yaml_mapping_to_object(mapping: &serde_yaml::Mapping) -> Object {
             serde_yaml::Value::String(s) => s.clone(),
             other => format!("{other:?}"),
         };
-        obj.insert(key_str.into(), yaml_to_liquid(value));
+        // Only expand date-only strings for the special "date" key.
+        // Jekyll converts the `date` field to a Ruby Time object (renders as
+        // "YYYY-MM-DD 00:00:00 +0000"), but other date-like fields remain as
+        // Ruby Date objects (render as just "YYYY-MM-DD").
+        let liquid_value = if key_str == "date" {
+            if let serde_yaml::Value::String(s) = value {
+                LiquidValue::scalar(expand_date_only_string(s))
+            } else {
+                yaml_to_liquid(value)
+            }
+        } else {
+            yaml_to_liquid(value)
+        };
+        obj.insert(key_str.into(), liquid_value);
     }
     obj
 }
@@ -515,9 +537,11 @@ transcript:
     }
 
     #[test]
-    fn test_yaml_to_liquid_expands_date_only_strings() {
-        // When a YAML string looks like YYYY-MM-DD, it should be expanded
-        // to full datetime format in the Liquid context.
+    fn test_yaml_to_liquid_only_expands_date_key() {
+        // Only the special "date" key should be expanded to full datetime.
+        // Other date-like fields (e.g., "dateadded") should remain as plain
+        // YYYY-MM-DD strings, matching Jekyll's behavior where only the `date`
+        // field is converted to a Ruby Time object.
         let yaml_str = r#"
 date: 2025-11-07
 dateadded: 2022-02-27
@@ -530,12 +554,12 @@ title: Not a date
             assert_eq!(
                 obj.get("date"),
                 Some(&LiquidValue::scalar("2025-11-07 00:00:00 +0000")),
-                "date-only YAML string should be expanded to full datetime"
+                "date key should be expanded to full datetime"
             );
             assert_eq!(
                 obj.get("dateadded"),
-                Some(&LiquidValue::scalar("2022-02-27 00:00:00 +0000")),
-                "dateadded should also be expanded"
+                Some(&LiquidValue::scalar("2022-02-27")),
+                "dateadded should remain as plain date string (Ruby Date#to_s)"
             );
             assert_eq!(
                 obj.get("title"),
@@ -548,8 +572,9 @@ title: Not a date
     }
 
     #[test]
-    fn test_date_expansion_in_template_rendering() {
-        // Verify that date-only values render as full datetime in Liquid templates
+    fn test_date_expansion_only_for_date_key_in_template() {
+        // Verify that only the "date" key renders as full datetime,
+        // while other date-like fields render as plain date strings.
         let yaml_str = "date: 2025-11-07\ndateadded: 2022-02-27";
         let yaml: YamlValue = serde_yaml::from_str(yaml_str).unwrap();
         let mapping = yaml.as_mapping().unwrap();
@@ -564,9 +589,6 @@ title: Not a date
         let output = engine
             .parse_and_render("{{ page.date }} / {{ page.dateadded }}", &ctx)
             .unwrap();
-        assert_eq!(
-            output,
-            "2025-11-07 00:00:00 +0000 / 2022-02-27 00:00:00 +0000"
-        );
+        assert_eq!(output, "2025-11-07 00:00:00 +0000 / 2022-02-27");
     }
 }
