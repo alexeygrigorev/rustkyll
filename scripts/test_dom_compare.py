@@ -14,7 +14,9 @@ from dom_compare import (
     DiffResult,
     compare_html_files,
     compare_trees,
+    filter_acceptable_diffs,
     find_common_html_files,
+    is_acceptable_sexagesimal_diff,
     normalize_text,
     parse_and_normalize,
     compare_directories,
@@ -477,6 +479,81 @@ class TestCLI(unittest.TestCase):
             capture_output=True, text=True
         )
         self.assertEqual(result.returncode, 2)
+
+
+class TestSexagesimalAllowlist(unittest.TestCase):
+    """Tests for the sexagesimal timestamp allowlist in DOM comparison."""
+
+    def test_sexagesimal_float_vs_time_is_acceptable(self):
+        """A diff where Jekyll shows '36.0' and rustkyll shows '0:36' is acceptable."""
+        diff = DiffResult("some > path", "text_differs", "36.0", "0:36")
+        self.assertTrue(is_acceptable_sexagesimal_diff(diff))
+
+    def test_sexagesimal_large_float_vs_time_is_acceptable(self):
+        """5400.0 vs 1:30:00 is acceptable."""
+        diff = DiffResult("some > path", "text_differs", "5400.0", "1:30:00")
+        self.assertTrue(is_acceptable_sexagesimal_diff(diff))
+
+    def test_non_sexagesimal_text_diff_not_acceptable(self):
+        """Regular text differences should not be filtered."""
+        diff = DiffResult("some > path", "text_differs", "hello", "world")
+        self.assertFalse(is_acceptable_sexagesimal_diff(diff))
+
+    def test_attribute_diff_not_acceptable(self):
+        """Attribute diffs should not be filtered even if values look sexagesimal."""
+        diff = DiffResult("some > path", "attribute_differs", "36.0", "0:36")
+        self.assertFalse(is_acceptable_sexagesimal_diff(diff))
+
+    def test_filter_acceptable_diffs_separates_correctly(self):
+        """filter_acceptable_diffs should separate acceptable from real diffs."""
+        diffs = [
+            DiffResult("p1", "text_differs", "36.0", "0:36"),     # acceptable
+            DiffResult("p2", "text_differs", "hello", "world"),    # real diff
+            DiffResult("p3", "text_differs", "5400.0", "1:30:00"), # acceptable
+            DiffResult("p4", "missing_element", "<p>", "(none)"),  # real diff
+        ]
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertEqual(len(accepted), 2)
+        self.assertEqual(len(remaining), 2)
+        self.assertEqual(remaining[0].expected, "hello")
+        self.assertEqual(remaining[1].diff_type, "missing_element")
+
+    def test_zero_timestamp_acceptable(self):
+        """0.0 vs 0:00 is acceptable."""
+        diff = DiffResult("path", "text_differs", "0.0", "0:00")
+        self.assertTrue(is_acceptable_sexagesimal_diff(diff))
+
+    def test_integer_float_vs_time_acceptable(self):
+        """12.0 vs 0:12 is acceptable."""
+        diff = DiffResult("path", "text_differs", "12.0", "0:12")
+        self.assertTrue(is_acceptable_sexagesimal_diff(diff))
+
+    def test_url_not_treated_as_sexagesimal(self):
+        """URLs should not be treated as sexagesimal."""
+        diff = DiffResult("path", "text_differs", "https://example.com", "0:36")
+        self.assertFalse(is_acceptable_sexagesimal_diff(diff))
+
+    def test_directory_comparison_filters_sexagesimal(self):
+        """Directory comparison should filter sexagesimal diffs and still pass."""
+        import shutil
+        tmpdir = tempfile.mkdtemp()
+        try:
+            j_dir = os.path.join(tmpdir, "jekyll")
+            r_dir = os.path.join(tmpdir, "rustkyll")
+            os.makedirs(j_dir)
+            os.makedirs(r_dir)
+            # Jekyll shows float, rustkyll shows time string
+            j_html = '<html><body><p>36.0</p></body></html>'
+            r_html = '<html><body><p>0:36</p></body></html>'
+            with open(os.path.join(j_dir, "index.html"), "w") as f:
+                f.write(j_html)
+            with open(os.path.join(r_dir, "index.html"), "w") as f:
+                f.write(r_html)
+            exit_code = compare_directories(j_dir, r_dir)
+            # Should pass because the only diff is an acceptable sexagesimal diff
+            self.assertEqual(exit_code, 0)
+        finally:
+            shutil.rmtree(tmpdir)
 
 
 if __name__ == "__main__":

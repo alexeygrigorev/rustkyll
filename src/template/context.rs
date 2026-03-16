@@ -455,14 +455,15 @@ page:
     }
 
     // ========================================================================
-    // Sexagesimal timestamp handling (Issues 101, 155)
+    // Sexagesimal timestamp handling (Issues 101, 155, 161)
     //
-    // Unquoted colon-separated values like 0:30 are now parsed as sexagesimal
-    // floats (matching Ruby/Jekyll). Quoted values stay as strings.
+    // Unquoted colon-separated values like 0:30 are kept as human-readable
+    // strings (e.g. "0:30") instead of being converted to floats like Jekyll.
+    // This is an intentional improvement over Jekyll.
     // ========================================================================
 
     #[test]
-    fn test_sexagesimal_timestamp_becomes_float_in_liquid() {
+    fn test_sexagesimal_timestamp_stays_human_readable_in_liquid() {
         let yaml_str = r#"
 transcript:
   - time: 0:30
@@ -477,12 +478,12 @@ transcript:
 
         if let LiquidValue::Object(root) = &liquid {
             if let Some(LiquidValue::Array(transcript)) = root.get("transcript") {
-                // First entry: unquoted 0:30 -> sexagesimal "30.0" (string)
+                // First entry: unquoted 0:30 stays as "0:30" (human-readable)
                 if let LiquidValue::Object(ref line) = transcript[0] {
                     assert_eq!(
                         line.get("time"),
-                        Some(&LiquidValue::scalar("30.0")),
-                        "Unquoted 0:30 should be string '30.0' in Liquid context (sexagesimal)"
+                        Some(&LiquidValue::scalar("0:30")),
+                        "Unquoted 0:30 should stay as '0:30' in Liquid context"
                     );
                     assert_eq!(line.get("sec"), Some(&LiquidValue::scalar(30i64)));
                 } else {
@@ -594,13 +595,12 @@ title: Not a date
     }
 
     // ========================================================================
-    // Sexagesimal timestamp rendering (Issue 155)
+    // Sexagesimal timestamp rendering (Issues 155, 161)
     // ========================================================================
 
     #[test]
-    fn test_sexagesimal_timestamp_renders_as_float_in_template() {
-        // Unquoted 0:36 is parsed as sexagesimal -> 36.0 by our YAML parser,
-        // which should render as "36" (or "36.0") in templates, matching Jekyll.
+    fn test_sexagesimal_timestamp_renders_human_readable_in_template() {
+        // Unquoted 0:36 stays as "0:36" (human-readable, not "36.0" like Jekyll)
         let yaml_str = "time: 0:36\nsec: 36";
         let yaml: YamlValue = crate::yaml::parse_yaml_lenient(yaml_str).unwrap();
         let mapping = yaml.as_mapping().unwrap();
@@ -613,8 +613,7 @@ title: Not a date
 
         let engine = crate::template::TemplateEngine::new().unwrap();
         let output = engine.parse_and_render("{{ line.time }}", &ctx).unwrap();
-        // Sexagesimal values are stored as strings like "36.0", so
-        // Liquid renders them exactly as Jekyll does.
-        assert_eq!(output, "36.0");
+        // Sexagesimal values are kept as original strings like "0:36"
+        assert_eq!(output, "0:36");
     }
 }

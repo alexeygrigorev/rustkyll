@@ -106,13 +106,13 @@ impl LenientYamlLoader {
                 } else {
                     let parsed = Yaml::from_str(&v);
                     // yaml_rust2 does NOT implement YAML 1.1 sexagesimal
-                    // (base-60) parsing. Ruby's Psych does, converting
-                    // e.g. `0:36` to 36.0. Match Ruby here for Jekyll compat.
+                    // (base-60) parsing. Ruby's Psych converts e.g. `0:36`
+                    // to 36.0. We intentionally keep the original human-readable
+                    // string (e.g. "0:36") instead, as an improvement over Jekyll.
                     if matches!(parsed, Yaml::String(_)) {
-                        if let Some(f) = parse_sexagesimal(&v) {
-                            // Store as string "N.0" so Liquid renders it exactly
-                            // as Ruby/Jekyll does (e.g. "36.0" not "36").
-                            Yaml::String(format_sexagesimal_float(f))
+                        if is_sexagesimal(&v) {
+                            // Keep original string like "0:36" or "1:05:30"
+                            Yaml::String(v)
                         } else {
                             parsed
                         }
@@ -173,40 +173,19 @@ impl LenientYamlLoader {
     }
 }
 
-/// Format a sexagesimal float value to match Ruby's display: always show `.0`
-/// for whole numbers (e.g., `36.0` not `36`), matching Jekyll's template output.
-fn format_sexagesimal_float(f: f64) -> String {
-    if f.fract() == 0.0 {
-        format!("{f:.1}")
-    } else {
-        format!("{f}")
-    }
-}
-
-/// Parse a YAML 1.1 sexagesimal (base-60) value to match Ruby/Psych behavior.
+/// Check whether a string matches the YAML 1.1 sexagesimal (base-60) pattern.
 ///
-/// Colon-separated digit groups are interpreted as base-60:
-///   `0:36`    -> 0*60 + 36 = 36.0
-///   `1:30`    -> 1*60 + 30 = 90.0
-///   `1:30:00` -> 1*3600 + 30*60 + 0 = 5400.0
-fn parse_sexagesimal(v: &str) -> Option<f64> {
+/// Sexagesimal values are colon-separated digit groups like `0:36`, `1:30`, `1:30:00`.
+/// Ruby/Psych converts these to floats (e.g. `0:36` -> `36.0`). We intentionally
+/// keep the original human-readable string instead.
+fn is_sexagesimal(v: &str) -> bool {
     let parts: Vec<&str> = v.split(':').collect();
     if parts.len() < 2 {
-        return None;
+        return false;
     }
-    for part in &parts {
-        if part.is_empty() || !part.bytes().all(|b| b.is_ascii_digit()) {
-            return None;
-        }
-    }
-    let mut result = 0.0f64;
-    let mut multiplier = 1.0f64;
-    for part in parts.iter().rev() {
-        let val: f64 = part.parse().ok()?;
-        result += val * multiplier;
-        multiplier *= 60.0;
-    }
-    Some(result)
+    parts
+        .iter()
+        .all(|part| !part.is_empty() && part.bytes().all(|b| b.is_ascii_digit()))
 }
 
 // Copied from yaml-rust2 internals for scalar parsing.
@@ -441,43 +420,43 @@ plugins:
     }
 
     // ========================================================================
-    // Sexagesimal timestamp handling (Issues 101, 155)
+    // Sexagesimal timestamp handling (Issues 101, 155, 161)
     //
     // YAML 1.1 interprets colon-separated values like 0:30 as sexagesimal
-    // (base-60) floats. Ruby's Psych parser does this, so `0:36` becomes
-    // 36.0 in Jekyll templates. We match Ruby's behavior to produce
-    // identical output and eliminate DOM diffs.
+    // (base-60) floats. Ruby/Jekyll converts these to floats (e.g. 36.0).
+    // We intentionally keep the original human-readable string (e.g. "0:36")
+    // as an improvement over Jekyll. This is a known acceptable difference.
     // ========================================================================
 
     #[test]
-    fn test_sexagesimal_short_timestamp_becomes_float_string() {
-        // 0:30 -> "30.0" (string matching Ruby/Jekyll rendering)
+    fn test_sexagesimal_short_timestamp_stays_as_string() {
+        // 0:30 stays as "0:30" (not converted to "30.0" like Jekyll)
         let value = parse_yaml_lenient("time: 0:30").unwrap();
         let mapping = value.as_mapping().unwrap();
         let time = mapping.get("time").unwrap();
-        assert_eq!(time.as_str(), Some("30.0"));
+        assert_eq!(time.as_str(), Some("0:30"));
     }
 
     #[test]
-    fn test_sexagesimal_zero_timestamp_becomes_float_string() {
-        // 0:00 -> "0.0"
+    fn test_sexagesimal_zero_timestamp_stays_as_string() {
+        // 0:00 stays as "0:00"
         let value = parse_yaml_lenient("time: 0:00").unwrap();
         let mapping = value.as_mapping().unwrap();
         let time = mapping.get("time").unwrap();
-        assert_eq!(time.as_str(), Some("0.0"));
+        assert_eq!(time.as_str(), Some("0:00"));
     }
 
     #[test]
-    fn test_sexagesimal_hour_minute_second_becomes_float_string() {
-        // 1:30:00 -> "5400.0"
+    fn test_sexagesimal_hour_minute_second_stays_as_string() {
+        // 1:30:00 stays as "1:30:00" (not converted to "5400.0")
         let value = parse_yaml_lenient("time: 1:30:00").unwrap();
         let mapping = value.as_mapping().unwrap();
         let time = mapping.get("time").unwrap();
-        assert_eq!(time.as_str(), Some("5400.0"));
+        assert_eq!(time.as_str(), Some("1:30:00"));
     }
 
     #[test]
-    fn test_sexagesimal_various_podcast_timestamps() {
+    fn test_sexagesimal_various_podcast_timestamps_stay_human_readable() {
         let yaml = r#"
 transcript:
   - time: 0:00
@@ -498,7 +477,7 @@ transcript:
             .as_sequence()
             .unwrap();
 
-        let expected_times = ["0.0", "12.0", "30.0", "41.0"];
+        let expected_times = ["0:00", "0:12", "0:30", "0:41"];
         let expected_secs = [0, 12, 30, 41];
 
         for (i, item) in transcript.iter().enumerate() {
@@ -522,26 +501,26 @@ transcript:
 
     #[test]
     fn test_quoted_timestamps_stay_string() {
-        // Quoted timestamps should stay as strings (not sexagesimal)
+        // Quoted timestamps should stay as strings
         let value = parse_yaml_lenient("time: '1:05'").unwrap();
         let mapping = value.as_mapping().unwrap();
         assert_eq!(mapping.get("time").unwrap().as_str(), Some("1:05"));
     }
 
     #[test]
-    fn test_sexagesimal_parse_function() {
-        assert_eq!(parse_sexagesimal("0:36"), Some(36.0));
-        assert_eq!(parse_sexagesimal("0:00"), Some(0.0));
-        assert_eq!(parse_sexagesimal("0:01"), Some(1.0));
-        assert_eq!(parse_sexagesimal("1:30"), Some(90.0));
-        assert_eq!(parse_sexagesimal("1:30:00"), Some(5400.0));
-        assert_eq!(parse_sexagesimal("2:30:45"), Some(9045.0));
+    fn test_is_sexagesimal_function() {
+        assert!(is_sexagesimal("0:36"));
+        assert!(is_sexagesimal("0:00"));
+        assert!(is_sexagesimal("0:01"));
+        assert!(is_sexagesimal("1:30"));
+        assert!(is_sexagesimal("1:30:00"));
+        assert!(is_sexagesimal("2:30:45"));
         // Not sexagesimal
-        assert_eq!(parse_sexagesimal("hello"), None);
-        assert_eq!(parse_sexagesimal("42"), None);
-        assert_eq!(parse_sexagesimal(":30"), None);
-        assert_eq!(parse_sexagesimal("0:"), None);
-        assert_eq!(parse_sexagesimal("https://example.com"), None);
+        assert!(!is_sexagesimal("hello"));
+        assert!(!is_sexagesimal("42"));
+        assert!(!is_sexagesimal(":30"));
+        assert!(!is_sexagesimal("0:"));
+        assert!(!is_sexagesimal("https://example.com"));
     }
 
     #[test]
@@ -554,5 +533,13 @@ transcript:
             mapping.get("url").and_then(|v| v.as_str()),
             Some("https://example.com")
         );
+    }
+
+    #[test]
+    fn test_sexagesimal_1_05_30_stays_as_string() {
+        // 1:05:30 stays as "1:05:30" (not "3930.0")
+        let value = parse_yaml_lenient("time: 1:05:30").unwrap();
+        let mapping = value.as_mapping().unwrap();
+        assert_eq!(mapping.get("time").unwrap().as_str(), Some("1:05:30"));
     }
 }

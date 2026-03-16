@@ -113,6 +113,49 @@ class DiffResult:
                 and self.expected == other.expected and self.actual == other.actual)
 
 
+def _is_sexagesimal_float(text: str) -> bool:
+    """Check if text looks like a sexagesimal-converted float (e.g. '36.0', '5400.0')."""
+    import re
+    return bool(re.match(r'^\d+(\.\d+)?$', text.strip()))
+
+
+def _is_sexagesimal_time(text: str) -> bool:
+    """Check if text looks like a sexagesimal time string (e.g. '0:36', '1:05:30')."""
+    import re
+    return bool(re.match(r'^\d+(?::\d+)+$', text.strip()))
+
+
+def is_acceptable_sexagesimal_diff(diff: 'DiffResult') -> bool:
+    """Check if a diff is an acceptable sexagesimal timestamp format difference.
+
+    Jekyll converts YAML sexagesimal values like 0:36 to floats like 36.0.
+    Rustkyll intentionally keeps the human-readable format (0:36).
+    These differences are known and acceptable.
+    """
+    if diff.diff_type != "text_differs":
+        return False
+    # Check if one side is a float and the other is a colon-separated time
+    expected = diff.expected.strip()
+    actual = diff.actual.strip()
+    return ((_is_sexagesimal_float(expected) and _is_sexagesimal_time(actual)) or
+            (_is_sexagesimal_time(expected) and _is_sexagesimal_float(actual)))
+
+
+def filter_acceptable_diffs(diffs: list) -> tuple:
+    """Filter out known acceptable differences.
+
+    Returns (remaining_diffs, accepted_diffs).
+    """
+    remaining = []
+    accepted = []
+    for d in diffs:
+        if is_acceptable_sexagesimal_diff(d):
+            accepted.append(d)
+        else:
+            remaining.append(d)
+    return remaining, accepted
+
+
 def compare_trees(jekyll_tag: Tag, rustkyll_tag: Tag, path: str = "") -> List[DiffResult]:
     """Recursively compare two normalized DOM trees and return all differences."""
     diffs = []
@@ -332,6 +375,7 @@ def compare_directories(jekyll_dir: str, rustkyll_dir: str,
     matched = 0
     differing = 0
     total_diffs = 0
+    total_accepted = 0
 
     for i, rel_path in enumerate(common_files):
         if (i + 1) % 100 == 0:
@@ -345,6 +389,10 @@ def compare_directories(jekyll_dir: str, rustkyll_dir: str,
             diffs = compare_html_files(jekyll_path, rustkyll_path)
         except Exception as e:
             diffs = [DiffResult("(parse error)", "error", "", str(e))]
+
+        # Filter out known acceptable differences (e.g. sexagesimal timestamps)
+        diffs, accepted = filter_acceptable_diffs(diffs)
+        total_accepted += len(accepted)
 
         if not diffs:
             matched += 1
@@ -360,6 +408,8 @@ def compare_directories(jekyll_dir: str, rustkyll_dir: str,
 
     log("")
     summary = f"Summary: {matched} files matched, {differing} files with differences, {total_diffs} total differences"
+    if total_accepted > 0:
+        summary += f" ({total_accepted} acceptable diffs filtered out)"
     log(summary)
 
     if output_path:
