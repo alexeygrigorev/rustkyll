@@ -107,6 +107,7 @@ pub fn postprocess(html: &str) -> String {
 /// bare text wrapping, etc.).
 pub fn postprocess_for_filter(html: &str) -> String {
     let html = add_inline_code_classes(html);
+    let html = remove_ol_start_attribute(&html);
     normalize_boolean_attributes(&html)
 }
 
@@ -978,27 +979,30 @@ fn strip_html_tags(html: &str) -> String {
 }
 
 /// Convert heading text to a URL-friendly slug matching kramdown's algorithm.
+///
+/// Kramdown's `generate_id` does:
+/// 1. Remove leading non-alpha characters
+/// 2. Remove all characters except `[a-zA-Z0-9 -]`
+/// 3. Replace spaces with hyphens (without collapsing consecutive hyphens)
+/// 4. Downcase
 fn slugify(text: &str) -> String {
+    // Step 1: Remove leading non-alpha characters
+    let text = text.trim_start_matches(|ch: char| !ch.is_ascii_alphabetic());
+
+    // Step 4 (early): Lowercase
     let lower = text.to_lowercase();
+
+    // Step 2: Keep only [a-zA-Z0-9 -], remove everything else
     let mut slug = String::with_capacity(lower.len());
-
     for ch in lower.chars() {
-        if ch.is_alphanumeric() {
+        if ch.is_ascii_alphanumeric() || ch == ' ' || ch == '-' {
             slug.push(ch);
-        } else if (ch == ' ' || ch == '-') && !slug.ends_with('-') {
-            slug.push('-');
         }
-        // Other characters are stripped
+        // All other characters are stripped
     }
 
-    // Trim trailing hyphens
-    while slug.ends_with('-') {
-        slug.pop();
-    }
-    // Trim leading hyphens
-    while slug.starts_with('-') {
-        slug.remove(0);
-    }
+    // Step 3: Replace spaces with hyphens
+    slug = slug.replace(' ', "-");
 
     slug
 }
@@ -1945,7 +1949,42 @@ mod tests {
 
     #[test]
     fn test_slugify_hyphens() {
-        assert_eq!(slugify("hello - world"), "hello-world");
+        // Kramdown preserves consecutive dashes: space and dash each stay
+        assert_eq!(slugify("hello - world"), "hello---world");
+    }
+
+    #[test]
+    fn test_slugify_slash_preserves_double_dash() {
+        // "DevOps / Site Reliability Engineer" -> "devops--site-reliability-engineer"
+        // The `/` is stripped, but the spaces around it each become `-`, yielding `--`
+        assert_eq!(
+            slugify("DevOps / Site Reliability Engineer"),
+            "devops--site-reliability-engineer"
+        );
+    }
+
+    #[test]
+    fn test_slugify_ampersand_preserves_double_dash() {
+        // "Free & Free-to-Audit Courses" -> "free--free-to-audit-courses"
+        // The `&` is stripped, but the spaces around it each become `-`, yielding `--`
+        assert_eq!(
+            slugify("Free & Free-to-Audit Courses"),
+            "free--free-to-audit-courses"
+        );
+    }
+
+    #[test]
+    fn test_slugify_leading_non_alpha_stripped() {
+        // Kramdown strips leading non-alpha characters
+        assert_eq!(slugify("123 Hello"), "hello");
+        assert_eq!(slugify("  Hello"), "hello");
+    }
+
+    #[test]
+    fn test_slugify_trailing_chars_preserved() {
+        // Trailing dashes/spaces from non-alnum chars are NOT trimmed by kramdown
+        // (kramdown does not trim trailing dashes)
+        assert_eq!(slugify("Hello World!"), "hello-world");
     }
 
     // --- Unique ID tests ---
@@ -2875,6 +2914,24 @@ on 20 Mar 2026
         assert!(
             !result.contains("start="),
             "start='1' should also be removed. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_d11_postprocess_for_filter_removes_ol_start() {
+        // The markdownify filter path uses postprocess_for_filter,
+        // which must also remove <ol start="N"> attributes (issue #146).
+        let input = "<ol start=\"2\">\n<li>Item</li>\n</ol>";
+        let result = postprocess_for_filter(input);
+        assert!(
+            !result.contains("start="),
+            "postprocess_for_filter should remove ol start attribute. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<ol>"),
+            "Should have bare <ol> tag. Got: {}",
             result
         );
     }
