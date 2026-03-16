@@ -11,7 +11,10 @@ use liquid_core::{
 };
 use liquid_core::{Value, ValueView};
 
-use super::{get_site_timezone, parse_date_string_with_tz, safe_chrono_format};
+use super::{
+    convert_utc_naive_to_site_tz, get_site_timezone, is_naive_yaml_timestamp,
+    parse_date_string_with_tz, safe_chrono_format,
+};
 
 #[derive(Debug, FilterParameters)]
 struct DateToLongStringArgs {
@@ -72,6 +75,13 @@ impl Filter for DateToLongStringFilter {
         let site_tz = get_site_timezone(runtime);
         match parse_date_string_with_tz(s, site_tz) {
             Some(dt) => {
+                // Jekyll's date_to_long_string calls Time#localtime which converts
+                // UTC timestamps to the local timezone. Only for naive YAML timestamps.
+                let dt = if is_naive_yaml_timestamp(s) {
+                    convert_utc_naive_to_site_tz(dt, site_tz)
+                } else {
+                    dt
+                };
                 let day = safe_chrono_format(&dt.format("%e"))
                     .unwrap_or_default()
                     .trim()

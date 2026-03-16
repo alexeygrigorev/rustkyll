@@ -106,11 +106,11 @@ fn test_render_ml_bookcamp() {
     assert!(html.contains("/people/alexeygrigorev.html"));
     assert!(html.contains("images/books/20201214-ml-bookcamp/cover.jpg"));
     assert!(html.contains("14 Dec 2020"), "Should contain start date");
-    // End date: YAML has "2020-12-18 23:59:59" -- naive datetime preserved as-is.
-    // Jekyll's Time.parse treats naive dates as local time, so 23:59:59 stays Dec 18.
+    // End date: YAML has "2020-12-18 23:59:59" -- Ruby YAML treats as UTC.
+    // In CET (UTC+1, system timezone), 23:59 UTC -> 00:59 next day = Dec 19.
     assert!(
-        html.contains("18 Dec 2020"),
-        "Should contain end date Dec 18 (naive datetime preserved as-is)"
+        html.contains("19 Dec 2020"),
+        "Should contain end date Dec 19 (UTC 23:59 -> CET next day)"
     );
 }
 

@@ -3,7 +3,10 @@ use liquid_core::Runtime;
 use liquid_core::{Display_filter, Filter, FilterReflection, ParseFilter};
 use liquid_core::{Value, ValueView};
 
-use super::{get_site_timezone, parse_date_string_with_tz, safe_chrono_format};
+use super::{
+    convert_utc_naive_to_site_tz, get_site_timezone, is_naive_yaml_timestamp,
+    parse_date_string_with_tz, safe_chrono_format,
+};
 
 /// Format a date as "DD Mon YYYY" (e.g., "01 Jan 2024").
 #[derive(Clone, ParseFilter, FilterReflection)]
@@ -28,9 +31,19 @@ impl Filter for DateToStringFilter {
 
         let site_tz = get_site_timezone(runtime);
         match parse_date_string_with_tz(s, site_tz) {
-            Some(dt) => Ok(Value::scalar(
-                safe_chrono_format(&dt.format("%d %b %Y")).unwrap_or_else(|| s.to_string()),
-            )),
+            Some(dt) => {
+                // Jekyll's date_to_string calls Time#localtime which converts
+                // UTC timestamps to the local timezone. Only apply this for
+                // naive YAML timestamps (no explicit timezone offset).
+                let dt = if is_naive_yaml_timestamp(s) {
+                    convert_utc_naive_to_site_tz(dt, site_tz)
+                } else {
+                    dt
+                };
+                Ok(Value::scalar(
+                    safe_chrono_format(&dt.format("%d %b %Y")).unwrap_or_else(|| s.to_string()),
+                ))
+            }
             None => Ok(Value::scalar(s.to_string())),
         }
     }

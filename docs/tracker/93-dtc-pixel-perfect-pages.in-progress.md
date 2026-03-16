@@ -294,3 +294,33 @@ All blocking issues done (#105, #106, #107, #108, #109). Re-ran full verificatio
 1. Collection sort stability for tie-breaking (podcast.html)
 2. Syntect-to-Rouge tokenization mapping (blog-practical-guide)
 3. Kramdown auto-wrapping of bare text between blocks (course-ml-zoomcamp)
+
+### [SWE] 2026-03-16 10:00 -- Round 4 Re-run
+
+Issues #116 and #117 done since round 3. Re-ran full verification.
+
+**Fix applied in this session:**
+1. Naive YAML timestamp UTC-to-site-tz conversion in `date_to_string` and `date_to_long_string` filters. Ruby's YAML parser treats `YYYY-MM-DD HH:MM:SS` as UTC; Jekyll's `date_to_string` calls `Time#localtime` to convert to local timezone. The `date` filter does NOT convert (formats in UTC). Added `convert_utc_naive_to_site_tz` helper and `is_naive_yaml_timestamp` detector. Applied conversion only in `date_to_string` and `date_to_long_string`, NOT in `date` filter.
+2. This fixed books.html end dates (e.g., `2025-10-10 23:59:59` UTC -> `11 Oct 2025` in CET instead of `10 Oct 2025`).
+3. Course-ml-zoomcamp times preserved correctly: `date` filter keeps `17:00` as-is (no UTC-to-local conversion).
+
+**Playwright results (22 HTML pages at 0% threshold):**
+- 21 PASS at exactly 0.00% pixel diff (0 differing pixels)
+- 1 "FAIL": blog-practical-guide at 0.000003% (54 pixels / 18.1M) -- sub-pixel font rendering noise, not a content difference. Diff image is blank.
+
+**Other checks:**
+- All 24 output files exist in both Jekyll and rustkyll output
+- No raw Liquid tags in any output file (code block `${{ }}` is legitimate content)
+- feed.xml: valid XML, 10/10 entries match
+- sitemap.xml: valid XML, 789 vs 781 URLs (1.0% diff)
+- No rustkyll-only 404 errors
+- 1442 tests pass, 0 fail, clippy clean, fmt clean
+
+**Files modified:**
+- src/template/filters/mod.rs (added convert_utc_naive_to_site_tz, is_naive_yaml_timestamp; updated parse_date_string_with_tz docs; updated tests)
+- src/template/filters/date_to_string.rs (apply UTC-to-site-tz for naive YAML timestamps)
+- src/template/filters/date_to_long_string.rs (apply UTC-to-site-tz for naive YAML timestamps)
+- tests/integration_books.rs (updated end date assertion: Dec 18 -> Dec 19)
+- docs/comparison/pixel-perfect-results.md (updated with round 4 results)
+
+**Progress: 19/22 (R3) -> 21/22 (R4). Only sub-pixel noise remains.**
