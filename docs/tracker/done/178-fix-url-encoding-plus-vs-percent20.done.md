@@ -28,3 +28,17 @@ This may be better handled as an acceptable diff filter in dom_compare.py rather
 ## Dependencies
 
 None.
+
+## Log
+
+### [SWE] 2026-03-17
+- Root cause: The stdlib `url_encode` filter (from `liquid-lib`) uses `%20` for spaces (Shopify Liquid behavior), but Jekyll uses Ruby's `CGI.escape` which encodes spaces as `+`. Also, Jekyll's `cgi_escape` filter was not implemented at all (falling through to passthrough).
+- Implemented two new filters:
+  - `cgi_escape` -- encodes spaces as `+`, matching Ruby's `CGI.escape` behavior
+  - `url_encode` -- overrides the stdlib version to also use `+` for spaces (Jekyll behavior)
+- Both filters share the same `cgi_escape_string()` encoding function
+- Registered both filters in the template engine builder (after `with_stdlib()` so `url_encode` overrides the default)
+- Tests added: 9 unit tests for cgi_escape, 5 unit tests for url_encode, 4 integration tests in engine.rs
+- Build: 1414 tests pass (1404 lib + others), 2 pre-existing failures (issue 177 debug tests), clippy clean, fmt clean
+- Files created: `src/template/filters/cgi_escape.rs`, `src/template/filters/url_encode.rs`
+- Files modified: `src/template/filters/mod.rs`, `src/template/engine.rs`

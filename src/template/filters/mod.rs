@@ -4,6 +4,7 @@
 //! jekyll feature, but are needed by common Jekyll site templates.
 
 mod absolute_url;
+pub(crate) mod cgi_escape;
 mod date;
 mod date_to_long_string;
 mod date_to_rfc822;
@@ -20,11 +21,13 @@ pub(crate) mod passthrough;
 pub(crate) mod relative_url;
 mod sort;
 mod truncatewords;
+mod url_encode;
 mod where_exp;
 mod where_filter;
 mod xml_escape;
 
 pub use absolute_url::AbsoluteUrl;
+pub use cgi_escape::CgiEscape;
 pub use date::Date;
 pub use date_to_long_string::DateToLongString;
 pub use date_to_rfc822::DateToRfc822;
@@ -40,6 +43,7 @@ pub use number_of_words::NumberOfWords;
 pub use relative_url::RelativeUrl;
 pub use sort::Sort;
 pub use truncatewords::Truncatewords;
+pub use url_encode::UrlEncode;
 pub use where_exp::WhereExp;
 pub use where_filter::Where;
 pub use xml_escape::XmlEscape;

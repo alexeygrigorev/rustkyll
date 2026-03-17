@@ -575,6 +575,10 @@ impl TemplateEngine {
             .filter(filters::Date)
             // Sort with stable tie-breaking by slug (Issue 112)
             .filter(filters::Sort)
+            // Jekyll-compatible URL encoding: spaces as + (Issue 178)
+            // Must come after with_stdlib() to override the default url_encode (%20)
+            .filter(filters::UrlEncode)
+            .filter(filters::CgiEscape)
     }
 
     /// Create a `TemplateEngine` from a pre-built `liquid::Parser`.
@@ -2906,6 +2910,63 @@ title: "Test Book"
             output.contains("page.path and page.path contains"),
             "Should add nil guard, got: {}",
             output
+        );
+    }
+
+    // ========================================================================
+    // url_encode and cgi_escape filters (Issue 178)
+    // ========================================================================
+
+    #[test]
+    fn test_url_encode_spaces_as_plus() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("value".into(), LiquidValue::scalar("foo bar baz"));
+        let out = eng
+            .parse_and_render("{{ value | url_encode }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "foo+bar+baz");
+    }
+
+    #[test]
+    fn test_cgi_escape_spaces_as_plus() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("value".into(), LiquidValue::scalar("foo bar baz"));
+        let out = eng
+            .parse_and_render("{{ value | cgi_escape }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "foo+bar+baz");
+    }
+
+    #[test]
+    fn test_url_encode_special_chars() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "value".into(),
+            LiquidValue::scalar("https://example.com/path?q=1"),
+        );
+        let out = eng
+            .parse_and_render("{{ value | url_encode }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "https%3A%2F%2Fexample.com%2Fpath%3Fq%3D1");
+    }
+
+    #[test]
+    fn test_cgi_escape_twitter_share() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "text".into(),
+            LiquidValue::scalar("Creating an AWS Account by @Al_Grigor https://example.com"),
+        );
+        let out = eng
+            .parse_and_render("{{ text | cgi_escape }}", &ctx)
+            .unwrap();
+        assert_eq!(
+            out,
+            "Creating+an+AWS+Account+by+%40Al_Grigor+https%3A%2F%2Fexample.com"
         );
     }
 }
