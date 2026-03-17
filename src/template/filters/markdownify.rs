@@ -153,4 +153,38 @@ mod tests {
             "Must NOT have HTML5-style <br> (without slash). Got: {s}"
         );
     }
+
+    #[test]
+    fn test_markdownify_kramdown_ial_target_blank() {
+        // markdownify must process kramdown IAL {:target="_blank"} on links
+        let input = r#"[Register](/slack.html){:target="_blank"}"#;
+        let result = liquid_core::call_filter!(Markdownify, input).unwrap();
+        let s = result.to_kstr().to_string();
+        assert!(
+            s.contains(r#"target="_blank""#),
+            "markdownify should apply IAL target attribute. Got: {s}"
+        );
+        assert!(
+            !s.contains("{:target"),
+            "IAL syntax should be consumed. Got: {s}"
+        );
+    }
+
+    #[test]
+    fn test_markdownify_kramdown_ial_inline_on_link() {
+        // Inline IAL immediately after a link should apply the attribute.
+        // This is the most common IAL use case in markdownify content
+        // (e.g., book Q&A threads).
+        let input = r#"Check [this link](https://example.com){:target="_blank"} out"#;
+        let result = liquid_core::call_filter!(Markdownify, input).unwrap();
+        let s = result.to_kstr().to_string();
+        assert!(
+            s.contains(r#"target="_blank""#),
+            "Inline IAL on link should be applied. Got: {s}"
+        );
+        assert!(
+            !s.contains("{:target"),
+            "IAL syntax should be consumed. Got: {s}"
+        );
+    }
 }

@@ -100,4 +100,20 @@ mod tests {
             "nil input should produce nil output, not empty string"
         );
     }
+
+    #[test]
+    fn test_nil_date_through_jsonify_produces_null() {
+        // Full pipeline: nil | date_to_xmlschema | jsonify should produce "null"
+        // This matches Jekyll's behavior for pages without a date field (e.g.,
+        // slack/guidelines.html which has layout: post but no date).
+        use super::super::jsonify::Jsonify;
+        let nil_input = Value::Nil;
+        let xmlschema_result = liquid_core::call_filter!(DateToXmlschema, nil_input).unwrap();
+        let jsonify_result = liquid_core::call_filter!(Jsonify, xmlschema_result).unwrap();
+        assert_eq!(
+            jsonify_result.to_kstr().as_str(),
+            "null",
+            "nil | date_to_xmlschema | jsonify should produce 'null', not '\"\"'"
+        );
+    }
 }
