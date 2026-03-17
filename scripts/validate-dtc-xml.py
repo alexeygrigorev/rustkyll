@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run python
 """Validate feed.xml and sitemap.xml for DTC site.
 
 Compares rustkyll output against Jekyll output for:

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run python
 """
 Full DOM comparison - shows ALL diffs (not limited to 10 per file).
 Wraps dom_compare.py logic but removes the per-file limit.

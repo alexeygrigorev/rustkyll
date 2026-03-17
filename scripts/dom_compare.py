@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run python
 """
 DOM tree comparison tool for comparing Jekyll and rustkyll HTML output.
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run python
 """
 Parse dom-diff-full-report.txt and categorize all differences.
 Outputs a structured summary of diff categories with counts and examples.
