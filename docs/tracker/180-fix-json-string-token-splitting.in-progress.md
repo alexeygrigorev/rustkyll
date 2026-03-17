@@ -71,3 +71,23 @@ None.
 - Build large-docs-site and inspect at least 2 generated API reference pages containing JSON blocks
 - Verify the HTML source shows merged `<span>` tokens for JSON strings
 - Compare against Jekyll output for the same pages
+
+## Log
+
+### [SWE] 2026-03-17
+
+- Investigated the JSON string token splitting issue
+- Found that the existing `accumulate_and_emit` merging logic in `highlight_code` already handles JSON string tokens correctly: both `punctuation.definition.string` (quote delimiters) and `string.quoted.double` (content) map to class `s2` because the `string.quoted.double` rule comes first in the scope map iteration order
+- Added explicit JSON-specific scope rule `("source.json punctuation.definition.string", "s2")` at the top of the scope map to make this robust (prevents breakage if rule ordering changes)
+- Added 9 tests covering all acceptance criteria:
+  - `test_json_string_single_span`: verifies `"example"` is a single s2 span
+  - `test_json_key_single_span`: verifies `"name"` key is a single s2 span
+  - `test_json_string_with_special_chars`: verifies `"/foo/bar"` is a single span
+  - `test_json_empty_string`: verifies `""` is a single span
+  - `test_json_string_with_url`: verifies URLs in strings are single spans
+  - `test_json_non_string_tokens_unchanged`: verifies numbers/booleans/null unaffected
+  - `test_json_multiline_object`: verifies multi-line JSON has merged strings
+  - `test_python_highlighting_unchanged_by_json_fix`: verifies Python not affected
+- Build: all 1436+ tests pass, 0 failures, clippy clean, syntax.rs fmt clean
+- Files modified: `src/syntax.rs`
+- Note: The sample diff in the issue description appears to have expected/actual reversed. Verified against real Jekyll output that Rouge produces merged strings matching what rustkyll now produces.
