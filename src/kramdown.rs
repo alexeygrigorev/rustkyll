@@ -952,8 +952,9 @@ fn add_heading_ids(html: &str) -> String {
                 if let Some(close_pos) = after.find(&close_tag) {
                     let inner_html = &after[gt_pos + 1..close_pos];
 
-                    // Extract text content (strip HTML tags)
+                    // Extract text content (strip HTML tags, decode entities)
                     let text = strip_html_tags(inner_html);
+                    let text = decode_html_entities(&text);
                     let slug = slugify(&text);
 
                     // Handle duplicates
@@ -1024,6 +1025,65 @@ fn strip_html_tags(html: &str) -> String {
         }
     }
     result
+}
+
+/// Decode HTML entities to their corresponding characters.
+///
+/// Handles named entities (&amp;, &lt;, &gt;, &quot;, &apos;),
+/// decimal numeric entities (&#8217;), and hex numeric entities (&#x2019;).
+fn decode_html_entities(text: &str) -> String {
+    let mut result = String::with_capacity(text.len());
+    let mut remaining = text;
+
+    while let Some(amp_pos) = remaining.find('&') {
+        result.push_str(&remaining[..amp_pos]);
+        let after_amp = &remaining[amp_pos + 1..];
+
+        if let Some(semi_pos) = after_amp.find(';') {
+            // Only decode if the entity is reasonably short (avoid matching across large spans)
+            if semi_pos <= 10 {
+                let entity = &after_amp[..semi_pos];
+                if let Some(decoded) = decode_entity(entity) {
+                    result.push(decoded);
+                    remaining = &after_amp[semi_pos + 1..];
+                    continue;
+                }
+            }
+        }
+
+        // Not a valid entity; keep the '&' and move on
+        result.push('&');
+        remaining = after_amp;
+    }
+
+    result.push_str(remaining);
+    result
+}
+
+/// Decode a single HTML entity body (the part between & and ;).
+fn decode_entity(entity: &str) -> Option<char> {
+    // Named entities
+    match entity {
+        "amp" => Some('&'),
+        "lt" => Some('<'),
+        "gt" => Some('>'),
+        "quot" => Some('"'),
+        "apos" => Some('\''),
+        "nbsp" => Some('\u{00A0}'),
+        _ => {
+            // Numeric entities
+            if let Some(hex) = entity
+                .strip_prefix("#x")
+                .or_else(|| entity.strip_prefix("#X"))
+            {
+                u32::from_str_radix(hex, 16).ok().and_then(char::from_u32)
+            } else if let Some(dec) = entity.strip_prefix('#') {
+                dec.parse::<u32>().ok().and_then(char::from_u32)
+            } else {
+                None
+            }
+        }
+    }
 }
 
 /// Convert heading text to a URL-friendly slug matching kramdown's algorithm.
@@ -4614,6 +4674,51 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             result.contains("class=\"note\""),
             "postprocess_for_filter should apply IAL class. Got: {}",
+            result
+        );
+    }
+
+    // Issue 191: Ampersand handling in heading IDs
+    #[test]
+    fn test_heading_id_ampersand_stripped() {
+        let html = "<h3>Free &amp; Free to Audit Courses</h3>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("id=\"free--free-to-audit-courses\""),
+            "Heading ID should strip ampersand entity. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_heading_id_lt_gt_stripped() {
+        let html = "<h3>A &lt; B &gt; C</h3>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("id=\"a--b--c\""),
+            "Heading ID should strip lt/gt entities. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_heading_id_numeric_entity() {
+        let html = "<h3>It&#8217;s a Test</h3>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("id=\"its-a-test\""),
+            "Heading ID should decode numeric entity and strip non-alphanumeric. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_heading_id_no_entities_unchanged() {
+        let html = "<h3>Simple Heading</h3>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("id=\"simple-heading\""),
+            "Heading ID for plain text should be unchanged. Got: {}",
             result
         );
     }
