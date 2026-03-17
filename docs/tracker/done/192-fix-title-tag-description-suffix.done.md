@@ -80,3 +80,15 @@ None.
 
 - Build architect-theme and inspect `<title>` tags to verify they include the description suffix.
 - Build DTC site and verify the title tag format matches Jekyll.
+
+## Log
+
+### [SWE] 2026-03-17
+- Root cause: In `src/template/seo_tag.rs`, the title generation match arm `(None, Some(st))` (no page title, only site title) returned just `st.clone()` without appending site tagline/description. Jekyll-seo-tag appends `| site.tagline` or `| site.description` in this case.
+- Also missing: support for custom `site.title_separator` config (defaulting to ` | `).
+- Fixed the `(None, Some(st))` arm to append tagline/description when available.
+- Added `site.title_separator` support: reads from runtime context, wraps with spaces, falls back to ` | `.
+- Changed all title formatting to use the dynamic separator instead of the constant.
+- Tests added: 6 new tests (test_title_tag_with_description_suffix, test_title_tag_homepage_format, test_title_tag_with_tagline, test_title_tag_custom_separator, test_title_tag_no_description, test_title_tag_page_with_different_titles)
+- Build: 51 seo_tag tests pass (45 existing + 6 new), full suite passes, clippy clean, fmt clean
+- Files modified: src/template/seo_tag.rs

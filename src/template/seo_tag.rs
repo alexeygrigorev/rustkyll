@@ -162,25 +162,36 @@ impl Renderable for SeoRenderable {
         // Compute page_title for og:title (page title alone, falling back to site title)
         let og_page_title = page_title.as_deref().or(site_title.as_deref());
 
+        // Read custom title separator from site config (jekyll-seo-tag reads site.title_separator)
+        let title_separator = get_nested_str(runtime, &["site", "title_separator"])
+            .map(|s| format!(" {} ", s))
+            .unwrap_or_else(|| TITLE_SEPARATOR.to_string());
+
         // Compute full title matching jekyll-seo-tag logic:
         // - If page_title and site_title differ: "page_title | site_title"
         // - If page_title == site_title: "site_title | site_tagline_or_description"
-        // - If only site_title: just site_title
+        // - If only site_title: "site_title | site_tagline_or_description" (or just site_title if none)
         // - If only page_title: just page_title
         let site_tagline_or_description = site_tagline.as_deref().or(site_description.as_deref());
         let full_title: Option<String> = match (&page_title, &site_title) {
             (Some(pt), Some(st)) => {
                 if pt != st {
-                    Some(format!("{}{}{}", pt, TITLE_SEPARATOR, st))
+                    Some(format!("{}{}{}", pt, title_separator, st))
                 } else if let Some(tagline) = site_tagline_or_description {
                     // page_title == site_title, append tagline/description
-                    Some(format!("{}{}{}", st, TITLE_SEPARATOR, tagline))
+                    Some(format!("{}{}{}", st, title_separator, tagline))
                 } else {
                     Some(pt.clone())
                 }
             }
             (Some(pt), None) => Some(pt.clone()),
-            (None, Some(st)) => Some(st.clone()),
+            (None, Some(st)) => {
+                if let Some(tagline) = site_tagline_or_description {
+                    Some(format!("{}{}{}", st, title_separator, tagline))
+                } else {
+                    Some(st.clone())
+                }
+            }
             (None, None) => None,
         };
 
@@ -1367,6 +1378,152 @@ mod tests {
         assert!(
             out.contains("<meta property=\"og:title\" content=\"Architect theme\" />"),
             "og:title should be page title only. Got: {}",
+            out
+        );
+    }
+
+    // ========================================================================
+    // Title tag description suffix (issue #192)
+    // ========================================================================
+
+    #[test]
+    fn test_title_tag_with_description_suffix() {
+        // No page title, site title + description => "My Site | A cool site"
+        let eng = engine();
+        let ctx = make_context(
+            None,
+            Some("My Site"),
+            None,
+            Some("A cool site"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<title>My Site | A cool site</title>"),
+            "Title should be 'site_title | site_description' when no page title. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_title_tag_homepage_format() {
+        // Homepage: no page title, only site title + description
+        let eng = engine();
+        let ctx = make_context(
+            None,
+            Some("My Site"),
+            None,
+            Some("A cool site"),
+            Some("https://example.com"),
+            Some("/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<title>My Site | A cool site</title>"),
+            "Homepage title should be 'site_title | description'. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_title_tag_with_tagline() {
+        // Site with tagline -- tagline preferred over description
+        let eng = engine();
+        let mut ctx = Object::new();
+        let page = Object::new();
+        let mut site = Object::new();
+        site.insert("title".into(), Value::scalar("My Site".to_string()));
+        site.insert("tagline".into(), Value::scalar("My Tagline".to_string()));
+        site.insert(
+            "description".into(),
+            Value::scalar("My Description".to_string()),
+        );
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<title>My Site | My Tagline</title>"),
+            "Tagline should be preferred over description in suffix. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_title_tag_custom_separator() {
+        // Site with custom title_separator
+        let eng = engine();
+        let mut ctx = Object::new();
+        let page = Object::new();
+        let mut site = Object::new();
+        site.insert("title".into(), Value::scalar("My Site".to_string()));
+        site.insert(
+            "description".into(),
+            Value::scalar("A cool site".to_string()),
+        );
+        site.insert("title_separator".into(), Value::scalar("-".to_string()));
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<title>My Site - A cool site</title>"),
+            "Should use custom separator. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_title_tag_no_description() {
+        // Site with no description or tagline -- no suffix
+        let eng = engine();
+        let ctx = make_context(
+            None,
+            Some("My Site"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<title>My Site</title>"),
+            "No suffix when no description/tagline. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_title_tag_page_with_different_titles() {
+        // page_title != site_title: "About | My Site" (uses site title, not description)
+        let eng = engine();
+        let ctx = make_context(
+            Some("About"),
+            Some("My Site"),
+            None,
+            Some("A cool site"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<title>About | My Site</title>"),
+            "When page != site title, suffix should be site title not description. Got: {}",
             out
         );
     }
