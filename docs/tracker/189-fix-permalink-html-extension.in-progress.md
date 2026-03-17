@@ -61,3 +61,16 @@ None.
 
 - Build muan-blog and inspect footer links to verify they do not have `.html` extensions.
 - Verify both `<a href=...>` in templates and `page.url` in Liquid output are correct.
+
+## Log
+
+### [SWE] 2026-03-17
+- Root cause: `load_collection` in `src/collection.rs` line 431 hardcoded `/:collection/:title.html` as default permalink for collections without explicit permalink. Jekyll uses `/:collection/:name` + suffix from `Utils.add_permalink_suffix(site.permalink_style)`.
+- Also `page_url_suffix()` function was incomplete -- only handled `pretty` and `/`-ending patterns, returning `.html` for everything else. The inline logic at line 907-913 was correct but the public function was not.
+- Fix 1: Updated `page_url_suffix()` to match Jekyll's full `Utils.add_permalink_suffix` logic: `pretty` -> `/`, `date`/`ordinal`/`none` -> `.html`, ends with `/` -> `/`, ends with `:output_ext` -> `.html`, everything else -> `""` (no suffix).
+- Fix 2: Changed default collection permalink from `/:collection/:title.html` to `/:collection/:title` + `page_url_suffix(config.permalink)`.
+- Fix 3: Replaced inline page URL suffix logic with call to `page_url_suffix()` for consistency.
+- Tests added: 8 new tests for issue 189 (pretty, custom no-ext, custom html site permalink, front matter override, explicit collection permalink, date permalink, post with custom no-ext, explicit collection html preserved).
+- Updated 2 existing test expectations to match corrected behavior.
+- Build: 1680+ tests pass, 0 fail, clippy clean, fmt clean.
+- Files modified: `src/collection.rs`
