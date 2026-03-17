@@ -56,3 +56,18 @@ None.
 - Build large-blog-3000 with rustkyll and run DOM comparison.
 - Verify index.html category headings appear in the same order as Jekyll output.
 - Inspect the HTML source of index.html to confirm category ordering matches.
+
+## Log
+
+### [SWE] 2026-03-17
+
+- Root cause: liquid-core's `Object` type is backed by `HashMap`, which has non-deterministic iteration order. When templates iterate `site.categories` with `for category in site.categories`, the order varies between runs. Jekyll uses Ruby hashes which preserve insertion order (alphabetical in practice since Ruby 1.9+).
+- Fix: Vendored liquid-core and patched `Object`'s backing store from `HashMap` to `BTreeMap`. BTreeMap iterates in sorted (alphabetical) key order, matching Jekyll's behavior. This approach preserves both iteration order AND key-based access (`site.categories[cat]`).
+- Tests added: 4 new unit tests in generator.rs:
+  - `test_categories_alphabetical_order` -- verifies 4 categories iterate in sorted order
+  - `test_categories_single_category` -- single category trivially correct
+  - `test_categories_case_sensitivity` -- case-sensitive sorting (ASCII order)
+  - `test_tags_alphabetical_order` -- tags also sort alphabetically
+- Build: 1680 tests pass, 0 fail. Clippy clean on lib. Format clean on modified files.
+- Files created: `vendor/liquid-core/` (vendored copy with BTreeMap patch in `src/model/object/map.rs`)
+- Files modified: `Cargo.toml` (path dep + patch.crates-io), `src/generator.rs` (4 new tests)

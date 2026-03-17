@@ -803,8 +803,6 @@ dependencies = [
 [[package]]
 name = "liquid-core"
 version = "0.26.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc623edee8a618b4543e8e8505584f4847a4e51b805db1af6d9af0a3395d0d57"
 dependencies = [
  "anymap2",
  "itertools",
@@ -1270,7 +1268,7 @@ dependencies = [
 
 [[package]]
 name = "rustkyll"
-version = "0.1.4"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "chrono-tz",
