@@ -57,12 +57,12 @@ The diff image for page 13 is almost entirely white/blank. The 54 differing pixe
 ## What Was Fixed in Round 4
 
 ### Issues Resolved Since Round 3
-- **#116 (Smart punctuation IAL protection)**: Fixed curly quotes in kramdown IAL attributes like `{:target="_blank"}`. Smart punctuation (pulldown-cmark ENABLE_SMART_PUNCTUATION) was converting straight quotes to curly quotes inside IALs. Fix: protect IAL text from smart punctuation, same as Liquid tags.
-- **#117 (XHTML void element preservation + lighter markdownify)**: Removed `normalize_void_elements` that was converting `<br />` to `<br>`. Jekyll/kramdown outputs XHTML-style self-closing tags. Created lighter `postprocess_for_filter` for the markdownify filter path.
+- #116 (Smart punctuation IAL protection): Fixed curly quotes in kramdown IAL attributes like `{:target="_blank"}`. Smart punctuation (pulldown-cmark ENABLE_SMART_PUNCTUATION) was converting straight quotes to curly quotes inside IALs. Fix: protect IAL text from smart punctuation, same as Liquid tags.
+- #117 (XHTML void element preservation + lighter markdownify): Removed `normalize_void_elements` that was converting `<br />` to `<br>`. Jekyll/kramdown outputs XHTML-style self-closing tags. Created lighter `postprocess_for_filter` for the markdownify filter path.
 
 ### Fixes Applied in Round 4 SWE Session
-1. **Naive YAML timestamp UTC-to-site-tz conversion**: Ruby's YAML parser (Psych) treats `YYYY-MM-DD HH:MM:SS` as UTC timestamps. Jekyll's `date_to_string` and `date_to_long_string` filters call `Time#localtime` which converts UTC to the local timezone. The `date` filter does NOT do this conversion. Added `convert_utc_naive_to_site_tz` function and applied it only in `date_to_string` and `date_to_long_string` filters. This fixed books.html (0.38% -> 0.00%) where end dates like `2025-10-10 23:59:59` (UTC) were showing as Oct 10 instead of Oct 11 (CET, UTC+1).
-2. **No regression on course-ml-zoomcamp**: The `date` filter (used in course template for `%H:%M` time formatting) correctly does NOT convert naive datetimes, matching Jekyll's behavior. Course times like `17:00` remain `17:00` (not converted to 19:00 CEST).
+1. Naive YAML timestamp UTC-to-site-tz conversion: Ruby's YAML parser (Psych) treats `YYYY-MM-DD HH:MM:SS` as UTC timestamps. Jekyll's `date_to_string` and `date_to_long_string` filters call `Time#localtime` which converts UTC to the local timezone. The `date` filter does NOT do this conversion. Added `convert_utc_naive_to_site_tz` function and applied it only in `date_to_string` and `date_to_long_string` filters. This fixed books.html (0.38% -> 0.00%) where end dates like `2025-10-10 23:59:59` (UTC) were showing as Oct 10 instead of Oct 11 (CET, UTC+1).
+2. No regression on course-ml-zoomcamp: The `date` filter (used in course template for `%H:%M` time formatting) correctly does NOT convert naive datetimes, matching Jekyll's behavior. Course times like `17:00` remain `17:00` (not converted to 19:00 CEST).
 
 ### Pages Fixed in Round 4
 | Page | Round 3 | Round 4 | Fix |
@@ -93,12 +93,12 @@ A pixelmatch threshold of 0.00001% (100 pixels for a typical page) would make th
 - [x] AC-5: feed.xml valid XML, 10/10 entries match
 - [x] AC-6: sitemap.xml valid XML, 789 vs 781 URLs (1.0% diff, within 5% tolerance)
 - [x] AC-7: rustkyll build completes without errors; all 24 files exist
-- [x] AC-8: All Rust tests pass (1442 passed, 0 failed); clippy clean; fmt clean
+- [x] AC-8: All Rust tests pass (1572 passed, 0 failed); clippy clean; fmt clean
 
 ## Test Results
 
 ```
-Tests: 1442 passed, 0 failed, 43 ignored
+Tests: 1572 passed, 0 failed, 43 ignored
 Clippy: clean (0 warnings)
 Format: clean
 ```

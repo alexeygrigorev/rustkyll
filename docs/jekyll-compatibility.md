@@ -2,16 +2,16 @@
 
 This document lists every major Jekyll feature and its implementation status in rustkyll.
 
-**Status key:** "yes" = fully implemented, "partial" = implemented with limitations, "no" = not implemented.
+Status key: "yes" = fully implemented, "partial" = implemented with limitations, "no" = not implemented.
 
 ## Summary
 
 | Status | Count |
 |--------|-------|
-| yes    | 125   |
-| partial | 8     |
-| no     | 28    |
-| **Total** | **161** |
+| yes    | 128   |
+| partial | 6     |
+| no     | 27    |
+| Total  | 161   |
 
 ---
 
@@ -68,7 +68,7 @@ This document lists every major Jekyll feature and its implementation status in 
 | `{% include %}` | yes | yes | `src/template/include_tag.rs` -- custom implementation with parameters and dynamic paths |
 | `{% comment %}` / `{% endcomment %}` | yes | yes | Provided by liquid crate stdlib |
 | `{% raw %}` / `{% endraw %}` | yes | yes | Provided by liquid crate stdlib |
-| `{% highlight %}` / `{% endhighlight %}` | yes | partial | `src/template/highlight_tag.rs` -- outputs `<pre><code>` structure but no syntax coloring; relies on client-side highlighting |
+| `{% highlight %}` / `{% endhighlight %}` | yes | yes | `src/template/highlight_tag.rs` + `src/syntax.rs` -- outputs `<pre><code>` with Rouge-compatible CSS class spans via syntect |
 | `{% unless %}` / `{% endunless %}` | yes | yes | Provided by liquid crate stdlib |
 | `{% case %}` / `{% when %}` / `{% endcase %}` | yes | yes | Provided by liquid crate stdlib |
 | `{% cycle %}` | yes | yes | Provided by liquid crate stdlib |
@@ -201,7 +201,7 @@ This document lists every major Jekyll feature and its implementation status in 
 
 | Feature | Jekyll | rustkyll | Notes |
 |---------|--------|----------|-------|
-| Sass/SCSS compilation | yes | no | Pre-compile CSS as a workaround |
+| Sass/SCSS compilation | yes | yes | `src/generator.rs` -- uses the grass crate for pure-Rust SCSS compilation |
 | CoffeeScript compilation | yes | no | |
 | Static asset copying | yes | yes | `src/static_files.rs` -- all non-underscored, non-excluded files are copied |
 
@@ -210,7 +210,7 @@ This document lists every major Jekyll feature and its implementation status in 
 | Feature | Jekyll | rustkyll | Notes |
 |---------|--------|----------|-------|
 | `build` command | yes | yes | `src/main.rs` -- `--source`, `--destination`, `--incremental`, `--force` flags |
-| `serve` command | yes | yes | `src/main.rs` -- `--port`, `--livereload`, `--no-livereload` flags |
+| `serve` command | yes | yes | `src/main.rs` -- `--port`, `--livereload`, `--no-livereload`, `--no-browser` flags |
 | `new` command | yes | no | |
 | `doctor` command | yes | no | |
 | `clean` command | yes | no | `build` performs a full clean by default |
@@ -231,4 +231,6 @@ This document lists every major Jekyll feature and its implementation status in 
 | JSON-LD structured data | yes | yes | `src/jsonld.rs` -- Book and BreadcrumbList schemas |
 | Parallel page generation | no | yes | `src/main.rs` -- uses rayon for parallel collection loading, page generation, and static file copying |
 | Build timing breakdown | no | yes | `src/main.rs` -- per-phase timing output |
+| Progress bar | no | yes | `src/main.rs` -- indicatif progress bar during page generation |
+| Auto-open browser | no | yes | `src/server.rs` -- opens browser on `serve`; disable with `--no-browser` |
 | Lenient template rendering | no | yes | `src/template/engine.rs` -- unknown filters become passthroughs instead of errors |

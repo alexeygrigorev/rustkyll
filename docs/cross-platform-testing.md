@@ -7,7 +7,7 @@ Uses [dockur/windows](https://github.com/dockur/windows) and [dockur/macos](http
 
 The approach: mount the rustkyll source code into the VM, build it natively on that platform, then test it builds the DTC site correctly.
 
-This is a **local, on-demand tool** run by QA before every release.
+This is a local, on-demand tool run by QA before every release.
 
 ## Prerequisites
 

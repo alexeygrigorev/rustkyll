@@ -35,3 +35,33 @@ Update all documentation to reflect current state. Remove bold formatting. Remov
 - Feature compatibility matrix accurate
 - Benchmark numbers current
 - Known limitations list accurate
+
+## Log
+
+### [SWE] 2026-03-17
+
+Files modified:
+- README.md -- updated benchmark table (19x, 1.0s vs 19.1s), known limitations (removed SCSS/pagination/plugin gaps, added real remaining issues), added --no-browser flag, updated quickstart text
+- docs/jekyll-compatibility.md -- SCSS: no->yes, highlight tag: partial->yes, serve command flags updated, added progress bar and auto-open browser features, summary counts updated (128/6/27)
+- docs/benchmark/results.md -- updated DTC numbers to 19x/1.0s/593 DOM matches, removed stale regression section references, removed all bold/italic
+- docs/comparison/pixel-perfect-results.md -- updated test count to 1572, removed bold/italic
+- docs/comparison/dom-diff-categories.md -- updated summary to 593/787, removed bold/italic
+- docs/comparison/structural-results.md -- updated DTC to 787/787 file match, 593/787 DOM match, removed stale missing files list
+- docs/plan.md -- updated vision (generic Jekyll replacement, not DTC-only), removed stale non-goals
+- docs/PROCESS.md -- removed bold/italic formatting
+- docs/cross-platform-testing.md -- removed bold/italic formatting
+
+Files removed (stale, superseded by benchmark/results.md):
+- docs/complex-site-results.md
+- docs/cross-site-results.md
+- docs/comparison/visual-results.md
+
+Files unchanged (already current):
+- docs/release.md
+- docs/cross-platform-testing.md (content was current)
+
+Bold/italic removed from all non-tracker docs (13 files updated).
+
+Tests: 1572 passed, 0 failed, 43 ignored
+Clippy: clean
+Format: clean

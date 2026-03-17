@@ -2,14 +2,13 @@
 
 ## Vision
 
-Replace Jekyll with a fast Rust static site generator tailored for the DataTalks.Club website. The generator reads the same content files (Markdown with YAML front matter, YAML data files, Liquid-compatible templates) and produces equivalent HTML output.
+A fast Rust static site generator designed as a drop-in Jekyll replacement. The primary target is the DataTalks.Club website, but it works with any standard Jekyll site. It reads the same content files (Markdown with YAML front matter, YAML data files, Liquid templates) and produces equivalent HTML output.
 
 ## Non-Goals
 
-- General-purpose static site generator (we only need to support DataTalks.Club)
 - Python scripts reimplementation (Airtable sync, preview generation, etc.)
 - Node.js preview system reimplementation
-- Perfect Liquid compatibility (only the subset actually used)
+- Custom Ruby plugin system (only built-in plugin equivalents are supported)
 
 ## Architecture
 
@@ -47,8 +46,8 @@ CLI (main.rs)
 
 ## Liquid Features Used
 
-**Tags:** for, if/elsif/else, unless, assign, capture, include, break
-**Filters:** where, where_exp, sort, reverse, map, uniq, first, last, size, join, push, slice, append, prepend, default, strip, strip_html, strip_newlines, truncate, slugify, markdownify, newline_to_br, date_to_string, date_to_xmlschema, jsonify, relative_url, split, plus, minus, times, divided_by, modulo
+Tags: for, if/elsif/else, unless, assign, capture, include, break
+Filters: where, where_exp, sort, reverse, map, uniq, first, last, size, join, push, slice, append, prepend, default, strip, strip_html, strip_newlines, truncate, slugify, markdownify, newline_to_br, date_to_string, date_to_xmlschema, jsonify, relative_url, split, plus, minus, times, divided_by, modulo
 
 ## Issue Dependency Graph
 

@@ -1,10 +1,8 @@
 # rustkyll
 
-A static site generator written in Rust, designed as a drop-in replacement for Jekyll. The primary goal is to speed up site builds for the DataTalks.Club website (datatalksclub.github.io), which has hundreds of pages across multiple collections.
+A static site generator written in Rust, designed as a drop-in replacement for Jekyll. It reads the same source files as Jekyll -- Markdown with YAML front matter, Liquid templates, YAML data files, and collection directories -- and produces equivalent HTML output, typically 5-50x faster.
 
-rustkyll reads the same source files as Jekyll - Markdown with YAML front matter, Liquid templates, YAML data files, and collection directories - and produces equivalent HTML output.
-
-Quickstart — just run this in your Jekyll site directory:
+Quickstart -- run this in your Jekyll site directory:
 
 ```
 uvx rustkyll serve
@@ -118,6 +116,7 @@ Flags:
 - `--port` - port number for the HTTP server (default: 4000)
 - `--livereload` - enable live reload in the browser when files change (default: enabled)
 - `--no-livereload` - disable live reload
+- `--no-browser` - do not open the browser automatically
 
 
 ## How It Was Built
@@ -149,13 +148,13 @@ Issues are processed in batches of two, running in parallel. If the tester finds
 
 | Site | Pages | Jekyll | rustkyll | Speedup |
 |------|-------|--------|----------|---------|
-| [datatalksclub.github.io](https://github.com/DataTalksClub/datatalksclub.github.io) | 787 | 19.6s | 1.2s | 17x |
+| [datatalksclub.github.io](https://github.com/DataTalksClub/datatalksclub.github.io) | 787 | 19.1s | 1.0s | 19x |
 | [kids-horror-stories-ru](https://github.com/alexeygrigorev/kids-horror-stories-ru) | 1344 | 5.0s | 0.6s | 9x |
 | [muan-blog](https://github.com/muan/site) | 2218 | 16.2s | 0.3s | 51x |
 | [large-docs-site](websites/large-docs-site) | 801 | 24.1s | 0.7s | 33x |
 | [large-blog-3000](websites/large-blog-3000) | 3001 | 4.5s | 1.6s | 3x |
 
-34 of 44 sites build with both tools. See [docs/benchmark/results.md](docs/benchmark/results.md) for full results including structural equivalence and visual comparison.
+34 of 44 sites build with both tools. 21 of 22 sampled DTC pages are pixel-perfect vs Jekyll. See [docs/benchmark/results.md](docs/benchmark/results.md) for full results including structural equivalence and visual comparison.
 
 Other tested sites
 
@@ -182,12 +181,12 @@ See [docs/jekyll-compatibility.md](docs/jekyll-compatibility.md) for a detailed 
 
 ## Known Limitations
 
-- No Sass/SCSS compilation. Jekyll sites that rely on Sass stylesheets will need to pre-compile their CSS or use plain CSS files.
-- No general plugin system. Only jekyll-seo-tag is supported as a built-in. Other plugins (jekyll-paginate, jekyll-redirect-from, jekyll-mentions, etc.) are not available.
-- No pagination support. The jekyll-paginate plugin for splitting post listings across multiple pages is not implemented.
-- Some edge-case Liquid filters may be missing. While 40+ filters are supported, site-specific or rarely-used filters may not be recognized.
 - No Ruby gem theme support. Themes must be present as local layout and include files, not installed as gems.
+- No general plugin system. Supported plugins are built in: jekyll-seo-tag, jekyll-feed, jekyll-sitemap, jekyll-paginate, jekyll-avatar. Other plugins (jekyll-redirect-from, jekyll-mentions, etc.) are not available.
+- Some edge-case Liquid filters may be missing. While 60+ filters are supported, site-specific or rarely-used filters may not be recognized (unknown filters pass through with a warning).
 - Incremental builds do not track layout or include file changes. If you modify a layout or include, use `--force` to trigger a full rebuild.
+- Kramdown paragraph wrapping in list items and blockquotes may differ from Jekyll in some edge cases.
+- Syntax highlighting token classes may differ slightly from Rouge (Jekyll) since rustkyll uses syntect.
 
 
 ## Project Structure

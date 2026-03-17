@@ -51,7 +51,7 @@ The orchestrator NEVER writes or modifies code (src/, tests/, scripts/). It only
 - Task panel items
 - Git commits (after PM accepts)
 
-**NEVER wait for user input. NEVER idle. The pipeline must always be running.**
+NEVER wait for user input. NEVER idle. The pipeline must always be running.
 
 - If something needs user action (configuring a secret, testing on their machine), note it in the issue file as "USER ACTION REQUIRED" and immediately move to the next issue
 - After committing a batch, immediately pick the next 2 issues and start grooming/implementing
@@ -83,7 +83,7 @@ An issue moves to `.done.md` ONLY when ALL acceptance criteria are fully satisfi
 
 If the deliverable requires deployment, external verification, or running against real data, the issue stays `.in-progress.md` until that happens. The orchestrator must verify the actual outcome before moving to done.
 
-**IMPORTANT: One agent per issue.** Every agent invocation handles exactly ONE issue. When working on 2 issues in a batch, launch 2 separate agents in parallel — never combine multiple issues into a single agent call. This applies to all agent types (SWE, QA, PM).
+IMPORTANT: One agent per issue. Every agent invocation handles exactly ONE issue. When working on 2 issues in a batch, launch 2 separate agents in parallel — never combine multiple issues into a single agent call. This applies to all agent types (SWE, QA, PM).
 
 ### Rejection Loop
 
@@ -132,7 +132,7 @@ Each agent appends a `## Log` section (or appends to it if it already exists) wi
 - VERDICT: ACCEPT
 ```
 
-**What to log:**
+What to log:
 - What was done (implementation steps, root causes found, fixes applied)
 - Test results (pass count, fail count, specific failures)
 - Files modified
@@ -141,11 +141,11 @@ Each agent appends a `## Log` section (or appends to it if it already exists) wi
 - Rejection reasons (if rejecting)
 - Any follow-up issues created
 
-**Why:** Without logs, the orchestrator and user have no visibility into what happened. Agents are ephemeral — the issue file is permanent.
+Why: Without logs, the orchestrator and user have no visibility into what happened. Agents are ephemeral — the issue file is permanent.
 
 ### No Silent Descoping
 
-**PM must NEVER silently drop acceptance criteria.** If a requirement from the original issue is too large or out of scope for the current implementation:
+PM must NEVER silently drop acceptance criteria. If a requirement from the original issue is too large or out of scope for the current implementation:
 
 1. PM must explicitly call out what is being descoped and why
 2. PM must create a new `.todo.md` issue for each descoped requirement, OR assign it to an existing open issue
@@ -171,7 +171,7 @@ The orchestrator must verify that PM acceptance does not silently drop criteria 
 
 ### Memory Safety
 
-**Always use `./scripts/cargo-safe` instead of raw `cargo`** for build, test, and clippy commands. This wrapper runs cargo in an isolated cgroup with a memory limit (default 24G). If cargo hits the limit, only cargo dies — the shell/tmux/claude session survives and gets a non-zero exit code.
+Always use `./scripts/cargo-safe` instead of raw `cargo` for build, test, and clippy commands. This wrapper runs cargo in an isolated cgroup with a memory limit (default 24G). If cargo hits the limit, only cargo dies — the shell/tmux/claude session survives and gets a non-zero exit code.
 
 Plain `cargo fmt` is fine since it uses negligible memory.
 
@@ -246,10 +246,10 @@ Within each issue pipeline, reject sends back to that issue's SWE, not to groomi
 
 | Panel Tag | Agent | When | What happens |
 |-----------|-------|------|-------------|
-| `[PM groom]` | Product Manager | BEFORE implementation | Adds acceptance criteria, test scenarios. Renames .todo -> .groomed. **One agent per issue.** |
-| `[SWE]` | Software Engineer | After grooming | Implements code + tests. Renames .groomed -> .in-progress. **One agent per issue.** |
-| `[QA]` | Tester | After implementation | Verifies acceptance criteria, builds site and checks output. Pass/Fail. **One agent per issue.** |
-| `[PM accept]` | Product Manager | AFTER QA passes | Final review. Builds and inspects output. Accept -> .done + commit. Reject -> back to SWE to finish. **One agent per issue.** |
+| `[PM groom]` | Product Manager | BEFORE implementation | Adds acceptance criteria, test scenarios. Renames .todo -> .groomed. One agent per issue. |
+| `[SWE]` | Software Engineer | After grooming | Implements code + tests. Renames .groomed -> .in-progress. One agent per issue. |
+| `[QA]` | Tester | After implementation | Verifies acceptance criteria, builds site and checks output. Pass/Fail. One agent per issue. |
+| `[PM accept]` | Product Manager | AFTER QA passes | Final review. Builds and inspects output. Accept -> .done + commit. Reject -> back to SWE to finish. One agent per issue. |
 | `[Pull next]` | Orchestrator | AFTER commit | Check docs/tracker/ for remaining .todo/.groomed files. Pick 2 lowest-numbered, create new batch in task panel, repeat |
 
 PM has two distinct roles:
