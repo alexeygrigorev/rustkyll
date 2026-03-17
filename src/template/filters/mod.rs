@@ -138,6 +138,19 @@ pub(crate) fn parse_date_string_with_tz(
         let dt = d.and_hms_opt(0, 0, 0)?;
         return Some(dt);
     }
+    // Try slash-separated dates (e.g. "2023/7/11 15:27" from muan-blog).
+    // Ruby's Date.parse handles these flexibly; chrono's %m/%d/%H/%M accept
+    // both 1-digit and 2-digit values when parsing.
+    if let Ok(dt) = NaiveDateTime::parse_from_str(s, "%Y/%m/%d %H:%M:%S") {
+        return Some(dt);
+    }
+    if let Ok(dt) = NaiveDateTime::parse_from_str(s, "%Y/%m/%d %H:%M") {
+        return Some(dt);
+    }
+    if let Ok(d) = chrono::NaiveDate::parse_from_str(s, "%Y/%m/%d") {
+        let dt = d.and_hms_opt(0, 0, 0)?;
+        return Some(dt);
+    }
     None
 }
 

@@ -137,4 +137,50 @@ mod tests {
             assert!(!s.is_empty(), "Format {} produced empty result", fmt);
         }
     }
+
+    // Issue 187: Leading zero padding tests
+
+    #[test]
+    fn test_date_format_month_leading_zero() {
+        // Slash-separated date with single-digit month (muan-blog style)
+        let result = liquid_core::call_filter!(Date, "2023/7/11 15:27", "%m").unwrap();
+        assert_eq!(result.to_kstr(), "07");
+    }
+
+    #[test]
+    fn test_date_format_day_leading_zero() {
+        let result = liquid_core::call_filter!(Date, "2023/7/5 15:27", "%d").unwrap();
+        assert_eq!(result.to_kstr(), "05");
+    }
+
+    #[test]
+    fn test_date_format_hour_leading_zero() {
+        let result = liquid_core::call_filter!(Date, "2025/8/9 2:10", "%H").unwrap();
+        assert_eq!(result.to_kstr(), "02");
+    }
+
+    #[test]
+    fn test_date_format_combined_slash_date() {
+        // Full muan-blog format: input "2023/7/11 15:27", format "%Y/%m/%d %H:%M"
+        let result = liquid_core::call_filter!(Date, "2023/7/11 15:27", "%Y/%m/%d %H:%M").unwrap();
+        assert_eq!(result.to_kstr(), "2023/07/11 15:27");
+    }
+
+    #[test]
+    fn test_date_format_double_digit_no_change() {
+        let result = liquid_core::call_filter!(Date, "2023/12/25 10:30", "%m/%d").unwrap();
+        assert_eq!(result.to_kstr(), "12/25");
+    }
+
+    #[test]
+    fn test_date_format_year_unchanged() {
+        let result = liquid_core::call_filter!(Date, "2023/7/11 15:27", "%Y").unwrap();
+        assert_eq!(result.to_kstr(), "2023");
+    }
+
+    #[test]
+    fn test_date_format_textual_month() {
+        let result = liquid_core::call_filter!(Date, "2023/7/11 15:27", "%B").unwrap();
+        assert_eq!(result.to_kstr(), "July");
+    }
 }

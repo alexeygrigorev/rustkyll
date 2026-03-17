@@ -62,3 +62,12 @@ None.
 ### Integration: Output verification
 
 - Build muan-blog and inspect story pages to verify dates have leading zeros.
+
+## Log
+
+### [SWE] 2026-03-17
+- Root cause: `parse_date_string_with_tz()` in `src/template/filters/mod.rs` only handled dash-separated ISO dates (YYYY-MM-DD). Muan-blog frontmatter uses slash-separated dates without leading zeros (e.g. `2023/7/11 15:27`). These fell through to the "return input as-is" fallback, so the date filter returned the unpadded input unchanged.
+- Fix: Added three new parse patterns to `parse_date_string_with_tz()`: `%Y/%m/%d %H:%M:%S`, `%Y/%m/%d %H:%M`, and `%Y/%m/%d`. Chrono's `%m`/`%d`/`%H`/`%M` accept both 1-digit and 2-digit values when parsing, then chrono's format output always pads with leading zeros.
+- Tests added: 7 new unit tests in `src/template/filters/date.rs` covering month/day/hour leading zeros, combined format, double-digit no-change, year unchanged, and textual month.
+- Build: 1450 tests pass (1448 + 7 new - 2 pre-existing failures from other in-progress work on collection permalink tests, unrelated), clippy clean, fmt clean.
+- Files modified: `src/template/filters/mod.rs`, `src/template/filters/date.rs`
