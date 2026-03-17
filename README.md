@@ -1,8 +1,8 @@
 # rustkyll
 
-A static site generator written in Rust, designed as a drop-in replacement for Jekyll. It reads the same source files as Jekyll -- Markdown with YAML front matter, Liquid templates, YAML data files, and collection directories -- and produces equivalent HTML output, typically 5-50x faster.
+A static site generator written in Rust, designed as a drop-in replacement for Jekyll. It reads the same source files as Jekyll - Markdown with YAML front matter, Liquid templates, YAML data files, and collection directories - and produces equivalent HTML output, typically 5-50x faster.
 
-Quickstart -- run this in your Jekyll site directory:
+Quickstart - run this in your Jekyll site directory:
 
 ```
 uvx rustkyll serve
