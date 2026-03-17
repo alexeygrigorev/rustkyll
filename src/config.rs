@@ -170,6 +170,24 @@ impl Default for SiteConfig {
     }
 }
 
+/// Compute a specificity score for a default scope, matching Jekyll's behavior.
+///
+/// Jekyll applies defaults from least specific to most specific, so that more
+/// specific scopes override less specific ones regardless of declaration order.
+/// Specificity is determined by:
+///   1. Path length (longer path prefix = more specific)
+///   2. Type presence (having a type adds specificity beyond any path)
+fn scope_specificity(scope: &DefaultScope) -> usize {
+    let mut score = scope.path.len();
+    if !scope.type_name.is_empty() {
+        // Having a type makes a scope more specific than any path-only scope.
+        // Adding a large constant ensures type-scoped defaults always beat
+        // path-only defaults.
+        score += 1000;
+    }
+    score
+}
+
 impl SiteConfig {
     /// Load and parse a site configuration from a YAML file.
     ///
@@ -213,17 +231,20 @@ impl SiteConfig {
 
     /// Get all matching default values for a given collection type and path, merged.
     ///
-    /// Defaults are applied in order: later entries override earlier ones for the
-    /// same key. Scope matching uses `type_name` exact match and `path` prefix match.
+    /// Defaults are applied by specificity: more specific scopes override less
+    /// specific ones, matching Jekyll's behavior. Among entries with equal
+    /// specificity, later entries in the config override earlier ones.
+    /// Scope matching uses `type_name` exact match and `path` prefix match.
     /// An empty `path` in the scope matches all items.
     pub fn defaults_for(
         &self,
         type_name: &str,
         item_path: &str,
     ) -> HashMap<String, serde_yaml::Value> {
-        let mut result = HashMap::new();
+        // Collect matching defaults with their specificity and declaration order
+        let mut matches: Vec<(usize, usize, &DefaultConfig)> = Vec::new();
 
-        for default in &self.defaults {
+        for (decl_order, default) in self.defaults.iter().enumerate() {
             // Match if scope type matches exactly, or scope type is empty
             // (empty type matches all items, matching Jekyll behavior)
             if !default.scope.type_name.is_empty() && default.scope.type_name != type_name {
@@ -235,7 +256,16 @@ impl SiteConfig {
                 continue;
             }
 
-            // Merge values -- later entries override earlier ones
+            let specificity = scope_specificity(&default.scope);
+            matches.push((specificity, decl_order, default));
+        }
+
+        // Sort by specificity (ascending), then declaration order (ascending).
+        // Less specific defaults are applied first, more specific override them.
+        matches.sort_by_key(|&(spec, decl, _)| (spec, decl));
+
+        let mut result = HashMap::new();
+        for (_, _, default) in matches {
             for (key, value) in &default.values.values {
                 result.insert(key.clone(), value.clone());
             }
@@ -250,12 +280,14 @@ impl SiteConfig {
     /// (path-only scoping). This matches Jekyll's behavior where standalone pages
     /// are of type "pages" and also match unscoped defaults.
     ///
-    /// Defaults are applied in order: later entries override earlier ones for the
-    /// same key.
+    /// Defaults are applied by specificity: more specific scopes override less
+    /// specific ones, matching Jekyll's behavior. Among entries with equal
+    /// specificity, later entries in the config override earlier ones.
     pub fn defaults_for_page(&self, item_path: &str) -> HashMap<String, serde_yaml::Value> {
-        let mut result = HashMap::new();
+        // Collect matching defaults with their specificity and declaration order
+        let mut matches: Vec<(usize, usize, &DefaultConfig)> = Vec::new();
 
-        for default in &self.defaults {
+        for (decl_order, default) in self.defaults.iter().enumerate() {
             // Match if type is "pages" or empty (empty type matches all items)
             let type_matches =
                 default.scope.type_name.is_empty() || default.scope.type_name == "pages";
@@ -269,7 +301,16 @@ impl SiteConfig {
                 continue;
             }
 
-            // Merge values -- later entries override earlier ones
+            let specificity = scope_specificity(&default.scope);
+            matches.push((specificity, decl_order, default));
+        }
+
+        // Sort by specificity (ascending), then declaration order (ascending).
+        // Less specific defaults are applied first, more specific override them.
+        matches.sort_by_key(|&(spec, decl, _)| (spec, decl));
+
+        let mut result = HashMap::new();
+        for (_, _, default) in matches {
             for (key, value) in &default.values.values {
                 result.insert(key.clone(), value.clone());
             }
@@ -1167,6 +1208,189 @@ defaults:
         assert_eq!(
             defaults.get("layout").and_then(|v| v.as_str()),
             Some("default")
+        );
+    }
+
+    // ========================================================================
+    // Issue 174: Path-scoped defaults specificity
+    // ========================================================================
+
+    #[test]
+    fn test_defaults_for_page_specific_path_wins_over_empty_path() {
+        // Reproduces the large-docs-site bug: path "docs" is more specific
+        // than path "" and should win, regardless of declaration order.
+        let yaml = r#"
+defaults:
+  - scope:
+      path: "docs"
+    values:
+      layout: "doc"
+  - scope:
+      path: ""
+    values:
+      layout: "default"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let defaults = config.defaults_for_page("docs/api-reference/page-1.md");
+        assert_eq!(
+            defaults.get("layout").and_then(|v| v.as_str()),
+            Some("doc"),
+            "More specific path 'docs' should override less specific path ''"
+        );
+    }
+
+    #[test]
+    fn test_defaults_for_page_specific_path_wins_reversed_order() {
+        // Same test but with declaration order reversed -- specificity should
+        // still determine the winner.
+        let yaml = r#"
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: "default"
+  - scope:
+      path: "docs"
+    values:
+      layout: "doc"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let defaults = config.defaults_for_page("docs/getting-started/intro.md");
+        assert_eq!(
+            defaults.get("layout").and_then(|v| v.as_str()),
+            Some("doc"),
+            "More specific path 'docs' should override less specific path '' regardless of order"
+        );
+    }
+
+    #[test]
+    fn test_defaults_for_page_root_page_gets_less_specific_default() {
+        // A page at the root should NOT match path "docs" but should match path ""
+        let yaml = r#"
+defaults:
+  - scope:
+      path: "docs"
+    values:
+      layout: "doc"
+  - scope:
+      path: ""
+    values:
+      layout: "default"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let defaults = config.defaults_for_page("index.md");
+        assert_eq!(
+            defaults.get("layout").and_then(|v| v.as_str()),
+            Some("default"),
+            "Root page should get 'default' layout, not 'doc'"
+        );
+    }
+
+    #[test]
+    fn test_defaults_for_page_type_scoped_wins_over_path_only() {
+        // A default with type "pages" should be more specific than one without
+        let yaml = r#"
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: "base"
+  - scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: "page"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let defaults = config.defaults_for_page("about.md");
+        assert_eq!(
+            defaults.get("layout").and_then(|v| v.as_str()),
+            Some("page"),
+            "Type-scoped default should override unscoped default"
+        );
+    }
+
+    #[test]
+    fn test_defaults_for_collection_specific_path_wins() {
+        // Same specificity fix should work for collection items too
+        let yaml = r#"
+defaults:
+  - scope:
+      path: "special/"
+      type: "posts"
+    values:
+      layout: "special-post"
+  - scope:
+      path: ""
+      type: "posts"
+    values:
+      layout: "post"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let defaults = config.defaults_for("posts", "special/my-post.md");
+        assert_eq!(
+            defaults.get("layout").and_then(|v| v.as_str()),
+            Some("special-post"),
+            "More specific path 'special/' should override less specific path ''"
+        );
+    }
+
+    #[test]
+    fn test_defaults_for_page_three_level_specificity() {
+        // Three levels of path specificity
+        let yaml = r#"
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: "base"
+  - scope:
+      path: "docs"
+    values:
+      layout: "doc"
+  - scope:
+      path: "docs/api"
+    values:
+      layout: "api-doc"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+
+        let base = config.defaults_for_page("index.md");
+        assert_eq!(base.get("layout").and_then(|v| v.as_str()), Some("base"));
+
+        let doc = config.defaults_for_page("docs/guide/intro.md");
+        assert_eq!(doc.get("layout").and_then(|v| v.as_str()), Some("doc"));
+
+        let api = config.defaults_for_page("docs/api/endpoints.md");
+        assert_eq!(api.get("layout").and_then(|v| v.as_str()), Some("api-doc"));
+    }
+
+    #[test]
+    fn test_defaults_for_page_non_layout_values_merge_across_specificity() {
+        // Non-overlapping keys from different specificity levels should all be present
+        let yaml = r#"
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: "default"
+      sidebar: true
+  - scope:
+      path: "docs"
+    values:
+      layout: "doc"
+      toc: true
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let defaults = config.defaults_for_page("docs/page.md");
+        // layout should come from more specific "docs" scope
+        assert_eq!(defaults.get("layout").and_then(|v| v.as_str()), Some("doc"));
+        // toc should come from more specific "docs" scope
+        assert_eq!(defaults.get("toc").and_then(|v| v.as_bool()), Some(true));
+        // sidebar should be inherited from less specific "" scope
+        assert_eq!(
+            defaults.get("sidebar").and_then(|v| v.as_bool()),
+            Some(true)
         );
     }
 }
