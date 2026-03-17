@@ -2132,4 +2132,158 @@ mod tests {
             "Guest name should be resolved from site.people"
         );
     }
+
+    // ========================================================================
+    // Issue 171: Layout with Liquid conditionals before doctype
+    // ========================================================================
+
+    #[test]
+    fn test_issue171_layout_with_conditionals_before_doctype() {
+        let layout_source = concat!(
+            "{% if page.path contains \"zh-TW\" %}\n",
+            "  {% assign lang = \"zh-TW\" %}\n",
+            "{% elsif page.path contains \"de-DE\" %}\n",
+            "  {% assign lang = \"de-DE\" %}\n",
+            "{% else %}\n",
+            "  {% assign lang = \"en-US\" %}\n",
+            "{% endif %}\n",
+            "<!doctype html>\n",
+            "<html lang=\"{{ lang }}\">\n",
+            "<head><title>{{ page.title }}</title></head>\n",
+            "<body>{{ content }}</body>\n",
+            "</html>",
+        );
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            Layout {
+                source: layout_source.to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let mut fm = FrontMatter::new();
+        fm.insert("title".into(), serde_yaml::Value::String("Test".into()));
+        fm.insert(
+            "path".into(),
+            serde_yaml::Value::String("posts/zh-TW/hello.md".into()),
+        );
+
+        let site = Object::new();
+        let output = engine
+            .render("default", "<p>Hello</p>", &fm, &site)
+            .unwrap();
+
+        assert!(output.contains("<!doctype html>"), "Should have doctype");
+        assert!(
+            output.contains("<html lang=\"zh-TW\">"),
+            "Should set zh-TW lang"
+        );
+        assert!(output.contains("<p>Hello</p>"), "Should have content");
+    }
+
+    #[test]
+    fn test_issue171_layout_with_assign_before_doctype() {
+        let layout_source = concat!(
+            "{% assign version = \"2.0\" %}\n",
+            "<!doctype html>\n",
+            "<html><head><title>v{{ version }}</title></head>\n",
+            "<body>{{ content }}</body></html>",
+        );
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            Layout {
+                source: layout_source.to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let fm = FrontMatter::new();
+        let site = Object::new();
+        let output = engine
+            .render("default", "<p>Content</p>", &fm, &site)
+            .unwrap();
+
+        assert!(output.contains("<!doctype html>"), "Should have doctype");
+        assert!(output.contains("v2.0"), "Should have assigned version");
+    }
+
+    #[test]
+    fn test_issue171_contains_with_nil_value() {
+        // Jekyll treats nil contains as false; must not error
+        let layout_source = concat!(
+            "{% if page.path contains \"zh-TW\" %}\n",
+            "  {% assign lang = \"zh-TW\" %}\n",
+            "{% else %}\n",
+            "  {% assign lang = \"en-US\" %}\n",
+            "{% endif %}\n",
+            "<html lang=\"{{ lang }}\"><body>{{ content }}</body></html>",
+        );
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            Layout {
+                source: layout_source.to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        // No "path" in front matter -> page.path is nil
+        let fm = FrontMatter::new();
+        let site = Object::new();
+        let output = engine
+            .render("default", "<p>Content</p>", &fm, &site)
+            .unwrap();
+
+        assert!(
+            output.contains("<html lang=\"en-US\">"),
+            "Nil path should fall through to else branch, got: {}",
+            &output[..output.len().min(200)]
+        );
+    }
+
+    #[test]
+    fn test_issue171_contains_nil_in_elsif() {
+        let layout_source = concat!(
+            "{% if page.lang contains \"fr\" %}\n",
+            "  {% assign g = \"bonjour\" %}\n",
+            "{% elsif page.lang contains \"de\" %}\n",
+            "  {% assign g = \"hallo\" %}\n",
+            "{% else %}\n",
+            "  {% assign g = \"hello\" %}\n",
+            "{% endif %}\n",
+            "<p>{{ g }}: {{ content }}</p>",
+        );
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            Layout {
+                source: layout_source.to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let fm = FrontMatter::new();
+        let site = Object::new();
+        let output = engine.render("default", "world", &fm, &site).unwrap();
+
+        assert!(
+            output.contains("hello"),
+            "Nil lang should use else branch, got: {}",
+            output
+        );
+    }
 }

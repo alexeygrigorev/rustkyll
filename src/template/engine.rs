@@ -614,6 +614,12 @@ impl TemplateEngine {
         // the Liquid parser does not support. These are replaced with their
         // approximate URL output.
         let preprocessed = preprocess_jekyll_tags(&preprocessed);
+        // Pre-process `contains` in if/elsif conditions to add nil guards.
+        // Jekyll treats `nil contains "x"` as false, but the liquid crate
+        // raises an error. We rewrite `EXPR contains "STR"` to
+        // `EXPR and EXPR contains "STR"` so the `and` short-circuits on nil.
+        // (Issue 171)
+        let preprocessed = preprocess_nil_contains(&preprocessed);
         let template_str = &preprocessed;
         loop {
             let parser_guard = self
@@ -923,6 +929,158 @@ fn preprocess_jekyll_tags(template: &str) -> String {
 
     result.push_str(remaining);
     result
+}
+
+/// Pre-process Liquid templates to add nil guards around `contains` operators.
+///
+/// Jekyll treats `nil contains "x"` as `false`, but the `liquid` crate raises
+/// a runtime error ("Expected string | array | object, found `nil`"). This
+/// function rewrites conditions like:
+///
+///   `{% if EXPR contains "STR" %}`
+///
+/// to:
+///
+///   `{% if EXPR and EXPR contains "STR" %}`
+///
+/// The `and` operator short-circuits: if EXPR is nil (falsy), the `contains`
+/// is never evaluated, matching Jekyll's behavior. (Issue 171)
+fn preprocess_nil_contains(template: &str) -> String {
+    let mut result = String::with_capacity(template.len());
+    let mut remaining = template;
+
+    while let Some(start) = remaining.find("{%") {
+        result.push_str(&remaining[..start]);
+
+        let after_open = &remaining[start + 2..];
+        if let Some(end_offset) = after_open.find("%}") {
+            let tag_inner = &after_open[..end_offset];
+            let tag_end = start + 2 + end_offset + 2;
+
+            let trimmed = tag_inner.trim();
+            let has_leading_dash = trimmed.starts_with('-');
+            let trimmed_content = if has_leading_dash {
+                trimmed[1..].trim_start()
+            } else {
+                trimmed
+            };
+            let has_trailing_dash = trimmed_content.ends_with('-');
+            let trimmed_content = if has_trailing_dash {
+                trimmed_content[..trimmed_content.len() - 1].trim_end()
+            } else {
+                trimmed_content
+            };
+
+            let is_if_tag =
+                trimmed_content.starts_with("if ") || trimmed_content.starts_with("elsif ");
+            if is_if_tag {
+                if let Some(rewritten) = rewrite_contains_with_nil_guard(trimmed_content) {
+                    result.push_str("{%");
+                    if has_leading_dash {
+                        result.push('-');
+                    }
+                    result.push(' ');
+                    result.push_str(&rewritten);
+                    result.push(' ');
+                    if has_trailing_dash {
+                        result.push('-');
+                    }
+                    result.push_str("%}");
+                } else {
+                    result.push_str(&remaining[start..tag_end]);
+                }
+            } else {
+                result.push_str(&remaining[start..tag_end]);
+            }
+
+            remaining = &remaining[tag_end..];
+        } else {
+            result.push_str(&remaining[start..]);
+            remaining = "";
+        }
+    }
+
+    result.push_str(remaining);
+    result
+}
+
+/// Rewrite a condition to add nil guards around `contains`.
+fn rewrite_contains_with_nil_guard(condition: &str) -> Option<String> {
+    if !condition.contains(" contains ") {
+        return None;
+    }
+
+    let (keyword, expr) = if let Some(rest) = condition.strip_prefix("elsif ") {
+        ("elsif", rest.trim())
+    } else if let Some(rest) = condition.strip_prefix("if ") {
+        ("if", rest.trim())
+    } else {
+        return None;
+    };
+
+    let rewritten = rewrite_contains_in_expr(expr)?;
+    Some(format!("{} {}", keyword, rewritten))
+}
+
+/// Rewrite `contains` in an expression to add nil guards.
+fn rewrite_contains_in_expr(expr: &str) -> Option<String> {
+    let contains_keyword = " contains ";
+    if !expr.contains(contains_keyword) {
+        return None;
+    }
+
+    let mut result = String::with_capacity(expr.len() * 2);
+    let mut remaining = expr;
+    let mut changed = false;
+
+    while let Some(pos) = remaining.find(contains_keyword) {
+        let before = &remaining[..pos];
+        let lhs = extract_last_operand(before);
+
+        if !lhs.is_empty() {
+            result.push_str(before);
+            result.push_str(" and ");
+            result.push_str(lhs);
+            result.push_str(contains_keyword);
+            changed = true;
+        } else {
+            result.push_str(before);
+            result.push_str(contains_keyword);
+        }
+
+        remaining = &remaining[pos + contains_keyword.len()..];
+    }
+
+    result.push_str(remaining);
+
+    if changed {
+        Some(result)
+    } else {
+        None
+    }
+}
+
+/// Extract the last operand from an expression fragment.
+fn extract_last_operand(expr: &str) -> &str {
+    let trimmed = expr.trim_end();
+    let last_and = trimmed.rfind(" and ");
+    let last_or = trimmed.rfind(" or ");
+
+    let boundary = match (last_and, last_or) {
+        (Some(a), Some(o)) => Some(a.max(o)),
+        (Some(a), None) => Some(a),
+        (None, Some(o)) => Some(o),
+        (None, None) => None,
+    };
+
+    match boundary {
+        Some(pos) => {
+            let after = &trimmed[pos..];
+            let skip = if after.starts_with(" and ") { 5 } else { 4 };
+            trimmed[pos + skip..].trim()
+        }
+        None => trimmed.trim(),
+    }
 }
 
 /// Extract the unknown filter name from a liquid parse error message.
@@ -2648,5 +2806,106 @@ title: "Test Book"
     fn test_capture_preprocess_with_dash() {
         let result = preprocess_capture_tags("{%- capture myvar do -%}content{%- endcapture -%}");
         assert_eq!(result, "{%- capture myvar -%}content{%- endcapture -%}");
+    }
+
+    // Issue 171: preprocess_nil_contains tests
+
+    #[test]
+    fn test_issue171_preprocess_nil_contains_simple_if() {
+        let input = r#"{% if page.path contains "zh-TW" %}yes{% endif %}"#;
+        let output = preprocess_nil_contains(input);
+        assert!(
+            output.contains(r#"page.path and page.path contains "zh-TW""#),
+            "Should add nil guard, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_issue171_preprocess_nil_contains_elsif() {
+        let input = r#"{% elsif page.path contains "de-DE" %}"#;
+        let output = preprocess_nil_contains(input);
+        assert!(
+            output.contains(r#"page.path and page.path contains "de-DE""#),
+            "Should add nil guard to elsif, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_issue171_preprocess_nil_contains_no_change_for_other_tags() {
+        let input = r#"{% assign x = "hello" %}{% for item in items %}{% endfor %}"#;
+        let output = preprocess_nil_contains(input);
+        assert_eq!(output, input, "Should not modify non-if/elsif tags");
+    }
+
+    #[test]
+    fn test_issue171_preprocess_nil_contains_no_change_without_contains() {
+        let input = r#"{% if page.title == "hello" %}yes{% endif %}"#;
+        let output = preprocess_nil_contains(input);
+        assert_eq!(output, input, "Should not modify if without contains");
+    }
+
+    #[test]
+    fn test_issue171_preprocess_nil_contains_with_or() {
+        let input = r#"{% if url contains "play.google.com" or url contains "itunes.apple.com" %}"#;
+        let output = preprocess_nil_contains(input);
+        assert!(
+            output.contains("url and url contains \"play.google.com\""),
+            "Should guard first contains, got: {}",
+            output
+        );
+        assert!(
+            output.contains("url and url contains \"itunes.apple.com\""),
+            "Should guard second contains, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_issue171_nil_contains_render_with_nil_variable() {
+        // End-to-end: template with contains on nil variable should render without error
+        let eng = TemplateEngine::new().unwrap();
+        let ctx = Object::new(); // no page.path defined
+        let output = eng
+            .parse_and_render(
+                r#"{% if page.path contains "zh-TW" %}ZH{% else %}DEFAULT{% endif %}"#,
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(output.trim(), "DEFAULT");
+    }
+
+    #[test]
+    fn test_issue171_nil_contains_render_with_set_variable() {
+        // When the variable IS set, contains should still work correctly
+        let eng = TemplateEngine::new().unwrap();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        page.insert(
+            "path".into(),
+            Value::scalar("posts/zh-TW/hello.md".to_owned()),
+        );
+        ctx.insert("page".into(), Value::Object(page));
+        let output = eng
+            .parse_and_render(
+                r#"{% if page.path contains "zh-TW" %}ZH{% else %}DEFAULT{% endif %}"#,
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(output.trim(), "ZH");
+    }
+
+    #[test]
+    fn test_issue171_preprocess_preserves_dash_whitespace_control() {
+        let input = r#"{%- if page.path contains "zh-TW" -%}yes{%- endif -%}"#;
+        let output = preprocess_nil_contains(input);
+        assert!(output.starts_with("{%-"), "Should preserve leading dash");
+        assert!(output.contains("-%}"), "Should preserve trailing dash");
+        assert!(
+            output.contains("page.path and page.path contains"),
+            "Should add nil guard, got: {}",
+            output
+        );
     }
 }

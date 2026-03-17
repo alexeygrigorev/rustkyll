@@ -287,14 +287,16 @@ fn build_related_posts(collections: &HashMap<String, Vec<CollectionItem>>) -> Ve
         return Vec::new();
     };
 
-    // Sort posts by date descending, take up to 10
+    // Sort posts by date descending, take up to 10.
+    // Jekyll sorts by date descending, then by path/slug descending for
+    // same-date posts (matching the reverse chronological order of site.posts).
     let mut sorted: Vec<&CollectionItem> = posts.iter().collect();
     sorted.sort_by(|a, b| {
         let date_a = a.date.as_deref().unwrap_or("");
         let date_b = b.date.as_deref().unwrap_or("");
         date_b
-            .cmp(date_a) // descending
-            .then_with(|| a.slug.cmp(&b.slug))
+            .cmp(date_a) // descending by date
+            .then_with(|| b.slug.cmp(&a.slug)) // descending by slug for tiebreaking
     });
 
     sorted
@@ -368,12 +370,22 @@ fn build_categories_and_tags(
 
     let categories_obj = categories
         .into_iter()
-        .map(|(k, v)| (k.into(), LiquidValue::Array(v)))
+        .map(|(k, mut v)| {
+            // Jekyll lists posts within each category in reverse chronological
+            // order (newest first), matching site.posts. Since posts are iterated
+            // in load order (date ascending), reverse each group.
+            v.reverse();
+            (k.into(), LiquidValue::Array(v))
+        })
         .collect::<Object>();
 
     let tags_obj = tags
         .into_iter()
-        .map(|(k, v)| (k.into(), LiquidValue::Array(v)))
+        .map(|(k, mut v)| {
+            // Same reverse-chronological ordering for tags.
+            v.reverse();
+            (k.into(), LiquidValue::Array(v))
+        })
         .collect::<Object>();
 
     (
@@ -3448,6 +3460,216 @@ defaults:
                 "site.related_posts should have 10, got {}",
                 arr.len()
             );
+        }
+    }
+
+    // ========================================================================
+    // Issue 172: Fix related posts ordering (tiebreaking and category/tag ordering)
+    // ========================================================================
+
+    #[test]
+    fn test_related_posts_tiebreaking_same_date_by_slug_descending() {
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+
+        let posts = vec![
+            make_test_post("alpha", "2024-01-15", "Alpha Post"),
+            make_test_post("beta", "2024-01-15", "Beta Post"),
+            make_test_post("gamma", "2024-01-15", "Gamma Post"),
+        ];
+
+        let mut collections = HashMap::new();
+        collections.insert("posts".to_string(), posts);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
+
+        let related = ctx.get("related_posts").expect("should have related_posts");
+        if let LiquidValue::Array(arr) = related {
+            assert_eq!(arr.len(), 3);
+            // Jekyll sorts same-date posts by path descending (slug descending).
+            // So order should be: gamma, beta, alpha
+            let titles: Vec<String> = arr
+                .iter()
+                .filter_map(|v| {
+                    if let LiquidValue::Object(obj) = v {
+                        obj.get("title").map(|t| t.to_kstr().to_string())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            assert_eq!(
+                titles,
+                vec!["Gamma Post", "Beta Post", "Alpha Post"],
+                "Same-date posts should be sorted by slug descending (matching Jekyll)"
+            );
+        } else {
+            panic!("Expected related_posts to be an array");
+        }
+    }
+
+    #[test]
+    fn test_categories_posts_sorted_reverse_chronological() {
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+
+        let mut fm_old = HashMap::new();
+        fm_old.insert(
+            "title".to_string(),
+            serde_yaml::Value::String("Old ML Post".to_string()),
+        );
+        fm_old.insert(
+            "categories".to_string(),
+            serde_yaml::Value::Sequence(vec![serde_yaml::Value::String("ml".to_string())]),
+        );
+
+        let mut fm_new = HashMap::new();
+        fm_new.insert(
+            "title".to_string(),
+            serde_yaml::Value::String("New ML Post".to_string()),
+        );
+        fm_new.insert(
+            "categories".to_string(),
+            serde_yaml::Value::Sequence(vec![serde_yaml::Value::String("ml".to_string())]),
+        );
+
+        let posts = vec![
+            CollectionItem {
+                slug: "old-ml".to_string(),
+                front_matter: fm_old,
+                content: String::new(),
+                html_content: String::new(),
+                excerpt: None,
+                url: "/blog/old-ml.html".to_string(),
+                date: Some("2020-01-01".to_string()),
+                collection_name: "posts".to_string(),
+                source_path: "_posts/2020-01-01-old-ml.md".to_string(),
+                id: String::new(),
+            },
+            CollectionItem {
+                slug: "new-ml".to_string(),
+                front_matter: fm_new,
+                content: String::new(),
+                html_content: String::new(),
+                excerpt: None,
+                url: "/blog/new-ml.html".to_string(),
+                date: Some("2024-06-01".to_string()),
+                collection_name: "posts".to_string(),
+                source_path: "_posts/2024-06-01-new-ml.md".to_string(),
+                id: String::new(),
+            },
+        ];
+
+        let mut collections = HashMap::new();
+        collections.insert("posts".to_string(), posts);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
+
+        let categories = ctx.get("categories").expect("should have categories");
+        if let LiquidValue::Object(cats) = categories {
+            let ml = cats.get("ml").expect("should have ml category");
+            if let LiquidValue::Array(arr) = ml {
+                assert_eq!(arr.len(), 2);
+                if let LiquidValue::Object(first) = &arr[0] {
+                    assert_eq!(
+                        first.get("title").unwrap(),
+                        &LiquidValue::scalar("New ML Post"),
+                        "First post in category should be newest"
+                    );
+                }
+                if let LiquidValue::Object(last) = &arr[1] {
+                    assert_eq!(
+                        last.get("title").unwrap(),
+                        &LiquidValue::scalar("Old ML Post"),
+                        "Last post in category should be oldest"
+                    );
+                }
+            } else {
+                panic!("Expected ml category to be an array");
+            }
+        } else {
+            panic!("Expected categories to be an object");
+        }
+    }
+
+    #[test]
+    fn test_tags_posts_sorted_reverse_chronological() {
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+
+        let mut fm_old = HashMap::new();
+        fm_old.insert(
+            "title".to_string(),
+            serde_yaml::Value::String("Old Tagged".to_string()),
+        );
+        fm_old.insert(
+            "tags".to_string(),
+            serde_yaml::Value::Sequence(vec![serde_yaml::Value::String("rust".to_string())]),
+        );
+
+        let mut fm_new = HashMap::new();
+        fm_new.insert(
+            "title".to_string(),
+            serde_yaml::Value::String("New Tagged".to_string()),
+        );
+        fm_new.insert(
+            "tags".to_string(),
+            serde_yaml::Value::Sequence(vec![serde_yaml::Value::String("rust".to_string())]),
+        );
+
+        let posts = vec![
+            CollectionItem {
+                slug: "old-tagged".to_string(),
+                front_matter: fm_old,
+                content: String::new(),
+                html_content: String::new(),
+                excerpt: None,
+                url: "/blog/old-tagged.html".to_string(),
+                date: Some("2020-01-01".to_string()),
+                collection_name: "posts".to_string(),
+                source_path: "_posts/2020-01-01-old-tagged.md".to_string(),
+                id: String::new(),
+            },
+            CollectionItem {
+                slug: "new-tagged".to_string(),
+                front_matter: fm_new,
+                content: String::new(),
+                html_content: String::new(),
+                excerpt: None,
+                url: "/blog/new-tagged.html".to_string(),
+                date: Some("2024-06-01".to_string()),
+                collection_name: "posts".to_string(),
+                source_path: "_posts/2024-06-01-new-tagged.md".to_string(),
+                id: String::new(),
+            },
+        ];
+
+        let mut collections = HashMap::new();
+        collections.insert("posts".to_string(), posts);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
+
+        let tags = ctx.get("tags").expect("should have tags");
+        if let LiquidValue::Object(tags_obj) = tags {
+            let rust_tag = tags_obj.get("rust").expect("should have rust tag");
+            if let LiquidValue::Array(arr) = rust_tag {
+                assert_eq!(arr.len(), 2);
+                if let LiquidValue::Object(first) = &arr[0] {
+                    assert_eq!(
+                        first.get("title").unwrap(),
+                        &LiquidValue::scalar("New Tagged"),
+                        "First post in tag should be newest"
+                    );
+                }
+                if let LiquidValue::Object(last) = &arr[1] {
+                    assert_eq!(
+                        last.get("title").unwrap(),
+                        &LiquidValue::scalar("Old Tagged"),
+                        "Last post in tag should be oldest"
+                    );
+                }
+            } else {
+                panic!("Expected rust tag to be an array");
+            }
+        } else {
+            panic!("Expected tags to be an object");
         }
     }
 
