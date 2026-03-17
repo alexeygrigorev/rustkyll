@@ -26,6 +26,11 @@ struct ScopeMapping {
 fn build_scope_map() -> Vec<ScopeMapping> {
     let rules: &[(&str, &str)] = &[
         // ── Language-specific overrides (checked first) ──
+        // JSON: Rouge renders string delimiters (quotes) as part of the string token.
+        // Syntect emits punctuation.definition.string.{begin,end} as separate scopes.
+        // Map them to `s2` (same as string.quoted.double) so they merge with the
+        // string content in accumulate_and_emit, producing a single <span> per string.
+        ("source.json punctuation.definition.string", "s2"),
         // YAML: Rouge does not use numeric classes; numbers in flow sequences
         // are `nv` (variable value), other numbers are `s` (string).
         ("source.yaml meta.flow-sequence constant.numeric", "nv"),
@@ -1823,6 +1828,129 @@ mod tests {
         assert!(
             !html.contains("<span class=\"p\">&lt;</span><span class=\"na\">"),
             "XML should NOT have p+na pattern for tags: {html}"
+        );
+    }
+
+    // ── Issue 180: JSON string token tests ──
+
+    #[test]
+    fn test_json_string_single_span() {
+        // JSON string values should be rendered as a single <span class="s2">"example"</span>
+        // matching Rouge/Jekyll output, not split into separate spans for delimiters and content.
+        let code = "{\"name\": \"example\"}\n";
+        let html = highlight_code("json", code).unwrap();
+        assert!(
+            html.contains("<span class=\"s2\">\"example\"</span>"),
+            "JSON string value should be a single s2 span: {html}"
+        );
+        // Should NOT have separate spans for quote delimiters
+        assert!(
+            !html.contains("<span class=\"s2\">\"</span><span class=\"s2\">example</span>"),
+            "JSON string should not be split into separate spans: {html}"
+        );
+    }
+
+    #[test]
+    fn test_json_key_single_span() {
+        // JSON keys should also be rendered as single spans
+        let code = "{\"name\": \"value\"}\n";
+        let html = highlight_code("json", code).unwrap();
+        assert!(
+            html.contains("<span class=\"s2\">\"name\"</span>"),
+            "JSON key should be a single s2 span: {html}"
+        );
+    }
+
+    #[test]
+    fn test_json_string_with_special_chars() {
+        // JSON strings with special characters (slashes, spaces, colons) should be single spans
+        let code = "{\"path\": \"/foo/bar\"}\n";
+        let html = highlight_code("json", code).unwrap();
+        assert!(
+            html.contains("<span class=\"s2\">\"/foo/bar\"</span>"),
+            "JSON string with slashes should be a single s2 span: {html}"
+        );
+    }
+
+    #[test]
+    fn test_json_empty_string() {
+        // Empty JSON strings should be rendered as a single span with just the quotes
+        let code = "{\"key\": \"\"}\n";
+        let html = highlight_code("json", code).unwrap();
+        assert!(
+            html.contains("<span class=\"s2\">\"\"</span>"),
+            "JSON empty string should be a single s2 span: {html}"
+        );
+    }
+
+    #[test]
+    fn test_json_string_with_url() {
+        // JSON strings containing URLs should be single spans
+        let code = "{\"url\": \"https://example.com/path\"}\n";
+        let html = highlight_code("json", code).unwrap();
+        assert!(
+            html.contains("<span class=\"s2\">\"https://example.com/path\"</span>"),
+            "JSON URL string should be a single s2 span: {html}"
+        );
+    }
+
+    #[test]
+    fn test_json_non_string_tokens_unchanged() {
+        // JSON numbers, booleans, and null should not be affected by string merging
+        let code = "{\"count\": 42, \"active\": true, \"data\": null}\n";
+        let html = highlight_code("json", code).unwrap();
+        assert!(
+            html.contains("<span class=\"m\">42</span>")
+                || html.contains("<span class=\"mi\">42</span>"),
+            "JSON integer should be m or mi: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"kc\">true</span>"),
+            "JSON boolean should be kc: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"kc\">null</span>"),
+            "JSON null should be kc: {html}"
+        );
+    }
+
+    #[test]
+    fn test_json_multiline_object() {
+        // Multi-line JSON should have properly merged strings on each line
+        let code = "{\n  \"name\": \"example\",\n  \"version\": \"1.0.0\"\n}\n";
+        let html = highlight_code("json", code).unwrap();
+        assert!(
+            html.contains("<span class=\"s2\">\"name\"</span>"),
+            "JSON key on separate line should be single span: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"s2\">\"example\"</span>"),
+            "JSON value on separate line should be single span: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"s2\">\"version\"</span>"),
+            "Second JSON key should be single span: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"s2\">\"1.0.0\"</span>"),
+            "Second JSON value should be single span: {html}"
+        );
+    }
+
+    #[test]
+    fn test_python_highlighting_unchanged_by_json_fix() {
+        // Ensure Python string highlighting is not affected by JSON-specific logic
+        let code = "x = \"hello\"\n";
+        let html = highlight_code("python", code).unwrap();
+        // Python strings should still use class "s" (not s2)
+        assert!(
+            html.contains("class=\"s\""),
+            "Python string should still be s: {html}"
+        );
+        // Python strings should contain the full quoted value
+        assert!(
+            html.contains("\"hello\""),
+            "Python string should contain quotes: {html}"
         );
     }
 }
