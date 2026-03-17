@@ -1,0 +1,44 @@
+Jekyll directory:   /home/alexey/git/rustkyl/websites/mojombo-blog/_site_jekyll_recount
+Rustkyll directory: /home/alexey/git/rustkyl/websites/mojombo-blog/_site_rustkyll_recount
+Common HTML files:  17
+
+DIFF 2008/10/18/how-i-turned-down-300k.html (5 differences)
+  body > div > div > p: text_differs - expected: '2008 is a leap year. That means that three hundred and sixty six days ago, almost to the minute, I was sitting alone in a booth at Zeke’s Sports Bar and Grill on 3rd Street in San Francisco. I wouldn’t normally hang out at a sports bar, let alone a sports bar in SOMA, but back then Thursday was “I Can Has Ruby” night. I guess back then “I can has', actual: '2008 is a leap year. That means that three hundred and sixty six days ago, almost to the minute, I was sitting alone in a booth at Zeke’s Sports Bar and Grill on 3rd Street in San Francisco. I wouldn’t normally hang out at a sports bar, let alone a sports bar in SOMA, but back then Thursday was “I Can Has Ruby” night. I guess back then “I can has _______” was also a reasonable moniker to attach to pretty much anything. ICHR was a semi-private meeting of like minded Ruby Hackers that generally and willingly devolved into late night drinking sessions. Normally these nights would fade away like my hangover the next morning, but this night was different. This was the night that'
+  body > div > div > p > child[1]: tag_name_differs - expected: 'strong', actual: 'a'
+  body > div > div > p: text_differs - expected: '_” was also a reasonable moniker to attach to pretty much anything. ICHR was a semi-private meeting of like minded Ruby Hackers that generally and willingly devolved into late night drinking sessions. Normally these nights would fade away like my hangover the next morning, but this night was different. This was the night that', actual: 'was born.'
+  body > div > div > p > a: missing_element - expected: '<a>', actual: '(none)'
+  body > div > div > p: missing_text - expected: 'was born.', actual: '(none)'
+DIFF 2009/05/19/the-git-parable.html (1 differences)
+  body > div > div > p > a > img: attribute_differs - expected: "alt='Creative Commons License'", actual: "alt='Creative\\nCommons License'"
+DIFF 2010/05/11/tomdoc-reasonable-ruby-documentation.html (8 differences)
+  body > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'text'
+  body > div > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='o'"
+  body > div > div > div > div > pre > code > span: text_differs - expected: 'text', actual: '*'
+  body > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'count'
+  body > div > div > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='k'"
+  body > div > div > div > div > pre > code > span: text_differs - expected: '*', actual: 'end'
+  body > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+DIFF 2014/04/21/farewell-github-hello-immersive-computing.html (3 differences)
+  body > div > div > ul > li > span: text_differs - expected: '22 Nov 2011', actual: '21 Apr 2014'
+  body > div > div > ul > li > a: attribute_differs - expected: "href='/2011/11/22/open-source-everything.html'", actual: "href='/2014/04/21/farewell-github-hello-immersive-computing.html'"
+  body > div > div > ul > li > a: text_differs - expected: 'Open Source (Almost) Everything', actual: 'Farewell GitHub, Hello Immersive Computing'
+DIFF 2015/06/19/replicated.html (6 differences)
+  body > div > div > ul > li > span: text_differs - expected: '21 Apr 2014', actual: '19 Jun 2015'
+  body > div > div > ul > li > a: attribute_differs - expected: "href='/2014/04/21/farewell-github-hello-immersive-computing.html'", actual: "href='/2015/06/19/replicated.html'"
+  body > div > div > ul > li > a: text_differs - expected: 'Farewell GitHub, Hello Immersive Computing', actual: 'Replicated - An Easier Path from SaaS to Enterprise'
+  body > div > div > ul > li > span: text_differs - expected: '22 Nov 2011', actual: '21 Apr 2014'
+  body > div > div > ul > li > a: attribute_differs - expected: "href='/2011/11/22/open-source-everything.html'", actual: "href='/2014/04/21/farewell-github-hello-immersive-computing.html'"
+  body > div > div > ul > li > a: text_differs - expected: 'Open Source (Almost) Everything', actual: 'Farewell GitHub, Hello Immersive Computing'
+DIFF 2016/11/10/snyk.html (9 differences)
+  body > div > div > ul > li > span: text_differs - expected: '19 Jun 2015', actual: '10 Nov 2016'
+  body > div > div > ul > li > a: attribute_differs - expected: "href='/2015/06/19/replicated.html'", actual: "href='/2016/11/10/snyk.html'"
+  body > div > div > ul > li > a: text_differs - expected: 'Replicated - An Easier Path from SaaS to Enterprise', actual: 'Snyk - Automatically Scan and Fix Ruby and Nodejs Vulnerabilities'
+  body > div > div > ul > li > span: text_differs - expected: '21 Apr 2014', actual: '19 Jun 2015'
+  body > div > div > ul > li > a: attribute_differs - expected: "href='/2014/04/21/farewell-github-hello-immersive-computing.html'", actual: "href='/2015/06/19/replicated.html'"
+  body > div > div > ul > li > a: text_differs - expected: 'Farewell GitHub, Hello Immersive Computing', actual: 'Replicated - An Easier Path from SaaS to Enterprise'
+  body > div > div > ul > li > span: text_differs - expected: '22 Nov 2011', actual: '21 Apr 2014'
+  body > div > div > ul > li > a: attribute_differs - expected: "href='/2011/11/22/open-source-everything.html'", actual: "href='/2014/04/21/farewell-github-hello-immersive-computing.html'"
+  body > div > div > ul > li > a: text_differs - expected: 'Open Source (Almost) Everything', actual: 'Farewell GitHub, Hello Immersive Computing'
+
+Summary: 11 files matched, 6 files with differences, 32 total differences

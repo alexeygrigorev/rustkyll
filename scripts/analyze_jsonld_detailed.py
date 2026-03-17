@@ -1,4 +1,7 @@
 #!/usr/bin/env -S uv run python
+# /// script
+# dependencies = ["beautifulsoup4"]
+# ///
 """Analyze JSON-LD diffs by comparing actual JSON content of script tags."""
 import os
 import sys

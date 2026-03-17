@@ -1,0 +1,18 @@
+Jekyll directory:   /home/alexey/git/rustkyl/websites/alexeygrigorev/alexeygrigorev.github.io/_site_jekyll_recount
+Rustkyll directory: /home/alexey/git/rustkyl/websites/alexeygrigorev/alexeygrigorev.github.io/_site_rustkyll_recount
+Common HTML files:  8
+
+DIFF services.html (18 differences)
+  body > main > div > div > div > div > div > a: attribute_differs - expected: "href='/services/consulting.html'", actual: "href='/services/devrel.html'"
+  body > main > div > div > div > div > div > a > div > h2: text_differs - expected: 'Consulting', actual: 'DevRel & Content'
+  body > main > div > div > div > div > div > a > div > p: text_differs - expected: 'I help companies build and ship AI products. From evaluating your ML systems to designing architectures that scale, I bring practical experience from building ML platforms at OLX and running production systems that serve millions.', actual: 'I create educational content that helps companies reach developers. Courses, tutorials, documentation, videos - whatever format resonates with your audience.'
+  body > main > div > div > div > div > div > a > div > div > span: text_differs - expected: 'ML Architecture & Infrastructure', actual: 'Online Courses'
+  body > main > div > div > div > div > div > a > div > div > span: text_differs - expected: 'LLM Evaluation', actual: 'Technical Content'
+  body > main > div > div > div > div > div > a > div > div > span: text_differs - expected: 'AI Product Strategy', actual: 'Video Content'
+  body > main > div > div > div > div > div > a: attribute_differs - expected: "href='/services/workshops.html'", actual: "href='/services/consulting.html'"
+  body > main > div > div > div > div > div > a > div > h2: text_differs - expected: 'Workshops', actual: 'Consulting'
+  body > main > div > div > div > div > div > a > div > p: text_differs - expected: 'I deliver hands-on workshops for engineering teams. Drawing from experience creating ML Zoomcamp, LLM Zoomcamp, and AI Dev Tools Zoomcamp - courses taken by 100,000+ students worldwide.', actual: 'I help companies build and ship AI products. From evaluating your ML systems to designing architectures that scale, I bring practical experience from building ML platforms at OLX and running production systems that serve millions.'
+  body > main > div > div > div > div > div > a > div > div > span: text_differs - expected: 'LLMs & Prompt Engineering', actual: 'ML Architecture & Infrastructure'
+  ... and 8 more differences
+
+Summary: 7 files matched, 1 files with differences, 18 total differences

@@ -1,4 +1,7 @@
 #!/usr/bin/env -S uv run python
+# /// script
+# dependencies = ["beautifulsoup4"]
+# ///
 """Sample a specific file's JSON-LD to see exact differences."""
 import os
 import sys

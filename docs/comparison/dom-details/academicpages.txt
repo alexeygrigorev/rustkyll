@@ -1,0 +1,68 @@
+Jekyll directory:   /home/alexey/git/rustkyl/websites/academicpages/_site_jekyll_recount
+Rustkyll directory: /home/alexey/git/rustkyl/websites/academicpages/_site_rustkyll_recount
+Common HTML files:  17
+Only in Jekyll:     28
+
+DIFF portfolio/portfolio-1/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF portfolio/portfolio-2/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'This is an item in your portfolio. It can be have images or nice text. If you name the file .md, it '
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF posts/2012/08/blog-post-1/index.html (4 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h1'
+  h1: extra_element - expected: '(none)', actual: '<h1>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+DIFF posts/2012/08/blog-post-4/index.html (4 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h1'
+  h1: extra_element - expected: '(none)', actual: '<h1>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+DIFF posts/2013/08/blog-post-2/index.html (4 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h1'
+  h1: extra_element - expected: '(none)', actual: '<h1>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+DIFF posts/2014/08/blog-post-3/index.html (4 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h1'
+  h1: extra_element - expected: '(none)', actual: '<h1>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+DIFF publication/2009-10-01-paper-title-number-1.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF publication/2010-10-01-paper-title-number-2.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF publication/2015-10-01-paper-title-number-3.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF publication/2024-02-17-paper-title-number-4.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF talks/2012-03-01-talk-1.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF talks/2013-03-01-tutorial-1.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+DIFF talks/2014-02-01-talk-2.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+DIFF talks/2014-03-01-talk-3.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF teaching/2014-spring-teaching-1.html (4 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h1'
+  h1: extra_element - expected: '(none)', actual: '<h1>'
+  h1: extra_element - expected: '(none)', actual: '<h1>'
+DIFF teaching/2015-spring-teaching-1.html (4 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h1'
+  h1: extra_element - expected: '(none)', actual: '<h1>'
+  h1: extra_element - expected: '(none)', actual: '<h1>'
+
+Summary: 1 files matched, 16 files with differences, 45 total differences

@@ -1,0 +1,119 @@
+Jekyll directory:   /home/alexey/git/rustkyl/websites/alexeygrigorev/snippets/_site_jekyll_recount
+Rustkyll directory: /home/alexey/git/rustkyl/websites/alexeygrigorev/snippets/_site_rustkyll_recount
+Common HTML files:  25
+
+DIFF snippets/ai/llm-api-cost-tracker.html (6 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'div'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF snippets/ai/openai-agents-basic.html (5 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+DIFF snippets/ai/openai-responses-function-calls.html (11 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h1: extra_element - expected: '(none)', actual: '<h1>'
+  ... and 1 more differences
+DIFF snippets/ai/pydantic-ai-streaming.html (5 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+DIFF snippets/ai/pydantic-ai-toyaikit.html (5 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+DIFF snippets/ai/pydantic-discriminated-unions.html (6 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'div'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF snippets/ai/toyaikit-agents-sdk.html (5 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+DIFF snippets/ai/toyaikit-custom-callbacks.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'div'
+DIFF snippets/ai/toyaikit-loop.html (8 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+DIFF snippets/ai/toyaikit-tools-example.html (6 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+DIFF snippets/devops/deploy-jekyll-pages-action.html (4 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'div'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF snippets/devops/dockerfile-uv-python.html (4 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'div'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF snippets/devops/python-project-makefile.html (4 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'div'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF snippets/python/async_batch_queue.html (6 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'div'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF snippets/python/async_map_tqdm.html (6 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'div'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF snippets/python/threaded_map_tqdm.html (7 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'div'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF snippets/tools/uv-path-dependencies.html (6 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+
+Summary: 8 files matched, 17 files with differences, 96 total differences

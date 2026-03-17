@@ -1,4 +1,7 @@
 #!/usr/bin/env -S uv run python
+# /// script
+# dependencies = ["beautifulsoup4"]
+# ///
 """Analyze what causes 'string-value-diff' in JSON-LD."""
 import os
 import sys

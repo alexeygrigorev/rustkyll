@@ -1,0 +1,508 @@
+Jekyll directory:   /home/alexey/git/rustkyl/websites/alexeygrigorev/little-book-of-metals-ru/_site_jekyll_recount
+Rustkyll directory: /home/alexey/git/rustkyl/websites/alexeygrigorev/little-book-of-metals-ru/_site_rustkyll_recount
+Common HTML files:  43
+Only in Jekyll:     5
+
+DIFF часть_1_история/глава_01_введение.html (8 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-1-введение---мир-металлов-вокруг-нас'", actual: "id='-1-------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='уникальные-дары-металлов'", actual: "id='--'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='как-металлы-переписали-историю-человечества'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='металлы-в-объятиях-земли'", actual: "id='---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='звездное-наследство'", actual: "id='-'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='металлы-и-забота-о-планете'", actual: "id='-----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='созидатели-металлического-будущего'", actual: "id='---1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='горизонт-возможностей'", actual: "id='--1'"
+DIFF часть_1_история/глава_02_каменный_век.html (14 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-2-каменный-век-и-первые-металлы'", actual: "id='-2-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='случайное-открытие-перевернувшее-мир'", actual: "id='---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='почему-медь-покорилась-человеку-первой'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='первые-шедевры-медного-века'", actual: "id='----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='тайны-древней-металлургии'", actual: "id='--'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='как-медь-завоевала-мир'", actual: "id='----2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='социальная-революция-медного-века'", actual: "id='----3'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='пределы-медного-совершенства'", actual: "id='---1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='благородные-металлы-красота-без-практичности'", actual: "id='-----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='первые-шаги-к-сплавам'", actual: "id='----4'"
+  ... and 4 more differences
+DIFF часть_1_история/глава_03_бронзовый_век.html (18 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-3-бронзовый-век---революция-сплавов'", actual: "id='-3------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='алхимия-древних-что-такое-бронза'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='случайное-открытие-изменившее-мир'", actual: "id='---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='революционные-преимущества-бронзы'", actual: "id='--'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='проблема-редкого-олова'", actual: "id='---1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='рождение-первых-глобальных-торговых-путей'", actual: "id='-----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='мастерство-древних-типы-бронз-для-разных-целей'", actual: "id='------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='революция-в-технологиях-как-создавали-бронзовые-шедевры'", actual: "id='-------1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='бронзовые-сокровища-что-создавали-древние-мастера'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='социальная-революция-бронзового-века'", actual: "id='----1'"
+  ... and 8 more differences
+DIFF часть_1_история/глава_04_железный_век.html (20 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-4-железный-век---эпоха-стали'", actual: "id='-4------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='парадокс-железа-почему-худшее-стало-лучше'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='небесный-металл-первое-знакомство-с-железом'", actual: "id='------1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='хеттские-первопроходцы-рождение-железной-металлургии'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='железная-монополия-пять-веков-тайны'", actual: "id='-----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='железная-волна-как-металл-завоевал-мир'", actual: "id='------2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='триумф-железа-почему-простое-победило-совершенное'", actual: "id='------3'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='темная-сторона-железа-проблемы-нового-материала'", actual: "id='------4'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='алхимия-стали-как-углерод-превратил-железо-в-короля-металлов'", actual: "id='--------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='революция-на-полях-сражений'", actual: "id='---'"
+  ... and 10 more differences
+DIFF часть_1_история/глава_05_средневековье.html (17 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-5-средневековье---кузнецы-и-алхимики'", actual: "id='-5------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='кузнец-между-ремеслом-и-волшебством'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='революция-доменных-печей-рождение-промышленности'", actual: "id='-----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='сила-воды-первая-механизация-производства'", actual: "id='-----2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='искусство-стали-между-наукой-и-магией'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='гильдии-хранители-тайн-и-стандартов'", actual: "id='-----3'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='алхимия-на-пути-от-магии-к-науке'", actual: "id='------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='семь-планетных-металлов-космическая-система'", actual: "id='-----4'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='оружие-и-доспехи-искусство-войны-в-металле'", actual: "id='-------1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='монетное-дело-и-ювелирное-искусство'", actual: "id='-----5'"
+  ... and 7 more differences
+DIFF часть_1_история/глава_06_промышленная_революция.html (20 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-6-промышленная-революция---массовое-производство-металлов'", actual: "id='-6-------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='углерод-против-дерева-революция-топлива'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='пар-как-сила-механическая-революция'", actual: "id='-----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='гений-генри-корта-революция-в-обработке-железа'", actual: "id='------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='новые-материалы-промышленной-эпохи'", actual: "id='---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='транспорт-в-эру-железа-и-пара'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='социальные-потрясения-индустриальной-эпохи'", actual: "id='----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='стальная-революция-генри-бессемера'", actual: "id='----2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='мартеновский-процесс-гибкость-против-скорости'", actual: "id='-----2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='открытие-новых-металлов'", actual: "id='--'"
+  ... and 10 more differences
+DIFF часть_1_история/глава_07_XX_век.html (19 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-7-xx-век---новые-металлы-и-космические-технологии'", actual: "id='-7-xx--------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='горнило-войн-катализатор-металлургического-прогресса'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='алюминиевая-эпоха-от-королевского-металла-к-массовому-материалу'", actual: "id='-------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='нержавеющая-сталь-материал-покоривший-мир'", actual: "id='-----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='титан-металл-богов-в-земных-применениях'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='редкоземельные-элементы-невидимые-герои-современности'", actual: "id='-----2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='ядерная-эра-рождение-новой-металлургии'", actual: "id='-----3'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='полупроводниковая-революция-металлы-в-мире-электроники'", actual: "id='------1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='сверхпроводимость-металлы-без-сопротивления'", actual: "id='---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='авиационная-революция-металлы-покоряют-небо'", actual: "id='-----4'"
+  ... and 9 more differences
+DIFF часть_1_история/глава_08_современность.html (71 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 61 more differences
+DIFF часть_2_основы/глава_09_что_такое_металл.html (142 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  ... and 132 more differences
+DIFF часть_2_основы/глава_10_периодическая_таблица.html (20 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-10-периодическая-таблица-и-металлы'", actual: "id='-10----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='карта-невидимого-мира-архитектура-периодической-таблицы'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='география-металлов-где-живут-металлические-элементы'", actual: "id='------1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='благородные-семейства-металлов'", actual: "id='--'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='щелочные-металлы-бунтари-первой-группы'", actual: "id='----'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='щелочноземельные-металлы-умеренные-аристократы'", actual: "id='---'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='переходные-металлы-сердце-таблицы'", actual: "id='----1'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='редкоземельные-элементы-скрытые-герои-современности'", actual: "id='-----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='периодические-ритмы-природы'", actual: "id='---1'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='размеры-атомов-большие-и-маленькие'", actual: "id='-----2'"
+  ... and 10 more differences
+DIFF часть_2_основы/глава_11_добыча_руды.html (30 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-11-как-добывают-металлы-из-руды'", actual: "id='-11-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='сокровища-спрятанные-в-камне-что-такое-руда'", actual: "id='------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='как-природа-прячет-свои-сокровища-образование-месторождений'", actual: "id='-------1'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='магматические-месторождения-подарки-из-огненных-недр'", actual: "id='-----'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='гидротермальные-месторождения-алхимия-горячих-вод'", actual: "id='----'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='осадочные-месторождения-дары-древних-морей'", actual: "id='-----1'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='россыпные-месторождения-сокровища-в-речном-песке'", actual: "id='------1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='детективная-работа-геологов-поиск-невидимых-сокровищ'", actual: "id='------2'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='геологическое-картирование-чтение-каменной-книги'", actual: "id='-----2'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='геохимическая-разведка-по-следам-металлов'", actual: "id='-----3'"
+  ... and 20 more differences
+DIFF часть_2_основы/глава_12_сплавы.html (186 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 176 more differences
+DIFF часть_3_металлы/глава_13_золото.html (137 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 127 more differences
+DIFF часть_3_металлы/глава_14_серебро.html (39 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-14-серебро---лунный-металл'", actual: "id='-14-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='серебряные-нити-истории-пять-тысяч-лет-с-человечеством'", actual: "id='-------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='рекордсмен-металлического-мира-уникальные-свойства-серебра'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='природный-антибиотик-олигодинамический-эффект-серебра'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='серебряная-география-месторождения-и-центры-добычи'", actual: "id='------1'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='потоси-гора-которая-накормила-мир-серебром'", actual: "id='------2'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='комсток-американская-серебряная-лихорадка'", actual: "id='---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='серебро-xxi-века-от-солнечных-панелей-до-нанотехнологий'", actual: "id='-xxi------'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='зеленая-энергетика-серебряные-дороги-солнца'", actual: "id='-----1'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='электроника-невидимые-серебряные-помощники'", actual: "id='----1'"
+  ... and 29 more differences
+DIFF часть_3_металлы/глава_15_платина.html (21 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-15-платина---благородный-и-редкий'", actual: "id='-15------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='трудное-рождение-короля-история-открытия-платины'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='аристократ-металлического-мира-уникальные-свойства-платины'", actual: "id='------1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='космическая-редкость-почему-платины-так-мало'", actual: "id='------2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='география-платинового-богатства'", actual: "id='--'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='южная-африка-платиновая-столица-мира'", actual: "id='----'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='россия-норильская-сокровищница'", actual: "id='---1'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='другие-месторождения'", actual: "id='-'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='платина-на-службе-человечества'", actual: "id='---'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='автомобильная-революция-платина-очищает-воздух'", actual: "id='-----1'"
+  ... and 11 more differences
+DIFF часть_3_металлы/глава_16_платиноиды.html (22 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-16-палладий-родий-и-другие-платиноиды'", actual: "id='-16-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='семья-благородных-что-объединяет-платиноиды'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='палладий-металл-губка-и-проводник-будущего'", actual: "id='-----'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='палладий-в-автомобильной-революции'", actual: "id='---'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='палладий-в-электронике-будущего'", actual: "id='----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='родий-аристократ-среди-металлов'", actual: "id='----2'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='родий-в-борьбе-за-чистый-воздух'", actual: "id='------1'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='родий-в-высоких-технологиях'", actual: "id='----3'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='рутений-русский-металл-с-глобальным-значением'", actual: "id='------2'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='рутений-в-электронике-завтрашнего-дня'", actual: "id='-----1'"
+  ... and 12 more differences
+DIFF часть_3_металлы/глава_17_железо.html (26 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-17-железо---основа-цивилизации'", actual: "id='-17-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='звездное-наследие-космическое-рождение-железа'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='небесный-дар-первые-встречи-человека-с-железом'", actual: "id='------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='революция-огня-и-железа-рождение-железного-века'", actual: "id='-------1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='алхимия-углерода-рождение-стали'", actual: "id='---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='дамасская-легенда-совершенство-древней-металлургии'", actual: "id='-----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='промышленная-революция-железо-меняет-мир'", actual: "id='-----2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='бессемеровская-революция-рождение-массовой-стали'", actual: "id='-----3'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='мартеновское-совершенство-точный-контроль-над-сталью'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='кислородно-конвертерная-революция-возвращение-к-истокам'", actual: "id='------1'"
+  ... and 16 more differences
+DIFF часть_3_металлы/глава_18_медь.html (35 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-18-медь---первый-металл-человечества'", actual: "id='-18------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='избранный-металл-почему-медь-стала-первой'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='первые-шаги-в-металлический-век'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='чаталхёюк-первый-медный-город'", actual: "id='---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='кланы-медных-мастеров'", actual: "id='--'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='бронзовая-революция-медь-учится-дружить'", actual: "id='-----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='великие-медные-цивилизации'", actual: "id='---1'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='египет-медь-фараонов'", actual: "id='---2'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='кипр-остров-меди'", actual: "id='---3'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='америка-континент-меди'", actual: "id='---4'"
+  ... and 25 more differences
+DIFF часть_3_металлы/глава_19_алюминий.html (21 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-19-алюминий---металл-будущего'", actual: "id='-19-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='металл-спрятанный-в-глине'", actual: "id='---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='великая-охота-за-алюминием'", actual: "id='----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='алюминий-дороже-золота'", actual: "id='--'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='революция-двадцатидвухлетних-гениев'", actual: "id='---1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='алюминиевая-революция'", actual: "id='-'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='крылатый-металл-алюминий-завоевывает-небо'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='космический-алюминий-билет-к-звездам'", actual: "id='-----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='автомобильная-революция-легкость-против-расхода-топлива'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='строительная-революция-алюминий-меняет-облик-городов'", actual: "id='------1'"
+  ... and 11 more differences
+DIFF часть_3_металлы/глава_20_цинк.html (19 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-20-цинк---защитник-от-коррозии'", actual: "id='-20------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='скрытый-металл-древних-сплавов'", actual: "id='---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='европейское-открытие-невидимого-металла'", actual: "id='----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='химия-самопожертвования-как-цинк-защищает-сталь'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='технологии-нанесения-цинковой-брони'", actual: "id='----2'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='горячее-цинкование-огненная-ванна'", actual: "id='----3'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='электролитическое-цинкование-ювелирная-точность'", actual: "id='----4'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='термодиффузионное-цинкование-цинк-внутри-стали'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='цинк-в-архитектуре-красота-и-долговечность'", actual: "id='------1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='литейные-цинковые-сплавы-точность-и-красота'", actual: "id='------2'"
+  ... and 9 more differences
+DIFF часть_3_металлы/глава_21_свинец.html (31 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-21-свинец---тяжелый-и-опасный'", actual: "id='-21------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='древний-спутник-человечества'", actual: "id='--'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='римская-цивилизация-свинца'", actual: "id='---1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='гипотеза-свинцового-упадка'", actual: "id='---2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='средневековый-свинец-от-крыш-до-алхимии'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='революция-гутенберга-свинец-дает-знания'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='промышленная-революция-свинец-везде'", actual: "id='---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='первые-тревожные-сигналы'", actual: "id='---3'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='xx-век-от-массового-использования-к-пониманию-опасности'", actual: "id='xx-------'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='этилированный-бензин-сладкий-яд-в-воздухе'", actual: "id='------1'"
+  ... and 21 more differences
+DIFF часть_3_металлы/глава_22_олово.html (23 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-22-олово---металл-консервных-банок'", actual: "id='-22------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='мягкий-металл-твердого-века'", actual: "id='---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='бронзовая-революция-олово-меняет-мир'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='олово-античности-от-зеркал-до-монет'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='средневековье-олово-в-храмах-и-замках'", actual: "id='------1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='эпоха-великих-открытий-олово-покоряет-океаны'", actual: "id='------2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='промышленная-революция-олово-и-жесть'", actual: "id='-----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='консервная-революция-олово-кормит-мир'", actual: "id='-----2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='золотая-лихорадка-и-олово'", actual: "id='----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='технический-прогресс-от-ручной-работы-к-автоматам'", actual: "id='------'"
+  ... and 13 more differences
+DIFF часть_3_металлы/глава_23_магний.html (21 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-23-магний---горящий-металл'", actual: "id='-23-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='греческий-город-и-три-металла'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='научная-охота-за-неуловимым-металлом'", actual: "id='-----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='металл-света-и-огня'", actual: "id='---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='легчайший-из-прочных-уникальные-свойства'", actual: "id='-----2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='магний-в-природе-от-океанов-до-звезд'", actual: "id='------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='промышленное-получение-от-моря-до-металла'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='военные-применения-свет-и-разрушение'", actual: "id='-----3'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='фотографическая-революция-заморозить-мгновение'", actual: "id='----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='транспортная-революция-легкость-на-службе-скорости'", actual: "id='------1'"
+  ... and 11 more differences
+DIFF часть_3_металлы/глава_24_титан.html (15 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-24-титан---прочность-и-легкость'", actual: "id='-24------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='долгий-путь-от-лаборатории-к-небесам'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='процесс-кролла-превращение-песка-в-металл-богов'", actual: "id='------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='уникальные-свойства-когда-физика-становится-магией'", actual: "id='------1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='авиационная-революция-металл-поднявший-небо'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='космические-горизонты-билет-к-звездам'", actual: "id='-----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='медицинские-чудеса-когда-металл-становится-частью-тела'", actual: "id='-------1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='промышленные-применения-там-где-другие-сдаются'", actual: "id='------2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='титановые-сплавы-семья-сверхматериалов'", actual: "id='---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='спорт-и-дизайн-титан-в-повседневной-жизни'", actual: "id='-------2'"
+  ... and 5 more differences
+DIFF часть_3_металлы/глава_25_бериллий.html (14 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-25-бериллий---токсичный-но-ценный'", actual: "id='-25------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='сладкий-яд-из-драгоценных-камней'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='металл-рекордов-и-противоречий'", actual: "id='---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='темная-сторона-светлого-металла'", actual: "id='----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='космические-зеркала-и-звездная-пыль'", actual: "id='-----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='ядерные-технологии-укрощение-атома'", actual: "id='----2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='электроника-когда-каждый-контакт-на-счету'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='медицинские-парадоксы'", actual: "id='-'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='география-редкости-где-прячется-бериллий'", actual: "id='-----2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='алхимия-производства-от-руды-до-металла'", actual: "id='------1'"
+  ... and 4 more differences
+DIFF часть_3_металлы/глава_26_литий.html (16 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-26-литий---энергия-батарей'", actual: "id='-26-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='самый-легкий-среди-тяжеловесов'", actual: "id='---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='первые-шаги-в-мир-энергии'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='японское-чудо-рождение-li-ion'", actual: "id='---li-ion'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='мобильная-революция-в-кармане'", actual: "id='----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='электромобильная-революция-литий-выходит-на-дороги'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='география-белого-золота-где-прячется-литий'", actual: "id='------1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='экологические-дилеммы-литиевого-бума'", actual: "id='----2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='батарейный-город-как-устроена-гигафабрика'", actual: "id='-----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='переработка-вторая-жизнь-лития'", actual: "id='----3'"
+  ... and 6 more differences
+DIFF часть_3_металлы/глава_27_редкоземельные.html (13 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-27-редкоземельные-металлы---невидимые-герои-технологий'", actual: "id='-27-------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='великая-охота-за-невидимыми-элементами'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='квантовая-магия-4f-электронов'", actual: "id='--4f-'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='неодим-магнитный-король-современности'", actual: "id='---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='европий-красный-король-экранов'", actual: "id='----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='гадолиний-окно-в-человеческое-тело'", actual: "id='-----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='лютеций-самый-дорогой-и-загадочный'", actual: "id='-----2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='китайская-монополия-игра-с-высокими-ставками'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='экологическая-цена-технологического-прогресса'", actual: "id='----2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='городская-добыча-сокровища-в-мусорных-баках'", actual: "id='------1'"
+  ... and 3 more differences
+DIFF часть_3_металлы/глава_28_вольфрам.html (15 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-28-вольфрам---самый-тугоплавкий'", actual: "id='-28-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='волчий-металл-и-тяжелый-камень'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='металл-звездных-температур'", actual: "id='--'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='эдисон-и-тысяча-экспериментов'", actual: "id='---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='твердость-алмаза-в-металлическом-обличье'", actual: "id='-----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='космический-металл-для-земных-нужд'", actual: "id='-----2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='медицинские-лучи-и-защитная-броня'", actual: "id='-----3'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='электроды-для-укрощения-молний'", actual: "id='----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='геополитика-тугоплавкого-металла'", actual: "id='---1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='переработка-вторая-жизнь-звездного-металла'", actual: "id='-----4'"
+  ... and 5 more differences
+DIFF часть_3_металлы/глава_29_уран.html (20 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-29-уран---энергия-атома'", actual: "id='-29-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='случайное-открытие-невидимых-лучей'", actual: "id='---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='мария-и-пьер-расшифровка-тайны-атома'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='эйнштейн-и-тайна-атомной-энергии'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='расщепление-неделимого'", actual: "id='-'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='секрет-цепной-реакции'", actual: "id='--'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='письмо-изменившее-историю'", actual: "id='---1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='первый-костер-прометея'", actual: "id='---2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='манхэттенский-проект-город-призрак-в-пустыне'", actual: "id='------1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='тринити-первый-рассвет-атомной-эры'", actual: "id='-----1'"
+  ... and 10 more differences
+DIFF часть_3_металлы/глава_30_ртуть.html (43 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  ... and 33 more differences
+DIFF часть_4_применения/глава_31_компьютеры.html (97 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  ... and 87 more differences
+DIFF часть_4_применения/глава_32_автомобили.html (14 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-32-автомобильная-промышленность'", actual: "id='-32--'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='стальная-эпоха-рождение-автомобильной-индустрии'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='алюминиевая-революция-когда-авиация-пришла-в-автопром'", actual: "id='------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='магниевые-мечты-самый-легкий-металл-в-автомобиле'", actual: "id='-------1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='двигатель-лаборатория-металлургии'", actual: "id='--'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='трансмиссия-точность-и-надежность'", actual: "id='---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='тормоза-безопасность-любой-ценой'", actual: "id='----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='каталитический-нейтрализатор-химия-на-службе-экологии'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='электрическая-революция-новые-металлы-для-новой-эры'", actual: "id='-------2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='кузов-будущего-сталь-эволюционирует'", actual: "id='----2'"
+  ... and 4 more differences
+DIFF часть_4_применения/глава_33_космос.html (29 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-33-космические-технологии'", actual: "id='-33--'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='рождение-космической-эры-металлы-войны-становятся-мирными'", actual: "id='------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='гагаринский-восток-человек-доверяет-жизнь-металлам'", actual: "id='-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='экстремальные-условия-когда-физика-становится-врагом'", actual: "id='------1'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='температурные-качели-ада-и-рая'", actual: "id='----'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='вакуум---невидимый-разрушитель'", actual: "id='-----1'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='космическая-радиация-невидимые-пули-из-космоса'", actual: "id='------2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='ракетные-двигатели-укрощение-космического-огня'", actual: "id='-----2'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='камера-сгорания-сердце-огнедышащего-дракона'", actual: "id='-----3'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='сопло-где-звук-умирает'", actual: "id='---'"
+  ... and 19 more differences
+DIFF часть_4_применения/глава_34_медицина.html (31 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-34-медицина-и-металлы'", actual: "id='-34---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='металлический-состав-жизни-периодическая-таблица-внутри-нас'", actual: "id='------'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='железо-красная-река-жизни'", actual: "id='---'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='цинк-металлический-целитель'", actual: "id='--'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='магний-дирижер-биохимического-оркестра'", actual: "id='----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='токсичные-металлы-темная-сторона-периодической-таблицы'", actual: "id='-----'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='свинец-скрытый-убийца-цивилизации'", actual: "id='----2'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='ртуть-жидкий-демон'", actual: "id='---1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='металлические-инструменты-врачей'", actual: "id='---2'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='нержавеющая-сталь-основа-современной-хирургии'", actual: "id='----'"
+  ... and 21 more differences
+DIFF часть_4_применения/глава_35_экология.html (43 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-35-экология-и-переработка-металлов'", actual: "id='-35----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='шрамы-на-лике-земли-экологическая-цена-металлов'", actual: "id='------'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='карьер-беркли-пит-озеро-смерти-в-монтане'", actual: "id='-------1'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='красные-реки-рио-тинто-когда-планета-кровоточит'", actual: "id='-------2'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='китайский-байотоу-город-который-кормит-мир-технологиями'", actual: "id='-------3'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='алюминиевый-парадокс-легчайший-металл-с-тяжелейшим-следом'", actual: "id='-------4'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='энергетический-монстр'", actual: "id='-'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='красный-шлам-наследие-глинозема'", actual: "id='---'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='золотое-проклятье-цианид-в-погоне-за-благородным-металлом'", actual: "id='-------'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='химия-смерти'", actual: "id='--1'"
+  ... and 33 more differences
+DIFF часть_4_применения/глава_36_удивительные_свойства.html (121 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 111 more differences
+DIFF часть_5_практика/глава_37_безопасные_эксперименты.html (138 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 128 more differences
+DIFF часть_5_практика/глава_38_металлы_в_искусстве.html (39 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-38-металлы-в-искусстве-и-культуре'", actual: "id='-38-----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='золотое-сияние-божественности'", actual: "id='--'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='египет-плоть-богов'", actual: "id='---1'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='греция-божественная-красота'", actual: "id='---2'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='христианство-небесный-свет'", actual: "id='---3'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='серебряная-магия-луны'", actual: "id='---4'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='исламский-мир-письмена-веры'", actual: "id='---'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='славянские-традиции-защита-от-зла'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='железо-металл-силы-и-защиты'", actual: "id='-----1'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='рыцарская-культура-честь-в-металле'", actual: "id='-----2'"
+  ... and 29 more differences
+DIFF часть_5_практика/глава_39_профессии.html (40 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-39-профессии-связанные-с-металлами'", actual: "id='-39----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='повелители-огня-традиционные-металлургические-профессии'", actual: "id='----'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='металлург-дирижер-промышленной-симфонии'", actual: "id='---'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='сталевар-алхимик-xxi-века'", actual: "id='--xxi-'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='прокатчик-скульптор-из-металла'", actual: "id='----1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='инженеры-будущего-создатели-новых-материалов'", actual: "id='-----1'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='материаловед-архитектор-атомного-мира'", actual: "id='----2'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='инженер-по-коррозии-защитник-металлов'", actual: "id='-----2'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='инженер-литейщик-маг-расплавленного-металла'", actual: "id='-----3'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='творцы-красоты-художественные-профессии'", actual: "id='----3'"
+  ... and 30 more differences
+DIFF часть_5_практика/глава_40_будущее_металлургии.html (48 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-40-будущее-металлургии'", actual: "id='-40--'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='революция-производства-когда-атомы-становятся-послушными'", actual: "id='-----'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='3d-печать-от-прототипов-к-мегафабрикам'", actual: "id='3d-----'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='молекулярная-металлургия-когда-каждый-атом-имеет-адрес'", actual: "id='------'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='биометаллургия-когда-бактерии-становятся-рабочими'", actual: "id='----'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='материалы-завтрашнего-дня-когда-фантастика-становится-реальностью'", actual: "id='-------1'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='сверхпроводники-при-комнатной-температуре-прорыв-тысячелетия'", actual: "id='------1'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='программируемая-материя-металлы-как-жидкие-роботы'", actual: "id='------2'"
+  body > main > div > article > div > h3: attribute_differs - expected: "id='квантовые-металлы-когда-квантовая-механика-приходит-в-макромир'", actual: "id='-------'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='космическая-металлургия-горнодобыча-среди-звезд'", actual: "id='-----1'"
+  ... and 38 more differences
+DIFF часть_5_практика/глава_41_словарь.html (29 differences)
+  body > main > div > article > div > h1: attribute_differs - expected: "id='глава-41-словарь-терминов'", actual: "id='-41--'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='а'", actual: "id=''"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='б'", actual: "id='-1'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='в'", actual: "id='-2'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='г'", actual: "id='-3'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='д'", actual: "id='-4'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='е'", actual: "id='-5'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='ж'", actual: "id='-6'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='з'", actual: "id='-7'"
+  body > main > div > article > div > h2: attribute_differs - expected: "id='и'", actual: "id='-8'"
+  ... and 19 more differences
+DIFF часть_5_практика/глава_42_рекомендуемая_литература.html (123 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 113 more differences
+
+Summary: 1 files matched, 42 files with differences, 1848 total differences

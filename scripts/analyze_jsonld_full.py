@@ -1,4 +1,7 @@
 #!/usr/bin/env -S uv run python
+# /// script
+# dependencies = ["beautifulsoup4"]
+# ///
 """Full JSON-LD diff analysis with proper subcategorization."""
 import os
 import sys

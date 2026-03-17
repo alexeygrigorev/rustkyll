@@ -1,0 +1,1207 @@
+Jekyll directory:   /home/alexey/git/rustkyl/websites/jekyll-docs/docs/_site_jekyll_recount
+Rustkyll directory: /home/alexey/git/rustkyl/websites/jekyll-docs/docs/_site_rustkyll_recount
+Common HTML files:  125
+Only in Jekyll:     103
+Only in rustkyll:   6
+
+DIFF 404.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'section'
+  child[2]: tag_name_differs - expected: 'body', actual: 'section'
+DIFF conduct/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/conduct/'", actual: "href='/docs/conduct/'"
+  script: text_differs - expected: 'location="https://jekyllrb.com/docs/conduct/"', actual: 'location="/docs/conduct/"'
+  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/conduct/'", actual: "content='0; url=/docs/conduct/'"
+  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/conduct/'", actual: "href='/docs/conduct/'"
+DIFF docs/assets/index.html (19 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'div'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 9 more differences
+DIFF docs/code_of_conduct/index.html (18 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 8 more differences
+DIFF docs/collections/index.html (55 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  ... and 45 more differences
+DIFF docs/community/bug/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+DIFF docs/community/index.html (17 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 7 more differences
+DIFF docs/conduct/index.html (18 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 8 more differences
+DIFF docs/configuration/default/index.html (3 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'div'
+  div: extra_element - expected: '(none)', actual: '<div>'
+DIFF docs/configuration/environments/index.html (12 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 2 more differences
+DIFF docs/configuration/front-matter-defaults/index.html (26 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 16 more differences
+DIFF docs/configuration/incremental-regeneration/index.html (6 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
+  child[2]: tag_name_differs - expected: 'body', actual: 'div'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+DIFF docs/configuration/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF docs/configuration/liquid/index.html (10 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+DIFF docs/configuration/markdown/index.html (26 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  ... and 16 more differences
+DIFF docs/configuration/options/index.html (10 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h3'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+DIFF docs/configuration/sass/index.html (4 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+DIFF docs/configuration/webrick/index.html (4 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'div'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+DIFF docs/continuous-integration/buddyworks/index.html (12 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 2 more differences
+DIFF docs/continuous-integration/circleci/index.html (19 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 9 more differences
+DIFF docs/continuous-integration/github-actions/index.html (30 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  ... and 20 more differences
+DIFF docs/continuous-integration/razorops/index.html (11 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ol'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 1 more differences
+DIFF docs/continuous-integration/travis-ci/index.html (48 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  ... and 38 more differences
+DIFF docs/contributing/index.html (52 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  ... and 42 more differences
+DIFF docs/datafiles/index.html (41 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  ... and 31 more differences
+DIFF docs/deployment-methods/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/deployment/'", actual: "href='/docs/deployment/'"
+  script: text_differs - expected: 'location="https://jekyllrb.com/docs/deployment/"', actual: 'location="/docs/deployment/"'
+  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/deployment/'", actual: "content='0; url=/docs/deployment/'"
+  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/deployment/'", actual: "href='/docs/deployment/'"
+DIFF docs/deployment/automated/index.html (15 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 5 more differences
+DIFF docs/deployment/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF docs/deployment/manual/index.html (12 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 2 more differences
+DIFF docs/deployment/third-party/index.html (39 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  ... and 29 more differences
+DIFF docs/drafts/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/posts/'", actual: "href='/docs/posts/'"
+  script: text_differs - expected: 'location="https://jekyllrb.com/docs/posts/"', actual: 'location="/docs/posts/"'
+  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/posts/'", actual: "content='0; url=/docs/posts/'"
+  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/posts/'", actual: "href='/docs/posts/'"
+DIFF docs/extras/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/'", actual: "href='/docs/'"
+  script: text_differs - expected: 'location="https://jekyllrb.com/docs/"', actual: 'location="/docs/"'
+  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/'", actual: "content='0; url=/docs/'"
+  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/'", actual: "href='/docs/'"
+DIFF docs/front-matter/index.html (18 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'div'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  ... and 8 more differences
+DIFF docs/frontmatter/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/front-matter/'", actual: "href='/docs/front-matter/'"
+  script: text_differs - expected: 'location="https://jekyllrb.com/docs/front-matter/"', actual: 'location="/docs/front-matter/"'
+  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/front-matter/'", actual: "content='0; url=/docs/front-matter/'"
+  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/front-matter/'", actual: "href='/docs/front-matter/'"
+DIFF docs/github-pages/index.html (27 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 17 more differences
+DIFF docs/history/index.html (1047 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  ... and 1037 more differences
+DIFF docs/home/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/'", actual: "href='/docs/'"
+  script: text_differs - expected: 'location="https://jekyllrb.com/docs/"', actual: 'location="/docs/"'
+  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/'", actual: "content='0; url=/docs/'"
+  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/'", actual: "href='/docs/'"
+DIFF docs/includes/index.html (58 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 48 more differences
+DIFF docs/index.html (19 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  ... and 9 more differences
+DIFF docs/installation/freebsd/index.html (14 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h3'
+  child[2]: tag_name_differs - expected: 'body', actual: 'div'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  ... and 4 more differences
+DIFF docs/installation/index.html (6 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF docs/installation/macos/index.html (28 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 18 more differences
+DIFF docs/installation/other-linux/index.html (20 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  ... and 10 more differences
+DIFF docs/installation/ubuntu/index.html (8 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+DIFF docs/installation/windows/index.html (43 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  ... and 33 more differences
+DIFF docs/layouts/index.html (25 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 15 more differences
+DIFF docs/liquid/filters/index.html (28 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  ... and 18 more differences
+DIFF docs/liquid/index.html (4 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF docs/liquid/tags/index.html (72 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 62 more differences
+DIFF docs/maintaining/affinity-team-captain/index.html (11 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 1 more differences
+DIFF docs/maintaining/avoiding-burnout/index.html (13 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h1'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h1: extra_element - expected: '(none)', actual: '<h1>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h1: extra_element - expected: '(none)', actual: '<h1>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h1: extra_element - expected: '(none)', actual: '<h1>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 3 more differences
+DIFF docs/maintaining/becoming-a-maintainer/index.html (17 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 7 more differences
+DIFF docs/maintaining/index.html (5 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF docs/maintaining/merging-a-pull-request/index.html (18 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 8 more differences
+DIFF docs/maintaining/releasing-a-new-version/index.html (42 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  ... and 32 more differences
+DIFF docs/maintaining/releasing-off-stable-branches/index.html (14 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  ... and 4 more differences
+DIFF docs/maintaining/reviewing-a-pull-request/index.html (21 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 11 more differences
+DIFF docs/maintaining/special-labels/index.html (10 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+DIFF docs/maintaining/triaging-an-issue/index.html (21 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  ... and 11 more differences
+DIFF docs/markdown-101/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF docs/migrations/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF docs/pages/index.html (9 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+DIFF docs/pagination/index.html (26 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 16 more differences
+DIFF docs/permalinks/index.html (28 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 18 more differences
+DIFF docs/plugins/commands/index.html (6 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'div'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+DIFF docs/plugins/converters/index.html (7 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'div'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+DIFF docs/plugins/filters/index.html (4 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'div'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+DIFF docs/plugins/generators/index.html (16 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 6 more differences
+DIFF docs/plugins/hooks/index.html (14 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  ... and 4 more differences
+DIFF docs/plugins/index.html (3 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF docs/plugins/installation/index.html (19 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 9 more differences
+DIFF docs/plugins/tags/index.html (22 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'div'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 12 more differences
+DIFF docs/plugins/your-first-plugin/index.html (27 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  ... and 17 more differences
+DIFF docs/posts/index.html (53 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  ... and 43 more differences
+DIFF docs/quickstart/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/'", actual: "href='/docs/'"
+  script: text_differs - expected: 'location="https://jekyllrb.com/docs/"', actual: 'location="/docs/"'
+  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/'", actual: "content='0; url=/docs/'"
+  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/'", actual: "href='/docs/'"
+DIFF docs/rendering-process/index.html (4 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF docs/resources/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://jekyllrb.com/resources/'", actual: "href='/resources/'"
+  script: text_differs - expected: 'location="https://jekyllrb.com/resources/"', actual: 'location="/resources/"'
+  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/resources/'", actual: "content='0; url=/resources/'"
+  a: attribute_differs - expected: "href='https://jekyllrb.com/resources/'", actual: "href='/resources/'"
+DIFF docs/ruby-101/index.html (17 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  ... and 7 more differences
+DIFF docs/security/index.html (10 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  table: extra_element - expected: '(none)', actual: '<table>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+DIFF docs/sites/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://jekyllrb.com/showcase/'", actual: "href='/showcase/'"
+  script: text_differs - expected: 'location="https://jekyllrb.com/showcase/"', actual: 'location="/showcase/"'
+  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/showcase/'", actual: "content='0; url=/showcase/'"
+  a: attribute_differs - expected: "href='https://jekyllrb.com/showcase/'", actual: "href='/showcase/'"
+DIFF docs/static-files/index.html (15 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 5 more differences
+DIFF docs/step-by-step/01-setup/index.html (26 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 16 more differences
+DIFF docs/step-by-step/02-liquid/index.html (35 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  ... and 25 more differences
+DIFF docs/step-by-step/03-front-matter/index.html (16 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 6 more differences
+DIFF docs/step-by-step/04-layouts/index.html (25 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 15 more differences
+DIFF docs/step-by-step/05-includes/index.html (22 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 12 more differences
+DIFF docs/step-by-step/06-data-files/index.html (12 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 2 more differences
+DIFF docs/step-by-step/07-assets/index.html (25 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  div: extra_element - expected: '(none)', actual: '<div>'  Progress: 100/125 files compared...
+
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 15 more differences
+DIFF docs/step-by-step/08-blogging/index.html (32 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  ... and 22 more differences
+DIFF docs/step-by-step/09-collections/index.html (58 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 48 more differences
+DIFF docs/step-by-step/10-deployment/index.html (44 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  ... and 34 more differences
+DIFF docs/step-by-step/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/step-by-step/01-setup/'", actual: "href='/docs/step-by-step/01-setup/'"
+  script: text_differs - expected: 'location="https://jekyllrb.com/docs/step-by-step/01-setup/"', actual: 'location="/docs/step-by-step/01-setup/"'
+  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/step-by-step/01-setup/'", actual: "content='0; url=/docs/step-by-step/01-setup/'"
+  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/step-by-step/01-setup/'", actual: "href='/docs/step-by-step/01-setup/'"
+DIFF docs/structure/index.html (7 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'div'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+DIFF docs/support/index.html (8 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+DIFF docs/templates/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/liquid/'", actual: "href='/docs/liquid/'"
+  script: text_differs - expected: 'location="https://jekyllrb.com/docs/liquid/"', actual: 'location="/docs/liquid/"'
+  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/liquid/'", actual: "content='0; url=/docs/liquid/'"
+  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/liquid/'", actual: "href='/docs/liquid/'"
+DIFF docs/themes/index.html (110 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  ... and 100 more differences
+DIFF docs/troubleshooting/index.html (84 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 74 more differences
+DIFF docs/upgrading/0-to-2/index.html (24 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  ... and 14 more differences
+DIFF docs/upgrading/2-to-3/index.html (41 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 31 more differences
+DIFF docs/upgrading/3-to-4/index.html (31 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 21 more differences
+DIFF docs/upgrading/index.html (7 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+DIFF docs/usage/index.html (8 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+DIFF docs/variables/index.html (16 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 6 more differences
+DIFF docs/windows/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/installation/windows/'", actual: "href='/docs/installation/windows/'"
+  script: text_differs - expected: 'location="https://jekyllrb.com/docs/installation/windows/"', actual: 'location="/docs/installation/windows/"'
+  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/installation/windows/'", actual: "content='0; url=/docs/installation/windows/'"
+  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/installation/windows/'", actual: "href='/docs/installation/windows/'"
+DIFF github.html (8 differences)
+  meta: missing_element - expected: '<meta>', actual: '(none)'
+  title: missing_element - expected: '<title>', actual: '(none)'
+  link: missing_element - expected: '<link>', actual: '(none)'
+  script: missing_element - expected: '<script>', actual: '(none)'
+  meta: missing_element - expected: '<meta>', actual: '(none)'
+  meta: missing_element - expected: '<meta>', actual: '(none)'
+  h1: missing_element - expected: '<h1>', actual: '(none)'
+  a: missing_element - expected: '<a>', actual: '(none)'
+DIFF help/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/community/'", actual: "href='/docs/community/'"
+  script: text_differs - expected: 'location="https://jekyllrb.com/docs/community/"', actual: 'location="/docs/community/"'
+  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/community/'", actual: "content='0; url=/docs/community/'"
+  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/community/'", actual: "href='/docs/community/'"
+DIFF index.html (4 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'section'
+  child[2]: tag_name_differs - expected: 'body', actual: 'section'
+  section: extra_element - expected: '(none)', actual: '<section>'
+  section: extra_element - expected: '(none)', actual: '<section>'
+DIFF issues.html (8 differences)
+  meta: missing_element - expected: '<meta>', actual: '(none)'
+  title: missing_element - expected: '<title>', actual: '(none)'
+  link: missing_element - expected: '<link>', actual: '(none)'
+  script: missing_element - expected: '<script>', actual: '(none)'
+  meta: missing_element - expected: '<meta>', actual: '(none)'
+  meta: missing_element - expected: '<meta>', actual: '(none)'
+  h1: missing_element - expected: '<h1>', actual: '(none)'
+  a: missing_element - expected: '<a>', actual: '(none)'
+DIFF jekyllconf/index.html (9 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF news/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: '{% for post in site.posts -%} {% if forloop.index == 1 -%} {% include news_item.html -%} {% else -%}'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF news/releases/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: '{% for post in site.categories.release -%} {% if forloop.index == 1 -%} {% include news_item.html -%'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF philosophy/index.html (11 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h3'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  ... and 1 more differences
+DIFF resources/index.html (26 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 16 more differences
+DIFF showcase/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF team/index.html (9 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF tutorials/cache-api/index.html (23 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  ... and 13 more differences
+DIFF tutorials/convert-site-to-jekyll/index.html (177 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  ... and 167 more differences
+DIFF tutorials/csv-to-table/index.html (52 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 42 more differences
+DIFF tutorials/custom-404-page/index.html (21 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  ... and 11 more differences
+DIFF tutorials/home/index.html (9 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+DIFF tutorials/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://jekyllrb.com/tutorials/home/'", actual: "href='/tutorials/home/'"
+  script: text_differs - expected: 'location="https://jekyllrb.com/tutorials/home/"', actual: 'location="/tutorials/home/"'
+  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/tutorials/home/'", actual: "content='0; url=/tutorials/home/'"
+  a: attribute_differs - expected: "href='https://jekyllrb.com/tutorials/home/'", actual: "href='/tutorials/home/'"
+DIFF tutorials/navigation/index.html (151 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  ... and 141 more differences
+DIFF tutorials/orderofinterpretation/index.html (58 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  ... and 48 more differences
+DIFF tutorials/using-jekyll-with-bundler/index.html (25 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'blockquote'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  ... and 15 more differences
+DIFF tutorials/video-walkthroughs/index.html (4 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'div'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+
+Summary: 0 files matched, 125 files with differences, 3678 total differences

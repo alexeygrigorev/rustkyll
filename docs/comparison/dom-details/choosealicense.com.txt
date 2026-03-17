@@ -1,0 +1,355 @@
+Jekyll directory:   /home/alexey/git/rustkyl/websites/choosealicense.com/_site_jekyll_recount
+Rustkyll directory: /home/alexey/git/rustkyl/websites/choosealicense.com/_site_rustkyll_recount
+Common HTML files:  72
+
+DIFF about/index.html (12 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 2 more differences
+DIFF appendix/index.html (11 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  table: extra_element - expected: '(none)', actual: '<table>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  dl: extra_element - expected: '(none)', actual: '<dl>'
+  ... and 1 more differences
+DIFF community/index.html (6 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+DIFF existing/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://choosealicense.com/community/'", actual: "href='/community/'"
+  script: text_differs - expected: 'location="https://choosealicense.com/community/"', actual: 'location="/community/"'
+  meta: attribute_differs - expected: "content='0; url=https://choosealicense.com/community/'", actual: "content='0; url=/community/'"
+  a: attribute_differs - expected: "href='https://choosealicense.com/community/'", actual: "href='/community/'"
+DIFF index.html (5 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF licenses/0bsd/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'BSD Zero Clause License Copyright (c) [year] [fullname] Permission to use, copy, modify, and/or dist'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/afl-3.0/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'Academic Free License ("AFL") v. 3.0 This Academic Free License (the "License") applies to any origi'
+  child[1]: tag_name_differs - expected: 'head', actual: 'insert'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/agpl-3.0/index.html (4 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'GNU AFFERO GENERAL PUBLIC LICENSE Version 3, 19 November 2007 Copyright (C) 2007 Free Software Found'
+  child[1]: tag_name_differs - expected: 'head', actual: 'https:'
+  (root): expected_element_got_text - expected: '<body>', actual: 'Everyone is permitted to copy and distribute verbatim copies of this license document, but changing '
+  child[2]: tag_name_differs - expected: 'body', actual: 'one'
+DIFF licenses/agpl/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://choosealicense.com/licenses/agpl-3.0/'", actual: "href='/licenses/agpl-3.0/'"
+  script: text_differs - expected: 'location="https://choosealicense.com/licenses/agpl-3.0/"', actual: 'location="/licenses/agpl-3.0/"'
+  meta: attribute_differs - expected: "content='0; url=https://choosealicense.com/licenses/agpl-3.0/'", actual: "content='0; url=/licenses/agpl-3.0/'"
+  a: attribute_differs - expected: "href='https://choosealicense.com/licenses/agpl-3.0/'", actual: "href='/licenses/agpl-3.0/'"
+DIFF licenses/apache-2.0/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'Apache License Version 2.0, January 2004 http://www.apache.org/licenses/ TERMS AND CONDITIONS FOR US'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/apache/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://choosealicense.com/licenses/apache-2.0/'", actual: "href='/licenses/apache-2.0/'"
+  script: text_differs - expected: 'location="https://choosealicense.com/licenses/apache-2.0/"', actual: 'location="/licenses/apache-2.0/"'
+  meta: attribute_differs - expected: "content='0; url=https://choosealicense.com/licenses/apache-2.0/'", actual: "content='0; url=/licenses/apache-2.0/'"
+  a: attribute_differs - expected: "href='https://choosealicense.com/licenses/apache-2.0/'", actual: "href='/licenses/apache-2.0/'"
+DIFF licenses/artistic-2.0/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'The Artistic License 2.0 Copyright (c) 2000-2006, The Perl Foundation. Everyone is permitted to copy'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/artistic/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://choosealicense.com/licenses/artistic-2.0/'", actual: "href='/licenses/artistic-2.0/'"
+  script: text_differs - expected: 'location="https://choosealicense.com/licenses/artistic-2.0/"', actual: 'location="/licenses/artistic-2.0/"'
+  meta: attribute_differs - expected: "content='0; url=https://choosealicense.com/licenses/artistic-2.0/'", actual: "content='0; url=/licenses/artistic-2.0/'"
+  a: attribute_differs - expected: "href='https://choosealicense.com/licenses/artistic-2.0/'", actual: "href='/licenses/artistic-2.0/'"
+DIFF licenses/blueoak-1.0.0/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: '# Blue Oak Model License Version 1.0.0 ## Purpose This license gives everyone as much permission to '
+  child[1]: tag_name_differs - expected: 'head', actual: 'https:'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/bsd-2-clause-patent/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'Copyright (c) [year] [fullname] Redistribution and use in source and binary forms, with or without m'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/bsd-2-clause/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'BSD 2-Clause License Copyright (c) [year], [fullname] Redistribution and use in source and binary fo'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/bsd-3-clause-clear/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'The Clear BSD License Copyright (c) [year] [fullname] All rights reserved. Redistribution and use in'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/bsd-3-clause/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'BSD 3-Clause License Copyright (c) [year], [fullname] Redistribution and use in source and binary fo'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/bsd-4-clause/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'BSD 4-Clause License Copyright (c) [year], [fullname] All rights reserved. Redistribution and use in'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/bsd/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://choosealicense.com/licenses/bsd-2-clause/'", actual: "href='/licenses/bsd-2-clause/'"
+  script: text_differs - expected: 'location="https://choosealicense.com/licenses/bsd-2-clause/"', actual: 'location="/licenses/bsd-2-clause/"'
+  meta: attribute_differs - expected: "content='0; url=https://choosealicense.com/licenses/bsd-2-clause/'", actual: "content='0; url=/licenses/bsd-2-clause/'"
+  a: attribute_differs - expected: "href='https://choosealicense.com/licenses/bsd-2-clause/'", actual: "href='/licenses/bsd-2-clause/'"
+DIFF licenses/bsl-1.0/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'Boost Software License - Version 1.0 - August 17th, 2003 Permission is hereby granted, free of charg'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/cc-by-4.0/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'Attribution 4.0 International ======================================================================'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/cc-by-sa-4.0/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'Attribution-ShareAlike 4.0 International ==========================================================='
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/cc0-1.0/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'Creative Commons Legal Code CC0 1.0 Universal CREATIVE COMMONS CORPORATION IS NOT A LAW FIRM AND DOE'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/cc0/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://choosealicense.com/licenses/cc0-1.0/'", actual: "href='/licenses/cc0-1.0/'"
+  script: text_differs - expected: 'location="https://choosealicense.com/licenses/cc0-1.0/"', actual: 'location="/licenses/cc0-1.0/"'
+  meta: attribute_differs - expected: "content='0; url=https://choosealicense.com/licenses/cc0-1.0/'", actual: "content='0; url=/licenses/cc0-1.0/'"
+  a: attribute_differs - expected: "href='https://choosealicense.com/licenses/cc0-1.0/'", actual: "href='/licenses/cc0-1.0/'"
+DIFF licenses/cecill-2.1/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'CONTRAT DE LICENCE DE LOGICIEL LIBRE CeCILL Version 2.1 du 2013-06-21 Avertissement Ce contrat est u'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/cern-ohl-p-2.0/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'CERN Open Hardware Licence Version 2 - Permissive Preamble CERN has developed this licence to promot'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/cern-ohl-s-2.0/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'CERN Open Hardware Licence Version 2 - Strongly Reciprocal Preamble CERN has developed this licence '
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/cern-ohl-w-2.0/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'CERN Open Hardware Licence Version 2 - Weakly Reciprocal Preamble CERN has developed this licence to'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/ecl-2.0/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'Educational Community License Version 2.0, April 2007 http://opensource.org/licenses/ECL-2.0 The Edu'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/eclipse/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://choosealicense.com/licenses/epl-2.0/'", actual: "href='/licenses/epl-2.0/'"
+  script: text_differs - expected: 'location="https://choosealicense.com/licenses/epl-2.0/"', actual: 'location="/licenses/epl-2.0/"'
+  meta: attribute_differs - expected: "content='0; url=https://choosealicense.com/licenses/epl-2.0/'", actual: "content='0; url=/licenses/epl-2.0/'"
+  a: attribute_differs - expected: "href='https://choosealicense.com/licenses/epl-2.0/'", actual: "href='/licenses/epl-2.0/'"
+DIFF licenses/epl-1.0/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'Eclipse Public License - v 1.0 THE ACCOMPANYING PROGRAM IS PROVIDED UNDER THE TERMS OF THIS ECLIPSE '
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/epl-2.0/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'Eclipse Public License - v 2.0 THE ACCOMPANYING PROGRAM IS PROVIDED UNDER THE TERMS OF THIS ECLIPSE '
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/eupl-1.1/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'European Union Public Licence V. 1.1 EUPL © the European Community 2007 This European Union Public L'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/eupl-1.2/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'EUROPEAN UNION PUBLIC LICENCE v. 1.2 EUPL © the European Union 2007, 2016 This European Union Public'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/eupl-v1.1/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://choosealicense.com/licenses/eupl-1.1/'", actual: "href='/licenses/eupl-1.1/'"
+  script: text_differs - expected: 'location="https://choosealicense.com/licenses/eupl-1.1/"', actual: 'location="/licenses/eupl-1.1/"'
+  meta: attribute_differs - expected: "content='0; url=https://choosealicense.com/licenses/eupl-1.1/'", actual: "content='0; url=/licenses/eupl-1.1/'"
+  a: attribute_differs - expected: "href='https://choosealicense.com/licenses/eupl-1.1/'", actual: "href='/licenses/eupl-1.1/'"
+DIFF licenses/gfdl-1.3/index.html (4 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'GNU Free Documentation License Version 1.3, 3 November 2008 Copyright (C) 2000, 2001, 2002, 2007, 20'
+  child[1]: tag_name_differs - expected: 'head', actual: 'https:'
+  (root): expected_element_got_text - expected: '<body>', actual: 'Everyone is permitted to copy and distribute verbatim copies of this license document, but changing '
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/gpl-2.0/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'GNU GENERAL PUBLIC LICENSE Version 2, June 1991 Copyright (C) 1989, 1991 Free Software Foundation, I'
+  child[1]: tag_name_differs - expected: 'head', actual: 'one'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/gpl-3.0/index.html (4 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007 Copyright (C) 2007 Free Software Foundation, Inc.'
+  child[1]: tag_name_differs - expected: 'head', actual: 'https:'
+  (root): expected_element_got_text - expected: '<body>', actual: 'Everyone is permitted to copy and distribute verbatim copies of this license document, but changing '
+  child[2]: tag_name_differs - expected: 'body', actual: 'one'
+DIFF licenses/gpl-v2/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://choosealicense.com/licenses/gpl-2.0/'", actual: "href='/licenses/gpl-2.0/'"
+  script: text_differs - expected: 'location="https://choosealicense.com/licenses/gpl-2.0/"', actual: 'location="/licenses/gpl-2.0/"'
+  meta: attribute_differs - expected: "content='0; url=https://choosealicense.com/licenses/gpl-2.0/'", actual: "content='0; url=/licenses/gpl-2.0/'"
+  a: attribute_differs - expected: "href='https://choosealicense.com/licenses/gpl-2.0/'", actual: "href='/licenses/gpl-2.0/'"
+DIFF licenses/gpl-v3/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://choosealicense.com/licenses/gpl-3.0/'", actual: "href='/licenses/gpl-3.0/'"
+  script: text_differs - expected: 'location="https://choosealicense.com/licenses/gpl-3.0/"', actual: 'location="/licenses/gpl-3.0/"'
+  meta: attribute_differs - expected: "content='0; url=https://choosealicense.com/licenses/gpl-3.0/'", actual: "content='0; url=/licenses/gpl-3.0/'"
+  a: attribute_differs - expected: "href='https://choosealicense.com/licenses/gpl-3.0/'", actual: "href='/licenses/gpl-3.0/'"
+DIFF licenses/index.html (5 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  (root): extra_text - expected: '(none)', actual: '{% include license-overview.html license-id="agpl-3.0" %} {% include license-overview.html license-i'
+  a: extra_element - expected: '(none)', actual: '<a>'
+  (root): extra_text - expected: '(none)', actual: 'if you’d like to read more.'
+DIFF licenses/isc/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'ISC License Copyright (c) [year] [fullname] Permission to use, copy, modify, and/or distribute this '
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/lgpl-2.1/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'GNU LESSER GENERAL PUBLIC LICENSE Version 2.1, February 1999 Copyright (C) 1991, 1999 Free Software '
+  child[1]: tag_name_differs - expected: 'head', actual: 'one'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/lgpl-3.0/index.html (4 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'GNU LESSER GENERAL PUBLIC LICENSE Version 3, 29 June 2007 Copyright (C) 2007 Free Software Foundatio'
+  child[1]: tag_name_differs - expected: 'head', actual: 'https:'
+  (root): expected_element_got_text - expected: '<body>', actual: 'Everyone is permitted to copy and distribute verbatim copies of this license document, but changing '
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/lgpl-v2.1/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://choosealicense.com/licenses/lgpl-2.1/'", actual: "href='/licenses/lgpl-2.1/'"
+  script: text_differs - expected: 'location="https://choosealicense.com/licenses/lgpl-2.1/"', actual: 'location="/licenses/lgpl-2.1/"'
+  meta: attribute_differs - expected: "content='0; url=https://choosealicense.com/licenses/lgpl-2.1/'", actual: "content='0; url=/licenses/lgpl-2.1/'"
+  a: attribute_differs - expected: "href='https://choosealicense.com/licenses/lgpl-2.1/'", actual: "href='/licenses/lgpl-2.1/'"
+DIFF licenses/lgpl-v3/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://choosealicense.com/licenses/lgpl-3.0/'", actual: "href='/licenses/lgpl-3.0/'"
+  script: text_differs - expected: 'location="https://choosealicense.com/licenses/lgpl-3.0/"', actual: 'location="/licenses/lgpl-3.0/"'
+  meta: attribute_differs - expected: "content='0; url=https://choosealicense.com/licenses/lgpl-3.0/'", actual: "content='0; url=/licenses/lgpl-3.0/'"
+  a: attribute_differs - expected: "href='https://choosealicense.com/licenses/lgpl-3.0/'", actual: "href='/licenses/lgpl-3.0/'"
+DIFF licenses/lppl-1.3c/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'The LaTeX Project Public License =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- LPPL Version 1.3c 2008-05-04 Copyr'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/mit-0/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'MIT No Attribution Copyright [year] [fullname] Permission is hereby granted, free of charge, to any '
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/mit/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'MIT License Copyright (c) [year] [fullname] Permission is hereby granted, free of charge, to any per'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/mozilla/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://choosealicense.com/licenses/mpl-2.0/'", actual: "href='/licenses/mpl-2.0/'"
+  script: text_differs - expected: 'location="https://choosealicense.com/licenses/mpl-2.0/"', actual: 'location="/licenses/mpl-2.0/"'
+  meta: attribute_differs - expected: "content='0; url=https://choosealicense.com/licenses/mpl-2.0/'", actual: "content='0; url=/licenses/mpl-2.0/'"
+  a: attribute_differs - expected: "href='https://choosealicense.com/licenses/mpl-2.0/'", actual: "href='/licenses/mpl-2.0/'"
+DIFF licenses/mpl-2.0/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'Mozilla Public License Version 2.0 ================================== 1. Definitions -------------- '
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/ms-pl/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'Microsoft Public License (Ms-PL) This license governs use of the accompanying software. If you use t'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/ms-rl/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'Microsoft Reciprocal License (Ms-RL) This license governs use of the accompanying software. If you u'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/mulanpsl-2.0/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: '木兰宽松许可证, 第2版 木兰宽松许可证， 第2版 2020年1月 http://license.coscl.org.cn/MulanPSL2 您对“软件”的复制、使用、修改及分发受木兰宽松许可证，第'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/ncsa/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'University of Illinois/NCSA Open Source License Copyright (c) [year] [fullname]. All rights reserved'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/no-license/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://choosealicense.com/no-permission/'", actual: "href='no-permission/'"
+  script: text_differs - expected: 'location="https://choosealicense.com/no-permission/"', actual: 'location="no-permission/"'
+  meta: attribute_differs - expected: "content='0; url=https://choosealicense.com/no-permission/'", actual: "content='0; url=no-permission/'"
+  a: attribute_differs - expected: "href='https://choosealicense.com/no-permission/'", actual: "href='no-permission/'"
+DIFF licenses/odbl-1.0/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: '## ODC Open Database License (ODbL) ### Preamble The Open Database License (ODbL) is a license agree'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/ofl-1.1/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'Copyright (c) [year] [fullname] ([email]) This Font Software is licensed under the SIL Open Font Lic'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/ofl/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://choosealicense.com/licenses/ofl-1.1/'", actual: "href='/licenses/ofl-1.1/'"
+  script: text_differs - expected: 'location="https://choosealicense.com/licenses/ofl-1.1/"', actual: 'location="/licenses/ofl-1.1/"'
+  meta: attribute_differs - expected: "content='0; url=https://choosealicense.com/licenses/ofl-1.1/'", actual: "content='0; url=/licenses/ofl-1.1/'"
+  a: attribute_differs - expected: "href='https://choosealicense.com/licenses/ofl-1.1/'", actual: "href='/licenses/ofl-1.1/'"
+DIFF licenses/osl-3.0/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'Open Software License ("OSL") v. 3.0 This Open Software License (the "License") applies to any origi'
+  child[1]: tag_name_differs - expected: 'head', actual: 'insert'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/postgresql/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'PostgreSQL License Copyright (c) [year], [fullname] Permission to use, copy, modify, and distribute '
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/unlicense/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'This is free and unencumbered software released into the public domain. Anyone is free to copy, modi'
+  child[1]: tag_name_differs - expected: 'head', actual: 'https:'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/upl-1.0/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'Copyright (c) [year] [fullname] The Universal Permissive License (UPL), Version 1.0 Subject to the c'
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/vim/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'VIM LICENSE I) There are no restrictions on distributing unmodified copies of [project] except that '
+  child[1]: tag_name_differs - expected: 'head', actual: 'bram@vim.org'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/wtfpl/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: 'DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE Version 2, December 2004 Copyright (C) 2004 Sam Hocevar'
+  child[1]: tag_name_differs - expected: 'head', actual: 'sam@hocevar.net'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/zlib/index.html (3 differences)
+  (root): expected_element_got_text - expected: '<head>', actual: "zlib License (C) [year] [fullname] This software is provided 'as-is', without any express or implied"
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF no-license/index.html (4 differences)
+  link: attribute_differs - expected: "href='https://choosealicense.com/no-permission/'", actual: "href='no-permission/'"
+  script: text_differs - expected: 'location="https://choosealicense.com/no-permission/"', actual: 'location="no-permission/"'
+  meta: attribute_differs - expected: "content='0; url=https://choosealicense.com/no-permission/'", actual: "content='0; url=no-permission/'"
+  a: attribute_differs - expected: "href='https://choosealicense.com/no-permission/'", actual: "href='no-permission/'"
+DIFF no-permission/index.html (9 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF non-software/index.html (11 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h3'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  ... and 1 more differences
+DIFF terms-of-service/index.html (24 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h3'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  ... and 14 more differences
+
+Summary: 1 files matched, 71 files with differences, 292 total differences

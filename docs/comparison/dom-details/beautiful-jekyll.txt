@@ -1,0 +1,37 @@
+Jekyll directory:   /home/alexey/git/rustkyl/websites/beautiful-jekyll/_site_jekyll_recount
+Rustkyll directory: /home/alexey/git/rustkyl/websites/beautiful-jekyll/_site_rustkyll_recount
+Common HTML files:  5
+Only in Jekyll:     1
+Only in rustkyll:   1
+
+DIFF 2020-02-26-flake-it-till-you-make-it/index.html (4 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+DIFF 2020-02-28-sample-markdown/index.html (31 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  table: extra_element - expected: '(none)', actual: '<table>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 21 more differences
+DIFF 404.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'div'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF aboutme/index.html (5 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+DIFF index.html (2 differences)
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+
+Summary: 0 files matched, 5 files with differences, 44 total differences

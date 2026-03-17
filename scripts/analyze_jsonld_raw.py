@@ -1,4 +1,7 @@
 #!/usr/bin/env -S uv run python
+# /// script
+# dependencies = ["beautifulsoup4"]
+# ///
 """Compare raw text of JSON-LD script tags to understand actual differences."""
 import os
 import sys

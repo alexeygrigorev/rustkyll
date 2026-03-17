@@ -1,0 +1,6 @@
+Jekyll directory:   /home/alexey/git/rustkyl/websites/DataTalksClub/courses/_site_jekyll_recount
+Rustkyll directory: /home/alexey/git/rustkyl/websites/DataTalksClub/courses/_site_rustkyll_recount
+Common HTML files:  5
+
+
+Summary: 5 files matched, 0 files with differences, 0 total differences

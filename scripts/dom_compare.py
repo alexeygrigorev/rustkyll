@@ -1,4 +1,7 @@
 #!/usr/bin/env -S uv run python
+# /// script
+# dependencies = ["beautifulsoup4"]
+# ///
 """
 DOM tree comparison tool for comparing Jekyll and rustkyll HTML output.
 
@@ -141,6 +144,20 @@ def is_acceptable_sexagesimal_diff(diff: 'DiffResult') -> bool:
             (_is_sexagesimal_time(expected) and _is_sexagesimal_float(actual)))
 
 
+def is_acceptable_date_modified_diff(diff: 'DiffResult') -> bool:
+    """Check if a diff is a dateModified timestamp difference.
+
+    dateModified changes every build (reflects file mtime), so differences
+    in this field are expected and should not count as real DOM diffs.
+    """
+    if diff.diff_type != "text_differs":
+        return False
+    # Match diffs inside JSON-LD script tags where the only difference is dateModified
+    if "script" in diff.path and "dateModified" in diff.expected and "dateModified" in diff.actual:
+        return True
+    return False
+
+
 def filter_acceptable_diffs(diffs: list) -> tuple:
     """Filter out known acceptable differences.
 
@@ -149,11 +166,74 @@ def filter_acceptable_diffs(diffs: list) -> tuple:
     remaining = []
     accepted = []
     for d in diffs:
-        if is_acceptable_sexagesimal_diff(d):
+        if is_acceptable_sexagesimal_diff(d) or is_acceptable_date_modified_diff(d):
             accepted.append(d)
         else:
             remaining.append(d)
     return remaining, accepted
+
+
+IGNORED_JSONLD_FIELDS = {"dateModified"}
+
+
+def compare_jsonld(jekyll_text: str, rustkyll_text: str, path: str) -> Optional[List[DiffResult]]:
+    """Compare JSON-LD content field-by-field, ignoring dateModified.
+
+    Returns a list of DiffResult for each field that differs, or None if
+    the text is not valid JSON on both sides.
+    """
+    import json
+
+    try:
+        j_obj = json.loads(jekyll_text)
+        r_obj = json.loads(rustkyll_text)
+    except (json.JSONDecodeError, ValueError):
+        return None
+
+    diffs = []
+    _compare_jsonld_values(j_obj, r_obj, path, diffs)
+    return diffs
+
+
+def _compare_jsonld_values(j_val, r_val, path: str, diffs: list, depth: int = 0):
+    """Recursively compare two JSON values, skipping ignored fields."""
+    if depth > 20:
+        return
+
+    if isinstance(j_val, dict) and isinstance(r_val, dict):
+        all_keys = sorted(set(list(j_val.keys()) + list(r_val.keys())))
+        for key in all_keys:
+            if key in IGNORED_JSONLD_FIELDS:
+                continue
+            child_path = f"{path}.{key}"
+            if key not in j_val:
+                diffs.append(DiffResult(child_path, "jsonld_extra_field",
+                                        "(none)", json.dumps(r_val[key])[:200]))
+            elif key not in r_val:
+                diffs.append(DiffResult(child_path, "jsonld_missing_field",
+                                        json.dumps(j_val[key])[:200], "(none)"))
+            else:
+                _compare_jsonld_values(j_val[key], r_val[key], child_path, diffs, depth + 1)
+    elif isinstance(j_val, list) and isinstance(r_val, list):
+        for i in range(max(len(j_val), len(r_val))):
+            child_path = f"{path}[{i}]"
+            if i >= len(j_val):
+                diffs.append(DiffResult(child_path, "jsonld_extra_item",
+                                        "(none)", json.dumps(r_val[i])[:200]))
+            elif i >= len(r_val):
+                diffs.append(DiffResult(child_path, "jsonld_missing_item",
+                                        json.dumps(j_val[i])[:200], "(none)"))
+            else:
+                _compare_jsonld_values(j_val[i], r_val[i], child_path, diffs, depth + 1)
+    else:
+        j_str = json.dumps(j_val) if not isinstance(j_val, str) else j_val
+        r_str = json.dumps(r_val) if not isinstance(r_val, str) else r_val
+        if j_str != r_str:
+            diffs.append(DiffResult(path, "jsonld_value_differs",
+                                    str(j_str)[:200], str(r_str)[:200]))
+
+
+import json
 
 
 def compare_trees(jekyll_tag: Tag, rustkyll_tag: Tag, path: str = "") -> List[DiffResult]:
@@ -242,12 +322,29 @@ def compare_trees(jekyll_tag: Tag, rustkyll_tag: Tag, path: str = "") -> List[Di
             j_text = str(jc)
             r_text = str(rc)
             if j_text != r_text:
-                diffs.append(DiffResult(
-                    path if path else "(root)",
-                    "text_differs",
-                    j_text,
-                    r_text
-                ))
+                # Check if we're inside a JSON-LD script tag
+                is_jsonld = (isinstance(jekyll_tag, Tag) and
+                             jekyll_tag.name == "script" and
+                             jekyll_tag.get("type") == "application/ld+json")
+                if is_jsonld:
+                    jsonld_diffs = compare_jsonld(j_text, r_text, path + " > jsonld")
+                    if jsonld_diffs is not None:
+                        diffs.extend(jsonld_diffs)
+                    else:
+                        # Fallback: not valid JSON
+                        diffs.append(DiffResult(
+                            path if path else "(root)",
+                            "text_differs",
+                            j_text[:200],
+                            r_text[:200]
+                        ))
+                else:
+                    diffs.append(DiffResult(
+                        path if path else "(root)",
+                        "text_differs",
+                        j_text,
+                        r_text
+                    ))
             ji += 1
             ri += 1
 
