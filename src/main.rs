@@ -218,7 +218,23 @@ fn extract_redirect_from(fm: &rustkyll::frontmatter::FrontMatter) -> Vec<String>
 }
 
 /// Generate a simple HTML redirect page (matches jekyll-redirect-from output).
-fn generate_redirect_html(_from_url: &str, to_url: &str) -> String {
+///
+/// When `site_url` is non-empty, produces absolute URLs by prepending
+/// `site_url` + `site_baseurl` to the target path. Falls back to the
+/// relative `to_url` when `site_url` is empty.
+fn generate_redirect_html(
+    _from_url: &str,
+    to_url: &str,
+    site_url: &str,
+    site_baseurl: &str,
+) -> String {
+    let absolute_url = if site_url.is_empty() {
+        to_url.to_string()
+    } else {
+        let base = site_url.trim_end_matches('/');
+        let baseurl_part = site_baseurl.trim_end_matches('/');
+        format!("{}{}{}", base, baseurl_part, to_url)
+    };
     format!(
         r#"<!DOCTYPE html>
 <html lang="en-US">
@@ -232,7 +248,7 @@ fn generate_redirect_html(_from_url: &str, to_url: &str) -> String {
   <a href="{to}">Click here if you are not redirected.</a>
 </html>
 "#,
-        to = to_url
+        to = absolute_url
     )
 }
 
@@ -563,7 +579,12 @@ fn build_site(
                 let redirects = extract_redirect_from(&item.front_matter);
                 for redirect_url in &redirects {
                     let target_url = &item.url;
-                    let html = generate_redirect_html(redirect_url, target_url);
+                    let html = generate_redirect_html(
+                        redirect_url,
+                        target_url,
+                        &config.url,
+                        &config.baseurl,
+                    );
                     let out_path = generator::url_to_output_path(destination, redirect_url);
                     if let Some(parent) = out_path.parent() {
                         let _ = std::fs::create_dir_all(parent);
@@ -579,7 +600,8 @@ fn build_site(
             let redirects = extract_redirect_from(&page.front_matter);
             for redirect_url in &redirects {
                 let target_url = &page.url;
-                let html = generate_redirect_html(redirect_url, target_url);
+                let html =
+                    generate_redirect_html(redirect_url, target_url, &config.url, &config.baseurl);
                 let out_path = generator::url_to_output_path(destination, redirect_url);
                 if let Some(parent) = out_path.parent() {
                     let _ = std::fs::create_dir_all(parent);
@@ -1528,5 +1550,73 @@ mod tests {
         assert!(result.is_ok(), "build should succeed in quiet mode");
         let summary = result.unwrap();
         assert!(summary.standalone_pages > 0, "Should generate pages");
+    }
+
+    #[test]
+    fn test_redirect_html_absolute_url() {
+        let html = generate_redirect_html("/old/", "/community/", "https://example.com", "");
+        assert!(
+            html.contains("href=\"https://example.com/community/\""),
+            "Expected absolute URL in redirect HTML, got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_redirect_html_with_baseurl() {
+        let html = generate_redirect_html("/old/", "/page/", "https://example.com", "/docs");
+        assert!(
+            html.contains("href=\"https://example.com/docs/page/\""),
+            "Expected absolute URL with baseurl in redirect HTML, got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_redirect_html_all_elements_absolute() {
+        let html = generate_redirect_html("/old/", "/community/", "https://example.com", "");
+        let expected_url = "https://example.com/community/";
+        // <link rel="canonical" href="...">
+        assert!(
+            html.contains(&format!("href=\"{}\"", expected_url)),
+            "link canonical should use absolute URL"
+        );
+        // <meta http-equiv="refresh" content="0; url=...">
+        assert!(
+            html.contains(&format!("url={}", expected_url)),
+            "meta refresh should use absolute URL"
+        );
+        // <script>location="..."</script>
+        assert!(
+            html.contains(&format!("location=\"{}\"", expected_url)),
+            "script location should use absolute URL"
+        );
+        // <a href="...">
+        assert!(
+            html.contains(&format!("<a href=\"{}\">", expected_url)),
+            "anchor href should use absolute URL"
+        );
+    }
+
+    #[test]
+    fn test_redirect_html_no_site_url_uses_relative() {
+        let html = generate_redirect_html("/old/", "/community/", "", "");
+        assert!(
+            html.contains("href=\"/community/\""),
+            "Should fall back to relative URL when site.url is empty, got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_redirect_html_structure_unchanged() {
+        let html = generate_redirect_html("/old/", "/community/", "https://example.com", "");
+        assert!(html.contains("<!DOCTYPE html>"));
+        assert!(html.contains("<html lang=\"en-US\">"));
+        assert!(html.contains("<meta charset=\"utf-8\">"));
+        assert!(html.contains("<title>Redirecting&hellip;</title>"));
+        assert!(html.contains("<meta name=\"robots\" content=\"noindex\">"));
+        assert!(html.contains("<h1>Redirecting&hellip;</h1>"));
+        assert!(html.contains("Click here if you are not redirected."));
     }
 }
