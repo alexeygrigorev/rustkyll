@@ -334,6 +334,14 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
     if lang == "sql" {
         html = postprocess_sql_highlighting(&html);
     }
+
+    // XML/HTML post-processing: Rouge treats `<tagname>` as a single `nt`
+    // (name.tag) token, while syntect splits it into `p` (<) + `na` (tagname)
+    // + `p` (>). Merge them to match Rouge output.
+    if is_xml_like_language(lang) {
+        html = postprocess_xml_tag_tokens(&html);
+    }
+
     Some(html)
 }
 
@@ -762,6 +770,130 @@ fn wrap_sql_bare_tokens(
 
 fn is_sql_punctuation(c: char) -> bool {
     matches!(c, '(' | ')' | '.' | ',' | ';' | ':')
+}
+
+/// Check if a language name corresponds to an XML/HTML-like syntax.
+fn is_xml_like_language(lang: &str) -> bool {
+    matches!(
+        lang,
+        "xml" | "html" | "htm" | "xhtml" | "svg" | "xsd" | "xslt" | "rss" | "opml"
+    )
+}
+
+/// Post-process XML/HTML highlighted output to merge tag punctuation with tag names,
+/// matching Rouge's behavior where `<tagname>` is a single `nt` (name.tag) token.
+///
+/// Syntect produces: `<span class="p">&lt;</span><span class="na">tag</span><span class="p">&gt;</span>`
+/// Rouge produces:   `<span class="nt">&lt;tag&gt;</span>`
+///
+/// For tags with attributes:
+/// Syntect: `<span class="p">&lt;</span><span class="na">tag</span> <span class="na">attr</span>...`
+/// Rouge:   `<span class="nt">&lt;tag</span> <span class="na">attr=</span>...`
+fn postprocess_xml_tag_tokens(html: &str) -> String {
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+
+    // Patterns we need to match and transform:
+    let open_lt = "<span class=\"p\">&lt;</span>";
+    let close_lt = "<span class=\"p\">&lt;/</span>";
+    let close_gt = "<span class=\"p\">&gt;</span>";
+    let na_open = "<span class=\"na\">";
+    let span_close = "</span>";
+
+    while !remaining.is_empty() {
+        // Look for either opening `<` or closing `</` tag pattern
+        let close_pos = remaining.find(close_lt);
+        let open_pos = remaining.find(open_lt);
+
+        // Find the earliest match
+        let (pos, is_closing_tag) = match (open_pos, close_pos) {
+            (Some(o), Some(c)) => {
+                if c < o {
+                    (c, true)
+                } else {
+                    (o, false)
+                }
+            }
+            (Some(o), None) => (o, false),
+            (None, Some(c)) => (c, true),
+            (None, None) => {
+                result.push_str(remaining);
+                break;
+            }
+        };
+
+        // Copy everything before this match
+        result.push_str(&remaining[..pos]);
+
+        let lt_pattern = if is_closing_tag { close_lt } else { open_lt };
+        let after_lt = &remaining[pos + lt_pattern.len()..];
+
+        // Check if followed by <span class="na">tagname</span>
+        if let Some(after_na_open) = after_lt.strip_prefix(na_open) {
+            if let Some(name_end) = after_na_open.find(span_close) {
+                let tag_name = &after_na_open[..name_end];
+                let after_name = &after_na_open[name_end + span_close.len()..];
+
+                // Check what follows the tag name:
+                if let Some(after_gt) = after_name.strip_prefix(close_gt) {
+                    // Pattern: <tagname> or </tagname> -- merge into single nt span
+                    result.push_str("<span class=\"nt\">&lt;");
+                    if is_closing_tag {
+                        result.push('/');
+                    }
+                    result.push_str(tag_name);
+                    result.push_str("&gt;</span>");
+                    remaining = after_gt;
+                } else {
+                    // Tag has attributes or other content after the name.
+                    // Convert to: <span class="nt">&lt;tagname</span>
+                    // and we need to also convert the eventual closing > from p to nt.
+                    result.push_str("<span class=\"nt\">&lt;");
+                    if is_closing_tag {
+                        result.push('/');
+                    }
+                    result.push_str(tag_name);
+                    result.push_str("</span>");
+                    remaining = after_name;
+                }
+            } else {
+                // No closing </span> found -- just copy the pattern as-is
+                result.push_str(lt_pattern);
+                remaining = after_lt;
+            }
+        } else {
+            // Not followed by <span class="na"> -- copy as-is
+            result.push_str(lt_pattern);
+            remaining = after_lt;
+        }
+    }
+
+    // Second pass: convert remaining <span class="p">&gt;</span> that close tags
+    // with attributes to <span class="nt">&gt;</span>.
+    // These are the `>` that come after attribute values, closing the tag.
+    // We detect them by looking for `<span class="p">&gt;</span>` that is NOT
+    // preceded by other punctuation context.
+    // Simple approach: in XML/HTML, `<span class="p">&gt;</span>` at the end of
+    // tag declarations should become nt. Since we've already converted the opening
+    // `<` to nt, any remaining `<span class="p">&gt;</span>` is the closing `>`.
+    result = result.replace(
+        "<span class=\"p\">&gt;</span>",
+        "<span class=\"nt\">&gt;</span>",
+    );
+
+    // Also merge attribute name + equals sign:
+    // Syntect: <span class="na">attr</span><span class="pi">=</span>
+    // Rouge:   <span class="na">attr=</span>
+    let eq_pattern = "</span><span class=\"pi\">=</span>";
+    if result.contains(eq_pattern) {
+        result = result.replace(eq_pattern, "=</span>");
+    }
+
+    // Also normalize string class for XML/HTML attributes:
+    // Syntect uses s2 for double-quoted strings, Rouge uses plain s
+    result = result.replace("class=\"s2\"", "class=\"s\"");
+
+    result
 }
 
 #[cfg(test)]
@@ -1595,6 +1727,102 @@ mod tests {
         assert!(
             html.contains("<span class=\"nb\">install </span>"),
             "Bash `install` should be classified as `nb` (builtin). Got: {html}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 177: XML/HTML tag names should be `nt` (name.tag)
+    // ========================================================================
+
+    // ========================================================================
+    // Issue 177: XML/HTML tag names should be `nt` (name.tag), not `p` + `na`
+    // ========================================================================
+
+    #[test]
+    fn test_issue177_xml_simple_tag_is_nt() {
+        // Rouge: <span class="nt">&lt;dependencies&gt;</span>
+        let code = "<dependencies>\n</dependencies>\n";
+        let html = highlight_code("xml", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nt\">&lt;dependencies&gt;</span>"),
+            "XML opening tag should be nt: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nt\">&lt;/dependencies&gt;</span>"),
+            "XML closing tag should be nt: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue177_xml_maven_pom_tags() {
+        // From mlwiki.org ANTLR4_Maven.html
+        let code = "<dependencies>\n  <dependency>\n    <groupId>org.antlr</groupId>\n  </dependency>\n</dependencies>\n";
+        let html = highlight_code("xml", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nt\">&lt;dependencies&gt;</span>"),
+            "XML <dependencies> should be nt: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nt\">&lt;groupId&gt;</span>"),
+            "XML <groupId> should be nt: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nt\">&lt;/groupId&gt;</span>"),
+            "XML </groupId> should be nt: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue177_xml_tag_with_attributes() {
+        // Rouge: <span class="nt">&lt;salutation</span> <span class="na">color=</span><span class="s">"blue"</span><span class="nt">&gt;</span>
+        let code = "<salutation color=\"blue\">\n</salutation>\n";
+        let html = highlight_code("xml", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nt\">&lt;salutation</span>"),
+            "XML tag with attrs: opening should be nt: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nt\">&gt;</span>"),
+            "XML tag with attrs: closing > should be nt: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue177_html_simple_tags() {
+        let code = "<div>\n  <span>hello</span>\n</div>\n";
+        let html = highlight_code("html", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nt\">&lt;span&gt;</span>"),
+            "HTML <span> should be nt: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nt\">&lt;/span&gt;</span>"),
+            "HTML </span> should be nt: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue177_html_tag_with_class_attribute() {
+        let code = "<div class=\"container\">\n</div>\n";
+        let html = highlight_code("html", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nt\">&lt;div</span>"),
+            "HTML <div with attrs: tag name should be nt: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nt\">&gt;</span>"),
+            "HTML tag closing > should be nt: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue177_no_p_for_xml_angle_brackets() {
+        // After fix, XML angle brackets around tags should NOT be class "p"
+        let code = "<dependency>\n</dependency>\n";
+        let html = highlight_code("xml", code).unwrap();
+        assert!(
+            !html.contains("<span class=\"p\">&lt;</span><span class=\"na\">"),
+            "XML should NOT have p+na pattern for tags: {html}"
         );
     }
 }
