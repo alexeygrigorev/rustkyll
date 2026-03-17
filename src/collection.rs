@@ -631,6 +631,10 @@ fn process_collection_file(
             generated
         });
 
+    // Percent-encode non-ASCII characters in URLs, matching Jekyll behavior.
+    // Jekyll outputs percent-encoded URLs for Cyrillic and other non-ASCII chars.
+    let url = crate::template::filters::relative_url::encode_url_path(&url);
+
     let html_content = if is_markdown {
         frontmatter::markdown_to_html(&doc.content)
     } else {
@@ -922,6 +926,9 @@ fn load_pages_recursive(
                 }
             });
 
+        // Percent-encode non-ASCII characters in URLs, matching Jekyll behavior.
+        let url = crate::template::filters::relative_url::encode_url_path(&url);
+
         let html_content = if is_markdown {
             frontmatter::markdown_to_html(&doc.content)
         } else {
@@ -1001,6 +1008,18 @@ mod tests {
     fn test_generate_url_blog_pattern() {
         let url = generate_url("/blog/:title.html", "posts", "segmentation");
         assert_eq!(url, "/blog/segmentation.html");
+    }
+
+    #[test]
+    fn test_generate_url_cyrillic_title() {
+        // Cyrillic titles should produce URLs with raw Cyrillic in generate_url
+        // (percent-encoding is applied separately when storing item.url)
+        let url = generate_url(
+            "/:collection/:title/",
+            "little-book-of-metals-ru",
+            "часть_1_история",
+        );
+        assert_eq!(url, "/little-book-of-metals-ru/часть_1_история/");
     }
 
     // ========================================================================
@@ -1882,6 +1901,80 @@ mod tests {
         assert_eq!(pages.len(), 1);
         // Custom pattern ending in .html -> no suffix
         assert_eq!(pages[0].url, "/slack/guidelines");
+    }
+
+    // ========================================================================
+    // Cyrillic / non-ASCII URL percent-encoding (issue #175)
+    // ========================================================================
+
+    #[test]
+    fn test_page_url_cyrillic_subdir_percent_encoded() {
+        // Pages in subdirectories with Cyrillic names get percent-encoded URLs
+        let dir = tempfile::tempdir().unwrap();
+        let subdir = dir.path().join("часть_1");
+        std::fs::create_dir(&subdir).unwrap();
+        std::fs::write(subdir.join("index.md"), "---\ntitle: Part 1\n---\nContent").unwrap();
+        let config = SiteConfig {
+            permalink: "pretty".to_string(),
+            ..SiteConfig::default()
+        };
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 1);
+        // Cyrillic directory name should be percent-encoded in the URL
+        assert_eq!(pages[0].url, "/%D1%87%D0%B0%D1%81%D1%82%D1%8C_1/");
+    }
+
+    #[test]
+    fn test_page_url_cyrillic_filename_percent_encoded() {
+        // Pages with Cyrillic filenames get percent-encoded URLs
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("история.md"),
+            "---\ntitle: History\n---\nContent",
+        )
+        .unwrap();
+        let config = SiteConfig {
+            permalink: "pretty".to_string(),
+            ..SiteConfig::default()
+        };
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0].url, "/%D0%B8%D1%81%D1%82%D0%BE%D1%80%D0%B8%D1%8F/");
+    }
+
+    #[test]
+    fn test_collection_item_cyrillic_url_percent_encoded() {
+        // Collection items with Cyrillic slugs get percent-encoded URLs
+        let dir = tempfile::tempdir().unwrap();
+        let coll_dir = dir.path().join("_sections");
+        std::fs::create_dir(&coll_dir).unwrap();
+        std::fs::write(
+            coll_dir.join("часть_1_история.md"),
+            "---\ntitle: Part 1 History\n---\nContent",
+        )
+        .unwrap();
+
+        let config = SiteConfig {
+            collections: {
+                let mut m = std::collections::HashMap::new();
+                m.insert(
+                    "sections".to_string(),
+                    crate::config::CollectionConfig {
+                        output: true,
+                        permalink: "/:collection/:title/".to_string(),
+                    },
+                );
+                m
+            },
+            ..SiteConfig::default()
+        };
+
+        let (items, _) = load_collection("sections", dir.path(), &config).unwrap();
+        assert_eq!(items.len(), 1);
+        assert_eq!(
+            items[0].url,
+            "/sections/%D1%87%D0%B0%D1%81%D1%82%D1%8C_1_%D0%B8%D1%81%D1%82%D0%BE%D1%80%D0%B8%D1%8F/"
+        );
     }
 
     #[test]

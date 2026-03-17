@@ -432,7 +432,11 @@ pub fn output_path(output_dir: &Path, collection: &str, slug: &str) -> std::path
 /// URLs with a recognized file extension produce `<output_dir>/<url>` directly.
 /// Other URLs get `.html` appended.
 pub fn url_to_output_path(output_dir: &Path, url: &str) -> std::path::PathBuf {
-    let relative = url.trim_start_matches('/');
+    // Decode percent-encoded characters for filesystem paths.
+    // URLs contain percent-encoded non-ASCII chars (e.g., Cyrillic %D1%87),
+    // but the output filesystem should use the actual characters.
+    let decoded = crate::template::filters::relative_url::decode_url_path(url);
+    let relative = decoded.trim_start_matches('/');
     if relative.is_empty() {
         return output_dir.join("index.html");
     }
@@ -1848,6 +1852,26 @@ mod tests {
     fn test_url_to_output_path_txt() {
         let path = url_to_output_path(Path::new("/tmp/site"), "/robots.txt");
         assert_eq!(path, PathBuf::from("/tmp/site/robots.txt"));
+    }
+
+    #[test]
+    fn test_url_to_output_path_percent_encoded_cyrillic() {
+        // Percent-encoded Cyrillic URLs should decode to actual Cyrillic filesystem paths
+        let path = url_to_output_path(
+            Path::new("/tmp/site"),
+            "/sections/%D1%87%D0%B0%D1%81%D1%82%D1%8C_1_%D0%B8%D1%81%D1%82%D0%BE%D1%80%D0%B8%D1%8F/",
+        );
+        assert_eq!(
+            path,
+            PathBuf::from("/tmp/site/sections/часть_1_история/index.html")
+        );
+    }
+
+    #[test]
+    fn test_url_to_output_path_percent_encoded_spaces() {
+        // Percent-encoded spaces should decode for filesystem paths
+        let path = url_to_output_path(Path::new("/tmp/site"), "/podcast/hybrid%20search.html");
+        assert_eq!(path, PathBuf::from("/tmp/site/podcast/hybrid search.html"));
     }
 
     // ========================================================================
