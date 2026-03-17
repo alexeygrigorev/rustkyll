@@ -119,6 +119,26 @@ fn get_nested_str(runtime: &dyn Runtime, parts: &[&str]) -> Option<String> {
     }
 }
 
+/// Compute the absolute URL for an image path.
+fn absolute_image_url(img: &str, site_url: &Option<String>) -> String {
+    if img.starts_with("http://") || img.starts_with("https://") {
+        img.to_string()
+    } else if let Some(ref base) = site_url {
+        let base = base.trim_end_matches('/');
+        let path = if img.starts_with('/') {
+            img.to_string()
+        } else {
+            format!("/{}", img)
+        };
+        format!("{}{}", base, path)
+    } else {
+        img.to_string()
+    }
+}
+
+/// Title separator matching jekyll-seo-tag (` | `).
+const TITLE_SEPARATOR: &str = " | ";
+
 impl Renderable for SeoRenderable {
     fn render_to(&self, writer: &mut dyn Write, runtime: &dyn Runtime) -> liquid_core::Result<()> {
         let mut output = String::new();
@@ -126,6 +146,7 @@ impl Renderable for SeoRenderable {
         // Extract values from context
         let page_title = get_nested_str(runtime, &["page", "title"]);
         let site_title = get_nested_str(runtime, &["site", "title"]);
+        let site_tagline = get_nested_str(runtime, &["site", "tagline"]);
         let page_description = get_nested_str(runtime, &["page", "description"]);
         let page_excerpt = get_nested_str(runtime, &["page", "excerpt"]);
         let site_description = get_nested_str(runtime, &["site", "description"]);
@@ -138,41 +159,69 @@ impl Renderable for SeoRenderable {
         let page_author = get_nested_str(runtime, &["page", "author"]);
         let site_author = get_nested_str(runtime, &["site", "author"]);
 
-        // 1. Title
-        // Match Jekyll's jekyll-seo-tag behavior:
-        // - Use &ndash; (en-dash) as separator, not hyphen
-        // - Don't append site title if page title already contains it
-        let (title, title_html) = match (&page_title, &site_title) {
+        // Compute page_title for og:title (page title alone, falling back to site title)
+        let og_page_title = page_title.as_deref().or(site_title.as_deref());
+
+        // Compute full title matching jekyll-seo-tag logic:
+        // - If page_title and site_title differ: "page_title | site_title"
+        // - If page_title == site_title: "site_title | site_tagline_or_description"
+        // - If only site_title: just site_title
+        // - If only page_title: just page_title
+        let site_tagline_or_description = site_tagline.as_deref().or(site_description.as_deref());
+        let full_title: Option<String> = match (&page_title, &site_title) {
             (Some(pt), Some(st)) => {
-                if pt.contains(st.as_str()) {
-                    // Page title already contains site title, don't append
-                    let escaped = html_escape(pt);
-                    (Some(pt.clone()), Some(escaped))
+                if pt != st {
+                    Some(format!("{}{}{}", pt, TITLE_SEPARATOR, st))
+                } else if let Some(tagline) = site_tagline_or_description {
+                    // page_title == site_title, append tagline/description
+                    Some(format!("{}{}{}", st, TITLE_SEPARATOR, tagline))
                 } else {
-                    let raw = format!("{} \u{2013} {}", pt, st);
-                    // Build HTML with &ndash; entity (escape parts separately)
-                    let escaped = format!("{} &ndash; {}", html_escape(pt), html_escape(st));
-                    (Some(raw), Some(escaped))
+                    Some(pt.clone())
                 }
             }
-            (Some(pt), None) => {
-                let escaped = html_escape(pt);
-                (Some(pt.clone()), Some(escaped))
-            }
-            (None, Some(st)) => {
-                let escaped = html_escape(st);
-                (Some(st.clone()), Some(escaped))
-            }
-            (None, None) => (None, None),
+            (Some(pt), None) => Some(pt.clone()),
+            (None, Some(st)) => Some(st.clone()),
+            (None, None) => None,
         };
 
+        // --- Begin output in Jekyll SEO tag order ---
+        output.push_str("<!-- Begin Jekyll SEO tag v2.8.0 -->\n");
+
+        // 1. <title> tag
         if !self.suppress_title {
-            if let Some(ref t) = title_html {
-                output.push_str(&format!("<title>{}</title>\n", t));
+            if let Some(ref t) = full_title {
+                output.push_str(&format!("<title>{}</title>\n", html_escape(t)));
             }
         }
 
-        // 2. Description
+        // 2. <meta name="generator">
+        output.push_str("<meta name=\"generator\" content=\"Jekyll v4.4.1\" />\n");
+
+        // 3. og:title (uses page_title only, not the combined title)
+        if let Some(pt) = og_page_title {
+            output.push_str(&format!(
+                "<meta property=\"og:title\" content=\"{}\" />\n",
+                html_escape(pt)
+            ));
+        }
+
+        // 4. <meta name="author"> (if present)
+        let author = page_author.as_deref().or(site_author.as_deref());
+        if let Some(author_name) = author {
+            output.push_str(&format!(
+                "<meta name=\"author\" content=\"{}\" />\n",
+                html_escape(author_name)
+            ));
+        }
+
+        // 5. og:locale
+        let locale = site_locale.as_deref().unwrap_or("en_US");
+        output.push_str(&format!(
+            "<meta property=\"og:locale\" content=\"{}\" />\n",
+            html_escape(locale)
+        ));
+
+        // 6. Description (both meta name="description" and og:description together)
         let description = page_description
             .as_deref()
             .or(page_excerpt.as_deref())
@@ -183,9 +232,13 @@ impl Renderable for SeoRenderable {
                 "<meta name=\"description\" content=\"{}\" />\n",
                 html_escape(desc)
             ));
+            output.push_str(&format!(
+                "<meta property=\"og:description\" content=\"{}\" />\n",
+                html_escape(desc)
+            ));
         }
 
-        // 3. Canonical URL
+        // 7. Canonical URL + og:url (together)
         let canonical_url = match (&site_url, &page_url) {
             (Some(base), Some(path)) => {
                 let base = base.trim_end_matches('/');
@@ -200,35 +253,20 @@ impl Renderable for SeoRenderable {
             _ => None,
         };
 
-        if let Some(ref url) = canonical_url {
-            output.push_str(&format!(
-                "<link rel=\"canonical\" href=\"{}\" />\n",
-                html_escape(url)
-            ));
+        if site_url.is_some() {
+            if let Some(ref url) = canonical_url {
+                output.push_str(&format!(
+                    "<link rel=\"canonical\" href=\"{}\" />\n",
+                    html_escape(url)
+                ));
+                output.push_str(&format!(
+                    "<meta property=\"og:url\" content=\"{}\" />\n",
+                    html_escape(url)
+                ));
+            }
         }
 
-        // 4-10. Open Graph tags
-        if let Some(ref t) = title_html {
-            output.push_str(&format!(
-                "<meta property=\"og:title\" content=\"{}\" />\n",
-                t
-            ));
-        }
-
-        if let Some(desc) = description {
-            output.push_str(&format!(
-                "<meta property=\"og:description\" content=\"{}\" />\n",
-                html_escape(desc)
-            ));
-        }
-
-        if let Some(ref url) = canonical_url {
-            output.push_str(&format!(
-                "<meta property=\"og:url\" content=\"{}\" />\n",
-                html_escape(url)
-            ));
-        }
-
+        // 8. og:site_name
         if let Some(ref st) = site_title {
             output.push_str(&format!(
                 "<meta property=\"og:site_name\" content=\"{}\" />\n",
@@ -236,57 +274,43 @@ impl Renderable for SeoRenderable {
             ));
         }
 
-        // og:type - "article" for posts (pages with date), "website" otherwise
-        let og_type = if page_date.is_some() {
-            "article"
-        } else {
-            "website"
-        };
-        output.push_str(&format!(
-            "<meta property=\"og:type\" content=\"{}\" />\n",
-            og_type
-        ));
-
-        // og:image
+        // 9. og:image
         if let Some(ref img) = page_image {
-            let absolute_img = if img.starts_with("http://") || img.starts_with("https://") {
-                img.clone()
-            } else if let Some(ref base) = site_url {
-                let base = base.trim_end_matches('/');
-                let path = if img.starts_with('/') {
-                    img.clone()
-                } else {
-                    format!("/{}", img)
-                };
-                format!("{}{}", base, path)
-            } else {
-                img.clone()
-            };
+            let absolute_img = absolute_image_url(img, &site_url);
             output.push_str(&format!(
                 "<meta property=\"og:image\" content=\"{}\" />\n",
                 html_escape(&absolute_img)
             ));
         }
 
-        // og:locale
-        let locale = site_locale.as_deref().unwrap_or("en_US");
-        output.push_str(&format!(
-            "<meta property=\"og:locale\" content=\"{}\" />\n",
-            html_escape(locale)
-        ));
+        // 10. og:type - "article" for posts (pages with date), "website" otherwise
+        if page_date.is_some() {
+            output.push_str("<meta property=\"og:type\" content=\"article\" />\n");
+        } else {
+            output.push_str("<meta property=\"og:type\" content=\"website\" />\n");
+        }
 
         // 11. Twitter Card
-        let card_type = if page_image.is_some() {
-            "summary_large_image"
+        if page_image.is_some() {
+            output.push_str("<meta name=\"twitter:card\" content=\"summary_large_image\" />\n");
+            let absolute_img = absolute_image_url(page_image.as_deref().unwrap_or(""), &site_url);
+            output.push_str(&format!(
+                "<meta property=\"twitter:image\" content=\"{}\" />\n",
+                html_escape(&absolute_img)
+            ));
         } else {
-            "summary"
-        };
-        output.push_str(&format!(
-            "<meta name=\"twitter:card\" content=\"{}\" />\n",
-            card_type
-        ));
+            output.push_str("<meta name=\"twitter:card\" content=\"summary\" />\n");
+        }
 
-        // 12. Twitter site
+        // 12. twitter:title
+        if let Some(pt) = og_page_title {
+            output.push_str(&format!(
+                "<meta property=\"twitter:title\" content=\"{}\" />\n",
+                html_escape(pt)
+            ));
+        }
+
+        // 13. Twitter site
         if let Some(ref username) = twitter_username {
             let handle = if username.starts_with('@') {
                 username.clone()
@@ -299,7 +323,7 @@ impl Renderable for SeoRenderable {
             ));
         }
 
-        // 13. JSON-LD structured data
+        // 14. JSON-LD structured data
         let schema_type = if page_date.is_some() {
             "BlogPosting"
         } else {
@@ -311,11 +335,11 @@ impl Renderable for SeoRenderable {
         output.push_str("  \"@context\": \"https://schema.org\",\n");
         output.push_str(&format!("  \"@type\": \"{}\",\n", schema_type));
 
-        if let Some(ref t) = title {
+        if let Some(ref t) = full_title {
             let escaped = json_escape(t);
             output.push_str(&format!("  \"name\": \"{}\",\n", escaped));
             // headline is max 110 chars per Google guidelines
-            let headline = if t.len() > 110 { &t[..110] } else { t };
+            let headline = if t.len() > 110 { &t[..110] } else { t.as_str() };
             output.push_str(&format!("  \"headline\": \"{}\",\n", json_escape(headline)));
         }
 
@@ -327,8 +351,7 @@ impl Renderable for SeoRenderable {
             output.push_str(&format!("  \"url\": \"{}\",\n", json_escape(url)));
         }
 
-        // Author
-        let author = page_author.as_deref().or(site_author.as_deref());
+        // Author in JSON-LD
         if let Some(author_name) = author {
             output.push_str("  \"author\": {\n");
             output.push_str("    \"@type\": \"Person\",\n");
@@ -344,19 +367,7 @@ impl Renderable for SeoRenderable {
         }
 
         if let Some(ref img) = page_image {
-            let absolute_img = if img.starts_with("http://") || img.starts_with("https://") {
-                img.clone()
-            } else if let Some(ref base) = site_url {
-                let base = base.trim_end_matches('/');
-                let path = if img.starts_with('/') {
-                    img.clone()
-                } else {
-                    format!("/{}", img)
-                };
-                format!("{}{}", base, path)
-            } else {
-                img.clone()
-            };
+            let absolute_img = absolute_image_url(img, &site_url);
             output.push_str(&format!(
                 "  \"image\": \"{}\",\n",
                 json_escape(&absolute_img)
@@ -371,6 +382,8 @@ impl Renderable for SeoRenderable {
 
         output.push_str("}\n");
         output.push_str("</script>\n");
+
+        output.push_str("<!-- End Jekyll SEO tag -->\n");
 
         write!(writer, "{}", output)
             .map_err(|e| liquid_core::Error::with_msg(format!("seo tag write error: {}", e)))?;
@@ -474,16 +487,43 @@ mod tests {
             None,
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
-        assert!(out.contains("<title>My Page &ndash; My Site</title>"));
+        assert!(
+            out.contains("<title>My Page | My Site</title>"),
+            "Title should use pipe separator, got: {}",
+            out
+        );
     }
 
     #[test]
-    fn test_title_page_contains_site_title() {
-        // When page title already contains the site title, don't append it
-        // This matches Jekyll's jekyll-seo-tag behavior
+    fn test_title_page_equals_site_title_with_description() {
+        // When page_title == site_title, Jekyll appends site tagline or description
         let eng = engine();
         let ctx = make_context(
-            Some("Welcome to My Site"),
+            Some("My Site"),
+            Some("My Site"),
+            None,
+            Some("A great site"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<title>My Site | A great site</title>"),
+            "When page_title == site_title, should append site description. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_title_page_equals_site_title_no_description() {
+        // When page_title == site_title and no tagline/description, just use the title
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Site"),
             Some("My Site"),
             None,
             None,
@@ -495,8 +535,11 @@ mod tests {
             None,
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
-        assert!(out.contains("<title>Welcome to My Site</title>"));
-        assert!(!out.contains("&ndash;"));
+        assert!(
+            out.contains("<title>My Site</title>"),
+            "When page_title == site_title and no description, just title. Got: {}",
+            out
+        );
     }
 
     #[test]
@@ -642,7 +685,8 @@ mod tests {
     // ========================================================================
 
     #[test]
-    fn test_og_title() {
+    fn test_og_title_uses_page_title_only() {
+        // og:title should use page_title only, not the combined title
         let eng = engine();
         let ctx = make_context(
             Some("My Page"),
@@ -657,7 +701,35 @@ mod tests {
             None,
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
-        assert!(out.contains("<meta property=\"og:title\" content=\"My Page &ndash; My Site\" />"));
+        assert!(
+            out.contains("<meta property=\"og:title\" content=\"My Page\" />"),
+            "og:title should be page title only, got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_og_title_falls_back_to_site_title() {
+        // When no page title, og:title falls back to site_title
+        let eng = engine();
+        let ctx = make_context(
+            None,
+            Some("My Site"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<meta property=\"og:title\" content=\"My Site\" />"),
+            "og:title should fall back to site title, got: {}",
+            out
+        );
     }
 
     #[test]
@@ -1001,7 +1073,7 @@ mod tests {
             Some("mysite"),
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
-        assert!(out.contains("<title>My Page &ndash; My Site</title>"));
+        assert!(out.contains("<title>My Page | My Site</title>"));
         assert!(out.contains("name=\"description\""));
         assert!(out.contains("rel=\"canonical\""));
         assert!(out.contains("og:title"));
@@ -1013,8 +1085,12 @@ mod tests {
         assert!(out.contains("og:locale"));
         assert!(out.contains("twitter:card"));
         assert!(out.contains("twitter:site"));
+        assert!(out.contains("twitter:title"));
+        assert!(out.contains("twitter:image"));
         assert!(out.contains("application/ld+json"));
         assert!(out.contains("BlogPosting"));
+        assert!(out.contains("<!-- Begin Jekyll SEO tag"));
+        assert!(out.contains("<!-- End Jekyll SEO tag -->"));
     }
 
     #[test]
@@ -1099,6 +1175,205 @@ mod tests {
             "Canonical should preserve trailing slash"
         );
     }
+
+    // ========================================================================
+    // Meta tag ordering (issue #173)
+    // ========================================================================
+
+    #[test]
+    fn test_meta_tag_order_matches_jekyll() {
+        // Verify meta tags appear in the same order as jekyll-seo-tag
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Page"),
+            Some("My Site"),
+            Some("A description"),
+            None,
+            Some("https://example.com"),
+            Some("/page"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+
+        // Find positions of key elements
+        let pos_begin = out
+            .find("<!-- Begin Jekyll SEO tag")
+            .expect("begin comment");
+        let pos_title = out.find("<title>").expect("title");
+        let pos_generator = out.find("name=\"generator\"").expect("generator");
+        let pos_og_title = out.find("og:title").expect("og:title");
+        let pos_og_locale = out.find("og:locale").expect("og:locale");
+        let pos_description = out.find("name=\"description\"").expect("description");
+        let pos_og_description = out.find("og:description").expect("og:description");
+        let pos_canonical = out.find("rel=\"canonical\"").expect("canonical");
+        let pos_og_url = out.find("og:url").expect("og:url");
+        let pos_og_site_name = out.find("og:site_name").expect("og:site_name");
+        let pos_og_type = out.find("og:type").expect("og:type");
+        let pos_twitter_card = out.find("twitter:card").expect("twitter:card");
+        let pos_json_ld = out.find("application/ld+json").expect("json-ld");
+        let pos_end = out.find("<!-- End Jekyll SEO tag").expect("end comment");
+
+        // Assert ordering matches Jekyll template
+        assert!(pos_begin < pos_title, "begin comment before title");
+        assert!(pos_title < pos_generator, "title before generator");
+        assert!(pos_generator < pos_og_title, "generator before og:title");
+        assert!(pos_og_title < pos_og_locale, "og:title before og:locale");
+        assert!(
+            pos_og_locale < pos_description,
+            "og:locale before description"
+        );
+        assert!(
+            pos_description < pos_og_description,
+            "description before og:description"
+        );
+        assert!(
+            pos_og_description < pos_canonical,
+            "og:description before canonical"
+        );
+        assert!(pos_canonical < pos_og_url, "canonical before og:url");
+        assert!(pos_og_url < pos_og_site_name, "og:url before og:site_name");
+        assert!(
+            pos_og_site_name < pos_og_type,
+            "og:site_name before og:type"
+        );
+        assert!(
+            pos_og_type < pos_twitter_card,
+            "og:type before twitter:card"
+        );
+        assert!(
+            pos_twitter_card < pos_json_ld,
+            "twitter:card before json-ld"
+        );
+        assert!(pos_json_ld < pos_end, "json-ld before end comment");
+    }
+
+    #[test]
+    fn test_generator_meta_tag() {
+        let eng = engine();
+        let ctx = make_context(None, None, None, None, None, None, None, None, None, None);
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<meta name=\"generator\" content=\"Jekyll v4.4.1\" />"),
+            "Should have generator meta tag, got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_twitter_title_present() {
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Page"),
+            Some("My Site"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<meta property=\"twitter:title\" content=\"My Page\" />"),
+            "Should have twitter:title with page title, got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_twitter_image_present_with_image() {
+        let eng = engine();
+        let ctx = make_context(
+            None,
+            None,
+            None,
+            None,
+            Some("https://example.com"),
+            None,
+            Some("/img/cover.png"),
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains(
+                "<meta property=\"twitter:image\" content=\"https://example.com/img/cover.png\" />"
+            ),
+            "Should have twitter:image, got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_begin_end_comments() {
+        let eng = engine();
+        let ctx = make_context(None, None, None, None, None, None, None, None, None, None);
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(out.starts_with("<!-- Begin Jekyll SEO tag v2.8.0 -->\n"));
+        assert!(out.ends_with("<!-- End Jekyll SEO tag -->\n"));
+    }
+
+    #[test]
+    fn test_description_and_og_description_emitted_together() {
+        // Both name="description" and og:description should be present
+        let eng = engine();
+        let ctx = make_context(
+            None,
+            None,
+            Some("My desc"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(out.contains("<meta name=\"description\" content=\"My desc\" />"));
+        assert!(out.contains("<meta property=\"og:description\" content=\"My desc\" />"));
+    }
+
+    #[test]
+    fn test_architect_theme_like_output() {
+        // Simulate architect theme: site.title = "Architect theme",
+        // site.description = "Architect is a theme for GitHub Pages."
+        // page.title = "Architect theme" (same as site title on index)
+        let eng = engine();
+        let ctx = make_context(
+            Some("Architect theme"),
+            Some("Architect theme"),
+            None,
+            Some("Architect is a theme for GitHub Pages."),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<title>Architect theme | Architect is a theme for GitHub Pages.</title>"),
+            "Title should be 'site_title | site_description' when page==site. Got: {}",
+            out
+        );
+        assert!(
+            out.contains("<meta property=\"og:title\" content=\"Architect theme\" />"),
+            "og:title should be page title only. Got: {}",
+            out
+        );
+    }
+
+    // ========================================================================
+    // Canonical URL construction (issue #69)
+    // ========================================================================
 
     #[test]
     fn test_canonical_url_no_double_slashes() {

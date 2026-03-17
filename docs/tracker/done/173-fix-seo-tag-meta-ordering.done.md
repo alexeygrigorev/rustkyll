@@ -46,3 +46,35 @@ Example from architect-theme:
 ## Dependencies
 
 Depends on issue #38 (jekyll-seo-tag) which is already done.
+
+## Log
+
+### [SWE] 2026-03-17
+- Analyzed jekyll-seo-tag gem v2.8.0 template.html and drop.rb to understand exact output format
+- Built architect-theme with Jekyll to verify expected output
+- Root causes identified and fixed in src/template/seo_tag.rs:
+  1. Title separator: changed from en-dash to `|` (TITLE_SEPARATOR constant)
+  2. Title logic: when page_title == site_title, now appends site_tagline_or_description (matching Jekyll)
+  3. Added `<meta name="generator" content="Jekyll v4.4.1" />` tag
+  4. og:title now uses page_title only (not combined title with separator)
+  5. Reordered all meta tags to match Jekyll template: title, generator, og:title, author, og:locale, description+og:description, canonical+og:url, og:site_name, og:image, og:type, twitter:card, twitter:image, twitter:title, twitter:site, JSON-LD
+  6. Added both `name="description"` and `og:description` together (were in wrong positions)
+  7. Added `twitter:title` and `twitter:image` tags (were missing)
+  8. Added `<!-- Begin/End Jekyll SEO tag -->` comment markers
+  9. Extracted `absolute_image_url()` helper to reduce duplication
+- Tests: 9 new tests added (45 total SEO tag tests, up from 36)
+  - test_title_page_equals_site_title_with_description
+  - test_title_page_equals_site_title_no_description
+  - test_og_title_uses_page_title_only
+  - test_og_title_falls_back_to_site_title
+  - test_meta_tag_order_matches_jekyll
+  - test_generator_meta_tag
+  - test_twitter_title_present
+  - test_twitter_image_present_with_image
+  - test_begin_end_comments
+  - test_description_and_og_description_emitted_together
+  - test_architect_theme_like_output
+- Updated existing tests to use `|` separator instead of `&ndash;`
+- Removed test_title_page_contains_site_title (replaced with more accurate tests)
+- Build: 1612 tests pass, 0 fail, clippy clean, fmt clean
+- Files modified: src/template/seo_tag.rs, docs/tracker/173-fix-seo-tag-meta-ordering.in-progress.md
