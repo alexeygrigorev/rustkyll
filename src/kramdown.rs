@@ -66,7 +66,7 @@ pub fn remove_heading_markers(html: &str) -> String {
 /// 2. Auto-generated heading IDs
 /// 3. Inline attribute lists (`{:target="_blank"}`, `{:.class}`, `{:#id}`)
 /// 4. Fenced code block wrapping (no language tag)
-/// 5. Inline code classes (`language-plaintext highlighter-rouge`)
+/// 5. (moved to markdown rendering -- see `frontmatter::add_inline_code_class_to_events`)
 ///    5b. Wrap bare text between block elements in `<p>` tags
 /// 6. Paragraph spacing (extra newlines after block elements)
 /// 7. Remove `start` attribute from `<ol>` tags (D11)
@@ -80,7 +80,10 @@ pub fn postprocess(html: &str) -> String {
     let html = add_heading_ids(&html);
     let html = apply_inline_attributes(&html);
     let html = wrap_fenced_code_blocks(&html);
-    let html = add_inline_code_classes(&html);
+    // Note: inline code classes are now added during markdown rendering
+    // (in frontmatter::add_inline_code_class_to_events) rather than here,
+    // so that only backtick-generated <code> gets the class -- not raw HTML
+    // <code> tags from the source.
     let html = wrap_bare_text_in_paragraphs(&html);
     let html = add_block_spacing(&html);
     let html = remove_ol_start_attribute(&html);
@@ -105,12 +108,14 @@ pub fn postprocess(html: &str) -> String {
 /// the template already supplies the next newline.
 ///
 /// This variant applies only the transformations relevant to short inline
-/// markdown (inline code classes, boolean attributes, ol start removal) and
-/// skips heavy block-level processing (heading IDs, fenced code wrapping,
-/// block spacing, bare text wrapping, etc.).
+/// markdown (boolean attributes, ol start removal) and skips heavy
+/// block-level processing (heading IDs, fenced code wrapping, block spacing,
+/// bare text wrapping, etc.). Inline code classes are added during markdown
+/// rendering (see `frontmatter::add_inline_code_class_to_events`).
 pub fn postprocess_for_filter(html: &str) -> String {
     let html = apply_inline_attributes(html);
-    let html = add_inline_code_classes(&html);
+    // Note: inline code classes are now added during markdown rendering
+    // (in frontmatter::add_inline_code_class_to_events) rather than here.
     let html = remove_ol_start_attribute(&html);
     normalize_boolean_attributes(&html)
 }
@@ -125,8 +130,8 @@ pub fn postprocess_for_filter(html: &str) -> String {
 ///
 /// Note: inline code classes are NOT applied here. Jekyll only adds
 /// `language-plaintext highlighter-rouge` to `<code>` tags during markdown
-/// rendering (handled by `postprocess()` and `postprocess_for_filter()`),
-/// not to `<code>` tags from Liquid templates.
+/// rendering (handled by `frontmatter::add_inline_code_class_to_events()`),
+/// not to `<code>` tags from Liquid templates or raw HTML in the source.
 ///
 /// Note: void element self-closing slashes are NOT removed because
 /// Jekyll/kramdown outputs XHTML-style self-closing tags (e.g. `<br />`).
@@ -1160,75 +1165,10 @@ fn wrap_fenced_code_blocks(html: &str) -> String {
     result
 }
 
-// ============================================================================
-// 4. Inline code classes
-// ============================================================================
-
-/// Add `class="language-plaintext highlighter-rouge"` to inline `<code>` elements.
-///
-/// Jekyll/kramdown adds `class="language-plaintext highlighter-rouge"`
-/// to inline code spans. Only modifies `<code>` tags that:
-/// - Don't already have a class attribute
-/// - Are NOT inside a `<pre>` tag (fenced code blocks are handled separately)
-fn add_inline_code_classes(html: &str) -> String {
-    let mut result = String::with_capacity(html.len());
-    let mut remaining = html;
-    let mut in_pre = false;
-
-    while !remaining.is_empty() {
-        if in_pre {
-            // Inside a <pre> block, look for </pre>
-            if let Some(close_pos) = remaining.find("</pre>") {
-                let end = close_pos + 6;
-                result.push_str(&remaining[..end]);
-                remaining = &remaining[end..];
-                in_pre = false;
-            } else {
-                result.push_str(remaining);
-                break;
-            }
-        } else if remaining.starts_with("<pre") {
-            in_pre = true;
-            // Copy the <pre tag
-            if let Some(gt) = remaining.find('>') {
-                result.push_str(&remaining[..=gt]);
-                remaining = &remaining[gt + 1..];
-            } else {
-                result.push_str(remaining);
-                break;
-            }
-        } else if remaining.starts_with("<code>") {
-            // Inline code without class - add kramdown class
-            result.push_str("<code class=\"language-plaintext highlighter-rouge\">");
-            remaining = &remaining[6..]; // skip past "<code>"
-        } else {
-            // Find next interesting point
-            let next_pre = remaining.find("<pre");
-            let next_code = remaining.find("<code>");
-            let next = match (next_pre, next_code) {
-                (Some(a), Some(b)) => Some(a.min(b)),
-                (Some(a), None) => Some(a),
-                (None, Some(b)) => Some(b),
-                (None, None) => None,
-            };
-            if let Some(pos) = next {
-                if pos > 0 {
-                    result.push_str(&remaining[..pos]);
-                    remaining = &remaining[pos..];
-                } else {
-                    let ch = remaining.chars().next().unwrap();
-                    result.push(ch);
-                    remaining = &remaining[ch.len_utf8()..];
-                }
-            } else {
-                result.push_str(remaining);
-                break;
-            }
-        }
-    }
-
-    result
-}
+// Note: Inline code class addition (previously step 4) has been moved to
+// frontmatter::add_inline_code_class_to_events() which operates on pulldown-cmark
+// events during markdown rendering. This ensures only backtick-generated <code>
+// gets the class -- not raw HTML <code> tags already present in the source.
 
 // ============================================================================
 // 4b. Wrap bare text between block elements in <p> tags
@@ -2459,15 +2399,14 @@ mod tests {
     }
 
     #[test]
-    fn test_postprocess_inline_code_highlighter_rouge_class() {
-        // Jekyll adds class="language-plaintext highlighter-rouge" to inline code
+    fn test_postprocess_does_not_add_inline_code_class() {
+        // Inline code classes are now added during markdown rendering, not in
+        // postprocess(). Raw HTML <code> tags should pass through unchanged.
         let html = "<p>Use <code>pip install</code> to install.</p>\n";
         let result = postprocess(html);
         assert!(
-            result.contains(
-                "<code class=\"language-plaintext highlighter-rouge\">pip install</code>"
-            ),
-            "Inline code should have language-plaintext highlighter-rouge class. Got: {}",
+            result.contains("<code>pip install</code>"),
+            "postprocess should not add classes to raw HTML <code> tags. Got: {}",
             result
         );
     }
@@ -2563,10 +2502,10 @@ mod tests {
             "Raw IAL should be removed. Got: {}",
             result
         );
-        // Inline code gets language-plaintext highlighter-rouge class
+        // Inline code classes are added during markdown rendering, not postprocess
         assert!(
-            result.contains("<code class=\"language-plaintext highlighter-rouge\">pip</code>"),
-            "Inline code should have language-plaintext highlighter-rouge class. Got: {}",
+            result.contains("<code>pip</code>"),
+            "postprocess should not add classes to raw HTML <code> tags. Got: {}",
             result
         );
     }
@@ -2745,12 +2684,11 @@ mod tests {
     fn test_fenced_code_wrapping_no_interference_with_inline() {
         let html = "<p>Use <code>pip install</code> to install.</p>\n";
         let result = postprocess(html);
-        // Inline code gets language-plaintext highlighter-rouge, not div wrapper
+        // Raw HTML <code> should pass through without classes (classes are
+        // added during markdown rendering, not postprocessing)
         assert!(
-            result.contains(
-                "<code class=\"language-plaintext highlighter-rouge\">pip install</code>"
-            ),
-            "Inline code should have language-plaintext highlighter-rouge class. Got: {}",
+            result.contains("<code>pip install</code>"),
+            "postprocess should not add classes to raw HTML <code>. Got: {}",
             result
         );
         assert!(
@@ -2766,10 +2704,10 @@ mod tests {
     fn test_fenced_code_wrapping_mixed_inline_and_fenced() {
         let html = "<p>Use <code>pip</code> command.</p>\n<pre><code>bare code\n</code></pre>\n";
         let result = postprocess(html);
-        // Inline code gets language-plaintext highlighter-rouge class
+        // Raw HTML <code> passes through unchanged (classes added during rendering)
         assert!(
-            result.contains("<code class=\"language-plaintext highlighter-rouge\">pip</code>"),
-            "Inline code should have language-plaintext highlighter-rouge class. Got: {}",
+            result.contains("<code>pip</code>"),
+            "postprocess should not add classes to raw HTML <code>. Got: {}",
             result
         );
         // Fenced code gets div wrapper
@@ -2785,10 +2723,10 @@ mod tests {
         // Document with inline code, fenced-with-language, and fenced-without-language
         let html = "<p>Use <code>pip</code>.</p>\n<pre><code class=\"language-python\">import os\n</code></pre>\n<pre><code>plain\n</code></pre>\n";
         let result = postprocess(html);
-        // Inline code gets language-plaintext highlighter-rouge class
+        // Raw HTML <code> passes through unchanged (classes added during rendering)
         assert!(
-            result.contains("<code class=\"language-plaintext highlighter-rouge\">pip</code>"),
-            "Inline code should have language-plaintext highlighter-rouge class. Got: {}",
+            result.contains("<code>pip</code>"),
+            "postprocess should not add classes to raw HTML <code>. Got: {}",
             result
         );
         // Fenced with language: wrapped with language class
@@ -4551,22 +4489,24 @@ by <a href="/people/author.html">Author Name</a>
     // Inline <code> tags outside <pre> blocks must get the
     // `language-plaintext highlighter-rouge` class to match kramdown output.
     #[test]
-    fn test_issue168_inline_code_gets_class_outside_pre() {
+    fn test_issue168_inline_code_no_class_in_postprocess() {
+        // Inline code classes are now added during markdown rendering, not
+        // in postprocess(). Raw HTML <code> should pass through unchanged.
         let html = "<p>Use <code>pip install</code> to install.</p>";
         let result = postprocess(html);
         assert!(
-            result.contains(
-                "<code class=\"language-plaintext highlighter-rouge\">pip install</code>"
-            ),
-            "Inline <code> should get language-plaintext class. Got: {}",
+            result.contains("<code>pip install</code>"),
+            "postprocess should not add classes to raw HTML <code>. Got: {}",
             result
         );
     }
 
     #[test]
-    fn test_issue168_inline_code_inside_pre_unchanged() {
+    fn test_issue176_postprocess_code_inside_pre_unchanged() {
+        // Code inside <pre> should not get inline code classes regardless.
+        // (Inline code classes are now added during markdown rendering.)
         let html = "<pre><code>some code</code></pre>";
-        let result = add_inline_code_classes(html);
+        let result = postprocess(html);
         assert!(
             !result.contains("language-plaintext highlighter-rouge\">some code"),
             "Code inside <pre> should NOT get inline class. Got: {}",
@@ -4613,11 +4553,13 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     #[test]
-    fn test_issue168_markdownify_inline_code_class() {
+    fn test_issue168_markdownify_no_inline_code_class_in_postprocess() {
+        // Inline code classes are added during markdown rendering, not in
+        // postprocess_for_filter(). Raw HTML <code> passes through unchanged.
         let html = postprocess_for_filter("<p>Use <code>pip</code> here</p>\n");
         assert!(
-            html.contains("<code class=\"language-plaintext highlighter-rouge\">pip</code>"),
-            "markdownify should add inline code class. Got: {}",
+            html.contains("<code>pip</code>"),
+            "postprocess_for_filter should not add classes to raw HTML <code>. Got: {}",
             html
         );
     }

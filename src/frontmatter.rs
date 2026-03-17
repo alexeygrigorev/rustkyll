@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use pulldown_cmark::{html, Options, Parser};
+use pulldown_cmark::{html, Event, Options, Parser};
 
 /// Errors that can occur when parsing a document.
 #[derive(Debug, thiserror::Error)]
@@ -132,6 +132,46 @@ pub fn parse_document(input: &str) -> Result<Document, ParseError> {
 
 /// Convert a markdown string to HTML.
 ///
+/// Transform pulldown-cmark events so that inline `Code` spans are emitted
+/// with `class="language-plaintext highlighter-rouge"`, matching kramdown behavior.
+///
+/// Raw HTML `<code>` tags (passed through as `Html`/`InlineHtml` events) are
+/// left untouched -- Jekyll/kramdown only adds the class to markdown-rendered
+/// backtick code, not to `<code>` tags already present in the source HTML.
+fn add_inline_code_class_to_events<'a>(parser: impl Iterator<Item = Event<'a>>) -> Vec<Event<'a>> {
+    let mut events = Vec::new();
+    for event in parser {
+        match event {
+            Event::Code(text) => {
+                // Emit raw HTML instead of the Code event so that push_html
+                // produces <code class="...">text</code> rather than bare <code>.
+                let escaped = html_escape_for_code(&text);
+                let html = format!(
+                    "<code class=\"language-plaintext highlighter-rouge\">{escaped}</code>"
+                );
+                events.push(Event::InlineHtml(html.into()));
+            }
+            other => events.push(other),
+        }
+    }
+    events
+}
+
+/// Escape HTML special characters for code content, matching pulldown-cmark behavior.
+fn html_escape_for_code(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for ch in s.chars() {
+        match ch {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '"' => out.push_str("&quot;"),
+            _ => out.push(ch),
+        }
+    }
+    out
+}
+
 /// Supports headings, paragraphs, links, images, bold/italic, blockquotes,
 /// code blocks, lists, horizontal rules, and raw HTML passthrough
 /// (including Liquid-like tags such as `{% include ... %}`).
@@ -153,8 +193,9 @@ pub fn markdown_to_html(markdown: &str) -> String {
     let protected = protect_liquid_quotes(&markdown);
 
     let parser = Parser::new_ext(&protected, options);
+    let events = add_inline_code_class_to_events(parser);
     let mut html_output = String::new();
-    html::push_html(&mut html_output, parser);
+    html::push_html(&mut html_output, events.into_iter());
 
     // Restore protected quotes
     let html_output = restore_liquid_quotes(&html_output);
@@ -179,8 +220,9 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     let protected = protect_liquid_quotes(&markdown);
 
     let parser = Parser::new_ext(&protected, options);
+    let events = add_inline_code_class_to_events(parser);
     let mut html_output = String::new();
-    html::push_html(&mut html_output, parser);
+    html::push_html(&mut html_output, events.into_iter());
 
     let html_output = restore_liquid_quotes(&html_output);
 
@@ -1507,6 +1549,81 @@ Some text after.
         assert!(
             html.contains("<figcaption><p>Caption text here</p></figcaption>"),
             "figcaption <p> should be preserved when preceded by markdown. Got:\n{}",
+            html
+        );
+    }
+
+    // ========================================================================
+    // Issue 176: Inline code class -- backtick vs raw HTML <code>
+    // ========================================================================
+
+    #[test]
+    fn test_issue176_backtick_code_gets_class() {
+        // Markdown backtick inline code should get language-plaintext class
+        let html = markdown_to_html("Use `pip install` to install.\n");
+        assert!(
+            html.contains(
+                "<code class=\"language-plaintext highlighter-rouge\">pip install</code>"
+            ),
+            "Backtick inline code should get language-plaintext class. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue176_raw_html_code_no_class() {
+        // Raw HTML <code> in markdown source should NOT get the class
+        let html =
+            markdown_to_html("You start in a directory named <code>working</code>. Keep going.\n");
+        assert!(
+            html.contains("<code>working</code>"),
+            "Raw HTML <code> should NOT get language-plaintext class. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains("language-plaintext highlighter-rouge\">working</code>"),
+            "Raw HTML <code> must NOT have language-plaintext class. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue176_mixed_backtick_and_raw_html_code() {
+        // Same document with both backtick code and raw HTML code
+        let input = "Use `pip` to install.\n\n<p>See the <code>README</code> file.</p>\n";
+        let html = markdown_to_html(input);
+        // Backtick code gets class
+        assert!(
+            html.contains("<code class=\"language-plaintext highlighter-rouge\">pip</code>"),
+            "Backtick code should have class. Got: {}",
+            html
+        );
+        // Raw HTML code does NOT get class
+        assert!(
+            html.contains("<code>README</code>"),
+            "Raw HTML code should NOT have class. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue176_markdownify_backtick_code_gets_class() {
+        // markdownify filter should also add classes to backtick code
+        let html = markdown_to_html_for_filter("Use `code` here\n");
+        assert!(
+            html.contains("<code class=\"language-plaintext highlighter-rouge\">code</code>"),
+            "markdownify backtick code should have class. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue176_code_with_special_chars() {
+        // Inline code with HTML special characters should be properly escaped
+        let html = markdown_to_html("Use `a < b && c > d` in code.\n");
+        assert!(
+            html.contains("a &lt; b &amp;&amp; c &gt; d</code>"),
+            "Special chars should be escaped in inline code. Got: {}",
             html
         );
     }
