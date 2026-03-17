@@ -121,22 +121,21 @@ pub fn postprocess_for_filter(html: &str) -> String {
 /// after all template rendering, layout wrapping, and postprocessing is done.
 ///
 /// Includes:
-/// - Inline code classes on bare `<code>` tags from Liquid templates
 /// - D2, D12: Boolean HTML attribute normalization (`required=""` -> `required`)
+///
+/// Note: inline code classes are NOT applied here. Jekyll only adds
+/// `language-plaintext highlighter-rouge` to `<code>` tags during markdown
+/// rendering (handled by `postprocess()` and `postprocess_for_filter()`),
+/// not to `<code>` tags from Liquid templates.
 ///
 /// Note: void element self-closing slashes are NOT removed because
 /// Jekyll/kramdown outputs XHTML-style self-closing tags (e.g. `<br />`).
 pub fn normalize_html_output(html: &str) -> String {
-    // Add inline code classes to bare <code> tags that may come from Liquid
-    // templates/includes (not from markdown, which is already postprocessed).
-    // The function is idempotent -- it skips <code> tags that already have a class.
-    let html = add_inline_code_classes(html);
-
     // Quick check: if the HTML has no `=""`, skip boolean attribute normalization.
     if !html.contains("=\"\"") {
-        return html;
+        return html.to_string();
     }
-    normalize_boolean_attributes(&html)
+    normalize_boolean_attributes(html)
 }
 
 // ============================================================================
@@ -4624,45 +4623,25 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     // ========================================================================
-    // Fix 1: normalize_html_output adds inline code classes to bare <code> tags
-    // from Liquid templates (not from markdown). This ensures <code> tags in
-    // layouts/includes get the same class as markdown-rendered code.
+    // Regression: normalize_html_output must NOT add inline code classes.
+    // Jekyll only adds language-plaintext highlighter-rouge to <code> from
+    // markdown rendering (postprocess/postprocess_for_filter), not from
+    // Liquid template output. Adding it in normalize_html_output caused
+    // 67 DTC files to gain spurious diffs.
     // ========================================================================
 
     #[test]
-    fn test_normalize_html_output_adds_inline_code_classes() {
+    fn test_normalize_html_output_does_not_add_inline_code_classes() {
+        // Liquid template output has bare <code> tags -- Jekyll leaves them bare.
         let html = "<p>Join the <code>#book-of-the-week</code> channel</p>";
         let result = normalize_html_output(html);
         assert!(
-            result.contains(
-                "<code class=\"language-plaintext highlighter-rouge\">#book-of-the-week</code>"
-            ),
-            "normalize_html_output should add inline code class to bare <code> tags. Got: {}",
-            result
-        );
-    }
-
-    #[test]
-    fn test_normalize_html_output_skips_code_with_existing_class() {
-        let html = "<code class=\"language-plaintext highlighter-rouge\">already</code>";
-        let result = normalize_html_output(html);
-        assert_eq!(
-            result.matches("language-plaintext").count(),
-            1,
-            "Should not double-add class. Got: {}",
-            result
-        );
-    }
-
-    #[test]
-    fn test_normalize_html_output_skips_code_in_pre() {
-        let html = "<pre><code>fn main() {}</code></pre>";
-        let result = normalize_html_output(html);
-        assert!(
             !result.contains("language-plaintext"),
-            "Code inside <pre> should not get inline class. Got: {}",
+            "normalize_html_output must NOT add inline code classes to Liquid template \
+             <code> tags. Jekyll only adds them during markdown rendering. Got: {}",
             result
         );
+        assert_eq!(result, html, "Bare <code> from Liquid should be unchanged");
     }
 
     // ========================================================================
