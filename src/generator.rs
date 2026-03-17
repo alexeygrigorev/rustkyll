@@ -251,6 +251,10 @@ fn collection_item_to_liquid_slim(item: &CollectionItem) -> LiquidValue {
     obj.insert("url".into(), LiquidValue::scalar(item.url.clone()));
     obj.insert("slug".into(), LiquidValue::scalar(item.slug.clone()));
     obj.insert("id".into(), LiquidValue::scalar(item.id.clone()));
+    obj.insert(
+        "collection".into(),
+        LiquidValue::scalar(item.collection_name.clone()),
+    );
 
     if let Some(ref date) = item.date {
         obj.insert("date".into(), LiquidValue::scalar(date.clone()));
@@ -726,6 +730,12 @@ pub fn generate_collection_pages_cached_with_progress(
 
         page_fm.insert("url".into(), serde_yaml::Value::String(item.url.clone()));
 
+        // Inject collection name so templates can use {{ page.collection }}
+        // (e.g., for body class: `col-{{ page.collection }}` -> `col-pages`)
+        page_fm
+            .entry("collection".into())
+            .or_insert_with(|| serde_yaml::Value::String(item.collection_name.clone()));
+
         // Also ensure date is in front matter if available (needed for posts)
         if !page_fm.contains_key("date") {
             if let Some(ref date) = item.date {
@@ -1010,6 +1020,11 @@ pub fn generate_pages_cached_with_config_and_progress(
         // Jekyll processes ALL files with front matter regardless of layout.
         // Pages without a layout are rendered through Liquid without wrapping.
         page_fm.insert("url".into(), serde_yaml::Value::String(page.url.clone()));
+
+        // Inject collection name for standalone pages (Jekyll exposes page.collection = "pages")
+        page_fm
+            .entry("collection".into())
+            .or_insert_with(|| serde_yaml::Value::String("pages".to_string()));
 
         // page.name -- the source filename (e.g. "index.md"), matching Jekyll's behavior.
         // Needed for templates like DTC's head.html that check page.name.
@@ -3932,6 +3947,302 @@ defaults:
             content_val, "<p>Test Person is a developer.</p>\n",
             "Collection item content should use html_content, got: {:?}",
             content_val
+        );
+    }
+
+    // ========================================================================
+    // Issue 188: page.collection variable for body class
+    // ========================================================================
+
+    #[test]
+    fn test_body_class_pages_collection() {
+        // A collection item in the "pages" collection should have
+        // page.collection = "pages" available in templates.
+        let tmp = tempfile::TempDir::new().unwrap();
+        let output_dir = tmp.path();
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            crate::template::Layout {
+                source: "<body class=\"col-{{ page.collection }}\">{{ content }}</body>"
+                    .to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let config = SiteConfig {
+            url: "https://example.com".to_string(),
+            defaults: vec![crate::config::DefaultConfig {
+                scope: crate::config::DefaultScope {
+                    path: String::new(),
+                    type_name: "pages".to_string(),
+                },
+                values: crate::config::DefaultValues {
+                    values: {
+                        let mut m = HashMap::new();
+                        m.insert(
+                            "layout".to_string(),
+                            serde_yaml::Value::String("default".to_string()),
+                        );
+                        m
+                    },
+                },
+            }],
+            ..Default::default()
+        };
+
+        let items = vec![CollectionItem {
+            slug: "about".to_string(),
+            front_matter: HashMap::new(),
+            content: String::new(),
+            html_content: "<p>About</p>".to_string(),
+            excerpt: None,
+            url: "/pages/about.html".to_string(),
+            date: None,
+            collection_name: "pages".to_string(),
+            source_path: "_pages/about.md".to_string(),
+            id: String::new(),
+        }];
+
+        let site_context = Object::new();
+        let result =
+            generate_collection_pages(&items, "pages", &config, &engine, &site_context, output_dir)
+                .unwrap();
+
+        assert_eq!(result.generated, 1);
+        let html = fs::read_to_string(output_dir.join("pages/about.html")).unwrap();
+        assert!(
+            html.contains("col-pages"),
+            "Expected 'col-pages' in body class, got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_body_class_posts_collection() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let output_dir = tmp.path();
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "post".to_string(),
+            crate::template::Layout {
+                source: "<body class=\"col-{{ page.collection }}\">{{ content }}</body>"
+                    .to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let config = SiteConfig {
+            url: "https://example.com".to_string(),
+            defaults: vec![crate::config::DefaultConfig {
+                scope: crate::config::DefaultScope {
+                    path: String::new(),
+                    type_name: "posts".to_string(),
+                },
+                values: crate::config::DefaultValues {
+                    values: {
+                        let mut m = HashMap::new();
+                        m.insert(
+                            "layout".to_string(),
+                            serde_yaml::Value::String("post".to_string()),
+                        );
+                        m
+                    },
+                },
+            }],
+            ..Default::default()
+        };
+
+        let items = vec![CollectionItem {
+            slug: "hello-world".to_string(),
+            front_matter: HashMap::new(),
+            content: String::new(),
+            html_content: "<p>Hello</p>".to_string(),
+            excerpt: None,
+            url: "/2024/01/01/hello-world.html".to_string(),
+            date: Some("2024-01-01".to_string()),
+            collection_name: "posts".to_string(),
+            source_path: "_posts/2024-01-01-hello-world.md".to_string(),
+            id: String::new(),
+        }];
+
+        let site_context = Object::new();
+        let result =
+            generate_collection_pages(&items, "posts", &config, &engine, &site_context, output_dir)
+                .unwrap();
+
+        assert_eq!(result.generated, 1);
+        let html = fs::read_to_string(output_dir.join("2024/01/01/hello-world.html")).unwrap();
+        assert!(
+            html.contains("col-posts"),
+            "Expected 'col-posts' in body class, got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_body_class_custom_collection() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let output_dir = tmp.path();
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "recipe".to_string(),
+            crate::template::Layout {
+                source: "<body class=\"col-{{ page.collection }}\">{{ content }}</body>"
+                    .to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let config = SiteConfig {
+            url: "https://example.com".to_string(),
+            defaults: vec![crate::config::DefaultConfig {
+                scope: crate::config::DefaultScope {
+                    path: String::new(),
+                    type_name: "recipes".to_string(),
+                },
+                values: crate::config::DefaultValues {
+                    values: {
+                        let mut m = HashMap::new();
+                        m.insert(
+                            "layout".to_string(),
+                            serde_yaml::Value::String("recipe".to_string()),
+                        );
+                        m
+                    },
+                },
+            }],
+            ..Default::default()
+        };
+
+        let items = vec![CollectionItem {
+            slug: "pasta".to_string(),
+            front_matter: HashMap::new(),
+            content: String::new(),
+            html_content: "<p>Pasta recipe</p>".to_string(),
+            excerpt: None,
+            url: "/recipes/pasta.html".to_string(),
+            date: None,
+            collection_name: "recipes".to_string(),
+            source_path: "_recipes/pasta.md".to_string(),
+            id: String::new(),
+        }];
+
+        let site_context = Object::new();
+        let result = generate_collection_pages(
+            &items,
+            "recipes",
+            &config,
+            &engine,
+            &site_context,
+            output_dir,
+        )
+        .unwrap();
+
+        assert_eq!(result.generated, 1);
+        let html = fs::read_to_string(output_dir.join("recipes/pasta.html")).unwrap();
+        assert!(
+            html.contains("col-recipes"),
+            "Expected 'col-recipes' in body class, got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_page_collection_variable() {
+        // Verify {{ page.collection }} outputs the correct collection label
+        let tmp = tempfile::TempDir::new().unwrap();
+        let output_dir = tmp.path();
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            crate::template::Layout {
+                source: "collection={{ page.collection }}".to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let config = SiteConfig {
+            url: "https://example.com".to_string(),
+            defaults: vec![crate::config::DefaultConfig {
+                scope: crate::config::DefaultScope {
+                    path: String::new(),
+                    type_name: "pages".to_string(),
+                },
+                values: crate::config::DefaultValues {
+                    values: {
+                        let mut m = HashMap::new();
+                        m.insert(
+                            "layout".to_string(),
+                            serde_yaml::Value::String("default".to_string()),
+                        );
+                        m
+                    },
+                },
+            }],
+            ..Default::default()
+        };
+
+        let items = vec![CollectionItem {
+            slug: "about".to_string(),
+            front_matter: HashMap::new(),
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            url: "/pages/about.html".to_string(),
+            date: None,
+            collection_name: "pages".to_string(),
+            source_path: "_pages/about.md".to_string(),
+            id: String::new(),
+        }];
+
+        let site_context = Object::new();
+        generate_collection_pages(&items, "pages", &config, &engine, &site_context, output_dir)
+            .unwrap();
+
+        let html = fs::read_to_string(output_dir.join("pages/about.html")).unwrap();
+        assert_eq!(
+            html.trim(),
+            "collection=pages",
+            "page.collection should output 'pages', got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_collection_item_to_liquid_slim_includes_collection() {
+        // The slim liquid representation should include the collection field
+        let item = CollectionItem {
+            slug: "test".to_string(),
+            front_matter: HashMap::new(),
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            url: "/posts/test.html".to_string(),
+            date: None,
+            collection_name: "posts".to_string(),
+            source_path: "_posts/test.md".to_string(),
+            id: String::new(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item);
+        let obj = liquid_val.as_object().unwrap();
+        let collection_val = obj
+            .iter()
+            .find(|(k, _)| k.as_str() == "collection")
+            .map(|(_, v)| v.to_kstr().to_string());
+        assert_eq!(
+            collection_val,
+            Some("posts".to_string()),
+            "collection_item_to_liquid_slim should include collection field"
         );
     }
 }
