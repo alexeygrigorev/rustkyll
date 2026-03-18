@@ -233,7 +233,12 @@ fn generate_redirect_html(
     } else {
         let base = site_url.trim_end_matches('/');
         let baseurl_part = site_baseurl.trim_end_matches('/');
-        format!("{}{}{}", base, baseurl_part, to_url)
+        let path = if to_url.starts_with('/') {
+            to_url.to_string()
+        } else {
+            format!("/{}", to_url)
+        };
+        format!("{}{}{}", base, baseurl_part, path)
     };
     format!(
         r#"<!DOCTYPE html>
@@ -1661,5 +1666,24 @@ mod tests {
         assert!(html.contains("<meta name=\"robots\" content=\"noindex\">"));
         assert!(html.contains("<h1>Redirecting&hellip;</h1>"));
         assert!(html.contains("Click here if you are not redirected."));
+    }
+
+    // Issue 226 RC6: URL concatenation missing slash
+    #[test]
+    fn test_rc6_redirect_html_path_without_leading_slash() {
+        // When to_url lacks a leading slash, the redirect should still produce
+        // a valid URL with a / separator between site_url and path
+        let html =
+            generate_redirect_html("/old/", "no-permission/", "https://choosealicense.com", "");
+        assert!(
+            html.contains("https://choosealicense.com/no-permission/"),
+            "URL should have / separator even when path lacks leading slash. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains("https://choosealicense.comno-permission/"),
+            "URL must NOT concatenate without separator. Got: {}",
+            html
+        );
     }
 }

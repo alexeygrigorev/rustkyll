@@ -153,8 +153,9 @@ impl Renderable for SeoRenderable {
         let mut output = String::new();
 
         // Extract values from context
-        let page_title = get_nested_str(runtime, &["page", "title"]);
-        let site_title = get_nested_str(runtime, &["site", "title"]);
+        // Apply SmartyPants to titles (matching Jekyll's `| smartify` in jekyll-seo-tag)
+        let page_title = get_nested_str(runtime, &["page", "title"]).map(|t| smartify(&t));
+        let site_title = get_nested_str(runtime, &["site", "title"]).map(|t| smartify(&t));
         let site_tagline = get_nested_str(runtime, &["site", "tagline"]);
         let page_description = get_nested_str(runtime, &["page", "description"]);
         let page_excerpt = get_nested_str(runtime, &["page", "excerpt"]);
@@ -294,11 +295,15 @@ impl Renderable for SeoRenderable {
                 None
             };
 
-        let description = page_description
+        let raw_description = page_description
             .as_deref()
             .or(page_excerpt.as_deref())
             .or(site_description.as_deref())
             .or(content_snippet.as_deref());
+
+        // Strip HTML tags from description (Jekyll's SEO tag always does this)
+        let stripped_description = raw_description.map(strip_html_tags);
+        let description = stripped_description.as_deref();
 
         if let Some(desc) = description {
             if !desc.is_empty() {
@@ -477,6 +482,16 @@ impl Renderable for SeoRenderable {
             ));
         }
 
+        // mainEntityOfPage: only for BlogPosting (pages with date)
+        if schema_type == "BlogPosting" {
+            if let Some(ref url) = canonical_url {
+                jsonld_fields.push(format!(
+                    "\"mainEntityOfPage\":{{\"@type\":\"WebPage\",\"@id\":\"{}\"}}",
+                    json_escape(url)
+                ));
+            }
+        }
+
         if let Some(ref img) = page_image {
             let absolute_img = absolute_image_url(img, &site_url);
             jsonld_fields.push(format!("\"image\":\"{}\"", json_escape(&absolute_img)));
@@ -510,6 +525,74 @@ fn strip_html_tags(html: &str) -> String {
             result.push(ch);
         }
     }
+    result
+}
+
+/// Apply SmartyPants-style typography to a string.
+///
+/// Converts straight quotes and other ASCII typography to Unicode equivalents,
+/// matching Jekyll's `| smartify` Liquid filter behavior:
+/// - Straight double quotes `"..."` -> `\u{201C}...\u{201D}` (left/right double quotation marks)
+/// - Straight apostrophe in contractions (e.g., `it's`) -> `\u{2019}` (right single quotation mark)
+/// - `...` -> `\u{2026}` (horizontal ellipsis)
+/// - `--` -> `\u{2014}` (em dash)
+fn smartify(s: &str) -> String {
+    let mut result = String::with_capacity(s.len());
+    let chars: Vec<char> = s.chars().collect();
+    let len = chars.len();
+    let mut i = 0;
+
+    while i < len {
+        let ch = chars[i];
+
+        // Handle ellipsis: ... -> \u{2026}
+        if ch == '.' && i + 2 < len && chars[i + 1] == '.' && chars[i + 2] == '.' {
+            result.push('\u{2026}');
+            i += 3;
+            continue;
+        }
+
+        // Handle em dash: -- -> \u{2014}
+        if ch == '-' && i + 1 < len && chars[i + 1] == '-' {
+            result.push('\u{2014}');
+            i += 2;
+            continue;
+        }
+
+        // Handle double quotes
+        if ch == '"' {
+            // Opening quote: at start, after whitespace, or after opening paren/bracket
+            let is_opening =
+                i == 0 || matches!(chars[i - 1], ' ' | '\t' | '\n' | '\r' | '(' | '[' | '{');
+            if is_opening {
+                result.push('\u{201c}'); // left double quotation mark
+            } else {
+                result.push('\u{201d}'); // right double quotation mark
+            }
+            i += 1;
+            continue;
+        }
+
+        // Handle single quotes / apostrophes
+        if ch == '\'' {
+            // Apostrophe in contractions: letter before and letter/s after
+            let prev_is_letter = i > 0 && chars[i - 1].is_alphanumeric();
+            let next_is_letter = i + 1 < len && chars[i + 1].is_alphabetic();
+            if prev_is_letter && next_is_letter {
+                result.push('\u{2019}'); // right single quotation mark (apostrophe)
+            } else if i == 0 || matches!(chars[i - 1], ' ' | '\t' | '\n' | '\r' | '(' | '[' | '{') {
+                result.push('\u{2018}'); // left single quotation mark
+            } else {
+                result.push('\u{2019}'); // right single quotation mark
+            }
+            i += 1;
+            continue;
+        }
+
+        result.push(ch);
+        i += 1;
+    }
+
     result
 }
 
@@ -1479,7 +1562,8 @@ mod tests {
             None,
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
-        assert!(out.contains("<title>Tom &amp; Jerry&#39;s &lt;show&gt;</title>"));
+        // After smartify, the apostrophe in "Jerry's" becomes U+2019 (right single quotation mark)
+        assert!(out.contains("<title>Tom &amp; Jerry\u{2019}s &lt;show&gt;</title>"));
     }
 
     // ========================================================================
@@ -2524,6 +2608,288 @@ mod tests {
         assert!(
             pos_published < pos_twitter,
             "article:published_time should appear before twitter:card"
+        );
+    }
+
+    // ========================================================================
+    // Issue 226: RC2 -- mainEntityOfPage in JSON-LD
+    // ========================================================================
+
+    #[test]
+    fn test_rc2_blogposting_includes_main_entity_of_page() {
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Post"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://choosealicense.com"),
+            Some("/licenses/mit/"),
+            None,
+            Some("2024-01-15"),
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"mainEntityOfPage\":{\"@type\":\"WebPage\",\"@id\":\"https://choosealicense.com/licenses/mit/\"}"),
+            "BlogPosting JSON-LD should include mainEntityOfPage with canonical URL. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_rc2_webpage_no_main_entity_of_page() {
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Page"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/about/"),
+            None,
+            None, // no date = WebPage, not BlogPosting
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        // Extract JSON-LD block
+        let jsonld_start = out
+            .find("application/ld+json")
+            .expect("should have json-ld");
+        let jsonld_block = &out[jsonld_start..];
+        let script_end = jsonld_block
+            .find("</script>")
+            .expect("should have closing script tag");
+        let jsonld_content = &jsonld_block[..script_end];
+        assert!(
+            !jsonld_content.contains("mainEntityOfPage"),
+            "WebPage JSON-LD should NOT include mainEntityOfPage. Got: {}",
+            jsonld_content
+        );
+    }
+
+    // ========================================================================
+    // Issue 226: RC3 -- Strip HTML from descriptions
+    // ========================================================================
+
+    #[test]
+    fn test_rc3_description_html_stripped_in_jsonld() {
+        let eng = engine();
+        let ctx = make_context(
+            Some("BSD License"),
+            None,
+            Some("A variant of the <a href=\"/licenses/bsd-3-clause/\">BSD 3-Clause License</a> that does not grant patent rights."),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        // Extract JSON-LD block
+        let jsonld_start = out
+            .find("application/ld+json")
+            .expect("should have json-ld");
+        let jsonld_block = &out[jsonld_start..];
+        let script_end = jsonld_block
+            .find("</script>")
+            .expect("should have closing script tag");
+        let jsonld_content = &jsonld_block[..script_end];
+        assert!(
+            jsonld_content.contains(
+                "A variant of the BSD 3-Clause License that does not grant patent rights."
+            ),
+            "JSON-LD description should have HTML stripped. Got: {}",
+            jsonld_content
+        );
+        assert!(
+            !jsonld_content.contains("<a href"),
+            "JSON-LD description should NOT contain HTML tags. Got: {}",
+            jsonld_content
+        );
+    }
+
+    #[test]
+    fn test_rc3_description_html_stripped_in_meta_tags() {
+        let eng = engine();
+        let ctx = make_context(
+            None,
+            None,
+            Some("A variant of the <a href=\"/licenses/bsd-3-clause/\">BSD 3-Clause License</a> that does not grant patent rights."),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("content=\"A variant of the BSD 3-Clause License that does not grant patent rights.\""),
+            "Meta description should have HTML stripped. Got: {}",
+            out
+        );
+        assert!(
+            !out.contains("content=\"A variant of the <a"),
+            "Meta description should NOT contain HTML tags. Got: {}",
+            out
+        );
+    }
+
+    // ========================================================================
+    // Issue 226: RC4 -- HTML entity preservation
+    // ========================================================================
+
+    #[test]
+    fn test_rc4_title_smartifies_straight_apostrophe() {
+        // Jekyll's SEO tag applies SmartyPants (| smartify) to titles,
+        // converting straight apostrophes to right single quotes (U+2019).
+        let eng = engine();
+        let ctx = make_context(
+            Some("What's this about?"),
+            Some("Choose a License"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        // The title should contain U+2019 (RIGHT SINGLE QUOTATION MARK), not straight '
+        assert!(
+            out.contains("<title>What\u{2019}s this about? | Choose a License</title>"),
+            "Title should have smartified apostrophe (U+2019). Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_rc4_headline_smartifies_straight_quotes_in_jsonld() {
+        // Jekyll's SEO tag applies SmartyPants to the headline in JSON-LD,
+        // converting straight double quotes to left/right double quotes.
+        let eng = engine();
+        let ctx = make_context(
+            Some("BSD 2-Clause \"Simplified\" License"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        let jsonld_start = out
+            .find("application/ld+json")
+            .expect("should have json-ld");
+        let jsonld_block = &out[jsonld_start..];
+        let script_end = jsonld_block
+            .find("</script>")
+            .expect("should have closing script tag");
+        let jsonld_content = &jsonld_block[..script_end];
+        // JSON-LD headline should have smart quotes (U+201C, U+201D)
+        assert!(
+            jsonld_content.contains("\u{201c}Simplified\u{201d}"),
+            "JSON-LD headline should have smartified double quotes. Got: {}",
+            jsonld_content
+        );
+    }
+
+    // ========================================================================
+    // Issue 226: RC5 -- Timezone-aware datePublished
+    // ========================================================================
+
+    #[test]
+    fn test_rc5_date_published_uses_site_timezone() {
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("My Post"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some("2024-01-15"),
+            None,
+            None,
+        );
+        // Add site.timezone
+        if let Value::Object(ref mut site) = ctx["site"] {
+            site.insert(
+                "timezone".into(),
+                Value::scalar("Europe/Berlin".to_string()),
+            );
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        // Extract datePublished from JSON-LD
+        let jsonld_start = out
+            .find("application/ld+json")
+            .expect("should have json-ld");
+        let jsonld_block = &out[jsonld_start..];
+        let script_end = jsonld_block
+            .find("</script>")
+            .expect("should have closing script tag");
+        let jsonld_content = &jsonld_block[..script_end];
+        // Should NOT be +00:00 when site timezone is Europe/Berlin
+        assert!(
+            jsonld_content.contains("+01:00") || jsonld_content.contains("+02:00"),
+            "datePublished should use Europe/Berlin timezone (CET=+01:00 or CEST=+02:00), not UTC. Got: {}",
+            jsonld_content
+        );
+    }
+
+    #[test]
+    fn test_rc5_date_published_matches_article_published_time() {
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("My Post"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some("2024-01-15"),
+            None,
+            None,
+        );
+        if let Value::Object(ref mut site) = ctx["site"] {
+            site.insert(
+                "timezone".into(),
+                Value::scalar("America/New_York".to_string()),
+            );
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        // Extract article:published_time value
+        let meta_marker = "article:published_time\" content=\"";
+        let meta_start = out
+            .find(meta_marker)
+            .expect("should have article:published_time");
+        let after = &out[meta_start + meta_marker.len()..];
+        let meta_end = after.find('"').unwrap();
+        let meta_value = &after[..meta_end];
+
+        // Extract datePublished from JSON-LD
+        let jsonld_marker = "\"datePublished\":\"";
+        let jsonld_start = out.find(jsonld_marker).expect("should have datePublished");
+        let after = &out[jsonld_start + jsonld_marker.len()..];
+        let jsonld_end = after.find('"').unwrap();
+        let jsonld_value = &after[..jsonld_end];
+
+        assert_eq!(
+            meta_value, jsonld_value,
+            "datePublished and article:published_time should be identical"
         );
     }
 }
