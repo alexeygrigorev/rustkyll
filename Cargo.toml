@@ -8,6 +8,7 @@ chrono = "0.4"
 chrono-tz = "0.10"
 iana-time-zone = "0.1"
 grass = "0.13"
+rand = "0.8"
 rayon = "1.10"
 clap = { version = "4", features = ["derive"] }
 kstring = { version = "2.0", features = ["arc"] }
