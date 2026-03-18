@@ -2,29 +2,20 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/time-machine-theme/_site_j
 Rustkyll directory: /home/alexey/git/rustkyl/websites/time-machine-theme/_site_rustkyll_recount
 Common HTML files:  2
 
-DIFF another-page.html (13 differences)
-  head > link: attribute_differs - expected: "href='/assets/css/style.css?v='", actual: "href='/assets/css/style.css?v=d7615e5e8b275775bcce38ca6c45acf32b8cf8b6'"
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  ... and 3 more differences
-DIFF index.html (93 differences)
-  head > link: attribute_differs - expected: "href='/assets/css/style.css?v='", actual: "href='/assets/css/style.css?v=d7615e5e8b275775bcce38ca6c45acf32b8cf8b6'"
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  ... and 83 more differences
+DIFF another-page.html (2 differences)
+  body > div > div > div > div > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/time-machine'"
+  body > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/time-machine'"
+DIFF index.html (63 differences)
+  body > div > div > div > div > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/time-machine'"
+  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='nx'"
+  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='nx'"
+  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='dl'", actual: "class='s1'"
+  body > div > div > div > article > div > div > pre > code > span: text_differs - expected: "'", actual: "'./lang/'"
+  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='s1'", actual: "class='o'"
+  body > div > div > div > article > div > div > pre > code > span: text_differs - expected: './lang/', actual: '+'
+  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='dl'", actual: "class='nx'"
+  body > div > div > div > article > div > div > pre > code > span: text_differs - expected: "'", actual: 'l'
+  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
+  ... and 53 more differences
 
-Summary: 0 files matched, 2 files with differences, 106 total differences
+Summary: 0 files matched, 2 files with differences, 65 total differences

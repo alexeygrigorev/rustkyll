@@ -3,18 +3,6 @@ Rustkyll directory: /home/alexey/git/rustkyl/websites/alexeygrigorev/little-book
 Common HTML files:  43
 Only in Jekyll:     5
 
-DIFF index.html (47 differences)
-  body > main > div > div > div > div > div > h3 > a: attribute_differs - expected: "href='/little-book-of-metals-ru/%D1%87%D0%B0%D1%81%D1%82%D1%8C_1_%D0%B8%D1%81%D1%82%D0%BE%D1%80%D0%B8%D1%8F/'", actual: "href='/little-book-of-metals-ru/часть_1_история/'"
-  body > main > div > div > div > div > ul > li > a: attribute_differs - expected: "href='/little-book-of-metals-ru/%D1%87%D0%B0%D1%81%D1%82%D1%8C_1_%D0%B8%D1%81%D1%82%D0%BE%D1%80%D0%B8%D1%8F/%D0%B3%D0%BB%D0%B0%D0%B2%D0%B0_01_%D0%B2%D0%B2%D0%B5%D0%B4%D0%B5%D0%BD%D0%B8%D0%B5.html'", actual: "href='/little-book-of-metals-ru/часть_1_история/глава_01_введение.html'"
-  body > main > div > div > div > div > ul > li > a: attribute_differs - expected: "href='/little-book-of-metals-ru/%D1%87%D0%B0%D1%81%D1%82%D1%8C_1_%D0%B8%D1%81%D1%82%D0%BE%D1%80%D0%B8%D1%8F/%D0%B3%D0%BB%D0%B0%D0%B2%D0%B0_02_%D0%BA%D0%B0%D0%BC%D0%B5%D0%BD%D0%BD%D1%8B%D0%B9_%D0%B2%D0%B5%D0%BA.html'", actual: "href='/little-book-of-metals-ru/часть_1_история/глава_02_каменный_век.html'"
-  body > main > div > div > div > div > ul > li > a: attribute_differs - expected: "href='/little-book-of-metals-ru/%D1%87%D0%B0%D1%81%D1%82%D1%8C_1_%D0%B8%D1%81%D1%82%D0%BE%D1%80%D0%B8%D1%8F/%D0%B3%D0%BB%D0%B0%D0%B2%D0%B0_03_%D0%B1%D1%80%D0%BE%D0%BD%D0%B7%D0%BE%D0%B2%D1%8B%D0%B9_%D0%B2%D0%B5%D0%BA.html'", actual: "href='/little-book-of-metals-ru/часть_1_история/глава_03_бронзовый_век.html'"
-  body > main > div > div > div > div > ul > li > a: attribute_differs - expected: "href='/little-book-of-metals-ru/%D1%87%D0%B0%D1%81%D1%82%D1%8C_1_%D0%B8%D1%81%D1%82%D0%BE%D1%80%D0%B8%D1%8F/%D0%B3%D0%BB%D0%B0%D0%B2%D0%B0_04_%D0%B6%D0%B5%D0%BB%D0%B5%D0%B7%D0%BD%D1%8B%D0%B9_%D0%B2%D0%B5%D0%BA.html'", actual: "href='/little-book-of-metals-ru/часть_1_история/глава_04_железный_век.html'"
-  body > main > div > div > div > div > ul > li > a: attribute_differs - expected: "href='/little-book-of-metals-ru/%D1%87%D0%B0%D1%81%D1%82%D1%8C_1_%D0%B8%D1%81%D1%82%D0%BE%D1%80%D0%B8%D1%8F/%D0%B3%D0%BB%D0%B0%D0%B2%D0%B0_05_%D1%81%D1%80%D0%B5%D0%B4%D0%BD%D0%B5%D0%B2%D0%B5%D0%BA%D0%BE%D0%B2%D1%8C%D0%B5.html'", actual: "href='/little-book-of-metals-ru/часть_1_история/глава_05_средневековье.html'"
-  body > main > div > div > div > div > ul > li > a: attribute_differs - expected: "href='/little-book-of-metals-ru/%D1%87%D0%B0%D1%81%D1%82%D1%8C_1_%D0%B8%D1%81%D1%82%D0%BE%D1%80%D0%B8%D1%8F/%D0%B3%D0%BB%D0%B0%D0%B2%D0%B0_06_%D0%BF%D1%80%D0%BE%D0%BC%D1%8B%D1%88%D0%BB%D0%B5%D0%BD%D0%BD%D0%B0%D1%8F_%D1%80%D0%B5%D0%B2%D0%BE%D0%BB%D1%8E%D1%86%D0%B8%D1%8F.html'", actual: "href='/little-book-of-metals-ru/часть_1_история/глава_06_промышленная_революция.html'"
-  body > main > div > div > div > div > ul > li > a: attribute_differs - expected: "href='/little-book-of-metals-ru/%D1%87%D0%B0%D1%81%D1%82%D1%8C_1_%D0%B8%D1%81%D1%82%D0%BE%D1%80%D0%B8%D1%8F/%D0%B3%D0%BB%D0%B0%D0%B2%D0%B0_07_XX_%D0%B2%D0%B5%D0%BA.html'", actual: "href='/little-book-of-metals-ru/часть_1_история/глава_07_XX_век.html'"
-  body > main > div > div > div > div > ul > li > a: attribute_differs - expected: "href='/little-book-of-metals-ru/%D1%87%D0%B0%D1%81%D1%82%D1%8C_1_%D0%B8%D1%81%D1%82%D0%BE%D1%80%D0%B8%D1%8F/%D0%B3%D0%BB%D0%B0%D0%B2%D0%B0_08_%D1%81%D0%BE%D0%B2%D1%80%D0%B5%D0%BC%D0%B5%D0%BD%D0%BD%D0%BE%D1%81%D1%82%D1%8C.html'", actual: "href='/little-book-of-metals-ru/часть_1_история/глава_08_современность.html'"
-  body > main > div > div > div > div > div > h3 > a: attribute_differs - expected: "href='/little-book-of-metals-ru/%D1%87%D0%B0%D1%81%D1%82%D1%8C_2_%D0%BE%D1%81%D0%BD%D0%BE%D0%B2%D1%8B/'", actual: "href='/little-book-of-metals-ru/часть_2_основы/'"
-  ... and 37 more differences
 DIFF часть_1_история/глава_08_современность.html (1 differences)
   body > main > div > article > nav > div > a: missing_element - expected: '<a>', actual: '(none)'
 DIFF часть_2_основы/глава_12_сплавы.html (1 differences)
@@ -26,4 +14,4 @@ DIFF часть_4_применения/глава_36_удивительные_с
 DIFF часть_5_практика/глава_42_рекомендуемая_литература.html (1 differences)
   body > main > div > article > nav > div > a: missing_element - expected: '<a>', actual: '(none)'
 
-Summary: 37 files matched, 6 files with differences, 52 total differences
+Summary: 38 files matched, 5 files with differences, 5 total differences

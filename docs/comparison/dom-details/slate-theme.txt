@@ -2,10 +2,7 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/slate-theme/_site_jekyll_r
 Rustkyll directory: /home/alexey/git/rustkyl/websites/slate-theme/_site_rustkyll_recount
 Common HTML files:  2
 
-DIFF another-page.html (1 differences)
-  head > link: attribute_differs - expected: "href='/assets/css/style.css?v='", actual: "href='/assets/css/style.css?v=f53ef839a3467668eec71a8314e8806e7bf703d5'"
-DIFF index.html (81 differences)
-  head > link: attribute_differs - expected: "href='/assets/css/style.css?v='", actual: "href='/assets/css/style.css?v=f53ef839a3467668eec71a8314e8806e7bf703d5'"
+DIFF index.html (61 differences)
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='nx'"
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='nx'"
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='dl'", actual: "class='s1'"
@@ -15,6 +12,7 @@ DIFF index.html (81 differences)
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='dl'", actual: "class='nx'"
   body > div > section > div > div > pre > code > span: text_differs - expected: "'", actual: 'l'
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
-  ... and 71 more differences
+  body > div > section > div > div > pre > code > span: text_differs - expected: '+', actual: ')'
+  ... and 51 more differences
 
-Summary: 0 files matched, 2 files with differences, 82 total differences
+Summary: 1 files matched, 1 files with differences, 61 total differences

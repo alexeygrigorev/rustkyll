@@ -219,12 +219,15 @@ DIFF index.php/Binomial_Proportion_Tests.html (36 differences)
   body > div > main > div > p: text_differs - expected: "Under $H_0$ we assume that $p_a = p_b$ so we approximate ‘'’both’’’ $p_a$ and $p_b$ by", actual: "Under $H_0$ we assume that $p_a = p_b$ so we approximate '''both''' $p_a$ and $p_b$ by"
   body > div > main > div > ul > li: text_differs - expected: 'This is called ‘‘pooled estimate’’', actual: "This is called ''pooled estimate''"
   ... and 26 more differences
-DIFF index.php/Binomial_Theorem.html (5 differences)
+DIFF index.php/Binomial_Theorem.html (8 differences)
   body > div > main > div > ul > li: expected_element_got_text - expected: '<table>', actual: '$P(k, n - k) = C_n^k = \\frac{n| }{k! \\cdot (n - k)!}$ (число перестановок с повторениями для двух гр'
   body > div > main > div > ul > li > child[1]: tag_name_differs - expected: 'table', actual: 'a'
   body > div > main > div > ul > li: extra_text - expected: '(none)', actual: 'размера k из n) |- Т.е. член $x^k \\cdot a^{n - k}$ возьмём с коэффициентом $C_n^k$ и получим |- $(a '
   body > div > main > div > p: text_differs - expected: 'Эта формула носит название ‘‘Binomial Theorem’’', actual: "Эта формула носит название ''Binomial Theorem''"
+  body > div > main > div > h2 > a: attribute_differs - expected: "href='Combinations#Свойства_сочетаний'", actual: "href='Combinations#%D0%A1%D0%B2%D0%BE%D0%B9%D1%81%D1%82%D0%B2%D0%B0_%D1%81%D0%BE%D1%87%D0%B5%D1%82%D0%B0%D0%BD%D0%B8%D0%B9'"
   body > div > main > div > p: text_differs - expected: 'Назовём функцию вида $(1 + x)^n$ ‘‘производящей’’', actual: "Назовём функцию вида $(1 + x)^n$ ''производящей''"
+  body > div > main > div > p > a: attribute_differs - expected: "href='Combinations#Свойство_3'", actual: "href='Combinations#%D0%A1%D0%B2%D0%BE%D0%B9%D1%81%D1%82%D0%B2%D0%BE_3'"
+  body > div > main > div > p > a: attribute_differs - expected: "href='Combinations#Свойство_6'", actual: "href='Combinations#%D0%A1%D0%B2%D0%BE%D0%B9%D1%81%D1%82%D0%B2%D0%BE_6'"
 DIFF index.php/Bit_Sampling_LSH.html (9 differences)
   body > div > main > div > ul > li: text_differs - expected: 'store each $\\mathbf p \\in P$ in the bucket $g_j(\\mathbf p)$ for all $j = 1 \\, .. \\, L$', actual: 'store each $\\mathbf p \\in P$ in the bucket $g_j(\\mathbf p)$ for all $j = 1 , .. , L$'
   body > div > main > div > h3: attribute_differs - expected: "id='embedding-l_1-to-hamming'", actual: "id='embedding-l1-to-hamming'"
@@ -334,7 +337,9 @@ DIFF index.php/Chain_and_Sum_Rules_in_Probability.html (27 differences)
   body > div > main > div > p: text_differs - expected: "’'’Теорема.’’’ Probability появления хотя бы одного из двух совместных событий равна сумме вероятностей этих событий без вероятности их совместного появления", actual: "'''Теорема.''' Probability появления хотя бы одного из двух совместных событий равна сумме вероятностей этих событий без вероятности их совместного появления"
   body > div > main > div > ul > li: expected_element_got_text - expected: '<dl>', actual: '$A + B$ наступит, если произойдёт $A\\bar{B}$, $\\bar{A}B$ или $AB$. Так как эти события несовместы, т'
   ... and 17 more differences
-DIFF index.php/Chebyshev's_Inequality.html (13 differences)
+DIFF index.php/Chebyshev's_Inequality.html (15 differences)
+  body > div > main > div > p > a: attribute_differs - expected: "href='Случайная_величина'", actual: "href='%D0%A1%D0%BB%D1%83%D1%87%D0%B0%D0%B9%D0%BD%D0%B0%D1%8F_%D0%B2%D0%B5%D0%BB%D0%B8%D1%87%D0%B8%D0%BD%D0%B0'"
+  body > div > main > div > p > a: attribute_differs - expected: "href='Математическое_ожидание'", actual: "href='%D0%9C%D0%B0%D1%82%D0%B5%D0%BC%D0%B0%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%BE%D0%B5_%D0%BE%D0%B6%D0%B8%D0%B4%D0%B0%D0%BD%D0%B8%D0%B5'"
   body > div > main > div > child[3]: tag_name_differs - expected: 'p', actual: 'table'
   body > div > main > div > child[4]: tag_name_differs - expected: 'h2', actual: 'p'
   body > div > main > div > ul > li > table > tbody: missing_element - expected: '<tbody>', actual: '(none)'
@@ -343,9 +348,7 @@ DIFF index.php/Chebyshev's_Inequality.html (13 differences)
   body > div > main > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
   body > div > main > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
   body > div > main > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
-  body > div > main > div > child[6]: tag_name_differs - expected: 'h2', actual: 'tbody'
-  body > div > main > div > child[7]: tag_name_differs - expected: 'ul', actual: 'p'
-  ... and 3 more differences
+  ... and 5 more differences
 DIFF index.php/Chi-Squared_Goodness_of_Fit_Test.html (31 differences)
   body > div > main > div > ul > li > ul > li: text_differs - expected: '$X^2 = \\sum_{i=1}^{k} Z^2', actual: '$X^2 = \\sum_{i=1}^{k} Z^2_i = \\sum_{i=1}^{k} \\cfrac{(O_i - E_i)^2}{ E_i }$'
   body > div > main > div > ul > li > ul > li > em: missing_element - expected: '<em>', actual: '(none)'
@@ -544,7 +547,8 @@ DIFF index.php/Conjunctive_Query_Containment_Exercise.html (92 differences)
 DIFF index.php/Conjunctive_Query_Homomorphism.html (1 differences)
   body > div > main > div > p: text_differs - expected: "’'’def’’’: a ‘‘homomorphism’’ of a", actual: "'''def''': a ''homomorphism'' of a"
 DIFF index.php/Conjunctive_Query_Translation.html (35 differences)
-  body > div > main > div > p: text_differs - expected: '$ \\pi_{ \\begin{subarray}{l} R_1.A,', actual: '$ \\pi_{ \\begin{subarray}{l} R_1.A, \\ S_1.B \\ \\end{subarray} } \\sigma_{ \\begin{subarray}{l} {\\color{grey}{(1)}} \\ R_1.A = R_2.A \\ \\land \\ {\\color{grey}{(2)}} \\ R_2.B = 4 \\ \\land \\ {\\color{grey}{(3)}} \\ R_2.A = R_3.A \\ \\land \\ {\\color{grey}{(4)}} \\ R_3.B = S_1.B \\ \\land \\ {\\color{grey}{(5)}} \\ S_1.C = S_2.C \\ \\land \\ {\\color{grey}{(6)}} \\ S_2.B = 4 \\end{subarray} } \\big( \\rho_{R_1}(R) \\times \\rho_{R_2}(R) \\times \\rho_{R_3}(R) \\times \\rho_{S_1}(S) \\times \\rho_{S_2}(S) \\big)$'
+  body > div > main > div > p: text_differs - expected: '$ \\pi_{ \\begin{subarray}{l} R_1.A,', actual: '$ \\pi_{ \\begin{subarray}{l} R_1.A, \\ S_1.B \\ \\end{subarray} } \\sigma_{ \\begin{subarray}{l} {\\color{grey}{(1)}} \\ R_1.A = R_2.A \\ \\land \\ {\\color{grey}{(2)}} \\ R_2.B = 4 \\ \\land \\ {\\color{grey}{(3)}} \\ R_2.A = R_3.A \\ \\land \\ {\\color{grey}{(4)}} \\ R_3.B = S_1.B \\ \\land \\ {\\color{grey}{(5)}} \\ S_1.C = S_2.C \\ \\land \\ {\\color{grey}{(6)}} \\ S_2.B = 4 \\end{subarray} } \\big( \\rho_{R_1}(R) \\times \\rho_{R_2}(R) \\times \\rho_{R_3}(R) \\times \\rho_{S_1}(S) \\times \\rho_{S_2}(S) \\big)$'  Progress: 100/639 files compared...
+
   body > div > main > div > p > br: missing_element - expected: '<br>', actual: '(none)'
   body > div > main > div > p: missing_text - expected: 'S_1.B', actual: '(none)'
   body > div > main > div > p > br: missing_element - expected: '<br>', actual: '(none)'
@@ -553,8 +557,7 @@ DIFF index.php/Conjunctive_Query_Translation.html (35 differences)
   body > div > main > div > p: missing_text - expected: '{\\color{grey}{(2)}} \\ R_2.B = 4 \\ \\land', actual: '(none)'
   body > div > main > div > p > br: missing_element - expected: '<br>', actual: '(none)'
   body > div > main > div > p: missing_text - expected: '{\\color{grey}{(3)}} \\ R_2.A = R_3.A \\ \\land', actual: '(none)'
-  body > div > main > div > p > br: missing_element - expected: '<br>', actual: '(none)'  Progress: 100/639 files compared...
-
+  body > div > main > div > p > br: missing_element - expected: '<br>', actual: '(none)'
   ... and 25 more differences
 DIFF index.php/Consistency_(databases).html (5 differences)
   body > div > main > div > p: text_differs - expected: 'For databases, ‘‘consistency’’ means satisfying integrity constraints, which are about the correctness of the data in a database. So a database is ‘‘consistent’’ if all its constraint are satisfied.', actual: "For databases, ''consistency'' means satisfying integrity constraints, which are about the correctness of the data in a database. So a database is ''consistent'' if all its constraint are satisfied."
@@ -1094,15 +1097,15 @@ DIFF index.php/Entropy-Based_Ranking.html (13 differences)
   body > div > main > div > ul > li: text_differs - expected: 'Aggarwal, Charu C., and ChengXiang Zhai. “A survey of text clustering algorithms.” Mining Text Data. Springer US, 2012. [http://ir.nmu.org.ua/bitstream/handle/123456789/144935/d1784ebed3eab2708026b202b2b65309.pdf?sequence=1#page=90]', actual: 'Dash, Manoranjan, and Huan Liu. “Feature selection for clustering.” 2000. [http://blog.finsternis.me/attachment/fk12.pdf]'
   ... and 3 more differences
 DIFF index.php/Error_Analysis.html (22 differences)
-  body > div > main > div > ul > li: expected_element_got_text - expected: '<table>', actual: 'Start with the simplest possible algorithm (avoid premature optimization| ) that you can implement q'
+  body > div > main > div > ul > li: expected_element_got_text - expected: '<table>', actual: 'Start with the simplest possible algorithm (avoid premature optimization| ) that you can implement q'  Progress: 200/639 files compared...
+
   body > div > main > div > ul > li > child[1]: tag_name_differs - expected: 'table', actual: 'a'
   body > div > main > div > ul > li: extra_text - expected: '(none)', actual: '|- Plot'
   body > div > main > div > ul > li > a: extra_element - expected: '(none)', actual: '<a>'
   body > div > main > div > ul > li: extra_text - expected: '(none)', actual: 'to decide if more data features is likely to help'
   body > div > main > div > ul > li > ul > li: expected_element_got_text - expected: '<table>', actual: "'''steal password 53''' - seems it’s worth investing time in this category| | - other 31 |- what fea"
   body > div > main > div > ul > li > ul > li > table: missing_element - expected: '<table>', actual: '(none)'
-  body > div > main > div > ul > li > ul > li: expected_text_got_element - expected: "’'’unusual punctuation 32’’’ - so concentrate on this| | |", actual: '<table>'  Progress: 200/639 files compared...
-
+  body > div > main > div > ul > li > ul > li: expected_text_got_element - expected: "’'’unusual punctuation 32’’’ - so concentrate on this| | |", actual: '<table>'
   body > div > main > div > ul > li > ul > li > child[1]: tag_name_differs - expected: 'h2', actual: 'table'
   body > div > main > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
   ... and 12 more differences
@@ -1293,8 +1296,9 @@ DIFF index.php/Genetic_Process_Miner.html (33 differences)
   body > div > main > div > child[13]: tag_name_differs - expected: 'p', actual: 'ul'
   body > div > main > div > child[14]: tag_name_differs - expected: 'ul', actual: 'h3'
   ... and 23 more differences
-DIFF index.php/Geometric_Distribution.html (1 differences)
+DIFF index.php/Geometric_Distribution.html (2 differences)
   body > div > main > div > ul > li: text_differs - expected: 'the distribution of $X$ is called ‘‘Geomentric’’', actual: "the distribution of $X$ is called ''Geomentric''"
+  body > div > main > div > p > a: attribute_differs - expected: "href='Chain_and_Sum_Rules_in_Probability#Теорема_произведения_вероятностей'", actual: "href='Chain_and_Sum_Rules_in_Probability#%D0%A2%D0%B5%D0%BE%D1%80%D0%B5%D0%BC%D0%B0_%D0%BF%D1%80%D0%BE%D0%B8%D0%B7%D0%B2%D0%B5%D0%B4%D0%B5%D0%BD%D0%B8%D1%8F_%D0%B2%D0%B5%D1%80%D0%BE%D1%8F%D1%82%D0%BD%D0%BE%D1%81%D1%82%D0%B5%D0%B9'"
 DIFF index.php/Gradient_Descent.html (21 differences)
   body > div > main > div > p: text_differs - expected: 'Note that the update for $(\\theta_0, \\theta_1)$ has to be ‘‘simultaneous’’. That is', actual: "Note that the update for $(\\theta_0, \\theta_1)$ has to be ''simultaneous''. That is"
   body > div > main > div > p: text_differs - expected: 'This is called ‘‘simultaneous update’’', actual: "This is called ''simultaneous update''"
@@ -1511,8 +1515,9 @@ DIFF index.php/Hyperbolic_Trigonometric_Functions.html (9 differences)
   body > div > main > div > child[11]: tag_name_differs - expected: 'h2', actual: 'tbody'
   body > div > main > div > child[12]: tag_name_differs - expected: 'ul', actual: 'h2'
   body > div > main > div > ul: extra_element - expected: '(none)', actual: '<ul>'
-DIFF index.php/Hypergeometric_Distribution.html (1 differences)
+DIFF index.php/Hypergeometric_Distribution.html (2 differences)
   body > div > main > div > p: text_differs - expected: 'Эта формула определяет ‘‘гипергеометрическое распределение’’.', actual: "Эта формула определяет ''гипергеометрическое распределение''."
+  body > div > main > div > ul > li > a: attribute_differs - expected: "href='Геометрическое_распределение'", actual: "href='%D0%93%D0%B5%D0%BE%D0%BC%D0%B5%D1%82%D1%80%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%BE%D0%B5_%D1%80%D0%B0%D1%81%D0%BF%D1%80%D0%B5%D0%B4%D0%B5%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5'"
 DIFF index.php/Hypothesis_Testing.html (112 differences)
   body > div > main > div > p: text_differs - expected: "'’Hypothesis Testing’’ is a framework of testing some assumptions in", actual: "''Hypothesis Testing'' is a framework of testing some assumptions in"
   body > div > main > div > ul > li: text_differs - expected: 'a result is ‘‘statistically significant’’ if it’s very unlikely to have happened due to chance alone', actual: "a result is ''statistically significant'' if it’s very unlikely to have happened due to chance alone"
@@ -1643,7 +1648,8 @@ DIFF index.php/Iterative_Removal.html (47 differences)
   ... and 37 more differences
 DIFF index.php/Java_Fork_Join.html (851 differences)
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='k'"
-  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='kt'"
+  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='kt'"  Progress: 300/639 files compared...
+
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='nd'", actual: "class='o'"
   body > div > main > div > div > div > pre > code > span: text_differs - expected: '@Test', actual: '@'
@@ -1656,8 +1662,7 @@ DIFF index.php/Java_Fork_Join.html (851 differences)
 DIFF index.php/Java_interview_questions.html (1 differences)
   body > div > main > div > ul > li: text_differs - expected: "’'’this’’’ and ‘'’super’’’ keywords", actual: "'''this''' and '''super''' keywords"
 DIFF index.php/Jefferson's_Method.html (26 differences)
-  body > div > main > div > child[14]: tag_name_differs - expected: 'p', actual: 'table'  Progress: 300/639 files compared...
-
+  body > div > main > div > child[14]: tag_name_differs - expected: 'p', actual: 'table'
   body > div > main > div > child[15]: tag_name_differs - expected: 'ul', actual: 'p'
   body > div > main > div > child[16]: tag_name_differs - expected: 'p', actual: 'table'
   body > div > main > div > child[17]: tag_name_differs - expected: 'ul', actual: 'p'
@@ -1781,18 +1786,20 @@ DIFF index.php/Lattice.html (226 differences)
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='nb'"
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='nb'"
   ... and 216 more differences
-DIFF index.php/Law_of_Total_Probability.html (22 differences)
+DIFF index.php/Law_of_Total_Probability.html (23 differences)
   body > div > main > div > table > tbody > tr > td: text_differs - expected: 'Пусть $A$ может наступить при условии появления одного из событий $B_1, B_2, …, B_n$, образующих полную группу событий. Пусть известны вероятности этих событий $P(B_1), P(B_2), …, P(B_n)$ а так же условные вероятности $P(A', actual: 'Пусть $A$ может наступить при условии появления одного из событий $B_1, B_2, ..., B_n$, образующих полную группу событий. Пусть известны вероятности этих событий $P(B_1), P(B_2), ..., P(B_n)$ а так же условные вероятности $P(A'
   body > div > main > div > table > tbody > tr > td: text_differs - expected: 'B_2), …, P(A', actual: 'B_2), ..., P(A'
   body > div > main > div > table > tbody > tr > td: text_differs - expected: 'B_n)$ наступления события $A$ после каждого из $B_1, …, B_n$.', actual: 'B_n)$ наступления события $A$ после каждого из $B_1, ..., B_n$.'
   body > div > main > div > p: text_differs - expected: "’'’Теорема.’’’ Probability события $A$, которое может произойти лишь при появлении одного из несовместных событий $B_1, B_2, …, B_n$, образующих полную группу, есть", actual: "'''Теорема.''' Probability события $A$, которое может произойти лишь при появлении одного из несовместных событий $B_1, B_2, …, B_n$, образующих полную группу, есть"
   body > div > main > div > table > tbody > tr > td: text_differs - expected: 'B_2) + … + P(B_n) P(A', actual: 'B_2) + ... + P(B_n) P(A'
   body > div > main > div > p: text_differs - expected: 'Эту формулу называют ‘‘формулой полной вероятности’’ (следует из', actual: "Эту формулу называют ''формулой полной вероятности'' (следует из"
+  body > div > main > div > p > a: attribute_differs - expected: "href='Условная_вероятность'", actual: "href='%D0%A3%D1%81%D0%BB%D0%BE%D0%B2%D0%BD%D0%B0%D1%8F_%D0%B2%D0%B5%D1%80%D0%BE%D1%8F%D1%82%D0%BD%D0%BE%D1%81%D1%82%D1%8C'"
   body > div > main > div > child[8]: tag_name_differs - expected: 'dl', actual: 'p'
   body > div > main > div > child[9]: tag_name_differs - expected: 'h3', actual: 'p'
   body > div > main > div > child[10]: tag_name_differs - expected: 'p', actual: 'table'
-  body > div > main > div > child[11]: tag_name_differs - expected: 'ul', actual: 'h3'
-  ... and 12 more differences
+  ... and 13 more differences
+DIFF index.php/Laws_of_Large_Numbers.html (1 differences)
+  body > div > main > div > ul > li > a: attribute_differs - expected: "href='Центральная_предельная_теорема'", actual: "href='%D0%A6%D0%B5%D0%BD%D1%82%D1%80%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F_%D0%BF%D1%80%D0%B5%D0%B4%D0%B5%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F_%D1%82%D0%B5%D0%BE%D1%80%D0%B5%D0%BC%D0%B0'"
 DIFF index.php/Learn_More_Study_Less_(book_notes).html (6 differences)
   body > div > main > div > ul > li > ul > li > ul > li > ul > li: expected_element_got_text - expected: '<table>', actual: 'less than 2 minutes| |- Concept-Based Diagrams | - start with the most important with branch off int'
   body > div > main > div > ul > li > ul > li > ul > li > ul > li > table: missing_element - expected: '<table>', actual: '(none)'
@@ -2365,7 +2372,8 @@ DIFF index.php/OLS_Regression.html (45 differences)
   body > div > main > div > child[13]: tag_name_differs - expected: 'ul', actual: 'p'
   body > div > main > div > child[14]: tag_name_differs - expected: 'p', actual: 'ul'
   body > div > main > div > child[15]: tag_name_differs - expected: 'ul', actual: 'p'
-  body > div > main > div > child[16]: tag_name_differs - expected: 'h3', actual: 'ul'
+  body > div > main > div > child[16]: tag_name_differs - expected: 'h3', actual: 'ul'  Progress: 400/639 files compared...
+
   body > div > main > div > child[17]: tag_name_differs - expected: 'p', actual: 'tbody'
   ... and 35 more differences
 DIFF index.php/OWL.html (66 differences)
@@ -2383,8 +2391,7 @@ DIFF index.php/OWL.html (66 differences)
 DIFF index.php/Observation_Studies.html (7 differences)
   body > div > main > div > p: text_differs - expected: 'In ‘‘Observation Studies’’ we observe existing characteristics of a subset of individuals in a population', actual: "In ''Observation Studies'' we observe existing characteristics of a subset of individuals in a population"
   body > div > main > div > ul > li: text_differs - expected: "'’independent’’: there is no association between the variables", actual: "''independent'': there is no association between the variables"
-  body > div > main > div > ul > li: text_differs - expected: "'’association’’: the variables are dependent, but it’s not clear what kind of relationship there is", actual: "''association'': the variables are dependent, but it’s not clear what kind of relationship there is"  Progress: 400/639 files compared...
-
+  body > div > main > div > ul > li: text_differs - expected: "'’association’’: the variables are dependent, but it’s not clear what kind of relationship there is", actual: "''association'': the variables are dependent, but it’s not clear what kind of relationship there is"
   body > div > main > div > ul > li > ul > li: text_differs - expected: "'’causes’’: changes in the explanatory variables case the outcome to change", actual: "''causes'': changes in the explanatory variables case the outcome to change"
   body > div > main > div > ul > li > ul > li: text_differs - expected: "'’reverse causation’’: changes in outcome cause the explanatory variable to change", actual: "''reverse causation'': changes in outcome cause the explanatory variable to change"
   body > div > main > div > ul > li > ul > li: text_differs - expected: "'’coincidence’’: just pure chance", actual: "''coincidence'': just pure chance"
@@ -2655,7 +2662,9 @@ DIFF index.php/Point_Swizzling.html (5 differences)
   body > div > main > div > ul > li: text_differs - expected: 'to avoid that we use ‘‘pointer swizzling’’ techniques', actual: "to avoid that we use ''pointer swizzling'' techniques"
   body > div > main > div > ul > li: text_differs - expected: 'pointer is ‘‘swizzled’’ when it’s translated to main memory address (and saved in this form)', actual: "pointer is ''swizzled'' when it’s translated to main memory address (and saved in this form)"
   body > div > main > div > p: text_differs - expected: 'A block in memory is ‘‘pinned’’ if it cannot be moved back to disk safely', actual: "A block in memory is ''pinned'' if it cannot be moved back to disk safely"
-DIFF index.php/Poisson_Limit_Theorem.html (13 differences)
+DIFF index.php/Poisson_Limit_Theorem.html (15 differences)
+  body > div > main > div > p > a: attribute_differs - expected: "href='Формула_Бернулли'", actual: "href='%D0%A4%D0%BE%D1%80%D0%BC%D1%83%D0%BB%D0%B0_%D0%91%D0%B5%D1%80%D0%BD%D1%83%D0%BB%D0%BB%D0%B8'"
+  body > div > main > div > p > a: attribute_differs - expected: "href='Ассимптотическая_формула_Лапласса'", actual: "href='%D0%90%D1%81%D1%81%D0%B8%D0%BC%D0%BF%D1%82%D0%BE%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B0%D1%8F_%D1%84%D0%BE%D1%80%D0%BC%D1%83%D0%BB%D0%B0_%D0%9B%D0%B0%D0%BF%D0%BB%D0%B0%D1%81%D1%81%D0%B0'"
   body > div > main > div > ul > li: expected_text_got_element - expected: 'Получаем $P_n(k) = \\frac{\\lambda^k}{k| } e^{-\\lambda}$ | | Эта формула выражает закон распределения ', actual: '<table>'
   body > div > main > div > ul > li > table: extra_element - expected: '(none)', actual: '<table>'
   body > div > main > div > child[7]: tag_name_differs - expected: 'h2', actual: 'tbody'
@@ -2664,9 +2673,7 @@ DIFF index.php/Poisson_Limit_Theorem.html (13 differences)
   body > div > main > div > child[10]: tag_name_differs - expected: 'h2', actual: 'p'
   body > div > main > div > ul > li: text_differs - expected: 'Гмурман В.Е., Теория вероятностей и математическая статистика – 9-е издание. М.: Высш. шк., 2003.', actual: '$n = 5000, p = 0.0002, k = 3$'
   body > div > main > div > ul > li: extra_element - expected: '(none)', actual: '<li>'
-  body > div > main > div > ul > li: extra_element - expected: '(none)', actual: '<li>'
-  body > div > main > div > table: extra_element - expected: '(none)', actual: '<table>'
-  ... and 3 more differences
+  ... and 5 more differences
 DIFF index.php/Poisson_Process.html (3 differences)
   body > div > main > div > child[18]: tag_name_differs - expected: 'table', actual: 'p'
   body > div > main > div > ul > li: expected_element_got_text - expected: '<dl>', actual: '$P_t(k) = (\\lambda t)^k \\frac{e^{-\\lambda t}}{k| }$ |: |- 1. за 5 минут наступит 2 вызова : $P_5(2) '
@@ -2939,8 +2946,7 @@ DIFF index.php/Redo_Logging.html (18 differences)
   body > div > main > div > child[6]: tag_name_differs - expected: 'p', actual: 'table'
   body > div > main > div > child[24]: tag_name_differs - expected: 'p', actual: 'table'
   body > div > main > div > child[34]: tag_name_differs - expected: 'p', actual: 'table'
-  body > div > main > div > table > tbody > tr > td: missing_text - expected: '\xa0', actual: '(none)'  Progress: 500/639 files compared...
-
+  body > div > main > div > table > tbody > tr > td: missing_text - expected: '\xa0', actual: '(none)'
   body > div > main > div > table > tbody > tr > td: text_differs - expected: 'rowspan=”10” bgcolor=”red”', actual: 'rowspan="10" bgcolor="red"'
   body > div > main > div > table > tbody > tr > td: missing_text - expected: '\xa0', actual: '(none)'
   body > div > main > div > table > tbody > tr > td: missing_text - expected: '\xa0', actual: '(none)'
@@ -2959,7 +2965,7 @@ DIFF index.php/Reduced_Rank_Approximation.html (44 differences)
   body > div > main > div > child[13]: tag_name_differs - expected: 'ul', actual: 'p'
   body > div > main > div > child[14]: tag_name_differs - expected: 'h3', actual: 'ul'
   ... and 34 more differences
-DIFF index.php/Refactor_your_Wetware.html (25 differences)
+DIFF index.php/Refactor_your_Wetware.html (27 differences)
   body > div > main > div > ul > li: expected_text_got_element - expected: 'what like', actual: '<p>'
   body > div > main > div > ul > li > child[1]: tag_name_differs - expected: 'ul', actual: 'p'
   body > div > main > div > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
@@ -2970,7 +2976,7 @@ DIFF index.php/Refactor_your_Wetware.html (25 differences)
   body > div > main > div > ul > li > child[1]: tag_name_differs - expected: 'ul', actual: 'p'
   body > div > main > div > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
   body > div > main > div > ul > li: expected_text_got_element - expected: 'not controllable directly', actual: '<p>'
-  ... and 15 more differences
+  ... and 17 more differences
 DIFF index.php/Region-Based_Process_Miner.html (32 differences)
   body > div > main > div > ul > li: text_differs - expected: 'this is called a ‘‘transition system’’: we know the states, but don’t know which places have tokens', actual: "this is called a ''transition system'': we know the states, but don’t know which places have tokens"
   body > div > main > div > ul > li: text_differs - expected: 'find groups of nodes – ‘‘regions’’ – in the transition system', actual: "find groups of nodes – ''regions'' – in the transition system"
@@ -2992,7 +2998,8 @@ DIFF index.php/Regularization.html (11 differences)
   body > div > main > div > ul > li > ul > li: text_differs - expected: '$\\lambda$ is called ‘‘regularization parameter’’', actual: "$\\lambda$ is called ''regularization parameter''"
   body > div > main > div > ul > li: expected_element_got_text - expected: '<dl>', actual: 'Old cost function for'
   body > div > main > div > ul > li > child[1]: tag_name_differs - expected: 'dl', actual: 'a'
-  body > div > main > div > ul > li: extra_text - expected: '(none)', actual: '(without regularization) is: : $J_{\\text{old}}(\\theta) = - \\cfrac{1}{m} \\sum \\left[ y \\cdot \\log(h_{'
+  body > div > main > div > ul > li: extra_text - expected: '(none)', actual: '(without regularization) is: : $J_{\\text{old}}(\\theta) = - \\cfrac{1}{m} \\sum \\left[ y \\cdot \\log(h_{'  Progress: 500/639 files compared...
+
   body > div > main > div > ul > li: expected_element_got_text - expected: '<dl>', actual: 'We need to modify it to penalize $\\theta_1, …, \\theta_n$: : $J(\\theta) = J_{\\text{old}}(\\theta) + \\c'
   ... and 1 more differences
 DIFF index.php/Relational_Algebra.html (280 differences)
@@ -3105,7 +3112,7 @@ DIFF index.php/Sampling.html (28 differences)
   body > div > main > div > ul > li: text_differs - expected: 'divide the population into non-overlapping groups (called ‘‘strata’’)', actual: "divide the population into non-overlapping groups (called ''strata'')"
   body > div > main > div > ul > li > table > tbody: missing_element - expected: '<tbody>', actual: '(none)'
   ... and 18 more differences
-DIFF index.php/Sampling_Distribution.html (14 differences)
+DIFF index.php/Sampling_Distribution.html (15 differences)
   body > div > main > div > ul > li: expected_element_got_text - expected: '<dl>', actual: '$\\hat{p}$ - estimate of $p$ : $\\hat{p} = \\cfrac{\\text{# of heads}}{\\text{total # of flips}}$ : i.e. '
   body > div > main > div > ul > li > dl: missing_element - expected: '<dl>', actual: '(none)'
   body > div > main > div > ul > li: text_differs - expected: 'so there is a ‘‘variability’’ in the estimate', actual: "so there is a ''variability'' in the estimate"
@@ -3116,7 +3123,7 @@ DIFF index.php/Sampling_Distribution.html (14 differences)
   body > div > main > div > ul > li: extra_text - expected: '(none)', actual: 'with $p = 1/2$ : $X \\sim \\text{Bernoulli}(0.5)$'
   body > div > main > div > ul > li: text_differs - expected: 'and $\\hat{p}$ is called ‘‘unbiased estimator’’', actual: "and $\\hat{p}$ is called ''unbiased estimator''"
   body > div > main > div > p: text_differs - expected: 'A statistic used to estimate a parameter is ‘‘unbiased’’ if the expected value of its sampling distribution is equal to the value of the parameter being estimated', actual: "A statistic used to estimate a parameter is ''unbiased'' if the expected value of its sampling distribution is equal to the value of the parameter being estimated"
-  ... and 4 more differences
+  ... and 5 more differences
 DIFF index.php/Scatter_Plot.html (26 differences)
   body > div > main > div > child[4]: tag_name_differs - expected: 'p', actual: 'div'
   body > div > main > div > child[5]: tag_name_differs - expected: 'div', actual: 'ul'
@@ -3594,8 +3601,7 @@ DIFF index.php/Translating_SQL_to_Relational_Algebra.html (150 differences)
   ... and 140 more differences
 DIFF index.php/Tree.html (2 differences)
   body > div > main > div > p: text_differs - expected: 'A tree is ‘‘ranked’’ if you know in advance how many children a node has', actual: "A tree is ''ranked'' if you know in advance how many children a node has"
-  body > div > main > div > p: text_differs - expected: 'A tree is ‘‘ordered’’ if the order of children matters', actual: "A tree is ''ordered'' if the order of children matters"  Progress: 600/639 files compared...
-
+  body > div > main > div > p: text_differs - expected: 'A tree is ‘‘ordered’’ if the order of children matters', actual: "A tree is ''ordered'' if the order of children matters"
 DIFF index.php/Trigonometric_Functions.html (85 differences)
   body > div > main > div > ul > li: expected_text_got_element - expected: '$\\cos x = \\sum\\limits_{k=0}^\\infty (-1)^k \\cfrac{x^{2k}}{(2k)| }$ |- $\\sin x = \\sum\\limits_{k=0}^\\in', actual: '<table>'
   body > div > main > div > ul > li > child[1]: tag_name_differs - expected: 'a', actual: 'table'
@@ -3641,7 +3647,8 @@ DIFF index.php/Two-Round_Voting.html (20 differences)
   body > div > main > div > child[27]: tag_name_differs - expected: 'p', actual: 'table'
   body > div > main > div > child[28]: tag_name_differs - expected: 'ul', actual: 'p'
   body > div > main > div > p: text_differs - expected: 'So the separability principle is not satisfied in this example.', actual: 'But if we consider the global region, we’ll have different results:'
-  body > div > main > div > child[30]: tag_name_differs - expected: 'h3', actual: 'ul'
+  body > div > main > div > child[30]: tag_name_differs - expected: 'h3', actual: 'ul'  Progress: 600/639 files compared...
+
   body > div > main > div > p: text_differs - expected: 'Is not satisfied', actual: 'So the separability principle is not satisfied in this example.'
   ... and 10 more differences
 DIFF index.php/Two-Sample_t-test.html (29 differences)
@@ -3699,7 +3706,7 @@ DIFF index.php/Variables_in_Observations.html (19 differences)
   body > div > main > div > ul > li > dl: missing_element - expected: '<dl>', actual: '(none)'
   body > div > main > div > p: text_differs - expected: 'Confounding variables: :<img src=”', actual: 'Confounding variables: :<img src=“'
   ... and 9 more differences
-DIFF index.php/Variance.html (11 differences)
+DIFF index.php/Variance.html (12 differences)
   body > div > main > div > table > tr > td: expected_text_got_element - expected: '| $X$ !! -0.1 | 0.1 | $p$ !! 0.5 | 0.5 |', actual: '<table>'
   body > div > main > div > table > tr > td > table: extra_element - expected: '(none)', actual: '<table>'
   body > div > main > div > table > tr > td: expected_text_got_element - expected: '| $Y$ !! -100 | 100 | $p$ !! 0.5 | 0.5 |', actual: '<table>'
@@ -3707,10 +3714,10 @@ DIFF index.php/Variance.html (11 differences)
   body > div > main > div > p: text_differs - expected: "'’Deviation of a Random Variable’’ (‘‘Отклонение случайной величины’’) - absolute difference between the value of an RV and its expected value", actual: "''Deviation of a Random Variable'' (''Отклонение случайной величины'') - absolute difference between the value of an RV and its expected value"
   body > div > main > div > p: text_differs - expected: "'’Variance of a Random Variable’’ (‘‘Дисперсиия (разброс) случайной величины’’) is a measure of spread that describes how far away values get from the expected value", actual: "''Variance of a Random Variable'' (''Дисперсиия (разброс) случайной величины'') is a measure of spread that describes how far away values get from the expected value"
   body > div > main > div > p: text_differs - expected: "’'’Теорема.’’’ Дисперсия равна разности между мат. ожиданием квадрата случайной величины и квадрата её мат. ожидания:", actual: "'''Теорема.''' Дисперсия равна разности между мат. ожиданием квадрата случайной величины и квадрата её мат. ожидания:"
+  body > div > main > div > ol > li > a: attribute_differs - expected: "href='Корреляция#Ковариация'", actual: "href='%D0%9A%D0%BE%D1%80%D1%80%D0%B5%D0%BB%D1%8F%D1%86%D0%B8%D1%8F#%D0%9A%D0%BE%D0%B2%D0%B0%D1%80%D0%B8%D0%B0%D1%86%D0%B8%D1%8F'"
   body > div > main > div > child[25]: tag_name_differs - expected: 'p', actual: 'table'
   body > div > main > div > child[26]: tag_name_differs - expected: 'h2', actual: 'p'
-  body > div > main > div > child[27]: tag_name_differs - expected: 'ul', actual: 'h2'
-  ... and 1 more differences
+  ... and 2 more differences
 DIFF index.php/Vector_Clock.html (15 differences)
   body > div > main > div > p: text_differs - expected: "’'’def:’’’ a vector clock is a tuple $(t_1, …, t_n)$ of clock values for each node, with $n$ nodes in total.", actual: "'''def:''' a vector clock is a tuple $(t_1, …, t_n)$ of clock values for each node, with $n$ nodes in total."
   body > div > main > div > p: text_differs - expected: '$e_1$ happens ‘‘before’’ $e_2$ if', actual: "$e_1$ happens ''before'' $e_2$ if"
@@ -3909,15 +3916,17 @@ DIFF index.php/Z-tests.html (24 differences)
   body > div > main > div > child[17]: tag_name_differs - expected: 'ul', actual: 'p'
   body > div > main > div > child[18]: tag_name_differs - expected: 'p', actual: 'ul'
   ... and 14 more differences
-DIFF index.php/index.html (1 differences)
-  body > div > main > div > div > div > a: attribute_differs - expected: "href='/index.php/%D0%9F%D1%80%D0%BE%D0%B3%D1%80%D0%B0%D0%BC%D0%BC%D0%B0_%D0%BF%D0%BE%D1%81%D1%82%D1%83%D0%BF%D0%BB%D0%B5%D0%BD%D0%B8%D1%8F_%D0%B2_%D0%A8%D0%90%D0%94'", actual: "href='/index.php/Программа_поступления_в_ШАД'"
-DIFF index.php/Программа_поступления_в_ШАД.html (7 differences)
-  body > div > main > div > ol > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  body > div > main > div > child[10]: tag_name_differs - expected: 'h2', actual: 'ul'
-  body > div > main > div > child[11]: tag_name_differs - expected: 'p', actual: 'h2'
-  body > div > main > div > child[12]: tag_name_differs - expected: 'ol', actual: 'p'
-  body > div > main > div > child[13]: tag_name_differs - expected: 'h2', actual: 'ol'
-  body > div > main > div > child[14]: tag_name_differs - expected: 'ul', actual: 'h2'
-  body > div > main > div > ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF index.php/Программа_поступления_в_ШАД.html (26 differences)
+  body > div > main > div > ol > li > a: attribute_differs - expected: "href='Подстановки'", actual: "href='%D0%9F%D0%BE%D0%B4%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B8'"
+  body > div > main > div > ol > li > a: attribute_differs - expected: "href='Комплексные_числа'", actual: "href='%D0%9A%D0%BE%D0%BC%D0%BF%D0%BB%D0%B5%D0%BA%D1%81%D0%BD%D1%8B%D0%B5_%D1%87%D0%B8%D1%81%D0%BB%D0%B0'"
+  body > div > main > div > ol > li > a: attribute_differs - expected: "href='Системы_линейных_уравнений'", actual: "href='%D0%A1%D0%B8%D1%81%D1%82%D0%B5%D0%BC%D1%8B_%D0%BB%D0%B8%D0%BD%D0%B5%D0%B9%D0%BD%D1%8B%D1%85_%D1%83%D1%80%D0%B0%D0%B2%D0%BD%D0%B5%D0%BD%D0%B8%D0%B9'"
+  body > div > main > div > ol > li > a: attribute_differs - expected: "href='Определители'", actual: "href='%D0%9E%D0%BF%D1%80%D0%B5%D0%B4%D0%B5%D0%BB%D0%B8%D1%82%D0%B5%D0%BB%D0%B8'"
+  body > div > main > div > ol > li > a: attribute_differs - expected: "href='Пределы_и_непрерывность'", actual: "href='%D0%9F%D1%80%D0%B5%D0%B4%D0%B5%D0%BB%D1%8B_%D0%B8_%D0%BD%D0%B5%D0%BF%D1%80%D0%B5%D1%80%D1%8B%D0%B2%D0%BD%D0%BE%D1%81%D1%82%D1%8C'"
+  body > div > main > div > ol > li > a: attribute_differs - expected: "href='Ряды'", actual: "href='%D0%A0%D1%8F%D0%B4%D1%8B'"
+  body > div > main > div > ol > li > a: attribute_differs - expected: "href='Дифференцирование'", actual: "href='%D0%94%D0%B8%D1%84%D1%84%D0%B5%D1%80%D0%B5%D0%BD%D1%86%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5'"
+  body > div > main > div > ol > li > a: attribute_differs - expected: "href='Интегрирование'", actual: "href='%D0%98%D0%BD%D1%82%D0%B5%D0%B3%D1%80%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5'"
+  body > div > main > div > ol > li > a: attribute_differs - expected: "href='Правила_суммы_и_произведения'", actual: "href='%D0%9F%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0_%D1%81%D1%83%D0%BC%D0%BC%D1%8B_%D0%B8_%D0%BF%D1%80%D0%BE%D0%B8%D0%B7%D0%B2%D0%B5%D0%B4%D0%B5%D0%BD%D0%B8%D1%8F'"
+  body > div > main > div > ol > li > a: attribute_differs - expected: "href='Combinations#Треугольник_Паскаля'", actual: "href='Combinations#%D0%A2%D1%80%D0%B5%D1%83%D0%B3%D0%BE%D0%BB%D1%8C%D0%BD%D0%B8%D0%BA_%D0%9F%D0%B0%D1%81%D0%BA%D0%B0%D0%BB%D1%8F'"
+  ... and 16 more differences
 
-Summary: 214 files matched, 425 files with differences, 21679 total differences
+Summary: 214 files matched, 425 files with differences, 21712 total differences
