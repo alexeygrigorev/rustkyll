@@ -4522,4 +4522,203 @@ defaults:
             "Standalone page should NOT have col-pages, got: {html}"
         );
     }
+
+    // ========================================================================
+    // Issue 196: Layout applied via config defaults for collection items
+    // ========================================================================
+
+    /// Test that collection items get their layout from config defaults
+    /// when no explicit layout is in front matter. This is the pattern
+    /// used by opensource-guide (articles collection, 337 pages).
+    #[test]
+    fn test_config_defaults_layout_applied_to_collection_items() {
+        let tmp = tempfile::tempdir().unwrap();
+        let output_dir = tmp.path();
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "article".to_string(),
+            crate::template::Layout {
+                source: "<html><head><title>{{ page.title }}</title></head><body>{{ content }}</body></html>".to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let config = SiteConfig {
+            defaults: vec![crate::config::DefaultConfig {
+                scope: crate::config::DefaultScope {
+                    path: String::new(),
+                    type_name: "articles".to_string(),
+                },
+                values: crate::config::DefaultValues {
+                    values: {
+                        let mut m = HashMap::new();
+                        m.insert(
+                            "layout".to_string(),
+                            serde_yaml::Value::String("article".to_string()),
+                        );
+                        m
+                    },
+                },
+            }],
+            ..Default::default()
+        };
+
+        // Item has NO layout in front matter -- must get it from defaults
+        let item = CollectionItem {
+            slug: "best-practices".to_string(),
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("Best Practices".to_string()),
+                );
+                fm.insert(
+                    "lang".to_string(),
+                    serde_yaml::Value::String("ar".to_string()),
+                );
+                fm
+            },
+            content: "أفضل الممارسات · Best Practices".to_string(),
+            html_content: "<p>أفضل الممارسات · Best Practices</p>\n".to_string(),
+            excerpt: None,
+            url: "/ar/best-practices/".to_string(),
+            date: None,
+            collection_name: "articles".to_string(),
+            source_path: "_articles/ar/best-practices.md".to_string(),
+            id: "/articles/ar/best-practices".to_string(),
+        };
+
+        let site_context = Object::new();
+        let result = generate_collection_pages(
+            &[item],
+            "articles",
+            &config,
+            &engine,
+            &site_context,
+            output_dir,
+        )
+        .unwrap();
+
+        assert_eq!(result.generated, 1);
+        assert!(result.errors.is_empty(), "errors: {:?}", result.errors);
+
+        let html = fs::read_to_string(output_dir.join("ar/best-practices/index.html")).unwrap();
+        assert!(
+            html.contains("<html>"),
+            "Layout should be applied (has <html>), got: {}",
+            html
+        );
+        assert!(
+            html.contains("<head>"),
+            "Layout should be applied (has <head>), got: {}",
+            html
+        );
+        assert!(
+            html.contains("<body>"),
+            "Layout should be applied (has <body>), got: {}",
+            html
+        );
+        assert!(
+            html.contains("أفضل الممارسات · Best Practices"),
+            "Content should be present with Arabic text, got: {}",
+            html
+        );
+    }
+
+    /// Test that layout inheritance chains work (article -> default).
+    /// This is critical for sites like opensource-guide where article.html
+    /// has layout: default in its front matter.
+    #[test]
+    fn test_layout_inheritance_chain() {
+        let tmp = tempfile::tempdir().unwrap();
+        let output_dir = tmp.path();
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            crate::template::Layout {
+                source: "<html><body>{{ content }}</body></html>".to_string(),
+                parent_layout: None,
+            },
+        );
+        layouts.insert(
+            "article".to_string(),
+            crate::template::Layout {
+                source: "<article>{{ content }}</article>".to_string(),
+                parent_layout: Some("default".to_string()),
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let config = SiteConfig {
+            defaults: vec![crate::config::DefaultConfig {
+                scope: crate::config::DefaultScope {
+                    path: String::new(),
+                    type_name: "articles".to_string(),
+                },
+                values: crate::config::DefaultValues {
+                    values: {
+                        let mut m = HashMap::new();
+                        m.insert(
+                            "layout".to_string(),
+                            serde_yaml::Value::String("article".to_string()),
+                        );
+                        m
+                    },
+                },
+            }],
+            ..Default::default()
+        };
+
+        let item = CollectionItem {
+            slug: "test".to_string(),
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("Test".to_string()),
+                );
+                fm
+            },
+            content: "Content here".to_string(),
+            html_content: "<p>Content here</p>\n".to_string(),
+            excerpt: None,
+            url: "/test/".to_string(),
+            date: None,
+            collection_name: "articles".to_string(),
+            source_path: "_articles/test.md".to_string(),
+            id: "/articles/test".to_string(),
+        };
+
+        let site_context = Object::new();
+        let result = generate_collection_pages(
+            &[item],
+            "articles",
+            &config,
+            &engine,
+            &site_context,
+            output_dir,
+        )
+        .unwrap();
+
+        assert_eq!(result.generated, 1);
+        assert!(result.errors.is_empty(), "errors: {:?}", result.errors);
+
+        let html = fs::read_to_string(output_dir.join("test/index.html")).unwrap();
+        // Chain: article wraps in <article>, default wraps in <html><body>
+        assert!(
+            html.contains("<html><body><article>"),
+            "Full chain should be applied: html > body > article, got: {}",
+            html
+        );
+        assert!(
+            html.contains("Content here"),
+            "Content should be present, got: {}",
+            html
+        );
+    }
 }

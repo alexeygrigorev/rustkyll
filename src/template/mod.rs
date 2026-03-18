@@ -17,6 +17,7 @@ pub mod filters;
 pub mod highlight_tag;
 pub mod include_tag;
 pub mod layout;
+pub mod noop_tags;
 pub mod seo_tag;
 
 pub use context::{

@@ -585,6 +585,8 @@ impl TemplateEngine {
             .tag(super::seo_tag::SeoTag)
             .tag(super::avatar_tag::AvatarTag)
             .block(super::highlight_tag::HighlightBlock)
+            .tag(super::noop_tags::FeedMetaTag)
+            .tag(super::noop_tags::GithubEditLinkTag)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
         Ok(Self {
@@ -615,6 +617,8 @@ impl TemplateEngine {
             .tag(super::seo_tag::SeoTag)
             .tag(super::avatar_tag::AvatarTag)
             .block(super::highlight_tag::HighlightBlock)
+            .tag(super::noop_tags::FeedMetaTag)
+            .tag(super::noop_tags::GithubEditLinkTag)
             .partials(partials)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
@@ -641,6 +645,8 @@ impl TemplateEngine {
             .tag(super::seo_tag::SeoTag)
             .tag(super::avatar_tag::AvatarTag)
             .block(super::highlight_tag::HighlightBlock)
+            .tag(super::noop_tags::FeedMetaTag)
+            .tag(super::noop_tags::GithubEditLinkTag)
             .partials(partials)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
@@ -662,6 +668,7 @@ impl TemplateEngine {
             .filter(liquid_lib::jekyll::Push)
             .filter(liquid_lib::jekyll::Pop)
             .filter(liquid_lib::jekyll::Unshift)
+            .filter(liquid_lib::jekyll::Shift)
             .filter(liquid_lib::jekyll::ArrayToSentenceString)
             // Custom filters (Issue 07)
             .filter(filters::WhereExp)
@@ -691,6 +698,11 @@ impl TemplateEngine {
             // Must come after with_stdlib() to override the default url_encode (%20)
             .filter(filters::UrlEncode)
             .filter(filters::CgiEscape)
+            // Lenient math filters: non-numeric strings coerce to 0 (Issue 196)
+            // Must come after with_stdlib() to override strict versions
+            .filter(filters::math::Times)
+            .filter(filters::math::Plus)
+            .filter(filters::math::Minus)
     }
 
     /// Create a `TemplateEngine` from a pre-built `liquid::Parser`.
@@ -789,10 +801,13 @@ impl TemplateEngine {
         }
         drop(filters_guard);
 
-        // Always register seo tag, avatar tag, and highlight block; include tag only when includes are present
+        // Always register seo tag, avatar tag, highlight block, and no-op plugin tags;
+        // include tag only when includes are present
         builder = builder.tag(super::seo_tag::SeoTag);
         builder = builder.tag(super::avatar_tag::AvatarTag);
         builder = builder.block(super::highlight_tag::HighlightBlock);
+        builder = builder.tag(super::noop_tags::FeedMetaTag);
+        builder = builder.tag(super::noop_tags::GithubEditLinkTag);
         if self.has_include_tag {
             builder = builder.tag(super::include_tag::LenientIncludeTag);
             builder = builder.tag(super::include_tag::LenientIncludeCachedTag);
@@ -3411,5 +3426,123 @@ title: "Test Book"
             "Dollar sign must not be stripped. Got: {:?}",
             out
         );
+    }
+
+    // ========================================================================
+    // Issue 196: shift filter, feed_meta tag, github_edit_link tag
+    // ========================================================================
+
+    /// The `shift` filter removes the first element from an array.
+    /// Used by jekyll-toc.html in opensource-guide (337 pages affected).
+    #[test]
+    fn test_shift_filter_removes_first_element() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "items".into(),
+            LiquidValue::Array(vec![
+                LiquidValue::scalar("a"),
+                LiquidValue::scalar("b"),
+                LiquidValue::scalar("c"),
+            ]),
+        );
+        let out = eng
+            .parse_and_render("{{ items | shift | join: ',' }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "b,c", "shift should remove first element");
+    }
+
+    /// The `shift` filter on an empty array should return an empty array.
+    #[test]
+    fn test_shift_filter_empty_array() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("items".into(), LiquidValue::Array(vec![]));
+        let out = eng
+            .parse_and_render("{{ items | shift | size }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "0", "shift of empty array should be empty");
+    }
+
+    /// The `{% feed_meta %}` tag should parse and render without error.
+    /// Used by jekyll-feed plugin in jekyll-docs (109 pages affected).
+    #[test]
+    fn test_feed_meta_tag_renders() {
+        let eng = engine();
+        let ctx = Object::new();
+        let result = eng.parse_and_render("before{% feed_meta %}after", &ctx);
+        assert!(
+            result.is_ok(),
+            "feed_meta tag should parse and render: {:?}",
+            result.err()
+        );
+        let out = result.unwrap();
+        assert!(out.contains("before"), "content before tag preserved");
+        assert!(out.contains("after"), "content after tag preserved");
+    }
+
+    /// The `{% github_edit_link %}` tag should parse and render without error.
+    /// Used by jekyll-github-metadata in choosealicense.com (55 pages affected).
+    #[test]
+    fn test_github_edit_link_tag_renders() {
+        let eng = engine();
+        let ctx = Object::new();
+        let result = eng.parse_and_render(
+            "before{% github_edit_link \"Improve this page\" %}after",
+            &ctx,
+        );
+        assert!(
+            result.is_ok(),
+            "github_edit_link tag should parse and render: {:?}",
+            result.err()
+        );
+        let out = result.unwrap();
+        assert!(out.contains("before"), "content before tag preserved");
+        assert!(out.contains("after"), "content after tag preserved");
+    }
+
+    /// Accessing an out-of-bounds array index should return nil (empty string),
+    /// not error. This matches Ruby Liquid behavior and is critical for
+    /// templates like jekyll-toc.html that do `array[1]` after split.
+    #[test]
+    fn test_out_of_bounds_array_index_returns_nil() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "items".into(),
+            LiquidValue::Array(vec![LiquidValue::scalar("only")]),
+        );
+        // Accessing index 1 on a 1-element array should return empty string (nil)
+        let result = eng.parse_and_render("{{ items[1] }}", &ctx);
+        assert!(
+            result.is_ok(),
+            "Out-of-bounds array index should not error: {:?}",
+            result.err()
+        );
+        let out = result.unwrap();
+        assert_eq!(out, "", "Out-of-bounds index should render as empty");
+    }
+
+    /// Variable path through an out-of-bounds index should return nil.
+    /// This is used by jekyll-toc: `{% assign x = workspace[0] | split: 'class="' %}`
+    /// followed by `{% assign y = x[1] %}` where x has only 1 element.
+    #[test]
+    fn test_split_then_out_of_bounds_index_returns_nil() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("text".into(), LiquidValue::scalar("no class here"));
+        // Split by something not in the string -> single-element array
+        // Then access [1] -> should be nil/empty
+        let result = eng.parse_and_render(
+            r#"{% assign parts = text | split: 'class="' %}{{ parts[1] }}"#,
+            &ctx,
+        );
+        assert!(
+            result.is_ok(),
+            "Split then out-of-bounds index should not error: {:?}",
+            result.err()
+        );
+        let out = result.unwrap();
+        assert_eq!(out, "", "parts[1] should be empty when split has 1 result");
     }
 }

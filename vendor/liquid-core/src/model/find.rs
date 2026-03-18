@@ -3,8 +3,7 @@
 use std::fmt;
 use std::slice;
 
-use crate::error::{Error, Result};
-use crate::model::KStringCow;
+use crate::error::Result;
 
 use super::ScalarCow;
 use super::Value;
@@ -192,45 +191,19 @@ fn augmented_get<'o>(value: &'o dyn ValueView, index: &ScalarCow<'_>) -> Option<
 }
 
 /// Find a `ValueView` nested in an `ObjectView`
+///
+/// Returns nil (as an owned `Value::Nil`) when a path element cannot be
+/// resolved.  This matches Ruby Liquid's behavior where accessing a
+/// missing key or an out-of-bounds array index silently evaluates to nil
+/// rather than raising an error.
 pub fn find<'o>(value: &'o dyn ValueView, path: &[ScalarCow<'_>]) -> Result<ValueCow<'o>> {
     if let Some(res) = try_find(value, path) {
         Ok(res)
     } else {
-        for cur_idx in 1..path.len() {
-            let subpath_end = path.len() - cur_idx;
-            let subpath = &path[0..subpath_end];
-            if let Some(parent) = try_find(value, subpath) {
-                let subpath = itertools::join(subpath.iter().map(ValueView::render), ".");
-                let requested = &path[subpath_end];
-                let available = if let Some(arr) = parent.as_array() {
-                    let mut available = vec![
-                        KStringCow::from_static("first"),
-                        KStringCow::from_static("last"),
-                    ];
-                    if 0 < arr.size() {
-                        available
-                            .insert(0, KStringCow::from_string(format!("0..{}", arr.size() - 1)));
-                    }
-                    available
-                } else if let Some(obj) = parent.as_object() {
-                    let available: Vec<_> = obj.keys().collect();
-                    available
-                } else {
-                    Vec::new()
-                };
-                let available = itertools::join(available.iter(), ", ");
-                return Error::with_msg("Unknown index")
-                    .context("variable", subpath)
-                    .context("requested index", format!("{}", requested.render()))
-                    .context("available indexes", available)
-                    .into_err();
-            }
-        }
-
-        panic!(
-            "Should have already errored for `{}` with path {:?}",
-            value.source(),
-            path
-        );
+        // Ruby Liquid returns nil for any unresolvable path (missing key,
+        // out-of-bounds array index, indexing into a scalar, etc.).
+        // Return Nil instead of an error so templates like jekyll-toc that
+        // do `array[1]` after a `split` don't abort the whole render.
+        Ok(ValueCow::Owned(Value::Nil))
     }
 }

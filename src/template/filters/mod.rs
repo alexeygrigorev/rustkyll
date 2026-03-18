@@ -14,6 +14,7 @@ mod group_by;
 mod group_by_exp;
 mod jsonify;
 mod markdownify;
+pub(crate) mod math;
 mod newline_to_br;
 mod normalize_whitespace;
 mod number_of_words;
