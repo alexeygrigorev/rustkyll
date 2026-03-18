@@ -428,7 +428,7 @@ pub fn load_collection(
             .collection(collection_name)
             .map(|c| c.permalink.clone())
             .filter(|p| !p.is_empty())
-            .unwrap_or_else(|| "/:collection/:title.html".to_string())
+            .unwrap_or_else(|| "/:collection/:path".to_string())
     };
 
     // Phase 1: Collect all file paths (fast, sequential directory walk)
@@ -2456,5 +2456,82 @@ mod tests {
             ],
             "Pages should be sorted by (basename, full URL) to match Jekyll"
         );
+    }
+
+    // ========================================================================
+    // Issue 209: Default collection permalink has no .html extension
+    // ========================================================================
+
+    #[test]
+    fn test_default_collection_permalink_no_html() {
+        // Jekyll's default permalink for non-post collections is /:collection/:path
+        // (no .html extension). Sites that explicitly set permalink in collection
+        // config keep their setting; only the fallback default changes.
+        let dir = tempfile::tempdir().unwrap();
+        let site = dir.path();
+
+        // Create a collection with NO explicit permalink in config
+        std::fs::write(
+            site.join("_config.yml"),
+            "collections:\n  pages:\n    output: true\n",
+        )
+        .unwrap();
+        std::fs::create_dir_all(site.join("_pages")).unwrap();
+        std::fs::write(
+            site.join("_pages/banners.md"),
+            "---\ntitle: \"Баннеры и флаги\"\n---\nSome content about banners",
+        )
+        .unwrap();
+
+        let config = SiteConfig::from_file(&site.join("_config.yml")).unwrap();
+        let (items, _) = load_collection("pages", site, &config).unwrap();
+        assert_eq!(items.len(), 1);
+        // Should be /pages/banners (no .html), matching Jekyll's /:collection/:path default
+        assert_eq!(items[0].url, "/pages/banners");
+    }
+
+    #[test]
+    fn test_explicit_collection_permalink_html_preserved() {
+        // When a collection explicitly sets permalink: /:collection/:title.html,
+        // that setting must be preserved (no regression for DTC site).
+        let dir = tempfile::tempdir().unwrap();
+        let site = dir.path();
+
+        std::fs::write(
+            site.join("_config.yml"),
+            "collections:\n  books:\n    output: true\n    permalink: /:collection/:title.html\n",
+        )
+        .unwrap();
+        std::fs::create_dir_all(site.join("_books")).unwrap();
+        std::fs::write(
+            site.join("_books/ml-bookcamp.md"),
+            "---\ntitle: ML Bookcamp\n---\nContent",
+        )
+        .unwrap();
+
+        let config = SiteConfig::from_file(&site.join("_config.yml")).unwrap();
+        let (items, _) = load_collection("books", site, &config).unwrap();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].url, "/books/ml-bookcamp.html");
+    }
+
+    #[test]
+    fn test_generate_url_collection_path_pattern() {
+        // The /:collection/:path pattern should produce URLs without .html
+        let url = generate_url("/:collection/:path", "notes", "2018-06-04-aa");
+        assert_eq!(url, "/notes/2018-06-04-aa");
+    }
+
+    #[test]
+    fn test_generate_url_collection_path_unicode() {
+        // Unicode path stems should work with the :path pattern
+        let ctx = PermalinkContext {
+            collection: "pages".to_string(),
+            title: "uber-uns".to_string(),
+            source_path_stem: Some("über-uns".to_string()),
+            ..Default::default()
+        };
+        let url = generate_url_with_context("/:collection/:path", &ctx);
+        assert_eq!(url, "/pages/über-uns");
     }
 }

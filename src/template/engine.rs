@@ -703,6 +703,9 @@ impl TemplateEngine {
             .filter(filters::math::Times)
             .filter(filters::math::Plus)
             .filter(filters::math::Minus)
+            // Jekyll-compatible map filter that flattens nested arrays (Issue 209)
+            // Must come after with_stdlib() to override the default map filter
+            .filter(filters::Map)
     }
 
     /// Create a `TemplateEngine` from a pre-built `liquid::Parser`.
@@ -1042,17 +1045,24 @@ fn preprocess_jekyll_tags(template: &str) -> String {
                 .strip_prefix("link")
                 .filter(|rest| rest.starts_with(char::is_whitespace))
             {
-                // {% link _pages/file.md %} -> /pages/file.html (or similar)
+                // {% link _pages/file.md %} -> /pages/file (collection) or /file.html (root)
                 let path = path.trim().trim_matches('"').trim_matches('\'');
+                // Check if the path starts with _ (collection document)
+                let is_collection = path.starts_with('_');
                 // Strip leading underscore-prefixed directory (e.g., _pages/ -> pages/)
                 let url_path = if let Some(stripped) = path.strip_prefix('_') {
                     stripped
                 } else {
                     path
                 };
-                // Convert .md to .html extension
+                // For collection docs: strip .md extension entirely (no .html)
+                // For root pages: convert .md to .html
                 let url_path = if let Some(stem) = url_path.strip_suffix(".md") {
-                    format!("/{}.html", stem)
+                    if is_collection {
+                        format!("/{}", stem)
+                    } else {
+                        format!("/{}.html", stem)
+                    }
                 } else {
                     format!("/{}", url_path)
                 };
@@ -2954,8 +2964,9 @@ title: "Test Book"
 
     #[test]
     fn test_link_tag_preprocessing() {
+        // Collection docs (path starts with _) should produce extensionless URLs
         let result = preprocess_jekyll_tags(r#"<a href="{% link _pages/about.md %}">About</a>"#);
-        assert_eq!(result, r#"<a href="/pages/about.html">About</a>"#);
+        assert_eq!(result, r#"<a href="/pages/about">About</a>"#);
     }
 
     #[test]
@@ -3544,5 +3555,114 @@ title: "Test Book"
         );
         let out = result.unwrap();
         assert_eq!(out, "", "parts[1] should be empty when split has 1 result");
+    }
+
+    // ========================================================================
+    // Issue 209: Link tag no .html for collection docs
+    // ========================================================================
+
+    #[test]
+    fn test_link_tag_no_html_for_collection_pages() {
+        // Collection docs (path starts with _) -> extensionless URL
+        let result = preprocess_jekyll_tags(r#"<a href="{% link _pages/banners.md %}">Link</a>"#);
+        assert_eq!(result, r#"<a href="/pages/banners">Link</a>"#);
+    }
+
+    #[test]
+    fn test_link_tag_root_page_keeps_html() {
+        // Root pages (no _ prefix) -> keep .html extension
+        let result = preprocess_jekyll_tags(r#"{% link about.md %}"#);
+        assert_eq!(result, "/about.html");
+    }
+
+    #[test]
+    fn test_link_tag_unicode_collection_doc() {
+        // Unicode filenames in collection docs
+        let result = preprocess_jekyll_tags(r#"{% link _pages/uber-uns.md %}"#);
+        assert_eq!(result, "/pages/uber-uns");
+    }
+
+    #[test]
+    fn test_link_tag_nested_collection_doc() {
+        // Nested paths within collection
+        let result = preprocess_jekyll_tags(r#"{% link _notes/2018/my-note.md %}"#);
+        assert_eq!(result, "/notes/2018/my-note");
+    }
+
+    // ========================================================================
+    // Issue 209: map filter flattens nested arrays
+    // ========================================================================
+
+    #[test]
+    fn test_map_filter_flattens_nested_arrays() {
+        let eng = engine();
+        let mut ctx = Object::new();
+
+        // Create items with tags arrays (including Unicode)
+        let items = LiquidValue::Array(vec![
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert(
+                    "tags".into(),
+                    LiquidValue::Array(vec![
+                        LiquidValue::scalar("Book"),
+                        LiquidValue::scalar("Mental health"),
+                    ]),
+                );
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert(
+                    "tags".into(),
+                    LiquidValue::Array(vec![
+                        LiquidValue::scalar("Hobby"),
+                        LiquidValue::scalar("Life"),
+                    ]),
+                );
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert(
+                    "tags".into(),
+                    LiquidValue::Array(vec![
+                        LiquidValue::scalar("Book"),
+                        LiquidValue::scalar("Gesundheit"),
+                    ]),
+                );
+                o
+            }),
+        ]);
+        ctx.insert("items".into(), items);
+
+        let template = r#"{% assign all_tags = items | map: "tags" | uniq | sort %}{% for tag in all_tags %}{{ tag }},{% endfor %}"#;
+        let result = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(result, "Book,Gesundheit,Hobby,Life,Mental health,");
+    }
+
+    #[test]
+    fn test_map_filter_flat_property_unchanged() {
+        let eng = engine();
+        let mut ctx = Object::new();
+
+        // Items with scalar title property (including Unicode)
+        let items = LiquidValue::Array(vec![
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("title".into(), LiquidValue::scalar("Первый пост"));
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("title".into(), LiquidValue::scalar("Second"));
+                o
+            }),
+        ]);
+        ctx.insert("items".into(), items);
+
+        let template = r#"{% assign titles = items | map: "title" %}{% for t in titles %}{{ t }};{% endfor %}"#;
+        let result = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(result, "Первый пост;Second;");
     }
 }

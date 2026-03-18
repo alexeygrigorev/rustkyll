@@ -674,6 +674,10 @@ pub fn build_render_context(
         };
         page.insert(key.clone().into(), liquid_val);
     }
+    // Jekyll makes the rendered HTML available as page.content in layout context.
+    // This is needed for templates that use {{ page.content | strip_html }} for
+    // meta descriptions. Always set it (overriding any front matter "content" key).
+    page.insert("content".into(), LiquidValue::scalar(content.to_owned()));
     ctx.insert("page".into(), LiquidValue::Object(page));
 
     // Insert site context
@@ -706,6 +710,10 @@ pub fn build_render_context_page_only(content: &str, page_front_matter: &FrontMa
         };
         page.insert(key.clone().into(), liquid_val);
     }
+    // Jekyll makes the rendered HTML available as page.content in layout context.
+    // This is needed for templates that use {{ page.content | strip_html }} for
+    // meta descriptions.
+    page.insert("content".into(), LiquidValue::scalar(content.to_owned()));
     ctx.insert("page".into(), LiquidValue::Object(page));
 
     ctx.insert("content".into(), LiquidValue::scalar(content.to_owned()));
@@ -2387,6 +2395,113 @@ mod tests {
             output.contains("hello"),
             "Nil lang should use else branch, got: {}",
             output
+        );
+    }
+
+    // ========================================================================
+    // Issue 209: page.content available in layout context
+    // ========================================================================
+
+    #[test]
+    fn test_page_content_available_in_layout_for_strip_html() {
+        // In Jekyll, page.content in layout context contains the rendered HTML.
+        // The layout uses {{ page.content | strip_html | truncate: 240 }} for
+        // meta description. This must NOT be empty.
+        let layout_source = concat!(
+            r#"<meta content="{{ page.content | strip_html | truncate: 240 }}" name="description">"#,
+            "\n<body>{{ content }}</body>"
+        );
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            Layout {
+                source: layout_source.to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let mut fm = FrontMatter::new();
+        fm.insert(
+            "title".to_string(),
+            serde_yaml::Value::String("Test Note".to_string()),
+        );
+
+        let site = Object::new();
+        // Content is the rendered HTML that would come from the note body
+        let html_content =
+            "<p>pretty sure my dad is the biggest winner here</p>\n<p>Мой блог ~ pretty sure</p>";
+        let output = engine.render("default", html_content, &fm, &site).unwrap();
+
+        // Extract the meta description content attribute value
+        let meta_start = output
+            .find(r#"<meta content=""#)
+            .expect("meta tag not found");
+        let after_meta = &output[meta_start + 15..]; // skip '<meta content="'
+        let meta_end = after_meta.find('"').expect("closing quote not found");
+        let meta_desc = &after_meta[..meta_end];
+
+        // page.content | strip_html | truncate: 240 should produce non-empty text
+        // in the meta description, NOT in the body
+        assert!(
+            meta_desc.contains("pretty sure my dad"),
+            "meta description from page.content should contain the note text, got: '{}'",
+            meta_desc
+        );
+        // Also verify Unicode content in meta description
+        assert!(
+            meta_desc.contains("Мой блог"),
+            "meta description should include Unicode content, got: '{}'",
+            meta_desc
+        );
+        // Verify the body also has the content
+        assert!(
+            output.contains("<body>"),
+            "Layout body should be present, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_page_content_does_not_override_front_matter_content() {
+        // If front matter already has a "content" key, page.content in the
+        // render context should still reflect the rendered HTML, not the
+        // front matter value. This matches Jekyll's behavior.
+        let layout_source =
+            r#"<desc>{{ page.content | strip_html }}</desc><body>{{ content }}</body>"#;
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            Layout {
+                source: layout_source.to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let mut fm = FrontMatter::new();
+        fm.insert(
+            "title".to_string(),
+            serde_yaml::Value::String("Test".to_string()),
+        );
+
+        let site = Object::new();
+        let html_content = "<p>rendered HTML body</p>";
+        let output = engine.render("default", html_content, &fm, &site).unwrap();
+
+        // Extract the desc tag content
+        let desc_start = output.find("<desc>").expect("desc tag not found") + 6;
+        let desc_end = output.find("</desc>").expect("closing desc not found");
+        let desc_content = &output[desc_start..desc_end];
+
+        assert!(
+            desc_content.contains("rendered HTML body"),
+            "page.content | strip_html should contain rendered HTML text, got: '{}'",
+            desc_content
         );
     }
 }

@@ -65,39 +65,64 @@ fn expand_date_only_string(s: &str) -> String {
 }
 
 fn expand_date_only_string_with_tz(s: &str, site_tz: Option<chrono_tz::Tz>) -> String {
-    // Must be exactly 10 characters: YYYY-MM-DD
-    if s.len() != 10 {
-        return s.to_string();
-    }
+    // Try to parse as a date or date+time that needs expansion to full datetime.
+    // Already-complete datetimes (with timezone offset) pass through unchanged.
 
-    let bytes = s.as_bytes();
-    // Check format: 4 digits, dash, 2 digits, dash, 2 digits
-    if bytes[4] == b'-'
-        && bytes[7] == b'-'
-        && bytes[..4].iter().all(|b| b.is_ascii_digit())
-        && bytes[5..7].iter().all(|b| b.is_ascii_digit())
-        && bytes[8..10].iter().all(|b| b.is_ascii_digit())
-    {
+    // First, try to parse a NaiveDateTime from various partial formats.
+    // If successful, format it as "YYYY-MM-DD HH:MM:SS +HHMM".
+    let parsed_dt = None
+        // YYYY-MM-DD (date only, 10 chars)
+        .or_else(|| {
+            if s.len() == 10 {
+                chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d")
+                    .ok()
+                    .and_then(|d| d.and_hms_opt(0, 0, 0))
+            } else {
+                None
+            }
+        })
+        // YYYY/MM/DD (date only with slashes, 10 chars)
+        .or_else(|| {
+            if s.len() == 10 {
+                chrono::NaiveDate::parse_from_str(s, "%Y/%m/%d")
+                    .ok()
+                    .and_then(|d| d.and_hms_opt(0, 0, 0))
+            } else {
+                None
+            }
+        })
+        // YYYY/MM/DD HH:MM (slash date with time, no seconds)
+        .or_else(|| chrono::NaiveDateTime::parse_from_str(s, "%Y/%m/%d %H:%M").ok())
+        // YYYY-MM-DD HH:MM (dash date with time, no seconds -- must NOT match
+        // YYYY-MM-DD HH:MM:SS which is already a full datetime without tz)
+        .or_else(|| {
+            // Only match if there are exactly 16 chars (YYYY-MM-DD HH:MM)
+            // to avoid matching "YYYY-MM-DD HH:MM:SS" or "YYYY-MM-DD HH:MM:SS +HHMM"
+            if s.len() == 16 {
+                chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M").ok()
+            } else {
+                None
+            }
+        });
+
+    if let Some(dt) = parsed_dt {
+        let date_str = dt.format("%Y-%m-%d %H:%M:%S").to_string();
         if let Some(tz) = site_tz {
-            if let Ok(date) = chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d") {
-                if let Some(dt) = date.and_hms_opt(0, 0, 0) {
-                    use chrono::TimeZone;
-                    if let chrono::LocalResult::Single(loc)
-                    | chrono::LocalResult::Ambiguous(loc, _) = tz.from_local_datetime(&dt)
-                    {
-                        use chrono::Offset;
-                        let offset = loc.offset().fix();
-                        let total_secs = offset.local_minus_utc();
-                        let sign = if total_secs >= 0 { '+' } else { '-' };
-                        let abs_secs = total_secs.unsigned_abs();
-                        let hours = abs_secs / 3600;
-                        let minutes = (abs_secs % 3600) / 60;
-                        return format!("{s} 00:00:00 {sign}{hours:02}{minutes:02}");
-                    }
-                }
+            use chrono::TimeZone;
+            if let chrono::LocalResult::Single(loc) | chrono::LocalResult::Ambiguous(loc, _) =
+                tz.from_local_datetime(&dt)
+            {
+                use chrono::Offset;
+                let offset = loc.offset().fix();
+                let total_secs = offset.local_minus_utc();
+                let sign = if total_secs >= 0 { '+' } else { '-' };
+                let abs_secs = total_secs.unsigned_abs();
+                let hours = abs_secs / 3600;
+                let minutes = (abs_secs % 3600) / 60;
+                return format!("{date_str} {sign}{hours:02}{minutes:02}");
             }
         }
-        format!("{s} 00:00:00 +0000")
+        format!("{date_str} +0000")
     } else {
         s.to_string()
     }
@@ -624,6 +649,48 @@ title: Not a date
     // ========================================================================
     // Sexagesimal timestamp rendering (Issues 155, 161)
     // ========================================================================
+
+    // ========================================================================
+    // Issue 209: Date normalization for slash-format dates with timezone
+    // ========================================================================
+
+    #[test]
+    fn test_date_normalization_slash_format_with_timezone() {
+        // "2018/06/04 00:00" with Asia/Taipei -> "2018-06-04 00:00:00 +0800"
+        let tz: chrono_tz::Tz = "Asia/Taipei".parse().unwrap();
+        let result = expand_date_only_string_with_tz("2018/06/04 00:00", Some(tz));
+        assert_eq!(result, "2018-06-04 00:00:00 +0800");
+    }
+
+    #[test]
+    fn test_date_normalization_dash_format_with_time_and_timezone() {
+        // "2024-02-23 19:17" with Asia/Taipei -> "2024-02-23 19:17:00 +0800"
+        let tz: chrono_tz::Tz = "Asia/Taipei".parse().unwrap();
+        let result = expand_date_only_string_with_tz("2024-02-23 19:17", Some(tz));
+        assert_eq!(result, "2024-02-23 19:17:00 +0800");
+    }
+
+    #[test]
+    fn test_date_normalization_slash_format_no_timezone() {
+        // "2018/06/04 00:00" with no timezone -> "2018-06-04 00:00:00 +0000"
+        let result = expand_date_only_string_with_tz("2018/06/04 00:00", None);
+        assert_eq!(result, "2018-06-04 00:00:00 +0000");
+    }
+
+    #[test]
+    fn test_date_normalization_slash_format_date_only() {
+        // "2018/06/04" (no time) with timezone
+        let tz: chrono_tz::Tz = "Asia/Taipei".parse().unwrap();
+        let result = expand_date_only_string_with_tz("2018/06/04", Some(tz));
+        assert_eq!(result, "2018-06-04 00:00:00 +0800");
+    }
+
+    #[test]
+    fn test_date_normalization_existing_full_datetime_unchanged() {
+        // Already-formatted dates should pass through unchanged
+        let result = expand_date_only_string_with_tz("2018-06-04 00:00:00 +0800", None);
+        assert_eq!(result, "2018-06-04 00:00:00 +0800");
+    }
 
     #[test]
     fn test_sexagesimal_timestamp_renders_human_readable_in_template() {
