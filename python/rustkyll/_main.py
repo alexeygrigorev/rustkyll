@@ -15,6 +15,8 @@ _PLATFORM_MAP = {
     ("darwin", "arm64"): "rustkyll",
     ("win32", "AMD64"): "rustkyll.exe",
     ("win32", "x86_64"): "rustkyll.exe",
+    ("win32", "ARM64"): "rustkyll.exe",
+    ("win32", "aarch64"): "rustkyll.exe",
 }
 
 _SUPPORTED_PLATFORMS = [
@@ -23,6 +25,7 @@ _SUPPORTED_PLATFORMS = [
     "macOS x86_64 (amd64)",
     "macOS arm64 (Apple Silicon)",
     "Windows AMD64",
+    "Windows ARM64",
 ]
 
 
