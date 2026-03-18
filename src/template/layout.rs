@@ -540,10 +540,11 @@ impl LayoutEngine {
     }
 }
 
-/// Load all layout files from a directory.
+/// Load all layout files from a directory, including subdirectories.
 ///
 /// Layout files are expected to be `.html` files. The layout name is the
-/// file stem (e.g., `post.html` -> `"post"`).
+/// relative path without extension (e.g., `post.html` -> `"post"`,
+/// `vendor/compress.html` -> `"vendor/compress"`).
 ///
 /// If a layout file contains front matter with a `layout` key, it is
 /// recorded as the parent layout for chaining.
@@ -558,10 +559,30 @@ pub fn load_layouts(layouts_dir: &Path) -> Result<HashMap<String, Layout>, Templ
         return Ok(layouts);
     }
 
-    let entries = fs::read_dir(layouts_dir)?;
+    load_layouts_recursive(layouts_dir, layouts_dir, &mut layouts)?;
+
+    Ok(layouts)
+}
+
+/// Recursively load layout files from a directory tree.
+///
+/// The `base_dir` is the root `_layouts/` directory, used to compute
+/// relative layout names (e.g., `vendor/compress` for `_layouts/vendor/compress.html`).
+fn load_layouts_recursive(
+    base_dir: &Path,
+    current_dir: &Path,
+    layouts: &mut HashMap<String, Layout>,
+) -> Result<(), TemplateError> {
+    let entries = fs::read_dir(current_dir)?;
     for entry in entries {
         let entry = entry?;
         let path = entry.path();
+
+        if path.is_dir() {
+            // Recurse into subdirectories
+            load_layouts_recursive(base_dir, &path, layouts)?;
+            continue;
+        }
 
         if !path.is_file() {
             continue;
@@ -576,9 +597,13 @@ pub fn load_layouts(layouts_dir: &Path) -> Result<HashMap<String, Layout>, Templ
             continue;
         }
 
-        let name = filename
+        // Compute the layout name as the relative path from the base _layouts/ dir,
+        // without the .html extension. E.g., _layouts/vendor/compress.html -> "vendor/compress"
+        let relative = path.strip_prefix(base_dir).unwrap_or(&path);
+        let name = relative
+            .to_string_lossy()
             .strip_suffix(".html")
-            .unwrap_or(&filename)
+            .unwrap_or(&relative.to_string_lossy())
             .to_string();
 
         let source = fs::read_to_string(&path)?;
@@ -600,7 +625,7 @@ pub fn load_layouts(layouts_dir: &Path) -> Result<HashMap<String, Layout>, Templ
         );
     }
 
-    Ok(layouts)
+    Ok(())
 }
 
 /// Extract front matter from a layout file, returning the parent layout name
@@ -2502,6 +2527,112 @@ mod tests {
             desc_content.contains("rendered HTML body"),
             "page.content | strip_html should contain rendered HTML text, got: '{}'",
             desc_content
+        );
+    }
+
+    // ========================================================================
+    // Issue 196: Subdirectory layout loading
+    // ========================================================================
+
+    #[test]
+    fn test_load_layouts_from_subdirectory() {
+        // Tests the vendor/compress.html pattern from DTC/docs
+        let tmp = tempfile::tempdir().unwrap();
+        let layouts_dir = tmp.path().join("_layouts");
+        std::fs::create_dir_all(layouts_dir.join("vendor")).unwrap();
+
+        // Create a top-level layout
+        std::fs::write(
+            layouts_dir.join("default.html"),
+            "<html><body>{{ content }}</body></html>",
+        )
+        .unwrap();
+
+        // Create a subdirectory layout (vendor/compress)
+        std::fs::write(layouts_dir.join("vendor/compress.html"), "{{ content }}").unwrap();
+
+        let layouts = load_layouts(&layouts_dir).unwrap();
+        assert!(
+            layouts.contains_key("default"),
+            "Should load top-level layout 'default'"
+        );
+        assert!(
+            layouts.contains_key("vendor/compress"),
+            "Should load subdirectory layout 'vendor/compress', got keys: {:?}",
+            layouts.keys().collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn test_subdirectory_layout_chaining() {
+        // default.html has layout: vendor/compress
+        // vendor/compress.html wraps content
+        let tmp = tempfile::tempdir().unwrap();
+        let layouts_dir = tmp.path().join("_layouts");
+        let includes_dir = tmp.path().join("_includes");
+        std::fs::create_dir_all(layouts_dir.join("vendor")).unwrap();
+        std::fs::create_dir_all(&includes_dir).unwrap();
+
+        std::fs::write(
+            layouts_dir.join("vendor/compress.html"),
+            "<compressed>{{ content }}</compressed>",
+        )
+        .unwrap();
+        // default layout chains to vendor/compress
+        std::fs::write(
+            layouts_dir.join("default.html"),
+            "---\nlayout: vendor/compress\n---\n<html><body>{{ content }}</body></html>",
+        )
+        .unwrap();
+
+        let engine = LayoutEngine::new(&layouts_dir, &includes_dir).unwrap();
+
+        let fm = HashMap::new();
+        let site = liquid::Object::new();
+        // Cyrillic content
+        let result = engine
+            .render(
+                "default",
+                "<p>\u{041f}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}</p>",
+                &fm,
+                &site,
+            )
+            .unwrap();
+
+        assert!(
+            result.contains("<compressed>"),
+            "Subdirectory parent layout should be applied, got: {}",
+            result
+        );
+        assert!(
+            result.contains("<html><body>"),
+            "Direct layout should be applied, got: {}",
+            result
+        );
+        assert!(
+            result.contains("\u{041f}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}"),
+            "Cyrillic content should be preserved, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_load_layouts_deeply_nested_subdirectory() {
+        // Test multiple nesting levels
+        let tmp = tempfile::tempdir().unwrap();
+        let layouts_dir = tmp.path().join("_layouts");
+        std::fs::create_dir_all(layouts_dir.join("a/b")).unwrap();
+        std::fs::write(
+            layouts_dir.join("a/b/deep.html"),
+            "<deep>{{ content }}</deep>",
+        )
+        .unwrap();
+
+        let layouts = load_layouts(&layouts_dir).unwrap();
+        assert!(
+            layouts.contains_key("a/b/deep"),
+            "Should load deeply nested layout 'a/b/deep', got keys: {:?}",
+            layouts.keys().collect::<Vec<_>>()
         );
     }
 }

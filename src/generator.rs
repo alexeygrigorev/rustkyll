@@ -4764,4 +4764,268 @@ defaults:
             html
         );
     }
+
+    // ========================================================================
+    // Issue 196: Layout applied to translated page with Unicode content
+    // ========================================================================
+
+    #[test]
+    fn test_layout_applied_to_translated_page_with_unicode() {
+        // Tests the pattern from opensource-guide: Arabic translated pages
+        // get layout from config defaults (not from page front matter).
+        let tmp = tempfile::tempdir().unwrap();
+        let output_dir = tmp.path();
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "article".to_string(),
+            crate::template::Layout {
+                source: "<html><head><title>{{ page.title }}</title></head><body>{{ content }}</body></html>".to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let config = SiteConfig {
+            defaults: vec![crate::config::DefaultConfig {
+                scope: crate::config::DefaultScope {
+                    path: String::new(),
+                    type_name: "articles".to_string(),
+                },
+                values: crate::config::DefaultValues {
+                    values: {
+                        let mut m = HashMap::new();
+                        m.insert(
+                            "layout".to_string(),
+                            serde_yaml::Value::String("article".to_string()),
+                        );
+                        m
+                    },
+                },
+            }],
+            ..Default::default()
+        };
+
+        // Arabic page with no explicit layout -- relies on config defaults
+        let item = CollectionItem {
+            slug: "best-practices".to_string(),
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "lang".to_string(),
+                    serde_yaml::Value::String("ar".to_string()),
+                );
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String(
+                        "\u{0623}\u{0641}\u{0636}\u{0644} \u{0627}\u{0644}\u{0645}\u{0645}\u{0627}\u{0631}\u{0633}\u{0627}\u{062a}".to_string(),
+                    ),
+                );
+                fm
+            },
+            content: "<div>\u{0645}\u{0631}\u{062d}\u{0628}\u{0627}</div>".to_string(),
+            html_content: "<div>\u{0645}\u{0631}\u{062d}\u{0628}\u{0627}</div>".to_string(),
+            excerpt: None,
+            url: "/ar/best-practices/".to_string(),
+            date: None,
+            collection_name: "articles".to_string(),
+            source_path: "_articles/ar/best-practices.md".to_string(),
+            id: "/articles/ar/best-practices".to_string(),
+        };
+
+        let site_context = Object::new();
+        let result = generate_collection_pages(
+            &[item],
+            "articles",
+            &config,
+            &engine,
+            &site_context,
+            output_dir,
+        )
+        .unwrap();
+
+        assert_eq!(result.generated, 1);
+        assert!(result.errors.is_empty(), "errors: {:?}", result.errors);
+
+        let html = fs::read_to_string(output_dir.join("ar/best-practices/index.html")).unwrap();
+        assert!(
+            html.contains("<html>"),
+            "Layout should be applied (has <html>), got: {}",
+            html
+        );
+        assert!(
+            html.contains("<head>"),
+            "Layout should have <head>, got: {}",
+            html
+        );
+        assert!(
+            html.contains("<body>"),
+            "Layout should have <body>, got: {}",
+            html
+        );
+        // Verify Arabic content is preserved
+        assert!(
+            html.contains("\u{0645}\u{0631}\u{062d}\u{0628}\u{0627}"),
+            "Arabic content should be preserved, got: {}",
+            html
+        );
+    }
+
+    // ========================================================================
+    // Issue 196: Liquid nil contains check returns false (not error)
+    // ========================================================================
+
+    #[test]
+    fn test_nil_contains_returns_false_not_error() {
+        // In Ruby Liquid, `nil contains "foo"` returns false.
+        // This was causing 337 opensource-guide pages to fail because
+        // jekyll-toc.html does: {% if htmlClass contains "no_toc" %}
+        // where htmlClass can be nil.
+        let tmp = tempfile::tempdir().unwrap();
+        let output_dir = tmp.path();
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            crate::template::Layout {
+                source: concat!(
+                    "<html><body>",
+                    "{% assign maybe_nil = undefinedvar %}",
+                    "{% if maybe_nil contains \"test\" %}YES{% else %}NO{% endif %}",
+                    "{{ content }}",
+                    "</body></html>"
+                )
+                .to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let page = crate::collection::Page {
+            slug: "test-nil".to_string(),
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "layout".to_string(),
+                    serde_yaml::Value::String("default".to_string()),
+                );
+                // Unicode title: Cyrillic "test"
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("\u{0442}\u{0435}\u{0441}\u{0442}".to_string()),
+                );
+                fm
+            },
+            content: "<p>\u{041f}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}</p>".to_string(),
+            html_content: "<p>\u{041f}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}</p>".to_string(),
+            url: "/test-nil/".to_string(),
+            source_path: "test-nil.html".to_string(),
+        };
+
+        let site_context = Object::new();
+        let result = generate_pages(&[page], &engine, &site_context, output_dir).unwrap();
+
+        assert_eq!(result.generated, 1);
+        assert!(result.errors.is_empty(), "errors: {:?}", result.errors);
+
+        let html = fs::read_to_string(output_dir.join("test-nil/index.html")).unwrap();
+        // The nil contains should evaluate to false, outputting "NO"
+        assert!(
+            html.contains("NO"),
+            "nil contains should return false, got: {}",
+            html
+        );
+        assert!(
+            !html.contains("YES"),
+            "nil contains should NOT return true, got: {}",
+            html
+        );
+        // Layout should be applied (not fallback to raw content)
+        assert!(
+            html.contains("<html>"),
+            "Layout should be applied, got: {}",
+            html
+        );
+        // Cyrillic content should be preserved
+        assert!(
+            html.contains("\u{041f}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}"),
+            "Cyrillic content should be preserved, got: {}",
+            html
+        );
+    }
+
+    // ========================================================================
+    // Issue 196: Layout inheritance chain with Unicode content
+    // ========================================================================
+
+    #[test]
+    fn test_layout_inheritance_chain_with_unicode() {
+        // Tests 3-level layout chain: article -> page -> default
+        let tmp = tempfile::tempdir().unwrap();
+        let output_dir = tmp.path();
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            crate::template::Layout {
+                source: "<html><body>{{ content }}</body></html>".to_string(),
+                parent_layout: None,
+            },
+        );
+        layouts.insert(
+            "page".to_string(),
+            crate::template::Layout {
+                source: "<main>{{ content }}</main>".to_string(),
+                parent_layout: Some("default".to_string()),
+            },
+        );
+        layouts.insert(
+            "article".to_string(),
+            crate::template::Layout {
+                source: "<article>{{ content }}</article>".to_string(),
+                parent_layout: Some("page".to_string()),
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let page = crate::collection::Page {
+            slug: "test-chain".to_string(),
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "layout".to_string(),
+                    serde_yaml::Value::String("article".to_string()),
+                );
+                fm
+            },
+            // Farsi content
+            content: "<p>\u{0633}\u{0644}\u{0627}\u{0645}</p>".to_string(),
+            html_content: "<p>\u{0633}\u{0644}\u{0627}\u{0645}</p>".to_string(),
+            url: "/test-chain/".to_string(),
+            source_path: "test-chain.html".to_string(),
+        };
+
+        let site_context = Object::new();
+        let result = generate_pages(&[page], &engine, &site_context, output_dir).unwrap();
+
+        assert_eq!(result.generated, 1);
+        assert!(result.errors.is_empty(), "errors: {:?}", result.errors);
+
+        let html = fs::read_to_string(output_dir.join("test-chain/index.html")).unwrap();
+        // Full chain: default wraps page wraps article wraps content
+        assert!(
+            html.contains("<html><body><main><article>"),
+            "Full 3-level chain should be applied: html > body > main > article, got: {}",
+            html
+        );
+        // Farsi content preserved
+        assert!(
+            html.contains("\u{0633}\u{0644}\u{0627}\u{0645}"),
+            "Farsi content should be preserved, got: {}",
+            html
+        );
+    }
 }

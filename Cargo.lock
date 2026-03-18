@@ -829,8 +829,6 @@ dependencies = [
 [[package]]
 name = "liquid-lib"
 version = "0.26.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9befeedd61f5995bc128c571db65300aeb50d62e4f0542c88282dbcb5f72372a"
 dependencies = [
  "deunicode",
  "itertools",
