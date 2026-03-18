@@ -312,4 +312,30 @@ mod tests {
             "IAL syntax should be consumed. Got: {s}"
         );
     }
+
+    // --- Issue 218: markdownify filter block spacing and list indentation ---
+
+    #[test]
+    fn test_issue218_markdownify_multi_paragraph_block_spacing() {
+        let input = "First paragraph.\n\nSecond paragraph.";
+        let result = liquid_core::call_filter!(Markdownify, input).unwrap();
+        let s = result.to_kstr().to_string();
+        assert_eq!(
+            s, "<p>First paragraph.</p>\n\n<p>Second paragraph.</p>\n",
+            "markdownify should produce double newline between paragraphs. Got: {:?}",
+            s
+        );
+    }
+
+    #[test]
+    fn test_issue218_markdownify_ordered_list_indentation() {
+        let input = "List:\n\n1. Alpha\n2. Beta\n";
+        let result = liquid_core::call_filter!(Markdownify, input).unwrap();
+        let s = result.to_kstr().to_string();
+        assert!(
+            s.contains("  <li>"),
+            "markdownify should indent <li> by 2 spaces. Got: {:?}",
+            s
+        );
+    }
 }

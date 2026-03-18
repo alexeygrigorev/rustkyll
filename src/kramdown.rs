@@ -102,22 +102,24 @@ pub fn postprocess(html: &str) -> String {
 
 /// Lighter postprocessing for the `markdownify` Liquid filter.
 ///
-/// Jekyll's `markdownify` filter runs kramdown, which produces `<p>text</p>\n`
-/// (single trailing newline after block elements). The full `postprocess`
-/// adds `add_block_spacing` which doubles the newline, but that extra spacing
-/// is only correct for page body content -- not for inline filter output where
-/// the template already supplies the next newline.
+/// Jekyll's `markdownify` filter runs kramdown, which produces output matching
+/// the full kramdown postprocessing: block spacing (`\n\n` between consecutive
+/// block elements) and list item indentation (2-space indent on `<li>` tags).
 ///
-/// This variant applies only the transformations relevant to short inline
-/// markdown (boolean attributes, ol start removal) and skips heavy
-/// block-level processing (heading IDs, fenced code wrapping, block spacing,
-/// bare text wrapping, etc.). Inline code classes are added during markdown
-/// rendering (see `frontmatter::add_inline_code_class_to_events`).
+/// This variant applies the transformations relevant to filter-produced HTML:
+/// inline attributes, `ol start` removal, block spacing, list indentation,
+/// void element normalization, and boolean attribute normalization. It skips
+/// heavy page-body-only processing (heading IDs, fenced code wrapping,
+/// bare text wrapping, blockquote indentation, figcaption normalization, etc.).
+/// Inline code classes are added during markdown rendering
+/// (see `frontmatter::add_inline_code_class_to_events`).
 pub fn postprocess_for_filter(html: &str) -> String {
     let html = apply_inline_attributes(html);
     // Note: inline code classes are now added during markdown rendering
     // (in frontmatter::add_inline_code_class_to_events) rather than here.
     let html = remove_ol_start_attribute(&html);
+    let html = add_block_spacing(&html);
+    let html = indent_list_items(&html);
     let html = normalize_bare_void_elements(&html);
     normalize_boolean_attributes(&html)
 }
@@ -2597,11 +2599,21 @@ fn indent_list_items(html: &str) -> String {
                 result.push_str(close_tag);
                 remaining = &remaining[close_pos + close_tag.len()..];
             } else {
-                // Tight list: kramdown does NOT indent <li> items.
-                // Just pass through the list content as-is.
+                // Tight list: kramdown indents <li> items by 2 spaces.
                 result.push_str(list_tag);
                 result.push('\n');
-                result.push_str(list_content);
+                for line in list_content.lines() {
+                    if line.starts_with("<li>") || line.starts_with("</li>") {
+                        result.push_str("  ");
+                        result.push_str(line);
+                        result.push('\n');
+                    } else if !line.is_empty() {
+                        result.push_str(line);
+                        result.push('\n');
+                    } else {
+                        result.push('\n');
+                    }
+                }
                 result.push_str(close_tag);
                 remaining = &remaining[close_pos + close_tag.len()..];
             }
@@ -5462,26 +5474,26 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     #[test]
-    fn test_issue166_tight_list_no_indent() {
-        // Issue 166: Jekyll/kramdown does NOT indent <li> items in tight lists.
+    fn test_issue166_tight_list_indent() {
+        // Issue 218: Jekyll/kramdown DOES indent <li> items in tight lists by 2 spaces.
         // Verified against actual Jekyll output for blog/how-to-run-postgresql-and-pgadmin-with-docker.html.
         let input = "<ul>\n<li>Item one</li>\n<li>Item two</li>\n</ul>\n";
         let result = indent_list_items(input);
         assert_eq!(
-            result, "<ul>\n<li>Item one</li>\n<li>Item two</li>\n</ul>\n",
-            "Tight list <li> should NOT be indented (matches Jekyll). Got:\n{}",
+            result, "<ul>\n  <li>Item one</li>\n  <li>Item two</li>\n</ul>\n",
+            "Tight list <li> should be indented by 2 spaces (matches Jekyll). Got:\n{}",
             result
         );
     }
 
     #[test]
-    fn test_issue166_tight_list_ol_no_indent() {
-        // Ordered tight lists also should not be indented
+    fn test_issue166_tight_list_ol_indent() {
+        // Issue 218: Ordered tight lists should also be indented
         let input = "<ol>\n<li>First</li>\n<li>Second</li>\n<li>Third</li>\n</ol>\n";
         let result = indent_list_items(input);
         assert_eq!(
-            result, "<ol>\n<li>First</li>\n<li>Second</li>\n<li>Third</li>\n</ol>\n",
-            "Tight ordered list <li> should NOT be indented. Got:\n{}",
+            result, "<ol>\n  <li>First</li>\n  <li>Second</li>\n  <li>Third</li>\n</ol>\n",
+            "Tight ordered list <li> should be indented by 2 spaces. Got:\n{}",
             result
         );
     }
@@ -5500,12 +5512,12 @@ by <a href="/people/author.html">Author Name</a>
 
     #[test]
     fn test_issue166_tight_list_end_to_end() {
-        // End-to-end test: markdown with tight list should produce non-indented <li>
+        // Issue 218: End-to-end test: markdown with tight list should produce indented <li>
         let md = "Some text:\n\n- Item A\n- Item B\n- Item C\n\nMore text.\n";
         let result = crate::frontmatter::markdown_to_html(md);
         assert!(
-            result.contains("<ul>\n<li>Item A</li>\n<li>Item B</li>\n<li>Item C</li>\n</ul>"),
-            "End-to-end tight list should have non-indented <li>. Got:\n{}",
+            result.contains("<ul>\n  <li>Item A</li>\n  <li>Item B</li>\n  <li>Item C</li>\n</ul>"),
+            "End-to-end tight list should have 2-space indented <li>. Got:\n{}",
             result
         );
     }
@@ -5528,19 +5540,15 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     #[test]
-    fn test_issue165_tight_list_no_indent() {
-        // Jekyll/kramdown does NOT indent <li> in tight lists.
-        // Verified against actual Jekyll output for blog/ner-reformers.html.
+    fn test_issue165_tight_list_indent() {
+        // Issue 218: Jekyll/kramdown DOES indent <li> in tight lists by 2 spaces.
+        // Verified against actual Jekyll output for blog/ner-reformers.html and
+        // blog/how-to-run-postgresql-and-pgadmin-with-docker.html.
         let input = "<ul>\n<li>Item one</li>\n<li>Item two</li>\n</ul>\n";
         let result = indent_list_items(input);
         assert!(
-            result.contains("<li>Item one</li>"),
-            "Tight list <li> should appear in output. Got:\n{}",
-            result
-        );
-        assert!(
-            !result.contains("  <li>Item one</li>"),
-            "Tight list <li> should NOT be indented (matches Jekyll). Got:\n{}",
+            result.contains("  <li>Item one</li>"),
+            "Tight list <li> should be indented by 2 spaces (matches Jekyll). Got:\n{}",
             result
         );
     }
@@ -6489,5 +6497,61 @@ by <a href="/people/author.html">Author Name</a>
         let input = "</a> some text";
         let result = split_text_after_html_block_close(input);
         assert_eq!(result, input, "Inline tags should not be split");
+    }
+
+    // --- Issue 218: postprocess_for_filter block spacing and list indentation ---
+
+    #[test]
+    fn test_issue218_postprocess_for_filter_multi_paragraph_spacing() {
+        let input = "<p>First.</p>\n<p>Second.</p>\n";
+        let result = postprocess_for_filter(input);
+        assert_eq!(
+            result, "<p>First.</p>\n\n<p>Second.</p>\n",
+            "postprocess_for_filter should add blank line between block elements. Got: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue218_postprocess_for_filter_paragraph_before_list_spacing() {
+        let input = "<p>Key ways:</p>\n<ol>\n<li>First</li>\n</ol>\n";
+        let result = postprocess_for_filter(input);
+        assert!(
+            result.contains("</p>\n\n<ol>"),
+            "postprocess_for_filter should add blank line between </p> and <ol>. Got: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue218_postprocess_for_filter_list_item_indentation() {
+        let input = "<ol>\n<li>Item one</li>\n<li>Item two</li>\n</ol>\n";
+        let result = postprocess_for_filter(input);
+        assert!(
+            result.contains("  <li>"),
+            "postprocess_for_filter should indent <li> by 2 spaces. Got: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue218_postprocess_for_filter_non_ascii_preserved() {
+        let input = "<p>Zoomcamp\u{2014}free course.</p>\n<p>Join \u{201c}today\u{201d}.</p>\n";
+        let result = postprocess_for_filter(input);
+        assert!(
+            result.contains("\u{2014}"),
+            "Em-dash should be preserved. Got: {:?}",
+            result
+        );
+        assert!(
+            result.contains("\u{201c}") && result.contains("\u{201d}"),
+            "Curly quotes should be preserved. Got: {:?}",
+            result
+        );
+        assert_eq!(
+            result, "<p>Zoomcamp\u{2014}free course.</p>\n\n<p>Join \u{201c}today\u{201d}.</p>\n",
+            "Should have block spacing and preserved non-ASCII. Got: {:?}",
+            result
+        );
     }
 }
