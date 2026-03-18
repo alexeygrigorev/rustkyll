@@ -31,6 +31,12 @@ fn build_scope_map() -> Vec<ScopeMapping> {
         // Map them to `s2` (same as string.quoted.double) so they merge with the
         // string content in accumulate_and_emit, producing a single <span> per string.
         ("source.json punctuation.definition.string", "s2"),
+        // YAML: Rouge treats double-quoted string delimiters (quotes) as `s2`
+        // and the string content as `s` (generic string). Syntect gives both
+        // the `string.quoted.double` scope, so we need an explicit rule for
+        // the punctuation to prevent them from merging into one span.
+        ("source.yaml punctuation.definition.string", "s2"),
+        ("source.yaml string.quoted.double", "s"),
         // YAML: Rouge does not use numeric classes; numbers in flow sequences
         // are `nv` (variable value), other numbers are `s` (string).
         ("source.yaml meta.flow-sequence constant.numeric", "nv"),
@@ -1951,6 +1957,47 @@ mod tests {
         assert!(
             html.contains("\"hello\""),
             "Python string should contain quotes: {html}"
+        );
+    }
+
+    // ── Issue 193: YAML double-quoted string token merging ──
+
+    #[test]
+    fn test_yaml_double_quoted_string_split_spans() {
+        // YAML double-quoted string values: Rouge splits the opening quote into
+        // a separate <span class="s2"> and the content (+ closing quote) into
+        // <span class="s">. This is the exact pattern from large-docs-site pages
+        // (e.g. page-301.md): setting2: "example"
+        let code = "setting2: \"example\"\n";
+        let html = highlight_code("yaml", code).unwrap();
+        // Rouge output: <span class="s2">"</span><span class="s">example"</span>
+        // The opening quote should be in its own s2 span
+        assert!(
+            html.contains("<span class=\"s2\">\"</span>"),
+            "YAML opening quote should be a separate s2 span: {html}"
+        );
+        // The content should be in an s span (not s2), preventing merging
+        assert!(
+            html.contains("<span class=\"s\">"),
+            "YAML string content should use class s: {html}"
+        );
+        // Should NOT have a single merged span with quotes and content
+        assert!(
+            !html.contains("<span class=\"s2\">\"example\"</span>"),
+            "YAML should not merge quotes with content into s2: {html}"
+        );
+    }
+
+    #[test]
+    fn test_yaml_config_block_with_quoted_string() {
+        // Full YAML config block from large-docs-site, matching the exact content
+        // that causes 500 page diffs
+        let code = "api-reference:\n  enabled: true\n  option_301: value\n  nested:\n    setting1: true\n    setting2: \"example\"\n";
+        let html = highlight_code("yaml", code).unwrap();
+        // The opening quote should be in its own span (s2), separate from content
+        assert!(
+            html.contains("<span class=\"s2\">\"</span>"),
+            "YAML config block: opening quote should be separate s2 span: {html}"
         );
     }
 }
