@@ -445,7 +445,12 @@ impl Renderable for SeoRenderable {
             // jekyll-seo-tag uses page_title (page title only, or site title fallback)
             // for the headline field, NOT the full "page | site" combined title.
             // headline is max 110 chars per Google guidelines
-            let headline = if t.len() > 110 { &t[..110] } else { t };
+            let headline = if t.chars().count() > 110 {
+                let end = t.char_indices().nth(110).map(|(i, _)| i).unwrap_or(t.len());
+                &t[..end]
+            } else {
+                t
+            };
             jsonld_fields.push(format!("\"headline\":\"{}\"", json_escape(headline)));
         }
 
