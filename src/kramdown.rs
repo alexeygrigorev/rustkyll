@@ -139,17 +139,10 @@ pub fn postprocess_for_filter(html: &str) -> String {
 /// Jekyll/kramdown outputs XHTML-style self-closing tags (e.g. `<br />`).
 pub fn normalize_html_output(html: &str) -> String {
     let needs_bool_attrs = html.contains("=\"\"");
-    let needs_void_norm = html.contains("<br>") || html.contains("<hr>");
 
-    if !needs_bool_attrs && !needs_void_norm {
-        return html.to_string();
-    }
-
-    let html = if needs_void_norm {
-        normalize_bare_void_elements(html)
-    } else {
-        html.to_string()
-    };
+    // Always normalize void elements -- Jekyll converts ALL void elements
+    // (input, meta, link, img, etc.) to XHTML-style self-closing format.
+    let html = normalize_bare_void_elements(html);
 
     if needs_bool_attrs {
         normalize_boolean_attributes(&html)
@@ -2352,13 +2345,8 @@ fn is_void_element(tag_name: &str) -> bool {
 /// Only converts tags that are NOT already self-closing (i.e., does not
 /// touch `<br />` or `<br/>`).
 fn normalize_bare_void_elements(html: &str) -> String {
-    // Quick check: if there are no bare <br> or <hr> patterns, skip.
-    // Only br and hr are converted -- other void elements (meta, link, img, input)
-    // are left as they appear in the source to match Jekyll behavior.
-    if !html.contains("<br>") && !html.contains("<hr>") {
-        return html.to_string();
-    }
-
+    // Convert ALL bare void elements to XHTML-style self-closing format
+    // to match Jekyll/kramdown output. Jekyll adds " />" to every void element.
     let bytes = html.as_bytes();
     let len = bytes.len();
     let mut result = String::with_capacity(len + 64);
@@ -2375,10 +2363,26 @@ fn normalize_bare_void_elements(html: &str) -> String {
             }
             let tag_name = &html[name_start..i];
 
-            // Only convert <br> and <hr> to XHTML-style self-closing tags.
-            // Other void elements (meta, link, img, input, etc.) are left as-is
-            // because they come from layouts and Jekyll keeps them unchanged.
-            if tag_name == "br" || tag_name == "hr" {
+            // Convert ALL HTML void elements to XHTML-style self-closing tags.
+            // Full list per HTML spec: area, base, br, col, embed, hr, img,
+            // input, link, meta, param, source, track, wbr.
+            if matches!(
+                tag_name,
+                "area"
+                    | "base"
+                    | "br"
+                    | "col"
+                    | "embed"
+                    | "hr"
+                    | "img"
+                    | "input"
+                    | "link"
+                    | "meta"
+                    | "param"
+                    | "source"
+                    | "track"
+                    | "wbr"
+            ) {
                 // Find the closing '>'
                 while i < len && bytes[i] != b'>' {
                     i += 1;
@@ -4564,43 +4568,43 @@ by <a href="/people/author.html">Author Name</a>
         );
     }
 
-    // --- Issue 213: normalize_bare_void_elements only converts br and hr ---
+    // --- Issue 213/222: normalize_bare_void_elements converts ALL void elements ---
 
     #[test]
-    fn test_normalize_bare_void_only_br_not_meta() {
-        // <br> should be converted, <meta> should be left as-is
+    fn test_normalize_bare_void_br_and_meta() {
+        // Both <br> and <meta> should be converted (issue 222)
         assert_eq!(
             normalize_bare_void_elements("<br>text<meta charset=\"utf-8\">"),
-            "<br />text<meta charset=\"utf-8\">"
+            "<br />text<meta charset=\"utf-8\" />"
         );
     }
 
     #[test]
-    fn test_normalize_bare_void_only_hr_not_link() {
-        // <hr> should be converted, <link> should be left as-is
+    fn test_normalize_bare_void_hr_and_link() {
+        // Both <hr> and <link> should be converted (issue 222)
         assert_eq!(
             normalize_bare_void_elements("<hr>text<link rel=\"stylesheet\">"),
-            "<hr />text<link rel=\"stylesheet\">"
+            "<hr />text<link rel=\"stylesheet\" />"
         );
     }
 
     #[test]
     fn test_normalize_bare_void_mixed_elements() {
-        // Only br and hr get converted; meta, img, input stay as-is
+        // All void elements get converted (issue 222)
         assert_eq!(
             normalize_bare_void_elements(
                 "<br><hr><meta name=\"test\"><img src=\"x\"><input type=\"text\">"
             ),
-            "<br /><hr /><meta name=\"test\"><img src=\"x\"><input type=\"text\">"
+            "<br /><hr /><meta name=\"test\" /><img src=\"x\" /><input type=\"text\" />"
         );
     }
 
     #[test]
-    fn test_normalize_bare_void_already_self_closing_br() {
-        // Already self-closing <br /> should stay, <meta> left alone
+    fn test_normalize_bare_void_already_self_closing_br_and_meta() {
+        // Already self-closing elements should stay unchanged
         assert_eq!(
             normalize_bare_void_elements("<br /><meta charset=\"utf-8\">"),
-            "<br /><meta charset=\"utf-8\">"
+            "<br /><meta charset=\"utf-8\" />"
         );
     }
 
@@ -4627,12 +4631,109 @@ by <a href="/people/author.html">Author Name</a>
     #[test]
     fn test_normalize_bare_void_seo_meta_keeps_self_closing() {
         // SEO tag output has <meta ... /> already -- should be left unchanged
-        // (normalize_bare_void_elements only triggers on bare <br> or <hr>)
         let input = "<meta name=\"description\" content=\"test\" /><br><link rel=\"canonical\" />";
         assert_eq!(
             normalize_bare_void_elements(input),
             "<meta name=\"description\" content=\"test\" /><br /><link rel=\"canonical\" />"
         );
+    }
+
+    // --- Issue 222: normalize_bare_void_elements converts ALL void elements ---
+
+    #[test]
+    fn test_222_bare_input_is_converted() {
+        assert_eq!(
+            normalize_bare_void_elements("<input type=\"text\">"),
+            "<input type=\"text\" />"
+        );
+    }
+
+    #[test]
+    fn test_222_bare_meta_is_converted() {
+        assert_eq!(
+            normalize_bare_void_elements("<meta charset=\"utf-8\">"),
+            "<meta charset=\"utf-8\" />"
+        );
+    }
+
+    #[test]
+    fn test_222_bare_link_is_converted() {
+        assert_eq!(
+            normalize_bare_void_elements("<link rel=\"stylesheet\" href=\"style.css\">"),
+            "<link rel=\"stylesheet\" href=\"style.css\" />"
+        );
+    }
+
+    #[test]
+    fn test_222_bare_img_is_converted() {
+        assert_eq!(
+            normalize_bare_void_elements("<img src=\"photo.jpg\" alt=\"test\">"),
+            "<img src=\"photo.jpg\" alt=\"test\" />"
+        );
+    }
+
+    #[test]
+    fn test_222_multiple_void_element_types() {
+        assert_eq!(
+            normalize_bare_void_elements(
+                "<meta charset=\"utf-8\"><br><input type=\"text\"><hr><link rel=\"icon\">"
+            ),
+            "<meta charset=\"utf-8\" /><br /><input type=\"text\" /><hr /><link rel=\"icon\" />"
+        );
+    }
+
+    #[test]
+    fn test_222_already_self_closing_not_double_converted() {
+        assert_eq!(
+            normalize_bare_void_elements("<meta charset=\"utf-8\" /><input type=\"text\" />"),
+            "<meta charset=\"utf-8\" /><input type=\"text\" />"
+        );
+    }
+
+    #[test]
+    fn test_222_non_void_elements_not_affected() {
+        assert_eq!(
+            normalize_bare_void_elements("<div><p>text</p></div>"),
+            "<div><p>text</p></div>"
+        );
+    }
+
+    #[test]
+    fn test_222_unicode_with_all_void_types() {
+        assert_eq!(
+            normalize_bare_void_elements(
+                "<meta name=\"title\" content=\"Ren\u{00e9}\"><input value=\"\u{4F60}\u{597D}\"><br>"
+            ),
+            "<meta name=\"title\" content=\"Ren\u{00e9}\" /><input value=\"\u{4F60}\u{597D}\" /><br />"
+        );
+    }
+
+    #[test]
+    fn test_222_normalize_html_output_without_br_hr() {
+        // Tests that normalize_html_output applies void normalization even when
+        // no <br> or <hr> is present (needs_void_norm guard removed)
+        assert_eq!(
+            normalize_html_output("<meta charset=\"utf-8\"><input type=\"text\">"),
+            "<meta charset=\"utf-8\" /><input type=\"text\" />"
+        );
+    }
+
+    #[test]
+    fn test_222_normalize_html_output_br_plus_meta_input() {
+        // Existing br/hr still converted, AND meta/input also converted
+        assert_eq!(
+            normalize_html_output("<br><meta charset=\"utf-8\"><input type=\"text\">"),
+            "<br /><meta charset=\"utf-8\" /><input type=\"text\" />"
+        );
+    }
+
+    #[test]
+    fn test_222_all_void_element_tags() {
+        // Verify every void element type is converted
+        let input =
+            "<area><base><br><col><embed><hr><img><input><link><meta><param><source><track><wbr>";
+        let expected = "<area /><base /><br /><col /><embed /><hr /><img /><input /><link /><meta /><param /><source /><track /><wbr />";
+        assert_eq!(normalize_bare_void_elements(input), expected);
     }
 
     // --- Optimized normalize_boolean_attributes tests (single-pass) ---
@@ -4684,10 +4785,11 @@ by <a href="/people/author.html">Author Name</a>
 
     #[test]
     fn test_normalize_html_output_bool_attrs_only() {
-        // Void elements keep self-closing slashes; only boolean attrs are normalized
+        // Void elements get self-closing slashes; boolean attrs are normalized
+        // <input required=""> -> void norm -> <input required="" /> -> bool norm -> <input required />
         assert_eq!(
             normalize_html_output(r#"<br /><input required="">"#),
-            "<br /><input required>"
+            "<br /><input required />"
         );
     }
 

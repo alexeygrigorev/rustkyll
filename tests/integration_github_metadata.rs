@@ -361,8 +361,12 @@ fn test_build_revision_template_renders_empty_without_plugin() {
     mini_build(site_dir, &output_dir);
 
     let output = std::fs::read_to_string(output_dir.join("index.html")).unwrap();
+    // After void element normalization (issue 222), <link> gets " />" self-closing
     assert!(
-        output.contains("style.css?v=\">") || output.contains("style.css?v=>"),
+        output.contains("style.css?v=\" />")
+            || output.contains("style.css?v= />")
+            || output.contains("style.css?v=\">")
+            || output.contains("style.css?v=>"),
         "Without github-metadata plugin, build_revision should be empty. Output:\n{output}"
     );
 }
