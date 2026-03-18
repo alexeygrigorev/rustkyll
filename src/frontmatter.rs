@@ -251,6 +251,8 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     options.insert(Options::ENABLE_SMART_PUNCTUATION);
 
     let markdown = escape_paren_list_markers(markdown);
+    let markdown = crate::kramdown::escape_headings_in_list_context(&markdown);
+    let markdown = crate::kramdown::collapse_blank_lines_between_list_items(&markdown);
     let protected = protect_liquid_quotes(&markdown);
 
     let parser = Parser::new_ext(&protected, options);

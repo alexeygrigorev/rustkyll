@@ -2101,8 +2101,11 @@ fn normalize_bare_void_elements(html: &str) -> String {
                 i = name_start;
             }
         } else {
-            result.push(bytes[i] as char);
-            i += 1;
+            // Advance by a full UTF-8 character to avoid corrupting multi-byte sequences.
+            // `bytes[i] as char` would treat each byte as Latin-1, producing mojibake.
+            let ch = html[i..].chars().next().unwrap();
+            result.push(ch);
+            i += ch.len_utf8();
         }
     }
 
@@ -4226,6 +4229,35 @@ by <a href="/people/author.html">Author Name</a>
     #[test]
     fn test_normalize_void_elements_multiple() {
         assert_eq!(normalize_void_elements("<br /><hr /><br/>"), "<br><hr><br>");
+    }
+
+    #[test]
+    fn test_normalize_bare_void_elements_preserves_utf8() {
+        // Middle dot U+00B7 (2 bytes in UTF-8: 0xC2 0xB7)
+        assert_eq!(
+            normalize_bare_void_elements("<p>hello · world</p><br>done"),
+            "<p>hello · world</p><br />done"
+        );
+        // Right arrow U+2192 (3 bytes in UTF-8)
+        assert_eq!(
+            normalize_bare_void_elements("<p>click → here</p><br>end"),
+            "<p>click → here</p><br />end"
+        );
+        // Smart quote U+2019 (3 bytes in UTF-8)
+        assert_eq!(
+            normalize_bare_void_elements("<p>it\u{2019}s fine</p><br>ok"),
+            "<p>it\u{2019}s fine</p><br />ok"
+        );
+        // Emoji U+1F3C6 (4 bytes in UTF-8)
+        assert_eq!(
+            normalize_bare_void_elements("<p>trophy \u{1F3C6} here</p><hr>end"),
+            "<p>trophy \u{1F3C6} here</p><hr />end"
+        );
+        // UTF-8 text with no void elements should pass through unchanged
+        assert_eq!(
+            normalize_bare_void_elements("<p>· → \u{2019} \u{1F3C6}</p>"),
+            "<p>· → \u{2019} \u{1F3C6}</p>"
+        );
     }
 
     // --- Optimized normalize_boolean_attributes tests (single-pass) ---
