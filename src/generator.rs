@@ -76,6 +76,8 @@ pub struct GenerationResult {
 /// - `site.data.*` from data files
 /// - `site.url`, `site.name`, `site.title`, `site.time`
 /// - `site.github.repository_url` (from config or git remote)
+/// - `site.github.build_revision` (git HEAD SHA for cache busting)
+/// - `site.github.url` (site URL for absolute URLs in JSON-LD)
 /// - `site.related_posts` (10 most recent posts by date descending)
 /// - `site.pages` (standalone page objects)
 pub fn build_site_context(
@@ -150,6 +152,10 @@ pub fn build_site_context(
     let repo_url = resolve_repository_url(config, site_dir);
     let mut github = Object::new();
     github.insert("repository_url".into(), repo_url);
+    // site.github.build_revision -- git HEAD SHA (used for CSS cache busting)
+    github.insert("build_revision".into(), resolve_build_revision(site_dir));
+    // site.github.url -- site URL (used for absolute URLs in JSON-LD breadcrumbs)
+    github.insert("url".into(), LiquidValue::scalar(config.url.clone()));
     site.insert("github".into(), LiquidValue::Object(github));
 
     // site.data -- data tree
@@ -216,6 +222,28 @@ fn resolve_repository_url(config: &SiteConfig, site_dir: Option<&Path>) -> Liqui
 
     // 3. No repository info available
     LiquidValue::Nil
+}
+
+/// Resolve the git HEAD SHA for `site.github.build_revision`.
+///
+/// Returns the 40-character hex SHA if the site directory is inside a git
+/// repository, or an empty string otherwise. This matches Jekyll's
+/// `jekyll-github-metadata` plugin which populates `site.github.build_revision`
+/// with the current commit SHA (used for CSS cache busting).
+fn resolve_build_revision(site_dir: Option<&Path>) -> LiquidValue {
+    if let Some(dir) = site_dir {
+        if let Ok(output) = Command::new("git")
+            .args(["rev-parse", "HEAD"])
+            .current_dir(dir)
+            .output()
+        {
+            if output.status.success() {
+                let sha = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                return LiquidValue::scalar(sha);
+            }
+        }
+    }
+    LiquidValue::scalar("")
 }
 
 /// Convert a `CollectionItem` to a Liquid `Value` for site context arrays.
