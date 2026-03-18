@@ -3665,4 +3665,120 @@ title: "Test Book"
         let result = eng.parse_and_render(template, &ctx).unwrap();
         assert_eq!(result, "Первый пост;Second;");
     }
+
+    // ── Issue 197: String literal as default filter shorthand ──
+
+    #[test]
+    fn test_pipe_to_string_literal_acts_as_default_filter() {
+        let eng = engine();
+        // When x is nil, the string literal acts as default
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render(r#"{% assign x = nil %}{{ x | "fallback" }}"#, &ctx)
+            .unwrap();
+        assert_eq!(out, "fallback");
+
+        // When x has a value, it passes through
+        let mut ctx2 = Object::new();
+        ctx2.insert("x".into(), LiquidValue::scalar("hello"));
+        let out2 = eng
+            .parse_and_render(r#"{{ x | "fallback" }}"#, &ctx2)
+            .unwrap();
+        assert_eq!(out2, "hello");
+    }
+
+    #[test]
+    fn test_pipe_to_string_literal_with_unicode_default() {
+        let eng = engine();
+        // Czech text with diacritics
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render(
+                "{% assign x = nil %}{{ x | \"Parametr neexistuje\" }}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(out, "Parametr neexistuje");
+
+        // When x has a value, it passes through
+        let mut ctx2 = Object::new();
+        ctx2.insert("x".into(), LiquidValue::scalar("existuje"));
+        let out2 = eng
+            .parse_and_render("{{ x | \"Parametr neexistuje\" }}", &ctx2)
+            .unwrap();
+        assert_eq!(out2, "existuje");
+    }
+
+    // ── Issue 197: Parenthesized conditions in if blocks (integration) ──
+
+    #[test]
+    fn test_if_with_parenthesized_comparison_integration() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("a".into(), LiquidValue::scalar(true));
+        ctx.insert("b".into(), LiquidValue::scalar("hello"));
+        ctx.insert("c".into(), LiquidValue::scalar("world"));
+        let out = eng
+            .parse_and_render(r#"{% if a and (b != c) %}yes{% else %}no{% endif %}"#, &ctx)
+            .unwrap();
+        assert_eq!(out, "yes");
+    }
+
+    // ── Issue 197: For loop over scalar (integration) ──
+
+    #[test]
+    fn test_for_loop_over_string_integration() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("val".into(), LiquidValue::scalar("hello"));
+        let out = eng
+            .parse_and_render("{% for item in val %}[{{ item }}]{% endfor %}", &ctx)
+            .unwrap();
+        assert_eq!(out, "[hello]");
+    }
+
+    // ── Issue 197: endraw after endhighlight ──
+
+    #[test]
+    fn test_endraw_after_endhighlight_same_line() {
+        let eng = engine();
+        let ctx = Object::new();
+        let template = concat!(
+            "{% highlight yaml %}",
+            "{% raw %}{% highlight some_language %}\n",
+            "Some code\n",
+            "{% endhighlight %}{% endraw %}",
+            "{% endhighlight %}",
+        );
+        let result = eng.parse_and_render(template, &ctx);
+        assert!(
+            result.is_ok(),
+            "Template with endraw after endhighlight should parse: {:?}",
+            result.err()
+        );
+    }
+
+    #[test]
+    fn test_endraw_after_endhighlight_with_unicode_content() {
+        let eng = engine();
+        let ctx = Object::new();
+        // French: "quelque chose en fran\u{00E7}ais"
+        let template = concat!(
+            "{% highlight yaml %}",
+            "{% raw %}quelque chose en fran\u{00E7}ais{% endraw %}",
+            "{% endhighlight %}",
+        );
+        let result = eng.parse_and_render(template, &ctx);
+        assert!(
+            result.is_ok(),
+            "Template with unicode in raw should parse: {:?}",
+            result.err()
+        );
+        let output = result.unwrap();
+        assert!(
+            output.contains("fran\u{00E7}ais"),
+            "Unicode content should be preserved, got: {}",
+            output
+        );
+    }
 }

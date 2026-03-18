@@ -36,7 +36,8 @@ Variable = ${ Identifier
             }
 Value = { Literal | Variable }
 Filter = { Identifier ~ (":" ~ FilterArgument ~ ("," ~ FilterArgument)*)? }
-FilterChain = { Value ~ ("|" ~ Filter)* }
+DefaultFilterShorthand = { StringLiteral }
+FilterChain = { Value ~ ("|" ~ (Filter | DefaultFilterShorthand))* }
 PositionalFilterArgument = {Value}
 KeywordFilterArgument = {Identifier ~ ":" ~ Value}
 FilterArgument = _{KeywordFilterArgument | PositionalFilterArgument }
@@ -60,7 +61,7 @@ Range = { "(" ~ Value ~ ".." ~ Value ~ ")" }
 TagToken = _{ Range | FilterChain | DoubleCharSymbol | SingleCharSymbol }
 
 // DoubleCharSymbol must be tried first, otherwise it could be parsed as two SingleCharSymbol instead
-SingleCharSymbol = _{ GreaterThan | LesserThan | Assign | Comma | Colon }
+SingleCharSymbol = _{ GreaterThan | LesserThan | Assign | Comma | Colon | OpenParen | CloseParen }
 DoubleCharSymbol = _{ Equals | NotEquals | LesserThanGreaterThan | GreaterThanEquals | LesserThanEquals }
 
 // Symbols - Names must be given for better error messages
@@ -75,3 +76,5 @@ NotEquals = { "!=" }
 LesserThanGreaterThan = { "<>" }
 GreaterThanEquals = { ">=" }
 LesserThanEquals = { "<=" }
+OpenParen = { "(" }
+CloseParen = { ")" }

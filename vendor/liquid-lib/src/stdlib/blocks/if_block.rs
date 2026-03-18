@@ -388,6 +388,17 @@ impl<'a> PeekableTagTokenIter<'a> {
 }
 
 fn parse_atom_condition(arguments: &mut PeekableTagTokenIter<'_>) -> Result<Condition> {
+    // Check for parenthesized sub-expression: ( condition )
+    if let Some("(") = arguments.peek().map(TagToken::as_str) {
+        arguments.next(); // consume "("
+        let inner = parse_condition_inner(arguments)?;
+        let close = arguments.expect_next("\")\" expected.")?;
+        close
+            .expect_str(")")
+            .into_result_custom_msg("\")\" expected to close parenthesized condition.")?;
+        return Ok(inner);
+    }
+
     let lh = arguments
         .expect_next("Value expected.")?
         .expect_value()
@@ -422,6 +433,20 @@ fn parse_conjunction_chain(arguments: &mut PeekableTagTokenIter<'_>) -> Result<C
         arguments.next();
         let rh = parse_atom_condition(arguments)?;
         lh = Condition::Conjunction(Box::new(lh), Box::new(rh));
+    }
+
+    Ok(lh)
+}
+
+/// Parse a full condition (with or/and chains) from an existing PeekableTagTokenIter.
+/// Used for parenthesized sub-expressions where we already have a peekable iterator.
+fn parse_condition_inner(arguments: &mut PeekableTagTokenIter<'_>) -> Result<Condition> {
+    let mut lh = parse_conjunction_chain(arguments)?;
+
+    while let Some("or") = arguments.peek().map(TagToken::as_str) {
+        arguments.next();
+        let rh = parse_conjunction_chain(arguments)?;
+        lh = Condition::Disjunction(Box::new(lh), Box::new(rh));
     }
 
     Ok(lh)
@@ -758,5 +783,47 @@ mod test {
         let runtime = RuntimeBuilder::new().build();
         let output = template.render(&runtime).unwrap();
         assert_eq!(output, "if true");
+    }
+
+    #[test]
+    fn if_with_parenthesized_comparison() {
+        // a=true, b="hello", c="world" -> (b != c) is true, a and true -> yes
+        let text = r#"{% if a and (b != c) %}yes{% else %}no{% endif %}"#;
+        let template = parser::parse(text, &options()).map(Template::new).unwrap();
+
+        let runtime = RuntimeBuilder::new().build();
+        runtime.set_global("a".into(), Value::scalar(true));
+        runtime.set_global("b".into(), Value::scalar("hello"));
+        runtime.set_global("c".into(), Value::scalar("world"));
+        let output = template.render(&runtime).unwrap();
+        assert_eq!(output, "yes");
+
+        // Same with b == c -> (b != c) is false -> no
+        let runtime = RuntimeBuilder::new().build();
+        runtime.set_global("a".into(), Value::scalar(true));
+        runtime.set_global("b".into(), Value::scalar("same"));
+        runtime.set_global("c".into(), Value::scalar("same"));
+        let output = template.render(&runtime).unwrap();
+        assert_eq!(output, "no");
+    }
+
+    #[test]
+    fn if_with_parenthesized_comparison_and_unicode_values() {
+        // German: "Ueberblick" (overview), "Hauptseite" (main page)
+        let text = r#"{% if title and show-title and (title != site-title) %}yes{% endif %}"#;
+        let template = parser::parse(text, &options()).map(Template::new).unwrap();
+
+        let runtime = RuntimeBuilder::new().build();
+        runtime.set_global(
+            "title".into(),
+            Value::scalar("\u{00DC}berblick"),
+        );
+        runtime.set_global("show-title".into(), Value::scalar(true));
+        runtime.set_global(
+            "site-title".into(),
+            Value::scalar("Hauptseite"),
+        );
+        let output = template.render(&runtime).unwrap();
+        assert_eq!(output, "yes");
     }
 }

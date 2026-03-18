@@ -589,6 +589,9 @@ fn get_array(array: &dyn ValueView) -> Result<Vec<ValueCow<'_>>> {
         Ok(x)
     } else if array.is_state() || array.is_nil() {
         Ok(vec![])
+    } else if array.as_scalar().is_some() {
+        // Ruby Liquid wraps scalar values in a single-element array when iterated
+        Ok(vec![ValueCow::Owned(array.to_value())])
     } else {
         Err(unexpected_value_error("array", Some(array.type_name())))
     }
@@ -1145,5 +1148,59 @@ mod test {
         );
         let output = template.render(&runtime).unwrap();
         assert_eq!(output, "1.1 1.2 1.3 2.1 2.2 2.3 ");
+    }
+
+    #[test]
+    fn for_loop_over_string_wraps_in_array() {
+        let text = "{% for item in val %}[{{ item }}]{% endfor %}";
+        let template = parser::parse(text, &options()).map(Template::new).unwrap();
+
+        let runtime = RuntimeBuilder::new().build();
+        runtime.set_global("val".into(), Value::scalar("hello"));
+        let output = template.render(&runtime).unwrap();
+        assert_eq!(output, "[hello]");
+    }
+
+    #[test]
+    fn for_loop_over_string_with_unicode() {
+        // Cyrillic content: "Privet mir" means "Hello world"
+        let text = "{% for item in val %}[{{ item }}]{% endfor %}";
+        let template = parser::parse(text, &options()).map(Template::new).unwrap();
+
+        let runtime = RuntimeBuilder::new().build();
+        runtime.set_global(
+            "val".into(),
+            Value::scalar("\u{041F}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442} \u{043C}\u{0438}\u{0440}"),
+        );
+        let output = template.render(&runtime).unwrap();
+        assert_eq!(
+            output,
+            "[\u{041F}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442} \u{043C}\u{0438}\u{0440}]"
+        );
+    }
+
+    #[test]
+    fn for_loop_over_nil_still_empty() {
+        let text = "{% for item in val %}[{{ item }}]{% else %}empty{% endfor %}";
+        let template = parser::parse(text, &options()).map(Template::new).unwrap();
+
+        let runtime = RuntimeBuilder::new().build();
+        runtime.set_global("val".into(), Value::Nil);
+        let output = template.render(&runtime).unwrap();
+        assert_eq!(output, "empty");
+    }
+
+    #[test]
+    fn for_loop_over_array_unchanged() {
+        let text = "{% for item in val %}[{{ item }}]{% endfor %}";
+        let template = parser::parse(text, &options()).map(Template::new).unwrap();
+
+        let runtime = RuntimeBuilder::new().build();
+        runtime.set_global(
+            "val".into(),
+            Value::Array(vec![Value::scalar("a"), Value::scalar("b")]),
+        );
+        let output = template.render(&runtime).unwrap();
+        assert_eq!(output, "[a][b]");
     }
 }

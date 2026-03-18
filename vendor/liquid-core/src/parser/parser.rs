@@ -39,6 +39,9 @@ fn convert_pest_error(err: ::pest::error::Error<Rule>) -> Error {
         Rule::Assign => "\"=\"".to_string(),
         Rule::Comma => "\",\"".to_string(),
         Rule::Colon => "\":\"".to_string(),
+        Rule::OpenParen => "\"(\"".to_string(),
+        Rule::CloseParen => "\")\"".to_string(),
+        Rule::DefaultFilterShorthand => "DefaultFilterShorthand".to_string(),
         other => format!("{:?}", other),
     });
     Error::with_msg(err.to_string())
@@ -233,6 +236,40 @@ fn parse_filter(filter: Pair, options: &Language) -> Result<Box<dyn Filter>> {
     Ok(f)
 }
 
+/// Parses a `DefaultFilterShorthand` (a bare string literal after `|`) as a `default` filter.
+/// In Ruby Liquid, `{{ x | "fallback" }}` is shorthand for `{{ x | default: "fallback" }}`.
+fn parse_default_filter_shorthand(pair: Pair, options: &Language) -> Result<Box<dyn Filter>> {
+    if pair.as_rule() != Rule::DefaultFilterShorthand {
+        panic!("Expected a DefaultFilterShorthand.");
+    }
+
+    let string_literal = pair
+        .into_inner()
+        .next()
+        .expect("DefaultFilterShorthand contains a StringLiteral");
+    let literal_str = string_literal.as_str();
+    // Strip surrounding quotes
+    let value_str = &literal_str[1..literal_str.len() - 1];
+    let value_expr = Expression::Literal(Value::scalar(value_str.to_owned()));
+
+    let f = options.filters.get("default").ok_or_else(|| {
+        Error::with_msg("The 'default' filter is not registered but is needed for string literal shorthand")
+    })?;
+
+    let args = FilterArguments {
+        positional: Box::new(std::iter::once(value_expr)),
+        keyword: Box::new(std::iter::empty()),
+    };
+
+    let f = f
+        .parse(args)
+        .trace("Filter parsing error")
+        .context_key("filter")
+        .value_with(|| "default (string literal shorthand)".to_string().into())?;
+
+    Ok(f)
+}
+
 /// Parses a `FilterChain` from a `Pair` with a filter chain.
 /// This `Pair` must be `Rule::FilterChain`.
 fn parse_filter_chain(chain: Pair, options: &Language) -> Result<FilterChain> {
@@ -246,7 +283,13 @@ fn parse_filter_chain(chain: Pair, options: &Language) -> Result<FilterChain> {
             .next()
             .expect("A filterchain always has starts by a value."),
     );
-    let filters: Result<Vec<_>> = chain.map(|f| parse_filter(f, options)).collect();
+    let filters: Result<Vec<_>> = chain
+        .map(|f| match f.as_rule() {
+            Rule::DefaultFilterShorthand => parse_default_filter_shorthand(f, options),
+            Rule::Filter => parse_filter(f, options),
+            _ => unreachable!("FilterChain should only contain Filter or DefaultFilterShorthand"),
+        })
+        .collect();
     let filters = filters?;
 
     let filters = FilterChain::new(entry, filters);

@@ -57,7 +57,10 @@ impl ParseBlock for HighlightBlock {
 
         // Capture the raw block body using `escape_liquid` so that Liquid
         // tags/expressions inside the highlight block are NOT parsed.
-        let body = _block.escape_liquid(false)?.to_owned();
+        // Use allow_nesting=true so that nested {% highlight %}...{% endhighlight %}
+        // pairs (e.g. inside {% raw %} blocks showing example code) are properly
+        // handled instead of closing on the inner {% endhighlight %}.
+        let body = _block.escape_liquid(true)?.to_owned();
 
         Ok(Box::new(Highlight { lang, body }))
     }
