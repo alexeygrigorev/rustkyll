@@ -706,6 +706,8 @@ impl TemplateEngine {
             // Jekyll-compatible map filter that flattens nested arrays (Issue 209)
             // Must come after with_stdlib() to override the default map filter
             .filter(filters::Map)
+            // Ruby Liquid sample filter: random sampling from arrays (Issue 214)
+            .filter(filters::Sample)
     }
 
     /// Create a `TemplateEngine` from a pre-built `liquid::Parser`.
@@ -3780,5 +3782,163 @@ title: "Test Book"
             "Unicode content should be preserved, got: {}",
             output
         );
+    }
+
+    // ========================================================================
+    // Unknown tag graceful handling (issue #215)
+    // ========================================================================
+
+    #[test]
+    fn test_unknown_tag_empty_output() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng.parse_and_render("{% nonexistent_tag %}", &ctx).unwrap();
+        assert_eq!(out, "", "unknown tag should produce empty output");
+    }
+
+    #[test]
+    fn test_unknown_tag_with_positional_args() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render("{% nonexistent_tag arg1 arg2 %}", &ctx)
+            .unwrap();
+        assert_eq!(out, "", "unknown tag with args should produce empty output");
+    }
+
+    #[test]
+    fn test_unknown_tag_with_key_value_args() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render(r#"{% nonexistent_tag key:value class:"something" %}"#, &ctx)
+            .unwrap();
+        assert_eq!(
+            out, "",
+            "unknown tag with key:value args should produce empty output"
+        );
+    }
+
+    #[test]
+    fn test_unknown_tag_surrounding_content_preserved() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render("before{% nonexistent_tag %}after", &ctx)
+            .unwrap();
+        assert_eq!(out, "beforeafter");
+    }
+
+    #[test]
+    fn test_unknown_tag_surrounding_html_preserved() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render("<p>Hello</p>{% unknown_tag %}<p>World</p>", &ctx)
+            .unwrap();
+        assert_eq!(out, "<p>Hello</p><p>World</p>");
+    }
+
+    #[test]
+    fn test_unknown_tag_surrounding_expressions_preserved() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render(r#"{{ "hello" }}{% unknown_tag %}{{ "world" }}"#, &ctx)
+            .unwrap();
+        assert_eq!(out, "helloworld");
+    }
+
+    #[test]
+    fn test_unknown_tag_unicode_content_preserved() {
+        let eng = engine();
+        let ctx = Object::new();
+        // German and French accented characters
+        let out = eng
+            .parse_and_render(
+                "<p>Z\u{00fc}rich \u{00dc}bersicht</p>{% unknown_tag %}<p>caf\u{00e9} r\u{00e9}sum\u{00e9}</p>",
+                &ctx,
+            )
+            .unwrap();
+        assert!(
+            out.contains("Z\u{00fc}rich"),
+            "German chars preserved: {}",
+            out
+        );
+        assert!(
+            out.contains("caf\u{00e9}"),
+            "French chars preserved: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_unknown_tag_cjk_content_preserved() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render("{% unknown_tag %}<p>\u{6771}\u{4eac}\u{90fd}</p>", &ctx)
+            .unwrap();
+        assert!(
+            out.contains("\u{6771}\u{4eac}\u{90fd}"),
+            "CJK characters preserved: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_multiple_unknown_tags() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render("{% foo %}middle{% bar %}", &ctx)
+            .unwrap();
+        assert_eq!(out, "middle");
+    }
+
+    #[test]
+    fn test_multiple_unknown_tags_empty() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render("{% foo %}{% bar %}{% baz %}", &ctx)
+            .unwrap();
+        assert_eq!(out, "");
+    }
+
+    #[test]
+    fn test_mixed_known_and_unknown_tags_if() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render("{% if true %}yes{% endif %}{% unknown_tag %}done", &ctx)
+            .unwrap();
+        assert_eq!(out, "yesdone");
+    }
+
+    #[test]
+    fn test_mixed_known_and_unknown_tags_assign() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render(
+                r#"{% assign x = "hi" %}{{ x }}{% unknown_tag %}{{ x }}"#,
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(out, "hihi");
+    }
+
+    #[test]
+    fn test_octicon_tag_like_government_github() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render(
+                r#"<a>{% octicon mark-github height:24 class:"fill-gray-light" aria-label:github %}</a>"#,
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(out, "<a></a>");
     }
 }

@@ -3,6 +3,8 @@
 //! This module contains functions than can be used for writing plugins
 //! but should be ignored for simple usage.
 
+use std::io::Write;
+
 use crate::error::{Error, Result, ResultLiquidExt};
 use crate::model::Value;
 use crate::runtime::Expression;
@@ -605,24 +607,38 @@ impl<'a> Tag<'a> {
             let renderables = plugin.parse(tokens, block, options)?;
             Ok(renderables)
         } else {
-            let pest_error = ::pest::error::Error::new_from_span(
-                ::pest::error::ErrorVariant::CustomError {
-                    message: "Unknown tag.".to_string(),
-                },
-                position,
+            // Unknown tag: emit a warning and return a no-op renderable
+            // that renders to empty string. This allows templates using
+            // Jekyll plugin tags (e.g. octicon, etc.) to parse and render
+            // successfully, just without the plugin-specific output.
+            eprintln!(
+                "Warning: unknown Liquid tag '{}' -- rendering as empty string",
+                name
             );
-            let mut all_tags: Vec<_> = options.tags.plugin_names().collect();
-            all_tags.sort_unstable();
-            let all_tags = itertools::join(all_tags, ", ");
-            let mut all_blocks: Vec<_> = options.blocks.plugin_names().collect();
-            all_blocks.sort_unstable();
-            let all_blocks = itertools::join(all_blocks, ", ");
-            let error = convert_pest_error(pest_error)
-                .context("requested", name.to_owned())
-                .context("available tags", all_tags)
-                .context("available blocks", all_blocks);
-            Err(error)
+            // Consume remaining tokens so the parser doesn't choke
+            let _ = position;
+            Ok(Box::new(UnknownTagRenderable))
         }
+    }
+}
+
+/// A no-op renderable returned for unknown tags. Renders to empty string.
+#[derive(Debug)]
+struct UnknownTagRenderable;
+
+impl std::fmt::Display for UnknownTagRenderable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "")
+    }
+}
+
+impl Renderable for UnknownTagRenderable {
+    fn render_to(
+        &self,
+        _writer: &mut dyn Write,
+        _runtime: &dyn crate::runtime::Runtime,
+    ) -> Result<()> {
+        Ok(())
     }
 }
 
