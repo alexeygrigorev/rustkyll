@@ -64,7 +64,7 @@ NEVER wait for user input. NEVER idle. The pipeline must always be running.
 
 1. PM Grooms: Pick `.todo.md` issues, add acceptance criteria and test scenarios, rename to `.groomed.md`
 2. Pick 2 issues: Select the lowest-numbered `.groomed.md` issues whose dependencies are met
-3. SWE implements: Write code + tests, rename to `.in-progress.md`
+3. SWE implements: Follow TDD (see below), rename to `.in-progress.md`
 4. QA reviews: Run tests, verify acceptance criteria, report PASS/FAIL
 5. If QA FAIL: Launch SWE agent again with QA's feedback. SWE fixes. Then launch QA again. Repeat until QA passes.
 6. If QA PASS: Launch PM for acceptance review
@@ -82,6 +82,30 @@ An issue moves to `.done.md` ONLY when ALL acceptance criteria are fully satisfi
 - "CI fix" is done when CI is green — not when the workflow is committed
 
 If the deliverable requires deployment, external verification, or running against real data, the issue stays `.in-progress.md` until that happens. The orchestrator must verify the actual outcome before moving to done.
+
+### TDD: Test-Driven Development (Mandatory)
+
+SWE agents MUST follow strict TDD for every fix. The cycle is:
+
+1. **Write the test FIRST** — before any implementation code
+2. **Run the test and verify it FAILS** — log the failure output (expected vs actual)
+3. **Implement the fix** — write the minimum code to make the test pass
+4. **Run the test and verify it PASSES** — log the passing output
+5. **Repeat** for each distinct fix in the issue
+
+The SWE agent MUST log each step in the issue file's `## Log` section:
+
+```markdown
+### [SWE] 2026-03-18
+- Wrote test_datetime_format_with_timezone (tests/template_context.rs)
+- Ran test: FAILS as expected — got "2018/06/04 00:00", expected "2018-06-04 00:00:00 +0800"
+- Implemented fix in src/template/context.rs:245
+- Ran test: PASSES — output matches "2018-06-04 00:00:00 +0800"
+```
+
+Why: Writing tests first ensures we understand the expected behavior before coding, and proves the test actually catches the bug. Writing tests and implementation together provides no proof that the test would have caught the bug.
+
+QA agents should verify that the SWE log shows the TDD cycle (test written → fails → fix → passes). If the log doesn't show this, QA should flag it.
 
 IMPORTANT: One agent per issue. Every agent invocation handles exactly ONE issue. When working on 2 issues in a batch, launch 2 separate agents in parallel — never combine multiple issues into a single agent call. This applies to all agent types (SWE, QA, PM).
 
