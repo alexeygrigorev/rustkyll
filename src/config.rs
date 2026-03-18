@@ -325,6 +325,42 @@ impl SiteConfig {
     pub fn collection(&self, name: &str) -> Option<&CollectionConfig> {
         self.collections.get(name)
     }
+
+    /// Check if the CommonMark HARDBREAKS option is enabled in the site config.
+    ///
+    /// Returns `true` when the config has:
+    /// ```yaml
+    /// commonmark:
+    ///   options: ["HARDBREAKS"]
+    /// ```
+    /// AND the markdown processor is NOT kramdown (since HARDBREAKS is a
+    /// CommonMark-specific option).
+    pub fn has_commonmark_hardbreaks(&self) -> bool {
+        // Only applies to non-kramdown processors
+        let is_kramdown = self
+            .extras
+            .get("markdown")
+            .and_then(|v| v.as_str())
+            .map(|m| m.eq_ignore_ascii_case("kramdown"))
+            .unwrap_or(true);
+        if is_kramdown {
+            return false;
+        }
+
+        self.extras
+            .get("commonmark")
+            .and_then(|v| v.as_mapping())
+            .and_then(|m| m.get(serde_yaml::Value::String("options".to_string())))
+            .and_then(|v| v.as_sequence())
+            .map(|seq| {
+                seq.iter().any(|item| {
+                    item.as_str()
+                        .map(|s| s.eq_ignore_ascii_case("HARDBREAKS"))
+                        .unwrap_or(false)
+                })
+            })
+            .unwrap_or(false)
+    }
 }
 
 #[cfg(test)]
@@ -1391,6 +1427,107 @@ defaults:
         assert_eq!(
             defaults.get("sidebar").and_then(|v| v.as_bool()),
             Some(true)
+        );
+    }
+
+    // ========================================================================
+    // Issue 223: has_commonmark_hardbreaks config parsing
+    // ========================================================================
+
+    #[test]
+    fn test_issue223_parse_hardbreaks_from_commonmark_options() {
+        let yaml = r#"
+markdown: CommonMarkGhPages
+commonmark:
+  options: ["UNSAFE", "HARDBREAKS"]
+  extensions: ["strikethrough", "autolink", "table"]
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(
+            config.has_commonmark_hardbreaks(),
+            "Should detect HARDBREAKS in commonmark.options"
+        );
+    }
+
+    #[test]
+    fn test_issue223_no_hardbreaks_when_options_missing() {
+        let yaml = r#"
+markdown: CommonMarkGhPages
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(
+            !config.has_commonmark_hardbreaks(),
+            "Should return false when commonmark key is absent"
+        );
+    }
+
+    #[test]
+    fn test_issue223_no_hardbreaks_for_kramdown() {
+        let yaml = r#"
+markdown: kramdown
+commonmark:
+  options: ["HARDBREAKS"]
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(
+            !config.has_commonmark_hardbreaks(),
+            "Should return false for kramdown even if commonmark.options has HARDBREAKS"
+        );
+    }
+
+    #[test]
+    fn test_issue223_no_hardbreaks_default_markdown() {
+        // When markdown key is absent, default is kramdown
+        let yaml = r#"
+title: My Site
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(
+            !config.has_commonmark_hardbreaks(),
+            "Should return false when markdown key is absent (defaults to kramdown)"
+        );
+    }
+
+    #[test]
+    fn test_issue223_hardbreaks_without_unsafe() {
+        let yaml = r#"
+markdown: CommonMarkGhPages
+commonmark:
+  options: ["HARDBREAKS"]
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(
+            config.has_commonmark_hardbreaks(),
+            "Should detect HARDBREAKS even without UNSAFE"
+        );
+    }
+
+    #[test]
+    fn test_issue223_no_hardbreaks_with_only_unsafe() {
+        let yaml = r#"
+markdown: CommonMarkGhPages
+commonmark:
+  options: ["UNSAFE"]
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(
+            !config.has_commonmark_hardbreaks(),
+            "Should return false when only UNSAFE is in options (no HARDBREAKS)"
+        );
+    }
+
+    #[test]
+    fn test_issue223_real_muan_blog_config() {
+        let config_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("websites/muan-blog/_config.yml");
+        if !config_path.exists() {
+            return; // Skip if muan-blog not available
+        }
+        let config = SiteConfig::from_file(&config_path).unwrap();
+        assert!(
+            config.has_commonmark_hardbreaks(),
+            "muan-blog config should have HARDBREAKS enabled. extras: {:?}",
+            config.extras.get("commonmark")
         );
     }
 }

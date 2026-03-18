@@ -346,6 +346,33 @@ fn build_site(
     }
     summary.timing.pages = phase_start.elapsed();
 
+    // 4b. Detect URL collisions (Issue 225)
+    // Collect all (source_path, url) pairs from collections and pages, then
+    // check for duplicates. Emit Jekyll-style "Conflict" warnings to stderr.
+    {
+        let mut url_entries: Vec<(String, String)> = Vec::new();
+        for (name, items) in &collections {
+            // Only check collections that produce output
+            if name != "posts" {
+                if let Some(coll_config) = config.collection(name) {
+                    if !coll_config.output {
+                        continue;
+                    }
+                }
+            }
+            for item in items {
+                url_entries.push((item.source_path.clone(), item.url.clone()));
+            }
+        }
+        for page in &pages {
+            url_entries.push((page.source_path.clone(), page.url.clone()));
+        }
+        let collisions = collection::detect_url_collisions(&url_entries);
+        for collision in &collisions {
+            eprintln!("{}", collection::format_collision_warning(collision));
+        }
+    }
+
     // 5. Incremental build check
     let phase_start = Instant::now();
     let current_globals = incremental::collect_global_files(source);
@@ -417,6 +444,9 @@ fn build_site(
         .map(|m| m.eq_ignore_ascii_case("kramdown"))
         .unwrap_or(true); // kramdown is Jekyll's default
     layout_engine.set_kramdown_code_classes(is_kramdown);
+
+    // Issue 223: Enable HARDBREAKS if the site config has commonmark.options: ["HARDBREAKS"]
+    layout_engine.set_hardbreaks(config.has_commonmark_hardbreaks());
 
     summary.timing.layouts = phase_start.elapsed();
 

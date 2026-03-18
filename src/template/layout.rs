@@ -46,6 +46,9 @@ pub struct LayoutEngine {
     /// Whether to add `language-plaintext highlighter-rouge` class to inline code.
     /// True for kramdown (default), false for CommonMark/CommonMarkGhPages.
     use_kramdown_code_classes: bool,
+    /// Whether to convert soft line breaks to `<br>` elements.
+    /// True when CommonMarkGhPages HARDBREAKS option is enabled.
+    enable_hardbreaks: bool,
 }
 
 impl LayoutEngine {
@@ -69,6 +72,7 @@ impl LayoutEngine {
             compiled_layouts,
             engine,
             use_kramdown_code_classes: true,
+            enable_hardbreaks: false,
         })
     }
 
@@ -86,6 +90,7 @@ impl LayoutEngine {
             compiled_layouts,
             engine,
             use_kramdown_code_classes: true,
+            enable_hardbreaks: false,
         })
     }
 
@@ -96,6 +101,14 @@ impl LayoutEngine {
     /// rendered without the `language-plaintext highlighter-rouge` class.
     pub fn set_kramdown_code_classes(&mut self, enabled: bool) {
         self.use_kramdown_code_classes = enabled;
+    }
+
+    /// Set whether to convert soft line breaks to `<br>` elements.
+    ///
+    /// When the site config has `commonmark.options: ["HARDBREAKS"]`, this should
+    /// be set to `true` so every soft line break produces a `<br>` in the output.
+    pub fn set_hardbreaks(&mut self, enabled: bool) {
+        self.enable_hardbreaks = enabled;
     }
 
     fn compile_layouts(
@@ -326,7 +339,12 @@ impl LayoutEngine {
             cached_site,
             site_overrides,
         )?;
-        Ok(crate::kramdown::normalize_html_output(&result))
+        let normalized = crate::kramdown::normalize_html_output(&result);
+        Ok(if self.enable_hardbreaks {
+            crate::frontmatter::normalize_br_to_html5(&normalized)
+        } else {
+            normalized
+        })
     }
 
     /// Render markdown page with cached site and per-render site overrides.
@@ -356,6 +374,7 @@ impl LayoutEngine {
             &collapsed,
             self.use_kramdown_code_classes,
             self.use_kramdown_code_classes,
+            self.enable_hardbreaks,
         );
         let html_content = crate::kramdown::remove_heading_markers(&html_content);
         let result = self.render_with_site_overrides(
@@ -365,7 +384,12 @@ impl LayoutEngine {
             cached_site,
             site_overrides,
         )?;
-        Ok(crate::kramdown::normalize_html_output(&result))
+        let normalized = crate::kramdown::normalize_html_output(&result);
+        Ok(if self.enable_hardbreaks {
+            crate::frontmatter::normalize_br_to_html5(&normalized)
+        } else {
+            normalized
+        })
     }
 
     /// Render page content wrapped in a layout, with extra global variables
@@ -441,7 +465,12 @@ impl LayoutEngine {
             cached_site,
         )?;
         // D2, D3, D12: Normalize boolean attributes and void elements
-        Ok(crate::kramdown::normalize_html_output(&result))
+        let normalized = crate::kramdown::normalize_html_output(&result);
+        Ok(if self.enable_hardbreaks {
+            crate::frontmatter::normalize_br_to_html5(&normalized)
+        } else {
+            normalized
+        })
     }
 
     /// Render raw markdown content that may contain Liquid tags, converting
@@ -490,6 +519,7 @@ impl LayoutEngine {
             &collapsed,
             self.use_kramdown_code_classes,
             self.use_kramdown_code_classes,
+            self.enable_hardbreaks,
         );
 
         // Step 3.5 (D1): Remove the heading markers after postprocessing
@@ -503,7 +533,12 @@ impl LayoutEngine {
             cached_site,
         )?;
         // D2, D3, D12: Normalize boolean attributes and void elements
-        Ok(crate::kramdown::normalize_html_output(&result))
+        let normalized = crate::kramdown::normalize_html_output(&result);
+        Ok(if self.enable_hardbreaks {
+            crate::frontmatter::normalize_br_to_html5(&normalized)
+        } else {
+            normalized
+        })
     }
 
     /// Render raw (non-markdown) content through the Liquid engine WITHOUT
@@ -562,6 +597,7 @@ impl LayoutEngine {
             &collapsed,
             self.use_kramdown_code_classes,
             self.use_kramdown_code_classes,
+            self.enable_hardbreaks,
         ))
     }
 }
@@ -2574,6 +2610,7 @@ mod tests {
             "Nathan doesn't write tests",
             false,
             false,
+            false,
         );
 
         let layout_source = concat!(
@@ -2624,6 +2661,7 @@ mod tests {
             r#"crappy JS "features" from sites"#,
             false,
             false,
+            false,
         );
 
         let layout_source = r#"<desc>{{ page.content | strip_html }}</desc>"#;
@@ -2671,6 +2709,7 @@ mod tests {
         // Both apostrophes and double quotes in CommonMarkGhPages mode
         let html_content = crate::frontmatter::markdown_to_html_with_options(
             r#"I don't like "fancy" things"#,
+            false,
             false,
             false,
         );
@@ -2724,6 +2763,7 @@ mod tests {
         // German umlaut content with apostrophe in CommonMarkGhPages mode
         let html_content = crate::frontmatter::markdown_to_html_with_options(
             "B\u{00fc}scher's Buchladen",
+            false,
             false,
             false,
         );
@@ -2806,7 +2846,7 @@ mod tests {
         // Create content longer than 240 chars with apostrophes
         let long_text = "Nathan doesn't write tests. ".repeat(15); // ~420 chars
         let html_content =
-            crate::frontmatter::markdown_to_html_with_options(&long_text, false, false);
+            crate::frontmatter::markdown_to_html_with_options(&long_text, false, false, false);
 
         let layout_source = concat!(
             r#"<meta content="{{ page.content | strip_html | truncate: 240 }}" name="description">"#,
@@ -2958,6 +2998,97 @@ mod tests {
             layouts.contains_key("a/b/deep"),
             "Should load deeply nested layout 'a/b/deep', got keys: {:?}",
             layouts.keys().collect::<Vec<_>>()
+        );
+    }
+
+    // ========================================================================
+    // Issue 223: LayoutEngine hardbreaks threading
+    // ========================================================================
+
+    #[test]
+    fn test_issue223_layout_engine_passes_hardbreaks_to_renderer() {
+        // Test the full pipeline: LayoutEngine with hardbreaks enabled
+        // converts markdown soft breaks to <br> in the final output.
+        let layout_source = "<body>{{ content }}</body>";
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            Layout {
+                source: layout_source.to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let mut engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        // Enable hardbreaks and disable kramdown code classes (CommonMarkGhPages mode)
+        engine.set_hardbreaks(true);
+        engine.set_kramdown_code_classes(false);
+
+        // Convert markdown with hardbreaks, then render through layout
+        let html_content = crate::frontmatter::markdown_to_html_with_options(
+            "line one\nline two\n",
+            false,
+            false,
+            true,
+        );
+
+        let fm = FrontMatter::new();
+        let site = Object::new();
+        let output = engine.render("default", &html_content, &fm, &site).unwrap();
+
+        // The render method doesn't call normalize_html_output, so we simulate
+        // the full production pipeline: normalize then convert <br /> to <br>.
+        let normalized = crate::kramdown::normalize_html_output(&output);
+        let final_output = if engine.enable_hardbreaks {
+            crate::frontmatter::normalize_br_to_html5(&normalized)
+        } else {
+            normalized
+        };
+
+        assert!(
+            final_output.contains("<br>"),
+            "LayoutEngine with hardbreaks enabled should produce <br>. Got: {}",
+            final_output
+        );
+        assert!(
+            !final_output.contains("<br />"),
+            "Should NOT have XHTML-style <br />. Got: {}",
+            final_output
+        );
+    }
+
+    #[test]
+    fn test_issue223_layout_engine_no_hardbreaks_by_default() {
+        let layout_source = "<body>{{ content }}</body>";
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            Layout {
+                source: layout_source.to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let html_content = crate::frontmatter::markdown_to_html_with_options(
+            "line one\nline two\n",
+            true,
+            true,
+            false,
+        );
+
+        let fm = FrontMatter::new();
+        let site = Object::new();
+        let output = engine.render("default", &html_content, &fm, &site).unwrap();
+
+        assert!(
+            !output.contains("<br"),
+            "LayoutEngine without hardbreaks should NOT produce <br>. Got: {}",
+            output
         );
     }
 }

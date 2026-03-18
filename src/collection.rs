@@ -390,6 +390,13 @@ pub fn sanitize_slug(raw: &str) -> String {
     result
 }
 
+/// Check if the config enables CommonMarkGhPages HARDBREAKS option.
+///
+/// Delegates to `SiteConfig::has_commonmark_hardbreaks()`.
+fn has_commonmark_hardbreaks(config: &SiteConfig) -> bool {
+    config.has_commonmark_hardbreaks()
+}
+
 /// Load all items from a collection directory.
 ///
 /// For posts (`collection_name == "posts"`), the global permalink pattern from
@@ -445,6 +452,9 @@ pub fn load_collection(
         .map(|m| m.eq_ignore_ascii_case("kramdown"))
         .unwrap_or(true); // kramdown is Jekyll's default
 
+    // Issue 223: Check if HARDBREAKS option is enabled in commonmark.options.
+    let enable_hardbreaks = has_commonmark_hardbreaks(config);
+
     // Phase 2: Process files in parallel (read, parse, convert markdown)
     let results: Vec<Result<CollectionItem, CollectionError>> = file_paths
         .par_iter()
@@ -456,6 +466,7 @@ pub fn load_collection(
                 collection_name,
                 &permalink_pattern,
                 add_code_classes,
+                enable_hardbreaks,
             )
         })
         .collect();
@@ -555,6 +566,7 @@ fn process_collection_file(
     collection_name: &str,
     permalink_pattern: &str,
     add_code_classes: bool,
+    enable_hardbreaks: bool,
 ) -> Option<Result<CollectionItem, CollectionError>> {
     let filename = path.file_name()?.to_str()?.to_string();
 
@@ -653,7 +665,12 @@ fn process_collection_file(
     let url = crate::template::filters::relative_url::encode_url_path(&url);
 
     let html_content = if is_markdown {
-        frontmatter::markdown_to_html_with_options(&doc.content, add_code_classes, add_code_classes)
+        frontmatter::markdown_to_html_with_options(
+            &doc.content,
+            add_code_classes,
+            add_code_classes,
+            enable_hardbreaks,
+        )
     } else {
         doc.content.clone()
     };
@@ -954,11 +971,15 @@ fn load_pages_recursive(
             .map(|m| m.eq_ignore_ascii_case("kramdown"))
             .unwrap_or(true);
 
+        // Issue 223: Check if HARDBREAKS option is enabled in commonmark.options.
+        let enable_hardbreaks = has_commonmark_hardbreaks(config);
+
         let html_content = if is_markdown {
             frontmatter::markdown_to_html_with_options(
                 &doc.content,
                 add_code_classes,
                 add_code_classes,
+                enable_hardbreaks,
             )
         } else {
             // Non-markdown files: content is used as-is (will be rendered
@@ -977,6 +998,56 @@ fn load_pages_recursive(
     }
 
     Ok(())
+}
+
+/// A URL collision: multiple source files resolving to the same output URL.
+#[derive(Debug, Clone)]
+pub struct UrlCollision {
+    /// The shared output URL.
+    pub url: String,
+    /// Source file paths that all map to this URL.
+    pub source_paths: Vec<String>,
+}
+
+/// Detect URL collisions among a list of (source_path, url) pairs.
+///
+/// Returns a list of collisions, each containing the shared URL and all source
+/// files that map to it. Only URLs with two or more sources are returned.
+/// Results are sorted by URL for deterministic output.
+pub fn detect_url_collisions(entries: &[(String, String)]) -> Vec<UrlCollision> {
+    let mut url_to_sources: std::collections::HashMap<&str, Vec<&str>> =
+        std::collections::HashMap::new();
+    for (source_path, url) in entries {
+        url_to_sources
+            .entry(url.as_str())
+            .or_default()
+            .push(source_path.as_str());
+    }
+    let mut collisions: Vec<UrlCollision> = url_to_sources
+        .into_iter()
+        .filter(|(_, sources)| sources.len() > 1)
+        .map(|(url, sources)| UrlCollision {
+            url: url.to_string(),
+            source_paths: sources.into_iter().map(|s| s.to_string()).collect(),
+        })
+        .collect();
+    collisions.sort_by(|a, b| a.url.cmp(&b.url));
+    // Also sort source paths within each collision for deterministic output
+    for collision in &mut collisions {
+        collision.source_paths.sort();
+    }
+    collisions
+}
+
+/// Format a URL collision as a warning message matching Jekyll's format.
+///
+/// Produces: `Conflict: The URL '<url>' is the destination for the following pages: <file1>, <file2>`
+pub fn format_collision_warning(collision: &UrlCollision) -> String {
+    format!(
+        "Conflict: The URL '{}' is the destination for the following pages: {}",
+        collision.url,
+        collision.source_paths.join(", ")
+    )
 }
 
 #[cfg(test)]
@@ -2562,5 +2633,92 @@ mod tests {
         };
         let url = generate_url_with_context("/:collection/:path", &ctx);
         assert_eq!(url, "/pages/über-uns");
+    }
+
+    // ========================================================================
+    // Unit: URL collision detection (Issue 225)
+    // ========================================================================
+
+    #[test]
+    fn test_detect_url_collisions_finds_duplicate() {
+        let entries = vec![
+            (
+                "_posts/2025-04-15-hello-world.md".to_string(),
+                "/blog/hello-world.html".to_string(),
+            ),
+            (
+                "_posts/2025-04-29-hello-world.md".to_string(),
+                "/blog/hello-world.html".to_string(),
+            ),
+        ];
+        let collisions = detect_url_collisions(&entries);
+        assert_eq!(collisions.len(), 1);
+        assert_eq!(collisions[0].url, "/blog/hello-world.html");
+        assert_eq!(collisions[0].source_paths.len(), 2);
+        assert!(collisions[0]
+            .source_paths
+            .contains(&"_posts/2025-04-15-hello-world.md".to_string()));
+        assert!(collisions[0]
+            .source_paths
+            .contains(&"_posts/2025-04-29-hello-world.md".to_string()));
+    }
+
+    #[test]
+    fn test_detect_url_collisions_no_false_positives() {
+        let entries = vec![
+            (
+                "_posts/2025-04-15-hello.md".to_string(),
+                "/blog/hello.html".to_string(),
+            ),
+            (
+                "_posts/2025-04-29-world.md".to_string(),
+                "/blog/world.html".to_string(),
+            ),
+            (
+                "_posts/2025-05-01-foo.md".to_string(),
+                "/blog/foo.html".to_string(),
+            ),
+        ];
+        let collisions = detect_url_collisions(&entries);
+        assert!(collisions.is_empty());
+    }
+
+    #[test]
+    fn test_detect_url_collisions_three_way() {
+        let entries = vec![
+            ("_posts/a.md".to_string(), "/blog/same.html".to_string()),
+            ("_posts/b.md".to_string(), "/blog/same.html".to_string()),
+            ("_posts/c.md".to_string(), "/blog/same.html".to_string()),
+        ];
+        let collisions = detect_url_collisions(&entries);
+        assert_eq!(collisions.len(), 1);
+        assert_eq!(collisions[0].source_paths.len(), 3);
+    }
+
+    #[test]
+    fn test_detect_url_collisions_multiple_independent() {
+        let entries = vec![
+            ("_posts/a1.md".to_string(), "/blog/alpha.html".to_string()),
+            ("_posts/a2.md".to_string(), "/blog/alpha.html".to_string()),
+            ("_posts/b1.md".to_string(), "/blog/beta.html".to_string()),
+            ("_posts/b2.md".to_string(), "/blog/beta.html".to_string()),
+            ("_posts/c1.md".to_string(), "/blog/gamma.html".to_string()),
+        ];
+        let collisions = detect_url_collisions(&entries);
+        assert_eq!(collisions.len(), 2);
+        let urls: Vec<&str> = collisions.iter().map(|c| c.url.as_str()).collect();
+        assert!(urls.contains(&"/blog/alpha.html"));
+        assert!(urls.contains(&"/blog/beta.html"));
+    }
+
+    #[test]
+    fn test_detect_url_collisions_unicode_urls() {
+        let entries = vec![
+            ("_posts/a.md".to_string(), "/blog/über-uns.html".to_string()),
+            ("_posts/b.md".to_string(), "/blog/über-uns.html".to_string()),
+        ];
+        let collisions = detect_url_collisions(&entries);
+        assert_eq!(collisions.len(), 1);
+        assert_eq!(collisions[0].url, "/blog/über-uns.html");
     }
 }
