@@ -43,6 +43,16 @@ Verify:
 - [ ] All tests pass (`cargo test`)
 - [ ] Tests cover the acceptance criteria
 - [ ] Edge cases tested
+- [ ] Tests include non-ASCII/Unicode content (Arabic, Cyrillic, CJK, etc.)
+
+#### TDD Compliance (Mandatory)
+- [ ] The SWE's `## Log` section shows the TDD cycle for each fix:
+  1. Test written FIRST (before implementation)
+  2. Test ran and FAILED (with expected vs actual output logged)
+  3. Fix implemented
+  4. Test ran and PASSED
+- [ ] If the log skips the "verify FAILS" step, flag it as a non-blocking concern
+- [ ] If no TDD evidence at all, FAIL the review
 
 #### Output Verification (for HTML generation issues)
 - [ ] Build the site with `cargo run` (or the appropriate command)
@@ -107,6 +117,8 @@ When the engineer applies fixes:
 - Generated HTML is malformed or missing expected content
 - Output doesn't match expected behavior from the original Jekyll site
 - Tests only check compilation without verifying actual output correctness
+- No TDD evidence in the SWE log (tests must be written before implementation)
+- Tests don't include non-ASCII/Unicode content
 
 ### Pass with note (don't block)
 - Minor style issues
