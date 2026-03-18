@@ -63,3 +63,19 @@ None.
 ### Integration: Full site verification
 
 - Build DTC site and verify JSON-LD dates in blog pages and event pages include the correct timezone offset.
+
+## Log
+
+### [SWE] 2026-03-18
+
+- Implemented timezone-aware date formatting for JSON-LD output
+- Root cause: `date_to_xmlschema` filter and SEO tag always hardcoded `+00:00`
+- Fix applied in 3 areas:
+  1. New `format_datetime_with_tz_offset` and `format_date_to_xmlschema` functions in `src/template/filters/mod.rs` that use `chrono_tz` to compute the correct UTC offset for a date in the site's timezone
+  2. `date_to_xmlschema` filter now delegates to `format_date_to_xmlschema` (uses site timezone from runtime context)
+  3. SEO tag's `datePublished` field now applies timezone-aware formatting via `format_date_to_xmlschema`
+  4. `expand_date_only_string_with_tz` in `context.rs` uses site timezone for `page.date` expansion
+- Tests added: 14 new tests covering Berlin winter/summer (CET/CEST), UTC default, explicit time, RFC3339 preservation, Jekyll-style offset preservation, empty/invalid passthrough, event dates
+- Build: 1467 tests pass, 0 fail, clippy clean, fmt clean (on my files)
+- Files modified: `src/template/filters/mod.rs`, `src/template/filters/date_to_xmlschema.rs`, `src/template/seo_tag.rs`, `src/template/context.rs`, `src/template/mod.rs`
+- Note: Pre-existing uncommitted changes from another agent in `engine.rs`/`layout.rs`/`generator.rs` cause build failures; these are not from this issue and were reverted for testing

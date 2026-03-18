@@ -59,7 +59,12 @@ pub fn yaml_to_liquid(yaml: &serde_yaml::Value) -> LiquidValue {
 /// `"YYYY-MM-DD 00:00:00 +0000"` (using UTC since we don't track the build timezone).
 ///
 /// Strings that don't match the exact `YYYY-MM-DD` pattern are returned unchanged.
+#[cfg(test)]
 fn expand_date_only_string(s: &str) -> String {
+    expand_date_only_string_with_tz(s, None)
+}
+
+fn expand_date_only_string_with_tz(s: &str, site_tz: Option<chrono_tz::Tz>) -> String {
     // Must be exactly 10 characters: YYYY-MM-DD
     if s.len() != 10 {
         return s.to_string();
@@ -73,6 +78,25 @@ fn expand_date_only_string(s: &str) -> String {
         && bytes[5..7].iter().all(|b| b.is_ascii_digit())
         && bytes[8..10].iter().all(|b| b.is_ascii_digit())
     {
+        if let Some(tz) = site_tz {
+            if let Ok(date) = chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d") {
+                if let Some(dt) = date.and_hms_opt(0, 0, 0) {
+                    use chrono::TimeZone;
+                    if let chrono::LocalResult::Single(loc)
+                    | chrono::LocalResult::Ambiguous(loc, _) = tz.from_local_datetime(&dt)
+                    {
+                        use chrono::Offset;
+                        let offset = loc.offset().fix();
+                        let total_secs = offset.local_minus_utc();
+                        let sign = if total_secs >= 0 { '+' } else { '-' };
+                        let abs_secs = total_secs.unsigned_abs();
+                        let hours = abs_secs / 3600;
+                        let minutes = (abs_secs % 3600) / 60;
+                        return format!("{s} 00:00:00 {sign}{hours:02}{minutes:02}");
+                    }
+                }
+            }
+        }
         format!("{s} 00:00:00 +0000")
     } else {
         s.to_string()
@@ -90,19 +114,22 @@ fn expand_date_only_string(s: &str) -> String {
 /// (e.g., `dateadded`, `start`) remain as plain `YYYY-MM-DD` strings, matching
 /// Ruby's Date#to_s behavior.
 pub fn yaml_mapping_to_object(mapping: &serde_yaml::Mapping) -> Object {
+    yaml_mapping_to_object_with_tz(mapping, None)
+}
+
+pub fn yaml_mapping_to_object_with_tz(
+    mapping: &serde_yaml::Mapping,
+    site_tz: Option<chrono_tz::Tz>,
+) -> Object {
     let mut obj = Object::new();
     for (key, value) in mapping {
         let key_str = match key {
             serde_yaml::Value::String(s) => s.clone(),
             other => format!("{other:?}"),
         };
-        // Only expand date-only strings for the special "date" key.
-        // Jekyll converts the `date` field to a Ruby Time object (renders as
-        // "YYYY-MM-DD 00:00:00 +0000"), but other date-like fields remain as
-        // Ruby Date objects (render as just "YYYY-MM-DD").
         let liquid_value = if key_str == "date" {
             if let serde_yaml::Value::String(s) = value {
-                LiquidValue::scalar(expand_date_only_string(s))
+                LiquidValue::scalar(expand_date_only_string_with_tz(s, site_tz))
             } else {
                 yaml_to_liquid(value)
             }

@@ -19,7 +19,9 @@ pub mod include_tag;
 pub mod layout;
 pub mod seo_tag;
 
-pub use context::{build_context, yaml_mapping_to_object, yaml_to_liquid};
+pub use context::{
+    build_context, yaml_mapping_to_object, yaml_mapping_to_object_with_tz, yaml_to_liquid,
+};
 pub use engine::{load_includes, TemplateEngine};
 pub use error::TemplateError;
 pub use layout::{build_render_context, load_layouts, Layout, LayoutEngine};

@@ -3,7 +3,7 @@ use liquid_core::Runtime;
 use liquid_core::{Display_filter, Filter, FilterReflection, ParseFilter};
 use liquid_core::{Value, ValueView};
 
-use super::{get_site_timezone, parse_date_string_with_tz, safe_chrono_format};
+use super::{format_date_to_xmlschema, get_site_timezone};
 
 /// Format a date as ISO 8601 with timezone (e.g., "2024-01-15T00:00:00+00:00").
 #[derive(Clone, ParseFilter, FilterReflection)]
@@ -31,25 +31,8 @@ impl Filter for DateToXmlschemaFilter {
             return Ok(Value::scalar(String::new()));
         }
 
-        // If the input already has timezone info, try to preserve it
-        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(s) {
-            return Ok(Value::scalar(
-                safe_chrono_format(&dt.format("%Y-%m-%dT%H:%M:%S%:z"))
-                    .unwrap_or_else(|| s.to_string()),
-            ));
-        }
-
         let site_tz = get_site_timezone(runtime);
-        match parse_date_string_with_tz(s, site_tz) {
-            Some(dt) => {
-                // Default timezone is UTC (+00:00)
-                let formatted = safe_chrono_format(&dt.format("%Y-%m-%dT%H:%M:%S"))
-                    .map(|f| format!("{}+00:00", f))
-                    .unwrap_or_else(|| s.to_string());
-                Ok(Value::scalar(formatted))
-            }
-            None => Ok(Value::scalar(s.to_string())),
-        }
+        Ok(Value::scalar(format_date_to_xmlschema(s, site_tz)))
     }
 }
 

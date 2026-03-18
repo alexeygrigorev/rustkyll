@@ -371,9 +371,13 @@ impl Renderable for SeoRenderable {
         }
 
         if let Some(ref date) = page_date {
+            // Format date using date_to_xmlschema logic with site timezone,
+            // matching Jekyll's jekyll-seo-tag which uses {{ page.date | date_to_xmlschema }}
+            let site_tz = crate::template::filters::get_site_timezone(runtime);
+            let formatted_date = crate::template::filters::format_date_to_xmlschema(date, site_tz);
             output.push_str(&format!(
                 "  \"datePublished\": \"{}\",\n",
-                json_escape(date)
+                json_escape(&formatted_date)
             ));
         }
 

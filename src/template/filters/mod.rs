@@ -154,6 +154,50 @@ pub(crate) fn parse_date_string_with_tz(
     None
 }
 
+/// Format a naive datetime with the correct timezone offset for the given site timezone.
+pub(crate) fn format_datetime_with_tz_offset(
+    dt: chrono::NaiveDateTime,
+    site_tz: Option<chrono_tz::Tz>,
+) -> String {
+    use chrono::TimeZone;
+    match site_tz {
+        Some(tz) => match tz.from_local_datetime(&dt) {
+            chrono::LocalResult::Single(localized) => {
+                safe_chrono_format(&localized.format("%Y-%m-%dT%H:%M:%S%:z"))
+                    .unwrap_or_else(|| format!("{}+00:00", dt.format("%Y-%m-%dT%H:%M:%S")))
+            }
+            chrono::LocalResult::Ambiguous(earliest, _) => {
+                safe_chrono_format(&earliest.format("%Y-%m-%dT%H:%M:%S%:z"))
+                    .unwrap_or_else(|| format!("{}+00:00", dt.format("%Y-%m-%dT%H:%M:%S")))
+            }
+            chrono::LocalResult::None => {
+                format!("{}+00:00", dt.format("%Y-%m-%dT%H:%M:%S"))
+            }
+        },
+        None => format!("{}+00:00", dt.format("%Y-%m-%dT%H:%M:%S")),
+    }
+}
+
+/// Format a raw date string to ISO 8601 xmlschema format with the correct timezone offset.
+pub(crate) fn format_date_to_xmlschema(s: &str, site_tz: Option<chrono_tz::Tz>) -> String {
+    let trimmed = s.trim();
+    if trimmed.is_empty() {
+        return String::new();
+    }
+    if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(trimmed) {
+        return safe_chrono_format(&dt.format("%Y-%m-%dT%H:%M:%S%:z"))
+            .unwrap_or_else(|| trimmed.to_string());
+    }
+    if let Ok(dt) = chrono::DateTime::parse_from_str(trimmed, "%Y-%m-%d %H:%M:%S %z") {
+        return safe_chrono_format(&dt.format("%Y-%m-%dT%H:%M:%S%:z"))
+            .unwrap_or_else(|| trimmed.to_string());
+    }
+    match parse_date_string_with_tz(trimmed, site_tz) {
+        Some(dt) => format_datetime_with_tz_offset(dt, site_tz),
+        None => trimmed.to_string(),
+    }
+}
+
 /// Check if a date string is a naive YAML timestamp (has time but no timezone).
 ///
 /// Returns true for "YYYY-MM-DD HH:MM:SS" and "YYYY-MM-DDTHH:MM:SS" formats
@@ -412,5 +456,141 @@ mod tests {
         assert!(!is_naive_yaml_timestamp("2020-12-18 23:59:59 +0200"));
         assert!(!is_naive_yaml_timestamp("2020-12-18T23:59:59+00:00"));
         assert!(!is_naive_yaml_timestamp("2020-12-18T23:59:59Z"));
+    }
+
+    #[test]
+    fn test_format_datetime_tz_berlin_winter() {
+        let dt = chrono::NaiveDate::from_ymd_opt(2023, 12, 11)
+            .unwrap()
+            .and_hms_opt(0, 0, 0)
+            .unwrap();
+        let tz = resolve_site_tz("Europe/Berlin").unwrap();
+        assert_eq!(
+            format_datetime_with_tz_offset(dt, Some(tz)),
+            "2023-12-11T00:00:00+01:00"
+        );
+    }
+
+    #[test]
+    fn test_format_datetime_tz_berlin_summer() {
+        let dt = chrono::NaiveDate::from_ymd_opt(2023, 7, 15)
+            .unwrap()
+            .and_hms_opt(0, 0, 0)
+            .unwrap();
+        let tz = resolve_site_tz("Europe/Berlin").unwrap();
+        assert_eq!(
+            format_datetime_with_tz_offset(dt, Some(tz)),
+            "2023-07-15T00:00:00+02:00"
+        );
+    }
+
+    #[test]
+    fn test_format_datetime_tz_none_defaults_utc() {
+        let dt = chrono::NaiveDate::from_ymd_opt(2023, 12, 11)
+            .unwrap()
+            .and_hms_opt(0, 0, 0)
+            .unwrap();
+        assert_eq!(
+            format_datetime_with_tz_offset(dt, None),
+            "2023-12-11T00:00:00+00:00"
+        );
+    }
+
+    #[test]
+    fn test_format_datetime_tz_utc() {
+        let dt = chrono::NaiveDate::from_ymd_opt(2023, 12, 11)
+            .unwrap()
+            .and_hms_opt(0, 0, 0)
+            .unwrap();
+        let tz = resolve_site_tz("UTC").unwrap();
+        assert_eq!(
+            format_datetime_with_tz_offset(dt, Some(tz)),
+            "2023-12-11T00:00:00+00:00"
+        );
+    }
+
+    #[test]
+    fn test_xmlschema_berlin_winter() {
+        let tz = resolve_site_tz("Europe/Berlin");
+        assert_eq!(
+            format_date_to_xmlschema("2023-12-11", tz),
+            "2023-12-11T00:00:00+01:00"
+        );
+    }
+
+    #[test]
+    fn test_xmlschema_berlin_summer() {
+        let tz = resolve_site_tz("Europe/Berlin");
+        assert_eq!(
+            format_date_to_xmlschema("2023-07-15", tz),
+            "2023-07-15T00:00:00+02:00"
+        );
+    }
+
+    #[test]
+    fn test_xmlschema_no_tz_defaults_utc() {
+        assert_eq!(
+            format_date_to_xmlschema("2023-12-11", None),
+            "2023-12-11T00:00:00+00:00"
+        );
+    }
+
+    #[test]
+    fn test_xmlschema_with_explicit_time() {
+        let tz = resolve_site_tz("Europe/Berlin");
+        assert_eq!(
+            format_date_to_xmlschema("2023-12-11T14:30:00", tz),
+            "2023-12-11T14:30:00+01:00"
+        );
+    }
+
+    #[test]
+    fn test_xmlschema_preserves_rfc3339_tz() {
+        let tz = resolve_site_tz("Europe/Berlin");
+        assert_eq!(
+            format_date_to_xmlschema("2024-01-15T14:30:00+00:00", tz),
+            "2024-01-15T14:30:00+00:00"
+        );
+    }
+
+    #[test]
+    fn test_xmlschema_preserves_jekyll_style_tz() {
+        let tz = resolve_site_tz("Europe/Berlin");
+        assert_eq!(
+            format_date_to_xmlschema("2023-10-11 00:00:00 +0200", tz),
+            "2023-10-11T00:00:00+02:00"
+        );
+    }
+
+    #[test]
+    fn test_xmlschema_empty_string() {
+        assert_eq!(format_date_to_xmlschema("", None), "");
+    }
+
+    #[test]
+    fn test_xmlschema_invalid_passthrough() {
+        assert_eq!(format_date_to_xmlschema("not-a-date", None), "not-a-date");
+    }
+
+    #[test]
+    fn test_xmlschema_event_dates_berlin() {
+        let tz = resolve_site_tz("Europe/Berlin");
+        assert_eq!(
+            format_date_to_xmlschema("2024-01-15", tz),
+            "2024-01-15T00:00:00+01:00"
+        );
+        assert_eq!(
+            format_date_to_xmlschema("2024-01-19", tz),
+            "2024-01-19T00:00:00+01:00"
+        );
+    }
+
+    #[test]
+    fn test_xmlschema_preserves_explicit_utc_offset() {
+        let tz = resolve_site_tz("Europe/Berlin");
+        assert_eq!(
+            format_date_to_xmlschema("2023-12-11 00:00:00 +0000", tz),
+            "2023-12-11T00:00:00+00:00"
+        );
     }
 }
