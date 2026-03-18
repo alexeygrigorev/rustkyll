@@ -2,9 +2,11 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/leap-day-theme/_site_jekyl
 Rustkyll directory: /home/alexey/git/rustkyl/websites/leap-day-theme/_site_rustkyll_recount
 Common HTML files:  2
 
-DIFF another-page.html (1 differences)
+DIFF another-page.html (2 differences)
+  head > meta > meta > link: attribute_differs - expected: "href='/assets/css/style.css?v='", actual: "href='/assets/css/style.css?v=22906d2f6c9c39b71e19f7217a8a265b090bf637'"
   body > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/leap-day'"
-DIFF index.html (81 differences)
+DIFF index.html (82 differences)
+  head > meta > meta > link: attribute_differs - expected: "href='/assets/css/style.css?v='", actual: "href='/assets/css/style.css?v=22906d2f6c9c39b71e19f7217a8a265b090bf637'"
   body > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/leap-day'"
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='nx'"
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='nx'"
@@ -14,7 +16,6 @@ DIFF index.html (81 differences)
   body > div > section > div > div > pre > code > span: text_differs - expected: './lang/', actual: '+'
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='dl'", actual: "class='nx'"
   body > div > section > div > div > pre > code > span: text_differs - expected: "'", actual: 'l'
-  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
-  ... and 71 more differences
+  ... and 72 more differences
 
-Summary: 0 files matched, 2 files with differences, 82 total differences
+Summary: 0 files matched, 2 files with differences, 84 total differences

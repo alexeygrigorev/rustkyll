@@ -2,7 +2,8 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/time-machine-theme/_site_j
 Rustkyll directory: /home/alexey/git/rustkyl/websites/time-machine-theme/_site_rustkyll_recount
 Common HTML files:  2
 
-DIFF another-page.html (12 differences)
+DIFF another-page.html (13 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/style.css?v='", actual: "href='/assets/css/style.css?v=d7615e5e8b275775bcce38ca6c45acf32b8cf8b6'"
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta: extra_element - expected: '(none)', actual: '<meta>'
   head > meta: extra_element - expected: '(none)', actual: '<meta>'
@@ -12,9 +13,9 @@ DIFF another-page.html (12 differences)
   head > meta: extra_element - expected: '(none)', actual: '<meta>'
   head > meta: extra_element - expected: '(none)', actual: '<meta>'
   head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > script: extra_element - expected: '(none)', actual: '<script>'
-  ... and 2 more differences
-DIFF index.html (92 differences)
+  ... and 3 more differences
+DIFF index.html (93 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/style.css?v='", actual: "href='/assets/css/style.css?v=d7615e5e8b275775bcce38ca6c45acf32b8cf8b6'"
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta: extra_element - expected: '(none)', actual: '<meta>'
   head > meta: extra_element - expected: '(none)', actual: '<meta>'
@@ -24,7 +25,6 @@ DIFF index.html (92 differences)
   head > meta: extra_element - expected: '(none)', actual: '<meta>'
   head > meta: extra_element - expected: '(none)', actual: '<meta>'
   head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > script: extra_element - expected: '(none)', actual: '<script>'
-  ... and 82 more differences
+  ... and 83 more differences
 
-Summary: 0 files matched, 2 files with differences, 104 total differences
+Summary: 0 files matched, 2 files with differences, 106 total differences

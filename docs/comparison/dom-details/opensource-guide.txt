@@ -23,7 +23,7 @@ DIFF ar/how-to-contribute/index.html (2 differences)
   body: missing_element - expected: '<body>', actual: '(none)'
 DIFF ar/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -133,7 +133,7 @@ DIFF bg/how-to-contribute/index.html (157 differences)
   ... and 147 more differences
 DIFF bg/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -285,7 +285,7 @@ DIFF bn/how-to-contribute/index.html (157 differences)
   ... and 147 more differences
 DIFF bn/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -461,7 +461,7 @@ DIFF de/how-to-contribute/index.html (157 differences)
   ... and 147 more differences
 DIFF de/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -613,7 +613,7 @@ DIFF el/how-to-contribute/index.html (156 differences)
   ... and 146 more differences
 DIFF el/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -765,7 +765,7 @@ DIFF es/how-to-contribute/index.html (154 differences)
   ... and 144 more differences
 DIFF es/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -917,7 +917,7 @@ DIFF fa/how-to-contribute/index.html (158 differences)
   ... and 148 more differences
 DIFF fa/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -1082,7 +1082,7 @@ DIFF fr/how-to-contribute/index.html (154 differences)
   ... and 144 more differences
 DIFF fr/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -1246,7 +1246,7 @@ DIFF hi/how-to-contribute/index.html (157 differences)
   ... and 147 more differences
 DIFF hi/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -1410,7 +1410,7 @@ DIFF hu/how-to-contribute/index.html (155 differences)
   ... and 145 more differences
 DIFF hu/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -1562,7 +1562,7 @@ DIFF id/how-to-contribute/index.html (154 differences)
   ... and 144 more differences
 DIFF id/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -1721,7 +1721,7 @@ DIFF it/how-to-contribute/index.html (157 differences)
   ... and 147 more differences
 DIFF it/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -1873,7 +1873,7 @@ DIFF ja/how-to-contribute/index.html (154 differences)
   ... and 144 more differences
 DIFF ja/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -2025,7 +2025,7 @@ DIFF ko/how-to-contribute/index.html (154 differences)
   ... and 144 more differences
 DIFF ko/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -2226,7 +2226,7 @@ DIFF ms/how-to-contribute/index.html (157 differences)
   ... and 147 more differences
 DIFF ms/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -2378,7 +2378,7 @@ DIFF nl/how-to-contribute/index.html (157 differences)
   ... and 147 more differences
 DIFF nl/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -2536,7 +2536,7 @@ DIFF pcm/how-to-contribute/index.html (157 differences)
   ... and 147 more differences
 DIFF pcm/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -2688,7 +2688,7 @@ DIFF pl/how-to-contribute/index.html (157 differences)
   ... and 147 more differences
 DIFF pl/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -2840,7 +2840,7 @@ DIFF pt/how-to-contribute/index.html (154 differences)
   ... and 144 more differences
 DIFF pt/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -2992,7 +2992,7 @@ DIFF ro/how-to-contribute/index.html (154 differences)
   ... and 144 more differences
 DIFF ro/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -3144,7 +3144,7 @@ DIFF ru/how-to-contribute/index.html (157 differences)
   ... and 147 more differences
 DIFF ru/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -3294,7 +3294,7 @@ DIFF sa/how-to-contribute/index.html (10 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
 DIFF sa/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -3465,7 +3465,7 @@ DIFF sw/how-to-contribute/index.html (157 differences)
   ... and 147 more differences
 DIFF sw/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -3617,7 +3617,7 @@ DIFF ta/how-to-contribute/index.html (154 differences)
   ... and 144 more differences
 DIFF ta/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -3769,7 +3769,7 @@ DIFF tr/how-to-contribute/index.html (157 differences)
   ... and 147 more differences
 DIFF tr/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -3922,7 +3922,7 @@ DIFF zh-hans/how-to-contribute/index.html (155 differences)
 DIFF zh-hans/index.html (9 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='zh_hans'", actual: "content='zh-hans'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -4076,7 +4076,7 @@ DIFF zh-hant/how-to-contribute/index.html (154 differences)
 DIFF zh-hant/index.html (8 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='zh_hant'", actual: "content='zh-hant'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T15:57:07+01:00'", actual: "content='2026-03-18T14:57:26+00:00'"
   head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
