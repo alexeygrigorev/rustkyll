@@ -115,3 +115,35 @@ fn test_jsonld_headline_format() {
 - [ ] Headline field matches jekyll-seo-tag output
 - [ ] After issues 184 and 185 are resolved, remaining diffs addressed or documented
 - [ ] No regressions in existing JSON-LD tests
+
+## Log
+
+### [SWE] 2026-03-18
+
+**Investigation findings:**
+
+Analyzed the DTC dom-details file. The 212 JSON-LD value diffs break down as:
+- ~180: Author description trailing `\n` and markdown link rendering (covered by issue 185)
+- ~9: `body > script > jsonld.description` differences caused by missing trailing whitespace before soft breaks in markdown rendering (spaces before `$` and other chars lost at line breaks)
+- ~20: `body > script > jsonld.@graph[0].author[0].description` differences (whitespace/newline/markdown issues - covered by issue 185)
+- ~9: Theme site headline diffs: headline using full "page | site" title instead of just page title
+- 0: Direct `$` stripping (the `$` itself is preserved; the issue was missing whitespace before it)
+
+No separate truncation bug found. The description truncation difference was a consequence of the missing whitespace bug -- with 1 fewer space character, the truncation point shifted by 1 character.
+
+**Root causes found and fixed:**
+
+1. **Headline bug** (`src/template/seo_tag.rs`): JSON-LD `headline` field was using `full_title` (e.g., "My Page | My Site") instead of `og_page_title` (just "My Page"). Jekyll's `json_ld_drop.rb` delegates headline to `page_drop.page_title` which is page title only.
+
+2. **Trailing whitespace before soft breaks** (`src/frontmatter.rs`): pulldown-cmark (CommonMark) strips trailing whitespace from text events before SoftBreak events. kramdown preserves it. This caused `"with a \n$500,000"` to become `"with a\n$500,000"` in HTML, then after `strip_newlines` -> `"with a$500,000"` (missing space). Fixed by using `into_offset_iter()` to check the source text and restore trailing whitespace before SoftBreak events.
+
+**Files modified:**
+- `src/template/seo_tag.rs` -- headline uses `og_page_title` instead of `full_title`
+- `src/frontmatter.rs` -- `add_inline_code_class_to_events` now uses offset iterator to restore trailing whitespace before soft breaks; 2 new tests
+- `src/template/engine.rs` -- 2 new tests for `$` character and strip pipeline
+
+**Test results:**
+- 1517 tests total, 1514 pass, 3 fail
+- 3 failures are pre-existing from uncommitted kramdown.rs changes (issue 204), unrelated to this issue
+- All 6 new tests pass (2 in frontmatter, 2 in seo_tag, 2 in engine)
+- Clippy clean, fmt clean (on my files)

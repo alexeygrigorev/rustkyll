@@ -373,9 +373,11 @@ impl Renderable for SeoRenderable {
             }
         }
 
-        if let Some(ref t) = full_title {
+        if let Some(ref t) = og_page_title {
+            // jekyll-seo-tag uses page_title (page title only, or site title fallback)
+            // for the headline field, NOT the full "page | site" combined title.
             // headline is max 110 chars per Google guidelines
-            let headline = if t.len() > 110 { &t[..110] } else { t.as_str() };
+            let headline = if t.len() > 110 { &t[..110] } else { t };
             output.push_str(&format!("  \"headline\": \"{}\",\n", json_escape(headline)));
         }
 
@@ -1807,6 +1809,64 @@ mod tests {
     // ========================================================================
     // Canonical URL construction (issue #69)
     // ========================================================================
+
+    // ========================================================================
+    // JSON-LD headline (issue #202)
+    // ========================================================================
+
+    #[test]
+    fn test_jsonld_headline_is_page_title_not_full_title() {
+        // jekyll-seo-tag delegates headline to page_title (page title alone),
+        // NOT the full "page_title | site_title" combined title.
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Page"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/my-page.html"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        // headline should be "My Page" (page_title), not "My Page | My Site" (full_title)
+        assert!(
+            out.contains("\"headline\": \"My Page\""),
+            "JSON-LD headline should be page title only, not full title. Got: {}",
+            out
+        );
+        assert!(
+            !out.contains("\"headline\": \"My Page | My Site\""),
+            "JSON-LD headline must NOT include site title suffix"
+        );
+    }
+
+    #[test]
+    fn test_jsonld_headline_fallback_to_site_title() {
+        // When no page title, headline should fall back to site_title
+        let eng = engine();
+        let ctx = make_context(
+            None,
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"headline\": \"My Site\""),
+            "JSON-LD headline should fall back to site title. Got: {}",
+            out
+        );
+    }
 
     #[test]
     fn test_canonical_url_no_double_slashes() {

@@ -3366,4 +3366,50 @@ title: "Test Book"
             "markdownify in regular templates should preserve trailing newline"
         );
     }
+
+    // ========================================================================
+    // Issue 202: Special characters and trailing whitespace in descriptions
+    // ========================================================================
+
+    /// When content has trailing whitespace before a newline (soft break),
+    /// the strip_html | strip_newlines pipeline should preserve the space.
+    /// This matches kramdown behavior where "with a \n$500" becomes
+    /// "with a $500" after strip_newlines (space preserved).
+    #[test]
+    fn test_issue202_strip_pipeline_preserves_trailing_space() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        // Simulate HTML content from kramdown-compatible markdown rendering
+        // Source: "with a \n$500,000 grand prize"
+        // HTML: "<p>with a \n$500,000 grand prize</p>\n"
+        ctx.insert(
+            "content".into(),
+            LiquidValue::scalar("<p>with a \n$500,000 grand prize</p>\n"),
+        );
+        let template =
+            r#"{% assign desc = content | strip_html | strip_newlines %}{{ desc | jsonify }}"#;
+        let out = eng.parse_and_render(template, &ctx).unwrap();
+        assert!(
+            out.contains("with a $500,000"),
+            "Space before $ must be preserved after strip_newlines. Got: {:?}",
+            out
+        );
+    }
+
+    /// The truncate: 200 filter should work correctly with special characters
+    /// like $ in the content.
+    #[test]
+    fn test_issue202_truncate_preserves_dollar_sign() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("text".into(), LiquidValue::scalar("won a $500,000 prize"));
+        let out = eng
+            .parse_and_render("{{ text | truncate: 200 }}", &ctx)
+            .unwrap();
+        assert_eq!(
+            out, "won a $500,000 prize",
+            "Dollar sign must not be stripped. Got: {:?}",
+            out
+        );
+    }
 }

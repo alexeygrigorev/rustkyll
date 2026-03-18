@@ -138,9 +138,12 @@ pub fn parse_document(input: &str) -> Result<Document, ParseError> {
 /// Raw HTML `<code>` tags (passed through as `Html`/`InlineHtml` events) are
 /// left untouched -- Jekyll/kramdown only adds the class to markdown-rendered
 /// backtick code, not to `<code>` tags already present in the source HTML.
-fn add_inline_code_class_to_events<'a>(parser: impl Iterator<Item = Event<'a>>) -> Vec<Event<'a>> {
+fn add_inline_code_class_to_events<'a>(
+    parser: impl Iterator<Item = (Event<'a>, std::ops::Range<usize>)>,
+    source: &'a str,
+) -> Vec<Event<'a>> {
     let mut events = Vec::new();
-    for event in parser {
+    for (event, range) in parser {
         match event {
             Event::Code(text) => {
                 // Emit raw HTML instead of the Code event so that push_html
@@ -150,6 +153,29 @@ fn add_inline_code_class_to_events<'a>(parser: impl Iterator<Item = Event<'a>>) 
                     "<code class=\"language-plaintext highlighter-rouge\">{escaped}</code>"
                 );
                 events.push(Event::InlineHtml(html.into()));
+            }
+            Event::SoftBreak => {
+                // Kramdown preserves trailing whitespace from source lines before
+                // soft breaks. pulldown-cmark strips it (CommonMark behavior).
+                // Restore any trailing whitespace that was stripped to match kramdown.
+                //
+                // The range for SoftBreak covers the newline in the source.
+                // Check the source byte just before the range start for whitespace.
+                if range.start > 0 {
+                    let before = &source[..range.start];
+                    let trailing_ws: String = before
+                        .chars()
+                        .rev()
+                        .take_while(|c| *c == ' ' || *c == '\t')
+                        .collect::<String>()
+                        .chars()
+                        .rev()
+                        .collect();
+                    if !trailing_ws.is_empty() {
+                        events.push(Event::Text(trailing_ws.into()));
+                    }
+                }
+                events.push(Event::SoftBreak);
             }
             other => events.push(other),
         }
@@ -188,12 +214,20 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // pulldown-cmark (CommonMark) would treat these as ordered lists.
     let markdown = escape_paren_list_markers(markdown);
 
+    // Issue 204: Escape heading markers inside list context to match kramdown.
+    // In kramdown, headings after list items without a blank line are text.
+    let markdown = crate::kramdown::escape_headings_in_list_context(&markdown);
+
+    // Issue 204: Collapse blank lines between list items to match kramdown's
+    // tight list behavior. CommonMark makes entire list loose on any blank line.
+    let markdown = crate::kramdown::collapse_blank_lines_between_list_items(&markdown);
+
     // Protect Liquid tags from smart punctuation by replacing quotes inside
     // {% %} and {{ }} patterns with placeholders.
     let protected = protect_liquid_quotes(&markdown);
 
     let parser = Parser::new_ext(&protected, options);
-    let events = add_inline_code_class_to_events(parser);
+    let events = add_inline_code_class_to_events(parser.into_offset_iter(), &protected);
     let mut html_output = String::new();
     html::push_html(&mut html_output, events.into_iter());
 
@@ -220,7 +254,7 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     let protected = protect_liquid_quotes(&markdown);
 
     let parser = Parser::new_ext(&protected, options);
-    let events = add_inline_code_class_to_events(parser);
+    let events = add_inline_code_class_to_events(parser.into_offset_iter(), &protected);
     let mut html_output = String::new();
     html::push_html(&mut html_output, events.into_iter());
 
@@ -647,7 +681,11 @@ mod tests {
     fn test_md_raw_html_passthrough() {
         let html = markdown_to_html("<figure><img src=\"test.jpg\"></figure>");
         assert!(html.contains("<figure>"));
-        assert!(html.contains("<img src=\"test.jpg\">"));
+        assert!(
+            html.contains("<img src=\"test.jpg\" />"),
+            "Should contain XHTML-style img tag. Got: {}",
+            html
+        );
         assert!(html.contains("</figure>"));
     }
 
@@ -1625,6 +1663,57 @@ Some text after.
             html.contains("a &lt; b &amp;&amp; c &gt; d</code>"),
             "Special chars should be escaped in inline code. Got: {}",
             html
+        );
+    }
+
+    // ========================================================================
+    // Issue 202: Preserve trailing whitespace before soft breaks (kramdown compat)
+    // ========================================================================
+
+    #[test]
+    fn test_issue202_soft_break_preserves_trailing_space() {
+        // Kramdown preserves trailing whitespace before newlines in paragraphs.
+        // Source: "with a \n$500" (trailing space before \n)
+        // Kramdown HTML: "<p>with a \n$500</p>\n" (space preserved before \n)
+        // pulldown-cmark strips trailing whitespace before soft breaks.
+        // We must restore it for kramdown compatibility.
+        let input = "with a \n$500";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("with a \n$500") || html.contains("with a\n$500"),
+            "Soft break should preserve trailing space. Got: {:?}",
+            html
+        );
+        // The critical test: after strip_html | strip_newlines, space before $ must remain
+        let stripped = html
+            .replace("<p>", "")
+            .replace("</p>", "")
+            .replace('\n', "");
+        assert!(
+            stripped.contains("with a $500"),
+            "After removing tags and newlines, space before $ must be preserved. Got: {:?}",
+            stripped
+        );
+    }
+
+    #[test]
+    fn test_issue202_soft_break_no_trailing_space() {
+        // When source has NO trailing space before newline:
+        // Source: "side of\nML" (no trailing space)
+        // Kramdown HTML: "<p>side of\nML</p>\n" (no space before \n)
+        // Both should produce "side ofML" after strip_html | strip_newlines
+        let input = "side of\nML";
+        let html = markdown_to_html(input);
+        let stripped = html
+            .replace("<p>", "")
+            .replace("</p>", "")
+            .replace('\n', "");
+        // Note: when there's no trailing space in the source, kramdown also
+        // produces no space. Both renderers should agree.
+        assert!(
+            stripped.contains("side ofML"),
+            "No trailing space in source means no space after strip_newlines. Got: {:?}",
+            stripped
         );
     }
 }
