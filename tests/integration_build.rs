@@ -931,3 +931,223 @@ fn test_cli_build_quiet_no_phase_output() {
         );
     }
 }
+
+// ============================================================================
+// Issue 225: URL collision warnings
+// ============================================================================
+
+/// Create a minimal site with two posts that have the same slug (different dates).
+/// Build it and verify that a "Conflict" warning is emitted to stderr.
+#[test]
+fn test_build_warns_on_url_collision() {
+    let tmp = tempfile::tempdir().unwrap();
+    let source = tmp.path().join("site");
+    let dest = tmp.path().join("output");
+
+    fs::create_dir_all(source.join("_layouts")).unwrap();
+    fs::create_dir_all(source.join("_posts")).unwrap();
+
+    fs::write(
+        source.join("_config.yml"),
+        r#"
+url: "https://example.com"
+title: "Test Site"
+permalink: "/blog/:title.html"
+"#,
+    )
+    .unwrap();
+
+    fs::write(
+        source.join("_layouts/post.html"),
+        "<html><body>{{ content }}</body></html>",
+    )
+    .unwrap();
+
+    // Two posts with the same slug but different dates
+    fs::write(
+        source.join("_posts/2025-04-15-hello-world.md"),
+        "---\ntitle: Hello World First\nlayout: post\n---\nFirst post content.",
+    )
+    .unwrap();
+
+    fs::write(
+        source.join("_posts/2025-04-29-hello-world.md"),
+        "---\ntitle: Hello World Second\nlayout: post\n---\nSecond post content.",
+    )
+    .unwrap();
+
+    let output = Command::new(env!("CARGO_BIN_EXE_rustkyll"))
+        .arg("build")
+        .arg("--source")
+        .arg(source.to_str().unwrap())
+        .arg("--destination")
+        .arg(dest.to_str().unwrap())
+        .output()
+        .expect("failed to run rustkyll binary");
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    // Build should succeed (warning, not error)
+    assert!(
+        output.status.success(),
+        "Build should succeed even with URL collision.\nstderr: {}",
+        stderr
+    );
+
+    // Should contain the conflict warning
+    assert!(
+        stderr.contains("Conflict"),
+        "stderr should contain 'Conflict' warning for URL collision.\nstderr: {}",
+        stderr
+    );
+    assert!(
+        stderr.contains("/blog/hello-world.html"),
+        "Warning should contain the conflicting URL.\nstderr: {}",
+        stderr
+    );
+    assert!(
+        stderr.contains("2025-04-15-hello-world.md"),
+        "Warning should mention first conflicting file.\nstderr: {}",
+        stderr
+    );
+    assert!(
+        stderr.contains("2025-04-29-hello-world.md"),
+        "Warning should mention second conflicting file.\nstderr: {}",
+        stderr
+    );
+}
+
+/// Build a site with unique post slugs and verify NO collision warning is emitted.
+#[test]
+fn test_build_no_warning_for_unique_slugs() {
+    let tmp = tempfile::tempdir().unwrap();
+    let source = tmp.path().join("site");
+    let dest = tmp.path().join("output");
+
+    fs::create_dir_all(source.join("_layouts")).unwrap();
+    fs::create_dir_all(source.join("_posts")).unwrap();
+
+    fs::write(
+        source.join("_config.yml"),
+        r#"
+url: "https://example.com"
+title: "Test Site"
+permalink: "/blog/:title.html"
+"#,
+    )
+    .unwrap();
+
+    fs::write(
+        source.join("_layouts/post.html"),
+        "<html><body>{{ content }}</body></html>",
+    )
+    .unwrap();
+
+    fs::write(
+        source.join("_posts/2025-04-15-alpha.md"),
+        "---\ntitle: Alpha\nlayout: post\n---\nAlpha content.",
+    )
+    .unwrap();
+
+    fs::write(
+        source.join("_posts/2025-04-29-beta.md"),
+        "---\ntitle: Beta\nlayout: post\n---\nBeta content.",
+    )
+    .unwrap();
+
+    let output = Command::new(env!("CARGO_BIN_EXE_rustkyll"))
+        .arg("build")
+        .arg("--source")
+        .arg(source.to_str().unwrap())
+        .arg("--destination")
+        .arg(dest.to_str().unwrap())
+        .output()
+        .expect("failed to run rustkyll binary");
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert!(
+        output.status.success(),
+        "Build should succeed.\nstderr: {}",
+        stderr
+    );
+
+    assert!(
+        !stderr.contains("Conflict"),
+        "No Conflict warning should be emitted for unique URLs.\nstderr: {}",
+        stderr
+    );
+}
+
+/// Build a site with colliding posts and verify the output HTML uses the expected winner.
+#[test]
+fn test_build_collision_output_unchanged() {
+    let tmp = tempfile::tempdir().unwrap();
+    let source = tmp.path().join("site");
+    let dest = tmp.path().join("output");
+
+    fs::create_dir_all(source.join("_layouts")).unwrap();
+    fs::create_dir_all(source.join("_posts")).unwrap();
+
+    fs::write(
+        source.join("_config.yml"),
+        r#"
+url: "https://example.com"
+title: "Test Site"
+permalink: "/blog/:title.html"
+"#,
+    )
+    .unwrap();
+
+    fs::write(
+        source.join("_layouts/post.html"),
+        "<html><body>{{ content }}</body></html>",
+    )
+    .unwrap();
+
+    // Two posts with the same slug
+    fs::write(
+        source.join("_posts/2025-04-15-same-slug.md"),
+        "---\ntitle: First Post\nlayout: post\n---\nFirst post unique content marker.",
+    )
+    .unwrap();
+
+    fs::write(
+        source.join("_posts/2025-04-29-same-slug.md"),
+        "---\ntitle: Second Post\nlayout: post\n---\nSecond post unique content marker.",
+    )
+    .unwrap();
+
+    let output = Command::new(env!("CARGO_BIN_EXE_rustkyll"))
+        .arg("build")
+        .arg("--source")
+        .arg(source.to_str().unwrap())
+        .arg("--destination")
+        .arg(dest.to_str().unwrap())
+        .output()
+        .expect("failed to run rustkyll binary");
+
+    assert!(
+        output.status.success(),
+        "Build should succeed.\nstderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    // The output file should exist
+    let output_file = dest.join("blog/same-slug.html");
+    assert!(
+        output_file.exists(),
+        "Colliding URL output file should exist"
+    );
+
+    // Read the output to verify it has one of the posts' content
+    // (we don't mandate which one wins, just that the file is valid)
+    let html = fs::read_to_string(&output_file).unwrap();
+    let has_first = html.contains("First post unique content marker");
+    let has_second = html.contains("Second post unique content marker");
+    assert!(
+        has_first || has_second,
+        "Output should contain content from one of the colliding posts.\nHTML: {}",
+        html
+    );
+}
