@@ -2557,6 +2557,305 @@ mod tests {
     }
 
     // ========================================================================
+    // Issue 221: muan-blog meta content quote escaping
+    // Verifies that page.content | strip_html produces straight quotes
+    // when smart punctuation is disabled (CommonMarkGhPages mode).
+    // Issue 220 disabled smart punctuation for CommonMarkGhPages sites,
+    // which means page.content no longer has curly quotes.
+    // ========================================================================
+
+    #[test]
+    fn test_issue221_strip_html_straight_apostrophe_in_meta() {
+        // For CommonMarkGhPages sites, markdown_to_html_with_options with
+        // enable_smart_punctuation=false produces HTML with straight apostrophes.
+        // When used in layout as page.content | strip_html, the meta content
+        // should have straight apostrophes matching Jekyll output.
+        let html_content = crate::frontmatter::markdown_to_html_with_options(
+            "Nathan doesn't write tests",
+            false,
+            false,
+        );
+
+        let layout_source = concat!(
+            r#"<meta content="{{ page.content | strip_html | truncate: 240 }}" name="description">"#,
+            "\n<body>{{ content }}</body>"
+        );
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            Layout {
+                source: layout_source.to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let fm = FrontMatter::new();
+        let site = Object::new();
+        let output = engine.render("default", &html_content, &fm, &site).unwrap();
+
+        // Extract meta content value
+        let meta_start = output
+            .find(r#"<meta content=""#)
+            .expect("meta tag not found");
+        let after_meta = &output[meta_start + 15..];
+        let meta_end = after_meta.find('"').expect("closing quote not found");
+        let meta_desc = &after_meta[..meta_end];
+
+        // Must have straight apostrophe (U+0027), NOT curly (U+2019)
+        assert!(
+            meta_desc.contains("doesn't"),
+            "meta description should have straight apostrophe, got: '{}'",
+            meta_desc
+        );
+        assert!(
+            !meta_desc.contains('\u{2019}'),
+            "meta description should NOT have curly apostrophe U+2019, got: '{}'",
+            meta_desc
+        );
+    }
+
+    #[test]
+    fn test_issue221_strip_html_straight_double_quotes_in_meta() {
+        // CommonMarkGhPages mode: straight double quotes should remain straight
+        let html_content = crate::frontmatter::markdown_to_html_with_options(
+            r#"crappy JS "features" from sites"#,
+            false,
+            false,
+        );
+
+        let layout_source = r#"<desc>{{ page.content | strip_html }}</desc>"#;
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            Layout {
+                source: layout_source.to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let fm = FrontMatter::new();
+        let site = Object::new();
+        let output = engine.render("default", &html_content, &fm, &site).unwrap();
+
+        let desc_start = output.find("<desc>").expect("desc not found") + 6;
+        let desc_end = output.find("</desc>").expect("closing desc not found");
+        let desc_content = &output[desc_start..desc_end];
+
+        // Must NOT have curly double quotes (U+201C / U+201D)
+        assert!(
+            !desc_content.contains('\u{201C}'),
+            "should NOT have left curly double quote, got: '{}'",
+            desc_content
+        );
+        assert!(
+            !desc_content.contains('\u{201D}'),
+            "should NOT have right curly double quote, got: '{}'",
+            desc_content
+        );
+        // Should contain the text with straight quotes
+        assert!(
+            desc_content.contains("features"),
+            "should contain the word features, got: '{}'",
+            desc_content
+        );
+    }
+
+    #[test]
+    fn test_issue221_strip_html_mixed_quotes_in_meta() {
+        // Both apostrophes and double quotes in CommonMarkGhPages mode
+        let html_content = crate::frontmatter::markdown_to_html_with_options(
+            r#"I don't like "fancy" things"#,
+            false,
+            false,
+        );
+
+        let layout_source = r#"<desc>{{ page.content | strip_html }}</desc>"#;
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            Layout {
+                source: layout_source.to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let fm = FrontMatter::new();
+        let site = Object::new();
+        let output = engine.render("default", &html_content, &fm, &site).unwrap();
+
+        let desc_start = output.find("<desc>").expect("desc not found") + 6;
+        let desc_end = output.find("</desc>").expect("closing desc not found");
+        let desc_content = &output[desc_start..desc_end];
+
+        // No curly quotes of any kind
+        assert!(
+            !desc_content.contains('\u{2019}'),
+            "should NOT have curly apostrophe, got: '{}'",
+            desc_content
+        );
+        assert!(
+            !desc_content.contains('\u{201C}'),
+            "should NOT have left curly double quote, got: '{}'",
+            desc_content
+        );
+        assert!(
+            !desc_content.contains('\u{201D}'),
+            "should NOT have right curly double quote, got: '{}'",
+            desc_content
+        );
+        assert!(
+            desc_content.contains("don't"),
+            "should have straight apostrophe in don't, got: '{}'",
+            desc_content
+        );
+    }
+
+    #[test]
+    fn test_issue221_strip_html_unicode_with_apostrophe() {
+        // German umlaut content with apostrophe in CommonMarkGhPages mode
+        let html_content = crate::frontmatter::markdown_to_html_with_options(
+            "B\u{00fc}scher's Buchladen",
+            false,
+            false,
+        );
+
+        let layout_source = r#"<desc>{{ page.content | strip_html }}</desc>"#;
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            Layout {
+                source: layout_source.to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let fm = FrontMatter::new();
+        let site = Object::new();
+        let output = engine.render("default", &html_content, &fm, &site).unwrap();
+
+        let desc_start = output.find("<desc>").expect("desc not found") + 6;
+        let desc_end = output.find("</desc>").expect("closing desc not found");
+        let desc_content = &output[desc_start..desc_end];
+
+        // Umlaut preserved, apostrophe straight
+        assert!(
+            desc_content.contains("B\u{00fc}scher"),
+            "should preserve umlaut, got: '{}'",
+            desc_content
+        );
+        assert!(
+            !desc_content.contains('\u{2019}'),
+            "should NOT have curly apostrophe, got: '{}'",
+            desc_content
+        );
+        assert!(
+            desc_content.contains("B\u{00fc}scher's"),
+            "should have straight apostrophe after umlaut word, got: '{}'",
+            desc_content
+        );
+    }
+
+    #[test]
+    fn test_issue221_strip_html_preserves_already_straight_quotes() {
+        // Content that already has straight quotes should pass through unchanged
+        let html_content = "<p>It's a \"test\"</p>";
+
+        let layout_source = r#"<desc>{{ page.content | strip_html }}</desc>"#;
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            Layout {
+                source: layout_source.to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let fm = FrontMatter::new();
+        let site = Object::new();
+        let output = engine.render("default", html_content, &fm, &site).unwrap();
+
+        let desc_start = output.find("<desc>").expect("desc not found") + 6;
+        let desc_end = output.find("</desc>").expect("closing desc not found");
+        let desc_content = &output[desc_start..desc_end];
+
+        assert!(
+            desc_content.contains("It's"),
+            "straight apostrophe should pass through, got: '{}'",
+            desc_content
+        );
+    }
+
+    #[test]
+    fn test_issue221_meta_content_with_truncation() {
+        // Verify truncation still works correctly with straight quotes
+        // Create content longer than 240 chars with apostrophes
+        let long_text = "Nathan doesn't write tests. ".repeat(15); // ~420 chars
+        let html_content =
+            crate::frontmatter::markdown_to_html_with_options(&long_text, false, false);
+
+        let layout_source = concat!(
+            r#"<meta content="{{ page.content | strip_html | truncate: 240 }}" name="description">"#,
+            "\n<body>{{ content }}</body>"
+        );
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            Layout {
+                source: layout_source.to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let fm = FrontMatter::new();
+        let site = Object::new();
+        let output = engine.render("default", &html_content, &fm, &site).unwrap();
+
+        let meta_start = output
+            .find(r#"<meta content=""#)
+            .expect("meta tag not found");
+        let after_meta = &output[meta_start + 15..];
+        let meta_end = after_meta.find('"').expect("closing quote not found");
+        let meta_desc = &after_meta[..meta_end];
+
+        // Should be truncated to ~240 chars (plus "..." suffix)
+        assert!(
+            meta_desc.len() <= 250,
+            "meta description should be truncated, got {} chars: '{}'",
+            meta_desc.len(),
+            meta_desc
+        );
+        // Should have straight apostrophes
+        assert!(
+            meta_desc.contains("doesn't"),
+            "truncated meta should have straight apostrophe, got: '{}'",
+            meta_desc
+        );
+        assert!(
+            !meta_desc.contains('\u{2019}'),
+            "truncated meta should NOT have curly apostrophe, got: '{}'",
+            meta_desc
+        );
+    }
+
+    // ========================================================================
     // Issue 196: Subdirectory layout loading
     // ========================================================================
 
