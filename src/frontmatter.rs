@@ -433,17 +433,18 @@ fn restore_consecutive_single_quotes(input: &str) -> String {
     result.replace(SINGLE_QUOTE_2_PLACEHOLDER, "''")
 }
 
-/// Issue 207: Decode percent-encoding that pulldown-cmark adds to URLs in href/src attributes.
+/// Issue 207/212: Decode percent-encoding that pulldown-cmark adds to URLs in href/src attributes.
 ///
-/// pulldown-cmark percent-encodes characters in URLs (like non-ASCII characters,
-/// `]`, etc.) that Jekyll/kramdown preserves as-is. This post-processes the HTML
-/// to decode those characters back to their literal form in href and src attributes.
+/// pulldown-cmark percent-encodes some ASCII characters in URLs (like `]`) that
+/// Jekyll/kramdown preserves as-is. This post-processes the HTML to decode those
+/// characters back to their literal form in href and src attributes.
 ///
 /// Characters decoded:
-/// - Non-ASCII bytes (> 0x7F) -- Cyrillic, CJK, etc.
-/// - `]` (0x5D) -- closing brackets in URLs
+/// - `]` (0x5D) -- closing brackets in URLs (pulldown-cmark encodes these)
 ///
 /// Characters kept encoded:
+/// - Non-ASCII bytes (> 0x7F) -- pulldown-cmark does NOT encode these, so any
+///   percent-encoded non-ASCII in the output was already encoded in the source
 /// - Space (%20) -- must remain encoded in URLs
 /// - Other ASCII control characters
 fn decode_pulldown_url_encoding(html: &str) -> String {
@@ -489,10 +490,11 @@ fn decode_pulldown_url_encoding(html: &str) -> String {
 /// Decode percent-encoded characters in a URL to match Jekyll's behavior.
 ///
 /// Decodes:
-/// - Non-ASCII bytes (> 0x7F) back to UTF-8 characters
-/// - `]` (0x5D) back to literal `]`
+/// - `]` (0x5D) back to literal `]` (pulldown-cmark encodes this)
 ///
 /// Preserves encoding for:
+/// - Non-ASCII bytes (> 0x7F) -- pulldown-cmark never encodes these, so any
+///   percent-encoded non-ASCII in the output was already encoded in the source
 /// - Space (%20)
 /// - Other ASCII characters that should remain encoded
 fn decode_url_for_jekyll_compat(url: &str) -> String {
@@ -511,8 +513,11 @@ fn decode_url_for_jekyll_compat(url: &str) -> String {
             let lo = hex_val(bytes[i + 2]);
             if let (Some(h), Some(l)) = (hi, lo) {
                 let byte_val = (h << 4) | l;
-                // Decode non-ASCII bytes (> 127) and ] (0x5D)
-                if byte_val > 127 || byte_val == b']' {
+                // Only decode ] (0x5D) which pulldown-cmark encodes.
+                // Do NOT decode non-ASCII bytes (> 127) -- pulldown-cmark
+                // passes those through as raw UTF-8, so any %XX with byte > 127
+                // was already percent-encoded in the markdown source.
+                if byte_val == b']' {
                     decoded.push(byte_val);
                     i += 3;
                     continue;
@@ -2101,14 +2106,17 @@ Some text after.
     // ========================================================================
 
     #[test]
-    fn test_url_with_non_ascii_preserved_in_markdown() {
-        // Non-ASCII characters in markdown link hrefs should be preserved
+    fn test_url_with_non_ascii_stays_percent_encoded() {
+        // Issue 212: pulldown-cmark percent-encodes non-ASCII in markdown link URLs.
+        // We no longer decode these back, because we cannot distinguish pulldown-cmark-
+        // encoded bytes from bytes that were already percent-encoded in the source.
+        // Preserving the encoding is correct for sources that pre-encode non-ASCII URLs.
         let md =
             "[link](/page/\u{043D}\u{0430}\u{0437}\u{0432}\u{0430}\u{043D}\u{0438}\u{0435}.html)";
         let html = markdown_to_html(md);
         assert!(
-            html.contains("\u{043D}\u{0430}\u{0437}\u{0432}\u{0430}\u{043D}\u{0438}\u{0435}"),
-            "Non-ASCII href should be preserved (not percent-encoded). Got: {html}"
+            html.contains("%D0%BD%D0%B0%D0%B7%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5"),
+            "Non-ASCII in URL should stay percent-encoded. Got: {html}"
         );
     }
 
@@ -2123,14 +2131,15 @@ Some text after.
     }
 
     #[test]
-    fn test_url_cyrillic_decoded() {
-        // Test that Cyrillic in URLs is decoded back to literal UTF-8
+    fn test_url_cyrillic_preserved() {
+        // Cyrillic percent-encoding should be preserved (pulldown-cmark never
+        // encodes non-ASCII, so any %XX with byte > 127 was already in the source)
         let html = decode_pulldown_url_encoding(
             r#"<a href="/page/%D0%BD%D0%B0%D0%B7%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5.html">link</a>"#,
         );
         assert!(
-            html.contains("\u{043D}\u{0430}\u{0437}\u{0432}\u{0430}\u{043D}\u{0438}\u{0435}"),
-            "Cyrillic should be decoded from percent-encoding. Got: {html}"
+            html.contains("%D0%BD%D0%B0%D0%B7%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5"),
+            "Cyrillic percent-encoding should be preserved. Got: {html}"
         );
     }
 
@@ -2150,5 +2159,82 @@ Some text after.
         let html = r#"<p>some %5D text</p>"#;
         let result = decode_pulldown_url_encoding(html);
         assert_eq!(result, html, "Non-attribute content should be unchanged");
+    }
+
+    // ========================================================================
+    // Issue 212: URL percent-encoding fix
+    // ========================================================================
+
+    #[test]
+    fn test_212_raw_html_href_preserved() {
+        // Raw HTML with pre-encoded non-ASCII URL should be preserved as-is
+        let input = r#"Some text.
+
+<a href="https://example.com/caf%c3%a9">cafe link</a>
+
+More text.
+"#;
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("%c3%a9"),
+            "Pre-encoded non-ASCII in raw HTML href should be preserved. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_212_markdown_link_pre_encoded_url() {
+        // Markdown link with pre-encoded non-ASCII URL should preserve encoding
+        let html = decode_pulldown_url_encoding(
+            r#"<a href="https://example.com/niar%C3%A9-data/">link</a>"#,
+        );
+        assert!(
+            html.contains("%C3%A9"),
+            "Pre-encoded non-ASCII in markdown link should be preserved. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_212_bracket_still_decoded() {
+        // pulldown-cmark encodes ] as %5D; we should still decode it
+        let html = decode_pulldown_url_encoding(r#"<a href="http://example.com/page%5D">link</a>"#);
+        assert!(
+            html.contains("page]"),
+            "Bracket ] should still be decoded from %5D. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_212_cyrillic_percent_encoding_preserved() {
+        // Cyrillic percent-encoded URLs should be preserved (not decoded)
+        let html = decode_pulldown_url_encoding(
+            r#"<a href="https://example.com/%D0%B0%D0%B1%D0%B2">link</a>"#,
+        );
+        assert!(
+            html.contains("%D0%B0%D0%B1%D0%B2"),
+            "Cyrillic percent-encoding should be preserved. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_212_mixed_pre_encoded_preserved() {
+        // Pre-encoded combining accent should be preserved
+        let html =
+            decode_pulldown_url_encoding(r#"<a href="https://example.com/a-cafe%CC%81">link</a>"#);
+        assert!(
+            html.contains("%CC%81"),
+            "Pre-encoded combining accent should be preserved. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_212_arrow_encoding_preserved() {
+        // %E2%86%92 (arrow ->) should be preserved, not decoded
+        let html = decode_pulldown_url_encoding(
+            r#"<a href="https://example.com/path%E2%86%92next">link</a>"#,
+        );
+        assert!(
+            html.contains("%E2%86%92"),
+            "Arrow percent-encoding should be preserved. Got: {html}"
+        );
     }
 }

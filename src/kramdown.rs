@@ -672,20 +672,48 @@ fn strip_list_prefix_for_table(line: &str) -> &str {
 }
 
 fn is_standard_pipe_table_context(lines: &[&str], index: usize) -> bool {
+    // Check if this line's immediate neighbors are a separator
     if index + 1 < lines.len() && is_table_separator_line(lines[index + 1].trim()) {
         return true;
     }
     if index > 0 && is_table_separator_line(lines[index - 1].trim()) {
         return true;
     }
+
+    // For data rows far from the separator: walk backward through consecutive
+    // pipe-delimited rows to find the separator line. If any contiguous row
+    // above us is adjacent to a separator, this entire block is a standard table.
     let trimmed = lines[index].trim();
     let content = strip_list_prefix_for_table(trimmed).trim();
     if content.starts_with('|') && content.ends_with('|') {
-        for offset in 1..=2 {
-            if index + offset < lines.len() && is_table_separator_line(lines[index + offset].trim())
-            {
+        // Walk backward through consecutive pipe rows
+        let mut pos = index;
+        while pos > 0 {
+            let prev = lines[pos - 1].trim();
+            let prev_content = strip_list_prefix_for_table(prev).trim();
+            if is_table_separator_line(prev) {
+                // Found the separator above this contiguous block
                 return true;
             }
+            if prev_content.starts_with('|') && prev_content.ends_with('|') {
+                pos -= 1;
+                continue;
+            }
+            break;
+        }
+        // Also walk forward to find a separator (for header rows above the separator)
+        let mut pos = index;
+        while pos + 1 < lines.len() {
+            let next = lines[pos + 1].trim();
+            let next_content = strip_list_prefix_for_table(next).trim();
+            if is_table_separator_line(next) {
+                return true;
+            }
+            if next_content.starts_with('|') && next_content.ends_with('|') {
+                pos += 1;
+                continue;
+            }
+            break;
         }
     }
     false
@@ -5843,6 +5871,151 @@ by <a href="/people/author.html">Author Name</a>
         let input = "| H1 | H2 |\n|---|---|\n| C1 | C2 |\n";
         let html = crate::frontmatter::markdown_to_html(input);
         assert_eq!(html.matches("<table>").count(), 1, "Got: {html}");
+    }
+
+    // ========================================================================
+    // Issue 212: Multi-row standard pipe table fix
+    // ========================================================================
+
+    #[test]
+    fn test_212_multi_row_standard_table_six_data_rows() {
+        // Header + separator + 6 data rows = 7 <tr> total in one table
+        let input = "\
+| Header A | Header B |
+|----------|----------|
+| Row 1    | Data 1   |
+| Row 2    | Data 2   |
+| Row 3    | Data 3   |
+| Row 4    | Data 4   |
+| Row 5    | Data 5   |
+| Row 6    | Data 6   |
+";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert_eq!(
+            html.matches("<table>").count(),
+            1,
+            "Should be exactly one table. Got: {html}"
+        );
+        assert_eq!(
+            html.matches("<tr>").count(),
+            7,
+            "Should have 7 <tr> (1 header + 6 data). Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_212_multi_row_table_bold_headers() {
+        let input = "\
+| **Col A** | **Col B** |
+|---|---|
+| r1 | r2 |
+| r3 | r4 |
+| r5 | r6 |
+";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert_eq!(
+            html.matches("<table>").count(),
+            1,
+            "Should be exactly one table. Got: {html}"
+        );
+        assert_eq!(
+            html.matches("<tr>").count(),
+            4,
+            "Should have 4 <tr> (1 header + 3 data). Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_212_table_with_escaped_pipes() {
+        let input = "\
+| A | B |
+|---|---|
+| x\\|y | z |
+| a | b |
+";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert_eq!(
+            html.matches("<table>").count(),
+            1,
+            "Should be exactly one table. Got: {html}"
+        );
+        // All rows should render
+        assert!(
+            html.matches("<tr>").count() >= 3,
+            "Should have at least 3 <tr>. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_212_table_with_inline_code() {
+        let input = "\
+| Channel | Description |
+|---|---|
+| `#general` | General chat |
+| `#course-data-engineering` | DE course |
+| `#random` | Off-topic |
+";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert_eq!(
+            html.matches("<table>").count(),
+            1,
+            "Should be exactly one table. Got: {html}"
+        );
+        assert_eq!(
+            html.matches("<tr>").count(),
+            4,
+            "Should have 4 <tr> (1 header + 3 data). Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_212_table_unicode_multi_row() {
+        // Non-ASCII/Unicode content in table cells
+        let input = "\
+| Spalte | Beschreibung |
+|---|---|
+| Geb\u{00fc}hr | \u{00dc}berweisung |
+| R\u{00fc}ckgabe | Gutschrift |
+| Storno | Kreditkarte |
+";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert_eq!(
+            html.matches("<table>").count(),
+            1,
+            "Should be exactly one table. Got: {html}"
+        );
+        assert_eq!(
+            html.matches("<tr>").count(),
+            4,
+            "Should have 4 <tr> (1 header + 3 data). Got: {html}"
+        );
+        assert!(
+            html.contains("Geb\u{00fc}hr"),
+            "Unicode content should be preserved. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_212_kramdown_no_separator_no_regression() {
+        // Kramdown-style table (no separator line) should still work
+        let input = "- item1 | item2 |\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<table>"),
+            "Kramdown table should still render. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_212_table_inside_list_no_regression() {
+        // Standard pipe table inside a list should still work
+        let input = "- Item:\n\n  | H1 | H2 |\n  |---|---|\n  | C1 | C2 |\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<table>"),
+            "Table in list should render. Got: {html}"
+        );
+        assert!(html.contains("<li>"), "List should render. Got: {html}");
     }
 
     // ========================================================================
