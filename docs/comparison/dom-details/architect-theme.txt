@@ -2,10 +2,7 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/architect-theme/_site_jeky
 Rustkyll directory: /home/alexey/git/rustkyl/websites/architect-theme/_site_rustkyll_recount
 Common HTML files:  2
 
-DIFF another-page.html (1 differences)
-  head > meta > meta > meta > script > jsonld.headline: jsonld_value_differs - expected: 'Architect theme', actual: 'Architect theme | Architect is a theme for GitHub Pages.'
-DIFF index.html (72 differences)
-  head > meta > meta > meta > script > jsonld.headline: jsonld_value_differs - expected: 'Architect theme', actual: 'Architect theme | Architect is a theme for GitHub Pages.'
+DIFF index.html (71 differences)
   body > div > div > section > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='kt'"
   body > div > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='nf'"
   body > div > div > section > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='k'"
@@ -15,6 +12,7 @@ DIFF index.html (72 differences)
   body > div > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='o'"
   body > div > div > section > div > div > pre > code > span: text_differs - expected: 'i18n', actual: '='
   body > div > div > section > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'require'
-  ... and 62 more differences
+  body > div > div > section > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
+  ... and 61 more differences
 
-Summary: 0 files matched, 2 files with differences, 73 total differences
+Summary: 1 files matched, 1 files with differences, 71 total differences

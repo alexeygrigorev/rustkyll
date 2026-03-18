@@ -15,11 +15,9 @@ DIFF posts/2012/08/blog-post-1/index.html (4 differences)
   child[2]: tag_name_differs - expected: 'body', actual: 'h1'
   h1: extra_element - expected: '(none)', actual: '<h1>'
   h2: extra_element - expected: '(none)', actual: '<h2>'
-DIFF posts/2012/08/blog-post-4/index.html (4 differences)
+DIFF posts/2012/08/blog-post-4/index.html (2 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h1'
-  h1: extra_element - expected: '(none)', actual: '<h1>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
+  body: missing_element - expected: '<body>', actual: '(none)'
 DIFF posts/2013/08/blog-post-2/index.html (4 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   child[2]: tag_name_differs - expected: 'body', actual: 'h1'
@@ -65,4 +63,4 @@ DIFF teaching/2015-spring-teaching-1.html (4 differences)
   h1: extra_element - expected: '(none)', actual: '<h1>'
   h1: extra_element - expected: '(none)', actual: '<h1>'
 
-Summary: 1 files matched, 16 files with differences, 45 total differences
+Summary: 1 files matched, 16 files with differences, 43 total differences

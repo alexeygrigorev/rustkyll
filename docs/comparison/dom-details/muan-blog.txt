@@ -2,30 +2,12 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/muan-blog/_site_jekyll_rec
 Rustkyll directory: /home/alexey/git/rustkyl/websites/muan-blog/_site_rustkyll_recount
 Common HTML files:  2218
 
-DIFF accessibility-statement.html (14 differences)
-  body: attribute_differs - expected: "class='col- post-body'", actual: "class='col-pages post-body'"
-  body > main > child[1]: tag_name_differs - expected: 'p', actual: 'article'
-  body > main > h2: missing_element - expected: '<h2>', actual: '(none)'
-  body > main > p: missing_element - expected: '<p>', actual: '(none)'
-  body > main > ul: missing_element - expected: '<ul>', actual: '(none)'
-  body > main > h2: missing_element - expected: '<h2>', actual: '(none)'
-  body > main > p: missing_element - expected: '<p>', actual: '(none)'
-  body > main > ul: missing_element - expected: '<ul>', actual: '(none)'
-  body > main > h2: missing_element - expected: '<h2>', actual: '(none)'
-  body > main > p: missing_element - expected: '<p>', actual: '(none)'
-  ... and 4 more differences
-DIFF colophon.html (12 differences)
-  body: attribute_differs - expected: "class='col- post-body'", actual: "class='col-pages post-body'"
-  body > main > child[1]: tag_name_differs - expected: 'h2', actual: 'article'
-  body > main > ul: missing_element - expected: '<ul>', actual: '(none)'
-  body > main > h2: missing_element - expected: '<h2>', actual: '(none)'
-  body > main > ul: missing_element - expected: '<ul>', actual: '(none)'
-  body > main > h2: missing_element - expected: '<h2>', actual: '(none)'
-  body > main > ul: missing_element - expected: '<ul>', actual: '(none)'
-  body > main > h2: missing_element - expected: '<h2>', actual: '(none)'
-  body > main > ul: missing_element - expected: '<ul>', actual: '(none)'
-  body > main > h2: missing_element - expected: '<h2>', actual: '(none)'
-  ... and 2 more differences
+DIFF accessibility-statement.html (1 differences)
+  body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
+DIFF colophon.html (3 differences)
+  body > main > ul > li > ul > li > a > code: extra_attribute - expected: '(none)', actual: "class='highlighter-rouge language-plaintext'"
+  body > main > ul > li > ul > li > a > code: extra_attribute - expected: '(none)', actual: "class='highlighter-rouge language-plaintext'"
+  body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
 DIFF de-DE/index.html (32 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -519,12 +501,12 @@ DIFF notes/2019-02-21-oo.html (9 differences)
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2019-02-21-oo'", actual: "href='https://likes.muan.dev/?id=/notes/2019-02-21-oo.html'"
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
 DIFF notes/2019-02-25-vv.html (6 differences)
-  head > meta: attribute_differs - expected: "content='https://muan.co/notes/2019-02-25-vv'", actual: "content='https://muan.co/notes/2019-02-25-vv.html'"  Progress: 100/2218 files compared...
-
+  head > meta: attribute_differs - expected: "content='https://muan.co/notes/2019-02-25-vv'", actual: "content='https://muan.co/notes/2019-02-25-vv.html'"
   head > meta: attribute_differs - expected: "content='Get yourself a president who tweets about Japanese national cat day 🐈 and talks about gender inequality in the workplace from experience as the first democratically-elected female president in Asia 👩🏻\\u200d💼.\\n'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='Get yourself a president who tweets about Japanese national cat day 🐈 and talks about gender inequality in the workplace from experience as the first democratically-elected female president in Asia 👩🏻\\u200d💼.\\n'", actual: "content=''"
   body > header > time: attribute_differs - expected: "datetime='2019-02-25 07:22:00 +0800'", actual: "datetime='2019/02/25 07:22'"
-  body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2019-02-25-vv'", actual: "href='https://likes.muan.dev/?id=/notes/2019-02-25-vv.html'"
+  body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2019-02-25-vv'", actual: "href='https://likes.muan.dev/?id=/notes/2019-02-25-vv.html'"  Progress: 100/2218 files compared...
+
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
 DIFF notes/2019-02-28-rr.html (6 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/notes/2019-02-28-rr'", actual: "content='https://muan.co/notes/2019-02-28-rr.html'"
@@ -12388,7 +12370,7 @@ DIFF posts/reparations.html (9 differences)
   body > main > article > blockquote > p: text_differs - expected: '，通常具有司法、歷史、行政、憲法、賠償等面向。其根本基礎在還原歷史真相。...改變體制、避免重蹈覆轍、與最終的和解、撫平傷痛。', actual: '，通常具有司法、歷史、行政、憲法、賠償等面向。其根本基礎在還原歷史真相。…改變體制、避免重蹈覆轍、與最終的和解、撫平傷痛。'
   body > main > article > blockquote > p: text_differs - expected: 'Transitional justice consists of judicial and non-judicial measures implemented in order to redress legacies of human rights abuses. Such measures "include criminal prosecutions, truth commissions,', actual: 'Transitional justice consists of judicial and non-judicial measures implemented in order to redress legacies of human rights abuses. Such measures “include criminal prosecutions, truth commissions,'
   body > main > article > blockquote > p: text_differs - expected: 'programs, and various kinds of institutional reforms".', actual: 'programs, and various kinds of institutional reforms”.'
-  body > main > article > h2: attribute_differs - expected: "id='section'", actual: "id=''"
+  body > main > article > h2: attribute_differs - expected: "id='section'", actual: "id='彌補'"
   body > main > article > p > a: attribute_differs - expected: "href='/posts/thoughts-on-reparations'", actual: "href='/posts/2020-06-06-thoughts-on-reparations.html'"
   body > main > article > p > a: text_differs - expected: '翻譯後記 Thoughts on "Reparations"', actual: '翻譯後記 Thoughts on “Reparations”'
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
@@ -15366,4 +15348,4 @@ DIFF zh-TW/index.html (32 differences)
   h2: extra_element - expected: '(none)', actual: '<h2>'
   ... and 22 more differences
 
-Summary: 29 files matched, 2189 files with differences, 13754 total differences
+Summary: 29 files matched, 2189 files with differences, 13732 total differences

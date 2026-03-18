@@ -2,21 +2,29 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/time-machine-theme/_site_j
 Rustkyll directory: /home/alexey/git/rustkyl/websites/time-machine-theme/_site_rustkyll_recount
 Common HTML files:  2
 
-DIFF another-page.html (3 differences)
-  head > meta > meta > meta > script > jsonld.headline: jsonld_value_differs - expected: 'Time Machine theme', actual: 'Time Machine theme | Time Machine is a theme for GitHub Pages.'
-  body > div > div > div > div > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/time-machine'"
-  body > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/time-machine'"
-DIFF index.html (74 differences)
-  head > meta > meta > meta > script > jsonld.headline: jsonld_value_differs - expected: 'Time Machine theme', actual: 'Time Machine theme | Time Machine is a theme for GitHub Pages.'
-  body > div > div > div > div > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/time-machine'"
-  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='kt'"
-  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='nf'"
-  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='k'"
-  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='n'"
-  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='n'"
-  body > div > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'i18n'
-  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='o'"
-  body > div > div > div > article > div > div > pre > code > span: text_differs - expected: 'i18n', actual: '='
-  ... and 64 more differences
+DIFF another-page.html (12 differences)
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > script: extra_element - expected: '(none)', actual: '<script>'
+  ... and 2 more differences
+DIFF index.html (83 differences)
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > script: extra_element - expected: '(none)', actual: '<script>'
+  ... and 73 more differences
 
-Summary: 0 files matched, 2 files with differences, 77 total differences
+Summary: 0 files matched, 2 files with differences, 95 total differences

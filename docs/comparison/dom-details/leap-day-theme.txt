@@ -2,11 +2,9 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/leap-day-theme/_site_jekyl
 Rustkyll directory: /home/alexey/git/rustkyl/websites/leap-day-theme/_site_rustkyll_recount
 Common HTML files:  2
 
-DIFF another-page.html (2 differences)
-  head > meta > meta > script > jsonld.headline: jsonld_value_differs - expected: 'Leap Day theme', actual: 'Leap Day theme | Leap Day is a theme for GitHub Pages.'
+DIFF another-page.html (1 differences)
   body > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/leap-day'"
-DIFF index.html (73 differences)
-  head > meta > meta > script > jsonld.headline: jsonld_value_differs - expected: 'Leap Day theme', actual: 'Leap Day theme | Leap Day is a theme for GitHub Pages.'
+DIFF index.html (72 differences)
   body > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/leap-day'"
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='kt'"
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='nf'"
@@ -16,6 +14,7 @@ DIFF index.html (73 differences)
   body > div > section > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'i18n'
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='o'"
   body > div > section > div > div > pre > code > span: text_differs - expected: 'i18n', actual: '='
-  ... and 63 more differences
+  body > div > section > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'require'
+  ... and 62 more differences
 
-Summary: 0 files matched, 2 files with differences, 75 total differences
+Summary: 0 files matched, 2 files with differences, 73 total differences
