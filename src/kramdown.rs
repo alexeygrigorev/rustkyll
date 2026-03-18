@@ -1134,7 +1134,7 @@ fn get_unique_id(used: &mut HashMap<String, usize>, base: &str) -> String {
 ///
 /// Fenced code blocks without a language tag are wrapped as:
 /// ```html
-/// <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>...</code></pre></div></div>
+/// <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>...</code></pre></div></div>
 /// ```
 ///
 /// Fenced code blocks WITH a language class (e.g., `<pre><code class="language-python">`)
@@ -1197,10 +1197,19 @@ fn wrap_fenced_code_blocks(html: &str) -> String {
             if let Some(close_pos) = after_open_tag.find("</code></pre>") {
                 let code_content = &after_open_tag[..close_pos];
                 // Write the kramdown wrapper
-                result.push_str(&format!(
-                    "<div class=\"language-{} highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>",
-                    lang
-                ));
+                // Jekyll only puts the language class on the wrapper div for
+                // language-specified code blocks. For no-language (plaintext)
+                // blocks, the wrapper div has only "highlighter-rouge".
+                if lang == "plaintext" {
+                    result.push_str(
+                        "<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>",
+                    );
+                } else {
+                    result.push_str(&format!(
+                        "<div class=\"language-{} highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>",
+                        lang
+                    ));
+                }
                 // Try syntax highlighting; fall back to plain code if unsupported
                 let raw_code = html_unescape(code_content);
                 if let Some(highlighted) = crate::syntax::highlight_code(&lang, &raw_code) {
@@ -2634,7 +2643,7 @@ mod tests {
         let html = "<pre><code>plain code\n</code></pre>\n";
         let result = postprocess(html);
         assert!(
-            result.contains("<div class=\"language-plaintext highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain code\n</code></pre>"),
+            result.contains("<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain code\n</code></pre>"),
             "Bare fenced code should be wrapped in kramdown divs. Got: {}",
             result
         );
@@ -2653,7 +2662,7 @@ mod tests {
         let result = postprocess(html);
         // The wrapping produces the kramdown div structure; block spacing adds newlines between closing tags
         assert!(
-            result.contains("<div class=\"language-plaintext highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain code\n</code></pre>"),
+            result.contains("<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain code\n</code></pre>"),
             "Simple fenced code wrapping failed. Got: {}",
             result
         );
@@ -2669,7 +2678,7 @@ mod tests {
             result
         );
         assert!(
-            result.contains("<div class=\"language-plaintext highlighter-rouge\">"),
+            result.contains("<div class=\"highlighter-rouge\">"),
             "Should have outer wrapper div. Got: {}",
             result
         );
@@ -2711,9 +2720,7 @@ mod tests {
     fn test_fenced_code_wrapping_multiple_bare_blocks() {
         let html = "<pre><code>block 1\n</code></pre>\n<pre><code>block 2\n</code></pre>\n";
         let result = postprocess(html);
-        let count = result
-            .matches("<div class=\"language-plaintext highlighter-rouge\">")
-            .count();
+        let count = result.matches("<div class=\"highlighter-rouge\">").count();
         assert_eq!(
             count, 2,
             "Both bare blocks should be wrapped. Got: {}",
@@ -2725,9 +2732,7 @@ mod tests {
     fn test_fenced_code_wrapping_mixed_bare_and_language() {
         let html = "<pre><code>bare code\n</code></pre>\n<pre><code class=\"language-python\">print('hi')\n</code></pre>\n";
         let result = postprocess(html);
-        let plaintext_count = result
-            .matches("<div class=\"language-plaintext highlighter-rouge\">")
-            .count();
+        let plaintext_count = result.matches("<div class=\"highlighter-rouge\">").count();
         assert_eq!(
             plaintext_count, 1,
             "Only bare block should get plaintext wrapper. Got: {}",
@@ -2752,9 +2757,7 @@ mod tests {
             result
         );
         assert!(
-            !result.contains(
-                "<div class=\"language-plaintext highlighter-rouge\"><div class=\"highlight\">"
-            ),
+            !result.contains("<div class=\"highlighter-rouge\"><div class=\"highlight\">"),
             "Inline code should NOT be wrapped in divs. Got: {}",
             result
         );
@@ -2772,7 +2775,7 @@ mod tests {
         );
         // Fenced code gets div wrapper
         assert!(
-            result.contains("<div class=\"language-plaintext highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>bare code\n</code></pre>"),
+            result.contains("<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>bare code\n</code></pre>"),
             "Fenced code should get div wrapper. Got: {}",
             result
         );
@@ -2797,17 +2800,81 @@ mod tests {
         );
         // Fenced without language: wrapped
         assert!(
-            result.contains("<div class=\"language-plaintext highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain\n</code></pre>"),
+            result.contains("<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain\n</code></pre>"),
             "Bare fenced code should be wrapped. Got: {}",
             result
         );
         // Should NOT wrap the language-tagged block
-        let wrapper_count = result
-            .matches("<div class=\"language-plaintext highlighter-rouge\">")
-            .count();
+        let wrapper_count = result.matches("<div class=\"highlighter-rouge\">").count();
         assert_eq!(
             wrapper_count, 1,
             "Only one block should be wrapped. Got: {}",
+            result
+        );
+    }
+
+    // ======================================================================
+    // Issue 183: Wrapper div class for no-language fenced code blocks
+    // ======================================================================
+
+    #[test]
+    fn test_no_language_wrapper_div_class() {
+        // Jekyll uses class="highlighter-rouge" only on the wrapper div for
+        // no-language fenced code blocks (no language-plaintext on the div).
+        let html = "<pre><code>some code\n</code></pre>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("<div class=\"highlighter-rouge\"><div class=\"highlight\">"),
+            "Wrapper div should have only highlighter-rouge class. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("<div class=\"language-plaintext highlighter-rouge\">")
+                && !result.contains("<div class=\"highlighter-rouge language-plaintext\">"),
+            "Wrapper div should NOT contain language-plaintext. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_language_wrapper_div_still_has_both_classes() {
+        // For language-specified code blocks, the wrapper div should have both classes.
+        let html = "<pre><code class=\"language-python\">print('hi')\n</code></pre>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("<div class=\"language-python highlighter-rouge\">"),
+            "Language-specified wrapper should have both classes. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_no_language_inner_code_has_no_extra_class() {
+        // The inner <code> element in a fenced block should not have language-plaintext
+        // (that's only for inline code elements, handled during markdown rendering).
+        let html = "<pre><code>some code\n</code></pre>\n";
+        let result = postprocess(html);
+        // The fenced code wrapper just uses bare <code> inside <pre>
+        assert!(
+            result.contains("<pre class=\"highlight\"><code>some code\n</code></pre>"),
+            "Inner code element should be bare. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_highlighted_code_block_structure_unchanged() {
+        // Code blocks with a recognized language should keep the full wrapper structure.
+        let html = "<pre><code class=\"language-python\">x = 1\n</code></pre>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("<div class=\"language-python highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>"),
+            "Language code block structure should be preserved. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("</code></pre></div></div>"),
+            "Should have proper closing tags. Got: {}",
             result
         );
     }

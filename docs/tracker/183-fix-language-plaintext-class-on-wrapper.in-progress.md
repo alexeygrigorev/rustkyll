@@ -68,3 +68,16 @@ None.
 ### Integration: Output verification
 
 - Build mlbookcamp-page and inspect pages with no-language code blocks to verify the wrapper div class is correct.
+
+## Log
+
+### [SWE] 2026-03-18
+- TDD approach: wrote 4 new tests first, verified `test_no_language_wrapper_div_class` fails (red phase)
+- Root cause: `wrap_fenced_code_blocks()` in kramdown.rs line 1201 unconditionally used `language-{lang} highlighter-rouge` for all code blocks, including plaintext
+- Fix: added conditional -- when lang is "plaintext", wrapper div gets only `class="highlighter-rouge"`; language-specified blocks keep both classes
+- Updated 8 existing tests that asserted `language-plaintext highlighter-rouge` on wrapper divs
+- Updated doc comment to reflect new behavior
+- Tests added: 4 new tests (test_no_language_wrapper_div_class, test_language_wrapper_div_still_has_both_classes, test_no_language_inner_code_has_no_extra_class, test_highlighted_code_block_structure_unchanged)
+- Build: 1684 tests pass, 0 fail, fmt clean
+- Clippy: pre-existing errors in other files (context.rs, vendor/), no errors in kramdown.rs
+- Files modified: src/kramdown.rs
