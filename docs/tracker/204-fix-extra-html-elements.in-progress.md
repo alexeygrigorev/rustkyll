@@ -114,3 +114,39 @@ fn test_figure_children_ordering() {
 - [ ] Figure/figcaption ordering fixed for DTC chart pages
 - [ ] muan-blog extra elements: document overlap with issue 196 (layout)
 - [ ] No regressions in existing kramdown list tests
+
+## Log
+
+### [SWE] 2026-03-18
+
+**Investigation:**
+- DTC (17 pages): Extra `<p>` inside `<li>` from loose vs tight list mismatch, extra figcaption/canvas elements
+- mlwiki.org (56+ pages per issue, found 164 pages): Two root causes:
+  1. Partially loose lists: blank lines between some (but not all) list items cause CommonMark to make entire list loose (all items get `<p>`), while kramdown only wraps items before blank lines in `<p>`
+  2. Headings inside list context: kramdown treats `#### heading` directly after a list item (no blank line) as text, while pulldown-cmark treats it as a heading element, breaking the list and creating extra `<h3>`, `<h4>`, `<ul>` elements
+- muan-blog (16 pages): Remaining 10 extra `<p>` tags are from structural/layout differences, likely overlap with issue 196 (layout not applied)
+- mlbookcamp-page (1 page): No Jekyll reference output available to compare
+
+**Root causes fixed:**
+1. Partially loose lists: Added `collapse_blank_lines_between_list_items()` pre-processing that removes blank lines between list items only in "partially loose" lists (where not all consecutive items have blank lines). Fully loose lists (ALL items separated by blanks) keep their blank lines since kramdown also wraps all items in `<p>` for those.
+2. Headings in list context: Added `escape_headings_in_list_context()` pre-processing that escapes `#` heading markers appearing immediately after list items (no blank line between), matching kramdown behavior where they are treated as text.
+
+**Results:**
+- DTC: 0 pages with extra elements (was 17 per issue, 0 found even before fix)
+- mlwiki.org: 122 pages with extra elements (down from 164 before fix, 42 pages fixed)
+- muan-blog: 10 pages with extra `<p>` (structural/layout issues, overlap with issue 196)
+- Figure/figcaption ordering: No issues found in DTC site (pages match Jekyll perfectly)
+- Remaining mlwiki diffs are mostly from kramdown-specific behaviors (headings requiring blank line before them in all contexts, definition list syntax, etc.) that are hard to replicate in CommonMark
+
+**Tests added:** 8 tests in kramdown.rs
+- `test_issue204_tight_list_no_p_wrapper`
+- `test_issue204_kramdown_tight_list_with_continuation`
+- `test_issue204_kramdown_per_item_loose_tight`
+- `test_issue204_heading_after_list_item_no_blank_line`
+- `test_issue204_collapse_blank_lines_between_list_items`
+- `test_issue204_collapse_preserves_blank_after_list`
+- `test_issue204_escape_headings_in_list`
+- `test_issue204_heading_after_blank_line_not_escaped`
+
+**Build:** 1523+ tests pass, 0 fail, clippy clean, fmt clean
+**Files modified:** src/kramdown.rs, src/frontmatter.rs
