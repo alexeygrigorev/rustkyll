@@ -43,6 +43,9 @@ pub struct LayoutEngine {
     compiled_layouts: HashMap<String, Template>,
     /// Template engine with includes registered as partials.
     engine: TemplateEngine,
+    /// Whether to add `language-plaintext highlighter-rouge` class to inline code.
+    /// True for kramdown (default), false for CommonMark/CommonMarkGhPages.
+    use_kramdown_code_classes: bool,
 }
 
 impl LayoutEngine {
@@ -65,6 +68,7 @@ impl LayoutEngine {
             layouts,
             compiled_layouts,
             engine,
+            use_kramdown_code_classes: true,
         })
     }
 
@@ -81,7 +85,17 @@ impl LayoutEngine {
             layouts,
             compiled_layouts,
             engine,
+            use_kramdown_code_classes: true,
         })
+    }
+
+    /// Set whether to add kramdown-style inline code classes.
+    ///
+    /// When the site config has `markdown: CommonMarkGhPages` (or any non-kramdown
+    /// processor), this should be set to `false` so inline `<code>` elements are
+    /// rendered without the `language-plaintext highlighter-rouge` class.
+    pub fn set_kramdown_code_classes(&mut self, enabled: bool) {
+        self.use_kramdown_code_classes = enabled;
     }
 
     fn compile_layouts(
@@ -338,7 +352,10 @@ impl LayoutEngine {
         let dedented = crate::frontmatter::dedent_html_lines(&after_liquid);
         let marked = crate::kramdown::mark_existing_html_headings(&dedented);
         let collapsed = crate::kramdown::collapse_blank_lines_in_html_blocks(&marked);
-        let html_content = crate::frontmatter::markdown_to_html(&collapsed);
+        let html_content = crate::frontmatter::markdown_to_html_with_options(
+            &collapsed,
+            self.use_kramdown_code_classes,
+        );
         let html_content = crate::kramdown::remove_heading_markers(&html_content);
         let result = self.render_with_site_overrides(
             layout_name,
@@ -467,8 +484,11 @@ impl LayoutEngine {
         // blank lines before markdown parsing prevents the spurious <p> tags.
         let collapsed = crate::kramdown::collapse_blank_lines_in_html_blocks(&marked);
 
-        // Step 3: Convert markdown to HTML
-        let html_content = crate::frontmatter::markdown_to_html(&collapsed);
+        // Step 3: Convert markdown to HTML (respecting markdown processor setting)
+        let html_content = crate::frontmatter::markdown_to_html_with_options(
+            &collapsed,
+            self.use_kramdown_code_classes,
+        );
 
         // Step 3.5 (D1): Remove the heading markers after postprocessing
         let html_content = crate::kramdown::remove_heading_markers(&html_content);
@@ -535,8 +555,11 @@ impl LayoutEngine {
         // Step 2.5: Collapse blank lines in HTML blocks (same as main pipeline)
         let collapsed = crate::kramdown::collapse_blank_lines_in_html_blocks(&dedented);
 
-        // Step 3: Convert markdown to HTML
-        Ok(crate::frontmatter::markdown_to_html(&collapsed))
+        // Step 3: Convert markdown to HTML (respecting markdown processor setting)
+        Ok(crate::frontmatter::markdown_to_html_with_options(
+            &collapsed,
+            self.use_kramdown_code_classes,
+        ))
     }
 }
 

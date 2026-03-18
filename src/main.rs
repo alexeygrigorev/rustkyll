@@ -405,7 +405,19 @@ fn build_site(
     let phase_start = Instant::now();
     let layouts_dir = source.join("_layouts");
     let includes_dir = source.join("_includes");
-    let layout_engine = LayoutEngine::new(&layouts_dir, &includes_dir)?;
+    let mut layout_engine = LayoutEngine::new(&layouts_dir, &includes_dir)?;
+
+    // Issue 216: Set markdown processor mode based on config.
+    // When the site uses a non-kramdown markdown processor (e.g., CommonMarkGhPages),
+    // disable the kramdown-specific inline code class behavior.
+    let is_kramdown = config
+        .extras
+        .get("markdown")
+        .and_then(|v| v.as_str())
+        .map(|m| m.eq_ignore_ascii_case("kramdown"))
+        .unwrap_or(true); // kramdown is Jekyll's default
+    layout_engine.set_kramdown_code_classes(is_kramdown);
+
     summary.timing.layouts = phase_start.elapsed();
 
     // 8. Clean and create destination directory (only for full rebuilds)

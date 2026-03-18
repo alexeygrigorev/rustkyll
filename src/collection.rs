@@ -436,11 +436,27 @@ pub fn load_collection(
     collect_collection_paths(&dir, &mut file_paths)?;
     file_paths.sort();
 
+    // Issue 216: Determine whether to add kramdown-style inline code classes
+    // based on the markdown processor setting in config.
+    let add_code_classes = config
+        .extras
+        .get("markdown")
+        .and_then(|v| v.as_str())
+        .map(|m| m.eq_ignore_ascii_case("kramdown"))
+        .unwrap_or(true); // kramdown is Jekyll's default
+
     // Phase 2: Process files in parallel (read, parse, convert markdown)
     let results: Vec<Result<CollectionItem, CollectionError>> = file_paths
         .par_iter()
         .filter_map(|path| {
-            process_collection_file(path, &dir, site_dir, collection_name, &permalink_pattern)
+            process_collection_file(
+                path,
+                &dir,
+                site_dir,
+                collection_name,
+                &permalink_pattern,
+                add_code_classes,
+            )
         })
         .collect();
 
@@ -538,6 +554,7 @@ fn process_collection_file(
     site_dir: &Path,
     collection_name: &str,
     permalink_pattern: &str,
+    add_code_classes: bool,
 ) -> Option<Result<CollectionItem, CollectionError>> {
     let filename = path.file_name()?.to_str()?.to_string();
 
@@ -636,7 +653,7 @@ fn process_collection_file(
     let url = crate::template::filters::relative_url::encode_url_path(&url);
 
     let html_content = if is_markdown {
-        frontmatter::markdown_to_html(&doc.content)
+        frontmatter::markdown_to_html_with_options(&doc.content, add_code_classes)
     } else {
         doc.content.clone()
     };
@@ -929,8 +946,16 @@ fn load_pages_recursive(
         // Percent-encode non-ASCII characters in URLs, matching Jekyll behavior.
         let url = crate::template::filters::relative_url::encode_url_path(&url);
 
+        // Issue 216: Respect markdown processor setting for inline code classes
+        let add_code_classes = config
+            .extras
+            .get("markdown")
+            .and_then(|v| v.as_str())
+            .map(|m| m.eq_ignore_ascii_case("kramdown"))
+            .unwrap_or(true);
+
         let html_content = if is_markdown {
-            frontmatter::markdown_to_html(&doc.content)
+            frontmatter::markdown_to_html_with_options(&doc.content, add_code_classes)
         } else {
             // Non-markdown files: content is used as-is (will be rendered
             // through Liquid but not converted from markdown to HTML)

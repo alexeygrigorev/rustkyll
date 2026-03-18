@@ -21,7 +21,8 @@ pub mod noop_tags;
 pub mod seo_tag;
 
 pub use context::{
-    build_context, yaml_mapping_to_object, yaml_mapping_to_object_with_tz, yaml_to_liquid,
+    build_context, normalize_frontmatter_date, yaml_mapping_to_object,
+    yaml_mapping_to_object_with_tz, yaml_to_liquid,
 };
 pub use engine::{load_includes, TemplateEngine};
 pub use error::TemplateError;

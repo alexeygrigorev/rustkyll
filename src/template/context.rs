@@ -166,6 +166,28 @@ pub fn yaml_mapping_to_object_with_tz(
     obj
 }
 
+/// Normalize the `date` field in a front matter HashMap using the site timezone.
+///
+/// This function applies `expand_date_only_string_with_tz` to the `date` key
+/// in the front matter, converting partial date formats like `YYYY/MM/DD HH:MM`
+/// to the full `YYYY-MM-DD HH:MM:SS +HHMM` format that Jekyll produces when
+/// rendering `page.date` in templates.
+///
+/// This must be called before passing front matter to the render context,
+/// because `yaml_to_liquid` (used in `build_render_context_page_only`) does
+/// not perform date normalization on individual string values.
+pub fn normalize_frontmatter_date(
+    front_matter: &mut std::collections::HashMap<String, serde_yaml::Value>,
+    site_tz: Option<chrono_tz::Tz>,
+) {
+    if let Some(serde_yaml::Value::String(date_str)) = front_matter.get("date") {
+        let expanded = expand_date_only_string_with_tz(date_str, site_tz);
+        if expanded != *date_str {
+            front_matter.insert("date".into(), serde_yaml::Value::String(expanded));
+        }
+    }
+}
+
 /// Normalize a Liquid value so that arrays of objects have uniform keys.
 ///
 /// When Liquid iterates over an array of objects in a `{% for %}` loop,
@@ -690,6 +712,97 @@ title: Not a date
         // Already-formatted dates should pass through unchanged
         let result = expand_date_only_string_with_tz("2018-06-04 00:00:00 +0800", None);
         assert_eq!(result, "2018-06-04 00:00:00 +0800");
+    }
+
+    // ========================================================================
+    // Issue 216: page.date normalization in render context with timezone
+    // ========================================================================
+
+    #[test]
+    fn test_page_date_normalized_in_render_context_slash_format_with_tz() {
+        // When a collection item has front matter `date: 2018/06/04 00:00` and
+        // the site timezone is Asia/Taipei, rendering {{ page.date }} in a
+        // template must produce "2018-06-04 00:00:00 +0800".
+        use crate::template::layout::build_render_context_page_only;
+        use std::collections::HashMap;
+
+        let mut page_fm: HashMap<String, serde_yaml::Value> = HashMap::new();
+        page_fm.insert(
+            "date".into(),
+            serde_yaml::Value::String("2018/06/04 00:00".into()),
+        );
+        page_fm.insert(
+            "title".into(),
+            serde_yaml::Value::String("Test note".into()),
+        );
+
+        // Normalize the date before building render context (simulating what
+        // the generator should do)
+        let tz: chrono_tz::Tz = "Asia/Taipei".parse().unwrap();
+        normalize_frontmatter_date(&mut page_fm, Some(tz));
+
+        let ctx = build_render_context_page_only("", &page_fm);
+        let engine = crate::template::TemplateEngine::new().unwrap();
+        let output = engine
+            .parse_and_render("datetime=\"{{ page.date }}\"", &ctx)
+            .unwrap();
+        assert_eq!(output, "datetime=\"2018-06-04 00:00:00 +0800\"");
+    }
+
+    #[test]
+    fn test_page_date_normalized_unicode_title_with_tz() {
+        // Non-ASCII variant: German title with slash-format date
+        use crate::template::layout::build_render_context_page_only;
+        use std::collections::HashMap;
+
+        let mut page_fm: HashMap<String, serde_yaml::Value> = HashMap::new();
+        page_fm.insert(
+            "date".into(),
+            serde_yaml::Value::String("2023/07/11 15:27".into()),
+        );
+        page_fm.insert(
+            "title".into(),
+            serde_yaml::Value::String("Buchrezension \u{00fc}ber B\u{00fc}cher".into()),
+        );
+
+        let tz: chrono_tz::Tz = "Asia/Taipei".parse().unwrap();
+        normalize_frontmatter_date(&mut page_fm, Some(tz));
+
+        let ctx = build_render_context_page_only("", &page_fm);
+        let engine = crate::template::TemplateEngine::new().unwrap();
+        let output = engine
+            .parse_and_render("{{ page.date }} - {{ page.title }}", &ctx)
+            .unwrap();
+        assert_eq!(
+            output,
+            "2023-07-11 15:27:00 +0800 - Buchrezension \u{00fc}ber B\u{00fc}cher"
+        );
+    }
+
+    #[test]
+    fn test_normalize_frontmatter_date_function() {
+        // Test the normalize function itself
+        use std::collections::HashMap;
+
+        let mut fm: HashMap<String, serde_yaml::Value> = HashMap::new();
+        fm.insert(
+            "date".into(),
+            serde_yaml::Value::String("2018/06/04 00:00".into()),
+        );
+        fm.insert(
+            "title".into(),
+            serde_yaml::Value::String("Not a date".into()),
+        );
+
+        let tz: chrono_tz::Tz = "Asia/Taipei".parse().unwrap();
+        normalize_frontmatter_date(&mut fm, Some(tz));
+
+        assert_eq!(
+            fm.get("date").unwrap().as_str().unwrap(),
+            "2018-06-04 00:00:00 +0800"
+        );
+        // title should be unchanged
+        assert_eq!(fm.get("title").unwrap().as_str().unwrap(), "Not a date");
     }
 
     #[test]

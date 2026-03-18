@@ -1057,13 +1057,19 @@ fn preprocess_jekyll_tags(template: &str) -> String {
                 } else {
                     path
                 };
-                // For collection docs: strip .md extension entirely (no .html)
-                // For root pages: convert .md to .html
+                // For collection docs: strip .md or .html extension entirely
+                // For root pages: convert .md to .html, keep .html as-is
                 let url_path = if let Some(stem) = url_path.strip_suffix(".md") {
                     if is_collection {
                         format!("/{}", stem)
                     } else {
                         format!("/{}.html", stem)
+                    }
+                } else if let Some(stem) = url_path.strip_suffix(".html") {
+                    if is_collection {
+                        format!("/{}", stem)
+                    } else {
+                        format!("/{}", url_path)
                     }
                 } else {
                     format!("/{}", url_path)
@@ -3589,6 +3595,32 @@ title: "Test Book"
         // Nested paths within collection
         let result = preprocess_jekyll_tags(r#"{% link _notes/2018/my-note.md %}"#);
         assert_eq!(result, "/notes/2018/my-note");
+    }
+
+    // ========================================================================
+    // Issue 216: link tag resolves .html collection documents
+    // ========================================================================
+
+    #[test]
+    fn test_link_tag_html_collection_doc_no_extension() {
+        // Collection docs with .html extension (path starts with _) -> extensionless URL
+        let result =
+            preprocess_jekyll_tags(r#"<a href="{% link _pages/issues.html %}">Issues</a>"#);
+        assert_eq!(result, r#"<a href="/pages/issues">Issues</a>"#);
+    }
+
+    #[test]
+    fn test_link_tag_html_root_page_keeps_extension() {
+        // Root-level .html files (no _ prefix) -> keep .html extension
+        let result = preprocess_jekyll_tags(r#"{% link about.html %}"#);
+        assert_eq!(result, "/about.html");
+    }
+
+    #[test]
+    fn test_link_tag_html_collection_unicode() {
+        // Non-ASCII: collection doc with .html extension and German name
+        let result = preprocess_jekyll_tags("{% link _pages/\u{00fc}ber-uns.html %}");
+        assert_eq!(result, "/pages/\u{00fc}ber-uns");
     }
 
     // ========================================================================

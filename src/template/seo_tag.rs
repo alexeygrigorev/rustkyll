@@ -803,6 +803,70 @@ mod tests {
     }
 
     // ========================================================================
+    // Issue 216: Meta content attributes use double quotes
+    // ========================================================================
+
+    #[test]
+    fn test_issue216_meta_content_double_quotes_apostrophe() {
+        // Meta content attributes must use double quotes, with apostrophes
+        // escaped as &#39; -- NOT single-quoted attributes with raw smart quotes
+        let eng = engine();
+        let ctx = make_context(
+            None,
+            None,
+            Some("Nathan doesn't write tests"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("content=\"Nathan doesn&#39;t write tests\""),
+            "Meta content should use double quotes with escaped apostrophe. Got: {}",
+            out
+        );
+        // Must NOT contain single-quoted attribute
+        assert!(
+            !out.contains("content='"),
+            "Meta content must NOT use single quotes. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_issue216_meta_content_unicode_with_apostrophe() {
+        // Non-ASCII: German text with umlaut and apostrophe
+        let eng = engine();
+        let ctx = make_context(
+            None,
+            None,
+            Some("B\u{00fc}scher's Buchladen \u{00f6}ffnet um 9 Uhr"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("B\u{00fc}scher&#39;s Buchladen \u{00f6}ffnet um 9 Uhr"),
+            "Unicode should pass through and apostrophe should be escaped. Got: {}",
+            out
+        );
+        assert!(
+            out.contains("content=\""),
+            "Meta content should use double-quoted attribute. Got: {}",
+            out
+        );
+    }
+
+    // ========================================================================
     // Open Graph tags
     // ========================================================================
 

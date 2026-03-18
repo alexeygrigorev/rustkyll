@@ -171,10 +171,23 @@ fn add_inline_code_class_to_events<'a>(
     parser: impl Iterator<Item = (Event<'a>, std::ops::Range<usize>)>,
     source: &'a str,
 ) -> Vec<Event<'a>> {
+    add_inline_code_class_to_events_impl(parser, source, true)
+}
+
+/// Implementation of inline code class transformation with configurable behavior.
+///
+/// When `add_code_classes` is true (kramdown mode), inline `Code` spans get
+/// `class="language-plaintext highlighter-rouge"`. When false (CommonMark mode),
+/// inline code is left as bare `<code>` elements.
+fn add_inline_code_class_to_events_impl<'a>(
+    parser: impl Iterator<Item = (Event<'a>, std::ops::Range<usize>)>,
+    source: &'a str,
+    add_code_classes: bool,
+) -> Vec<Event<'a>> {
     let mut events = Vec::new();
     for (event, range) in parser {
         match event {
-            Event::Code(text) => {
+            Event::Code(text) if add_code_classes => {
                 // Emit raw HTML instead of the Code event so that push_html
                 // produces <code class="...">text</code> rather than bare <code>.
                 let escaped = html_escape_for_code(&text);
@@ -288,6 +301,45 @@ pub fn markdown_to_html(markdown: &str) -> String {
     let html_output = decode_pulldown_url_encoding(&html_output);
 
     // Apply kramdown compatibility post-processing
+    crate::kramdown::postprocess(&html_output)
+}
+
+/// Convert Markdown to HTML with configurable inline code class behavior.
+///
+/// When `add_code_classes` is true (kramdown mode, the default), inline backtick
+/// code gets `class="language-plaintext highlighter-rouge"`. When false (CommonMark
+/// mode), inline code is rendered as bare `<code>` elements.
+///
+/// This is used when the site config specifies a non-kramdown markdown processor
+/// (e.g., `markdown: CommonMarkGhPages`).
+pub fn markdown_to_html_with_options(markdown: &str, add_code_classes: bool) -> String {
+    let mut options = Options::empty();
+    options.insert(Options::ENABLE_TABLES);
+    options.insert(Options::ENABLE_STRIKETHROUGH);
+    options.insert(Options::ENABLE_SMART_PUNCTUATION);
+
+    let markdown = escape_paren_list_markers(markdown);
+    let markdown = crate::kramdown::escape_headings_in_list_context(&markdown);
+    let markdown = crate::kramdown::collapse_blank_lines_between_list_items(&markdown);
+    let markdown = crate::kramdown::convert_kramdown_pipe_tables(&markdown);
+    let markdown = crate::kramdown::split_text_after_html_block_close(&markdown);
+    let markdown = normalize_zwsp_for_emphasis(&markdown);
+    let markdown = fix_kramdown_emphasis_patterns(&markdown);
+    let markdown = protect_consecutive_single_quotes(&markdown);
+    let protected = protect_liquid_quotes(&markdown);
+
+    let parser = Parser::new_ext(&protected, options);
+    let events = add_inline_code_class_to_events_impl(
+        parser.into_offset_iter(),
+        &protected,
+        add_code_classes,
+    );
+    let mut html_output = String::new();
+    html::push_html(&mut html_output, events.into_iter());
+
+    let html_output = restore_liquid_quotes(&html_output);
+    let html_output = restore_consecutive_single_quotes(&html_output);
+    let html_output = decode_pulldown_url_encoding(&html_output);
     crate::kramdown::postprocess(&html_output)
 }
 
@@ -1971,6 +2023,64 @@ Some text after.
         assert!(
             html.contains("a &lt; b &amp;&amp; c &gt; d</code>"),
             "Special chars should be escaped in inline code. Got: {}",
+            html
+        );
+    }
+
+    // ========================================================================
+    // Issue 216: Inline code classes conditional on markdown processor
+    // ========================================================================
+
+    #[test]
+    fn test_issue216_commonmark_no_inline_code_class() {
+        // When markdown processor is CommonMark (not kramdown), backtick inline
+        // code should NOT get language-plaintext highlighter-rouge class
+        let html = markdown_to_html_with_options("Use `pip install` to set up.\n", false);
+        assert!(
+            html.contains("<code>pip install</code>"),
+            "CommonMark mode should produce bare <code> tags. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains("language-plaintext"),
+            "CommonMark mode should NOT add language-plaintext class. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue216_kramdown_keeps_inline_code_class() {
+        // Default (kramdown) mode should still add the class
+        let html = markdown_to_html_with_options("Use `pip install` to set up.\n", true);
+        assert!(
+            html.contains(
+                "<code class=\"language-plaintext highlighter-rouge\">pip install</code>"
+            ),
+            "Kramdown mode should add language-plaintext class. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue216_commonmark_unicode_inline_code() {
+        // Non-ASCII content in inline code under CommonMark mode
+        let html = markdown_to_html_with_options("Use `einrichten` to configure.\n", false);
+        assert!(
+            html.contains("<code>einrichten</code>"),
+            "CommonMark mode with Unicode content should produce bare <code>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue216_commonmark_fenced_code_keeps_language_class() {
+        // Fenced code blocks with language specifier should still get language class
+        // regardless of markdown processor setting (regression guard)
+        let input = "```python\nprint('hello')\n```\n";
+        let html = markdown_to_html_with_options(input, false);
+        assert!(
+            html.contains("language-python"),
+            "Fenced code blocks should keep language class even in CommonMark mode. Got: {}",
             html
         );
     }
