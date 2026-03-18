@@ -1090,22 +1090,25 @@ fn decode_entity(entity: &str) -> Option<char> {
 ///
 /// Kramdown's `generate_id` does:
 /// 1. Downcase
-/// 2. Remove all characters except `[a-z0-9 -]`
+/// 2. Remove all characters except alphanumerics (including Unicode), spaces, and hyphens
 /// 3. Replace spaces with hyphens (without collapsing consecutive hyphens)
 ///
 /// Note: kramdown does NOT strip leading digits. `"1. DataTalksClub"` becomes
 /// `"1-datatalksclub"`, not `"datatalksclub"`.
+///
+/// Kramdown preserves Unicode alphabetic characters (Cyrillic, CJK, etc.) in its
+/// default slugify mode, matching Jekyll's `default` slugify behavior.
 fn slugify(text: &str) -> String {
     // Step 1: Lowercase
     let lower = text.to_lowercase();
 
-    // Step 2: Keep only [a-z0-9 -], remove everything else
+    // Step 2: Keep alphanumerics (including Unicode letters), spaces, and hyphens
     let mut slug = String::with_capacity(lower.len());
     for ch in lower.chars() {
-        if ch.is_ascii_alphanumeric() || ch == ' ' || ch == '-' {
+        if ch.is_alphanumeric() || ch == ' ' || ch == '-' {
             slug.push(ch);
         }
-        // All other characters are stripped
+        // All other characters (punctuation, symbols like :, —, etc.) are stripped
     }
 
     // Step 3: Replace spaces with hyphens
@@ -2265,6 +2268,65 @@ mod tests {
         // Trailing dashes/spaces from non-alnum chars are NOT trimmed by kramdown
         // (kramdown does not trim trailing dashes)
         assert_eq!(slugify("Hello World!"), "hello-world");
+    }
+
+    // --- Cyrillic / non-ASCII slugify tests ---
+
+    #[test]
+    fn test_slugify_preserves_cyrillic() {
+        // Kramdown preserves Unicode alphabetic chars in generate_id.
+        // "Глава 1: Введение - Мир металлов вокруг нас" should produce
+        // "глава-1-введение---мир-металлов-вокруг-нас" NOT "-1-------"
+        // (colon stripped, space-hyphen-space preserved as ---)
+        assert_eq!(
+            slugify("Глава 1: Введение - Мир металлов вокруг нас"),
+            "глава-1-введение---мир-металлов-вокруг-нас"
+        );
+    }
+
+    #[test]
+    fn test_slugify_preserves_cyrillic_emdash() {
+        // Em-dash (—) is stripped, so " — " -> "  " -> "--"
+        assert_eq!(
+            slugify("Глава 1: Введение — Мир металлов вокруг нас"),
+            "глава-1-введение--мир-металлов-вокруг-нас"
+        );
+    }
+
+    #[test]
+    fn test_slugify_mixed_ascii_cyrillic() {
+        assert_eq!(
+            slugify("Уникальные дары металлов"),
+            "уникальные-дары-металлов"
+        );
+    }
+
+    #[test]
+    fn test_slugify_cyrillic_with_numbers() {
+        // Colon is stripped; space-hyphen-space produces triple dashes
+        assert_eq!(
+            slugify("Глава 3: Бронзовый век - революция сплавов"),
+            "глава-3-бронзовый-век---революция-сплавов"
+        );
+    }
+
+    #[test]
+    fn test_slugify_pure_cyrillic() {
+        assert_eq!(slugify("Привет мир"), "привет-мир");
+    }
+
+    #[test]
+    fn test_slugify_cyrillic_not_stripped() {
+        // Regression: before fix, all non-ASCII was stripped, producing "-1-------"
+        let result = slugify("Глава 1: Введение - Мир металлов вокруг нас");
+        assert!(
+            result.contains("глава"),
+            "Cyrillic should be preserved in slug, got: {result}"
+        );
+        assert!(
+            result.contains("введение"),
+            "Cyrillic should be preserved in slug, got: {result}"
+        );
     }
 
     // --- Unique ID tests ---
@@ -4816,6 +4878,50 @@ by <a href="/people/author.html">Author Name</a>
             result.contains("id=\"simple-heading\""),
             "Heading ID for plain text should be unchanged. Got: {}",
             result
+        );
+    }
+
+    // --- Issue 201: Text after <br> should be sibling, not child ---
+
+    #[test]
+    fn test_text_after_br_is_sibling_not_child() {
+        // Markdown with hard break (two trailing spaces):
+        // Should render with text after <br> as sibling of <p>, not child of <br>
+        let input =
+            "Sign up for our newsletter.  \nWe\u{2019}ll keep you informed about our events.";
+        let html = crate::frontmatter::markdown_to_html(input);
+        // In correct output, <br> should be followed by \n then text,
+        // not directly by text (which makes it look like a child of <br> in DOM)
+        assert!(
+            !html.contains("<br>We") && !html.contains("<br />We") && !html.contains("<br/>We"),
+            "Text after <br> must not be directly attached to <br> tag. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_multiple_br_tags_text_placement() {
+        let input = "Line 1  \nLine 2  \nLine 3";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<br>Line")
+                && !html.contains("<br />Line")
+                && !html.contains("<br/>Line"),
+            "Text after <br> tags should not be children of <br>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_markdown_line_break_text_placement() {
+        let input = "First line  \nSecond line";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<br>Second")
+                && !html.contains("<br />Second")
+                && !html.contains("<br/>Second"),
+            "Text 'Second line' should be sibling of <br>, not child. Got: {}",
+            html
         );
     }
 }

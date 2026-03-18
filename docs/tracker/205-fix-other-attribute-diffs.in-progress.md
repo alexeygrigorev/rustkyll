@@ -124,3 +124,15 @@ fn test_metals_book_cyrillic_heading_ids() {
 - [ ] mlwiki.org attribute diffs investigated and fixed (48 pages)
 - [ ] mlbookcamp-page and mojombo-blog attribute diffs fixed (4 pages)
 - [ ] No regressions in existing slugify/ID generation for ASCII content
+
+## Log
+
+### [SWE] 2026-03-18
+- Root cause: `slugify()` in `src/kramdown.rs` used `ch.is_ascii_alphanumeric()` which strips all non-ASCII characters (Cyrillic, etc.), producing IDs like `-1-------` instead of `глава-1-введение---мир-металлов-вокруг-нас`
+- Fix: Changed `ch.is_ascii_alphanumeric()` to `ch.is_alphanumeric()` which preserves Unicode letters (Cyrillic, CJK, etc.) matching kramdown's `\p{Word}` behavior
+- TDD: Wrote 6 new Cyrillic/non-ASCII slugify tests first, verified they failed, then applied fix
+- Tests added: `test_slugify_preserves_cyrillic`, `test_slugify_preserves_cyrillic_emdash`, `test_slugify_mixed_ascii_cyrillic`, `test_slugify_cyrillic_with_numbers`, `test_slugify_pure_cyrillic`, `test_slugify_cyrillic_not_stripped`
+- All 17 slugify tests pass (11 existing + 6 new), full suite: 1624 passed, 0 failed
+- Clippy clean, fmt clean
+- Files modified: `src/kramdown.rs`
+- Note: The alt text whitespace and other attribute diffs (mlwiki.org, mlbookcamp, mojombo) cannot be investigated without access to the dom-details comparison data. The core fix (Unicode-preserving slugify) addresses the 33 little-book-of-metals-ru pages and any other non-ASCII heading ID issues across all sites
