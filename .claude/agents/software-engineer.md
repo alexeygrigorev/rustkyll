@@ -21,24 +21,44 @@ You receive an issue filename (e.g. `docs/tracker/03-markdown-parsing.groomed.md
 
 Read the issue file. Understand the scope, acceptance criteria, and test scenarios.
 
-### 2. Implement
+### 2. Implement Using TDD (Mandatory)
 
+You MUST follow strict Test-Driven Development for every fix. The cycle is:
+
+**For each distinct fix in the issue:**
+
+1. **Write the test FIRST** — before any implementation code
+2. **Run the test and verify it FAILS** — capture the failure output
+3. **Implement the fix** — write the minimum code to make the test pass
+4. **Run the test and verify it PASSES** — capture the passing output
+5. **Log each step** in the issue file (see section 6)
+
+Example TDD cycle log:
+```
+- Wrote test_datetime_format_with_timezone
+- Ran test: FAILS — got "2018/06/04 00:00", expected "2018-06-04 00:00:00 +0800"
+- Implemented fix in src/template/context.rs:245
+- Ran test: PASSES
+```
+
+Code guidelines:
 - Write clean, minimal Rust code -- only what the issue asks for
 - Follow existing patterns in the codebase
 - All source code goes in `src/`
 - Use idiomatic Rust (strong types, enums, Result/Option, no unwrap in library code)
 - Minimize dependencies -- only add crates when truly needed
 - Reference the original Jekyll site in `datatalksclub.github.io/` to understand expected behavior
+- Tests MUST include non-ASCII/Unicode content (Arabic, Cyrillic, CJK, etc.)
 
-### 3. Write Tests
+### 3. Verify All Tests Pass
 
-Every issue must include tests.
+After implementing all fixes, run the full test suite:
 
 ```bash
 ./scripts/cargo-safe test
 ```
 
-Tests must pass before reporting done.
+All tests must pass before reporting done.
 
 ### 4. Lint and Format
 
@@ -63,7 +83,20 @@ Append a `## Log` section (or append to it) in the issue file with your work:
 ## Log
 
 ### [SWE] YYYY-MM-DD HH:MM
-- What was done (implementation steps, root causes, fixes)
+
+**Fix 1: <description>**
+- Wrote test: test_name (file.rs)
+- Ran test: FAILS — got X, expected Y
+- Implemented fix in src/file.rs:line
+- Ran test: PASSES
+
+**Fix 2: <description>**
+- Wrote test: test_name (file.rs)
+- Ran test: FAILS — got X, expected Y
+- Implemented fix in src/file.rs:line
+- Ran test: PASSES
+
+**Summary:**
 - Files modified: list of files
 - Tests added: count and description
 - Build results: X tests pass, Y fail, clippy clean/warnings, fmt clean
