@@ -2,9 +2,18 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/government-github/_site_je
 Rustkyll directory: /home/alexey/git/rustkyl/websites/government-github/_site_rustkyll_recount
 Common HTML files:  21
 
-DIFF 404.html (2 differences)
+DIFF 404.html (14 differences)
   head > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  body > footer > div > div > a > svg: missing_element - expected: '<svg>', actual: '(none)'
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > link: extra_element - expected: '(none)', actual: '<link>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 4 more differences
 DIFF accessibility/index.html (8 differences)
   child[1]: tag_name_differs - expected: 'meta', actual: 'head'
   child[2]: tag_name_differs - expected: 'title', actual: 'body'
@@ -14,18 +23,18 @@ DIFF accessibility/index.html (8 differences)
   meta: missing_element - expected: '<meta>', actual: '(none)'
   h1: missing_element - expected: '<h1>', actual: '(none)'
   a: missing_element - expected: '<a>', actual: '(none)'
-DIFF aws-govcloud.html (11 differences)
+DIFF aws-govcloud.html (23 differences)
   head > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  body > div > div > div > div > div > div > svg: missing_element - expected: '<svg>', actual: '(none)'
-  body > div > div > div > div > div > div > svg: missing_element - expected: '<svg>', actual: '(none)'
-  body > div > div > div > div > div > div > svg: missing_element - expected: '<svg>', actual: '(none)'
-  body > div > div > div > div > div > div > svg: missing_element - expected: '<svg>', actual: '(none)'
-  body > div > div > div > div > div > div > svg: missing_element - expected: '<svg>', actual: '(none)'
-  body > div > div > div > div > div > div > svg: missing_element - expected: '<svg>', actual: '(none)'
-  body > div > div > div > div > div > div > svg: missing_element - expected: '<svg>', actual: '(none)'
-  body > div > div > div > div > div > svg: missing_element - expected: '<svg>', actual: '(none)'
-  body > div > div > div > div > div > svg: missing_element - expected: '<svg>', actual: '(none)'
-  ... and 1 more differences
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > link: extra_element - expected: '(none)', actual: '<link>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 13 more differences
 DIFF best-practices/index.html (8 differences)
   meta: missing_element - expected: '<meta>', actual: '(none)'
   title: missing_element - expected: '<title>', actual: '(none)'
@@ -35,27 +44,54 @@ DIFF best-practices/index.html (8 differences)
   meta: missing_element - expected: '<meta>', actual: '(none)'
   h1: missing_element - expected: '<h1>', actual: '(none)'
   a: missing_element - expected: '<a>', actual: '(none)'
-DIFF community/index.html (9151 differences)
-  head > title: text_differs - expected: 'Who’s using GitHub? | GitHub and Government', actual: "Who's using GitHub? | GitHub and Government"
+DIFF community/index.html (9158 differences)
   head > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta: attribute_differs - expected: "content='Who’s using GitHub?'", actual: 'content="Who\'s using GitHub?"'
-  head > meta > meta > meta > meta: attribute_differs - expected: "content='Government agencies at the national, state, and local level use GitHub to share and collaborate. If you don’t see your organization on this list, follow the instructions below to add it!'", actual: 'content="Government agencies at the national, state, and local level use GitHub to share and collaborate. If you don\'t see your organization on this list, follow the instructions below to add it!"'
-  head > meta > meta > meta > meta: attribute_differs - expected: "content='Government agencies at the national, state, and local level use GitHub to share and collaborate. If you don’t see your organization on this list, follow the instructions below to add it!'", actual: 'content="Government agencies at the national, state, and local level use GitHub to share and collaborate. If you don\'t see your organization on this list, follow the instructions below to add it!"'
-  head > meta > meta > meta > link > meta: attribute_differs - expected: "content='Who’s using GitHub?'", actual: 'content="Who\'s using GitHub?"'
-  head > meta > meta > meta > link > script > jsonld.description: jsonld_value_differs - expected: 'Government agencies at the national, state, and local level use GitHub to share and collaborate. If you don’t see your organization on this list, follow the instructions below to add it!', actual: "Government agencies at the national, state, and local level use GitHub to share and collaborate. If you don't see your organization on this list, follow the instructions below to add it!"
-  head > meta > meta > meta > link > script > jsonld.headline: jsonld_value_differs - expected: 'Who’s using GitHub?', actual: "Who's using GitHub?"
-  body > div > div > div > div > div > div > div > a > img: attribute_differs - expected: "alt='argob'", actual: "alt='lazy'"
-  body > div > div > div > div > div > div > div > a > img: missing_attribute - expected: "data-proofer-ignore='true'", actual: '(none)'
-  ... and 9141 more differences
-DIFF fedramp-confirmation/index.html (2 differences)
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > link: extra_element - expected: '(none)', actual: '<link>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 9148 more differences
+DIFF fedramp-confirmation/index.html (14 differences)
   head > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  body > footer > div > div > a > svg: missing_element - expected: '<svg>', actual: '(none)'
-DIFF fedramp-faq.html (2 differences)
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > link: extra_element - expected: '(none)', actual: '<link>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 4 more differences
+DIFF fedramp-faq.html (14 differences)
   head > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  body > footer > div > div > a > svg: missing_element - expected: '<svg>', actual: '(none)'
-DIFF fedramp/index.html (2 differences)
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > link: extra_element - expected: '(none)', actual: '<link>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 4 more differences
+DIFF fedramp/index.html (14 differences)
   head > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  body > div > footer > div > div > a > svg: missing_element - expected: '<svg>', actual: '(none)'
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > link: extra_element - expected: '(none)', actual: '<link>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 4 more differences
 DIFF govcloud/index.html (8 differences)
   meta: missing_element - expected: '<meta>', actual: '(none)'
   title: missing_element - expected: '<title>', actual: '(none)'
@@ -125,4 +161,4 @@ DIFF stories/xas-software.html (4 differences)
   a: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/xas-software.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
   script: text_differs - expected: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/xas-software.md'", actual: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
 
-Summary: 1 files matched, 20 files with differences, 9242 total differences
+Summary: 1 files matched, 20 files with differences, 9309 total differences

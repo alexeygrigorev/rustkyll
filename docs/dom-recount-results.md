@@ -1,6 +1,6 @@
 # DOM Comparison Results
 
-Generated: 2026-03-18 17:46 UTC
+Generated: 2026-03-18 20:29 UTC
 
 rustkyll version: rustkyll 0.2.3
 
@@ -28,16 +28,16 @@ The script builds both Jekyll and rustkyll for each site, runs DOM comparison vi
 | alexeygrigorev/data-science-interviews | 0/0 (N/A%) | 0/6 | 0 |
 | alexeygrigorev/kids-horror-stories-ru | 1342/1344 (100%) | 1344/1345 | 0 |
 | alexeygrigorev/little-book-of-metals-ru | 38/43 (88%) | 43/48 | 0 |
-| alexeygrigorev/mlbookcamp-page | 7/15 (47%) | 15/15 | 0 |
+| alexeygrigorev/mlbookcamp-page | 1/15 (7%) | 15/15 | 0 |
 | alexeygrigorev/mlwiki.org | 214/639 (33%) | 640/639 | 5 |
 | alexeygrigorev/snippets | 8/25 (32%) | 25/25 | 0 |
-| architect-theme | 1/2 (50%) | 2/2 | 0 |
+| architect-theme | 0/2 (0%) | 2/2 | 0 |
 | beautiful-jekyll | 0/5 (0%) | 6/6 | 3 |
 | bitcoin-org | JEKYLL_FAIL | - | - |
-| cayman-theme | 1/2 (50%) | 2/2 | 0 |
-| choosealicense.com | 15/72 (21%) | 72/72 | 0 |
+| cayman-theme | 0/2 (0%) | 2/2 | 0 |
+| choosealicense.com | 17/72 (24%) | 72/72 | 0 |
 | DataTalksClub/courses | 5/5 (100%) | 5/5 | 0 |
-| DataTalksClub/datatalksclub.github.io | 508/787 (65%) | 787/787 | 1 |
+| DataTalksClub/datatalksclub.github.io | 2/787 (0%) | 787/787 | 1 |
 | DataTalksClub/docs | 0/57 (0%) | 57/57 | 0 |
 | dinky-theme | 0/2 (0%) | 2/2 | 0 |
 | documentation-theme-jekyll | 1/100 (1%) | 100/100 | 39 |
@@ -59,11 +59,11 @@ The script builds both Jekyll and rustkyll for each site, runs DOM comparison vi
 | minima | JEKYLL_FAIL | - | - |
 | minimal-mistakes | 0/0 (N/A%) | 1/1 | 0 |
 | mojombo-blog | 14/17 (82%) | 17/17 | 0 |
-| muan-blog | 1660/2218 (75%) | 2219/2218 | 0 |
+| muan-blog | 1783/2218 (80%) | 2219/2218 | 0 |
 | opensource-guide | 23/388 (6%) | 390/388 | 0 |
 | primer-theme | 0/2 (0%) | 2/2 | 0 |
 | programming-historian | JEKYLL_FAIL | - | - |
-| slate-theme | 1/2 (50%) | 2/2 | 0 |
+| slate-theme | 0/2 (0%) | 2/2 | 0 |
 | so-simple-theme | 0/11 (0%) | 11/66 | 1 |
 | time-machine-theme | 0/2 (0%) | 2/2 | 0 |
 | uswds-site | JEKYLL_FAIL | - | - |
@@ -72,30 +72,29 @@ The script builds both Jekyll and rustkyll for each site, runs DOM comparison vi
 ## Summary
 
 - Sites compared: 36
-- Total DOM matches: 7663 / 9769
+- Total DOM matches: 7273 / 9769
 
 ## Diff Categories by Site
 
 ### slate-theme
 
 ```
-      6 attribute_differs
-      4 text_differs
+     18 extra_element
+      2 missing_element
 ```
 
 ### hacker-theme
 
 ```
-      8 attribute_differs
-      3 text_differs
+     18 extra_element
+      2 missing_element
 ```
 
 ### primer-theme
 
 ```
-      8 attribute_differs
-      3 text_differs
-      1 missing_element
+     18 extra_element
+      2 missing_element
 ```
 
 ### alexeygrigorev/little-book-of-metals-ru
@@ -107,38 +106,34 @@ The script builds both Jekyll and rustkyll for each site, runs DOM comparison vi
 ### midnight-theme
 
 ```
-      8 attribute_differs
-      3 text_differs
+     18 extra_element
+      2 missing_element
 ```
 
 ### cayman-theme
 
 ```
-      6 attribute_differs
-      4 text_differs
+     20 missing_element
 ```
 
 ### DataTalksClub/datatalksclub.github.io
 
 ```
-    684 jsonld_value_differs
-    324 missing_element
-    192 expected_element_got_text
-     53 text_differs
-     44 attribute_differs
-     41 tag_name_differs
-     38 extra_element
-     20 missing_text
-     15 extra_text
-     13 expected_text_got_element
-      8 missing_attribute
+   7845 missing_element
+      3 attribute_differs
+      1 text_differs
+      1 missing_text
 ```
 
 ### DataTalksClub/docs
 
 ```
+    172 extra_element
     114 tag_name_differs
      57 missing_element
+     57 missing_attribute
+     57 extra_attribute
+     57 attribute_differs
      56 text_differs
 ```
 
@@ -152,8 +147,12 @@ The script builds both Jekyll and rustkyll for each site, runs DOM comparison vi
 ### just-the-docs
 
 ```
+    143 extra_element
      94 tag_name_differs
      47 missing_element
+     47 missing_attribute
+     47 extra_attribute
+     47 attribute_differs
      45 text_differs
 ```
 
@@ -180,43 +179,35 @@ The script builds both Jekyll and rustkyll for each site, runs DOM comparison vi
 ### leap-day-theme
 
 ```
-      8 attribute_differs
-      3 text_differs
+     18 extra_element
+      2 missing_element
 ```
 
 ### merlot-theme
 
 ```
-      8 attribute_differs
-      3 text_differs
+     18 extra_element
+      2 missing_element
 ```
 
 ### alexeygrigorev/mlbookcamp-page
 
 ```
-     37 attribute_differs
-      9 text_differs
-      7 tag_name_differs
-      3 missing_element
-      2 extra_element
-      2 expected_text_got_element
-      2 expected_element_got_text
-      1 missing_text
+    140 missing_element
 ```
 
 ### so-simple-theme
 
 ```
-     44 attribute_differs
-     33 missing_attribute
-     33 extra_attribute
+     99 extra_element
+     11 missing_element
 ```
 
 ### dinky-theme
 
 ```
-      8 attribute_differs
-      3 text_differs
+     18 extra_element
+      2 missing_element
 ```
 
 ### alexeygrigorev/alexeygrigorev.github.io
@@ -229,15 +220,16 @@ The script builds both Jekyll and rustkyll for each site, runs DOM comparison vi
 ### muan-blog
 
 ```
-   1026 attribute_differs
-    469 text_differs
-    197 missing_element
-    168 missing_text
-     18 tag_name_differs
+    839 attribute_differs
+    352 extra_attribute
+     44 text_differs
+     26 missing_element
+     19 tag_name_differs
+     14 missing_text
+     10 expected_text_got_element
      10 expected_element_got_text
       9 extra_element
-      8 expected_text_got_element
-      4 extra_attribute
+      3 extra_text
 ```
 
 ### beautiful-jekyll
@@ -251,8 +243,9 @@ The script builds both Jekyll and rustkyll for each site, runs DOM comparison vi
 ### alexeygrigorev/aihero
 
 ```
-     16 attribute_differs
-      4 tag_name_differs
+     16 extra_element
+      2 missing_element
+      2 attribute_differs
 ```
 
 ### documentation-theme-jekyll
@@ -273,22 +266,15 @@ The script builds both Jekyll and rustkyll for each site, runs DOM comparison vi
 ### architect-theme
 
 ```
-      6 attribute_differs
-      4 text_differs
+     18 extra_element
+      2 missing_element
 ```
 
 ### opensource-guide
 
 ```
-   1121 attribute_differs
-   1059 missing_element
-    554 tag_name_differs
-    307 extra_attribute
-    293 extra_text
-    163 expected_element_got_text
-     53 text_differs
-      2 expected_text_got_element
-      1 missing_text
+   2555 missing_element
+   1095 extra_element
 ```
 
 ### alexeygrigorev/snippets
@@ -301,35 +287,30 @@ The script builds both Jekyll and rustkyll for each site, runs DOM comparison vi
 ### government-github
 
 ```
-     41 missing_element
-     41 attribute_differs
-     11 text_differs
+     48 extra_element
+     36 attribute_differs
+     34 missing_element
+     10 text_differs
       4 tag_name_differs
-      2 jsonld_value_differs
-      1 missing_attribute
 ```
 
 ### academicpages
 
 ```
-     90 attribute_differs
-     24 tag_name_differs
-     12 text_differs
-      8 extra_element
+     76 extra_element
+     24 attribute_differs
+     23 tag_name_differs
+     10 missing_element
       2 missing_attribute
+      1 text_differs
 ```
 
 ### choosealicense.com
 
 ```
-    211 jsonld_value_differs
-    179 attribute_differs
-     44 text_differs
-     44 jsonld_missing_field
-     24 missing_element
-      8 tag_name_differs
-      2 missing_attribute
-      2 extra_element
+    440 extra_element
+     55 missing_element
+     55 attribute_differs
 ```
 
 ### mojombo-blog
@@ -346,8 +327,8 @@ The script builds both Jekyll and rustkyll for each site, runs DOM comparison vi
 ### time-machine-theme
 
 ```
-      9 attribute_differs
-      3 text_differs
+     18 extra_element
+      2 missing_element
 ```
 
 ### jekyll-docs/docs

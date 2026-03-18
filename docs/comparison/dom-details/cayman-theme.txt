@@ -2,17 +2,29 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/cayman-theme/_site_jekyll_
 Rustkyll directory: /home/alexey/git/rustkyl/websites/cayman-theme/_site_rustkyll_recount
 Common HTML files:  2
 
-DIFF index.html (61 differences)
-  body > main > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='nx'"
-  body > main > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='nx'"
-  body > main > div > div > pre > code > span: attribute_differs - expected: "class='dl'", actual: "class='s1'"
-  body > main > div > div > pre > code > span: text_differs - expected: "'", actual: "'./lang/'"
-  body > main > div > div > pre > code > span: attribute_differs - expected: "class='s1'", actual: "class='o'"
-  body > main > div > div > pre > code > span: text_differs - expected: './lang/', actual: '+'
-  body > main > div > div > pre > code > span: attribute_differs - expected: "class='dl'", actual: "class='nx'"
-  body > main > div > div > pre > code > span: text_differs - expected: "'", actual: 'l'
-  body > main > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
-  body > main > div > div > pre > code > span: text_differs - expected: '+', actual: ')'
-  ... and 51 more differences
+DIFF another-page.html (30 differences)
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  ... and 20 more differences
+DIFF index.html (91 differences)
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  ... and 81 more differences
 
-Summary: 1 files matched, 1 files with differences, 61 total differences
+Summary: 0 files matched, 2 files with differences, 121 total differences

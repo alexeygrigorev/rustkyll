@@ -2,238 +2,569 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/just-the-docs/_site_jekyll
 Rustkyll directory: /home/alexey/git/rustkyl/websites/just-the-docs/_site_rustkyll_recount
 Common HTML files:  47
 
-DIFF 404.html (3 differences)
+DIFF 404.html (17 differences)
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF CHANGELOG/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='404'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > link: extra_element - expected: '(none)', actual: '<link>'
+  ... and 7 more differences
+DIFF CHANGELOG/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li:not(:nth-child(10)) > a, .site-nav > ul.nav-list:first-child > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(10) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(10) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(10) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF MIGRATION/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='CHANGELOG'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF MIGRATION/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li:not(:nth-child(11)) > a, .site-nav > ul.nav-list:first-child > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(11) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(11) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(11) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/configuration/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Migration and Upgrading'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/configuration/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li:not(:nth-child(2)) > a, .site-nav > ul.nav-list:first-child > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(2) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(2) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(2) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/customization/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Configuration'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/customization/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li:not(:nth-child(7)) > a, .site-nav > ul.nav-list:first-child > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(7) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(7) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(7) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/index-test/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Customization'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/index-test/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li:not(:nth-child(9)) > a, .site-nav > ul.nav-list:first-child > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(9) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(9) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(9) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/layout/layout/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Markdown kitchen sink'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/layout/layout/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li:not(:nth-child(5)) > a, .site-nav > ul.nav-list:first-child > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(5) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(5) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(5) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/layout/minimal/default-child/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Layout'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/layout/minimal/default-child/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(5) > ul > li:nth-child(1) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(5) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(5) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(5) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(5) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(5) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(5) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/layout/minimal/minimal-child/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Default layout child page'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/layout/minimal/minimal-child/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li:not(:nth-child(2)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(5) > ul > li:nth-child(1) > ul > li:nth-child(2) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(5) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(5) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(5) > ul > li:nth-child(1) > ul > li:nth-child(2) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(5) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(5) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(5) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/layout/minimal/minimal/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Minimal layout child page'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/layout/minimal/minimal/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(5) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(5) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(5) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(5) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(5) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/minimal-test/index.html (3 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='A minimal layout page'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/minimal-test/index.html (17 differences)
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/navigation/auxiliary/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Minimal layout test'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > link: extra_element - expected: '(none)', actual: '<link>'
+  ... and 7 more differences
+DIFF docs/navigation/auxiliary/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(2)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(2) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(2) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/navigation/children/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Auxiliary Links'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/navigation/children/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(4)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(4) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(4) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/navigation/in-page/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Child Pages'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/navigation/in-page/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(5)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(5) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(5) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(5) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/navigation/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='In-Page Navigation'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/navigation/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li:not(:nth-child(6)) > a, .site-nav > ul.nav-list:first-child > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/navigation/main/ancestry/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Navigation'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/navigation/main/ancestry/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li:not(:nth-child(4)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/navigation/main/collections/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Ancestry'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/navigation/main/collections/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li:not(:nth-child(5)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(5) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(5) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(5) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/navigation/main/exclude/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Collections'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/navigation/main/exclude/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li:not(:nth-child(2)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(2) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(2) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/navigation/main/external/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Excluding Pages'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/navigation/main/external/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li:not(:nth-child(6)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(6) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(6) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(6) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/navigation/main/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='External Links'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/navigation/main/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/navigation/main/levels/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Main Navigation'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/navigation/main/levels/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li:not(:nth-child(3)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(3) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(3) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(3) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/navigation/main/order/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Page Levels'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/navigation/main/order/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/navigation/main/x/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Ordering Pages'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/navigation/main/x/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/navigation/main/xs/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='X'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/navigation/main/xs/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/navigation/main/xt/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='S'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/navigation/main/xt/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > ul > li:nth-child(1) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/navigation/main/xu/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='T'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/navigation/main/xu/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > ul > li:nth-child(1) > ul > li:nth-child(1) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > ul > li:nth-child(1) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/navigation/main/y/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='U'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/navigation/main/y/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li:not(:nth-child(2)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/navigation/main/ys/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Y'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/navigation/main/ys/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/navigation/main/yt/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='S'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/navigation/main/yt/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > ul > li:nth-child(1) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/navigation/main/yu/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='T'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/navigation/main/yu/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > ul > li:nth-child(1) > ul > li:nth-child(1) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > ul > li:nth-child(1) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/navigation/parents/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='U'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/navigation/parents/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(3)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(3) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(3) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(3) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/search/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Breadcrumbs'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/search/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li:not(:nth-child(8)) > a, .site-nav > ul.nav-list:first-child > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(8) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(8) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(8) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/ui-components/buttons/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Search'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/ui-components/buttons/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(2)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(2) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(3) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(2) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/ui-components/callouts/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Buttons'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/ui-components/callouts/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(7)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(7) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(3) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(7) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(7) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/ui-components/code/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Callouts'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/ui-components/code/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(6)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(6) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(3) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(6) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(6) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/ui-components/code/line-numbers/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Code'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/ui-components/code/line-numbers/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(6) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(3) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(6) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/ui-components/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Line Numbers'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/ui-components/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li:not(:nth-child(3)) > a, .site-nav > ul.nav-list:first-child > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(3) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(3) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/ui-components/labels/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='UI Components'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/ui-components/labels/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(3)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(3) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(3) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(3) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(3) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/ui-components/lists/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Labels'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/ui-components/lists/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(5)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(5) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(3) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(5) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(5) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/ui-components/tables/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Lists'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/ui-components/tables/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(4)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(4) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(3) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(4) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/ui-components/typography/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Tables'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/ui-components/typography/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(3) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/utilities/color/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Typography'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/utilities/color/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(4) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(4) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/utilities/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Color'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/utilities/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li:not(:nth-child(4)) > a, .site-nav > ul.nav-list:first-child > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(4) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(4) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(4) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/utilities/layout/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Utilities'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/utilities/layout/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(2)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(4) > ul > li:nth-child(2) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(4) > ul > li:nth-child(2) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/utilities/responsive-modifiers/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Layout'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/utilities/responsive-modifiers/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(3)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(4) > ul > li:nth-child(3) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(4) > ul > li:nth-child(3) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(3) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF docs/utilities/typography/index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Responsive Modifiers'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF docs/utilities/typography/index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(4)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(4) > ul > li:nth-child(4) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(4) > ul > li:nth-child(4) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
-DIFF index.html (4 differences)
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Typography'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
+DIFF index.html (18 differences)
   head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
   head > child[9]: tag_name_differs - expected: 'link', actual: 'title'
   head > child[10]: tag_name_differs - expected: 'title', actual: 'meta'
-  head > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: attribute_differs - expected: "content='Jekyll v4.4.1'", actual: "content='Home'"
+  head > meta: missing_attribute - expected: "name='generator'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='og:title'"
+  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  head > meta: extra_element - expected: '(none)', actual: '<meta>'
+  ... and 8 more differences
 
-Summary: 0 files matched, 47 files with differences, 186 total differences
+Summary: 0 files matched, 47 files with differences, 844 total differences
