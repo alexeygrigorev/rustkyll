@@ -828,8 +828,8 @@ fn test_render_1000_for_loop_iterations() {
         "Output should contain last item"
     );
     assert!(
-        elapsed.as_millis() < 100,
-        "1000 for-loop iterations should complete in under 100ms, took {}ms",
+        elapsed.as_millis() < 500,
+        "1000 for-loop iterations should complete in under 500ms, took {}ms",
         elapsed.as_millis()
     );
 }

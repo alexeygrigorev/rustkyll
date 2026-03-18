@@ -264,7 +264,12 @@ fn build_site(
     progress.phase("Loading config...");
     let phase_start = Instant::now();
     let config_path = source.join("_config.yml");
-    let config = SiteConfig::from_file(&config_path)?;
+    let config = if config_path.exists() {
+        SiteConfig::from_file(&config_path)?
+    } else {
+        // Jekyll builds sites without _config.yml using defaults.
+        SiteConfig::default()
+    };
     summary.timing.config = phase_start.elapsed();
 
     // 2. Load data
@@ -1396,7 +1401,8 @@ mod tests {
     }
 
     #[test]
-    fn test_build_site_missing_config_returns_error() {
+    fn test_build_site_missing_config_uses_defaults() {
+        // Jekyll builds sites without _config.yml using defaults.
         let tmp = tempfile::tempdir().unwrap();
         let empty_dir = tmp.path();
         let dest = empty_dir.join("_site");
@@ -1409,14 +1415,9 @@ mod tests {
 
         let result = build_site(empty_dir, &dest, &options);
         assert!(
-            result.is_err(),
-            "Should return error for missing _config.yml"
-        );
-        let err_msg = result.unwrap_err().to_string();
-        assert!(
-            err_msg.contains("config") || err_msg.contains("No such file"),
-            "Error should mention config or file not found, got: {}",
-            err_msg
+            result.is_ok(),
+            "Sites without _config.yml should build with defaults, got: {:?}",
+            result.err()
         );
     }
 

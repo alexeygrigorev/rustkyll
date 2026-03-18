@@ -662,7 +662,8 @@ fn test_cli_build_dotdot_relative_source_path() {
 }
 
 #[test]
-fn test_cli_build_missing_config_graceful_error() {
+fn test_cli_build_missing_config_uses_defaults() {
+    // Jekyll builds sites without _config.yml using defaults.
     if !site_dir().exists() {
         return;
     }
@@ -679,15 +680,9 @@ fn test_cli_build_missing_config_graceful_error() {
         .expect("failed to run rustkyll binary");
 
     assert!(
-        !output.status.success(),
-        "Build should fail when _config.yml is missing"
-    );
-
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(
-        stderr.contains("Build failed"),
-        "Should print failure message, got: {}",
-        stderr
+        output.status.success(),
+        "Build should succeed with defaults when _config.yml is missing. stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
     );
 }
 
