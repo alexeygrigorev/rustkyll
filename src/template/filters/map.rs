@@ -12,19 +12,19 @@ struct MapArgs {
     property: Expression,
 }
 
-/// Map filter that flattens nested arrays, matching Jekyll/Ruby behavior.
+/// Map filter that extracts a named property from each element of an array.
 ///
-/// In Jekyll (Ruby), `array.map(&:tags)` followed by `flatten` produces a flat
-/// array when each item's property is itself an array. The liquid crate's
-/// built-in `map` does not flatten, producing an array of arrays instead.
+/// Matches Jekyll/Ruby Liquid behavior: `map` does NOT auto-flatten nested
+/// arrays. If each item's property is an array, the result is an array of
+/// arrays. Use `| flatten` (or `| compact`) after `map` to flatten explicitly.
 ///
-/// This custom filter maps each item's property and then flattens the result
-/// if any of the mapped values are arrays. For scalar properties, it behaves
-/// identically to the built-in map.
+/// This is important for patterns like `group_by: "parent" | map: "items" | first`
+/// used by the just-the-docs theme, where each group's `items` is an array
+/// that must be preserved intact.
 #[derive(Clone, ParseFilter, FilterReflection)]
 #[filter(
     name = "map",
-    description = "Creates an array of values by extracting the values of a named property from another object. Flattens nested arrays to match Jekyll behavior.",
+    description = "Creates an array of values by extracting the values of a named property from another object.",
     parameters(MapArgs),
     parsed(MapFilter)
 )]
@@ -47,18 +47,11 @@ impl Filter for MapFilter {
             None => return Ok(Value::Nil),
         };
 
-        let mut result = Vec::new();
-        let mut has_nested_arrays = false;
-
-        // First pass: collect mapped values and detect nested arrays
-        let mapped: Vec<Value> = array
+        let result: Vec<Value> = array
             .values()
             .map(|item| {
                 if let Some(obj) = item.as_object() {
                     if let Some(val) = obj.get(property.as_str()) {
-                        if val.as_array().is_some() {
-                            has_nested_arrays = true;
-                        }
                         val.to_value()
                     } else {
                         Value::Nil
@@ -68,19 +61,6 @@ impl Filter for MapFilter {
                 }
             })
             .collect();
-
-        if has_nested_arrays {
-            // Flatten: if any mapped value is an array, expand it inline
-            for val in mapped {
-                if let Value::Array(inner) = val {
-                    result.extend(inner);
-                } else {
-                    result.push(val);
-                }
-            }
-        } else {
-            result = mapped;
-        }
 
         Ok(Value::Array(result))
     }

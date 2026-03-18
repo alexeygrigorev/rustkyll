@@ -3624,11 +3624,11 @@ title: "Test Book"
     }
 
     // ========================================================================
-    // Issue 209: map filter flattens nested arrays
+    // Issue 209/233: map filter preserves nested arrays (does NOT auto-flatten)
     // ========================================================================
 
     #[test]
-    fn test_map_filter_flattens_nested_arrays() {
+    fn test_map_filter_preserves_nested_arrays() {
         let eng = engine();
         let mut ctx = Object::new();
 
@@ -3670,9 +3670,10 @@ title: "Test Book"
         ]);
         ctx.insert("items".into(), items);
 
-        let template = r#"{% assign all_tags = items | map: "tags" | uniq | sort %}{% for tag in all_tags %}{{ tag }},{% endfor %}"#;
+        // In Jekyll/Ruby, map does NOT auto-flatten. Result is array of 3 sub-arrays.
+        let template = r#"{% assign all_tags = items | map: "tags" %}{{ all_tags | size }}"#;
         let result = eng.parse_and_render(template, &ctx).unwrap();
-        assert_eq!(result, "Book,Gesundheit,Hobby,Life,Mental health,");
+        assert_eq!(result, "3");
     }
 
     #[test]
@@ -3698,6 +3699,85 @@ title: "Test Book"
         let template = r#"{% assign titles = items | map: "title" %}{% for t in titles %}{{ t }};{% endfor %}"#;
         let result = eng.parse_and_render(template, &ctx).unwrap();
         assert_eq!(result, "Первый пост;Second;");
+    }
+
+    // Issue 233: map filter must NOT flatten nested arrays.
+    // In Jekyll, `map` preserves nested arrays. The `group_by | map: "items" | first`
+    // pattern used by just-the-docs relies on this.
+    #[test]
+    fn test_map_filter_preserves_nested_arrays_for_group_by() {
+        let eng = engine();
+        let mut ctx = Object::new();
+
+        // Simulate group_by output: [{name: "", items: [a, b]}, {name: "X", items: [c]}]
+        let groups = LiquidValue::Array(vec![
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("name".into(), LiquidValue::scalar(""));
+                o.insert(
+                    "items".into(),
+                    LiquidValue::Array(vec![
+                        LiquidValue::scalar("alpha"),
+                        LiquidValue::scalar("beta"),
+                    ]),
+                );
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("name".into(), LiquidValue::scalar("X"));
+                o.insert(
+                    "items".into(),
+                    LiquidValue::Array(vec![LiquidValue::scalar("gamma")]),
+                );
+                o
+            }),
+        ]);
+        ctx.insert("groups".into(), groups);
+
+        // map: "items" should preserve the arrays, so first gives ["alpha", "beta"]
+        let template = r#"{% assign mapped = groups | map: "items" %}{{ mapped | size }}:{{ mapped | first | size }}"#;
+        let result = eng.parse_and_render(template, &ctx).unwrap();
+        // mapped should be [["alpha","beta"],["gamma"]], size=2
+        // first element is ["alpha","beta"], size=2
+        assert_eq!(result, "2:2");
+    }
+
+    // Issue 233: group_by_exp must access template-assigned variables in expression
+    #[test]
+    fn test_group_by_exp_with_jsonify_and_assigned_var() {
+        let eng = engine();
+        let mut ctx = Object::new();
+
+        // Simulate pages with numeric nav_order
+        let pages = LiquidValue::Array(vec![
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("title".into(), LiquidValue::scalar("Home"));
+                o.insert("nav_order".into(), LiquidValue::scalar(1i64));
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("title".into(), LiquidValue::scalar("About"));
+                o.insert("nav_order".into(), LiquidValue::scalar("second"));
+                o
+            }),
+        ]);
+        ctx.insert("pages".into(), pages);
+
+        // The just-the-docs pattern:
+        // assign double_quote, then group_by_exp using jsonify/slice/remove/size
+        // Numbers: jsonify="1", slice:0="1", remove:dq="1", size=1
+        // Strings: jsonify='"second"', slice:0='"', remove:dq="", size=0
+        let template = r#"{% assign double_quote = '"' %}{% assign groups = pages | group_by_exp: "item", "item.nav_order | jsonify | slice: 0 | remove: double_quote | size" %}{% for g in groups %}[{{ g.name }}:{{ g.items | size }}]{% endfor %}"#;
+        let result = eng.parse_and_render(template, &ctx).unwrap();
+        // Should have two groups: "1" (number, size 1) and "0" (string, size 1)
+        assert!(
+            result.contains("[1:1]") && result.contains("[0:1]"),
+            "Expected groups [1:1] and [0:1], got: {}",
+            result
+        );
     }
 
     // ── Issue 197: String literal as default filter shorthand ──

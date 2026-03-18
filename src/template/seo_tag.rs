@@ -172,6 +172,7 @@ impl Renderable for SeoRenderable {
         let twitter_username = get_nested_str(runtime, &["site", "twitter", "username"]);
         let page_author = get_nested_str(runtime, &["page", "author"]);
         let site_author = get_nested_str(runtime, &["site", "author"]);
+        let site_logo = get_nested_str(runtime, &["site", "logo"]);
 
         // Compute page_title for og:title (page title alone, falling back to site title)
         let og_page_title = page_title.as_deref().or(site_title.as_deref());
@@ -495,6 +496,16 @@ impl Renderable for SeoRenderable {
         if let Some(ref img) = page_image {
             let absolute_img = absolute_image_url(img, &site_url);
             jsonld_fields.push(format!("\"image\":\"{}\"", json_escape(&absolute_img)));
+        }
+
+        // publisher field: when site.logo is configured, include publisher organization
+        // matching jekyll-seo-tag behavior
+        if let Some(ref logo) = site_logo {
+            let absolute_logo = absolute_image_url(logo, &site_url);
+            jsonld_fields.push(format!(
+                "\"publisher\":{{\"@type\":\"Organization\",\"logo\":{{\"@type\":\"ImageObject\",\"url\":\"{}\"}}}}",
+                json_escape(&absolute_logo)
+            ));
         }
 
         output.push_str("<script type=\"application/ld+json\">\n");
@@ -2890,6 +2901,60 @@ mod tests {
         assert_eq!(
             meta_value, jsonld_value,
             "datePublished and article:published_time should be identical"
+        );
+    }
+
+    // ========================================================================
+    // Issue 233: JSON-LD publisher field
+    // ========================================================================
+
+    #[test]
+    fn test_jsonld_publisher_with_site_logo() {
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("My Page"),
+            Some("My Site"),
+            None,
+            Some("A description"),
+            Some("https://example.com"),
+            Some("/about"),
+            None,
+            Some("2024-01-15"),
+            None,
+            None,
+        );
+        // Add site.logo
+        if let Some(Value::Object(ref mut site)) = ctx.get_mut("site") {
+            site.insert("logo".into(), Value::scalar("/images/logo.png".to_string()));
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"publisher\":{\"@type\":\"Organization\",\"logo\":{\"@type\":\"ImageObject\",\"url\":\"https://example.com/images/logo.png\"}}"),
+            "Should contain publisher with logo in JSON-LD. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_jsonld_no_publisher_without_site_logo() {
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Page"),
+            Some("My Site"),
+            None,
+            Some("A description"),
+            Some("https://example.com"),
+            Some("/about"),
+            None,
+            Some("2024-01-15"),
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            !out.contains("\"publisher\""),
+            "Should NOT contain publisher when no site.logo. Got:\n{}",
+            out
         );
     }
 }

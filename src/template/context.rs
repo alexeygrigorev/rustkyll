@@ -823,4 +823,102 @@ title: Not a date
         // Sexagesimal values are kept as original strings like "0:36"
         assert_eq!(output, "0:36");
     }
+
+    #[test]
+    fn test_assign_with_filter_chain() {
+        // This pattern is used by just-the-docs: {% assign empty_array = "" | split: "" %}
+        let engine = crate::template::TemplateEngine::new().unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render(
+                r#"{% assign empty_array = "" | split: "" %}{{ empty_array | size }}"#,
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(output, "0");
+    }
+
+    #[test]
+    fn test_keyword_prefixed_identifiers() {
+        // Variables whose names start with liquid keywords (empty, nil, null,
+        // blank, true, false) must be parsed as identifiers, not as the keyword
+        // literal followed by leftover characters.
+        let engine = crate::template::TemplateEngine::new().unwrap();
+        let ctx = Object::new();
+
+        // "empty_items" should be an identifier, not "empty" + "_items"
+        let output = engine
+            .parse_and_render(
+                r#"{% assign empty_items = "hello" %}{{ empty_items }}"#,
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(output, "hello");
+
+        // "nil_value" should be an identifier, not "nil" + "_value"
+        let output = engine
+            .parse_and_render(r#"{% assign nil_value = "world" %}{{ nil_value }}"#, &ctx)
+            .unwrap();
+        assert_eq!(output, "world");
+
+        // "null_check" should be an identifier
+        let output = engine
+            .parse_and_render(r#"{% assign null_check = "ok" %}{{ null_check }}"#, &ctx)
+            .unwrap();
+        assert_eq!(output, "ok");
+
+        // "blank_line" should be an identifier
+        let output = engine
+            .parse_and_render(r#"{% assign blank_line = "test" %}{{ blank_line }}"#, &ctx)
+            .unwrap();
+        assert_eq!(output, "test");
+
+        // "true_count" should be an identifier
+        let output = engine
+            .parse_and_render(r#"{% assign true_count = 42 %}{{ true_count }}"#, &ctx)
+            .unwrap();
+        assert_eq!(output, "42");
+
+        // "false_positive" should be an identifier
+        let output = engine
+            .parse_and_render(
+                r#"{% assign false_positive = "nope" %}{{ false_positive }}"#,
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(output, "nope");
+    }
+
+    #[test]
+    fn test_keyword_literals_still_work() {
+        // The actual keyword literals should still work correctly
+        let engine = crate::template::TemplateEngine::new().unwrap();
+        let ctx = Object::new();
+
+        // "empty" as a value (in comparison) should still work
+        let output = engine
+            .parse_and_render(
+                r#"{% assign arr = "" | split: "" %}{% if arr == empty %}yes{% endif %}"#,
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(output, "yes");
+
+        // "true" and "false" should still work as boolean literals
+        let output = engine
+            .parse_and_render(
+                r#"{% assign flag = true %}{% if flag %}on{% endif %}"#,
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(output, "on");
+
+        let output = engine
+            .parse_and_render(
+                r#"{% assign flag = false %}{% if flag %}on{% else %}off{% endif %}"#,
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(output, "off");
+    }
 }

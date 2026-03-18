@@ -43,16 +43,20 @@ KeywordFilterArgument = {Identifier ~ ":" ~ Value}
 FilterArgument = _{KeywordFilterArgument | PositionalFilterArgument }
 
 // Literals
-NilLiteral = @{ "nil" | "null" }
-EmptyLiteral = @{ "empty" }
-BlankLiteral = @{ "blank" }
+// Keyword literals must NOT match when followed by identifier-continuation
+// characters (ASCII_ALPHANUMERIC or "_"), so that e.g. "empty_array" is parsed
+// as an Identifier/Variable rather than the keyword "empty" + leftover "_array".
+IdentifierContinuation = _{ ASCII_ALPHANUMERIC | "_" }
+NilLiteral = @{ ("nil" | "null") ~ !IdentifierContinuation }
+EmptyLiteral = @{ "empty" ~ !IdentifierContinuation }
+BlankLiteral = @{ "blank" ~ !IdentifierContinuation }
 StringLiteral = @{ ("'" ~ (!"'" ~ ANY)* ~ "'")
 		        		 | ("\"" ~ (!"\"" ~ ANY)* ~ "\"") }
 
 IntegerLiteral = @{ ("+" | "-")? ~ ASCII_DIGIT+ }
 FloatLiteral = @{ ("+" | "-")? ~ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT+ }
 
-BooleanLiteral = @{ "true" | "false" }
+BooleanLiteral = @{ ("true" | "false") ~ !IdentifierContinuation }
 
 Literal = { NilLiteral | EmptyLiteral | BlankLiteral | StringLiteral | FloatLiteral | IntegerLiteral | BooleanLiteral }
 

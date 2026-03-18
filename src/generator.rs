@@ -6,7 +6,7 @@
 
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Mutex;
 
@@ -197,6 +197,73 @@ pub fn build_site_context(
     site.insert(
         "pages".into(),
         normalize_arrays(LiquidValue::Array(pages_arr)),
+    );
+
+    // site.html_pages -- pages whose output URL ends with .html, .htm, or /
+    // (directory index pages produce .html output). Matches Jekyll's site.html_pages.
+    let html_pages: Vec<LiquidValue> = pages
+        .iter()
+        .filter(|p| {
+            let url = &p.url;
+            url.ends_with(".html") || url.ends_with(".htm") || url.ends_with('/')
+        })
+        .map(page_to_liquid)
+        .collect();
+    site.insert(
+        "html_pages".into(),
+        normalize_arrays(LiquidValue::Array(html_pages)),
+    );
+
+    site
+}
+
+/// Build the full site context including static files information.
+///
+/// This is the extended version of `build_site_context` that also includes
+/// `site.html_pages` (pages with HTML output) and `site.static_files`
+/// (static file metadata for templates like favicon detection).
+pub fn build_site_context_with_static_files(
+    config: &SiteConfig,
+    collections: &HashMap<String, Vec<CollectionItem>>,
+    data: &DataTree,
+    site_dir: Option<&Path>,
+    pages: &[Page],
+    static_file_paths: &[PathBuf],
+) -> Object {
+    let mut site = build_site_context(config, collections, data, site_dir, pages);
+
+    // site.static_files -- metadata about static files for templates
+    let static_files_arr: Vec<LiquidValue> = static_file_paths
+        .iter()
+        .map(|p| {
+            let mut obj = Object::new();
+            let path_str = format!("/{}", p.to_string_lossy().replace('\\', "/"));
+            obj.insert("path".into(), LiquidValue::scalar(path_str));
+
+            let ext = p
+                .extension()
+                .map(|e| format!(".{}", e.to_string_lossy()))
+                .unwrap_or_default();
+            obj.insert("extname".into(), LiquidValue::scalar(ext));
+
+            let name = p
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_default();
+            obj.insert("name".into(), LiquidValue::scalar(name));
+
+            let basename = p
+                .file_stem()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_default();
+            obj.insert("basename".into(), LiquidValue::scalar(basename));
+
+            LiquidValue::Object(obj)
+        })
+        .collect();
+    site.insert(
+        "static_files".into(),
+        normalize_arrays(LiquidValue::Array(static_files_arr)),
     );
 
     site
@@ -5461,5 +5528,212 @@ defaults:
             "Farsi content should be preserved, got: {}",
             html
         );
+    }
+
+    // ========================================================================
+    // Issue 233: site.html_pages
+    // ========================================================================
+
+    #[test]
+    fn test_site_html_pages_filters_to_html_only() {
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+        let collections = HashMap::new();
+        let pages = vec![
+            make_test_page("about", "About"),     // /about.html
+            make_test_page("contact", "Contact"), // /contact.html
+            {
+                // An XML page (should NOT be in html_pages)
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("Feed".to_string()),
+                );
+                Page {
+                    slug: "feed".to_string(),
+                    front_matter: fm,
+                    content: String::new(),
+                    html_content: String::new(),
+                    url: "/feed.xml".to_string(),
+                    source_path: "feed.xml".to_string(),
+                }
+            },
+        ];
+
+        let ctx = build_site_context(&config, &collections, &data, None, &pages);
+
+        let html_pages = ctx.get("html_pages").expect("should have html_pages");
+        if let LiquidValue::Array(arr) = html_pages {
+            assert_eq!(arr.len(), 2, "Should have 2 html pages (not the xml one)");
+        } else {
+            panic!("Expected html_pages to be an array");
+        }
+    }
+
+    #[test]
+    fn test_site_html_pages_exposes_frontmatter_fields() {
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+        let collections = HashMap::new();
+        let mut fm = HashMap::new();
+        fm.insert(
+            "title".to_string(),
+            serde_yaml::Value::String("Courses".to_string()),
+        );
+        fm.insert(
+            "parent".to_string(),
+            serde_yaml::Value::String("Main".to_string()),
+        );
+        fm.insert(
+            "nav_order".to_string(),
+            serde_yaml::Value::Number(serde_yaml::Number::from(5)),
+        );
+        fm.insert("has_children".to_string(), serde_yaml::Value::Bool(true));
+        fm.insert("nav_exclude".to_string(), serde_yaml::Value::Bool(false));
+        fm.insert(
+            "child_nav_order".to_string(),
+            serde_yaml::Value::String("reversed".to_string()),
+        );
+        let pages = vec![Page {
+            slug: "courses".to_string(),
+            front_matter: fm,
+            content: String::new(),
+            html_content: String::new(),
+            url: "/courses/".to_string(),
+            source_path: "courses/index.md".to_string(),
+        }];
+
+        let ctx = build_site_context(&config, &collections, &data, None, &pages);
+
+        let html_pages = ctx.get("html_pages").expect("should have html_pages");
+        if let LiquidValue::Array(arr) = html_pages {
+            assert_eq!(arr.len(), 1);
+            if let LiquidValue::Object(obj) = &arr[0] {
+                assert_eq!(obj.get("title"), Some(&LiquidValue::scalar("Courses")));
+                assert_eq!(obj.get("parent"), Some(&LiquidValue::scalar("Main")));
+                assert_eq!(obj.get("nav_order"), Some(&LiquidValue::scalar(5i64)));
+                assert_eq!(obj.get("has_children"), Some(&LiquidValue::scalar(true)));
+                assert_eq!(obj.get("nav_exclude"), Some(&LiquidValue::scalar(false)));
+                assert_eq!(
+                    obj.get("child_nav_order"),
+                    Some(&LiquidValue::scalar("reversed"))
+                );
+            } else {
+                panic!("Expected page to be an object");
+            }
+        } else {
+            panic!("Expected html_pages to be an array");
+        }
+    }
+
+    #[test]
+    fn test_site_html_pages_includes_nav_exclude_true() {
+        // Jekyll includes nav_exclude:true pages in site.html_pages;
+        // the navigation template does the filtering
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+        let collections = HashMap::new();
+        let mut fm = HashMap::new();
+        fm.insert(
+            "title".to_string(),
+            serde_yaml::Value::String("Hidden".to_string()),
+        );
+        fm.insert("nav_exclude".to_string(), serde_yaml::Value::Bool(true));
+        let pages = vec![Page {
+            slug: "hidden".to_string(),
+            front_matter: fm,
+            content: String::new(),
+            html_content: String::new(),
+            url: "/hidden.html".to_string(),
+            source_path: "hidden.md".to_string(),
+        }];
+
+        let ctx = build_site_context(&config, &collections, &data, None, &pages);
+
+        let html_pages = ctx.get("html_pages").expect("should have html_pages");
+        if let LiquidValue::Array(arr) = html_pages {
+            assert_eq!(
+                arr.len(),
+                1,
+                "nav_exclude pages should still be in html_pages"
+            );
+        } else {
+            panic!("Expected html_pages to be an array");
+        }
+    }
+
+    // ========================================================================
+    // Issue 233: site.static_files
+    // ========================================================================
+
+    #[test]
+    fn test_site_static_files_in_context() {
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+        let collections = HashMap::new();
+        let static_file_paths = vec![
+            std::path::PathBuf::from("favicon.ico"),
+            std::path::PathBuf::from("assets/styles.css"),
+            std::path::PathBuf::from("images/logo.png"),
+        ];
+
+        let ctx = build_site_context_with_static_files(
+            &config,
+            &collections,
+            &data,
+            None,
+            &[],
+            &static_file_paths,
+        );
+
+        let sf = ctx.get("static_files").expect("should have static_files");
+        if let LiquidValue::Array(arr) = sf {
+            assert_eq!(arr.len(), 3);
+            // Check that each entry has .path
+            if let LiquidValue::Object(obj) = &arr[0] {
+                assert_eq!(obj.get("path"), Some(&LiquidValue::scalar("/favicon.ico")));
+                assert_eq!(obj.get("extname"), Some(&LiquidValue::scalar(".ico")));
+                assert_eq!(obj.get("name"), Some(&LiquidValue::scalar("favicon.ico")));
+                assert_eq!(obj.get("basename"), Some(&LiquidValue::scalar("favicon")));
+            } else {
+                panic!("Expected static_files entry to be an object");
+            }
+        } else {
+            panic!("Expected static_files to be an array");
+        }
+    }
+
+    #[test]
+    fn test_site_static_files_properties() {
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+        let collections = HashMap::new();
+        let static_file_paths = vec![std::path::PathBuf::from("assets/css/main.scss")];
+
+        let ctx = build_site_context_with_static_files(
+            &config,
+            &collections,
+            &data,
+            None,
+            &[],
+            &static_file_paths,
+        );
+
+        let sf = ctx.get("static_files").expect("should have static_files");
+        if let LiquidValue::Array(arr) = sf {
+            if let LiquidValue::Object(obj) = &arr[0] {
+                assert_eq!(
+                    obj.get("path"),
+                    Some(&LiquidValue::scalar("/assets/css/main.scss"))
+                );
+                assert_eq!(obj.get("extname"), Some(&LiquidValue::scalar(".scss")));
+                assert_eq!(obj.get("name"), Some(&LiquidValue::scalar("main.scss")));
+                assert_eq!(obj.get("basename"), Some(&LiquidValue::scalar("main")));
+            } else {
+                panic!("Expected static_files entry to be an object");
+            }
+        } else {
+            panic!("Expected static_files to be an array");
+        }
     }
 }

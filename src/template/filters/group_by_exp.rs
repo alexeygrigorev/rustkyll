@@ -38,11 +38,49 @@ struct GroupByExpFilter {
     args: GroupByExpArgs,
 }
 
+/// Extract potential identifier tokens from a Liquid expression string.
+///
+/// This is a simple lexer that picks out word-like tokens (alphanumeric + underscore)
+/// that could be variable references. It skips string literals (quoted).
+fn extract_identifiers(expression: &str) -> Vec<String> {
+    let mut identifiers = Vec::new();
+    let mut chars = expression.chars().peekable();
+    while let Some(&ch) = chars.peek() {
+        if ch == '"' || ch == '\'' {
+            // Skip string literal
+            let quote = ch;
+            chars.next();
+            while let Some(&c) = chars.peek() {
+                chars.next();
+                if c == quote {
+                    break;
+                }
+            }
+        } else if ch.is_alphabetic() || ch == '_' {
+            // Collect identifier
+            let mut ident = String::new();
+            while let Some(&c) = chars.peek() {
+                if c.is_alphanumeric() || c == '_' {
+                    ident.push(c);
+                    chars.next();
+                } else {
+                    break;
+                }
+            }
+            identifiers.push(ident);
+        } else {
+            chars.next();
+        }
+    }
+    identifiers
+}
+
 /// Evaluate a Liquid expression string with a variable bound to an element.
 ///
-/// Wraps the expression as `{{ expression }}` and renders it using a minimal
-/// Liquid parser. This allows the expression to contain filter chains like
-/// `item.date | date: "%Y"`.
+/// Wraps the expression as `{{ expression }}` and renders it using a Liquid
+/// parser with all custom filters registered. This allows the expression to
+/// contain filter chains like `item.date | date: "%Y"` or
+/// `item.nav_order | jsonify | slice: 0 | remove: double_quote | size`.
 fn evaluate_expression_as_value(
     expression: &str,
     var_name: &str,
@@ -52,10 +90,39 @@ fn evaluate_expression_as_value(
     // Build a mini template: {{ expression }}
     let template_str = format!("{{{{ {} }}}}", expression);
 
-    // Build a minimal parser with stdlib + Jekyll filters so that common filters
-    // like `date` are available.
+    // Build a parser with stdlib + all custom/Jekyll filters so that
+    // expressions can use any filter available in the main engine.
     let parser = liquid::ParserBuilder::with_stdlib()
         .filter(liquid_lib::jekyll::Slugify)
+        .filter(liquid_lib::jekyll::Push)
+        .filter(liquid_lib::jekyll::Pop)
+        .filter(liquid_lib::jekyll::Unshift)
+        .filter(liquid_lib::jekyll::Shift)
+        .filter(liquid_lib::jekyll::ArrayToSentenceString)
+        .filter(super::Jsonify)
+        .filter(super::DateToString)
+        .filter(super::DateToLongString)
+        .filter(super::DateToRfc822)
+        .filter(super::DateToXmlschema)
+        .filter(super::Markdownify)
+        .filter(super::NewlineToBr)
+        .filter(super::RelativeUrl)
+        .filter(super::AbsoluteUrl)
+        .filter(super::NumberOfWords)
+        .filter(super::GroupBy)
+        .filter(super::GroupByExp)
+        .filter(super::XmlEscape)
+        .filter(super::Truncatewords)
+        .filter(super::NormalizeWhitespace)
+        .filter(super::Date)
+        .filter(super::Sort)
+        .filter(super::UrlEncode)
+        .filter(super::CgiEscape)
+        .filter(super::math::Times)
+        .filter(super::math::Plus)
+        .filter(super::math::Minus)
+        .filter(super::Map)
+        .filter(super::Sample)
         .build();
 
     let parser = match parser {
@@ -74,16 +141,35 @@ fn evaluate_expression_as_value(
     globals.insert(var_name.to_owned().into(), element.to_value());
 
     // Copy runtime variables into the context so expressions can reference
-    // site, page, etc.
-    // The Runtime trait doesn't expose iteration, so we rely on the bound
-    // variable being sufficient for the expression. In practice, group_by_exp
-    // expressions only reference the bound variable (e.g., "post.date | date: '%Y'").
+    // site, page, and any user-assigned variables (e.g., `double_quote`).
+    // The Runtime trait doesn't expose iteration, so we scan the expression
+    // for identifier-like tokens and try to resolve them.
 
-    // Try to copy common runtime roots
+    // Common runtime roots
     for key in &["site", "page", "paginator", "layout", "content"] {
         let keys = vec![liquid::model::ScalarCow::new(*key)];
         if let Some(val) = runtime.try_get(&keys) {
             globals.insert((*key).into(), val.to_value());
+        }
+    }
+
+    // Extract potential variable names from the expression and try to resolve
+    // them from the runtime. This handles user-assigned variables like
+    // `double_quote` in the just-the-docs navigation template.
+    for token in extract_identifiers(expression) {
+        if token == var_name || globals.contains_key(token.as_str()) {
+            continue;
+        }
+        // Skip known Liquid keywords/literals
+        if matches!(
+            token.as_str(),
+            "true" | "false" | "nil" | "null" | "empty" | "blank" | "and" | "or" | "not"
+        ) {
+            continue;
+        }
+        let keys = vec![liquid::model::ScalarCow::new(token.as_str())];
+        if let Some(val) = runtime.try_get(&keys) {
+            globals.insert(token.into(), val.to_value());
         }
     }
 
@@ -126,7 +212,19 @@ impl Filter for GroupByExpFilter {
             .map(|(name, items)| {
                 let size = items.len() as i64;
                 let mut obj = liquid::Object::new();
-                obj.insert("name".into(), Value::scalar(name));
+                // Try to preserve the type of the group name:
+                // if the expression evaluated to an integer, store as integer;
+                // if float, store as float; otherwise string. This is important
+                // because `sorted.html` uses `group.name == 0` / `group.name == 1`
+                // (integer comparison) and Liquid does not coerce strings to ints.
+                let name_value = if let Ok(i) = name.parse::<i64>() {
+                    Value::scalar(i)
+                } else if let Ok(f) = name.parse::<f64>() {
+                    Value::scalar(f)
+                } else {
+                    Value::scalar(name)
+                };
+                obj.insert("name".into(), name_value);
                 obj.insert("items".into(), Value::Array(items));
                 obj.insert("size".into(), Value::scalar(size));
                 Value::Object(obj)
