@@ -355,6 +355,7 @@ impl LayoutEngine {
         let html_content = crate::frontmatter::markdown_to_html_with_options(
             &collapsed,
             self.use_kramdown_code_classes,
+            self.use_kramdown_code_classes,
         );
         let html_content = crate::kramdown::remove_heading_markers(&html_content);
         let result = self.render_with_site_overrides(
@@ -488,6 +489,7 @@ impl LayoutEngine {
         let html_content = crate::frontmatter::markdown_to_html_with_options(
             &collapsed,
             self.use_kramdown_code_classes,
+            self.use_kramdown_code_classes,
         );
 
         // Step 3.5 (D1): Remove the heading markers after postprocessing
@@ -558,6 +560,7 @@ impl LayoutEngine {
         // Step 3: Convert markdown to HTML (respecting markdown processor setting)
         Ok(crate::frontmatter::markdown_to_html_with_options(
             &collapsed,
+            self.use_kramdown_code_classes,
             self.use_kramdown_code_classes,
         ))
     }

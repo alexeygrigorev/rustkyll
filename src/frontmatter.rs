@@ -304,19 +304,31 @@ pub fn markdown_to_html(markdown: &str) -> String {
     crate::kramdown::postprocess(&html_output)
 }
 
-/// Convert Markdown to HTML with configurable inline code class behavior.
+/// Convert Markdown to HTML with configurable inline code class and smart punctuation behavior.
 ///
 /// When `add_code_classes` is true (kramdown mode, the default), inline backtick
 /// code gets `class="language-plaintext highlighter-rouge"`. When false (CommonMark
 /// mode), inline code is rendered as bare `<code>` elements.
 ///
+/// When `enable_smart_punctuation` is true (kramdown mode), straight quotes are
+/// converted to curly quotes and `...` becomes an ellipsis character. When false
+/// (CommonMarkGhPages mode), punctuation is left as-is.
+///
 /// This is used when the site config specifies a non-kramdown markdown processor
 /// (e.g., `markdown: CommonMarkGhPages`).
-pub fn markdown_to_html_with_options(markdown: &str, add_code_classes: bool) -> String {
+pub fn markdown_to_html_with_options(
+    markdown: &str,
+    add_code_classes: bool,
+    enable_smart_punctuation: bool,
+) -> String {
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TABLES);
     options.insert(Options::ENABLE_STRIKETHROUGH);
-    options.insert(Options::ENABLE_SMART_PUNCTUATION);
+    // Issue 220: Only enable smart punctuation for kramdown sites.
+    // CommonMarkGhPages does not enable smart punctuation by default.
+    if enable_smart_punctuation {
+        options.insert(Options::ENABLE_SMART_PUNCTUATION);
+    }
 
     let markdown = escape_paren_list_markers(markdown);
     let markdown = crate::kramdown::escape_headings_in_list_context(&markdown);
@@ -2035,7 +2047,7 @@ Some text after.
     fn test_issue216_commonmark_no_inline_code_class() {
         // When markdown processor is CommonMark (not kramdown), backtick inline
         // code should NOT get language-plaintext highlighter-rouge class
-        let html = markdown_to_html_with_options("Use `pip install` to set up.\n", false);
+        let html = markdown_to_html_with_options("Use `pip install` to set up.\n", false, true);
         assert!(
             html.contains("<code>pip install</code>"),
             "CommonMark mode should produce bare <code> tags. Got: {}",
@@ -2051,7 +2063,7 @@ Some text after.
     #[test]
     fn test_issue216_kramdown_keeps_inline_code_class() {
         // Default (kramdown) mode should still add the class
-        let html = markdown_to_html_with_options("Use `pip install` to set up.\n", true);
+        let html = markdown_to_html_with_options("Use `pip install` to set up.\n", true, true);
         assert!(
             html.contains(
                 "<code class=\"language-plaintext highlighter-rouge\">pip install</code>"
@@ -2064,7 +2076,7 @@ Some text after.
     #[test]
     fn test_issue216_commonmark_unicode_inline_code() {
         // Non-ASCII content in inline code under CommonMark mode
-        let html = markdown_to_html_with_options("Use `einrichten` to configure.\n", false);
+        let html = markdown_to_html_with_options("Use `einrichten` to configure.\n", false, true);
         assert!(
             html.contains("<code>einrichten</code>"),
             "CommonMark mode with Unicode content should produce bare <code>. Got: {}",
@@ -2077,10 +2089,104 @@ Some text after.
         // Fenced code blocks with language specifier should still get language class
         // regardless of markdown processor setting (regression guard)
         let input = "```python\nprint('hello')\n```\n";
-        let html = markdown_to_html_with_options(input, false);
+        let html = markdown_to_html_with_options(input, false, true);
         assert!(
             html.contains("language-python"),
             "Fenced code blocks should keep language class even in CommonMark mode. Got: {}",
+            html
+        );
+    }
+
+    // ========================================================================
+    // Issue 220: Conditional smart punctuation (kramdown vs CommonMarkGhPages)
+    // ========================================================================
+
+    #[test]
+    fn test_issue220_smart_punctuation_off_preserves_straight_apostrophe() {
+        // When smart punctuation is disabled (CommonMarkGhPages mode),
+        // straight apostrophes should remain as-is (U+0027), not curly quotes.
+        let html = markdown_to_html_with_options("it's great\n", false, false);
+        assert!(
+            html.contains("it's great"),
+            "Smart punctuation OFF should preserve straight apostrophe. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains('\u{2019}'),
+            "Smart punctuation OFF should NOT produce curly right single quote. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue220_smart_punctuation_off_preserves_straight_double_quotes() {
+        // When smart punctuation is disabled, straight double quotes should remain.
+        let html = markdown_to_html_with_options("She said \"hello\"\n", false, false);
+        assert!(
+            !html.contains('\u{201C}') && !html.contains('\u{201D}'),
+            "Smart punctuation OFF should NOT produce curly double quotes. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue220_smart_punctuation_off_preserves_three_dots() {
+        // When smart punctuation is disabled, three dots should remain as three
+        // separate U+002E characters, not become the ellipsis character U+2026.
+        let html = markdown_to_html_with_options("Wait for it...\n", false, false);
+        assert!(
+            html.contains("..."),
+            "Smart punctuation OFF should preserve three dots. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains('\u{2026}'),
+            "Smart punctuation OFF should NOT produce ellipsis character. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue220_smart_punctuation_off_unicode_content() {
+        // Non-ASCII content with quotes should also be preserved when smart punctuation is off.
+        let html =
+            markdown_to_html_with_options("c'est la vie, \"Gem\u{00FC}tlichkeit\"\n", false, false);
+        assert!(
+            html.contains("c'est"),
+            "Smart punctuation OFF should preserve apostrophe in Unicode content. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains('\u{2019}'),
+            "Smart punctuation OFF should NOT produce curly quote in Unicode content. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains('\u{201C}') && !html.contains('\u{201D}'),
+            "Smart punctuation OFF should NOT produce curly double quotes in Unicode content. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue220_smart_punctuation_on_converts_apostrophe() {
+        // Regression guard: kramdown mode (smart punctuation ON) should still
+        // convert straight apostrophes to curly quotes.
+        let html = markdown_to_html_with_options("it's great\n", true, true);
+        assert!(
+            html.contains('\u{2019}'),
+            "Smart punctuation ON should convert apostrophe to curly quote. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue220_smart_punctuation_on_converts_ellipsis() {
+        // Regression guard: kramdown mode should still convert ... to ellipsis.
+        let html = markdown_to_html_with_options("Wait for it...\n", true, true);
+        assert!(
+            html.contains('\u{2026}'),
+            "Smart punctuation ON should convert three dots to ellipsis. Got: {}",
             html
         );
     }

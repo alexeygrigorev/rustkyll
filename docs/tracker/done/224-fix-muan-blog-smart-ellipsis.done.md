@@ -27,3 +27,4 @@ Related to issue 220 (smart quotes) -- both stem from pulldown-cmark's smart pun
 ## Log
 
 - 2026-03-18: Created from muan-blog comparison analysis.
+- 2026-03-18: Resolved by issue 220. The fix to conditionally disable `ENABLE_SMART_PUNCTUATION` for non-kramdown processors fixes both smart quotes and smart ellipsis, since pulldown-cmark's smart punctuation option controls both. Confirmed by unit test `test_issue220_smart_punctuation_off_preserves_three_dots` which asserts that `...` (three U+002E) is preserved when smart punctuation is off.

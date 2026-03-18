@@ -653,7 +653,7 @@ fn process_collection_file(
     let url = crate::template::filters::relative_url::encode_url_path(&url);
 
     let html_content = if is_markdown {
-        frontmatter::markdown_to_html_with_options(&doc.content, add_code_classes)
+        frontmatter::markdown_to_html_with_options(&doc.content, add_code_classes, add_code_classes)
     } else {
         doc.content.clone()
     };
@@ -955,7 +955,11 @@ fn load_pages_recursive(
             .unwrap_or(true);
 
         let html_content = if is_markdown {
-            frontmatter::markdown_to_html_with_options(&doc.content, add_code_classes)
+            frontmatter::markdown_to_html_with_options(
+                &doc.content,
+                add_code_classes,
+                add_code_classes,
+            )
         } else {
             // Non-markdown files: content is used as-is (will be rendered
             // through Liquid but not converted from markdown to HTML)
