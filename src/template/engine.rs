@@ -3112,4 +3112,258 @@ title: "Test Book"
             "Creating+an+AWS+Account+by+%40Al_Grigor+https%3A%2F%2Fexample.com"
         );
     }
+
+    // ========================================================================
+    // Issue 185: JSON-LD FAQ/transcript whitespace in markdownify output
+    // ========================================================================
+
+    /// FAQ answer: markdownify | strip | jsonify must produce a single-line
+    /// JSON string with no trailing whitespace inside the string value.
+    #[test]
+    fn test_jsonld_faq_answer_no_trailing_space() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("answer".into(), LiquidValue::scalar("There are no fees."));
+        let template = r#"{% assign html = answer | markdownify | strip %}{{ html | jsonify }}"#;
+        let out = eng.parse_and_render(template, &ctx).unwrap();
+        // jsonify wraps in quotes; the value should end with </p>" (no trailing space)
+        assert!(
+            out.ends_with("</p>\""),
+            "FAQ answer should end with </p>\" (no trailing space). Got: {:?}",
+            out
+        );
+        // Should not contain literal newlines (all newlines should be JSON-escaped)
+        // The output from jsonify is a JSON string that gets embedded in HTML.
+        // Literal newlines would break JSON parsing.
+        let inner = &out[1..out.len() - 1]; // strip outer quotes
+        assert!(
+            !inner.contains('\n'),
+            "FAQ answer jsonify output should not contain literal newlines. Got: {:?}",
+            out
+        );
+    }
+
+    /// Multi-paragraph FAQ answer: the jsonify output should produce valid JSON
+    /// with escaped newlines, not literal newlines that break JSON parsing.
+    #[test]
+    fn test_jsonld_faq_answer_multi_paragraph_valid_json() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "answer".into(),
+            LiquidValue::scalar("First paragraph.\n\nSecond paragraph with details."),
+        );
+        let template =
+            r#"{% assign html = answer | markdownify | strip %}"text": {{ html | jsonify }}"#;
+        let out = eng.parse_and_render(template, &ctx).unwrap();
+        // The output should be on a single line (no literal newlines in JSON string)
+        assert!(
+            !out.contains('\n') || out.trim().lines().count() == 1,
+            "Multi-paragraph FAQ answer should produce single-line JSON. Got: {:?}",
+            out
+        );
+        // Extract the JSON value and verify it's valid
+        let json_part = out.trim_start_matches("\"text\": ");
+        let parsed: Result<String, _> = serde_json::from_str(json_part);
+        assert!(
+            parsed.is_ok(),
+            "FAQ answer JSON value should be parseable. Got: {:?}",
+            json_part
+        );
+    }
+
+    /// Multiple FAQ answers should all be trimmed consistently.
+    #[test]
+    fn test_jsonld_faq_multiple_answers_all_trimmed() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        let faqs = LiquidValue::Array(vec![
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("question".into(), LiquidValue::scalar("Q1?"));
+                o.insert("answer".into(), LiquidValue::scalar("Answer one."));
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("question".into(), LiquidValue::scalar("Q2?"));
+                o.insert(
+                    "answer".into(),
+                    LiquidValue::scalar("Answer two.\n\nMore details."),
+                );
+                o
+            }),
+        ]);
+        ctx.insert("faqs".into(), faqs);
+        let template = r#"{% for faq in faqs %}{% assign html = faq.answer | markdownify | strip %}{{ html | jsonify }}
+{% endfor %}"#;
+        let out = eng.parse_and_render(template, &ctx).unwrap();
+        for (i, line) in out.trim().lines().enumerate() {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            // Each jsonify output should be a valid JSON string
+            assert!(
+                line.starts_with('"') && line.ends_with('"'),
+                "FAQ answer {} should be a JSON string. Got: {:?}",
+                i,
+                line
+            );
+            let inner = &line[1..line.len() - 1];
+            assert!(
+                !inner.contains('\n'),
+                "FAQ answer {} should not contain literal newlines. Got: {:?}",
+                i,
+                line
+            );
+        }
+    }
+
+    /// Author description: content | strip_html | strip_newlines should have
+    /// no trailing newline characters.
+    #[test]
+    fn test_jsonld_author_description_no_trailing_newline() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        // Simulate what happens with author content that has a trailing newline
+        ctx.insert(
+            "content".into(),
+            LiquidValue::scalar("<p>John is a developer at DataTalks.Club</p>\n"),
+        );
+        let template =
+            r#"{% assign desc = content | strip_html | strip_newlines %}{{ desc | jsonify }}"#;
+        let out = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(
+            out, "\"John is a developer at DataTalks.Club\"",
+            "Author description should have no trailing newline. Got: {:?}",
+            out
+        );
+    }
+
+    /// Author description with markdown links: should be rendered to plain text.
+    /// The template uses `content | strip_html | strip_newlines` where content
+    /// is the rendered HTML of the author's markdown. Markdown links in the
+    /// source become <a> tags in HTML, which strip_html removes leaving just text.
+    #[test]
+    fn test_jsonld_author_description_markdown_links_stripped() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        // Content is already rendered HTML (markdownify was applied during collection processing)
+        ctx.insert(
+            "content".into(),
+            LiquidValue::scalar("<p>Founded <a href=\"https://example.com\">Company</a></p>\n"),
+        );
+        let template =
+            r#"{% assign desc = content | strip_html | strip_newlines %}{{ desc | jsonify }}"#;
+        let out = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(
+            out, "\"Founded Company\"",
+            "Markdown links should be stripped to plain text. Got: {:?}",
+            out
+        );
+    }
+
+    /// Simulate the full rendering pipeline for a markdown blog post that
+    /// includes a FAQ accordion with JSON-LD. The post content goes through:
+    /// 1. Liquid template rendering (expanding includes, running markdownify)
+    /// 2. markdown_to_html (processing the markdown post body)
+    /// The JSON-LD inside <script> tags must survive step 2 intact.
+    #[test]
+    fn test_jsonld_faq_survives_markdown_pipeline() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        // Simulate FAQ data with a multi-paragraph answer
+        let faqs = LiquidValue::Array(vec![LiquidValue::Object({
+            let mut o = Object::new();
+            o.insert("question".into(), LiquidValue::scalar("What is this?"));
+            o.insert(
+                "answer".into(),
+                LiquidValue::scalar("First paragraph.\n\nSecond paragraph."),
+            );
+            o
+        })]);
+        ctx.insert("faqs".into(), faqs);
+
+        // Simulate the FAQ accordion template inline (without include)
+        let template = r#"Some markdown text.
+
+<script type="application/ld+json">
+{
+  "@type": "FAQPage",
+  "mainEntity": [
+    {% for faq in faqs %}
+    {% assign answer_html = faq.answer | markdownify | strip %}
+    {
+      "@type": "Question",
+      "name": {{ faq.question | jsonify }},
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": {{ answer_html | jsonify }}
+      }
+    }{% unless forloop.last %},{% endunless %}
+    {% endfor %}
+  ]
+}
+</script>"#;
+
+        // Step 1: Liquid rendering
+        let liquid_output = eng.parse_and_render(template, &ctx).unwrap();
+
+        // Step 2: markdown_to_html (simulating the markdown page pipeline)
+        let html_output = crate::frontmatter::markdown_to_html(&liquid_output);
+
+        // The JSON-LD text value should be valid JSON
+        // Find the "text": value
+        let text_idx = html_output
+            .find("\"text\":")
+            .expect("should have text field");
+        let rest = &html_output[text_idx..];
+        // Find the JSON string value
+        let colon_idx = rest.find(':').unwrap();
+        let value_start = rest[colon_idx + 1..].trim_start();
+        // Extract the JSON string (starts with " ends with ")
+        assert!(
+            value_start.starts_with('"'),
+            "JSON text value should start with quote. Got: {:?}",
+            &value_start[..50.min(value_start.len())]
+        );
+        // Find the matching close quote
+        let inner_start = 1; // skip opening quote
+        let mut i = inner_start;
+        let bytes = value_start.as_bytes();
+        while i < bytes.len() {
+            if bytes[i] == b'\\' {
+                i += 2; // skip escape sequence
+            } else if bytes[i] == b'"' {
+                break;
+            } else {
+                i += 1;
+            }
+        }
+        let json_value = &value_start[..i + 1];
+        // The JSON value should not contain literal newlines
+        let inner = &json_value[1..json_value.len() - 1];
+        assert!(
+            !inner.contains('\n'),
+            "JSON-LD text value should not contain literal newlines after markdown pipeline. Got: {:?}",
+            json_value
+        );
+    }
+
+    /// Regression: markdownify in regular (non-JSON-LD) templates should not
+    /// have its output changed -- trailing newline is expected.
+    #[test]
+    fn test_markdownify_filter_in_template_unchanged() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("text".into(), LiquidValue::scalar("hello"));
+        let out = eng
+            .parse_and_render("{{ text | markdownify }}", &ctx)
+            .unwrap();
+        assert_eq!(
+            out, "<p>hello</p>\n",
+            "markdownify in regular templates should preserve trailing newline"
+        );
+    }
 }

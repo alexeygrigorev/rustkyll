@@ -63,3 +63,17 @@ None.
 
 - Build DTC site and inspect FAQ pages (e.g., `ai-dev-tools-zoomcamp-2025-...html`) to verify JSON-LD content.
 - Verify author descriptions in blog post JSON-LD have no trailing newlines.
+
+## Log
+
+### [SWE] 2026-03-18 11:30
+- Started implementation
+- Root cause: `add_block_spacing()` in `src/kramdown.rs` was modifying content inside `<script type="application/ld+json">` blocks. It found `</p>` tags inside JSON-LD string values and added extra newlines after them, corrupting the JSON string (turning escaped `\n` into literal newlines).
+- Fix: Modified `add_block_spacing()` to detect and skip `<script>` blocks entirely, preserving their content verbatim.
+- Tests added: 10 new tests across 2 files
+  - `src/template/engine.rs`: 7 tests (FAQ answer no trailing space, multi-paragraph valid JSON, multiple answers trimmed, survives markdown pipeline, author description no trailing newline, author description markdown links stripped, markdownify filter unchanged)
+  - `src/template/filters/markdownify.rs`: 3 tests (multi-paragraph output, script block preservation, indented script block preservation)
+- Verified: All 9 FAQ pages now produce valid JSON-LD. No trailing whitespace in `acceptedAnswer.text`. Author page descriptions have no trailing `\n`.
+- Build: 1491 lib tests + integration tests pass, 0 fail, clippy clean, fmt clean
+- Files modified: `src/kramdown.rs`, `src/template/engine.rs`, `src/template/filters/markdownify.rs`
+- Note: Blog post layout `author.content | strip_html | jsonify` (without `strip_newlines`) produces trailing `\n` in both Jekyll and Rust -- this matches Jekyll behavior and is by design (the template doesn't strip newlines). No markdown link issues found in current output.

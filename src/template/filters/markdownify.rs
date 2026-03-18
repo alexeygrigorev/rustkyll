@@ -171,6 +171,131 @@ mod tests {
     }
 
     #[test]
+    fn test_markdownify_multi_paragraph_output() {
+        let input = "First paragraph.\n\nSecond paragraph.";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        // Verify the output format so we know what strip/jsonify will get
+        assert!(
+            html.starts_with("<p>"),
+            "Should start with <p>. Got: {:?}",
+            html
+        );
+    }
+
+    /// Issue 185: markdown_to_html must not modify content inside <script> blocks.
+    /// JSON-LD embedded in pages contains HTML tag names like </p> in JSON strings.
+    /// The postprocess step must not add newlines or modify content inside <script>.
+    #[test]
+    fn test_markdown_to_html_preserves_script_block_content() {
+        let input = r#"Some text.
+
+<script type="application/ld+json">
+{
+  "text": "<p>First.</p>\n<p>Second.</p>"
+}
+</script>
+"#;
+        let html = crate::frontmatter::markdown_to_html(input);
+        // The JSON string inside <script> should be preserved exactly.
+        // Specifically, the </p>\n<p> sequence should NOT have extra newlines
+        // inserted by add_block_spacing.
+        assert!(
+            html.contains(r#""<p>First.</p>\n<p>Second.</p>""#),
+            "Script block content should be preserved. Got:\n{}",
+            html
+        );
+    }
+
+    /// Issue 185: Full rendering pipeline (dedent + collapse + markdown_to_html)
+    /// must preserve content inside <script> blocks.
+    #[test]
+    fn test_full_pipeline_preserves_script_block() {
+        let input = r#"Some text.
+
+<script type="application/ld+json">
+{
+  "text": "<p>First.</p>\n<p>Second.</p>"
+}
+</script>
+"#;
+        // Apply the same pipeline as render_markdown_page_with_site_overrides
+        let dedented = crate::frontmatter::dedent_html_lines(input);
+        let marked = crate::kramdown::mark_existing_html_headings(&dedented);
+        let collapsed = crate::kramdown::collapse_blank_lines_in_html_blocks(&marked);
+        let html = crate::frontmatter::markdown_to_html(&collapsed);
+        let html = crate::kramdown::remove_heading_markers(&html);
+
+        assert!(
+            html.contains(r#""<p>First.</p>\n<p>Second.</p>""#),
+            "Full pipeline should preserve script block content. Got:\n{}",
+            html
+        );
+    }
+
+    /// Issue 185: Full pipeline with indented JSON-LD content (as produced by
+    /// the FAQ accordion include template with indented lines).
+    #[test]
+    fn test_full_pipeline_preserves_indented_script_block() {
+        // Simulate the actual FAQ accordion include output, where the JSON-LD
+        // content has indentation from the template structure
+        let input = r#"## FAQ Section
+
+<!-- FAQ Accordion Component -->
+<div class="faq-accordion">
+  <div class="faq-item">
+    <button class="faq-question" type="button">
+      <span>What is this?</span>
+    </button>
+    <div class="faq-answer">
+      <div class="faq-answer-content">
+        <p>First paragraph.</p>
+<p>Second paragraph.</p>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FAQ Schema Markup (JSON-LD) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+
+
+    {
+      "@type": "Question",
+      "name": "What is this?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "<p>First paragraph.</p>\n<p>Second paragraph.</p>"
+      }
+    }
+
+  ]
+}
+</script>
+
+<!-- Load accordion JavaScript -->
+<script src="/assets/accordion.js"></script>
+"#;
+        // Apply the same pipeline as render_markdown_page_with_site_overrides
+        let dedented = crate::frontmatter::dedent_html_lines(input);
+        let marked = crate::kramdown::mark_existing_html_headings(&dedented);
+        let collapsed = crate::kramdown::collapse_blank_lines_in_html_blocks(&marked);
+        let html = crate::frontmatter::markdown_to_html(&collapsed);
+        let html = crate::kramdown::remove_heading_markers(&html);
+
+        // The JSON-LD text value should be preserved exactly
+        assert!(
+            html.contains(r#""<p>First paragraph.</p>\n<p>Second paragraph.</p>""#),
+            "Full pipeline with indentation should preserve script block content. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
     fn test_markdownify_kramdown_ial_inline_on_link() {
         // Inline IAL immediately after a link should apply the attribute.
         // This is the most common IAL use case in markdownify content

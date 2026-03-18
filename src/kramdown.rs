@@ -1539,6 +1539,35 @@ fn add_block_spacing(html: &str) -> String {
     let mut remaining = html;
 
     while !remaining.is_empty() {
+        // Skip over <script> blocks entirely -- their content is not HTML and
+        // block-tag patterns like </p> inside JSON-LD strings must not be
+        // modified. (Issue 185)
+        if let Some(script_start) = remaining.find("<script") {
+            // Check if the <script> tag appears before any block closing tag.
+            // If so, copy everything up to and including </script> verbatim.
+            let mut any_block_before_script = false;
+            for tag in &block_tags {
+                if let Some(pos) = remaining.find(tag) {
+                    if pos < script_start {
+                        any_block_before_script = true;
+                        break;
+                    }
+                }
+            }
+            if !any_block_before_script {
+                // The <script> tag comes first -- skip the entire block.
+                if let Some(script_end) = remaining[script_start..].find("</script>") {
+                    let end_pos = script_start + script_end + "</script>".len();
+                    result.push_str(&remaining[..end_pos]);
+                    remaining = &remaining[end_pos..];
+                    continue;
+                }
+                // No closing </script> found -- copy everything and stop.
+                result.push_str(remaining);
+                break;
+            }
+        }
+
         let mut earliest: Option<(usize, usize)> = None; // (position, tag_len)
 
         for tag in &block_tags {
