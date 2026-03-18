@@ -2,284 +2,644 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/choosealicense.com/_site_j
 Rustkyll directory: /home/alexey/git/rustkyl/websites/choosealicense.com/_site_rustkyll_recount
 Common HTML files:  72
 
-DIFF about/index.html (12 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 2 more differences
-DIFF appendix/index.html (11 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  table: extra_element - expected: '(none)', actual: '<table>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  dl: extra_element - expected: '(none)', actual: '<dl>'
-  ... and 1 more differences
-DIFF community/index.html (6 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF index.html (5 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-DIFF licenses/0bsd/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'BSD Zero Clause License Copyright (c) [year] [fullname] Permission to use, copy, modify, and/or dist'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/afl-3.0/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'Academic Free License ("AFL") v. 3.0 This Academic Free License (the "License") applies to any origi'
-  child[1]: tag_name_differs - expected: 'head', actual: 'insert'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/agpl-3.0/index.html (4 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'GNU AFFERO GENERAL PUBLIC LICENSE Version 3, 19 November 2007 Copyright (C) 2007 Free Software Found'
-  child[1]: tag_name_differs - expected: 'head', actual: 'https:'
-  (root): expected_element_got_text - expected: '<body>', actual: 'Everyone is permitted to copy and distribute verbatim copies of this license document, but changing '
-  child[2]: tag_name_differs - expected: 'body', actual: 'one'
-DIFF licenses/apache-2.0/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'Apache License Version 2.0, January 2004 http://www.apache.org/licenses/ TERMS AND CONDITIONS FOR US'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/artistic-2.0/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'The Artistic License 2.0 Copyright (c) 2000-2006, The Perl Foundation. Everyone is permitted to copy'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/blueoak-1.0.0/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: '# Blue Oak Model License Version 1.0.0 ## Purpose This license gives everyone as much permission to '
-  child[1]: tag_name_differs - expected: 'head', actual: 'https:'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/bsd-2-clause-patent/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'Copyright (c) [year] [fullname] Redistribution and use in source and binary forms, with or without m'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/bsd-2-clause/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'BSD 2-Clause License Copyright (c) [year], [fullname] Redistribution and use in source and binary fo'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/bsd-3-clause-clear/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'The Clear BSD License Copyright (c) [year] [fullname] All rights reserved. Redistribution and use in'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/bsd-3-clause/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'BSD 3-Clause License Copyright (c) [year], [fullname] Redistribution and use in source and binary fo'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/bsd-4-clause/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'BSD 4-Clause License Copyright (c) [year], [fullname] All rights reserved. Redistribution and use in'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/bsl-1.0/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'Boost Software License - Version 1.0 - August 17th, 2003 Permission is hereby granted, free of charg'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/cc-by-4.0/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'Attribution 4.0 International ======================================================================'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/cc-by-sa-4.0/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'Attribution-ShareAlike 4.0 International ==========================================================='
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/cc0-1.0/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'Creative Commons Legal Code CC0 1.0 Universal CREATIVE COMMONS CORPORATION IS NOT A LAW FIRM AND DOE'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/cecill-2.1/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'CONTRAT DE LICENCE DE LOGICIEL LIBRE CeCILL Version 2.1 du 2013-06-21 Avertissement Ce contrat est u'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/cern-ohl-p-2.0/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'CERN Open Hardware Licence Version 2 - Permissive Preamble CERN has developed this licence to promot'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/cern-ohl-s-2.0/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'CERN Open Hardware Licence Version 2 - Strongly Reciprocal Preamble CERN has developed this licence '
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/cern-ohl-w-2.0/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'CERN Open Hardware Licence Version 2 - Weakly Reciprocal Preamble CERN has developed this licence to'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/ecl-2.0/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'Educational Community License Version 2.0, April 2007 http://opensource.org/licenses/ECL-2.0 The Edu'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/epl-1.0/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'Eclipse Public License - v 1.0 THE ACCOMPANYING PROGRAM IS PROVIDED UNDER THE TERMS OF THIS ECLIPSE '
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/epl-2.0/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'Eclipse Public License - v 2.0 THE ACCOMPANYING PROGRAM IS PROVIDED UNDER THE TERMS OF THIS ECLIPSE '
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/eupl-1.1/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'European Union Public Licence V. 1.1 EUPL © the European Community 2007 This European Union Public L'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/eupl-1.2/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'EUROPEAN UNION PUBLIC LICENCE v. 1.2 EUPL © the European Union 2007, 2016 This European Union Public'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/gfdl-1.3/index.html (4 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'GNU Free Documentation License Version 1.3, 3 November 2008 Copyright (C) 2000, 2001, 2002, 2007, 20'
-  child[1]: tag_name_differs - expected: 'head', actual: 'https:'
-  (root): expected_element_got_text - expected: '<body>', actual: 'Everyone is permitted to copy and distribute verbatim copies of this license document, but changing '
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/gpl-2.0/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'GNU GENERAL PUBLIC LICENSE Version 2, June 1991 Copyright (C) 1989, 1991 Free Software Foundation, I'
-  child[1]: tag_name_differs - expected: 'head', actual: 'one'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/gpl-3.0/index.html (4 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007 Copyright (C) 2007 Free Software Foundation, Inc.'
-  child[1]: tag_name_differs - expected: 'head', actual: 'https:'
-  (root): expected_element_got_text - expected: '<body>', actual: 'Everyone is permitted to copy and distribute verbatim copies of this license document, but changing '
-  child[2]: tag_name_differs - expected: 'body', actual: 'one'
+DIFF about/index.html (14 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > title: text_differs - expected: 'What’s this about? | Choose a License', actual: "What's this about? | Choose a License"
+  head > meta > meta: attribute_differs - expected: "content='What’s this about?'", actual: 'content="What\'s this about?"'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='What’s this about?'", actual: 'content="What\'s this about?"'
+  head > meta > meta > link > script > jsonld.headline: jsonld_value_differs - expected: 'What’s this about?', actual: "What's this about?"
+  body > div > script > jsonld.itemListElement[0].item.@id: jsonld_value_differs - expected: 'https://github.com/pages/alexeygrigorev/rustkyll/', actual: '/'
+  body > div > script > jsonld.itemListElement[1].item.@id: jsonld_value_differs - expected: 'https://github.com/pages/alexeygrigorev/rustkyll/about/', actual: '/about/'
+  body > div > child[10]: tag_name_differs - expected: 'ul', actual: 'p'
+  body > div > child[11]: tag_name_differs - expected: 'h2', actual: 'ul'
+  body > div > child[12]: tag_name_differs - expected: 'p', actual: 'h2'
+  ... and 4 more differences
+DIFF appendix/index.html (35 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  body > div > script > jsonld.itemListElement[0].item.@id: jsonld_value_differs - expected: 'https://github.com/pages/alexeygrigorev/rustkyll/', actual: '/'
+  body > div > script > jsonld.itemListElement[1].item.@id: jsonld_value_differs - expected: 'https://github.com/pages/alexeygrigorev/rustkyll/appendix/', actual: '/appendix/'
+  body > div > table > tr > th > a: attribute_differs - expected: "href='/licenses/bsd-2-clause-patent'", actual: "href='/licenses/bsd-2-clause'"
+  body > div > table > tr > th > a: text_differs - expected: 'BSD-2-Clause Plus Patent License', actual: 'BSD 2-Clause "Simplified" License'
+  body > div > table > tr > td: missing_attribute - expected: "class='license-permissions'", actual: '(none)'
+  body > div > table > tr > td: missing_attribute - expected: "style='text-align:center'", actual: '(none)'
+  body > div > table > tr > td > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > table > tr > th > a: attribute_differs - expected: "href='/licenses/bsd-2-clause'", actual: "href='/licenses/bsd-2-clause-patent'"
+  body > div > table > tr > th > a: text_differs - expected: 'BSD 2-Clause "Simplified" License', actual: 'BSD-2-Clause Plus Patent License'
+  ... and 25 more differences
+DIFF community/index.html (7 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  body > div > script > jsonld.itemListElement[0].item.@id: jsonld_value_differs - expected: 'https://github.com/pages/alexeygrigorev/rustkyll/', actual: '/'
+  body > div > script > jsonld.itemListElement[1].item.@id: jsonld_value_differs - expected: 'https://github.com/pages/alexeygrigorev/rustkyll/community/', actual: '/community/'
+  body > div > child[7]: tag_name_differs - expected: 'ul', actual: 'p'
+  body > div > child[8]: tag_name_differs - expected: 'p', actual: 'ul'
+  body > div > child[9]: tag_name_differs - expected: 'footer', actual: 'p'
+  body > div > footer: extra_element - expected: '(none)', actual: '<footer>'
+DIFF index.html (6 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  body > div > ul > li > p > a: attribute_differs - expected: "href='https://github.com/babel/babel/blob/master/LICENSE'", actual: "href='https://github.com/dotnet/runtime/blob/main/LICENSE.TXT'"
+  body > div > ul > li > p > a: text_differs - expected: 'Babel', actual: '.NET'
+  body > div > ul > li > p > a: attribute_differs - expected: "href='https://github.com/dotnet/runtime/blob/main/LICENSE.TXT'", actual: "href='https://github.com/babel/babel/blob/master/LICENSE'"
+  body > div > ul > li > p > a: text_differs - expected: '.NET', actual: 'Babel'
+  body > div > footer > nav > a: missing_element - expected: '<a>', actual: '(none)'
+DIFF licenses/0bsd/index.html (21 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='BSD Zero Clause License'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='BSD Zero Clause License'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 11 more differences
+DIFF licenses/afl-3.0/index.html (17 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='Academic Free License v3.0'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='Academic Free License v3.0'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 7 more differences
+DIFF licenses/agpl-3.0/index.html (17 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='GNU Affero General Public License v3.0'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='GNU Affero General Public License v3.0'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 7 more differences
+DIFF licenses/apache-2.0/index.html (17 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='Apache License 2.0'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='Apache License 2.0'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 7 more differences
+DIFF licenses/artistic-2.0/index.html (17 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='Artistic License 2.0'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='Artistic License 2.0'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 7 more differences
+DIFF licenses/blueoak-1.0.0/index.html (21 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='Blue Oak Model License 1.0.0'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='Blue Oak Model License 1.0.0'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 11 more differences
+DIFF licenses/bsd-2-clause-patent/index.html (21 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='BSD-2-Clause Plus Patent License'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='BSD-2-Clause Plus Patent License'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 11 more differences
+DIFF licenses/bsd-2-clause/index.html (27 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > title: text_differs - expected: 'BSD 2-Clause “Simplified” License | Choose a License', actual: 'BSD 2-Clause "Simplified" License | Choose a License'
+  head > meta > meta: attribute_differs - expected: "content='BSD 2-Clause “Simplified” License'", actual: 'content=\'BSD 2-Clause "Simplified" License\''
+  head > meta > meta > meta: attribute_differs - expected: "content='A permissive license that comes in two variants, the BSD 2-Clause and BSD 3-Clause. Both have very minute differences to the MIT license.'", actual: 'content=\'A permissive license that comes in two variants, the <a href="/licenses/bsd-2-clause/">BSD 2-Clause</a> and <a href="/licenses/bsd-3-clause/">BSD 3-Clause</a>. Both have very minute differences to the MIT license.\''
+  head > meta > meta > meta: attribute_differs - expected: "content='A permissive license that comes in two variants, the BSD 2-Clause and BSD 3-Clause. Both have very minute differences to the MIT license.'", actual: 'content=\'A permissive license that comes in two variants, the <a href="/licenses/bsd-2-clause/">BSD 2-Clause</a> and <a href="/licenses/bsd-3-clause/">BSD 3-Clause</a>. Both have very minute differences to the MIT license.\''
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: 'content=\'BSD 2-Clause "Simplified" License\''
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  ... and 17 more differences
+DIFF licenses/bsd-3-clause-clear/index.html (19 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > meta: attribute_differs - expected: "content='A variant of the BSD 3-Clause License that explicitly does not grant any patent rights.'", actual: 'content=\'A variant of the <a href="/licenses/bsd-3-clause/">BSD 3-Clause License</a> that explicitly does not grant any patent rights.\''
+  head > meta > meta > meta: attribute_differs - expected: "content='A variant of the BSD 3-Clause License that explicitly does not grant any patent rights.'", actual: 'content=\'A variant of the <a href="/licenses/bsd-3-clause/">BSD 3-Clause License</a> that explicitly does not grant any patent rights.\''
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='BSD 3-Clause Clear License'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='BSD 3-Clause Clear License'", actual: "content='@github'"
+  ... and 9 more differences
+DIFF licenses/bsd-3-clause/index.html (21 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > title: text_differs - expected: 'BSD 3-Clause “New” or “Revised” License | Choose a License', actual: 'BSD 3-Clause "New" or "Revised" License | Choose a License'
+  head > meta > meta: attribute_differs - expected: "content='BSD 3-Clause “New” or “Revised” License'", actual: 'content=\'BSD 3-Clause "New" or "Revised" License\''
+  head > meta > meta > meta: attribute_differs - expected: "content='A permissive license similar to the BSD 2-Clause License, but with a 3rd clause that prohibits others from using the name of the copyright holder or its contributors to promote derived products without written consent.'", actual: 'content=\'A permissive license similar to the <a href="/licenses/bsd-2-clause/">BSD 2-Clause License</a>, but with a 3rd clause that prohibits others from using the name of the copyright holder or its contributors to promote derived products without written consent.\''
+  head > meta > meta > meta: attribute_differs - expected: "content='A permissive license similar to the BSD 2-Clause License, but with a 3rd clause that prohibits others from using the name of the copyright holder or its contributors to promote derived products without written consent.'", actual: 'content=\'A permissive license similar to the <a href="/licenses/bsd-2-clause/">BSD 2-Clause License</a>, but with a 3rd clause that prohibits others from using the name of the copyright holder or its contributors to promote derived products without written consent.\''
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: 'content=\'BSD 3-Clause "New" or "Revised" License\''
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  ... and 11 more differences
+DIFF licenses/bsd-4-clause/index.html (21 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > title: text_differs - expected: 'BSD 4-Clause “Original” or “Old” License | Choose a License', actual: 'BSD 4-Clause "Original" or "Old" License | Choose a License'
+  head > meta > meta: attribute_differs - expected: "content='BSD 4-Clause “Original” or “Old” License'", actual: 'content=\'BSD 4-Clause "Original" or "Old" License\''
+  head > meta > meta > meta: attribute_differs - expected: "content='A permissive license similar to the BSD 3-Clause License, but with an “advertising clause” that requires an acknowledgment of the original source in all advertising material.'", actual: 'content=\'A permissive license similar to the <a href="/licenses/bsd-3-clause/">BSD 3-Clause License</a>, but with an "advertising clause" that requires an acknowledgment of the original source in all advertising material.\''
+  head > meta > meta > meta: attribute_differs - expected: "content='A permissive license similar to the BSD 3-Clause License, but with an “advertising clause” that requires an acknowledgment of the original source in all advertising material.'", actual: 'content=\'A permissive license similar to the <a href="/licenses/bsd-3-clause/">BSD 3-Clause License</a>, but with an "advertising clause" that requires an acknowledgment of the original source in all advertising material.\''
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: 'content=\'BSD 4-Clause "Original" or "Old" License\''
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  ... and 11 more differences
+DIFF licenses/bsl-1.0/index.html (17 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='Boost Software License 1.0'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='Boost Software License 1.0'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 7 more differences
+DIFF licenses/cc-by-4.0/index.html (23 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='Creative Commons Attribution 4.0 International'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='Creative Commons Attribution 4.0 International'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 13 more differences
+DIFF licenses/cc-by-sa-4.0/index.html (19 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > meta: attribute_differs - expected: "content='Similar to CC-BY-4.0 but requires derivatives be distributed under the same or a similar, compatible license. Frequently used for media assets and educational materials. A previous version is the default license for Wikipedia and other Wikimedia projects. Not recommended for software.'", actual: 'content=\'Similar to <a href=\\\'/licenses/cc-by-4.0/\\\'>CC-BY-4.0</a> but requires derivatives be distributed under the same or a similar, <a href="https://creativecommons.org/compatiblelicenses">compatible</a> license. Frequently used for media assets and educational materials. A previous version is the default license for Wikipedia and other Wikimedia projects. Not recommended for software.\''
+  head > meta > meta > meta: attribute_differs - expected: "content='Similar to CC-BY-4.0 but requires derivatives be distributed under the same or a similar, compatible license. Frequently used for media assets and educational materials. A previous version is the default license for Wikipedia and other Wikimedia projects. Not recommended for software.'", actual: 'content=\'Similar to <a href=\\\'/licenses/cc-by-4.0/\\\'>CC-BY-4.0</a> but requires derivatives be distributed under the same or a similar, <a href="https://creativecommons.org/compatiblelicenses">compatible</a> license. Frequently used for media assets and educational materials. A previous version is the default license for Wikipedia and other Wikimedia projects. Not recommended for software.\''
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='Creative Commons Attribution Share Alike 4.0 International'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='Creative Commons Attribution Share Alike 4.0 International'", actual: "content='@github'"
+  ... and 9 more differences
+DIFF licenses/cc0-1.0/index.html (19 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > meta: attribute_differs - expected: "content='The Creative Commons CC0 Public Domain Dedication waives copyright interest in a work you’ve created and dedicates it to the world-wide public domain. Use CC0 to opt out of copyright entirely and ensure your work has the widest reach. As with the Unlicense and typical software licenses, CC0 disclaims warranties. CC0 is very similar to the Unlicense.'", actual: 'content=\'The <a href="https://creativecommons.org/publicdomain/zero/1.0/">Creative Commons CC0 Public Domain Dedication</a> waives copyright interest in a work you\\\'ve created and dedicates it to the world-wide public domain. Use CC0 to opt out of copyright entirely and ensure your work has the widest reach. As with the Unlicense and typical software licenses, CC0 disclaims warranties. CC0 is very similar to the Unlicense.\''
+  head > meta > meta > meta: attribute_differs - expected: "content='The Creative Commons CC0 Public Domain Dedication waives copyright interest in a work you’ve created and dedicates it to the world-wide public domain. Use CC0 to opt out of copyright entirely and ensure your work has the widest reach. As with the Unlicense and typical software licenses, CC0 disclaims warranties. CC0 is very similar to the Unlicense.'", actual: 'content=\'The <a href="https://creativecommons.org/publicdomain/zero/1.0/">Creative Commons CC0 Public Domain Dedication</a> waives copyright interest in a work you\\\'ve created and dedicates it to the world-wide public domain. Use CC0 to opt out of copyright entirely and ensure your work has the widest reach. As with the Unlicense and typical software licenses, CC0 disclaims warranties. CC0 is very similar to the Unlicense.\''
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='Creative Commons Zero v1.0 Universal'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='Creative Commons Zero v1.0 Universal'", actual: "content='@github'"
+  ... and 9 more differences
+DIFF licenses/cecill-2.1/index.html (17 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='CeCILL Free Software License Agreement v2.1'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='CeCILL Free Software License Agreement v2.1'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 7 more differences
+DIFF licenses/cern-ohl-p-2.0/index.html (23 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='CERN Open Hardware Licence Version 2 - Permissive'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='CERN Open Hardware Licence Version 2 - Permissive'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 13 more differences
+DIFF licenses/cern-ohl-s-2.0/index.html (23 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='CERN Open Hardware Licence Version 2 - Strongly Reciprocal'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='CERN Open Hardware Licence Version 2 - Strongly Reciprocal'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 13 more differences
+DIFF licenses/cern-ohl-w-2.0/index.html (21 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='CERN Open Hardware Licence Version 2 - Weakly Reciprocal'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='CERN Open Hardware Licence Version 2 - Weakly Reciprocal'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 11 more differences
+DIFF licenses/ecl-2.0/index.html (25 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > meta: attribute_differs - expected: "content='The Educational Community License version 2.0 (“ECL”) consists of the Apache 2.0 license, modified to change the scope of the patent grant in section 3 to be specific to the needs of the education communities using this license.'", actual: 'content=\'The Educational Community License version 2.0 ("ECL") consists of the Apache 2.0 license, modified to change the scope of the patent grant in section 3 to be specific to the needs of the education communities using this license.\''
+  head > meta > meta > meta: attribute_differs - expected: "content='The Educational Community License version 2.0 (“ECL”) consists of the Apache 2.0 license, modified to change the scope of the patent grant in section 3 to be specific to the needs of the education communities using this license.'", actual: 'content=\'The Educational Community License version 2.0 ("ECL") consists of the Apache 2.0 license, modified to change the scope of the patent grant in section 3 to be specific to the needs of the education communities using this license.\''
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='Educational Community License v2.0'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='Educational Community License v2.0'", actual: "content='@github'"
+  ... and 15 more differences
+DIFF licenses/epl-1.0/index.html (17 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='Eclipse Public License 1.0'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='Eclipse Public License 1.0'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 7 more differences
+DIFF licenses/epl-2.0/index.html (23 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='Eclipse Public License 2.0'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='Eclipse Public License 2.0'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 13 more differences
+DIFF licenses/eupl-1.1/index.html (17 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='European Union Public License 1.1'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='European Union Public License 1.1'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 7 more differences
+DIFF licenses/eupl-1.2/index.html (19 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > meta: attribute_differs - expected: "content='The European Union Public Licence (EUPL) is a copyleft free/open source software license created on the initiative of and approved by the European Commission in 23 official languages of the European Union.'", actual: 'content=\'The European Union Public Licence (EUPL) is a copyleft free/open source software license created on the initiative of and approved by the European Commission in <a href="https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12">23 official languages</a> of the European Union.\''
+  head > meta > meta > meta: attribute_differs - expected: "content='The European Union Public Licence (EUPL) is a copyleft free/open source software license created on the initiative of and approved by the European Commission in 23 official languages of the European Union.'", actual: 'content=\'The European Union Public Licence (EUPL) is a copyleft free/open source software license created on the initiative of and approved by the European Commission in <a href="https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12">23 official languages</a> of the European Union.\''
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='European Union Public License 1.2'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='European Union Public License 1.2'", actual: "content='@github'"
+  ... and 9 more differences
+DIFF licenses/gfdl-1.3/index.html (17 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='GNU Free Documentation License v1.3'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='GNU Free Documentation License v1.3'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 7 more differences
+DIFF licenses/gpl-2.0/index.html (17 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='GNU General Public License v2.0'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='GNU General Public License v2.0'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 7 more differences
+DIFF licenses/gpl-3.0/index.html (17 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='GNU General Public License v3.0'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='GNU General Public License v3.0'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 7 more differences
 DIFF licenses/index.html (5 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  (root): extra_text - expected: '(none)', actual: '{% include license-overview.html license-id="agpl-3.0" %} {% include license-overview.html license-i'
-  a: extra_element - expected: '(none)', actual: '<a>'
-  (root): extra_text - expected: '(none)', actual: 'if you’d like to read more.'
-DIFF licenses/isc/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'ISC License Copyright (c) [year] [fullname] Permission to use, copy, modify, and/or distribute this '
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/lgpl-2.1/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'GNU LESSER GENERAL PUBLIC LICENSE Version 2.1, February 1999 Copyright (C) 1991, 1999 Free Software '
-  child[1]: tag_name_differs - expected: 'head', actual: 'one'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/lgpl-3.0/index.html (4 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'GNU LESSER GENERAL PUBLIC LICENSE Version 3, 29 June 2007 Copyright (C) 2007 Free Software Foundatio'
-  child[1]: tag_name_differs - expected: 'head', actual: 'https:'
-  (root): expected_element_got_text - expected: '<body>', actual: 'Everyone is permitted to copy and distribute verbatim copies of this license document, but changing '
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/lppl-1.3c/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'The LaTeX Project Public License =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- LPPL Version 1.3c 2008-05-04 Copyr'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/mit-0/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'MIT No Attribution Copyright [year] [fullname] Permission is hereby granted, free of charge, to any '
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/mit/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'MIT License Copyright (c) [year] [fullname] Permission is hereby granted, free of charge, to any per'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/mpl-2.0/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'Mozilla Public License Version 2.0 ================================== 1. Definitions -------------- '
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/ms-pl/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'Microsoft Public License (Ms-PL) This license governs use of the accompanying software. If you use t'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/ms-rl/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'Microsoft Reciprocal License (Ms-RL) This license governs use of the accompanying software. If you u'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/mulanpsl-2.0/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: '木兰宽松许可证, 第2版 木兰宽松许可证， 第2版 2020年1月 http://license.coscl.org.cn/MulanPSL2 您对“软件”的复制、使用、修改及分发受木兰宽松许可证，第'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/ncsa/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'University of Illinois/NCSA Open Source License Copyright (c) [year] [fullname]. All rights reserved'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  body > div > script > jsonld.itemListElement[0].item.@id: jsonld_value_differs - expected: 'https://github.com/pages/alexeygrigorev/rustkyll/', actual: '/'
+  body > div > script > jsonld.itemListElement[1].item.@id: jsonld_value_differs - expected: 'https://github.com/pages/alexeygrigorev/rustkyll/licenses/', actual: 'licenses/'
+  body > div > footer > nav > a: missing_element - expected: '<a>', actual: '(none)'
+  body > script: text_differs - expected: 'window.annotations = {"permissions":[{"description":"The licensed material and derivatives may be used for commercial purposes.","label":"Commercial use","tag":"commercial-use"},{"description":"The licensed material may be modified.","label":"Modification","tag":"modifications"},{"description":"The licensed material may be distributed.","label":"Distribution","tag":"distribution"},{"description":"The licensed material may be used and modified in private.","label":"Private use","tag":"private-use"},{"description":"This license provides an express grant of patent rights from contributors.","label":"Patent use","tag":"patent-use"}],"conditions":[{"description":"A copy of the license and copyright notice must be included with the licensed material.","label":"License and copyright notice","tag":"include-copyright"},{"description":"A copy of the license and copyright notice must be included with the licensed material in source form, but is not required for binaries.","label":"License and copyright notice for source","tag":"include-copyright--source"},{"description":"Changes made to the licensed material must be documented.","label":"State changes","tag":"document-changes"},{"description":"Source code must be made available when the licensed material is distributed.","label":"Disclose source","tag":"disclose-source"},{"description":"Users who interact with the licensed material via network are given the right to receive a copy of the source code.","label":"Network use is distribution","tag":"network-use-disclose"},{"description":"Modifications must be released under the same license when distributing the licensed material. In some cases a similar or related license may be used.","label":"Same license","tag":"same-license"},{"description":"Modifications of existing files must be released under the same license when distributing the licensed material. In some cases a similar or related license may be used.","label":"Same license (file)","tag":"same-license--file"},{"description":"Modifications must be released under the same license when distributing the licensed material. In some cases a similar or related license may be used, or this condition may not apply to works that use the licensed material as a library.","label":"Same license (library)","tag":"same-license--library"}],"limitations":[{"description":"This license explicitly states that it does NOT grant trademark rights, even though licenses without such a statement probably do not grant any implicit trademark rights.","label":"Trademark use","tag":"trademark-use"},{"description":"This license includes a limitation of liability.","label":"Liability","tag":"liability"},{"description":"This license explicitly states that it does NOT grant any rights in the patents of contributors.","label":"Patent use","tag":"patent-use"},{"description":"This license explicitly states that it does NOT provide any warranty.","label":"Warranty","tag":"warranty"}]};', actual: 'window.annotations = {"conditions":[{"description":"A copy of the license and copyright notice must be included with the licensed material.","label":"License and copyright notice","tag":"include-copyright"},{"description":"A copy of the license and copyright notice must be included with the licensed material in source form, but is not required for binaries.","label":"License and copyright notice for source","tag":"include-copyright--source"},{"description":"Changes made to the licensed material must be documented.","label":"State changes","tag":"document-changes"},{"description":"Source code must be made available when the licensed material is distributed.","label":"Disclose source","tag":"disclose-source"},{"description":"Users who interact with the licensed material via network are given the right to receive a copy of the source code.","label":"Network use is distribution","tag":"network-use-disclose"},{"description":"Modifications must be released under the same license when distributing the licensed material. In some cases a similar or related license may be used.","label":"Same license","tag":"same-license"},{"description":"Modifications of existing files must be released under the same license when distributing the licensed material. In some cases a similar or related license may be used.","label":"Same license (file)","tag":"same-license--file"},{"description":"Modifications must be released under the same license when distributing the licensed material. In some cases a similar or related license may be used, or this condition may not apply to works that use the licensed material as a library.","label":"Same license (library)","tag":"same-license--library"}],"limitations":[{"description":"This license explicitly states that it does NOT grant trademark rights, even though licenses without such a statement probably do not grant any implicit trademark rights.","label":"Trademark use","tag":"trademark-use"},{"description":"This license includes a limitation of liability.","label":"Liability","tag":"liability"},{"description":"This license explicitly states that it does NOT grant any rights in the patents of contributors.","label":"Patent use","tag":"patent-use"},{"description":"This license explicitly states that it does NOT provide any warranty.","label":"Warranty","tag":"warranty"}],"permissions":[{"description":"The licensed material and derivatives may be used for commercial purposes.","label":"Commercial use","tag":"commercial-use"},{"description":"The licensed material may be modified.","label":"Modification","tag":"modifications"},{"description":"The licensed material may be distributed.","label":"Distribution","tag":"distribution"},{"description":"The licensed material may be used and modified in private.","label":"Private use","tag":"private-use"},{"description":"This license provides an express grant of patent rights from contributors.","label":"Patent use","tag":"patent-use"}]};'
+DIFF licenses/isc/index.html (25 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > meta: attribute_differs - expected: "content='A permissive license lets people do anything with your code with proper attribution and without warranty. The ISC license is functionally equivalent to the BSD 2-Clause and MIT licenses, removing some language that is no longer necessary.'", actual: 'content=\'A permissive license lets people do anything with your code with proper attribution and without warranty. The ISC license is functionally equivalent to the <a href="/licenses/bsd-2-clause/">BSD 2-Clause</a> and <a href="/licenses/mit/">MIT</a> licenses, removing some language that is no longer necessary.\''
+  head > meta > meta > meta: attribute_differs - expected: "content='A permissive license lets people do anything with your code with proper attribution and without warranty. The ISC license is functionally equivalent to the BSD 2-Clause and MIT licenses, removing some language that is no longer necessary.'", actual: 'content=\'A permissive license lets people do anything with your code with proper attribution and without warranty. The ISC license is functionally equivalent to the <a href="/licenses/bsd-2-clause/">BSD 2-Clause</a> and <a href="/licenses/mit/">MIT</a> licenses, removing some language that is no longer necessary.\''
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='ISC License'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='ISC License'", actual: "content='@github'"
+  ... and 15 more differences
+DIFF licenses/lgpl-2.1/index.html (17 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='GNU Lesser General Public License v2.1'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='GNU Lesser General Public License v2.1'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 7 more differences
+DIFF licenses/lgpl-3.0/index.html (17 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='GNU Lesser General Public License v3.0'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='GNU Lesser General Public License v3.0'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 7 more differences
+DIFF licenses/lppl-1.3c/index.html (17 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='LaTeX Project Public License v1.3c'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='LaTeX Project Public License v1.3c'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 7 more differences
+DIFF licenses/mit-0/index.html (17 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='MIT No Attribution'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='MIT No Attribution'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 7 more differences
+DIFF licenses/mit/index.html (21 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='MIT License'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='MIT License'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 11 more differences
+DIFF licenses/mpl-2.0/index.html (17 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='Mozilla Public License 2.0'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='Mozilla Public License 2.0'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 7 more differences
+DIFF licenses/ms-pl/index.html (17 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='Microsoft Public License'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='Microsoft Public License'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 7 more differences
+DIFF licenses/ms-rl/index.html (19 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > meta: attribute_differs - expected: "content='An open source license with a patent grant similar to the Microsoft Public License, with the additional condition that any source code for any derived file be provided under this license.'", actual: 'content=\'An open source license with a patent grant similar to the <a href="/licenses/ms-pl/">Microsoft Public License</a>, with the additional condition that any source code for any derived file be provided under this license.\''
+  head > meta > meta > meta: attribute_differs - expected: "content='An open source license with a patent grant similar to the Microsoft Public License, with the additional condition that any source code for any derived file be provided under this license.'", actual: 'content=\'An open source license with a patent grant similar to the <a href="/licenses/ms-pl/">Microsoft Public License</a>, with the additional condition that any source code for any derived file be provided under this license.\''
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='Microsoft Reciprocal License'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='Microsoft Reciprocal License'", actual: "content='@github'"
+  ... and 9 more differences
+DIFF licenses/mulanpsl-2.0/index.html (23 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > meta: attribute_differs - expected: "content='A permissive license similar to the Apache License, but explicitly states that it does not grant trademark rights. Mulan Permissive Software License is the first open source license in both Chinese and English approved by OSI.'", actual: 'content=\'A permissive license similar to the <a href="/licenses/apache-2.0/">Apache License</a>, but explicitly states that it does not grant trademark rights. Mulan Permissive Software License is the first open source license in both Chinese and English approved by OSI.\''
+  head > meta > meta > meta: attribute_differs - expected: "content='A permissive license similar to the Apache License, but explicitly states that it does not grant trademark rights. Mulan Permissive Software License is the first open source license in both Chinese and English approved by OSI.'", actual: 'content=\'A permissive license similar to the <a href="/licenses/apache-2.0/">Apache License</a>, but explicitly states that it does not grant trademark rights. Mulan Permissive Software License is the first open source license in both Chinese and English approved by OSI.\''
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='Mulan Permissive Software License, Version 2'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='Mulan Permissive Software License, Version 2'", actual: "content='@github'"
+  ... and 13 more differences
+DIFF licenses/ncsa/index.html (23 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > meta: attribute_differs - expected: "content='The University of Illinois/NCSA Open Source License, or UIUC license, is a permissive free software license, based on the MIT/X11 license and the BSD 3-clause License. Its conditions include requiring the preservation of copyright and license notices both in source and in binary distributions and the prohibition of using the names of the authors or the project organization to promote or endorse derived products.'", actual: 'content=\'The University of Illinois/NCSA Open Source License, or UIUC license, is a permissive free software license, based on the <a href="/licenses/mit/">MIT/X11 license</a>  and the <a href="/licenses/bsd-3-clause/">BSD 3-clause License</a>. Its conditions include requiring the preservation of copyright and license notices both in source and in binary distributions and the prohibition of using the names of the authors or the project organization to promote or endorse derived products.\''
+  head > meta > meta > meta: attribute_differs - expected: "content='The University of Illinois/NCSA Open Source License, or UIUC license, is a permissive free software license, based on the MIT/X11 license and the BSD 3-clause License. Its conditions include requiring the preservation of copyright and license notices both in source and in binary distributions and the prohibition of using the names of the authors or the project organization to promote or endorse derived products.'", actual: 'content=\'The University of Illinois/NCSA Open Source License, or UIUC license, is a permissive free software license, based on the <a href="/licenses/mit/">MIT/X11 license</a>  and the <a href="/licenses/bsd-3-clause/">BSD 3-clause License</a>. Its conditions include requiring the preservation of copyright and license notices both in source and in binary distributions and the prohibition of using the names of the authors or the project organization to promote or endorse derived products.\''
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='University of Illinois/NCSA Open Source License'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='University of Illinois/NCSA Open Source License'", actual: "content='@github'"
+  ... and 13 more differences
 DIFF licenses/no-license/index.html (4 differences)
   link: attribute_differs - expected: "href='https://choosealicense.com/no-permission/'", actual: "href='https://choosealicense.comno-permission/'"
   script: text_differs - expected: 'location="https://choosealicense.com/no-permission/"', actual: 'location="https://choosealicense.comno-permission/"'
   meta: attribute_differs - expected: "content='0; url=https://choosealicense.com/no-permission/'", actual: "content='0; url=https://choosealicense.comno-permission/'"
   a: attribute_differs - expected: "href='https://choosealicense.com/no-permission/'", actual: "href='https://choosealicense.comno-permission/'"
-DIFF licenses/odbl-1.0/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: '## ODC Open Database License (ODbL) ### Preamble The Open Database License (ODbL) is a license agree'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/ofl-1.1/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'Copyright (c) [year] [fullname] ([email]) This Font Software is licensed under the SIL Open Font Lic'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/osl-3.0/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'Open Software License ("OSL") v. 3.0 This Open Software License (the "License") applies to any origi'
-  child[1]: tag_name_differs - expected: 'head', actual: 'insert'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/postgresql/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'PostgreSQL License Copyright (c) [year], [fullname] Permission to use, copy, modify, and distribute '
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/unlicense/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'This is free and unencumbered software released into the public domain. Anyone is free to copy, modi'
-  child[1]: tag_name_differs - expected: 'head', actual: 'https:'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/upl-1.0/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'Copyright (c) [year] [fullname] The Universal Permissive License (UPL), Version 1.0 Subject to the c'
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/vim/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'VIM LICENSE I) There are no restrictions on distributing unmodified copies of [project] except that '
-  child[1]: tag_name_differs - expected: 'head', actual: 'bram@vim.org'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/wtfpl/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: 'DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE Version 2, December 2004 Copyright (C) 2004 Sam Hocevar'
-  child[1]: tag_name_differs - expected: 'head', actual: 'sam@hocevar.net'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF licenses/zlib/index.html (3 differences)
-  (root): expected_element_got_text - expected: '<head>', actual: "zlib License (C) [year] [fullname] This software is provided 'as-is', without any express or implied"
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF licenses/odbl-1.0/index.html (23 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='Open Data Commons Open Database License v1.0'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='Open Data Commons Open Database License v1.0'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 13 more differences
+DIFF licenses/ofl-1.1/index.html (23 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='SIL Open Font License 1.1'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='SIL Open Font License 1.1'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 13 more differences
+DIFF licenses/osl-3.0/index.html (25 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > meta: attribute_differs - expected: "content='Permissions of this copyleft license are conditioned on distributing source code of licensed works and modifications under the same license. Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. Using the work or modifications to provide services to external users is treated as distribution and also requires making source code available. Works that merely link to a licensed work are considered collective works and are not subject to the license’s reciprocity requirements.'", actual: 'content="Permissions of this copyleft license are conditioned on distributing source code of licensed works and modifications under the same license. Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. Using the work or modifications to provide services to external users is treated as distribution and also requires making source code available. Works that merely link to a licensed work are considered collective works and are not subject to the license\'s reciprocity requirements."'
+  head > meta > meta > meta: attribute_differs - expected: "content='Permissions of this copyleft license are conditioned on distributing source code of licensed works and modifications under the same license. Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. Using the work or modifications to provide services to external users is treated as distribution and also requires making source code available. Works that merely link to a licensed work are considered collective works and are not subject to the license’s reciprocity requirements.'", actual: 'content="Permissions of this copyleft license are conditioned on distributing source code of licensed works and modifications under the same license. Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. Using the work or modifications to provide services to external users is treated as distribution and also requires making source code available. Works that merely link to a licensed work are considered collective works and are not subject to the license\'s reciprocity requirements."'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='Open Software License 3.0'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='Open Software License 3.0'", actual: "content='@github'"
+  ... and 15 more differences
+DIFF licenses/postgresql/index.html (21 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='PostgreSQL License'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='PostgreSQL License'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 11 more differences
+DIFF licenses/unlicense/index.html (21 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='The Unlicense'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='The Unlicense'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 11 more differences
+DIFF licenses/upl-1.0/index.html (25 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > meta: attribute_differs - expected: "content='A permissive, OSI- and FSF-approved, GPL-compatible license, expressly allowing attribution with just a copyright notice and a short form link rather than the full text of the license. Includes an express grant of patent rights. Licensed works and modifications may be distributed under different terms and without source code, and the patent grant may also optionally be expanded to larger works to permit use as a contributor license agreement.'", actual: "content='A permissive, OSI- and FSF-approved, GPL-compatible license, expressly allowing attribution with just a copyright notice and a short form link rather than the full text of the license.  Includes an express grant of patent rights.  Licensed works and modifications may be distributed under different terms and without source code, and the patent grant may also optionally be expanded to larger works to permit use as a contributor license agreement.'"
+  head > meta > meta > meta: attribute_differs - expected: "content='A permissive, OSI- and FSF-approved, GPL-compatible license, expressly allowing attribution with just a copyright notice and a short form link rather than the full text of the license. Includes an express grant of patent rights. Licensed works and modifications may be distributed under different terms and without source code, and the patent grant may also optionally be expanded to larger works to permit use as a contributor license agreement.'", actual: "content='A permissive, OSI- and FSF-approved, GPL-compatible license, expressly allowing attribution with just a copyright notice and a short form link rather than the full text of the license.  Includes an express grant of patent rights.  Licensed works and modifications may be distributed under different terms and without source code, and the patent grant may also optionally be expanded to larger works to permit use as a contributor license agreement.'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='Universal Permissive License v1.0'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='Universal Permissive License v1.0'", actual: "content='@github'"
+  ... and 15 more differences
+DIFF licenses/vim/index.html (21 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='Vim License'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='Vim License'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 11 more differences
+DIFF licenses/wtfpl/index.html (17 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='Do What The F*ck You Want To Public License'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='Do What The F*ck You Want To Public License'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 7 more differences
+DIFF licenses/zlib/index.html (17 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-18T13:16:32+01:00'", actual: "content='summary'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > link > meta: attribute_differs - expected: "content='summary'", actual: "content='zlib License'"
+  head > meta > meta > link > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta > meta > link > meta: attribute_differs - expected: "content='zlib License'", actual: "content='@github'"
+  head > meta > meta > link > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta > meta > link > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  ... and 7 more differences
 DIFF no-license/index.html (4 differences)
   link: attribute_differs - expected: "href='https://choosealicense.com/no-permission/'", actual: "href='https://choosealicense.comno-permission/'"
   script: text_differs - expected: 'location="https://choosealicense.com/no-permission/"', actual: 'location="https://choosealicense.comno-permission/"'
   meta: attribute_differs - expected: "content='0; url=https://choosealicense.com/no-permission/'", actual: "content='0; url=https://choosealicense.comno-permission/'"
   a: attribute_differs - expected: "href='https://choosealicense.com/no-permission/'", actual: "href='https://choosealicense.comno-permission/'"
 DIFF no-permission/index.html (9 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-DIFF non-software/index.html (11 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h3'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  ... and 1 more differences
-DIFF terms-of-service/index.html (24 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h3'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  ... and 14 more differences
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  head > meta > meta > meta: attribute_differs - expected: "content='You’re under no obligation to choose a license and it’s your right not to include one with your code or project. But please note that opting out of open source licenses doesn’t mean you’re opting out of copyright law.'", actual: 'content="You\'re under no obligation to choose a license and it\'s your right not to include one with your code or project. But please note that opting out of open source licenses doesn\'t mean you\'re opting out of copyright law."'
+  head > meta > meta > meta: attribute_differs - expected: "content='You’re under no obligation to choose a license and it’s your right not to include one with your code or project. But please note that opting out of open source licenses doesn’t mean you’re opting out of copyright law.'", actual: 'content="You\'re under no obligation to choose a license and it\'s your right not to include one with your code or project. But please note that opting out of open source licenses doesn\'t mean you\'re opting out of copyright law."'
+  head > meta > meta > link > script > jsonld.description: jsonld_value_differs - expected: 'You’re under no obligation to choose a license and it’s your right not to include one with your code or project. But please note that opting out of open source licenses doesn’t mean you’re opting out ', actual: "You're under no obligation to choose a license and it's your right not to include one with your code or project. But please note that opting out of open source licenses doesn't mean you're opting out "
+  body > div > script > jsonld.itemListElement[0].item.@id: jsonld_value_differs - expected: 'https://github.com/pages/alexeygrigorev/rustkyll/', actual: '/'
+  body > div > script > jsonld.itemListElement[1].item.@id: jsonld_value_differs - expected: 'https://github.com/pages/alexeygrigorev/rustkyll/no-permission/', actual: 'no-permission/'
+  body > div > child[11]: tag_name_differs - expected: 'ul', actual: 'p'
+  body > div > child[12]: tag_name_differs - expected: 'footer', actual: 'ul'
+  body > div > footer: extra_element - expected: '(none)', actual: '<footer>'
+DIFF non-software/index.html (4 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  body > div > script > jsonld.itemListElement[0].item.@id: jsonld_value_differs - expected: 'https://github.com/pages/alexeygrigorev/rustkyll/', actual: '/'
+  body > div > script > jsonld.itemListElement[1].item.@id: jsonld_value_differs - expected: 'https://github.com/pages/alexeygrigorev/rustkyll/non-software/', actual: '/non-software/'
+  body > div > footer > nav > a: missing_element - expected: '<a>', actual: '(none)'
+DIFF terms-of-service/index.html (4 differences)
+  head > link: attribute_differs - expected: "href='/assets/css/application.css?v=6d5f6b26025b31d5213c23dc8fcb13f9b9308b4d'", actual: "href='/assets/css/application.css?v='"
+  body > div > script > jsonld.itemListElement[0].item.@id: jsonld_value_differs - expected: 'https://github.com/pages/alexeygrigorev/rustkyll/', actual: '/'
+  body > div > script > jsonld.itemListElement[1].item.@id: jsonld_value_differs - expected: 'https://github.com/pages/alexeygrigorev/rustkyll/terms-of-service/', actual: '/terms-of-service/'
+  body > div > footer > nav > a: missing_element - expected: '<a>', actual: '(none)'
 
-Summary: 15 files matched, 57 files with differences, 236 total differences
+Summary: 15 files matched, 57 files with differences, 1031 total differences

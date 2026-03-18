@@ -24,7 +24,7 @@ DIFF ar/how-to-contribute/index.html (2 differences)
 DIFF ar/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='ar'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -138,7 +138,7 @@ DIFF bg/how-to-contribute/index.html (157 differences)
 DIFF bg/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='bg'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -294,7 +294,7 @@ DIFF bn/how-to-contribute/index.html (157 differences)
 DIFF bn/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='bn'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -474,7 +474,7 @@ DIFF de/how-to-contribute/index.html (157 differences)
 DIFF de/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='de'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -630,7 +630,7 @@ DIFF el/how-to-contribute/index.html (156 differences)
 DIFF el/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='el'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -786,7 +786,7 @@ DIFF es/how-to-contribute/index.html (154 differences)
 DIFF es/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='es'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -942,7 +942,7 @@ DIFF fa/how-to-contribute/index.html (158 differences)
 DIFF fa/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='fa'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -1111,7 +1111,7 @@ DIFF fr/how-to-contribute/index.html (154 differences)
 DIFF fr/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='fr'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -1279,7 +1279,7 @@ DIFF hi/how-to-contribute/index.html (157 differences)
 DIFF hi/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='hi'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -1447,7 +1447,7 @@ DIFF hu/how-to-contribute/index.html (155 differences)
 DIFF hu/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='hu'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -1603,7 +1603,7 @@ DIFF id/how-to-contribute/index.html (154 differences)
 DIFF id/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='id'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -1767,7 +1767,7 @@ DIFF it/how-to-contribute/index.html (157 differences)
 DIFF it/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='it'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -1923,7 +1923,7 @@ DIFF ja/how-to-contribute/index.html (154 differences)
 DIFF ja/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='ja'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -2079,7 +2079,7 @@ DIFF ko/how-to-contribute/index.html (154 differences)
 DIFF ko/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='ko'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -2284,7 +2284,7 @@ DIFF ms/how-to-contribute/index.html (157 differences)
 DIFF ms/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='ms'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -2440,7 +2440,7 @@ DIFF nl/how-to-contribute/index.html (157 differences)
 DIFF nl/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='nl'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -2600,9 +2600,18 @@ DIFF pcm/how-to-contribute/index.html (157 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 147 more differences
-DIFF pcm/index.html (2 differences)
-  head: missing_element - expected: '<head>', actual: '(none)'
-  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF pcm/index.html (19 differences)
+  head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
+  head > meta > meta > meta: attribute_differs - expected: "content='pcm'", actual: "content='en_US'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
+  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
+  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='Open Source Guides'"
+  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
+  ... and 9 more differences
 DIFF pcm/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -2750,7 +2759,7 @@ DIFF pl/how-to-contribute/index.html (157 differences)
 DIFF pl/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='pl'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -2906,7 +2915,7 @@ DIFF pt/how-to-contribute/index.html (154 differences)
 DIFF pt/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='pt'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -3062,7 +3071,7 @@ DIFF ro/how-to-contribute/index.html (154 differences)
 DIFF ro/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='ro'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -3218,7 +3227,7 @@ DIFF ru/how-to-contribute/index.html (157 differences)
 DIFF ru/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='ru'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -3337,7 +3346,8 @@ DIFF sa/code-of-conduct/index.html (27 differences)
   ... and 17 more differences
 DIFF sa/finding-users/index.html (12 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'  Progress: 300/388 files compared...
+
   h2: extra_element - expected: '(none)', actual: '<h2>'
   p: extra_element - expected: '(none)', actual: '<p>'
   h2: extra_element - expected: '(none)', actual: '<h2>'
@@ -3356,8 +3366,7 @@ DIFF sa/getting-paid/index.html (9 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   h2: extra_element - expected: '(none)', actual: '<h2>'
   p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'  Progress: 300/388 files compared...
-
+  p: extra_element - expected: '(none)', actual: '<p>'
 DIFF sa/how-to-contribute/index.html (10 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -3372,7 +3381,7 @@ DIFF sa/how-to-contribute/index.html (10 differences)
 DIFF sa/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='sa'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -3547,7 +3556,7 @@ DIFF sw/how-to-contribute/index.html (157 differences)
 DIFF sw/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='sw'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -3703,7 +3712,7 @@ DIFF ta/how-to-contribute/index.html (154 differences)
 DIFF ta/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='ta'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -3859,7 +3868,7 @@ DIFF tr/how-to-contribute/index.html (157 differences)
 DIFF tr/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='tr'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -4015,7 +4024,7 @@ DIFF zh-hans/how-to-contribute/index.html (155 differences)
 DIFF zh-hans/index.html (20 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='zh_hans'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -4171,7 +4180,7 @@ DIFF zh-hant/how-to-contribute/index.html (154 differences)
 DIFF zh-hant/index.html (19 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta: attribute_differs - expected: "content='zh_hant'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T12:33:48+01:00'", actual: "content='summary_large_image'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
   head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
   head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
@@ -4253,4 +4262,4 @@ DIFF zh-hant/starting-a-project/index.html (119 differences)
   aside: extra_element - expected: '(none)', actual: '<aside>'
   ... and 109 more differences
 
-Summary: 23 files matched, 365 files with differences, 23615 total differences
+Summary: 23 files matched, 365 files with differences, 23632 total differences

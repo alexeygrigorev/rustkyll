@@ -4,958 +4,1111 @@ Common HTML files:  125
 Only in Jekyll:     103
 Only in rustkyll:   6
 
-DIFF 404.html (2 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'section'
-  child[2]: tag_name_differs - expected: 'body', actual: 'section'
-DIFF docs/assets/index.html (19 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'div'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 9 more differences
-DIFF docs/code_of_conduct/index.html (18 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 8 more differences
-DIFF docs/collections/index.html (55 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ... and 45 more differences
-DIFF docs/community/bug/index.html (2 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-DIFF docs/community/index.html (17 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 7 more differences
-DIFF docs/conduct/index.html (18 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 8 more differences
-DIFF docs/configuration/default/index.html (3 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'div'
-  div: extra_element - expected: '(none)', actual: '<div>'
-DIFF docs/configuration/environments/index.html (12 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 2 more differences
-DIFF docs/configuration/front-matter-defaults/index.html (26 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 16 more differences
-DIFF docs/configuration/incremental-regeneration/index.html (6 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'div'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF docs/configuration/index.html (2 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
-DIFF docs/configuration/liquid/index.html (10 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF docs/configuration/markdown/index.html (26 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  ... and 16 more differences
-DIFF docs/configuration/options/index.html (10 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h3'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-DIFF docs/configuration/sass/index.html (4 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-DIFF docs/configuration/webrick/index.html (4 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'div'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF docs/continuous-integration/buddyworks/index.html (12 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  ol: extra_element - expected: '(none)', actual: '<ol>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 2 more differences
-DIFF docs/continuous-integration/circleci/index.html (19 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ol: extra_element - expected: '(none)', actual: '<ol>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 9 more differences
-DIFF docs/continuous-integration/github-actions/index.html (30 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ... and 20 more differences
-DIFF docs/continuous-integration/razorops/index.html (11 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'ol'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ol: extra_element - expected: '(none)', actual: '<ol>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 1 more differences
-DIFF docs/continuous-integration/travis-ci/index.html (48 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ol: extra_element - expected: '(none)', actual: '<ol>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  ... and 38 more differences
-DIFF docs/contributing/index.html (52 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  ... and 42 more differences
-DIFF docs/datafiles/index.html (41 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  ... and 31 more differences
-DIFF docs/deployment/automated/index.html (15 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 5 more differences
-DIFF docs/deployment/index.html (2 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
-DIFF docs/deployment/manual/index.html (12 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 2 more differences
-DIFF docs/deployment/third-party/index.html (39 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ... and 29 more differences
-DIFF docs/front-matter/index.html (18 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'div'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ... and 8 more differences
-DIFF docs/github-pages/index.html (27 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 17 more differences
-DIFF docs/history/index.html (1047 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  ... and 1037 more differences
-DIFF docs/includes/index.html (58 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 48 more differences
-DIFF docs/index.html (19 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ol: extra_element - expected: '(none)', actual: '<ol>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  ol: extra_element - expected: '(none)', actual: '<ol>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  ... and 9 more differences
-DIFF docs/installation/freebsd/index.html (14 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h3'
-  child[2]: tag_name_differs - expected: 'body', actual: 'div'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  ... and 4 more differences
-DIFF docs/installation/index.html (6 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-DIFF docs/installation/macos/index.html (28 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 18 more differences
-DIFF docs/installation/other-linux/index.html (20 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  ... and 10 more differences
-DIFF docs/installation/ubuntu/index.html (8 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF docs/installation/windows/index.html (43 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ol: extra_element - expected: '(none)', actual: '<ol>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  ... and 33 more differences
-DIFF docs/layouts/index.html (25 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 15 more differences
-DIFF docs/liquid/filters/index.html (28 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  ... and 18 more differences
-DIFF docs/liquid/index.html (4 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-DIFF docs/liquid/tags/index.html (72 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 62 more differences
-DIFF docs/maintaining/affinity-team-captain/index.html (11 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 1 more differences
-DIFF docs/maintaining/avoiding-burnout/index.html (13 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h1'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h1: extra_element - expected: '(none)', actual: '<h1>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h1: extra_element - expected: '(none)', actual: '<h1>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h1: extra_element - expected: '(none)', actual: '<h1>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 3 more differences
-DIFF docs/maintaining/becoming-a-maintainer/index.html (17 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 7 more differences
-DIFF docs/maintaining/index.html (5 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-DIFF docs/maintaining/merging-a-pull-request/index.html (18 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ol: extra_element - expected: '(none)', actual: '<ol>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 8 more differences
-DIFF docs/maintaining/releasing-a-new-version/index.html (42 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  ... and 32 more differences
-DIFF docs/maintaining/releasing-off-stable-branches/index.html (14 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ol: extra_element - expected: '(none)', actual: '<ol>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ol: extra_element - expected: '(none)', actual: '<ol>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ol: extra_element - expected: '(none)', actual: '<ol>'
-  ... and 4 more differences
-DIFF docs/maintaining/reviewing-a-pull-request/index.html (21 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 11 more differences
-DIFF docs/maintaining/special-labels/index.html (10 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF docs/maintaining/triaging-an-issue/index.html (21 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ol: extra_element - expected: '(none)', actual: '<ol>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  ... and 11 more differences
-DIFF docs/markdown-101/index.html (2 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF docs/migrations/index.html (2 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  body: missing_element - expected: '<body>', actual: '(none)'
-DIFF docs/pages/index.html (9 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF docs/pagination/index.html (26 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 16 more differences
-DIFF docs/permalinks/index.html (28 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 18 more differences
-DIFF docs/plugins/commands/index.html (6 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'div'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-DIFF docs/plugins/converters/index.html (7 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'div'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF docs/plugins/filters/index.html (4 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'div'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-DIFF docs/plugins/generators/index.html (16 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
+DIFF 404.html (16 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
   ... and 6 more differences
-DIFF docs/plugins/hooks/index.html (14 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  ... and 4 more differences
-DIFF docs/plugins/index.html (3 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-DIFF docs/plugins/installation/index.html (19 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 9 more differences
-DIFF docs/plugins/tags/index.html (22 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'div'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 12 more differences
-DIFF docs/plugins/your-first-plugin/index.html (27 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  ... and 17 more differences
-DIFF docs/posts/index.html (53 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  ... and 43 more differences
-DIFF docs/rendering-process/index.html (4 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-DIFF docs/ruby-101/index.html (17 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ... and 7 more differences
-DIFF docs/security/index.html (10 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  table: extra_element - expected: '(none)', actual: '<table>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ol: extra_element - expected: '(none)', actual: '<ol>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF docs/static-files/index.html (15 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 5 more differences
-DIFF docs/step-by-step/01-setup/index.html (26 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 16 more differences
-DIFF docs/step-by-step/02-liquid/index.html (35 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  ... and 25 more differences
-DIFF docs/step-by-step/03-front-matter/index.html (16 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 6 more differences
-DIFF docs/step-by-step/04-layouts/index.html (25 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 15 more differences
-DIFF docs/step-by-step/05-includes/index.html (22 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 12 more differences
-DIFF docs/step-by-step/06-data-files/index.html (12 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 2 more differences
-DIFF docs/step-by-step/07-assets/index.html (25 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 15 more differences
-DIFF docs/step-by-step/08-blogging/index.html (32 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  ... and 22 more differences
-DIFF docs/step-by-step/09-collections/index.html (58 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 48 more differences
-DIFF docs/step-by-step/10-deployment/index.html (44 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  ... and 34 more differences
-DIFF docs/structure/index.html (7 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'div'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-DIFF docs/support/index.html (8 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF docs/themes/index.html (110 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  ... and 100 more differences
-DIFF docs/troubleshooting/index.html (84 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'  Progress: 100/125 files compared...
-
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 74 more differences
-DIFF docs/upgrading/0-to-2/index.html (24 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
+DIFF docs/assets/index.html (37 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 27 more differences
+DIFF docs/code_of_conduct/index.html (24 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
   ... and 14 more differences
-DIFF docs/upgrading/2-to-3/index.html (41 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
+DIFF docs/collections/index.html (202 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 192 more differences
+DIFF docs/community/bug/index.html (24 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 14 more differences
+DIFF docs/community/index.html (24 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 14 more differences
+DIFF docs/conduct/index.html (24 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 14 more differences
+DIFF docs/configuration/default/index.html (206 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 196 more differences
+DIFF docs/configuration/environments/index.html (57 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 47 more differences
+DIFF docs/configuration/front-matter-defaults/index.html (110 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 100 more differences
+DIFF docs/configuration/incremental-regeneration/index.html (24 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 14 more differences
+DIFF docs/configuration/index.html (24 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 14 more differences
+DIFF docs/configuration/liquid/index.html (24 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 14 more differences
+DIFF docs/configuration/markdown/index.html (94 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 84 more differences
+DIFF docs/configuration/options/index.html (103 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 93 more differences
+DIFF docs/configuration/sass/index.html (26 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 16 more differences
+DIFF docs/configuration/webrick/index.html (24 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 14 more differences
+DIFF docs/continuous-integration/buddyworks/index.html (94 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 84 more differences
+DIFF docs/continuous-integration/circleci/index.html (38 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 28 more differences
+DIFF docs/continuous-integration/github-actions/index.html (90 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 80 more differences
+DIFF docs/continuous-integration/razorops/index.html (24 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 14 more differences
+DIFF docs/continuous-integration/travis-ci/index.html (61 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 51 more differences
+DIFF docs/contributing/index.html (27 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 17 more differences
+DIFF docs/datafiles/index.html (175 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 165 more differences
+DIFF docs/deployment/automated/index.html (125 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 115 more differences
+DIFF docs/deployment/index.html (24 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 14 more differences
+DIFF docs/deployment/manual/index.html (24 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 14 more differences
+DIFF docs/deployment/third-party/index.html (24 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 14 more differences
+DIFF docs/front-matter/index.html (73 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 63 more differences
+DIFF docs/github-pages/index.html (66 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 56 more differences
+DIFF docs/history/index.html (2522 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 2512 more differences
+DIFF docs/includes/index.html (230 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 220 more differences
+DIFF docs/index.html (41 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
   ... and 31 more differences
-DIFF docs/upgrading/3-to-4/index.html (31 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 21 more differences
-DIFF docs/upgrading/index.html (7 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF docs/usage/index.html (8 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF docs/variables/index.html (16 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 6 more differences
+DIFF docs/installation/freebsd/index.html (60 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 50 more differences
+DIFF docs/installation/index.html (24 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 14 more differences
+DIFF docs/installation/macos/index.html (64 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 54 more differences
+DIFF docs/installation/other-linux/index.html (78 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 68 more differences
+DIFF docs/installation/ubuntu/index.html (55 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 45 more differences
+DIFF docs/installation/windows/index.html (94 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 84 more differences
+DIFF docs/layouts/index.html (179 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 169 more differences
+DIFF docs/liquid/filters/index.html (280 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 270 more differences
+DIFF docs/liquid/index.html (24 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 14 more differences
+DIFF docs/liquid/tags/index.html (145 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 135 more differences
+DIFF docs/maintaining/affinity-team-captain/index.html (33 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 23 more differences
+DIFF docs/maintaining/avoiding-burnout/index.html (26 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 16 more differences
+DIFF docs/maintaining/becoming-a-maintainer/index.html (28 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 18 more differences
+DIFF docs/maintaining/index.html (26 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 16 more differences
+DIFF docs/maintaining/merging-a-pull-request/index.html (32 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 22 more differences
+DIFF docs/maintaining/releasing-a-new-version/index.html (54 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 44 more differences
+DIFF docs/maintaining/releasing-off-stable-branches/index.html (24 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 14 more differences
+DIFF docs/maintaining/reviewing-a-pull-request/index.html (35 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 25 more differences
+DIFF docs/maintaining/special-labels/index.html (45 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 35 more differences
+DIFF docs/maintaining/triaging-an-issue/index.html (38 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 28 more differences
+DIFF docs/markdown-101/index.html (24 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 14 more differences
+DIFF docs/migrations/index.html (24 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 14 more differences
+DIFF docs/pages/index.html (26 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 16 more differences
+DIFF docs/pagination/index.html (393 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 383 more differences
+DIFF docs/permalinks/index.html (162 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 152 more differences
+DIFF docs/plugins/commands/index.html (152 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 142 more differences
+DIFF docs/plugins/converters/index.html (110 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 100 more differences
+DIFF docs/plugins/filters/index.html (78 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 68 more differences
+DIFF docs/plugins/generators/index.html (468 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 458 more differences
+DIFF docs/plugins/hooks/index.html (378 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 368 more differences
+DIFF docs/plugins/index.html (26 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 16 more differences
+DIFF docs/plugins/installation/index.html (113 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 103 more differences
+DIFF docs/plugins/tags/index.html (233 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 223 more differences
+DIFF docs/plugins/your-first-plugin/index.html (69 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 59 more differences
+DIFF docs/posts/index.html (228 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 218 more differences
+DIFF docs/rendering-process/index.html (24 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 14 more differences
+DIFF docs/ruby-101/index.html (47 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 37 more differences
+DIFF docs/security/index.html (30 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 20 more differences
+DIFF docs/static-files/index.html (92 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 82 more differences
+DIFF docs/step-by-step/01-setup/index.html (60 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 50 more differences
+DIFF docs/step-by-step/02-liquid/index.html (98 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 88 more differences
+DIFF docs/step-by-step/03-front-matter/index.html (66 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 56 more differences
+DIFF docs/step-by-step/04-layouts/index.html (64 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 54 more differences
+DIFF docs/step-by-step/05-includes/index.html (88 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 78 more differences
+DIFF docs/step-by-step/06-data-files/index.html (85 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 75 more differences
+DIFF docs/step-by-step/07-assets/index.html (125 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 115 more differences
+DIFF docs/step-by-step/08-blogging/index.html (139 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 129 more differences
+DIFF docs/step-by-step/09-collections/index.html (348 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 338 more differences
+DIFF docs/step-by-step/10-deployment/index.html (122 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"  Progress: 100/125 files compared...
+
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 112 more differences
+DIFF docs/structure/index.html (123 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 113 more differences
+DIFF docs/support/index.html (24 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 14 more differences
+DIFF docs/themes/index.html (249 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 239 more differences
+DIFF docs/troubleshooting/index.html (263 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 253 more differences
+DIFF docs/upgrading/0-to-2/index.html (75 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 65 more differences
+DIFF docs/upgrading/2-to-3/index.html (75 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 65 more differences
+DIFF docs/upgrading/3-to-4/index.html (122 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 112 more differences
+DIFF docs/upgrading/index.html (25 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 15 more differences
+DIFF docs/usage/index.html (25 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 15 more differences
+DIFF docs/variables/index.html (262 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 252 more differences
 DIFF github.html (8 differences)
   meta: missing_element - expected: '<meta>', actual: '(none)'
   title: missing_element - expected: '<title>', actual: '(none)'
@@ -965,11 +1118,18 @@ DIFF github.html (8 differences)
   meta: missing_element - expected: '<meta>', actual: '(none)'
   h1: missing_element - expected: '<h1>', actual: '(none)'
   a: missing_element - expected: '<a>', actual: '(none)'
-DIFF index.html (4 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'section'
-  child[2]: tag_name_differs - expected: 'body', actual: 'section'
-  section: extra_element - expected: '(none)', actual: '<section>'
-  section: extra_element - expected: '(none)', actual: '<section>'
+DIFF index.html (20 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 10 more differences
 DIFF issues.html (8 differences)
   meta: missing_element - expected: '<meta>', actual: '(none)'
   title: missing_element - expected: '<title>', actual: '(none)'
@@ -997,141 +1157,161 @@ DIFF news/releases/index.html (3 differences)
   (root): expected_element_got_text - expected: '<head>', actual: '{% for post in site.categories.release -%} {% if forloop.index == 1 -%} {% include news_item.html -%'
   head: missing_element - expected: '<head>', actual: '(none)'
   body: missing_element - expected: '<body>', actual: '(none)'
-DIFF philosophy/index.html (11 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h3'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  ... and 1 more differences
-DIFF resources/index.html (26 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 16 more differences
-DIFF showcase/index.html (2 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
-DIFF team/index.html (9 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-DIFF tutorials/cache-api/index.html (23 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  ... and 13 more differences
-DIFF tutorials/convert-site-to-jekyll/index.html (177 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  ... and 167 more differences
-DIFF tutorials/csv-to-table/index.html (52 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 42 more differences
-DIFF tutorials/custom-404-page/index.html (21 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
+DIFF philosophy/index.html (21 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
   ... and 11 more differences
-DIFF tutorials/home/index.html (9 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ol: extra_element - expected: '(none)', actual: '<ol>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF tutorials/navigation/index.html (151 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ... and 141 more differences
-DIFF tutorials/orderofinterpretation/index.html (58 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ol: extra_element - expected: '(none)', actual: '<ol>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  ... and 48 more differences
-DIFF tutorials/using-jekyll-with-bundler/index.html (25 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'blockquote'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ... and 15 more differences
-DIFF tutorials/video-walkthroughs/index.html (4 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'div'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ol: extra_element - expected: '(none)', actual: '<ol>'
+DIFF resources/index.html (33 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 23 more differences
+DIFF showcase/index.html (21 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 11 more differences
+DIFF team/index.html (57 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 47 more differences
+DIFF tutorials/cache-api/index.html (81 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 71 more differences
+DIFF tutorials/convert-site-to-jekyll/index.html (724 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 714 more differences
+DIFF tutorials/csv-to-table/index.html (291 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 281 more differences
+DIFF tutorials/custom-404-page/index.html (64 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 54 more differences
+DIFF tutorials/home/index.html (26 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 16 more differences
+DIFF tutorials/navigation/index.html (1442 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 1432 more differences
+DIFF tutorials/orderofinterpretation/index.html (266 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 256 more differences
+DIFF tutorials/using-jekyll-with-bundler/index.html (52 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 42 more differences
+DIFF tutorials/video-walkthroughs/index.html (28 differences)
+  head > link: attribute_differs - expected: "href='https://jekyllrb.com/feed.xml'", actual: "href='/feed/release.xml'"
+  head > link: attribute_differs - expected: "title='Jekyll • Simple, blog-aware, static sites'", actual: "title='Jekyll releases posts'"
+  head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='/commits/master.atom'"
+  head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Recent commits to Jekyll’s master branch'"
+  head > link: extra_attribute - expected: '(none)', actual: "as='font'"
+  head > link: extra_attribute - expected: '(none)', actual: "crossorigin=''"
+  head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/fonts/lato-v14-latin-300.woff2'"
+  head > link: attribute_differs - expected: "rel='alternate'", actual: "rel='preload'"
+  head > link: missing_attribute - expected: "title='Recent commits to Jekyll’s master branch'", actual: '(none)'
+  head > link: attribute_differs - expected: "type='application/atom+xml'", actual: "type='font/woff2'"
+  ... and 18 more differences
 
-Summary: 14 files matched, 111 files with differences, 3622 total differences
+Summary: 14 files matched, 111 files with differences, 14297 total differences

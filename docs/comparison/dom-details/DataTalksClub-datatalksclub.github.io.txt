@@ -103,7 +103,7 @@ DIFF blog/how-to-build-waste-classifier-case-study-from-ml-zoomcamp.html (9 diff
   body > div > div > div > div > child[89]: tag_name_differs - expected: 'p', actual: 'figcaption'
   body > div > div > div > div > child[90]: tag_name_differs - expected: 'blockquote', actual: 'p'
   body > script > jsonld.@graph[0].author[0].description: jsonld_value_differs - expected: 'Serena Haidar is a Computer and Communications Engineer with a self-taught passion for AI/ML, building tech that drives accessibility and sustainability. A lifelong problem solver, she continually adv', actual: 'Serena Haidar is a Computer and Communications Engineer with a self-taught passion for AI/ML, building tech that drives accessibility and sustainability. A lifelong problem solver, she continually adv'
-DIFF blog/how-to-run-postgresql-and-pgadmin-with-docker.html (184 differences)
+DIFF blog/how-to-run-postgresql-and-pgadmin-with-docker.html (140 differences)
   body > div > div > div > div > p: text_differs - expected: 'Because all of the containers share the services of a single operating system kernel, they use fewer resources than virtual machines.” (Source', actual: 'Because all of the containers share the services of a single operating system kernel, they use fewer resources than virtual machines.” (Source [Wikipedia](https://en.wikipedia.org/wiki/Docker_(software){:target="_blank"}))'
   body > div > div > div > div > p > a: missing_element - expected: '<a>', actual: '(none)'
   body > div > div > div > div > p: missing_text - expected: ')', actual: '(none)'
@@ -114,8 +114,8 @@ DIFF blog/how-to-run-postgresql-and-pgadmin-with-docker.html (184 differences)
   body > div > div > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'postgresql'
   body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nt'", actual: "class='se'"
   body > div > div > div > div > div > div > pre > code > span: text_differs - expected: '--name', actual: '\\\\'
-  ... and 174 more differences
-DIFF blog/how-to-setup-lightweight-local-version-for-airflow.html (408 differences)
+  ... and 130 more differences
+DIFF blog/how-to-setup-lightweight-local-version-for-airflow.html (363 differences)
   body > div > div > div > div > p: text_differs - expected: '(text extracted from', actual: '(text extracted from [Wikipedia](https://en.wikipedia.org/wiki/Docker_(software){:target="_blank"})'
   body > div > div > div > div > p > child[2]: tag_name_differs - expected: 'a', actual: 'em'
   body > div > div > div > div > p > em: missing_element - expected: '<em>', actual: '(none)'
@@ -126,7 +126,7 @@ DIFF blog/how-to-setup-lightweight-local-version-for-airflow.html (408 differenc
   body > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
-  ... and 398 more differences
+  ... and 353 more differences
 DIFF blog/important-sql-fact-that-everyone-should-know.html (13 differences)
   body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='k'", actual: "class='n'"
   body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='k'", actual: "class='n'"
@@ -208,19 +208,19 @@ DIFF blog/ner-reformers.html (198 differences)
   body > div > div > div > div > child[68]: tag_name_differs - expected: 'p', actual: 'h2'
   body > div > div > div > div > child[69]: tag_name_differs - expected: 'div', actual: 'p'
   ... and 188 more differences
-DIFF blog/open-source-free-ai-agent-evaluation-tools.html (30 differences)
+DIFF blog/open-source-free-ai-agent-evaluation-tools.html (34 differences)
   body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='pi'", actual: "class='p'"
   body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nv'", actual: "class='na'"
-  body > div > div > div > div > div > div > pre > code > span: text_differs - expected: 'What', actual: 'What is 2+2?'
-  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nv'", actual: "class='s2'"
-  body > div > div > div > div > div > div > pre > code > span: extra_text - expected: '(none)', actual: '"'
-  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='p'"
-  body > div > div > div > div > div > div > pre > code > span: text_differs - expected: 'is', actual: '}'
-  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nv'", actual: "class='na'"
-  body > div > div > div > div > div > div > pre > code > span: extra_text - expected: '(none)', actual: 'assert'
+  body > div > div > div > div > div > div > pre > code > span: text_differs - expected: 'What', actual: 'What is 2+2?"'
+  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nv'", actual: "class='p'"
+  body > div > div > div > div > div > div > pre > code > span: extra_text - expected: '(none)', actual: '}'
+  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='na'"
+  body > div > div > div > div > div > div > pre > code > span: text_differs - expected: 'is', actual: 'assert'
+  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nv'", actual: "class='pi'"
+  body > div > div > div > div > div > div > pre > code > span: extra_text - expected: '(none)', actual: ':'
   body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='pi'"
-  ... and 20 more differences
-DIFF blog/practical-guide-better-code.html (259 differences)
+  ... and 24 more differences
+DIFF blog/practical-guide-better-code.html (157 differences)
   body > div > div > div > div > div: attribute_differs - expected: "class='highlighter-rouge language-plaintext'", actual: "class='highlighter-rouge'"
   body > div > div > div > div > div: attribute_differs - expected: "class='highlighter-rouge language-plaintext'", actual: "class='highlighter-rouge'"
   body > div > div > div > div > div > div > pre > code > span: text_differs - expected: '"""This is my great and neat function to solve the famous Fizz Buzz problem. :param num: That\'s the number which we want the answer for :return: fizz, buzz, fizzbuzz or the number itself """', actual: '"""This is my great and neat function to solve the famous'
@@ -231,7 +231,7 @@ DIFF blog/practical-guide-better-code.html (259 differences)
   body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='s'"
   body > div > div > div > div > div > div > pre > code > span: text_differs - expected: '%', actual: ':return: fizz, buzz, fizzbuzz or the number itself'
   body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='mi'", actual: "class='s'"
-  ... and 249 more differences
+  ... and 147 more differences
 DIFF blog/prepare-for-better-structured-data-extraction.html (1 differences)
   body > script > jsonld.@graph[0].author[0].description: jsonld_value_differs - expected: 'Amber Roberts is Machine Learning Engineer at ML observability company Arize AI. Previously, Amber was a product manager of AI at Splunk and the Head of Artificial Intelligence at Insight Data Science', actual: 'Amber Roberts is Machine Learning Engineer at ML observability company Arize AI. Previously, Amber was a product manager of AI at Splunk and the Head of Artificial Intelligence at Insight Data Science'
 DIFF blog/regularization-in-regression.html (48 differences)
@@ -515,7 +515,7 @@ DIFF podcast/ai-in-healthcare-and-digital-therapeutics.html (45 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 35 more differences
 DIFF podcast/ai-infrastructure-hybrid-cloud-on-prem-distributed-training.html (3 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
   body > script > jsonld.@graph[2].transcript: jsonld_value_differs - expected: "Episode Kickoff & Guest Introduction\\nAlexey: This week, we'll talk about AI infrastructure and everything related to it. We might touch on trends in AI infrastructure, but we'll see where the convers", actual: "Episode Kickoff & Guest Introduction\\nAlexey: This week, we'll talk about AI infrastructure and everything related to it. We might touch on trends in AI infrastructure, but we'll see where the convers"
 DIFF podcast/ai-ml-product-design-and-experimentation.html (44 differences)
@@ -543,10 +543,10 @@ DIFF podcast/algorithmic-trading-with-python-and-machine-learning.html (44 diffe
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 34 more differences
 DIFF podcast/algorithms-data-structures-for-engineers.html (2 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
 DIFF podcast/analytics-engineer-skills-tools.html (2 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
 DIFF podcast/analytics-to-data-science-with-kaggle-portfolio.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -574,7 +574,7 @@ DIFF podcast/applied-llm-research-and-career-growth-in-practice.html (45 differe
 
   ... and 35 more differences
 DIFF podcast/bayesian-modeling-workflows-and-tools.html (2 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
 DIFF podcast/becoming-data-freelancer.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -589,7 +589,7 @@ DIFF podcast/becoming-data-freelancer.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 34 more differences
 DIFF podcast/big-data-analytics-and-postdoc-research.html (2 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
 DIFF podcast/big-data-engineer-vs-data-scientist.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -604,7 +604,7 @@ DIFF podcast/big-data-engineer-vs-data-scientist.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 34 more differences
 DIFF podcast/biohacking-productivity-for-data-scientists-and-ml-engineers.html (2 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
 DIFF podcast/bioinformatics-worflows-tools-and-data-science.html (45 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -907,8 +907,8 @@ DIFF podcast/community-building-and-teaching-in-ai-tech.html (45 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 35 more differences
 DIFF podcast/crisp-dm.html (3 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
-  body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
+  body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[2].transcript: jsonld_value_differs - expected: 'Alexey: I will start with an introduction. Thank you very much for coming to this event. This event is brought to you by DataTalks Club, one of our weekly events. We have multiple events per week of d', actual: 'Alexey: I will start with an introduction. Thank you very much for coming to this event. This event is brought to you by DataTalks Club, one of our weekly events. We have multiple events per week of d'
 DIFF podcast/data-centric-ai.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -995,7 +995,7 @@ DIFF podcast/data-governance-data-access-management.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 34 more differences
 DIFF podcast/data-interview-behavioral-and-portfolio-prep-guide.html (2 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
 DIFF podcast/data-journalism-python-visualization-storytelling.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1118,7 +1118,7 @@ DIFF podcast/data-science-failures-and-mlops-lessons.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 34 more differences
 DIFF podcast/data-science-for-public-policy-ethical-ai-social-impact.html (3 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
   body > script > jsonld.@graph[2].transcript: jsonld_value_differs - expected: "Episode Intro & Guest Christine Cepelak\\nAlexey: This week, we'll talk about data science for social impact. We have a special guest today, Christine. Christine is a writer and researcher of tech and ", actual: "Episode Intro & Guest Christine Cepelak\\nAlexey: This week, we'll talk about data science for social impact. We have a special guest today, Christine. Christine is a writer and researcher of tech and "
 DIFF podcast/data-science-interview-and-cv-guide.html (44 differences)
@@ -1218,8 +1218,8 @@ DIFF podcast/data-strategy-and-dataops-for-ai-powered-products.html (45 differen
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 35 more differences
 DIFF podcast/data-team-roles.html (3 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
-  body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
+  body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[2].transcript: jsonld_value_differs - expected: 'Alexey: Thank you for joining. I will start with the introduction, and maybe more people will join by the time I finish. Thank you very much for coming to this meeting. This is an experimental event. ', actual: 'Alexey: Thank you for joining. I will start with the introduction, and maybe more people will join by the time I finish. Thank you very much for coming to this meeting. This is an experimental event. '
 DIFF podcast/data-translator-role-and-data-strategy.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1234,8 +1234,8 @@ DIFF podcast/data-translator-role-and-data-strategy.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 34 more differences
 DIFF podcast/dataops-and-gitops-best-practices-for-data-teams.html (2 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
-  body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
+  body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
 DIFF podcast/dataops-automation-and-reliable-data-pipelines.html (45 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1657,7 +1657,7 @@ DIFF podcast/generative-ai-chatbots-in-production-security.html (45 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 35 more differences
 DIFF podcast/get-data-analytics-and-data-engineering-job.html (2 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
 DIFF podcast/get-data-engineering-job-prep-and-interview.html (45 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1685,11 +1685,11 @@ DIFF podcast/get-data-scientist-job.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 34 more differences
 DIFF podcast/get-junior-data-job-and-transferable-skills.html (2 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
 DIFF podcast/hiring-and-managing-data-science-teams-in-b2b-saas.html (2 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
-  body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
+  body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
 DIFF podcast/hiring-data-scientists-and-analysts.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1763,7 +1763,7 @@ DIFF podcast/how-to-stand-out-in-data-science.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 34 more differences
 DIFF podcast/how-to-switch-to-ml-tech-without-experience.html (2 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
 DIFF podcast/how-to-transition-into-ml-and-data-engineering-from-qa.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1850,7 +1850,7 @@ DIFF podcast/investing-in-open-source-developer-tools.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 34 more differences
 DIFF podcast/job-search-strategy-in-tech-projects-skills-cv-networking.html (2 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
 DIFF podcast/kaggle-grandmaster-to-production-ml-and-education.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1913,7 +1913,7 @@ DIFF podcast/lean-mlops-for-startups.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 34 more differences
 DIFF podcast/learning-machine-learning-self-taught-bioinformatics.html (2 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
 DIFF podcast/machine-learning-data-science-interview-prep.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1952,7 +1952,7 @@ DIFF podcast/machine-learning-engineering-production-best-practices.html (44 dif
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 34 more differences
 DIFF podcast/machine-learning-for-asteroid-mining-and-water-detection.html (2 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
 DIFF podcast/machine-learning-in-marketing-attribution-marketing-mix-modeling.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1991,8 +1991,8 @@ DIFF podcast/make-money-with-machine-learning-roles-skills.html (48 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 38 more differences
 DIFF podcast/mentoring-in-tech-how-to-find-and-become-a-mentor.md.html (3 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
-  body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
+  body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[2].transcript: jsonld_value_differs - expected: "Alexey: Thank you everyone for coming to today's event. This event is brought to you by Data Talks Club, which is a community of people interested in data. We have weekly events, and the ones we usual", actual: "Alexey: Thank you everyone for coming to today's event. This event is brought to you by Data Talks Club, which is a community of people interested in data. We have weekly events, and the ones we usual"
 DIFF podcast/mindful-data-strategy-for-business-impact.html (45 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2235,7 +2235,7 @@ DIFF podcast/personal-brand-for-data-professionals.html (45 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 35 more differences
 DIFF podcast/postdoc-to-data-science-lead-career-transition.html (3 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
   body > script > jsonld.@graph[2].transcript: jsonld_value_differs - expected: "Podcast Introduction\\nCareer Journey: Postdoc to Data Science Lead\\nAlexey: This week we'll talk about moving from academia to industry. We have a special guest today, CJ. CJ worked as a postdoctoral ", actual: "Podcast Introduction\\nCareer Journey: Postdoc to Data Science Lead\\nAlexey: This week we'll talk about moving from academia to industry. We have a special guest today, CJ. CJ worked as a postdoctoral "
 DIFF podcast/practical-devrel-demofirst-education-and-open-source.html (45 differences)
@@ -2251,7 +2251,7 @@ DIFF podcast/practical-devrel-demofirst-education-and-open-source.html (45 diffe
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 35 more differences
 DIFF podcast/practical-generative-ai-consulting-from-expertise-to-impact.html (2 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
 DIFF podcast/practical-llm-engineering-and-rag.html (46 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2338,7 +2338,7 @@ DIFF podcast/production-ml-search-vector-search-embeddings-hybrid-search.html (4
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 34 more differences
 DIFF podcast/production-ready-ai-engineering.html (3 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
   body > script > jsonld.@graph[2].transcript: jsonld_value_differs - expected: 'Episode Opening & Guest Overview (Data Intensive AI)\\nAlexey: This week, we’ll talk about Data Intensive AI. Our special guest today is Bartosz, an AI and data engineer. He specializes in moving AI pr', actual: 'Episode Opening & Guest Overview (Data Intensive AI)\\nAlexey: This week, we’ll talk about Data Intensive AI. Our special guest today is Bartosz, an AI and data engineer. He specializes in moving AI pr'
 DIFF podcast/project-manager-to-data-scientist.html (44 differences)
@@ -2402,28 +2402,28 @@ DIFF podcast/responsible-explainable-ai-bias-detection.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 34 more differences
 DIFF podcast/s22e06-from-black-box-systems-to-augmented-decision-making.html (3 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
   body > script > jsonld.@graph[2].transcript: jsonld_value_differs - expected: 'Building trust in AI finance and introducing Auralytix\\nAlexey: Hi everyone, welcome to our event. This event is brought to you by DataTalks.Club, a community for people who love data. We have weekly ', actual: 'Building trust in AI finance and introducing Auralytix\\nAlexey: Hi everyone, welcome to our event. This event is brought to you by DataTalks.Club, a community for people who love data. We have weekly '
 DIFF podcast/s22e07-reinventing-career-in-tech.html (3 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
   body > script > jsonld.@graph[2].transcript: jsonld_value_differs - expected: 'Alexey: Hi everyone, welcome to our event. This event is brought to you by Data Dogs Club, a community of people who love data. We have weekly events, and you can find more details in the link in the ', actual: 'Alexey: Hi everyone, welcome to our event. This event is brought to you by Data Dogs Club, a community of people who love data. We have weekly events, and you can find more details in the link in the '
 DIFF podcast/s22e08-building-pet-health-tech-ml-sensors-and-dog-behavior-data.html (3 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
   body > script > jsonld.@graph[2].transcript: jsonld_value_differs - expected: "Sofya's pet tech startup with machine learning sensor data and behavior pattern analytics\\nAlexey: Hi everyone, welcome to our event. This event is brought to you by DataTalks.Club, a community of peo", actual: "Sofya's pet tech startup with machine learning sensor data and behavior pattern analytics\\nAlexey: Hi everyone, welcome to our event. This event is brought to you by DataTalks.Club, a community of peo"
 DIFF podcast/s23e01-ai-engineering-skill-stack-agents-llmops-and-how-to-ship-ai-products.html (3 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
-  body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
+  body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[2].transcript: jsonld_value_differs - expected: 'From code to cars: Paul’s journey to AI\\nAlexey: Hi everyone, welcome to our event. This event is brought to you by Data Talks Club, which is a community of people who love data. We have weekly events', actual: 'From code to cars: Paul’s journey to AI\\nAlexey: Hi everyone, welcome to our event. This event is brought to you by Data Talks Club, which is a community of people who love data. We have weekly events'
 DIFF podcast/s23e02-foundations-of-analytics-engineer-role-skills-scope-and-modern-practices.html (3 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
-  body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
+  body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[2].transcript: jsonld_value_differs - expected: 'Juan’s psychological research and transition to data\\nAlexey: Welcome to this podcast interview. I want to ask you to tell us a few words about yourself shortly and tell us about your career journey. ', actual: 'Juan’s psychological research and transition to data\\nAlexey: Welcome to this podcast interview. I want to ask you to tell us a few words about yourself shortly and tell us about your career journey. '
 DIFF podcast/s23e03-future-of-ai-agents.html (3 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
-  body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
+  body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[2].transcript: jsonld_value_differs - expected: 'Aditya’s from embedded systems to AI\\nAlexey: Hi everyone, welcome to our event. This event is brought to you by Data Talks Club, which is a community of people who love data. We have weekly events an', actual: 'Aditya’s from embedded systems to AI\\nAlexey: Hi everyone, welcome to our event. This event is brought to you by Data Talks Club, which is a community of people who love data. We have weekly events an'
 DIFF podcast/scaling-data-engineering-teams-self-service-platforms.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2462,7 +2462,7 @@ DIFF podcast/software-engineering-for-machine-learning.html (44 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 34 more differences
 DIFF podcast/solopreneur-data-scientist.html (3 differences)
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
   body > script > jsonld.@graph[2].transcript: jsonld_value_differs - expected: 'Podcast Introduction\\nGuest Background & Career Path in Data Science\\nAlexey: We have a special guest today, Marianna. Marianna is a data scientist at Restream, and the data science lead and mentor in', actual: 'Podcast Introduction\\nGuest Background & Career Path in Data Science\\nAlexey: We have a special guest today, Marianna. Marianna is a data scientist at Restream, and the data science lead and mentor in'
 DIFF podcast/solopreneur-developer-and-data-professional.html (44 differences)
@@ -2491,7 +2491,7 @@ DIFF podcast/teaching-mentoring-data-analytics-fintech.html (44 differences)
   ... and 34 more differences
 DIFF podcast/teaching-reproducible-research-and-open-science-coding-practices-for-academia.html (3 differences)
   body > script > jsonld.@graph[0].about[1].description: jsonld_value_differs - expected: 'Johanna has a formal background in psychology and computational neuroscience and is now about to complete her PhD in the field of machine learning in clinical neuroimaging. She is joining us from the ', actual: 'Johanna has a formal background in psychology and computational neuroscience and is now about to complete her PhD in the field of machine learning in clinical neuroimaging. She is joining us from the '
-  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 12:30:20 +0100', actual: '2026-03-18 11:30:39 +0000'
+  body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-18 13:16:35 +0100', actual: '2026-03-18 12:16:54 +0000'
   body > script > jsonld.@graph[1].startDate: jsonld_value_differs - expected: '2025-11-07 00:00:00 +0100', actual: '2025-11-07'
 DIFF podcast/technical-writing-for-data-scientists.html (46 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2542,4 +2542,4 @@ DIFF podcast/visualizing-machine-learning-concepts-to-explain-ml.html (44 differ
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 34 more differences
 
-Summary: 522 files matched, 265 files with differences, 9323 total differences (212 acceptable diffs filtered out)
+Summary: 522 files matched, 265 files with differences, 9136 total differences (212 acceptable diffs filtered out)

@@ -3,113 +3,15 @@ Rustkyll directory: /home/alexey/git/rustkyl/websites/alexeygrigorev/little-book
 Common HTML files:  43
 Only in Jekyll:     5
 
-DIFF часть_1_история/глава_08_современность.html (71 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 61 more differences
-DIFF часть_2_основы/глава_09_что_такое_металл.html (142 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ... and 132 more differences
-DIFF часть_2_основы/глава_12_сплавы.html (186 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 176 more differences
-DIFF часть_3_металлы/глава_13_золото.html (137 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 127 more differences
-DIFF часть_3_металлы/глава_30_ртуть.html (43 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ... and 33 more differences
-DIFF часть_4_применения/глава_31_компьютеры.html (97 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ... and 87 more differences
-DIFF часть_4_применения/глава_36_удивительные_свойства.html (121 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 111 more differences
-DIFF часть_5_практика/глава_37_безопасные_эксперименты.html (138 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 128 more differences
-DIFF часть_5_практика/глава_42_рекомендуемая_литература.html (123 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 113 more differences
+DIFF часть_1_история/глава_08_современность.html (1 differences)
+  body > main > div > article > nav > div > a: missing_element - expected: '<a>', actual: '(none)'
+DIFF часть_2_основы/глава_12_сплавы.html (1 differences)
+  body > main > div > article > nav > div > a: missing_element - expected: '<a>', actual: '(none)'
+DIFF часть_3_металлы/глава_30_ртуть.html (1 differences)
+  body > main > div > article > nav > div > a: missing_element - expected: '<a>', actual: '(none)'
+DIFF часть_4_применения/глава_36_удивительные_свойства.html (1 differences)
+  body > main > div > article > nav > div > a: missing_element - expected: '<a>', actual: '(none)'
+DIFF часть_5_практика/глава_42_рекомендуемая_литература.html (1 differences)
+  body > main > div > article > nav > div > a: missing_element - expected: '<a>', actual: '(none)'
 
-Summary: 34 files matched, 9 files with differences, 1058 total differences
+Summary: 38 files matched, 5 files with differences, 5 total differences
