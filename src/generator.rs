@@ -333,7 +333,10 @@ fn collection_item_to_liquid_slim(item: &CollectionItem) -> LiquidValue {
     // `author.content | strip_html | jsonify` preserve markdown link syntax
     // (strip_html is a no-op on raw markdown) and don't add trailing newlines
     // from HTML paragraph rendering.
-    obj.insert("content".into(), LiquidValue::scalar(item.content.clone()));
+    obj.insert(
+        "content".into(),
+        LiquidValue::scalar(item.content.trim_start().to_string()),
+    );
 
     // Also store rendered HTML as `output` for templates that need HTML display
     // (e.g., {{ guest.content }} in podcast layouts that display bios as HTML).
@@ -4424,6 +4427,210 @@ defaults:
             output_val,
             Some("<p>Test bio.</p>\n".to_string()),
             "Slim representation should include output field with rendered HTML"
+        );
+    }
+
+    // ========================================================================
+    // Issue 219: Leading whitespace trimmed from slim content field
+    // ========================================================================
+
+    #[test]
+    fn test_slim_content_leading_newline_trimmed() {
+        // Issue 219: Content with leading newline (from blank line after front matter)
+        // should be trimmed in the slim representation.
+        let item = CollectionItem {
+            slug: "alexeygrigorev".to_string(),
+            url: "/people/alexeygrigorev.html".to_string(),
+            date: None,
+            front_matter: HashMap::new(),
+            content: "\nAlexey Grigorev is the founder of DataTalks.Club".to_string(),
+            html_content: "<p>Alexey Grigorev is the founder of DataTalks.Club</p>\n".to_string(),
+            excerpt: None,
+            collection_name: "people".to_string(),
+            source_path: "_people/alexeygrigorev.md".to_string(),
+            id: "/people/alexeygrigorev".to_string(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item);
+        let content_val = liquid_val
+            .as_object()
+            .unwrap()
+            .iter()
+            .find(|(k, _)| k.as_str() == "content")
+            .map(|(_, v)| v.to_kstr().to_string())
+            .unwrap();
+
+        assert_eq!(
+            content_val, "Alexey Grigorev is the founder of DataTalks.Club",
+            "Content with leading newline should be trimmed, got: {:?}",
+            content_val
+        );
+    }
+
+    #[test]
+    fn test_slim_content_multiple_leading_newlines_trimmed() {
+        // Issue 219: Content with multiple leading newlines should all be trimmed.
+        let item = CollectionItem {
+            slug: "testperson".to_string(),
+            url: "/people/testperson.html".to_string(),
+            date: None,
+            front_matter: HashMap::new(),
+            content: "\n\n\nSome bio text".to_string(),
+            html_content: "<p>Some bio text</p>\n".to_string(),
+            excerpt: None,
+            collection_name: "people".to_string(),
+            source_path: "_people/testperson.md".to_string(),
+            id: "/people/testperson".to_string(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item);
+        let content_val = liquid_val
+            .as_object()
+            .unwrap()
+            .iter()
+            .find(|(k, _)| k.as_str() == "content")
+            .map(|(_, v)| v.to_kstr().to_string())
+            .unwrap();
+
+        assert_eq!(
+            content_val, "Some bio text",
+            "Content with multiple leading newlines should be trimmed, got: {:?}",
+            content_val
+        );
+    }
+
+    #[test]
+    fn test_slim_content_no_leading_whitespace_unchanged() {
+        // Issue 219: Content with no leading whitespace should be unchanged.
+        let item = CollectionItem {
+            slug: "testperson".to_string(),
+            url: "/people/testperson.html".to_string(),
+            date: None,
+            front_matter: HashMap::new(),
+            content: "Already trimmed content".to_string(),
+            html_content: "<p>Already trimmed content</p>\n".to_string(),
+            excerpt: None,
+            collection_name: "people".to_string(),
+            source_path: "_people/testperson.md".to_string(),
+            id: "/people/testperson".to_string(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item);
+        let content_val = liquid_val
+            .as_object()
+            .unwrap()
+            .iter()
+            .find(|(k, _)| k.as_str() == "content")
+            .map(|(_, v)| v.to_kstr().to_string())
+            .unwrap();
+
+        assert_eq!(
+            content_val, "Already trimmed content",
+            "Content with no leading whitespace should be unchanged, got: {:?}",
+            content_val
+        );
+    }
+
+    #[test]
+    fn test_slim_content_leading_newline_unicode() {
+        // Issue 219: Content with leading newline and non-ASCII characters.
+        let item = CollectionItem {
+            slug: "renedescartes".to_string(),
+            url: "/people/renedescartes.html".to_string(),
+            date: None,
+            front_matter: HashMap::new(),
+            content: "\nRen\u{00e9} Descartes est un philosophe fran\u{00e7}ais".to_string(),
+            html_content: "<p>Ren\u{00e9} Descartes est un philosophe fran\u{00e7}ais</p>\n"
+                .to_string(),
+            excerpt: None,
+            collection_name: "people".to_string(),
+            source_path: "_people/renedescartes.md".to_string(),
+            id: "/people/renedescartes".to_string(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item);
+        let content_val = liquid_val
+            .as_object()
+            .unwrap()
+            .iter()
+            .find(|(k, _)| k.as_str() == "content")
+            .map(|(_, v)| v.to_kstr().to_string())
+            .unwrap();
+
+        assert!(
+            content_val.starts_with("Ren\u{00e9}"),
+            "Content should start with 'Ren\u{00e9}' (no leading newline), got: {:?}",
+            content_val
+        );
+        assert!(
+            content_val.contains("fran\u{00e7}ais"),
+            "Content should preserve unicode c-cedilla, got: {:?}",
+            content_val
+        );
+    }
+
+    #[test]
+    fn test_slim_content_leading_newline_markdown_links() {
+        // Issue 219: Content with leading newline and markdown links.
+        let item = CollectionItem {
+            slug: "davidgates".to_string(),
+            url: "/people/davidgates.html".to_string(),
+            date: None,
+            front_matter: HashMap::new(),
+            content: "\nDavid Gates is the founder of [Accents Welcome](https://accentswelcome.com)".to_string(),
+            html_content: "<p>David Gates is the founder of <a href=\"https://accentswelcome.com\">Accents Welcome</a></p>\n".to_string(),
+            excerpt: None,
+            collection_name: "people".to_string(),
+            source_path: "_people/davidgates.md".to_string(),
+            id: "/people/davidgates".to_string(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item);
+        let content_val = liquid_val
+            .as_object()
+            .unwrap()
+            .iter()
+            .find(|(k, _)| k.as_str() == "content")
+            .map(|(_, v)| v.to_kstr().to_string())
+            .unwrap();
+
+        assert_eq!(
+            content_val,
+            "David Gates is the founder of [Accents Welcome](https://accentswelcome.com)",
+            "Content should have leading newline removed and markdown links preserved, got: {:?}",
+            content_val
+        );
+    }
+
+    #[test]
+    fn test_slim_output_field_not_trimmed() {
+        // Issue 219: The output field (html_content) should NOT be trimmed.
+        let item = CollectionItem {
+            slug: "testperson".to_string(),
+            url: "/people/testperson.html".to_string(),
+            date: None,
+            front_matter: HashMap::new(),
+            content: "\nSome bio".to_string(),
+            html_content: "<p>Some bio</p>\n".to_string(),
+            excerpt: None,
+            collection_name: "people".to_string(),
+            source_path: "_people/testperson.md".to_string(),
+            id: "/people/testperson".to_string(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item);
+        let output_val = liquid_val
+            .as_object()
+            .unwrap()
+            .iter()
+            .find(|(k, _)| k.as_str() == "output")
+            .map(|(_, v)| v.to_kstr().to_string())
+            .unwrap();
+
+        assert_eq!(
+            output_val, "<p>Some bio</p>\n",
+            "Output field should NOT be trimmed, got: {:?}",
+            output_val
         );
     }
 
