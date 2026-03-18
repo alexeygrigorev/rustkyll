@@ -1,6 +1,6 @@
 # DOM Comparison Results
 
-Generated: 2026-03-17 17:33 UTC
+Generated: 2026-03-18 10:15 UTC
 
 rustkyll version: rustkyll 0.2.2
 
@@ -20,35 +20,33 @@ The script builds both Jekyll and rustkyll for each site, runs DOM comparison vi
 
 ## All Sites
 
-JSON-LD `<script>` tags are compared field-by-field (not as raw text). The `dateModified` field is excluded since it changes every build.
-
 | Site | DOM Match | File Match | Liquid Leaks |
-|------|-----------|------------|--------------|
+|------|-----------|------------|-------------|
 | academicpages | 1/17 (6%) | 17/45 | 0 |
 | alexeygrigorev/aihero | 0/2 (0%) | 2/2 | 0 |
 | alexeygrigorev/alexeygrigorev.github.io | 7/8 (88%) | 8/8 | 0 |
-| alexeygrigorev/data-science-interviews | N/A | 0/6 | 0 |
+| alexeygrigorev/data-science-interviews | 0/0 (N/A%) | 0/6 | 0 |
 | alexeygrigorev/kids-horror-stories-ru | 1342/1344 (100%) | 1344/1345 | 0 |
 | alexeygrigorev/little-book-of-metals-ru | 1/43 (2%) | 43/48 | 0 |
-| alexeygrigorev/mlbookcamp-page | 6/15 (40%) | 15/15 | 0 |
-| alexeygrigorev/mlwiki.org | 211/639 (33%) | 640/639 | 5 |
+| alexeygrigorev/mlbookcamp-page | 7/15 (47%) | 15/15 | 0 |
+| alexeygrigorev/mlwiki.org | 212/639 (33%) | 640/639 | 5 |
 | alexeygrigorev/snippets | 8/25 (32%) | 25/25 | 1 |
 | architect-theme | 0/2 (0%) | 2/2 | 0 |
 | beautiful-jekyll | 0/5 (0%) | 6/6 | 3 |
 | bitcoin-org | JEKYLL_FAIL | - | - |
 | cayman-theme | 0/2 (0%) | 2/2 | 0 |
-| choosealicense.com | 1/72 (1%) | 72/72 | 3 |
+| choosealicense.com | 15/72 (21%) | 72/72 | 3 |
 | DataTalksClub/courses | 5/5 (100%) | 5/5 | 0 |
-| DataTalksClub/datatalksclub.github.io | 500/787 (64%) | 787/787 | 1 |
+| DataTalksClub/datatalksclub.github.io | 512/787 (65%) | 787/787 | 1 |
 | DataTalksClub/docs | 0/57 (0%) | 57/57 | 33 |
 | dinky-theme | 0/2 (0%) | 2/2 | 0 |
 | documentation-theme-jekyll | 1/100 (1%) | 100/100 | 90 |
 | edition-template | JEKYLL_FAIL | - | - |
-| government-github | 0/21 (0%) | 21/21 | 4 |
+| government-github | 1/21 (5%) | 21/21 | 4 |
 | hacker-theme | 0/2 (0%) | 2/2 | 0 |
 | homebrew-site | JEKYLL_FAIL | - | - |
 | hyde | JEKYLL_FAIL | - | - |
-| jekyll-docs/docs | 0/125 (0%) | 131/228 | 71 |
+| jekyll-docs/docs | 14/125 (11%) | 131/228 | 71 |
 | jekyll-docs/lib/blank_template | 1/1 (100%) | 1/1 | 0 |
 | jekyll-docs/lib/site_template | JEKYLL_FAIL | - | - |
 | just-the-docs | 0/47 (0%) | 47/47 | 18 |
@@ -59,8 +57,8 @@ JSON-LD `<script>` tags are compared field-by-field (not as raw text). The `date
 | merlot-theme | 0/2 (0%) | 2/2 | 0 |
 | midnight-theme | 0/2 (0%) | 2/2 | 0 |
 | minima | JEKYLL_FAIL | - | - |
-| minimal-mistakes | N/A | 1/1 | 0 |
-| mojombo-blog | 11/17 (65%) | 17/17 | 0 |
+| minimal-mistakes | 0/0 (N/A%) | 1/1 | 0 |
+| mojombo-blog | 14/17 (82%) | 17/17 | 0 |
 | muan-blog | 29/2218 (1%) | 2218/2218 | 7 |
 | opensource-guide | 23/388 (6%) | 390/388 | 0 |
 | primer-theme | RUSTKYLL_FAIL | - | - |
@@ -71,15 +69,10 @@ JSON-LD `<script>` tags are compared field-by-field (not as raw text). The `date
 | uswds-site | JEKYLL_FAIL | - | - |
 | wtf-html-css | JEKYLL_FAIL | - | - |
 
-Column definitions:
-- DOM Match: files with zero DOM differences / common HTML files compared
-- File Match: rustkyll HTML files / Jekyll HTML files
-- Liquid Leaks: rustkyll HTML files containing raw `{%` or `{{` tags
-
 ## Summary
 
 - Sites compared: 35
-- Total DOM matches: 5448 / 9767 (56%)
+- Total DOM matches: 5494 / 9767
 
 ## Diff Categories by Site
 
@@ -87,21 +80,17 @@ Column definitions:
 
 ```
       6 attribute_differs
-      2 text_differs
-      2 jsonld_missing_field
-      1 jsonld_value_differs
-      1 jsonld_extra_field
-      1 expected_element_got_text
+      2 jsonld_value_differs
+      2 expected_element_got_text
+      1 text_differs
 ```
 
 ### hacker-theme
 
 ```
-      7 attribute_differs
-      2 text_differs
-      2 jsonld_missing_field
-      1 jsonld_value_differs
-      1 jsonld_extra_field
+      8 attribute_differs
+      2 jsonld_value_differs
+      1 text_differs
       1 expected_element_got_text
 ```
 
@@ -116,11 +105,9 @@ Column definitions:
 ### midnight-theme
 
 ```
-      7 attribute_differs
-      2 text_differs
-      2 jsonld_missing_field
-      1 jsonld_value_differs
-      1 jsonld_extra_field
+      8 attribute_differs
+      2 jsonld_value_differs
+      1 text_differs
       1 expected_element_got_text
 ```
 
@@ -129,24 +116,22 @@ Column definitions:
 ```
       6 attribute_differs
       2 jsonld_value_differs
-      2 jsonld_missing_field
+      2 expected_element_got_text
       1 text_differs
-      1 jsonld_extra_field
-      1 expected_element_got_text
 ```
 
 ### DataTalksClub/datatalksclub.github.io
 
 ```
-    601 jsonld_value_differs
-     71 missing_element
-     58 text_differs
-     47 attribute_differs
+    505 jsonld_value_differs
+     81 missing_element
+     57 text_differs
+     44 tag_name_differs
+     44 attribute_differs
      40 extra_element
-     34 tag_name_differs
-     24 missing_text
+     26 missing_text
      16 expected_text_got_element
-     14 extra_text
+     15 extra_text
      10 expected_element_got_text
       8 missing_attribute
 ```
@@ -185,7 +170,7 @@ Column definitions:
     614 tag_name_differs
     412 missing_element
     269 expected_element_got_text
-    247 attribute_differs
+    244 attribute_differs
     125 extra_element
     104 missing_text
      96 expected_text_got_element
@@ -196,30 +181,26 @@ Column definitions:
 ### leap-day-theme
 
 ```
-      7 attribute_differs
-      2 text_differs
-      2 jsonld_missing_field
-      1 jsonld_value_differs
-      1 jsonld_extra_field
+      8 attribute_differs
+      2 jsonld_value_differs
+      1 text_differs
       1 expected_element_got_text
 ```
 
 ### merlot-theme
 
 ```
-      7 attribute_differs
-      2 text_differs
-      2 jsonld_missing_field
-      1 jsonld_value_differs
-      1 jsonld_extra_field
+      8 attribute_differs
+      2 jsonld_value_differs
+      1 text_differs
       1 expected_element_got_text
 ```
 
 ### alexeygrigorev/mlbookcamp-page
 
 ```
-     38 attribute_differs
-     13 text_differs
+     31 attribute_differs
+     15 text_differs
       7 tag_name_differs
       3 missing_element
       2 extra_element
@@ -246,11 +227,9 @@ Column definitions:
 ### dinky-theme
 
 ```
-      7 attribute_differs
-      2 text_differs
-      2 jsonld_missing_field
-      1 jsonld_value_differs
-      1 jsonld_extra_field
+      8 attribute_differs
+      2 jsonld_value_differs
+      1 text_differs
       1 expected_element_got_text
 ```
 
@@ -264,15 +243,16 @@ Column definitions:
 ### muan-blog
 
 ```
-  10009 attribute_differs
-   4178 missing_attribute
-   2797 extra_attribute
-    673 text_differs
-    123 extra_element
-    119 tag_name_differs
+  11308 attribute_differs
+   1333 text_differs
+    169 missing_element
+     98 missing_text
+     41 extra_attribute
+     33 extra_element
+     31 tag_name_differs
+     10 expected_element_got_text
+      7 missing_attribute
       3 extra_text
-      2 missing_element
-      1 expected_element_got_text
 ```
 
 ### beautiful-jekyll
@@ -304,11 +284,9 @@ Column definitions:
 
 ```
       6 attribute_differs
-      2 text_differs
-      2 jsonld_missing_field
-      1 jsonld_value_differs
-      1 jsonld_extra_field
-      1 expected_element_got_text
+      2 jsonld_value_differs
+      2 expected_element_got_text
+      1 text_differs
 ```
 
 ### opensource-guide
@@ -320,7 +298,6 @@ Column definitions:
      52 missing_attribute
      52 extra_attribute
      19 missing_element
-      1 text_differs
 ```
 
 ### alexeygrigorev/snippets
@@ -333,11 +310,11 @@ Column definitions:
 ### government-github
 
 ```
-     33 attribute_differs
+     30 attribute_differs
      23 tag_name_differs
      21 missing_element
-     11 text_differs
      11 extra_element
+     10 text_differs
 ```
 
 ### academicpages
@@ -354,19 +331,19 @@ Column definitions:
 ```
      80 missing_element
      51 expected_element_got_text
-     48 attribute_differs
      47 extra_element
      30 tag_name_differs
-     16 text_differs
+      6 attribute_differs
+      2 text_differs
       2 extra_text
 ```
 
 ### mojombo-blog
 
 ```
-     16 text_differs
-      9 attribute_differs
+      4 text_differs
       3 missing_element
+      3 attribute_differs
       2 expected_element_got_text
       1 tag_name_differs
       1 missing_text
@@ -375,11 +352,9 @@ Column definitions:
 ### time-machine-theme
 
 ```
-      8 attribute_differs
-      2 text_differs
-      2 jsonld_missing_field
-      1 jsonld_value_differs
-      1 jsonld_extra_field
+      9 attribute_differs
+      2 jsonld_value_differs
+      1 text_differs
       1 expected_element_got_text
 ```
 
@@ -388,9 +363,7 @@ Column definitions:
 ```
     708 extra_element
     212 tag_name_differs
-     42 attribute_differs
      22 missing_element
-     14 text_differs
       2 expected_element_got_text
 ```
 

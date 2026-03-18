@@ -2,16 +2,12 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/time-machine-theme/_site_j
 Rustkyll directory: /home/alexey/git/rustkyl/websites/time-machine-theme/_site_rustkyll_recount
 Common HTML files:  2
 
-DIFF another-page.html (5 differences)
-  head > title: text_differs - expected: 'Time Machine theme | Time Machine is a theme for GitHub Pages.', actual: 'Time Machine theme'
-  head > meta > meta > meta > script > jsonld.name: jsonld_extra_field - expected: '(none)', actual: '"Time Machine theme"'
-  head > meta > meta > meta > script > jsonld.url: jsonld_missing_field - expected: '"/another-page.html"', actual: '(none)'
+DIFF another-page.html (3 differences)
+  head > meta > meta > meta > script > jsonld.headline: jsonld_value_differs - expected: 'Time Machine theme', actual: 'Time Machine theme | Time Machine is a theme for GitHub Pages.'
   body > div > div > div > div > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/time-machine'"
   body > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/time-machine'"
 DIFF index.html (74 differences)
-  head > title: text_differs - expected: 'Time Machine theme | Time Machine is a theme for GitHub Pages.', actual: 'Time Machine theme'
-  head > meta > meta > meta > script > jsonld.@type: jsonld_value_differs - expected: 'WebSite', actual: 'WebPage'
-  head > meta > meta > meta > script > jsonld.url: jsonld_missing_field - expected: '"/"', actual: '(none)'
+  head > meta > meta > meta > script > jsonld.headline: jsonld_value_differs - expected: 'Time Machine theme', actual: 'Time Machine theme | Time Machine is a theme for GitHub Pages.'
   body > div > div > div > div > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/time-machine'"
   body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='kt'"
   body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='nf'"
@@ -19,6 +15,8 @@ DIFF index.html (74 differences)
   body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='n'"
   body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='n'"
   body > div > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'i18n'
+  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='o'"
+  body > div > div > div > article > div > div > pre > code > span: text_differs - expected: 'i18n', actual: '='
   ... and 64 more differences
 
-Summary: 0 files matched, 2 files with differences, 79 total differences
+Summary: 0 files matched, 2 files with differences, 77 total differences

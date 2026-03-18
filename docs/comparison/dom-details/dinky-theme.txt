@@ -2,15 +2,11 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/dinky-theme/_site_jekyll_r
 Rustkyll directory: /home/alexey/git/rustkyl/websites/dinky-theme/_site_rustkyll_recount
 Common HTML files:  2
 
-DIFF another-page.html (4 differences)
-  head > title: text_differs - expected: 'Dinky theme | Dinky is a red hot theme for GitHub Pages.', actual: 'Dinky theme'
-  head > meta > meta > script > jsonld.name: jsonld_extra_field - expected: '(none)', actual: '"Dinky theme"'
-  head > meta > meta > script > jsonld.url: jsonld_missing_field - expected: '"/another-page.html"', actual: '(none)'
+DIFF another-page.html (2 differences)
+  head > meta > meta > script > jsonld.headline: jsonld_value_differs - expected: 'Dinky theme', actual: 'Dinky theme | Dinky is a red hot theme for GitHub Pages.'
   body > div > header > ul > li > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/dinky'"
 DIFF index.html (73 differences)
-  head > title: text_differs - expected: 'Dinky theme | Dinky is a red hot theme for GitHub Pages.', actual: 'Dinky theme'
-  head > meta > meta > script > jsonld.@type: jsonld_value_differs - expected: 'WebSite', actual: 'WebPage'
-  head > meta > meta > script > jsonld.url: jsonld_missing_field - expected: '"/"', actual: '(none)'
+  head > meta > meta > script > jsonld.headline: jsonld_value_differs - expected: 'Dinky theme', actual: 'Dinky theme | Dinky is a red hot theme for GitHub Pages.'
   body > div > header > ul > li > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/dinky'"
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='kt'"
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='nf'"
@@ -18,6 +14,8 @@ DIFF index.html (73 differences)
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='n'"
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='n'"
   body > div > section > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'i18n'
+  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='o'"
+  body > div > section > div > div > pre > code > span: text_differs - expected: 'i18n', actual: '='
   ... and 63 more differences
 
-Summary: 0 files matched, 2 files with differences, 77 total differences
+Summary: 0 files matched, 2 files with differences, 75 total differences

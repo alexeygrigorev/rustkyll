@@ -19,26 +19,5 @@ DIFF 2010/05/11/tomdoc-reasonable-ruby-documentation.html (8 differences)
   body > div > div > div > div > pre > code > span: text_differs - expected: '*', actual: 'end'
   body > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
-DIFF 2014/04/21/farewell-github-hello-immersive-computing.html (3 differences)
-  body > div > div > ul > li > span: text_differs - expected: '22 Nov 2011', actual: '21 Apr 2014'
-  body > div > div > ul > li > a: attribute_differs - expected: "href='/2011/11/22/open-source-everything.html'", actual: "href='/2014/04/21/farewell-github-hello-immersive-computing.html'"
-  body > div > div > ul > li > a: text_differs - expected: 'Open Source (Almost) Everything', actual: 'Farewell GitHub, Hello Immersive Computing'
-DIFF 2015/06/19/replicated.html (6 differences)
-  body > div > div > ul > li > span: text_differs - expected: '21 Apr 2014', actual: '19 Jun 2015'
-  body > div > div > ul > li > a: attribute_differs - expected: "href='/2014/04/21/farewell-github-hello-immersive-computing.html'", actual: "href='/2015/06/19/replicated.html'"
-  body > div > div > ul > li > a: text_differs - expected: 'Farewell GitHub, Hello Immersive Computing', actual: 'Replicated - An Easier Path from SaaS to Enterprise'
-  body > div > div > ul > li > span: text_differs - expected: '22 Nov 2011', actual: '21 Apr 2014'
-  body > div > div > ul > li > a: attribute_differs - expected: "href='/2011/11/22/open-source-everything.html'", actual: "href='/2014/04/21/farewell-github-hello-immersive-computing.html'"
-  body > div > div > ul > li > a: text_differs - expected: 'Open Source (Almost) Everything', actual: 'Farewell GitHub, Hello Immersive Computing'
-DIFF 2016/11/10/snyk.html (9 differences)
-  body > div > div > ul > li > span: text_differs - expected: '19 Jun 2015', actual: '10 Nov 2016'
-  body > div > div > ul > li > a: attribute_differs - expected: "href='/2015/06/19/replicated.html'", actual: "href='/2016/11/10/snyk.html'"
-  body > div > div > ul > li > a: text_differs - expected: 'Replicated - An Easier Path from SaaS to Enterprise', actual: 'Snyk - Automatically Scan and Fix Ruby and Nodejs Vulnerabilities'
-  body > div > div > ul > li > span: text_differs - expected: '21 Apr 2014', actual: '19 Jun 2015'
-  body > div > div > ul > li > a: attribute_differs - expected: "href='/2014/04/21/farewell-github-hello-immersive-computing.html'", actual: "href='/2015/06/19/replicated.html'"
-  body > div > div > ul > li > a: text_differs - expected: 'Farewell GitHub, Hello Immersive Computing', actual: 'Replicated - An Easier Path from SaaS to Enterprise'
-  body > div > div > ul > li > span: text_differs - expected: '22 Nov 2011', actual: '21 Apr 2014'
-  body > div > div > ul > li > a: attribute_differs - expected: "href='/2011/11/22/open-source-everything.html'", actual: "href='/2014/04/21/farewell-github-hello-immersive-computing.html'"
-  body > div > div > ul > li > a: text_differs - expected: 'Open Source (Almost) Everything', actual: 'Farewell GitHub, Hello Immersive Computing'
 
-Summary: 11 files matched, 6 files with differences, 32 total differences
+Summary: 14 files matched, 3 files with differences, 14 total differences

@@ -7,11 +7,6 @@ Only in rustkyll:   6
 DIFF 404.html (2 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'section'
   child[2]: tag_name_differs - expected: 'body', actual: 'section'
-DIFF conduct/index.html (4 differences)
-  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/conduct/'", actual: "href='/docs/conduct/'"
-  script: text_differs - expected: 'location="https://jekyllrb.com/docs/conduct/"', actual: 'location="/docs/conduct/"'
-  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/conduct/'", actual: "content='0; url=/docs/conduct/'"
-  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/conduct/'", actual: "href='/docs/conduct/'"
 DIFF docs/assets/index.html (19 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   child[2]: tag_name_differs - expected: 'body', actual: 'div'
@@ -241,11 +236,6 @@ DIFF docs/datafiles/index.html (41 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   div: extra_element - expected: '(none)', actual: '<div>'
   ... and 31 more differences
-DIFF docs/deployment-methods/index.html (4 differences)
-  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/deployment/'", actual: "href='/docs/deployment/'"
-  script: text_differs - expected: 'location="https://jekyllrb.com/docs/deployment/"', actual: 'location="/docs/deployment/"'
-  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/deployment/'", actual: "content='0; url=/docs/deployment/'"
-  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/deployment/'", actual: "href='/docs/deployment/'"
 DIFF docs/deployment/automated/index.html (15 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   child[2]: tag_name_differs - expected: 'body', actual: 'h2'
@@ -285,16 +275,6 @@ DIFF docs/deployment/third-party/index.html (39 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   h2: extra_element - expected: '(none)', actual: '<h2>'
   ... and 29 more differences
-DIFF docs/drafts/index.html (4 differences)
-  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/posts/'", actual: "href='/docs/posts/'"
-  script: text_differs - expected: 'location="https://jekyllrb.com/docs/posts/"', actual: 'location="/docs/posts/"'
-  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/posts/'", actual: "content='0; url=/docs/posts/'"
-  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/posts/'", actual: "href='/docs/posts/'"
-DIFF docs/extras/index.html (4 differences)
-  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/'", actual: "href='/docs/'"
-  script: text_differs - expected: 'location="https://jekyllrb.com/docs/"', actual: 'location="/docs/"'
-  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/'", actual: "content='0; url=/docs/'"
-  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/'", actual: "href='/docs/'"
 DIFF docs/front-matter/index.html (18 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   child[2]: tag_name_differs - expected: 'body', actual: 'div'
@@ -307,11 +287,6 @@ DIFF docs/front-matter/index.html (18 differences)
   div: extra_element - expected: '(none)', actual: '<div>'
   h2: extra_element - expected: '(none)', actual: '<h2>'
   ... and 8 more differences
-DIFF docs/frontmatter/index.html (4 differences)
-  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/front-matter/'", actual: "href='/docs/front-matter/'"
-  script: text_differs - expected: 'location="https://jekyllrb.com/docs/front-matter/"', actual: 'location="/docs/front-matter/"'
-  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/front-matter/'", actual: "content='0; url=/docs/front-matter/'"
-  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/front-matter/'", actual: "href='/docs/front-matter/'"
 DIFF docs/github-pages/index.html (27 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -336,11 +311,6 @@ DIFF docs/history/index.html (1047 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   ul: extra_element - expected: '(none)', actual: '<ul>'
   ... and 1037 more differences
-DIFF docs/home/index.html (4 differences)
-  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/'", actual: "href='/docs/'"
-  script: text_differs - expected: 'location="https://jekyllrb.com/docs/"', actual: 'location="/docs/"'
-  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/'", actual: "content='0; url=/docs/'"
-  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/'", actual: "href='/docs/'"
 DIFF docs/includes/index.html (58 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -719,21 +689,11 @@ DIFF docs/posts/index.html (53 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   div: extra_element - expected: '(none)', actual: '<div>'
   ... and 43 more differences
-DIFF docs/quickstart/index.html (4 differences)
-  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/'", actual: "href='/docs/'"
-  script: text_differs - expected: 'location="https://jekyllrb.com/docs/"', actual: 'location="/docs/"'
-  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/'", actual: "content='0; url=/docs/'"
-  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/'", actual: "href='/docs/'"
 DIFF docs/rendering-process/index.html (4 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
   p: extra_element - expected: '(none)', actual: '<p>'
   ul: extra_element - expected: '(none)', actual: '<ul>'
-DIFF docs/resources/index.html (4 differences)
-  link: attribute_differs - expected: "href='https://jekyllrb.com/resources/'", actual: "href='/resources/'"
-  script: text_differs - expected: 'location="https://jekyllrb.com/resources/"', actual: 'location="/resources/"'
-  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/resources/'", actual: "content='0; url=/resources/'"
-  a: attribute_differs - expected: "href='https://jekyllrb.com/resources/'", actual: "href='/resources/'"
 DIFF docs/ruby-101/index.html (17 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   child[2]: tag_name_differs - expected: 'body', actual: 'h2'
@@ -757,11 +717,6 @@ DIFF docs/security/index.html (10 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   p: extra_element - expected: '(none)', actual: '<p>'
   p: extra_element - expected: '(none)', actual: '<p>'
-DIFF docs/sites/index.html (4 differences)
-  link: attribute_differs - expected: "href='https://jekyllrb.com/showcase/'", actual: "href='/showcase/'"
-  script: text_differs - expected: 'location="https://jekyllrb.com/showcase/"', actual: 'location="/showcase/"'
-  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/showcase/'", actual: "content='0; url=/showcase/'"
-  a: attribute_differs - expected: "href='https://jekyllrb.com/showcase/'", actual: "href='/showcase/'"
 DIFF docs/static-files/index.html (15 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -849,8 +804,7 @@ DIFF docs/step-by-step/06-data-files/index.html (12 differences)
 DIFF docs/step-by-step/07-assets/index.html (25 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  div: extra_element - expected: '(none)', actual: '<div>'  Progress: 100/125 files compared...
-
+  div: extra_element - expected: '(none)', actual: '<div>'
   p: extra_element - expected: '(none)', actual: '<p>'
   h2: extra_element - expected: '(none)', actual: '<h2>'
   p: extra_element - expected: '(none)', actual: '<p>'
@@ -895,11 +849,6 @@ DIFF docs/step-by-step/10-deployment/index.html (44 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   div: extra_element - expected: '(none)', actual: '<div>'
   ... and 34 more differences
-DIFF docs/step-by-step/index.html (4 differences)
-  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/step-by-step/01-setup/'", actual: "href='/docs/step-by-step/01-setup/'"
-  script: text_differs - expected: 'location="https://jekyllrb.com/docs/step-by-step/01-setup/"', actual: 'location="/docs/step-by-step/01-setup/"'
-  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/step-by-step/01-setup/'", actual: "content='0; url=/docs/step-by-step/01-setup/'"
-  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/step-by-step/01-setup/'", actual: "href='/docs/step-by-step/01-setup/'"
 DIFF docs/structure/index.html (7 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   child[2]: tag_name_differs - expected: 'body', actual: 'div'
@@ -917,11 +866,6 @@ DIFF docs/support/index.html (8 differences)
   h2: extra_element - expected: '(none)', actual: '<h2>'
   ul: extra_element - expected: '(none)', actual: '<ul>'
   p: extra_element - expected: '(none)', actual: '<p>'
-DIFF docs/templates/index.html (4 differences)
-  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/liquid/'", actual: "href='/docs/liquid/'"
-  script: text_differs - expected: 'location="https://jekyllrb.com/docs/liquid/"', actual: 'location="/docs/liquid/"'
-  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/liquid/'", actual: "content='0; url=/docs/liquid/'"
-  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/liquid/'", actual: "href='/docs/liquid/'"
 DIFF docs/themes/index.html (110 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   child[2]: tag_name_differs - expected: 'body', actual: 'h2'
@@ -941,7 +885,8 @@ DIFF docs/troubleshooting/index.html (84 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   div: extra_element - expected: '(none)', actual: '<div>'
   p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
+  div: extra_element - expected: '(none)', actual: '<div>'  Progress: 100/125 files compared...
+
   p: extra_element - expected: '(none)', actual: '<p>'
   div: extra_element - expected: '(none)', actual: '<div>'
   p: extra_element - expected: '(none)', actual: '<p>'
@@ -1011,11 +956,6 @@ DIFF docs/variables/index.html (16 differences)
   h2: extra_element - expected: '(none)', actual: '<h2>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 6 more differences
-DIFF docs/windows/index.html (4 differences)
-  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/installation/windows/'", actual: "href='/docs/installation/windows/'"
-  script: text_differs - expected: 'location="https://jekyllrb.com/docs/installation/windows/"', actual: 'location="/docs/installation/windows/"'
-  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/installation/windows/'", actual: "content='0; url=/docs/installation/windows/'"
-  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/installation/windows/'", actual: "href='/docs/installation/windows/'"
 DIFF github.html (8 differences)
   meta: missing_element - expected: '<meta>', actual: '(none)'
   title: missing_element - expected: '<title>', actual: '(none)'
@@ -1025,11 +965,6 @@ DIFF github.html (8 differences)
   meta: missing_element - expected: '<meta>', actual: '(none)'
   h1: missing_element - expected: '<h1>', actual: '(none)'
   a: missing_element - expected: '<a>', actual: '(none)'
-DIFF help/index.html (4 differences)
-  link: attribute_differs - expected: "href='https://jekyllrb.com/docs/community/'", actual: "href='/docs/community/'"
-  script: text_differs - expected: 'location="https://jekyllrb.com/docs/community/"', actual: 'location="/docs/community/"'
-  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/docs/community/'", actual: "content='0; url=/docs/community/'"
-  a: attribute_differs - expected: "href='https://jekyllrb.com/docs/community/'", actual: "href='/docs/community/'"
 DIFF index.html (4 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'section'
   child[2]: tag_name_differs - expected: 'body', actual: 'section'
@@ -1157,11 +1092,6 @@ DIFF tutorials/home/index.html (9 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   ol: extra_element - expected: '(none)', actual: '<ol>'
   p: extra_element - expected: '(none)', actual: '<p>'
-DIFF tutorials/index.html (4 differences)
-  link: attribute_differs - expected: "href='https://jekyllrb.com/tutorials/home/'", actual: "href='/tutorials/home/'"
-  script: text_differs - expected: 'location="https://jekyllrb.com/tutorials/home/"', actual: 'location="/tutorials/home/"'
-  meta: attribute_differs - expected: "content='0; url=https://jekyllrb.com/tutorials/home/'", actual: "content='0; url=/tutorials/home/'"
-  a: attribute_differs - expected: "href='https://jekyllrb.com/tutorials/home/'", actual: "href='/tutorials/home/'"
 DIFF tutorials/navigation/index.html (151 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -1204,4 +1134,4 @@ DIFF tutorials/video-walkthroughs/index.html (4 differences)
   h2: extra_element - expected: '(none)', actual: '<h2>'
   ol: extra_element - expected: '(none)', actual: '<ol>'
 
-Summary: 0 files matched, 125 files with differences, 3678 total differences
+Summary: 14 files matched, 111 files with differences, 3622 total differences

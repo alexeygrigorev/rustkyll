@@ -37,8 +37,6 @@ DIFF index.php/Active_Databases.html (33 differences)
 DIFF index.php/Agglomerative_Clustering.html (2 differences)
   body > div > main > div > ul > li: expected_element_got_text - expected: '<table>', actual: 'can use Prim’s Spanning Tree algo |'
   body > div > main > div > ul > li > table: missing_element - expected: '<table>', actual: '(none)'
-DIFF index.php/Algo_interview_questions.html (1 differences)
-  body > div > main > div > h2: attribute_differs - expected: "id='algorithms--data-structures'", actual: "id='algorithms-amp-data-structures'"
 DIFF index.php/Alpha_Algorithm.html (26 differences)
   body > div > main > div > p: text_differs - expected: 'One important caveat: implicit places. A place is ‘‘implicit’’ if adding or removing it does not cause the behavior of a workflow.', actual: 'One important caveat: implicit places. A place is ’‘implicit’’ if adding or removing it does not cause the behavior of a workflow.'
   body > div > main > div > p: text_differs - expected: 'A log of a workflow net $N$ is ‘‘complete’’ if', actual: 'A log of a workflow net $N$ is ’‘complete’’ if'
@@ -527,11 +525,11 @@ DIFF index.php/Conjunctive_Query_Translation.html (35 differences)
   body > div > main > div > p > br: missing_element - expected: '<br>', actual: '(none)'
   body > div > main > div > p: missing_text - expected: '{\\color{grey}{(3)}} \\ R_2.A = R_3.A \\ \\land', actual: '(none)'
   body > div > main > div > p > br: missing_element - expected: '<br>', actual: '(none)'
-  ... and 25 more differences  Progress: 100/639 files compared...
-
+  ... and 25 more differences
 DIFF index.php/Consistency_(databases).html (5 differences)
   body > div > main > div > p: text_differs - expected: 'For databases, ‘‘consistency’’ means satisfying integrity constraints, which are about the correctness of the data in a database. So a database is ‘‘consistent’’ if all its constraint are satisfied.', actual: 'For databases, ’‘consistency’’ means satisfying integrity constraints, which are about the correctness of the data in a database. So a database is ’‘consistent’’ if all its constraint are satisfied.'
-  body > div > main > div > ul > li: text_differs - expected: "but ‘'’always’’’ maintaining a database in a consistent state is impossible", actual: 'but ‘’‘always’‘’ maintaining a database in a consistent state is impossible'
+  body > div > main > div > ul > li: text_differs - expected: "but ‘'’always’’’ maintaining a database in a consistent state is impossible", actual: 'but ‘’‘always’‘’ maintaining a database in a consistent state is impossible'  Progress: 100/639 files compared...
+
   body > div > main > div > p: text_differs - expected: 'We can define a ‘‘transaction’’ as a sequence of updates on the database.', actual: 'We can define a ’‘transaction’’ as a sequence of updates on the database.'
   body > div > main > div > ul > li: text_differs - expected: 'It ‘‘preserves consistency’’ if executing it brings a database from one consistent state to another.', actual: 'It ’‘preserves consistency’’ if executing it brings a database from one consistent state to another.'
   body > div > main > div > p: text_differs - expected: 'maintaining consistency is harder. Consistency models determine rules for ‘‘visibility’’ and ‘‘order’’ of updates.', actual: 'maintaining consistency is harder. Consistency models determine rules for ’‘visibility’’ and ’‘order’’ of updates.'
@@ -711,7 +709,7 @@ DIFF index.php/Data_Warehousing_(ULB).html (14 differences)
   body > div > main > div > ul > li: expected_text_got_element - expected: 'Slowly Changing Dimensions', actual: '<p>'
   body > div > main > div > ul > li > child[1]: tag_name_differs - expected: 'ul', actual: 'p'
   ... and 4 more differences
-DIFF index.php/Database.html (24 differences)
+DIFF index.php/Database.html (23 differences)
   body > div > main > div > ul > li: expected_element_got_text - expected: '<dl>', actual: 'Sharing : should support concurrent access between multiple readers and writers'
   body > div > main > div > ul > li > dl: missing_element - expected: '<dl>', actual: '(none)'
   body > div > main > div > ul > li > child[1]: tag_name_differs - expected: 'dl', actual: 'a'
@@ -722,7 +720,7 @@ DIFF index.php/Database.html (24 differences)
   body > div > main > div > ul > li: expected_element_got_text - expected: '<dl>', actual: 'Flexibility : should allow using the data in new unexpected ways'
   body > div > main > div > ul > li > dl: missing_element - expected: '<dl>', actual: '(none)'
   body > div > main > div > ul > li: text_differs - expected: 'usually the term database refers to a collection of data that is managed by a ‘‘DBMS’’ - a tool for managing large amounts of data', actual: 'usually the term database refers to a collection of data that is managed by a ’‘DBMS’’ - a tool for managing large amounts of data'
-  ... and 14 more differences
+  ... and 13 more differences
 DIFF index.php/Database_System_Catalog.html (19 differences)
   body > div > main > div > ul > li: expected_element_got_text - expected: '<table>', actual: '$V(R, A_1, …, A_n) = | \\delta \\pi_{A_1, …, A_n} (R) |$ - # of distinct values |'
   body > div > main > div > ul > li > table: missing_element - expected: '<table>', actual: '(none)'
@@ -1045,11 +1043,11 @@ DIFF index.php/Error_Analysis.html (28 differences)
   body > div > main > div > ul > li: extra_text - expected: '(none)', actual: '|- Plot'
   body > div > main > div > ul > li > a: extra_element - expected: '(none)', actual: '<a>'
   body > div > main > div > ul > li: extra_text - expected: '(none)', actual: 'to decide if more data features is likely to help'
-  body > div > main > div > ul > li > ul > li: expected_element_got_text - expected: '<table>', actual: '‘’‘steal password 53’‘’ - seems it’s worth investing time in this category| | - other 31 |- what fea'  Progress: 200/639 files compared...
-
+  body > div > main > div > ul > li > ul > li: expected_element_got_text - expected: '<table>', actual: '‘’‘steal password 53’‘’ - seems it’s worth investing time in this category| | - other 31 |- what fea'
   body > div > main > div > ul > li > ul > li > table: missing_element - expected: '<table>', actual: '(none)'
   body > div > main > div > ul > li > ul > li: text_differs - expected: "’'’unusual punctuation 32’’’ - so concentrate on this| | |", actual: '‘’‘unusual punctuation 32’‘’ - so concentrate on this| | |'
-  body > div > main > div > ul > li > ul > li > h2: missing_element - expected: '<h2>', actual: '(none)'
+  body > div > main > div > ul > li > ul > li > h2: missing_element - expected: '<h2>', actual: '(none)'  Progress: 200/639 files compared...
+
   body > div > main > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
   ... and 18 more differences
 DIFF index.php/Euclidean_Distance.html (8 differences)
@@ -1376,10 +1374,9 @@ DIFF index.php/Hadoop_in_Data_Warehousing.html (7 differences)
   body > div > main > div > ul > li > table: missing_element - expected: '<table>', actual: '(none)'
   body > div > main > div > ul > li > ul > li: expected_element_got_text - expected: '<table>', actual: 'user thinks it’s obvious - it can be seen on the picture| |- but we want to be able to answer querie'
   body > div > main > div > ul > li > ul > li > table: missing_element - expected: '<table>', actual: '(none)'
-DIFF index.php/Hamilton's_Method.html (104 differences)
+DIFF index.php/Hamilton's_Method.html (103 differences)
   body > div > main > div > p: text_differs - expected: 'method, also known as the ‘‘Largest Remainder method’’ with the ‘‘Hare Quota’’.', actual: 'method, also known as the ’‘Largest Remainder method’’ with the ’‘Hare Quota’’.'
   body > div > main > div > child[15]: tag_name_differs - expected: 'table', actual: 'p'
-  body > div > main > div > h3: attribute_differs - expected: "id='python--numpy'", actual: "id='python-amp-numpy'"
   body > div > main > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: ','
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='p'", actual: "class='n'"
   body > div > main > div > div > div > pre > code > span: text_differs - expected: ',', actual: 'results'
@@ -1387,7 +1384,8 @@ DIFF index.php/Hamilton's_Method.html (104 differences)
   body > div > main > div > div > div > pre > code > span: text_differs - expected: 'results', actual: '='
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='n'"
   body > div > main > div > div > div > pre > code > span: text_differs - expected: '=', actual: 'np'
-  ... and 94 more differences
+  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='p'"
+  ... and 93 more differences
 DIFF index.php/Hash_Function.html (3 differences)
   body > div > main > div > ul > li: expected_element_got_text - expected: '<table>', actual: 'all odd buckets will be empty| | |Pathological data sets'
   body > div > main > div > ul > li > table: missing_element - expected: '<table>', actual: '(none)'
@@ -1444,7 +1442,7 @@ DIFF index.php/Homogeneous_Systems_of_Linear_Equations.html (87 differences)
   body > div > main > div > ul > li: missing_text - expected: '3 & 6 & 8 & 10', actual: '(none)'
   body > div > main > div > ul > li > br: missing_element - expected: '<br>', actual: '(none)'
   ... and 77 more differences
-DIFF index.php/Householder_Transformation.html (23 differences)
+DIFF index.php/Householder_Transformation.html (24 differences)
   body > div > main > div > ul > li: expected_element_got_text - expected: '<table>', actual: 'let $\\beta = 2 / | v |^2$, so we can simply write $P = I - \\beta v v^T$ |'
   body > div > main > div > ul > li > table: missing_element - expected: '<table>', actual: '(none)'
   body > div > main > div > ul > li: expected_element_got_text - expected: '<table>', actual: 'the vector orthogonal to this place is $x - | x | y$ |- so let $u = x - | x | y$ and $v = u / | u |$'
@@ -1455,7 +1453,7 @@ DIFF index.php/Householder_Transformation.html (23 differences)
   body > div > main > div > ul > li > br: missing_element - expected: '<br>', actual: '(none)'
   body > div > main > div > ul > li: missing_text - expected: '\\vdots', actual: '(none)'
   body > div > main > div > ul > li > br: missing_element - expected: '<br>', actual: '(none)'
-  ... and 13 more differences
+  ... and 14 more differences
 DIFF index.php/Hurwitz's_Index.html (1 differences)
   body > div > main > div > child[10]: tag_name_differs - expected: 'table', actual: 'p'
 DIFF index.php/Hyperbolic_Trigonometric_Functions.html (7 differences)
@@ -1600,19 +1598,18 @@ DIFF index.php/Java_Fork_Join.html (852 differences)
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='kt'", actual: "class='k'"
   body > div > main > div > div > div > pre > code > span: text_differs - expected: 'void', actual: 'public'
   ... and 842 more differences
-DIFF index.php/Java_interview_questions.html (2 differences)
+DIFF index.php/Java_interview_questions.html (1 differences)
   body > div > main > div > ul > li: text_differs - expected: "’'’this’’’ and ‘'’super’’’ keywords", actual: '‘’‘this’‘’ and ‘’‘super’‘’ keywords'
-  body > div > main > div > h2: attribute_differs - expected: "id='memory--gc'", actual: "id='memory-amp-gc'"
 DIFF index.php/Join_Ordering.html (18 differences)
   body > div > main > div > ul > li: expected_element_got_text - expected: '<table>', actual: 'A lot| (note that natural join is possible even if there are no matching tuples) | |Recall that Join'
   body > div > main > div > ul > li > table: missing_element - expected: '<table>', actual: '(none)'
   body > div > main > div > child[24]: tag_name_differs - expected: 'table', actual: 'p'
-  body > div > main > div > p: extra_text - expected: '(none)', actual: '- (a): $((R \\Join S) \\Join T) \\Join U$ - (b): $(R \\Join S) \\Join (T \\Join U)$ - (c): $R \\Join (S \\Jo'  Progress: 300/639 files compared...
-
+  body > div > main > div > p: extra_text - expected: '(none)', actual: '- (a): $((R \\Join S) \\Join T) \\Join U$ - (b): $(R \\Join S) \\Join (T \\Join U)$ - (c): $R \\Join (S \\Jo'
   body > div > main > div > child[31]: tag_name_differs - expected: 'ul', actual: 'p'
   body > div > main > div > child[32]: tag_name_differs - expected: 'p', actual: 'ul'
   body > div > main > div > child[33]: tag_name_differs - expected: 'ul', actual: 'h2'
-  body > div > main > div > child[34]: tag_name_differs - expected: 'h2', actual: 'p'
+  body > div > main > div > child[34]: tag_name_differs - expected: 'h2', actual: 'p'  Progress: 300/639 files compared...
+
   body > div > main > div > p: text_differs - expected: 'Always make locally optimal choices', actual: 'Algorithm'
   body > div > main > div > child[36]: tag_name_differs - expected: 'p', actual: 'ul'
   ... and 8 more differences
@@ -3026,9 +3023,8 @@ DIFF index.php/Semantic_Domains.html (28 differences)
   ... and 18 more differences
 DIFF index.php/Semantic_Web.html (1 differences)
   body > div > main > div > ul > li: text_differs - expected: "need to be formal so machines can understand it, and ‘'’logical inference’’’ is possible", actual: 'need to be formal so machines can understand it, and ‘’‘logical inference’‘’ is possible'
-DIFF index.php/Semantic_Web_Application_Architecture.html (2 differences)
+DIFF index.php/Semantic_Web_Application_Architecture.html (1 differences)
   body > div > main > div > ul > li: text_differs - expected: 'RDF Store (sometimes called ‘‘Triple Store’’)', actual: 'RDF Store (sometimes called ’‘Triple Store’’)'
-  body > div > main > div > h3: attribute_differs - expected: "id='parsers--serializers'", actual: "id='parsers-amp-serializers'"
 DIFF index.php/Semantic_Web_Logics.html (3 differences)
   body > div > main > div > p > code: text_differs - expected: 'owl:intersectionOf (C, D...)', actual: 'owl:intersectionOf (C, D…)'
   body > div > main > div > p > code: text_differs - expected: 'owl:unionOf ( C, D...)', actual: 'owl:unionOf ( C, D…)'
@@ -3042,7 +3038,8 @@ DIFF index.php/SemiOrder_Preference_Structure.html (6 differences)
   body > div > main > div > ul > li > table: missing_element - expected: '<table>', actual: '(none)'
 DIFF index.php/Separability.html (1 differences)
   body > div > main > div > p: text_differs - expected: 'The ‘‘separability’’ principle is satisfied if', actual: 'The ’‘separability’’ principle is satisfied if'
-DIFF index.php/Sequenced_Queries.html (401 differences)
+DIFF index.php/Sequenced_Queries.html (403 differences)
+  body > div > main > div > div: attribute_differs - expected: "class='highlighter-rouge language-plaintext'", actual: "class='highlighter-rouge'"
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='k'", actual: "class='nf'"
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='k'", actual: "class='n'"
   body > div > main > div > div > div > pre > code > span: text_differs - expected: '((', actual: '('
@@ -3052,8 +3049,7 @@ DIFF index.php/Sequenced_Queries.html (401 differences)
   body > div > main > div > div > div > pre > code > span: text_differs - expected: '.', actual: 'T1'
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='p'"
   body > div > main > div > div > div > pre > code > span: text_differs - expected: 'FromDate', actual: '.'
-  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='n'"
-  ... and 391 more differences
+  ... and 393 more differences
 DIFF index.php/Sequential_Pattern_Mining.html (8 differences)
   body > div > main > div > ul > li > ul > li: expected_element_got_text - expected: '<table>', actual: 'order is important| |- $s’$ is a super sequence for $s$, or $s’$ “supports” $s$ |'
   body > div > main > div > ul > li > ul > li > table: missing_element - expected: '<table>', actual: '(none)'
@@ -3719,4 +3715,4 @@ DIFF index.php/Программа_поступления_в_ШАД.html (30 diff
   body > div > main > div > ol > li > a: attribute_differs - expected: "href='Интегрирование'", actual: "href='%D0%98%D0%BD%D1%82%D0%B5%D0%B3%D1%80%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5'"
   ... and 20 more differences
 
-Summary: 211 files matched, 428 files with differences, 19966 total differences
+Summary: 212 files matched, 427 files with differences, 19964 total differences

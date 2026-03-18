@@ -5,11 +5,6 @@ Common HTML files:  21
 DIFF 404.html (2 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   body: missing_element - expected: '<body>', actual: '(none)'
-DIFF 508/index.html (4 differences)
-  link: attribute_differs - expected: "href='https://government.github.com/accessibility/'", actual: "href='/accessibility/'"
-  script: text_differs - expected: 'location="https://government.github.com/accessibility/"', actual: 'location="/accessibility/"'
-  meta: attribute_differs - expected: "content='0; url=https://government.github.com/accessibility/'", actual: "content='0; url=/accessibility/'"
-  a: attribute_differs - expected: "href='https://government.github.com/accessibility/'", actual: "href='/accessibility/'"
 DIFF accessibility/index.html (8 differences)
   child[1]: tag_name_differs - expected: 'meta', actual: 'div'
   child[2]: tag_name_differs - expected: 'title', actual: 'p'
@@ -124,4 +119,4 @@ DIFF stories/xas-software.html (4 differences)
   a: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/xas-software.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
   script: text_differs - expected: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/xas-software.md'", actual: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
 
-Summary: 0 files matched, 21 files with differences, 106 total differences
+Summary: 1 files matched, 20 files with differences, 102 total differences

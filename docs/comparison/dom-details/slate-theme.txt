@@ -2,14 +2,10 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/slate-theme/_site_jekyll_r
 Rustkyll directory: /home/alexey/git/rustkyl/websites/slate-theme/_site_rustkyll_recount
 Common HTML files:  2
 
-DIFF another-page.html (3 differences)
-  head > title: text_differs - expected: 'Slate theme | Slate is a theme for GitHub Pages.', actual: 'Slate theme'
-  head > meta > meta > meta > script > jsonld.name: jsonld_extra_field - expected: '(none)', actual: '"Slate theme"'
-  head > meta > meta > meta > script > jsonld.url: jsonld_missing_field - expected: '"/another-page.html"', actual: '(none)'
+DIFF another-page.html (1 differences)
+  head > meta > meta > meta > script > jsonld.headline: jsonld_value_differs - expected: 'Slate theme', actual: 'Slate theme | Slate is a theme for GitHub Pages.'
 DIFF index.html (72 differences)
-  head > title: text_differs - expected: 'Slate theme | Slate is a theme for GitHub Pages.', actual: 'Slate theme'
-  head > meta > meta > meta > script > jsonld.@type: jsonld_value_differs - expected: 'WebSite', actual: 'WebPage'
-  head > meta > meta > meta > script > jsonld.url: jsonld_missing_field - expected: '"/"', actual: '(none)'
+  head > meta > meta > meta > script > jsonld.headline: jsonld_value_differs - expected: 'Slate theme', actual: 'Slate theme | Slate is a theme for GitHub Pages.'
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='kt'"
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='nf'"
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='k'"
@@ -17,6 +13,8 @@ DIFF index.html (72 differences)
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='n'"
   body > div > section > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'i18n'
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='o'"
+  body > div > section > div > div > pre > code > span: text_differs - expected: 'i18n', actual: '='
+  body > div > section > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'require'
   ... and 62 more differences
 
-Summary: 0 files matched, 2 files with differences, 75 total differences
+Summary: 0 files matched, 2 files with differences, 73 total differences
