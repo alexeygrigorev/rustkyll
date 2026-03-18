@@ -153,7 +153,15 @@ pub fn build_site_context(
     let mut github = Object::new();
     github.insert("repository_url".into(), repo_url);
     // site.github.build_revision -- git HEAD SHA (used for CSS cache busting)
-    github.insert("build_revision".into(), resolve_build_revision(site_dir));
+    // Only populate when jekyll-github-metadata plugin is active (matches Jekyll behavior)
+    github.insert(
+        "build_revision".into(),
+        if has_github_metadata_plugin(config) {
+            resolve_build_revision(site_dir)
+        } else {
+            LiquidValue::scalar("")
+        },
+    );
     // site.github.url -- site URL (used for absolute URLs in JSON-LD breadcrumbs)
     github.insert("url".into(), LiquidValue::scalar(config.url.clone()));
     site.insert("github".into(), LiquidValue::Object(github));
@@ -222,6 +230,25 @@ fn resolve_repository_url(config: &SiteConfig, site_dir: Option<&Path>) -> Liqui
 
     // 3. No repository info available
     LiquidValue::Nil
+}
+
+/// Check if the site has `jekyll-github-metadata` in its `plugins` list.
+///
+/// Jekyll only populates `site.github.*` fields (like `build_revision`) when the
+/// `jekyll-github-metadata` gem is listed as a plugin in `_config.yml`. Sites that
+/// reference it only in their gemspec (as a runtime dependency) do NOT auto-activate
+/// the plugin during `jekyll build`.
+fn has_github_metadata_plugin(config: &SiteConfig) -> bool {
+    if let Some(plugins_val) = config.extras.get("plugins") {
+        if let Some(plugins_seq) = plugins_val.as_sequence() {
+            return plugins_seq.iter().any(|v| {
+                v.as_str()
+                    .map(|s| s == "jekyll-github-metadata")
+                    .unwrap_or(false)
+            });
+        }
+    }
+    false
 }
 
 /// Resolve the git HEAD SHA for `site.github.build_revision`.

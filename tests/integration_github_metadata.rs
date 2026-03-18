@@ -20,6 +20,14 @@ fn config_with_url(url: &str) -> SiteConfig {
     serde_yaml::from_str(&yaml).unwrap()
 }
 
+/// Helper: create a minimal SiteConfig with the given URL and jekyll-github-metadata plugin.
+fn config_with_url_and_metadata_plugin(url: &str) -> SiteConfig {
+    let yaml = format!(
+        "url: \"{url}\"\nname: \"Test\"\ntitle: \"Test Site\"\nbaseurl: \"\"\nplugins:\n  - jekyll-github-metadata"
+    );
+    serde_yaml::from_str(&yaml).unwrap()
+}
+
 /// Helper: initialize a git repo in a temp dir with a commit containing non-ASCII message.
 fn init_git_repo(dir: &Path) -> String {
     Command::new("git")
@@ -87,7 +95,8 @@ fn test_github_build_revision_populated_from_git_head() {
     let tmp = tempfile::tempdir().unwrap();
     let expected_sha = init_git_repo(tmp.path());
 
-    let config = config_with_url("https://example.com");
+    // Must have jekyll-github-metadata plugin to populate build_revision
+    let config = config_with_url_and_metadata_plugin("https://example.com");
     let colls = HashMap::new();
     let data_tree = data::DataTree::new();
     let ctx = generator::build_site_context(&config, &colls, &data_tree, Some(tmp.path()), &[]);
@@ -186,6 +195,179 @@ fn test_github_url_empty_when_config_url_empty() {
 }
 
 // ============================================================================
+// Issue 213: build_revision conditional on jekyll-github-metadata plugin
+// ============================================================================
+
+#[test]
+fn test_build_revision_empty_without_github_metadata_plugin() {
+    // Without jekyll-github-metadata plugin, build_revision should be empty
+    let tmp = tempfile::tempdir().unwrap();
+    let _sha = init_git_repo(tmp.path());
+
+    let config = config_with_url("https://example.com"); // no plugins
+    let colls = HashMap::new();
+    let data_tree = data::DataTree::new();
+    let ctx = generator::build_site_context(&config, &colls, &data_tree, Some(tmp.path()), &[]);
+
+    let github = ctx.get("github").expect("site should have github");
+    if let LiquidValue::Object(github_obj) = github {
+        let revision = github_obj
+            .get("build_revision")
+            .expect("should have build_revision");
+        if let LiquidValue::Scalar(s) = revision {
+            let sha = s.to_kstr().to_string();
+            assert!(
+                sha.is_empty(),
+                "build_revision should be empty without github-metadata plugin, got: {sha}"
+            );
+        } else {
+            panic!("Expected scalar value for build_revision");
+        }
+    } else {
+        panic!("Expected github to be an object");
+    }
+}
+
+#[test]
+fn test_build_revision_empty_with_no_plugins_config() {
+    // Config with no plugins key at all
+    let tmp = tempfile::tempdir().unwrap();
+    let _sha = init_git_repo(tmp.path());
+
+    let yaml = "url: \"https://example.com\"\ntitle: \"Projets d'\u{00c9}t\u{00e9}\"";
+    let config: SiteConfig = serde_yaml::from_str(yaml).unwrap();
+    let colls = HashMap::new();
+    let data_tree = data::DataTree::new();
+    let ctx = generator::build_site_context(&config, &colls, &data_tree, Some(tmp.path()), &[]);
+
+    let github = ctx.get("github").expect("site should have github");
+    if let LiquidValue::Object(github_obj) = github {
+        let revision = github_obj
+            .get("build_revision")
+            .expect("should have build_revision");
+        if let LiquidValue::Scalar(s) = revision {
+            assert!(
+                s.to_kstr().to_string().is_empty(),
+                "build_revision should be empty with no plugins config"
+            );
+        }
+    }
+}
+
+#[test]
+fn test_build_revision_empty_with_empty_plugins_list() {
+    // Config with empty plugins list
+    let tmp = tempfile::tempdir().unwrap();
+    let _sha = init_git_repo(tmp.path());
+
+    let yaml = "url: \"https://example.com\"\ntitle: \"Test\"\nplugins: []";
+    let config: SiteConfig = serde_yaml::from_str(yaml).unwrap();
+    let colls = HashMap::new();
+    let data_tree = data::DataTree::new();
+    let ctx = generator::build_site_context(&config, &colls, &data_tree, Some(tmp.path()), &[]);
+
+    let github = ctx.get("github").expect("site should have github");
+    if let LiquidValue::Object(github_obj) = github {
+        let revision = github_obj
+            .get("build_revision")
+            .expect("should have build_revision");
+        if let LiquidValue::Scalar(s) = revision {
+            assert!(
+                s.to_kstr().to_string().is_empty(),
+                "build_revision should be empty with empty plugins list"
+            );
+        }
+    }
+}
+
+#[test]
+fn test_build_revision_populated_with_github_metadata_plugin() {
+    // With jekyll-github-metadata plugin, build_revision should be populated
+    let tmp = tempfile::tempdir().unwrap();
+    let expected_sha = init_git_repo(tmp.path());
+
+    let config = config_with_url_and_metadata_plugin("https://example.com");
+    let colls = HashMap::new();
+    let data_tree = data::DataTree::new();
+    let ctx = generator::build_site_context(&config, &colls, &data_tree, Some(tmp.path()), &[]);
+
+    let github = ctx.get("github").expect("site should have github");
+    if let LiquidValue::Object(github_obj) = github {
+        let revision = github_obj
+            .get("build_revision")
+            .expect("should have build_revision");
+        if let LiquidValue::Scalar(s) = revision {
+            let sha = s.to_kstr().to_string();
+            assert_eq!(sha.len(), 40, "SHA should be 40 chars with plugin");
+            assert_eq!(sha, expected_sha, "SHA should match git HEAD");
+        }
+    }
+}
+
+#[test]
+fn test_build_revision_empty_with_plugin_but_no_git() {
+    // With plugin but no git repo -- should be empty, not error
+    let tmp = tempfile::tempdir().unwrap();
+    // No git init
+
+    let config = config_with_url_and_metadata_plugin("https://example.com");
+    let colls = HashMap::new();
+    let data_tree = data::DataTree::new();
+    let ctx = generator::build_site_context(&config, &colls, &data_tree, Some(tmp.path()), &[]);
+
+    let github = ctx.get("github").expect("site should have github");
+    if let LiquidValue::Object(github_obj) = github {
+        let revision = github_obj
+            .get("build_revision")
+            .expect("should have build_revision");
+        if let LiquidValue::Scalar(s) = revision {
+            assert!(
+                s.to_kstr().to_string().is_empty(),
+                "build_revision should be empty with plugin but no git repo"
+            );
+        }
+    }
+}
+
+#[test]
+fn test_build_revision_template_renders_empty_without_plugin() {
+    // Template rendering: {{ site.github.build_revision }} should render empty
+    let tmp = tempfile::tempdir().unwrap();
+    let site_dir = tmp.path();
+    let _sha = init_git_repo(site_dir);
+
+    // Config WITHOUT github-metadata plugin, with Unicode site title
+    std::fs::write(
+        site_dir.join("_config.yml"),
+        "url: \"https://example.com\"\ntitle: \"Projets d'\u{00c9}t\u{00e9}\"\n",
+    )
+    .unwrap();
+
+    std::fs::create_dir_all(site_dir.join("_layouts")).unwrap();
+    std::fs::write(
+        site_dir.join("_layouts").join("default.html"),
+        "<html><head><link href=\"style.css?v={{ site.github.build_revision }}\"></head>\
+         <body>{{ content }}</body></html>",
+    )
+    .unwrap();
+
+    std::fs::write(
+        site_dir.join("index.html"),
+        "---\nlayout: default\ntitle: \"Home\"\n---\n<p>Contenu</p>\n",
+    )
+    .unwrap();
+
+    let output_dir = site_dir.join("_site");
+    mini_build(site_dir, &output_dir);
+
+    let output = std::fs::read_to_string(output_dir.join("index.html")).unwrap();
+    assert!(
+        output.contains("style.css?v=\">") || output.contains("style.css?v=>"),
+        "Without github-metadata plugin, build_revision should be empty. Output:\n{output}"
+    );
+}
+
+// ============================================================================
 // Integration tests: template rendering with site.github fields
 // ============================================================================
 
@@ -236,10 +418,10 @@ fn test_css_version_hash_renders_in_template() {
     let site_dir = tmp.path();
     let expected_sha = init_git_repo(site_dir);
 
-    // Create _config.yml
+    // Create _config.yml with jekyll-github-metadata plugin (required for build_revision)
     std::fs::write(
         site_dir.join("_config.yml"),
-        "url: \"https://example.com\"\nname: \"T\u{00e9}st\"\ntitle: \"T\u{00e9}st\"\n",
+        "url: \"https://example.com\"\nname: \"T\u{00e9}st\"\ntitle: \"T\u{00e9}st\"\nplugins:\n  - jekyll-github-metadata\n",
     )
     .unwrap();
 

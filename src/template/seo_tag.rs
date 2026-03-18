@@ -422,18 +422,23 @@ impl Renderable for SeoRenderable {
             "WebPage"
         };
 
-        output.push_str("<script type=\"application/ld+json\">\n");
-        output.push_str("{\n");
-        output.push_str("  \"@context\": \"https://schema.org\",\n");
-        output.push_str(&format!("  \"@type\": \"{}\",\n", schema_type));
+        // Build compact single-line JSON-LD matching Jekyll's jekyll-seo-tag output.
+        // Field order: @context, @type, name, description, headline, url, author,
+        // datePublished, image (only present fields are emitted).
+        let mut jsonld_fields: Vec<String> = Vec::new();
+        jsonld_fields.push("\"@context\":\"https://schema.org\"".to_string());
+        jsonld_fields.push(format!("\"@type\":\"{}\"", schema_type));
 
         // name field: jekyll-seo-tag only includes name for homepage/about pages
         if is_homepage_or_about {
-            // Use site social name, or site_title
-            let jsonld_name = site_title.as_deref();
-            if let Some(name) = jsonld_name {
-                output.push_str(&format!("  \"name\": \"{}\",\n", json_escape(name)));
+            if let Some(name) = site_title.as_deref() {
+                jsonld_fields.push(format!("\"name\":\"{}\"", json_escape(name)));
             }
+        }
+
+        // description before headline (matching Jekyll's field order)
+        if let Some(desc) = description {
+            jsonld_fields.push(format!("\"description\":\"{}\"", json_escape(desc)));
         }
 
         if let Some(ref t) = og_page_title {
@@ -441,54 +446,40 @@ impl Renderable for SeoRenderable {
             // for the headline field, NOT the full "page | site" combined title.
             // headline is max 110 chars per Google guidelines
             let headline = if t.len() > 110 { &t[..110] } else { t };
-            output.push_str(&format!("  \"headline\": \"{}\",\n", json_escape(headline)));
-        }
-
-        if let Some(desc) = description {
-            output.push_str(&format!("  \"description\": \"{}\",\n", json_escape(desc)));
+            jsonld_fields.push(format!("\"headline\":\"{}\"", json_escape(headline)));
         }
 
         // url field: jekyll-seo-tag always includes canonical_url in JSON-LD
-        // When site.url is absent, use page.url directly (Jekyll uses absolute_url which
-        // returns page.url when site.url is empty)
         let jsonld_url = canonical_url.as_deref().or(page_url.as_deref());
         if let Some(url) = jsonld_url {
-            output.push_str(&format!("  \"url\": \"{}\",\n", json_escape(url)));
+            jsonld_fields.push(format!("\"url\":\"{}\"", json_escape(url)));
         }
 
-        // Author in JSON-LD
+        // Author in JSON-LD (compact nested object)
         if let Some(author_name) = author {
-            output.push_str("  \"author\": {\n");
-            output.push_str("    \"@type\": \"Person\",\n");
-            output.push_str(&format!("    \"name\": \"{}\"\n", json_escape(author_name)));
-            output.push_str("  },\n");
+            jsonld_fields.push(format!(
+                "\"author\":{{\"@type\":\"Person\",\"name\":\"{}\"}}",
+                json_escape(author_name)
+            ));
         }
 
         if let Some(ref date) = page_date {
-            // Format date using date_to_xmlschema logic with site timezone,
-            // matching Jekyll's jekyll-seo-tag which uses {{ page.date | date_to_xmlschema }}
             let site_tz = crate::template::filters::get_site_timezone(runtime);
             let formatted_date = crate::template::filters::format_date_to_xmlschema(date, site_tz);
-            output.push_str(&format!(
-                "  \"datePublished\": \"{}\",\n",
+            jsonld_fields.push(format!(
+                "\"datePublished\":\"{}\"",
                 json_escape(&formatted_date)
             ));
         }
 
         if let Some(ref img) = page_image {
             let absolute_img = absolute_image_url(img, &site_url);
-            output.push_str(&format!(
-                "  \"image\": \"{}\",\n",
-                json_escape(&absolute_img)
-            ));
+            jsonld_fields.push(format!("\"image\":\"{}\"", json_escape(&absolute_img)));
         }
 
-        // Remove trailing comma+newline and replace with just newline
-        if output.ends_with(",\n") {
-            output.truncate(output.len() - 2);
-            output.push('\n');
-        }
-
+        output.push_str("<script type=\"application/ld+json\">\n");
+        output.push('{');
+        output.push_str(&jsonld_fields.join(","));
         output.push_str("}\n");
         output.push_str("</script>\n");
 
@@ -1095,7 +1086,7 @@ mod tests {
             None,
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
-        assert!(out.contains("\"@type\": \"WebPage\""));
+        assert!(out.contains("\"@type\":\"WebPage\""));
         assert!(out.contains("application/ld+json"));
     }
 
@@ -1115,7 +1106,7 @@ mod tests {
             None,
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
-        assert!(out.contains("\"@type\": \"BlogPosting\""));
+        assert!(out.contains("\"@type\":\"BlogPosting\""));
     }
 
     #[test]
@@ -1165,7 +1156,7 @@ mod tests {
             None,
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
-        assert!(out.contains("\"url\": \"https://example.com/about\""));
+        assert!(out.contains("\"url\":\"https://example.com/about\""));
     }
 
     // ========================================================================
@@ -1189,7 +1180,7 @@ mod tests {
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
         assert!(
-            out.contains("\"@type\": \"WebSite\""),
+            out.contains("\"@type\":\"WebSite\""),
             "Homepage (url='/') should have @type WebSite, got: {}",
             out
         );
@@ -1212,7 +1203,7 @@ mod tests {
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
         assert!(
-            out.contains("\"@type\": \"WebSite\""),
+            out.contains("\"@type\":\"WebSite\""),
             "Index page (url='/index.html') should have @type WebSite, got: {}",
             out
         );
@@ -1235,7 +1226,7 @@ mod tests {
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
         assert!(
-            out.contains("\"@type\": \"WebSite\""),
+            out.contains("\"@type\":\"WebSite\""),
             "About page (url='/about/') should have @type WebSite, got: {}",
             out
         );
@@ -1258,7 +1249,7 @@ mod tests {
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
         assert!(
-            out.contains("\"@type\": \"WebPage\""),
+            out.contains("\"@type\":\"WebPage\""),
             "Subpage (url='/about.html') should have @type WebPage, got: {}",
             out
         );
@@ -1281,7 +1272,7 @@ mod tests {
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
         assert!(
-            out.contains("\"@type\": \"BlogPosting\""),
+            out.contains("\"@type\":\"BlogPosting\""),
             "Post with date should have @type BlogPosting, got: {}",
             out
         );
@@ -1308,7 +1299,7 @@ mod tests {
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
         assert!(
-            out.contains("\"url\": \"https://example.com/about\""),
+            out.contains("\"url\":\"https://example.com/about\""),
             "JSON-LD should include url field with absolute URL, got: {}",
             out
         );
@@ -1332,7 +1323,7 @@ mod tests {
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
         assert!(
-            out.contains("\"url\": \"/\""),
+            out.contains("\"url\":\"/\""),
             "JSON-LD should include url field even without site.url, got: {}",
             out
         );
@@ -1360,7 +1351,7 @@ mod tests {
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
         assert!(
-            out.contains("\"name\": \"My Site\""),
+            out.contains("\"name\":\"My Site\""),
             "Homepage JSON-LD should include name field, got: {}",
             out
         );
@@ -1914,12 +1905,12 @@ mod tests {
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
         // headline should be "My Page" (page_title), not "My Page | My Site" (full_title)
         assert!(
-            out.contains("\"headline\": \"My Page\""),
+            out.contains("\"headline\":\"My Page\""),
             "JSON-LD headline should be page title only, not full title. Got: {}",
             out
         );
         assert!(
-            !out.contains("\"headline\": \"My Page | My Site\""),
+            !out.contains("\"headline\":\"My Page | My Site\""),
             "JSON-LD headline must NOT include site title suffix"
         );
     }
@@ -1942,8 +1933,218 @@ mod tests {
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
         assert!(
-            out.contains("\"headline\": \"My Site\""),
+            out.contains("\"headline\":\"My Site\""),
             "JSON-LD headline should fall back to site title. Got: {}",
+            out
+        );
+    }
+
+    // ========================================================================
+    // Issue 213: JSON-LD compact format and field order
+    // ========================================================================
+
+    #[test]
+    fn test_jsonld_compact_single_line() {
+        // JSON-LD should be compact single-line (no internal newlines)
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Page"),
+            Some("My Site"),
+            None,
+            None,
+            None,
+            Some("/my-page.html"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        // Find JSON-LD block
+        let ld_start = out
+            .find("application/ld+json")
+            .expect("should have json-ld");
+        let after_tag = out[ld_start..].find('\n').unwrap() + ld_start + 1;
+        let script_end = out[after_tag..].find('\n').unwrap() + after_tag;
+        let json_line = &out[after_tag..script_end];
+        // Should start with { and end with }
+        assert!(
+            json_line.starts_with('{') && json_line.ends_with('}'),
+            "JSON-LD should be on a single line: {}",
+            json_line
+        );
+        // Should not contain internal newlines
+        assert!(
+            !json_line[1..json_line.len() - 1].contains('\n'),
+            "JSON-LD should have no internal newlines"
+        );
+    }
+
+    #[test]
+    fn test_jsonld_field_order_description_before_headline() {
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Page"),
+            Some("My Site"),
+            Some("A description"),
+            None,
+            None,
+            Some("/my-page.html"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        let desc_pos = out
+            .find("\"description\"")
+            .expect("should have description in JSON-LD");
+        let headline_pos = out
+            .find("\"headline\"")
+            .expect("should have headline in JSON-LD");
+        assert!(
+            desc_pos < headline_pos,
+            "description should come before headline in JSON-LD"
+        );
+    }
+
+    #[test]
+    fn test_jsonld_compact_special_chars() {
+        // JSON-LD with special characters properly escaped in compact format
+        let eng = engine();
+        let ctx = make_context(
+            Some("Tom & Jerry"),
+            None,
+            Some("Tom & Jerry's \"show\""),
+            None,
+            None,
+            Some("/show.html"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"description\":\"Tom & Jerry's \\\"show\\\"\""),
+            "Special chars should be JSON-escaped in compact format. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_jsonld_compact_unicode() {
+        // JSON-LD with Unicode (accented chars, CJK)
+        let eng = engine();
+        let ctx = make_context(
+            Some("Un caf\u{00e9} au lait"),
+            None,
+            Some("\u{4F60}\u{597D}\u{4E16}\u{754C}"),
+            None,
+            None,
+            Some("/cafe.html"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"headline\":\"Un caf\u{00e9} au lait\""),
+            "Unicode headline should be preserved. Got: {}",
+            out
+        );
+        assert!(
+            out.contains("\"description\":\"\u{4F60}\u{597D}\u{4E16}\u{754C}\""),
+            "CJK description should be preserved. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_jsonld_homepage_name_position() {
+        // For homepage, name should appear after @type but before description
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Site"),
+            Some("My Site"),
+            Some("Site description"),
+            None,
+            None,
+            Some("/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        // Extract JSON-LD block to avoid matching og:site_name etc.
+        let ld_start = out
+            .find("application/ld+json")
+            .expect("should have json-ld");
+        let ld_end = out[ld_start..].find("</script>").unwrap() + ld_start;
+        let jsonld = &out[ld_start..ld_end];
+        let type_pos = jsonld.find("\"@type\"").expect("should have @type");
+        let name_pos = jsonld.find("\"name\"").expect("homepage should have name");
+        let desc_pos = jsonld
+            .find("\"description\"")
+            .expect("should have description");
+        assert!(
+            type_pos < name_pos && name_pos < desc_pos,
+            "Field order should be @type < name < description. JSON-LD: {}",
+            jsonld
+        );
+    }
+
+    #[test]
+    fn test_jsonld_article_date_published_position() {
+        // For article with date, datePublished should come after url
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Post"),
+            Some("My Site"),
+            Some("Post description"),
+            None,
+            Some("https://example.com"),
+            Some("/posts/my-post.html"),
+            None,
+            Some("2024-01-15"),
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        let url_pos = out.find("\"url\"").expect("should have url");
+        let date_pos = out
+            .find("\"datePublished\"")
+            .expect("should have datePublished");
+        assert!(url_pos < date_pos, "url should come before datePublished");
+    }
+
+    #[test]
+    fn test_jsonld_script_tag_format() {
+        // <script> tag on its own line, JSON on next line, </script> on its own line
+        let eng = engine();
+        let ctx = make_context(
+            Some("Test"),
+            None,
+            None,
+            None,
+            None,
+            Some("/test.html"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<script type=\"application/ld+json\">\n{"),
+            "Script opening tag should be on its own line, JSON on next. Got: {}",
+            out
+        );
+        assert!(
+            out.contains("}\n</script>"),
+            "JSON closing brace and script tag should be on separate lines. Got: {}",
             out
         );
     }

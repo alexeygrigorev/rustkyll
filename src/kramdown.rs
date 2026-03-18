@@ -2314,6 +2314,7 @@ fn normalize_void_elements(html: &str) -> String {
 }
 
 /// Check if a tag name is a void (self-closing) HTML element.
+#[cfg(test)]
 fn is_void_element(tag_name: &str) -> bool {
     matches!(
         tag_name,
@@ -2351,12 +2352,10 @@ fn is_void_element(tag_name: &str) -> bool {
 /// Only converts tags that are NOT already self-closing (i.e., does not
 /// touch `<br />` or `<br/>`).
 fn normalize_bare_void_elements(html: &str) -> String {
-    // Quick check: if there are no common bare void element patterns, skip.
-    if !html.contains("<br>")
-        && !html.contains("<hr>")
-        && !html.contains("<img ")
-        && !html.contains("<input ")
-    {
+    // Quick check: if there are no bare <br> or <hr> patterns, skip.
+    // Only br and hr are converted -- other void elements (meta, link, img, input)
+    // are left as they appear in the source to match Jekyll behavior.
+    if !html.contains("<br>") && !html.contains("<hr>") {
         return html.to_string();
     }
 
@@ -2376,7 +2375,10 @@ fn normalize_bare_void_elements(html: &str) -> String {
             }
             let tag_name = &html[name_start..i];
 
-            if is_void_element(tag_name) {
+            // Only convert <br> and <hr> to XHTML-style self-closing tags.
+            // Other void elements (meta, link, img, input, etc.) are left as-is
+            // because they come from layouts and Jekyll keeps them unchanged.
+            if tag_name == "br" || tag_name == "hr" {
                 // Find the closing '>'
                 while i < len && bytes[i] != b'>' {
                     i += 1;
@@ -4559,6 +4561,77 @@ by <a href="/people/author.html">Author Name</a>
         assert_eq!(
             normalize_bare_void_elements("<p>· → \u{2019} \u{1F3C6}</p>"),
             "<p>· → \u{2019} \u{1F3C6}</p>"
+        );
+    }
+
+    // --- Issue 213: normalize_bare_void_elements only converts br and hr ---
+
+    #[test]
+    fn test_normalize_bare_void_only_br_not_meta() {
+        // <br> should be converted, <meta> should be left as-is
+        assert_eq!(
+            normalize_bare_void_elements("<br>text<meta charset=\"utf-8\">"),
+            "<br />text<meta charset=\"utf-8\">"
+        );
+    }
+
+    #[test]
+    fn test_normalize_bare_void_only_hr_not_link() {
+        // <hr> should be converted, <link> should be left as-is
+        assert_eq!(
+            normalize_bare_void_elements("<hr>text<link rel=\"stylesheet\">"),
+            "<hr />text<link rel=\"stylesheet\">"
+        );
+    }
+
+    #[test]
+    fn test_normalize_bare_void_mixed_elements() {
+        // Only br and hr get converted; meta, img, input stay as-is
+        assert_eq!(
+            normalize_bare_void_elements(
+                "<br><hr><meta name=\"test\"><img src=\"x\"><input type=\"text\">"
+            ),
+            "<br /><hr /><meta name=\"test\"><img src=\"x\"><input type=\"text\">"
+        );
+    }
+
+    #[test]
+    fn test_normalize_bare_void_already_self_closing_br() {
+        // Already self-closing <br /> should stay, <meta> left alone
+        assert_eq!(
+            normalize_bare_void_elements("<br /><meta charset=\"utf-8\">"),
+            "<br /><meta charset=\"utf-8\">"
+        );
+    }
+
+    #[test]
+    fn test_normalize_bare_void_no_void_elements() {
+        // No void elements -- input unchanged
+        assert_eq!(normalize_bare_void_elements("<p>Hello</p>"), "<p>Hello</p>");
+    }
+
+    #[test]
+    fn test_normalize_bare_void_unicode_preservation() {
+        // Unicode content with accented characters (Ren\u{00e9} Magritte)
+        assert_eq!(
+            normalize_bare_void_elements("<br><p>Ren\u{00e9} Magritte</p>"),
+            "<br /><p>Ren\u{00e9} Magritte</p>"
+        );
+        // CJK characters
+        assert_eq!(
+            normalize_bare_void_elements("<hr><p>\u{4F60}\u{597D}\u{4E16}\u{754C}</p>"),
+            "<hr /><p>\u{4F60}\u{597D}\u{4E16}\u{754C}</p>"
+        );
+    }
+
+    #[test]
+    fn test_normalize_bare_void_seo_meta_keeps_self_closing() {
+        // SEO tag output has <meta ... /> already -- should be left unchanged
+        // (normalize_bare_void_elements only triggers on bare <br> or <hr>)
+        let input = "<meta name=\"description\" content=\"test\" /><br><link rel=\"canonical\" />";
+        assert_eq!(
+            normalize_bare_void_elements(input),
+            "<meta name=\"description\" content=\"test\" /><br /><link rel=\"canonical\" />"
         );
     }
 
