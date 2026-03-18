@@ -142,9 +142,11 @@ pub fn postprocess_for_filter(html: &str) -> String {
 pub fn normalize_html_output(html: &str) -> String {
     let needs_bool_attrs = html.contains("=\"\"");
 
-    // Always normalize void elements -- Jekyll converts ALL void elements
-    // (input, meta, link, img, etc.) to XHTML-style self-closing format.
-    let html = normalize_bare_void_elements(html);
+    // Only normalize br and hr in the final output -- these come from markdown
+    // rendering and need XHTML-style self-closing. Do NOT normalize meta, link,
+    // input, img etc. here because this runs on the full page output including
+    // layout HTML, and layout-sourced tags should not be modified.
+    let html = normalize_br_hr_only(html);
 
     if needs_bool_attrs {
         normalize_boolean_attributes(&html)
@@ -2420,6 +2422,18 @@ fn normalize_bare_void_elements(html: &str) -> String {
     }
 
     result
+}
+
+/// Like `normalize_bare_void_elements` but only converts `<br>` and `<hr>`.
+/// Used in `normalize_html_output` which runs on the FULL page output
+/// (including layout HTML). We must NOT convert layout-sourced `<meta>`,
+/// `<link>`, `<input>`, `<img>` etc. since Jekyll doesn't self-close those
+/// in layout templates — only in kramdown-rendered content.
+fn normalize_br_hr_only(html: &str) -> String {
+    if !html.contains("<br>") && !html.contains("<hr>") {
+        return html.to_string();
+    }
+    html.replace("<br>", "<br />").replace("<hr>", "<hr />")
 }
 
 // ============================================================================
@@ -4722,20 +4736,20 @@ by <a href="/people/author.html">Author Name</a>
 
     #[test]
     fn test_222_normalize_html_output_without_br_hr() {
-        // Tests that normalize_html_output applies void normalization even when
-        // no <br> or <hr> is present (needs_void_norm guard removed)
+        // normalize_html_output only converts br/hr, not meta/input
+        // (those are handled in postprocess() before layout wrapping)
         assert_eq!(
             normalize_html_output("<meta charset=\"utf-8\"><input type=\"text\">"),
-            "<meta charset=\"utf-8\" /><input type=\"text\" />"
+            "<meta charset=\"utf-8\"><input type=\"text\">"
         );
     }
 
     #[test]
     fn test_222_normalize_html_output_br_plus_meta_input() {
-        // Existing br/hr still converted, AND meta/input also converted
+        // Only br/hr converted in final output, meta/input left alone
         assert_eq!(
             normalize_html_output("<br><meta charset=\"utf-8\"><input type=\"text\">"),
-            "<br /><meta charset=\"utf-8\" /><input type=\"text\" />"
+            "<br /><meta charset=\"utf-8\"><input type=\"text\">"
         );
     }
 
@@ -4797,11 +4811,11 @@ by <a href="/people/author.html">Author Name</a>
 
     #[test]
     fn test_normalize_html_output_bool_attrs_only() {
-        // Void elements get self-closing slashes; boolean attrs are normalized
-        // <input required=""> -> void norm -> <input required="" /> -> bool norm -> <input required />
+        // normalize_html_output only converts br/hr, not input.
+        // Boolean attrs are still normalized.
         assert_eq!(
             normalize_html_output(r#"<br /><input required="">"#),
-            "<br /><input required />"
+            "<br /><input required>"
         );
     }
 
