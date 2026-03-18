@@ -14,7 +14,7 @@ DIFF article/eks.html (38 differences)
   body > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 28 more differences
-DIFF article/kfserving-eks-install.html (157 differences)
+DIFF article/kfserving-eks-install.html (158 differences)
   body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
   body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
   body > div > div > div > div > ul > li > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
@@ -25,7 +25,7 @@ DIFF article/kfserving-eks-install.html (157 differences)
   body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
   body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
   body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
-  ... and 147 more differences
+  ... and 148 more differences
 DIFF article/kfserving-transformers.html (475 differences)
   body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nb'"
   body > div > div > div > div > div > div > pre > code > span: text_differs - expected: 'kfserving', actual: 'kfserving.KFModel'
@@ -79,4 +79,4 @@ DIFF course/ml-pm.html (3 differences)
 DIFF index.html (1 differences)
   body > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
 
-Summary: 7 files matched, 8 files with differences, 1162 total differences
+Summary: 7 files matched, 8 files with differences, 1163 total differences

@@ -21,18 +21,14 @@ DIFF ar/getting-paid/index.html (2 differences)
 DIFF ar/how-to-contribute/index.html (2 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'div'
   body: missing_element - expected: '<body>', actual: '(none)'
-DIFF ar/index.html (19 differences)
+DIFF ar/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='ar'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='إرشادات المشاريع مفتوحة المصدر'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/ar/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF ar/leadership-and-governance/index.html (2 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'div'
   body: missing_element - expected: '<body>', actual: '(none)'
@@ -135,18 +131,14 @@ DIFF bg/how-to-contribute/index.html (157 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 147 more differences
-DIFF bg/index.html (19 differences)
+DIFF bg/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='bg'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='Ръководства за отворен код'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/bg/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF bg/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -291,18 +283,14 @@ DIFF bn/how-to-contribute/index.html (157 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 147 more differences
-DIFF bn/index.html (19 differences)
+DIFF bn/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='bn'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='ওপেন সোর্স নির্দেশিকা'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/bn/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF bn/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -471,18 +459,14 @@ DIFF de/how-to-contribute/index.html (157 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 147 more differences
-DIFF de/index.html (19 differences)
+DIFF de/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='de'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='Open Source Guides'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/de/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF de/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -627,18 +611,14 @@ DIFF el/how-to-contribute/index.html (156 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 146 more differences
-DIFF el/index.html (19 differences)
+DIFF el/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='el'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='Οδηγίες Ανοιχτού Κώδικα'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/el/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF el/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -783,18 +763,14 @@ DIFF es/how-to-contribute/index.html (154 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 144 more differences
-DIFF es/index.html (19 differences)
+DIFF es/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='es'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='Guías de código abierto'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/es/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF es/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -939,18 +915,14 @@ DIFF fa/how-to-contribute/index.html (158 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 148 more differences
-DIFF fa/index.html (19 differences)
+DIFF fa/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='fa'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='راهنماهای متن\\u200cباز'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/fa/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF fa/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -965,8 +937,7 @@ DIFF fa/leadership-and-governance/index.html (51 differences)
   ... and 41 more differences
 DIFF fa/legal/index.html (53 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'  Progress: 100/388 files compared...
-
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
   h2: extra_element - expected: '(none)', actual: '<h2>'
   p: extra_element - expected: '(none)', actual: '<p>'
   p: extra_element - expected: '(none)', actual: '<p>'
@@ -1014,7 +985,8 @@ DIFF fa/security-best-practices-for-your-project/index.html (35 differences)
   ... and 25 more differences
 DIFF fa/starting-a-project/index.html (117 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'  Progress: 100/388 files compared...
+
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   p: extra_element - expected: '(none)', actual: '<p>'
@@ -1108,18 +1080,14 @@ DIFF fr/how-to-contribute/index.html (154 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 144 more differences
-DIFF fr/index.html (19 differences)
+DIFF fr/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='fr'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='Open Source Guides'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/fr/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF fr/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -1276,18 +1244,14 @@ DIFF hi/how-to-contribute/index.html (157 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 147 more differences
-DIFF hi/index.html (19 differences)
+DIFF hi/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='hi'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='ओपन सोर्स गाइड'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/hi/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF hi/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -1444,18 +1408,14 @@ DIFF hu/how-to-contribute/index.html (155 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 145 more differences
-DIFF hu/index.html (19 differences)
+DIFF hu/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='hu'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='Nyílt forráskód útmutató'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/hu/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF hu/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -1600,18 +1560,14 @@ DIFF id/how-to-contribute/index.html (154 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 144 more differences
-DIFF id/index.html (19 differences)
+DIFF id/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='id'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='Panduan Sumber Terbuka'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/id/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF id/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -1684,9 +1640,8 @@ DIFF id/starting-a-project/index.html (119 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   aside: extra_element - expected: '(none)', actual: '<aside>'
   ... and 109 more differences
-DIFF index.html (7 differences)
+DIFF index.html (6 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='en'", actual: "content='en_US'"
   head > meta > meta > child[12]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
@@ -1764,18 +1719,14 @@ DIFF it/how-to-contribute/index.html (157 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 147 more differences
-DIFF it/index.html (19 differences)
+DIFF it/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='it'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='Guide Open Source'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/it/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF it/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -1920,18 +1871,14 @@ DIFF ja/how-to-contribute/index.html (154 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 144 more differences
-DIFF ja/index.html (19 differences)
+DIFF ja/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='ja'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='オープンソースガイドライン'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/ja/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF ja/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -2076,18 +2023,14 @@ DIFF ko/how-to-contribute/index.html (154 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 144 more differences
-DIFF ko/index.html (19 differences)
+DIFF ko/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='ko'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='오픈 소스 가이드'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/ko/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF ko/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -2179,7 +2122,8 @@ DIFF legal/index.html (56 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   p: extra_element - expected: '(none)', actual: '<p>'
   p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
+  p: extra_element - expected: '(none)', actual: '<p>'  Progress: 200/388 files compared...
+
   p: extra_element - expected: '(none)', actual: '<p>'
   h2: extra_element - expected: '(none)', actual: '<h2>'
   p: extra_element - expected: '(none)', actual: '<p>'
@@ -2230,8 +2174,7 @@ DIFF ms/building-community/index.html (103 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ul: extra_element - expected: '(none)', actual: '<ul>'
-  p: extra_element - expected: '(none)', actual: '<p>'  Progress: 200/388 files compared...
-
+  p: extra_element - expected: '(none)', actual: '<p>'
   ... and 93 more differences
 DIFF ms/code-of-conduct/index.html (41 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
@@ -2281,18 +2224,14 @@ DIFF ms/how-to-contribute/index.html (157 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 147 more differences
-DIFF ms/index.html (19 differences)
+DIFF ms/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='ms'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='Open Source Guides'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/ms/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF ms/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -2437,18 +2376,14 @@ DIFF nl/how-to-contribute/index.html (157 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 147 more differences
-DIFF nl/index.html (19 differences)
+DIFF nl/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='nl'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='Open source gids'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/nl/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF nl/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -2521,9 +2456,8 @@ DIFF nl/starting-a-project/index.html (117 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   ul: extra_element - expected: '(none)', actual: '<ul>'
   ... and 107 more differences
-DIFF notices/index.html (6 differences)
+DIFF notices/index.html (5 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='en'", actual: "content='en_US'"
   head > meta > meta > child[12]: tag_name_differs - expected: 'meta', actual: 'script'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
@@ -2600,18 +2534,14 @@ DIFF pcm/how-to-contribute/index.html (157 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 147 more differences
-DIFF pcm/index.html (19 differences)
+DIFF pcm/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='pcm'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='Open Source Guides'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/pcm/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF pcm/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -2756,18 +2686,14 @@ DIFF pl/how-to-contribute/index.html (157 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 147 more differences
-DIFF pl/index.html (19 differences)
+DIFF pl/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='pl'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='Przewodnik po Open Source'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/pl/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF pl/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -2912,18 +2838,14 @@ DIFF pt/how-to-contribute/index.html (154 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 144 more differences
-DIFF pt/index.html (19 differences)
+DIFF pt/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='pt'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='Guias de código aberto'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/pt/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF pt/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -3068,18 +2990,14 @@ DIFF ro/how-to-contribute/index.html (154 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 144 more differences
-DIFF ro/index.html (19 differences)
+DIFF ro/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='ro'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='Ghiduri Open Source'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/ro/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF ro/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -3224,18 +3142,14 @@ DIFF ru/how-to-contribute/index.html (157 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 147 more differences
-DIFF ru/index.html (19 differences)
+DIFF ru/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='ru'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='Руководство по открытому программному обеспечению'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/ru/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF ru/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -3340,14 +3254,14 @@ DIFF sa/code-of-conduct/index.html (27 differences)
   h2: extra_element - expected: '(none)', actual: '<h2>'
   p: extra_element - expected: '(none)', actual: '<p>'
   p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'  Progress: 300/388 files compared...
+
   p: extra_element - expected: '(none)', actual: '<p>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 17 more differences
 DIFF sa/finding-users/index.html (12 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'  Progress: 300/388 files compared...
-
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
   h2: extra_element - expected: '(none)', actual: '<h2>'
   p: extra_element - expected: '(none)', actual: '<p>'
   h2: extra_element - expected: '(none)', actual: '<h2>'
@@ -3378,18 +3292,14 @@ DIFF sa/how-to-contribute/index.html (10 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   h2: extra_element - expected: '(none)', actual: '<h2>'
   p: extra_element - expected: '(none)', actual: '<p>'
-DIFF sa/index.html (19 differences)
+DIFF sa/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='sa'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='मुक्तस्रोत मार्गदर्शिका'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/sa/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF sa/leadership-and-governance/index.html (8 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -3553,18 +3463,14 @@ DIFF sw/how-to-contribute/index.html (157 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 147 more differences
-DIFF sw/index.html (19 differences)
+DIFF sw/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='sw'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='Miongozo ya Open Source'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/sw/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF sw/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -3709,18 +3615,14 @@ DIFF ta/how-to-contribute/index.html (154 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 144 more differences
-DIFF ta/index.html (19 differences)
+DIFF ta/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='ta'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='திறந்த மூல வழிகாட்டிகள்'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/ta/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF ta/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -3865,18 +3767,14 @@ DIFF tr/how-to-contribute/index.html (157 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 147 more differences
-DIFF tr/index.html (19 differences)
+DIFF tr/index.html (7 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='tr'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='Açık Kaynak Rehberleri'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/tr/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF tr/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -4021,18 +3919,16 @@ DIFF zh-hans/how-to-contribute/index.html (155 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 145 more differences
-DIFF zh-hans/index.html (20 differences)
+DIFF zh-hans/index.html (9 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='zh_hans'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='开源软件指南'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 10 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='zh_hans'", actual: "content='zh-hans'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > div > div > div > div > a > div > div > p: text_differs - expected: '想为开源贡献力量？本指南为”菜鸟”和初学者而准备！', actual: '想为开源贡献力量？本指南为“菜鸟“和初学者而准备！'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/zh-hans/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF zh-hans/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -4177,18 +4073,15 @@ DIFF zh-hant/how-to-contribute/index.html (154 differences)
   h3: extra_element - expected: '(none)', actual: '<h3>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 144 more differences
-DIFF zh-hant/index.html (19 differences)
+DIFF zh-hant/index.html (8 differences)
   head > meta > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta: attribute_differs - expected: "content='zh_hant'", actual: "content='en_US'"
-  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T13:20:13+01:00'", actual: "content='summary_large_image'"
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
-  head > meta > meta > meta: missing_attribute - expected: "property='article:published_time'", actual: '(none)'
-  head > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='/assets/images/cards/default.png'"
-  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
-  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
-  head > meta > meta > meta: attribute_differs - expected: "content='/assets/images/cards/default.png'", actual: "content='開源軟體指南'"
-  head > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
-  ... and 9 more differences
+  head > meta > meta > meta: attribute_differs - expected: "content='zh_hant'", actual: "content='zh-hant'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2026-03-18T14:03:54+01:00'", actual: "content='2026-03-18T13:04:09+00:00'"
+  head > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > main > div > nav > div > div > ul > li: missing_element - expected: '<li>', actual: '(none)'
+  body > main > div > footer > div > div > div > div > p > a: attribute_differs - expected: "href='https://github.com/github/opensource.guide/blob/main/_articles/zh-hant/index.html'", actual: "href='https://github.com//blob/main/'"
 DIFF zh-hant/leadership-and-governance/index.html (51 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -4262,4 +4155,4 @@ DIFF zh-hant/starting-a-project/index.html (119 differences)
   aside: extra_element - expected: '(none)', actual: '<aside>'
   ... and 109 more differences
 
-Summary: 23 files matched, 365 files with differences, 23632 total differences
+Summary: 23 files matched, 365 files with differences, 23308 total differences

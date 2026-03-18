@@ -53,7 +53,7 @@ DIFF docs/customization/index.html (129 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   h3: extra_element - expected: '(none)', actual: '<h3>'
   ... and 119 more differences
-DIFF docs/index-test/index.html (73 differences)
+DIFF docs/index-test/index.html (74 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   script: extra_element - expected: '(none)', actual: '<script>'
   p: extra_element - expected: '(none)', actual: '<p>'
@@ -64,7 +64,7 @@ DIFF docs/index-test/index.html (73 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   h2: extra_element - expected: '(none)', actual: '<h2>'
   blockquote: extra_element - expected: '(none)', actual: '<blockquote>'
-  ... and 63 more differences
+  ... and 64 more differences
 DIFF docs/layout/layout/index.html (17 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h1'
   p: extra_element - expected: '(none)', actual: '<p>'
@@ -279,7 +279,7 @@ DIFF docs/ui-components/code/index.html (58 differences)
   div: extra_element - expected: '(none)', actual: '<div>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 48 more differences
-DIFF docs/ui-components/code/line-numbers/index.html (20 differences)
+DIFF docs/ui-components/code/line-numbers/index.html (22 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h1'
   p: extra_element - expected: '(none)', actual: '<p>'
   p: extra_element - expected: '(none)', actual: '<p>'
@@ -290,7 +290,7 @@ DIFF docs/ui-components/code/line-numbers/index.html (20 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   p: extra_element - expected: '(none)', actual: '<p>'
   h2: extra_element - expected: '(none)', actual: '<h2>'
-  ... and 10 more differences
+  ... and 12 more differences
 DIFF docs/ui-components/index.html (2 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h1'
   p: extra_element - expected: '(none)', actual: '<p>'
@@ -322,7 +322,7 @@ DIFF docs/ui-components/tables/index.html (4 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   div: extra_element - expected: '(none)', actual: '<div>'
   p: extra_element - expected: '(none)', actual: '<p>'
-DIFF docs/ui-components/typography/index.html (33 differences)
+DIFF docs/ui-components/typography/index.html (34 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h1'
   p: extra_element - expected: '(none)', actual: '<p>'
   h2: extra_element - expected: '(none)', actual: '<h2>'
@@ -333,8 +333,8 @@ DIFF docs/ui-components/typography/index.html (33 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   div: extra_element - expected: '(none)', actual: '<div>'
   p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 23 more differences
-DIFF docs/utilities/color/index.html (21 differences)
+  ... and 24 more differences
+DIFF docs/utilities/color/index.html (28 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h1'
   p: extra_element - expected: '(none)', actual: '<p>'
   h2: extra_element - expected: '(none)', actual: '<h2>'
@@ -344,13 +344,13 @@ DIFF docs/utilities/color/index.html (21 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   h2: extra_element - expected: '(none)', actual: '<h2>'
   table: extra_element - expected: '(none)', actual: '<table>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  ... and 11 more differences
+  table: extra_element - expected: '(none)', actual: '<table>'
+  ... and 18 more differences
 DIFF docs/utilities/index.html (3 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h1'
   p: extra_element - expected: '(none)', actual: '<p>'
   p: extra_element - expected: '(none)', actual: '<p>'
-DIFF docs/utilities/layout/index.html (30 differences)
+DIFF docs/utilities/layout/index.html (36 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h1'
   p: extra_element - expected: '(none)', actual: '<p>'
   h2: extra_element - expected: '(none)', actual: '<h2>'
@@ -361,12 +361,13 @@ DIFF docs/utilities/layout/index.html (30 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   table: extra_element - expected: '(none)', actual: '<table>'
   table: extra_element - expected: '(none)', actual: '<table>'
-  ... and 20 more differences
-DIFF docs/utilities/responsive-modifiers/index.html (3 differences)
+  ... and 26 more differences
+DIFF docs/utilities/responsive-modifiers/index.html (4 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h1'
   p: extra_element - expected: '(none)', actual: '<p>'
   table: extra_element - expected: '(none)', actual: '<table>'
-DIFF docs/utilities/typography/index.html (22 differences)
+  table: extra_element - expected: '(none)', actual: '<table>'
+DIFF docs/utilities/typography/index.html (24 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h1'
   p: extra_element - expected: '(none)', actual: '<p>'
   h2: extra_element - expected: '(none)', actual: '<h2>'
@@ -376,8 +377,8 @@ DIFF docs/utilities/typography/index.html (22 differences)
   h2: extra_element - expected: '(none)', actual: '<h2>'
   p: extra_element - expected: '(none)', actual: '<p>'
   table: extra_element - expected: '(none)', actual: '<table>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  ... and 12 more differences
+  table: extra_element - expected: '(none)', actual: '<table>'
+  ... and 14 more differences
 DIFF index.html (35 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h1'
   p: extra_element - expected: '(none)', actual: '<p>'
@@ -391,4 +392,4 @@ DIFF index.html (35 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 25 more differences
 
-Summary: 0 files matched, 47 files with differences, 1336 total differences
+Summary: 0 files matched, 47 files with differences, 1356 total differences

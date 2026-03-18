@@ -40,7 +40,7 @@ DIFF no-yc/index.html (4 differences)
   body > main > article > p: text_differs - expected: "Respectfully, over the years I have found that being shared on that website is bad for me and everyone involved. I write for myself. People self-selected to be readers of my writings. I don't write to be judged by people who come from that website.", actual: 'Respectfully, over the years I have found that being shared on that website is bad for me and everyone involved. I write for myself. People self-selected to be readers of my writings. I don’t write to be judged by people who come from that website.'
   body > main > article > ul > li > a: text_differs - expected: "So I was wondering why my Hacker News block didn't work any more..", actual: 'So I was wondering why my Hacker News block didn’t work any more..'
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
-DIFF notes.html (3509 differences)
+DIFF notes.html (3513 differences)
   body > main > style: text_differs - expected: 'body:has([value="Book"]:not(:checked)) .note:has([data-tag="Book"]) { display: none; } body:has([value="Book"]:checked) .note:has([data-tag="Book"]) { display: block !important; } body:has([value="Design"]:not(:checked)) .note:has([data-tag="Design"]) { display: none; } body:has([value="Design"]:checked) .note:has([data-tag="Design"]) { display: block !important; } body:has([value="Film"]:not(:checked)) .note:has([data-tag="Film"]) { display: none; } body:has([value="Film"]:checked) .note:has([data-tag="Film"]) { display: block !important; } body:has([value="Hobby"]:not(:checked)) .note:has([data-tag="Hobby"]) { display: none; } body:has([value="Hobby"]:checked) .note:has([data-tag="Hobby"]) { display: block !important; } body:has([value="Life"]:not(:checked)) .note:has([data-tag="Life"]) { display: none; } body:has([value="Life"]:checked) .note:has([data-tag="Life"]) { display: block !important; } body:has([value="Mental health"]:not(:checked)) .note:has([data-tag="Mental health"]) { display: none; } body:has([value="Mental health"]:checked) .note:has([data-tag="Mental health"]) { display: block !important; } body:has([value="Music"]:not(:checked)) .note:has([data-tag="Music"]) { display: none; } body:has([value="Music"]:checked) .note:has([data-tag="Music"]) { display: block !important; } body:has([value="Philosophy"]:not(:checked)) .note:has([data-tag="Philosophy"]) { display: none; } body:has([value="Philosophy"]:checked) .note:has([data-tag="Philosophy"]) { display: block !important; } body:has([value="Photography"]:not(:checked)) .note:has([data-tag="Photography"]) { display: none; } body:has([value="Photography"]:checked) .note:has([data-tag="Photography"]) { display: block !important; } body:has([value="Politics"]:not(:checked)) .note:has([data-tag="Politics"]) { display: none; } body:has([value="Politics"]:checked) .note:has([data-tag="Politics"]) { display: block !important; } body:has([value="Relationship"]:not(:checked)) .note:has([data-tag="Relationship"]) { display: none; } body:has([value="Relationship"]:checked) .note:has([data-tag="Relationship"]) { display: block !important; } body:has([value="Show"]:not(:checked)) .note:has([data-tag="Show"]) { display: none; } body:has([value="Show"]:checked) .note:has([data-tag="Show"]) { display: block !important; } body:has([value="Taiwan"]:not(:checked)) .note:has([data-tag="Taiwan"]) { display: none; } body:has([value="Taiwan"]:checked) .note:has([data-tag="Taiwan"]) { display: block !important; } body:has([value="Technology"]:not(:checked)) .note:has([data-tag="Technology"]) { display: none; } body:has([value="Technology"]:checked) .note:has([data-tag="Technology"]) { display: block !important; } body:has([value="Work"]:not(:checked)) .note:has([data-tag="Work"]) { display: none; } body:has([value="Work"]:checked) .note:has([data-tag="Work"]) { display: block !important; }', actual: 'body:has([value=""]:not(:checked)) .note:has([data-tag=""]) { display: none; } body:has([value=""]:checked) .note:has([data-tag=""]) { display: block !important; } body:has([value="Book"]:not(:checked)) .note:has([data-tag="Book"]) { display: none; } body:has([value="Book"]:checked) .note:has([data-tag="Book"]) { display: block !important; } body:has([value="BookMental health"]:not(:checked)) .note:has([data-tag="BookMental health"]) { display: none; } body:has([value="BookMental health"]:checked) .note:has([data-tag="BookMental health"]) { display: block !important; } body:has([value="BookRelationship"]:not(:checked)) .note:has([data-tag="BookRelationship"]) { display: none; } body:has([value="BookRelationship"]:checked) .note:has([data-tag="BookRelationship"]) { display: block !important; } body:has([value="Film"]:not(:checked)) .note:has([data-tag="Film"]) { display: none; } body:has([value="Film"]:checked) .note:has([data-tag="Film"]) { display: block !important; } body:has([value="FilmMental health"]:not(:checked)) .note:has([data-tag="FilmMental health"]) { display: none; } body:has([value="FilmMental health"]:checked) .note:has([data-tag="FilmMental health"]) { display: block !important; } body:has([value="Hobby"]:not(:checked)) .note:has([data-tag="Hobby"]) { display: none; } body:has([value="Hobby"]:checked) .note:has([data-tag="Hobby"]) { display: block !important; } body:has([value="HobbyLife"]:not(:checked)) .note:has([data-tag="HobbyLife"]) { display: none; } body:has([value="HobbyLife"]:checked) .note:has([data-tag="HobbyLife"]) { display: block !important; } body:has([value="Life"]:not(:checked)) .note:has([data-tag="Life"]) { display: none; } body:has([value="Life"]:checked) .note:has([data-tag="Life"]) { display: block !important; } body:has([value="LifeBookRelationship"]:not(:checked)) .note:has([data-tag="LifeBookRelationship"]) { display: none; } body:has([value="LifeBookRelationship"]:checked) .note:has([data-tag="LifeBookRelationship"]) { display: block !important; } body:has([value="LifeMental health"]:not(:checked)) .note:has([data-tag="LifeMental health"]) { display: none; } body:has([value="LifeMental health"]:checked) .note:has([data-tag="LifeMental health"]) { display: block !important; } body:has([value="LifeMental healthDesign"]:not(:checked)) .note:has([data-tag="LifeMental healthDesign"]) { display: none; } body:has([value="LifeMental healthDesign"]:checked) .note:has([data-tag="LifeMental healthDesign"]) { display: block !important; } body:has([value="LifeMental healthWork"]:not(:checked)) .note:has([data-tag="LifeMental healthWork"]) { display: none; } body:has([value="LifeMental healthWork"]:checked) .note:has([data-tag="LifeMental healthWork"]) { display: block !important; } body:has([value="LifeMusic"]:not(:checked)) .note:has([data-tag="LifeMusic"]) { display: none; } body:has([value="LifeMusic"]:checked) .note:has([data-tag="LifeMusic"]) { display: block !important; } body:has([value="LifePhilosophy"]:not(:checked)) .note:has([data-tag="LifePhilosophy"]) { display: none; } body:has([value="LifePhilosophy"]:checked) .note:has([data-tag="LifePhilosophy"]) { display: block !important; } body:has([value="LifePhotography"]:not(:checked)) .note:has([data-tag="LifePhotography"]) { display: none; } body:has([value="LifePhotography"]:checked) .note:has([data-tag="LifePhotography"]) { display: block !important; } body:has([value="LifePolitics"]:not(:checked)) .note:has([data-tag="LifePolitics"]) { display: none; } body:has([value="LifePolitics"]:checked) .note:has([data-tag="LifePolitics"]) { display: block !important; } body:has([value="LifePoliticsTaiwan"]:not(:checked)) .note:has([data-tag="LifePoliticsTaiwan"]) { display: none; } body:has([value="LifePoliticsTaiwan"]:checked) .note:has([data-tag="LifePoliticsTaiwan"]) { display: block !important; } body:has([value="LifeRelationship"]:not(:checked)) .note:has([data-tag="LifeRelationship"]) { display: none; } body:has([value="LifeRelationship"]:checked) .note:has([data-tag="LifeRelationship"]) { display: block !important; } body:has([value="LifeTaiwan"]:not(:checked)) .note:has([data-tag="LifeTaiwan"]) { display: none; } body:has([value="LifeTaiwan"]:checked) .note:has([data-tag="LifeTaiwan"]) { display: block !important; } body:has([value="LifeTaiwanPolitics"]:not(:checked)) .note:has([data-tag="LifeTaiwanPolitics"]) { display: none; } body:has([value="LifeTaiwanPolitics"]:checked) .note:has([data-tag="LifeTaiwanPolitics"]) { display: block !important; } body:has([value="LifeTaiwanRelationship"]:not(:checked)) .note:has([data-tag="LifeTaiwanRelationship"]) { display: none; } body:has([value="LifeTaiwanRelationship"]:checked) .note:has([data-tag="LifeTaiwanRelationship"]) { display: block !important; } body:has([value="LifeTechnology"]:not(:checked)) .note:has([data-tag="LifeTechnology"]) { display: none; } body:has([value="LifeTechnology"]:checked) .note:has([data-tag="LifeTechnology"]) { display: block !important; } body:has([value="Mental health"]:not(:checked)) .note:has([data-tag="Mental health"]) { display: none; } body:has([value="Mental health"]:checked) .note:has([data-tag="Mental health"]) { display: block !important; } body:has([value="Mental healthBook"]:not(:checked)) .note:has([data-tag="Mental healthBook"]) { display: none; } body:has([value="Mental healthBook"]:checked) .note:has([data-tag="Mental healthBook"]) { display: block !important; } body:has([value="Mental healthHobby"]:not(:checked)) .note:has([data-tag="Mental healthHobby"]) { display: none; } body:has([value="Mental healthHobby"]:checked) .note:has([data-tag="Mental healthHobby"]) { display: block !important; } body:has([value="Mental healthLife"]:not(:checked)) .note:has([data-tag="Mental healthLife"]) { display: none; } body:has([value="Mental healthLife"]:checked) .note:has([data-tag="Mental healthLife"]) { display: block !important; } body:has([value="Mental healthPhilosophy"]:not(:checked)) .note:has([data-tag="Mental healthPhilosophy"]) { display: none; } body:has([value="Mental healthPhilosophy"]:checked) .note:has([data-tag="Mental healthPhilosophy"]) { display: block !important; } body:has([value="Mental healthPhilosophyPolitics"]:not(:checked)) .note:has([data-tag="Mental healthPhilosophyPolitics"]) { display: none; } body:has([value="Mental healthPhilosophyPolitics"]:checked) .note:has([data-tag="Mental healthPhilosophyPolitics"]) { display: block !important; } body:has([value="Mental healthRelationship"]:not(:checked)) .note:has([data-tag="Mental healthRelationship"]) { display: none; } body:has([value="Mental healthRelationship"]:checked) .note:has([data-tag="Mental healthRelationship"]) { display: block !important; } body:has([value="Mental healthShow"]:not(:checked)) .note:has([data-tag="Mental healthShow"]) { display: none; } body:has([value="Mental healthShow"]:checked) .note:has([data-tag="Mental healthShow"]) { display: block !important; } body:has([value="Mental healthTaiwan"]:not(:checked)) .note:has([data-tag="Mental healthTaiwan"]) { display: none; } body:has([value="Mental healthTaiwan"]:checked) .note:has([data-tag="Mental healthTaiwan"]) { display: block !important; } body:has([value="Mental healthTechnology"]:not(:checked)) .note:has([data-tag="Mental healthTechnology"]) { display: none; } body:has([value="Mental healthTechnology"]:checked) .note:has([data-tag="Mental healthTechnology"]) { display: block !important; } body:has([value="Music"]:not(:checked)) .note:has([data-tag="Music"]) { display: none; } body:has([value="Music"]:checked) .note:has([data-tag="Music"]) { display: block !important; } body:has([value="MusicMental health"]:not(:checked)) .note:has([data-tag="MusicMental health"]) { display: none; } body:has([value="MusicMental health"]:checked) .note:has([data-tag="MusicMental health"]) { display: block !important; } body:has([value="Philosophy"]:not(:checked)) .note:has([data-tag="Philosophy"]) { display: none; } body:has([value="Philosophy"]:checked) .note:has([data-tag="Philosophy"]) { display: block !important; } body:has([value="PhilosophyRelationship"]:not(:checked)) .note:has([data-tag="PhilosophyRelationship"]) { display: none; } body:has([value="PhilosophyRelationship"]:checked) .note:has([data-tag="PhilosophyRelationship"]) { display: block !important; } body:has([value="PhilosophyTechnology"]:not(:checked)) .note:has([data-tag="PhilosophyTechnology"]) { display: none; } body:has([value="PhilosophyTechnology"]:checked) .note:has([data-tag="PhilosophyTechnology"]) { display: block !important; } body:has([value="Photography"]:not(:checked)) .note:has([data-tag="Photography"]) { display: none; } body:has([value="Photography"]:checked) .note:has([data-tag="Photography"]) { display: block !important; } body:has([value="PhotographyLife"]:not(:checked)) .note:has([data-tag="PhotographyLife"]) { display: none; } body:has([value="PhotographyLife"]:checked) .note:has([data-tag="PhotographyLife"]) { display: block !important; } body:has([value="Politics"]:not(:checked)) .note:has([data-tag="Politics"]) { display: none; } body:has([value="Politics"]:checked) .note:has([data-tag="Politics"]) { display: block !important; } body:has([value="PoliticsFilm"]:not(:checked)) .note:has([data-tag="PoliticsFilm"]) { display: none; } body:has([value="PoliticsFilm"]:checked) .note:has([data-tag="PoliticsFilm"]) { display: block !important; } body:has([value="PoliticsMental health"]:not(:checked)) .note:has([data-tag="PoliticsMental health"]) { display: none; } body:has([value="PoliticsMental health"]:checked) .note:has([data-tag="PoliticsMental health"]) { display: block !important; } body:has([value="PoliticsTaiwan"]:not(:checked)) .note:has([data-tag="PoliticsTaiwan"]) { display: none; } body:has([value="PoliticsTaiwan"]:checked) .note:has([data-tag="PoliticsTaiwan"]) { display: block !important; } body:has([value="Relationship"]:not(:checked)) .note:has([data-tag="Relationship"]) { display: none; } body:has([value="Relationship"]:checked) .note:has([data-tag="Relationship"]) { display: block !important; } body:has([value="RelationshipMental health"]:not(:checked)) .note:has([data-tag="RelationshipMental health"]) { display: none; } body:has([value="RelationshipMental health"]:checked) .note:has([data-tag="RelationshipMental health"]) { display: block !important; } body:has([value="Show"]:not(:checked)) .note:has([data-tag="Show"]) { display: none; } body:has([value="Show"]:checked) .note:has([data-tag="Show"]) { display: block !important; } body:has([value="ShowMental health"]:not(:checked)) .note:has([data-tag="ShowMental health"]) { display: none; } body:has([value="ShowMental health"]:checked) .note:has([data-tag="ShowMental health"]) { display: block !important; } body:has([value="ShowPolitics"]:not(:checked)) .note:has([data-tag="ShowPolitics"]) { display: none; } body:has([value="ShowPolitics"]:checked) .note:has([data-tag="ShowPolitics"]) { display: block !important; } body:has([value="Taiwan"]:not(:checked)) .note:has([data-tag="Taiwan"]) { display: none; } body:has([value="Taiwan"]:checked) .note:has([data-tag="Taiwan"]) { display: block !important; } body:has([value="TaiwanLife"]:not(:checked)) .note:has([data-tag="TaiwanLife"]) { display: none; } body:has([value="TaiwanLife"]:checked) .note:has([data-tag="TaiwanLife"]) { display: block !important; } body:has([value="TaiwanPolitics"]:not(:checked)) .note:has([data-tag="TaiwanPolitics"]) { display: none; } body:has([value="TaiwanPolitics"]:checked) .note:has([data-tag="TaiwanPolitics"]) { display: block !important; } body:has([value="Technology"]:not(:checked)) .note:has([data-tag="Technology"]) { display: none; } body:has([value="Technology"]:checked) .note:has([data-tag="Technology"]) { display: block !important; } body:has([value="TechnologyBook"]:not(:checked)) .note:has([data-tag="TechnologyBook"]) { display: none; } body:has([value="TechnologyBook"]:checked) .note:has([data-tag="TechnologyBook"]) { display: block !important; } body:has([value="TechnologyHobby"]:not(:checked)) .note:has([data-tag="TechnologyHobby"]) { display: none; } body:has([value="TechnologyHobby"]:checked) .note:has([data-tag="TechnologyHobby"]) { display: block !important; } body:has([value="TechnologyLife"]:not(:checked)) .note:has([data-tag="TechnologyLife"]) { display: none; } body:has([value="TechnologyLife"]:checked) .note:has([data-tag="TechnologyLife"]) { display: block !important; } body:has([value="TechnologyPolitics"]:not(:checked)) .note:has([data-tag="TechnologyPolitics"]) { display: none; } body:has([value="TechnologyPolitics"]:checked) .note:has([data-tag="TechnologyPolitics"]) { display: block !important; } body:has([value="TechnologyWork"]:not(:checked)) .note:has([data-tag="TechnologyWork"]) { display: none; } body:has([value="TechnologyWork"]:checked) .note:has([data-tag="TechnologyWork"]) { display: block !important; } body:has([value="Work"]:not(:checked)) .note:has([data-tag="Work"]) { display: none; } body:has([value="Work"]:checked) .note:has([data-tag="Work"]) { display: block !important; }'
   body > main > details > form > label: attribute_differs - expected: "data-tag='Book'", actual: "data-tag=''"
   body > main > details > form > label > input: attribute_differs - expected: "id='book'", actual: "id=''"
@@ -51,7 +51,7 @@ DIFF notes.html (3509 differences)
   body > main > details > form > label > input: attribute_differs - expected: "value='Design'", actual: "value='Book'"
   body > main > details > form > label: text_differs - expected: 'Design (1)', actual: 'Book (7)'
   body > main > details > form > label: attribute_differs - expected: "data-tag='Film'", actual: "data-tag='BookMental health'"
-  ... and 3499 more differences
+  ... and 3503 more differences
 DIFF notes/2018-06-04-aa.html (7 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/notes/2018-06-04-aa'", actual: "content='https://muan.co/notes/2018-06-04-aa.html'"
   head > meta: attribute_differs - expected: 'content=\'pretty sure my dad is the biggest winner here. now his friends would have heard of the name of the company I work for when he brags about me, instead of asking him "what is a github"\\n\'', actual: "content=''"
@@ -5328,13 +5328,15 @@ DIFF notes/2023-09-25-cc.html (8 differences)
   body > header > time: text_differs - expected: '2023/09/25 21:27', actual: '2023-09-25 21:27'
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2023-09-25-cc'", actual: "href='https://likes.muan.dev/?id=/notes/2023-09-25-cc.html'"
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
-DIFF notes/2023-09-25-ee.html (8 differences)
+DIFF notes/2023-09-25-ee.html (10 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/notes/2023-09-25-ee'", actual: "content='https://muan.co/notes/2023-09-25-ee.html'"
   head > meta: attribute_differs - expected: "content='CWthe condition is perfect. the deeper I go the harder it would be. the conference filled me with hope and excitement, but they didn’t manage to jolt me into some sort of healthier mental state. it is not hope that I need, it is the lack...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='CWthe condition is perfect. the deeper I go the harder it would be. the conference filled me with hope and excitement, but they didn’t manage to jolt me into some sort of healthier mental state. it is not hope that I need, it is the lack...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='2023-09-25T23:33:00+08:00'", actual: "content='2023-09-25 23:33'"
   body > header > time: attribute_differs - expected: "datetime='2023-09-25 23:33:00 +0800'", actual: "datetime='2023-09-25 23:33'"
   body > header > time: text_differs - expected: '2023/09/25 23:33', actual: '2023-09-25 23:33'
+  body > main > div > details: expected_text_got_element - expected: 'the condition is perfect. the deeper I go the harder it would be. the conference filled me with hope', actual: '<p>'
+  body > main > div > details > p: extra_element - expected: '(none)', actual: '<p>'
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2023-09-25-ee'", actual: "href='https://likes.muan.dev/?id=/notes/2023-09-25-ee.html'"
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
 DIFF notes/2023-09-25-mm.html (8 differences)
@@ -5887,18 +5889,18 @@ DIFF notes/2023-11-21-uu.html (8 differences)
   body > header > time: text_differs - expected: '2023/11/21 12:14', actual: '2023-11-21 12:14'
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2023-11-21-uu'", actual: "href='https://likes.muan.dev/?id=/notes/2023-11-21-uu.html'"
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
-DIFF notes/2023-11-25-mm.html (11 differences)
+DIFF notes/2023-11-25-mm.html (13 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/notes/2023-11-25-mm'", actual: "content='https://muan.co/notes/2023-11-25-mm.html'"
   head > meta: attribute_differs - expected: "content='depression (therapy notes)my therapist told me it was very worrying for her that after the last session where I told her I had the worst day to date and was suggested to consider a psychiatry facility (which she supported), and then not ...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='depression (therapy notes)my therapist told me it was very worrying for her that after the last session where I told her I had the worst day to date and was suggested to consider a psychiatry facility (which she supported), and then not ...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='2023-11-25T14:47:00+08:00'", actual: "content='2023-11-25 14:47'"
   body > header > time: attribute_differs - expected: "datetime='2023-11-25 14:47:00 +0800'", actual: "datetime='2023-11-25 14:47'"
   body > header > time: text_differs - expected: '2023/11/25 14:47', actual: '2023-11-25 14:47'
-  body > main > div > details > p: text_differs - expected: "edit: ok that sounded way more negative than I meant for it to be. The good thing here is learning to accept the incomentency; that my limit is just here, even if I had higher expectation. things I thought I should be able to handle are simply out of my reach. I would either have to let it be or ask for help, like I did the other day for the pill refills. and just hope that I will be able to repay that kindness when I am better. it is ok to fail my self expectation and also perhaps that expectation needs to be re-evaluated. I can't be the person operating at the level that I want myself to be running at, so, like, tough shit? I just don't have what it takes.", actual: 'edit: ok that sounded way more negative than I meant for it to be. The good thing here is learning to accept the incomentency; that my limit is just here, even if I had higher expectation. things I thought I should be able to handle are simply out of my reach. I would either have to let it be or ask for help, like I did the other day for the pill refills. and just hope that I will be able to repay that kindness when I am better. it is ok to fail my self expectation and also perhaps that expectation needs to be re-evaluated. I can’t be the person operating at the level that I want myself to be running at, so, like, tough shit? I just don’t have what it takes.'
-  body > main > div > details > p: text_differs - expected: "say, fleeting happiness, it made sense to lower my need for it but is it sustainable or healthy? big shock, it's not. so now logistically how do I solve this?", actual: 'say, fleeting happiness, it made sense to lower my need for it but is it sustainable or healthy? big shock, it’s not. so now logistically how do I solve this?'
-  body > main > div > details > p: text_differs - expected: "anyways, so blessed to have lovely empathetic friends. I love y'all.", actual: 'anyways, so blessed to have lovely empathetic friends. I love y’all.'
-  body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2023-11-25-mm'", actual: "href='https://likes.muan.dev/?id=/notes/2023-11-25-mm.html'"
-  ... and 1 more differences
+  body > main > div > details: expected_text_got_element - expected: 'my therapist told me it was very worrying for her that after the last session where I told her I had', actual: '<p>'
+  body > main > div > details > p: text_differs - expected: "edit: ok that sounded way more negative than I meant for it to be. The good thing here is learning to accept the incomentency; that my limit is just here, even if I had higher expectation. things I thought I should be able to handle are simply out of my reach. I would either have to let it be or ask for help, like I did the other day for the pill refills. and just hope that I will be able to repay that kindness when I am better. it is ok to fail my self expectation and also perhaps that expectation needs to be re-evaluated. I can't be the person operating at the level that I want myself to be running at, so, like, tough shit? I just don't have what it takes.", actual: 'my therapist told me it was very worrying for her that after the last session where I told her I had the worst day to date and was suggested to consider a psychiatry facility (which she supported), and then not hearing from me for two months. but, she also trusted that I would make the right decision for myself. I mean. I hope so. I also wish I knew where this trust comes from. From my perspective, I am mostly impulsive, stubborn, and… incompetent.'
+  body > main > div > details > p: text_differs - expected: "say, fleeting happiness, it made sense to lower my need for it but is it sustainable or healthy? big shock, it's not. so now logistically how do I solve this?", actual: 'edit: ok that sounded way more negative than I meant for it to be. The good thing here is learning to accept the incomentency; that my limit is just here, even if I had higher expectation. things I thought I should be able to handle are simply out of my reach. I would either have to let it be or ask for help, like I did the other day for the pill refills. and just hope that I will be able to repay that kindness when I am better. it is ok to fail my self expectation and also perhaps that expectation needs to be re-evaluated. I can’t be the person operating at the level that I want myself to be running at, so, like, tough shit? I just don’t have what it takes.'
+  body > main > div > details > p: text_differs - expected: "anyways, so blessed to have lovely empathetic friends. I love y'all.", actual: 'say, fleeting happiness, it made sense to lower my need for it but is it sustainable or healthy? big shock, it’s not. so now logistically how do I solve this?'
+  ... and 3 more differences
 DIFF notes/2023-11-25-uu.html (8 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/notes/2023-11-25-uu'", actual: "content='https://muan.co/notes/2023-11-25-uu.html'"
   head > meta: attribute_differs - expected: "content='有我來重蹈你覆轍\\n'", actual: "content=''"
@@ -6217,15 +6219,18 @@ DIFF notes/2024-01-15-uu.html (8 differences)
   body > header > time: text_differs - expected: '2024/01/15 20:40', actual: '2024-01-15 20:40'
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2024-01-15-uu'", actual: "href='https://likes.muan.dev/?id=/notes/2024-01-15-uu.html'"
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
-DIFF notes/2024-01-16-aa.html (8 differences)
+DIFF notes/2024-01-16-aa.html (12 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/notes/2024-01-16-aa'", actual: "content='https://muan.co/notes/2024-01-16-aa.html'"
   head > meta: attribute_differs - expected: "content='CW: depression/suicide/familylong story short, after evading my family for more than a month for my mental health, I finally caved due to the pestering and was told that 1. I don’t have a strong bound with them because I chose to leave T...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='CW: depression/suicide/familylong story short, after evading my family for more than a month for my mental health, I finally caved due to the pestering and was told that 1. I don’t have a strong bound with them because I chose to leave T...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='2024-01-16T23:14:00+08:00'", actual: "content='2024-01-16 23:14'"
   body > header > time: attribute_differs - expected: "datetime='2024-01-16 23:14:00 +0800'", actual: "datetime='2024-01-16 23:14'"
   body > header > time: text_differs - expected: '2024/01/16 23:14', actual: '2024-01-16 23:14'
-  body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2024-01-16-aa'", actual: "href='https://likes.muan.dev/?id=/notes/2024-01-16-aa.html'"
-  body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
+  body > main > div > details: expected_text_got_element - expected: 'long story short, after evading my family for more than a month for my mental health, I finally cave', actual: '<p>'
+  body > main > div > details > p: text_differs - expected: 'Supposedly I am to accept this as their unique expression of love? Is this what love can look like?', actual: 'long story short, after evading my family for more than a month for my mental health, I finally caved due to the pestering and was told that 1. I don’t have a strong bound with them because I chose to leave Taiwan (first suicide attempt) 2. I could have stayed and be happy if only I wasn’t so weak (second suicide attempt) 3. my bro stills thinks I am fat and ugly and the selfie I posted for voting must have been heavily edited since I’m fugly IRL; he who also said I was so ugly that I need not to go out and scare people since I was 10 and that it’d be hard pressed for me to ever find love just a few years ago.'
+  body > main > div > details > p: text_differs - expected: 'Anyways I held their hand, smiled, and said I am doing my best, and please just give me space when I said I need it.', actual: 'Supposedly I am to accept this as their unique expression of love? Is this what love can look like?'
+  body > main > div > details > p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 2 more differences
 DIFF notes/2024-01-16-mm.html (8 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/notes/2024-01-16-mm'", actual: "content='https://muan.co/notes/2024-01-16-mm.html'"
   head > meta: attribute_differs - expected: "content='We are just two women texting each other “TRIBE?” and “TRIBE!” back and forth.\\nDon’t waste your time on someone who don’t “TRIBE!” back immediately.\\n'", actual: "content=''"
@@ -6256,7 +6261,8 @@ DIFF notes/2024-01-16-uu.html (8 differences)
 DIFF notes/2024-01-18-uu.html (8 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/notes/2024-01-18-uu'", actual: "content='https://muan.co/notes/2024-01-18-uu.html'"
   head > meta: attribute_differs - expected: "content='Risa: Last time I visited Melbourne, I stayed in a cabin, I ate fish and chips. I was bored. I listened to KoRn.\\nMy friends and I just vibe.\\n'", actual: "content=''"
-  head > meta: attribute_differs - expected: "content='Risa: Last time I visited Melbourne, I stayed in a cabin, I ate fish and chips. I was bored. I listened to KoRn.\\nMy friends and I just vibe.\\n'", actual: "content=''"
+  head > meta: attribute_differs - expected: "content='Risa: Last time I visited Melbourne, I stayed in a cabin, I ate fish and chips. I was bored. I listened to KoRn.\\nMy friends and I just vibe.\\n'", actual: "content=''"  Progress: 800/2218 files compared...
+
   head > meta: attribute_differs - expected: "content='2024-01-18T12:22:00+08:00'", actual: "content='2024-01-18 12:22'"
   body > header > time: attribute_differs - expected: "datetime='2024-01-18 12:22:00 +0800'", actual: "datetime='2024-01-18 12:22'"
   body > header > time: text_differs - expected: '2024/01/18 12:22', actual: '2024-01-18 12:22'
@@ -6265,8 +6271,7 @@ DIFF notes/2024-01-18-uu.html (8 differences)
 DIFF notes/2024-01-19-mm.html (8 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/notes/2024-01-19-mm'", actual: "content='https://muan.co/notes/2024-01-19-mm.html'"
   head > meta: attribute_differs - expected: "content='One nightmare after another. I think that’s enough sleep for tonight.\\n'", actual: "content=''"
-  head > meta: attribute_differs - expected: "content='One nightmare after another. I think that’s enough sleep for tonight.\\n'", actual: "content=''"  Progress: 800/2218 files compared...
-
+  head > meta: attribute_differs - expected: "content='One nightmare after another. I think that’s enough sleep for tonight.\\n'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='2024-01-19T03:22:00+08:00'", actual: "content='2024-01-19 03:22'"
   body > header > time: attribute_differs - expected: "datetime='2024-01-19 03:22:00 +0800'", actual: "datetime='2024-01-19 03:22'"
   body > header > time: text_differs - expected: '2024/01/19 03:22', actual: '2024-01-19 03:22'
@@ -7195,15 +7200,15 @@ DIFF notes/2024-06-06-uu.html (9 differences)
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2024-06-06-uu'", actual: "href='https://likes.muan.dev/?id=/notes/2024-06-06-uu.html'"
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
 DIFF notes/2024-06-07-uu.html (11 differences)
-  head > meta: attribute_differs - expected: "content='https://muan.co/notes/2024-06-07-uu'", actual: "content='https://muan.co/notes/2024-06-07-uu.html'"
+  head > meta: attribute_differs - expected: "content='https://muan.co/notes/2024-06-07-uu'", actual: "content='https://muan.co/notes/2024-06-07-uu.html'"  Progress: 900/2218 files compared...
+
   head > meta: attribute_differs - expected: "content='https://muan.co/film has new content.\\ncreating is good. experiencing is good. reflecting is good.\\n'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='https://muan.co/film has new content.\\ncreating is good. experiencing is good. reflecting is good.\\n'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='2024-06-07T12:20:00+08:00'", actual: "content='2024-06-07 12:20'"
   body > header > time: attribute_differs - expected: "datetime='2024-06-07 12:20:00 +0800'", actual: "datetime='2024-06-07 12:20'"
   body > header > time: text_differs - expected: '2024/06/07 12:20', actual: '2024-06-07 12:20'
   body > main > div > p: expected_element_got_text - expected: '<a>', actual: 'https://muan.co/film has new content.'
-  body > main > div > p > a: missing_element - expected: '<a>', actual: '(none)'  Progress: 900/2218 files compared...
-
+  body > main > div > p > a: missing_element - expected: '<a>', actual: '(none)'
   body > main > div > p: missing_text - expected: 'has new content.', actual: '(none)'
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2024-06-07-uu'", actual: "href='https://likes.muan.dev/?id=/notes/2024-06-07-uu.html'"
   ... and 1 more differences
@@ -8130,15 +8135,15 @@ DIFF notes/2024-10-01-mm.html (15 differences)
   body > main > div > p: text_differs - expected: 'Dad: STOP DYEING YOUR HAIR! IT CAUSES CANCER!', actual: 'Dad: STOP DYEING YOUR HAIR! IT CAUSES CANCER! Me: Where are the papers, dad? (Reads magazine article) Me: Correlation does not imply causation, dad.'
   body > main > div > p > br: missing_element - expected: '<br>', actual: '(none)'
   body > main > div > p: missing_text - expected: 'Me: Where are the papers, dad?', actual: '(none)'
-  body > main > div > p > br: missing_element - expected: '<br>', actual: '(none)'
+  body > main > div > p > br: missing_element - expected: '<br>', actual: '(none)'  Progress: 1000/2218 files compared...
+
   ... and 5 more differences
 DIFF notes/2024-10-01-oo.html (8 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/notes/2024-10-01-oo'", actual: "content='https://muan.co/notes/2024-10-01-oo.html'"
   head > meta: attribute_differs - expected: "content='Heute hat mein Arzt mir gesagt, dass ich mache ihm Sorgen denn ich sehe ihn selten. Das letzte mal war vor 6 Monaten. Wann ich ins Krankenhaus gehe, oft erwähne ich Suizid. Er wollte mehr Tablette mir geben aber ich habe nein gesagt. „Ic...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='Heute hat mein Arzt mir gesagt, dass ich mache ihm Sorgen denn ich sehe ihn selten. Das letzte mal war vor 6 Monaten. Wann ich ins Krankenhaus gehe, oft erwähne ich Suizid. Er wollte mehr Tablette mir geben aber ich habe nein gesagt. „Ic...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='2024-10-01T20:11:00+08:00'", actual: "content='2024-10-01 20:11'"
-  body > header > time: attribute_differs - expected: "datetime='2024-10-01 20:11:00 +0800'", actual: "datetime='2024-10-01 20:11'"  Progress: 1000/2218 files compared...
-
+  body > header > time: attribute_differs - expected: "datetime='2024-10-01 20:11:00 +0800'", actual: "datetime='2024-10-01 20:11'"
   body > header > time: text_differs - expected: '2024/10/01 20:11', actual: '2024-10-01 20:11'
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2024-10-01-oo'", actual: "href='https://likes.muan.dev/?id=/notes/2024-10-01-oo.html'"
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
@@ -8361,7 +8366,7 @@ DIFF notes/2024-10-28-mm.html (8 differences)
   body > header > time: text_differs - expected: '2024/10/28 14:56', actual: '2024-10-28 14:56'
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2024-10-28-mm'", actual: "href='https://likes.muan.dev/?id=/notes/2024-10-28-mm.html'"
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
-DIFF notes/2024-10-28-oo.html (9 differences)
+DIFF notes/2024-10-28-oo.html (11 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/notes/2024-10-28-oo'", actual: "content='https://muan.co/notes/2024-10-28-oo.html'"
   head > meta: attribute_differs - expected: 'content=\'I’m watching an interview with Robert Sapolsky and it’s making me wonder if growing up with a hypocritical façade of Christianity trained me to be skeptical of what’s being preached to me. Made me prone to ask, "but why?"\\nThe m...\'', actual: "content=''"
   head > meta: attribute_differs - expected: 'content=\'I’m watching an interview with Robert Sapolsky and it’s making me wonder if growing up with a hypocritical façade of Christianity trained me to be skeptical of what’s being preached to me. Made me prone to ask, "but why?"\\nThe m...\'', actual: "content=''"
@@ -8369,8 +8374,10 @@ DIFF notes/2024-10-28-oo.html (9 differences)
   body > header > time: attribute_differs - expected: "datetime='2024-10-28 18:07:00 +0800'", actual: "datetime='2024-10-28 18:07'"
   body > header > time: text_differs - expected: '2024/10/28 18:07', actual: '2024-10-28 18:07'
   body > main > div > p: text_differs - expected: 'I’m watching an interview with Robert Sapolsky and it’s making me wonder if growing up with a hypocritical façade of Christianity trained me to be skeptical of what’s being preached to me. Made me prone to ask, "but why?"', actual: 'I’m watching an interview with Robert Sapolsky and it’s making me wonder if growing up with a hypocritical façade of Christianity trained me to be skeptical of what’s being preached to me. Made me prone to ask, “but why?”'
+  body > main > div > details: expected_text_got_element - expected: 'She has a keen eye for potential technical complexity and asks simple, direct, disarming questions a', actual: '<p>'
+  body > main > div > details > p: extra_element - expected: '(none)', actual: '<p>'
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2024-10-28-oo'", actual: "href='https://likes.muan.dev/?id=/notes/2024-10-28-oo.html'"
-  body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
+  ... and 1 more differences
 DIFF notes/2024-10-28-uu.html (8 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/notes/2024-10-28-uu'", actual: "content='https://muan.co/notes/2024-10-28-uu.html'"
   head > meta: attribute_differs - expected: "content='I choose to identity as an Aries but not as ISTJ-T because with astrology I at least get to read horoscopes and apps tell me what color to wear to be luckier, reducing the decisions I need to make daily. 🔮 MTBI attracts corporate cogs an...'", actual: "content=''"
@@ -8521,13 +8528,15 @@ DIFF notes/2024-11-05-mm.html (8 differences)
   body > header > time: text_differs - expected: '2024/11/05 15:42', actual: '2024-11-05 15:42'
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2024-11-05-mm'", actual: "href='https://likes.muan.dev/?id=/notes/2024-11-05-mm.html'"
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
-DIFF notes/2024-11-05-uu.html (8 differences)
+DIFF notes/2024-11-05-uu.html (10 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/notes/2024-11-05-uu'", actual: "content='https://muan.co/notes/2024-11-05-uu.html'"
   head > meta: attribute_differs - expected: "content='Content warningI feel like such a fraud. What the fuck do I actually know? It is honestly such an embarrassment that I exist here. Yet I don’t know if I can bear the realization of the process of fading into non-existence from this socie...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='Content warningI feel like such a fraud. What the fuck do I actually know? It is honestly such an embarrassment that I exist here. Yet I don’t know if I can bear the realization of the process of fading into non-existence from this socie...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='2024-11-05T10:54:00+08:00'", actual: "content='2024-11-05 10:54'"
   body > header > time: attribute_differs - expected: "datetime='2024-11-05 10:54:00 +0800'", actual: "datetime='2024-11-05 10:54'"
   body > header > time: text_differs - expected: '2024/11/05 10:54', actual: '2024-11-05 10:54'
+  body > main > div > details: expected_text_got_element - expected: 'I feel like such a fraud. What the fuck do I actually know? It is honestly such an embarrassment tha', actual: '<p>'
+  body > main > div > details > p: extra_element - expected: '(none)', actual: '<p>'
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2024-11-05-uu'", actual: "href='https://likes.muan.dev/?id=/notes/2024-11-05-uu.html'"
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
 DIFF notes/2024-11-06-mm.html (8 differences)
@@ -8539,13 +8548,15 @@ DIFF notes/2024-11-06-mm.html (8 differences)
   body > header > time: text_differs - expected: '2024/11/06 12:09', actual: '2024-11-06 12:09'
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2024-11-06-mm'", actual: "href='https://likes.muan.dev/?id=/notes/2024-11-06-mm.html'"
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
-DIFF notes/2024-11-06-uu.html (8 differences)
+DIFF notes/2024-11-06-uu.html (10 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/notes/2024-11-06-uu'", actual: "content='https://muan.co/notes/2024-11-06-uu.html'"
   head > meta: attribute_differs - expected: "content='Content warning: depressive episodeOK I know I have talked a lot of shit about people trying stupid methods for suicide attempts, saying things like “clearly they haven’t thought about the fatality rate of this method” because I firmly b...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='Content warning: depressive episodeOK I know I have talked a lot of shit about people trying stupid methods for suicide attempts, saying things like “clearly they haven’t thought about the fatality rate of this method” because I firmly b...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='2024-11-06T08:59:00+08:00'", actual: "content='2024-11-06 08:59'"
   body > header > time: attribute_differs - expected: "datetime='2024-11-06 08:59:00 +0800'", actual: "datetime='2024-11-06 08:59'"
   body > header > time: text_differs - expected: '2024/11/06 08:59', actual: '2024-11-06 08:59'
+  body > main > div > details: expected_text_got_element - expected: 'OK I know I have talked a lot of shit about people trying stupid methods for suicide attempts, sayin', actual: '<p>'
+  body > main > div > details > p: extra_element - expected: '(none)', actual: '<p>'
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2024-11-06-uu'", actual: "href='https://likes.muan.dev/?id=/notes/2024-11-06-uu.html'"
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
 DIFF notes/2024-11-07-mm.html (8 differences)
@@ -8870,13 +8881,14 @@ DIFF notes/2024-11-25-aa.html (8 differences)
   body > header > time: text_differs - expected: '2024/11/25 00:05', actual: '2024-11-25 00:05'
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2024-11-25-aa'", actual: "href='https://likes.muan.dev/?id=/notes/2024-11-25-aa.html'"
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
-DIFF notes/2024-11-25-cc.html (8 differences)
+DIFF notes/2024-11-25-cc.html (9 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/notes/2024-11-25-cc'", actual: "content='https://muan.co/notes/2024-11-25-cc.html'"
   head > meta: attribute_differs - expected: "content='台灣政治\\n中國國民黨不倒台灣不會好。什麼年代了還在用學歷貶低人？二月就知道霸凌事件，身為立法委員他就去監督了，還要有什麼作為？中國國民黨的立法委員這麼多，除了卡預算還有什麼作為？莫名其妙。\\n洪申翰的勞運社運背景根深耕，有在看的人都知道。我多年前用臉書時就經常分享他在推動的議題，也常常跟朋友推廣他，畢竟他耕耘的議題都是弱勢議題，大部分人不會去注意。\\n中國國民黨團只會謾罵，一點產力都沒有。莫名其妙啊啊啊啊！\\n\\n'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='台灣政治\\n中國國民黨不倒台灣不會好。什麼年代了還在用學歷貶低人？二月就知道霸凌事件，身為立法委員他就去監督了，還要有什麼作為？中國國民黨的立法委員這麼多，除了卡預算還有什麼作為？莫名其妙。\\n洪申翰的勞運社運背景根深耕，有在看的人都知道。我多年前用臉書時就經常分享他在推動的議題，也常常跟朋友推廣他，畢竟他耕耘的議題都是弱勢議題，大部分人不會去注意。\\n中國國民黨團只會謾罵，一點產力都沒有。莫名其妙啊啊啊啊！\\n\\n'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='2024-11-25T20:33:00+08:00'", actual: "content='2024-11-25 20:33'"
   body > header > time: attribute_differs - expected: "datetime='2024-11-25 20:33:00 +0800'", actual: "datetime='2024-11-25 20:33'"
   body > header > time: text_differs - expected: '2024/11/25 20:33', actual: '2024-11-25 20:33'
+  body > main > div > details > p > a: attribute_differs - expected: "href='https://tw.news.yahoo.com/%E5%9C%8B%E6%B0%91%E9%BB%A8%E5%9C%98%E6%8C%87%E6%B4%AA%E7%94%B3%E7%BF%B0%E6%8E%A5%E5%8B%9E%E5%8B%95%E9%83%A8%E9%95%B7%E6%AC%A0%E7%BC%BA%E6%AD%A3%E7%95%B6%E6%80%A7-%E5%9C%96-051259956.html'", actual: "href='https://tw.news.yahoo.com/國民黨團指洪申翰接勞動部長欠缺正當性-圖-051259956.html'"
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2024-11-25-cc'", actual: "href='https://likes.muan.dev/?id=/notes/2024-11-25-cc.html'"
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
 DIFF notes/2024-11-26-aa.html (8 differences)
@@ -9072,7 +9084,8 @@ DIFF notes/2024-12-06-aa.html (8 differences)
   head > meta: attribute_differs - expected: "content='2024-12-06T11:08:00+08:00'", actual: "content='2024-12-06 11:08'"
   body > header > time: attribute_differs - expected: "datetime='2024-12-06 11:08:00 +0800'", actual: "datetime='2024-12-06 11:08'"
   body > header > time: text_differs - expected: '2024/12/06 11:08', actual: '2024-12-06 11:08'
-  body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2024-12-06-aa'", actual: "href='https://likes.muan.dev/?id=/notes/2024-12-06-aa.html'"
+  body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2024-12-06-aa'", actual: "href='https://likes.muan.dev/?id=/notes/2024-12-06-aa.html'"  Progress: 1100/2218 files compared...
+
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
 DIFF notes/2024-12-06-cc.html (8 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/notes/2024-12-06-cc'", actual: "content='https://muan.co/notes/2024-12-06-cc.html'"
@@ -9088,8 +9101,7 @@ DIFF notes/2024-12-07-aa.html (17 differences)
   head > meta: attribute_differs - expected: "content='Against software development:\\n\\nTo those who have a choice:\\nRefuse to work on systems that profit from digital addictions.\\nRefuse to work on systems that centralize control of media.\\nRefuse to work on systems that prop up an unjust status...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='Against software development:\\n\\nTo those who have a choice:\\nRefuse to work on systems that profit from digital addictions.\\nRefuse to work on systems that centralize control of media.\\nRefuse to work on systems that prop up an unjust status...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='2024-12-07T06:11:00+08:00'", actual: "content='2024-12-07 06:11'"
-  body > header > time: attribute_differs - expected: "datetime='2024-12-07 06:11:00 +0800'", actual: "datetime='2024-12-07 06:11'"  Progress: 1100/2218 files compared...
-
+  body > header > time: attribute_differs - expected: "datetime='2024-12-07 06:11:00 +0800'", actual: "datetime='2024-12-07 06:11'"
   body > header > time: text_differs - expected: '2024/12/07 06:11', actual: '2024-12-07 06:11'
   body > main > div > blockquote > p: text_differs - expected: 'Refuse to work on systems that profit from digital addictions.', actual: 'Refuse to work on systems that profit from digital addictions. Refuse to work on systems that centralize control of media. Refuse to work on systems that prop up an unjust status quo. Refuse to work on systems that require unsustainable tradeoffs. Refuse to work on systems that weaponize the fabric of society.'
   body > main > div > blockquote > p > br: missing_element - expected: '<br>', actual: '(none)'
@@ -10004,8 +10016,7 @@ DIFF notes/2025-04-12-aa.html (13 differences)
   body > main > div > p > a: missing_element - expected: '<a>', actual: '(none)'
   ... and 3 more differences
 DIFF notes/2025-04-12-cc.html (8 differences)
-  head > meta: attribute_differs - expected: "content='https://muan.co/notes/2025-04-12-cc'", actual: "content='https://muan.co/notes/2025-04-12-cc.html'"  Progress: 1200/2218 files compared...
-
+  head > meta: attribute_differs - expected: "content='https://muan.co/notes/2025-04-12-cc'", actual: "content='https://muan.co/notes/2025-04-12-cc.html'"
   head > meta: attribute_differs - expected: "content='OK, might have to revisit this AI for therapy thing. Damn.\\nMy ChatGPT turned into an extremely warm conversationist with a few added customizations. The output has made me cry a few times just in the last few days.\\nBut then again it also...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='OK, might have to revisit this AI for therapy thing. Damn.\\nMy ChatGPT turned into an extremely warm conversationist with a few added customizations. The output has made me cry a few times just in the last few days.\\nBut then again it also...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='2025-04-12T07:27:00+08:00'", actual: "content='2025-04-12 07:27'"
@@ -10040,7 +10051,8 @@ DIFF notes/2025-04-14-aa.html (8 differences)
   head > meta: attribute_differs - expected: "content='Hot take Mu-An strikes again. Liking someone is a feeling, loving someone is a skill.\\nLately I’ve been talking to folks about restarting a band.  Oh, little known fact, I used to be in a Muse cover band—I am gradually seeing how people o...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='2025-04-14T02:47:00+08:00'", actual: "content='2025-04-14 02:47'"
   body > header > time: attribute_differs - expected: "datetime='2025-04-14 02:47:00 +0800'", actual: "datetime='2025-04-14 02:47'"
-  body > header > time: text_differs - expected: '2025/04/14 02:47', actual: '2025-04-14 02:47'
+  body > header > time: text_differs - expected: '2025/04/14 02:47', actual: '2025-04-14 02:47'  Progress: 1200/2218 files compared...
+
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2025-04-14-aa'", actual: "href='https://likes.muan.dev/?id=/notes/2025-04-14-aa.html'"
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
 DIFF notes/2025-04-14-cc.html (8 differences)
@@ -10224,13 +10236,15 @@ DIFF notes/2025-05-03-cc.html (15 differences)
   body > main > div > p: missing_text - expected: '沒有辦法持續的，', actual: '(none)'
   body > main > div > p > br: missing_element - expected: '<br>', actual: '(none)'
   ... and 5 more differences
-DIFF notes/2025-05-04-aa.html (8 differences)
+DIFF notes/2025-05-04-aa.html (10 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/notes/2025-05-04-aa'", actual: "content='https://muan.co/notes/2025-05-04-aa.html'"
   head > meta: attribute_differs - expected: "content='Content warningI wish a fatal accident happen to me so I don’t have to be responsible of taking my own life.\\n'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='Content warningI wish a fatal accident happen to me so I don’t have to be responsible of taking my own life.\\n'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='2025-05-04T23:38:00+08:00'", actual: "content='2025-05-04 23:38'"
   body > header > time: attribute_differs - expected: "datetime='2025-05-04 23:38:00 +0800'", actual: "datetime='2025-05-04 23:38'"
   body > header > time: text_differs - expected: '2025/05/04 23:38', actual: '2025-05-04 23:38'
+  body > main > div > details: expected_text_got_element - expected: 'I wish a fatal accident happen to me so I don’t have to be responsible of taking my own life.', actual: '<p>'
+  body > main > div > details > p: extra_element - expected: '(none)', actual: '<p>'
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2025-05-04-aa'", actual: "href='https://likes.muan.dev/?id=/notes/2025-05-04-aa.html'"
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
 DIFF notes/2025-05-06-aa.html (8 differences)
@@ -10662,13 +10676,15 @@ DIFF notes/2025-07-23-aa.html (8 differences)
   body > header > time: text_differs - expected: '2025/07/23 21:42', actual: '2025-07-23 21:42'
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2025-07-23-aa'", actual: "href='https://likes.muan.dev/?id=/notes/2025-07-23-aa.html'"
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
-DIFF notes/2025-07-24-aa.html (8 differences)
+DIFF notes/2025-07-24-aa.html (10 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/notes/2025-07-24-aa'", actual: "content='https://muan.co/notes/2025-07-24-aa.html'"
   head > meta: attribute_differs - expected: "content='Content warning如果現在墜機就不用繼續活著了。\\n基本上這幾年每次坐飛機都會有這樣的想法。我想大家應該不會想跟我坐同一班飛機吧。\\n'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='Content warning如果現在墜機就不用繼續活著了。\\n基本上這幾年每次坐飛機都會有這樣的想法。我想大家應該不會想跟我坐同一班飛機吧。\\n'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='2025-07-24T18:09:00+08:00'", actual: "content='2025-07-24 18:09'"
   body > header > time: attribute_differs - expected: "datetime='2025-07-24 18:09:00 +0800'", actual: "datetime='2025-07-24 18:09'"
   body > header > time: text_differs - expected: '2025/07/24 18:09', actual: '2025-07-24 18:09'
+  body > main > div > details: expected_text_got_element - expected: '如果現在墜機就不用繼續活著了。', actual: '<p>'
+  body > main > div > details > p: extra_element - expected: '(none)', actual: '<p>'
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2025-07-24-aa'", actual: "href='https://likes.muan.dev/?id=/notes/2025-07-24-aa.html'"
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
 DIFF notes/2025-07-26-aa.html (8 differences)
@@ -10927,7 +10943,8 @@ DIFF notes/2025-08-30-aa.html (8 differences)
 DIFF notes/2025-08-30-cc.html (8 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/notes/2025-08-30-cc'", actual: "content='https://muan.co/notes/2025-08-30-cc.html'"
   head > meta: attribute_differs - expected: "content='We have a band practice today like back in our high school days—the guitarist is now a professor on creative industries in the UK, the drummer is a writer at WSJ, and there’s me, a funemployed bass player.\\n'", actual: "content=''"
-  head > meta: attribute_differs - expected: "content='We have a band practice today like back in our high school days—the guitarist is now a professor on creative industries in the UK, the drummer is a writer at WSJ, and there’s me, a funemployed bass player.\\n'", actual: "content=''"
+  head > meta: attribute_differs - expected: "content='We have a band practice today like back in our high school days—the guitarist is now a professor on creative industries in the UK, the drummer is a writer at WSJ, and there’s me, a funemployed bass player.\\n'", actual: "content=''"  Progress: 1300/2218 files compared...
+
   head > meta: attribute_differs - expected: "content='2025-08-30T11:42:00+08:00'", actual: "content='2025-08-30 11:42'"
   body > header > time: attribute_differs - expected: "datetime='2025-08-30 11:42:00 +0800'", actual: "datetime='2025-08-30 11:42'"
   body > header > time: text_differs - expected: '2025/08/30 11:42', actual: '2025-08-30 11:42'
@@ -10947,8 +10964,7 @@ DIFF notes/2025-09-01-aa.html (13 differences)
   ... and 3 more differences
 DIFF notes/2025-09-03-aa.html (8 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/notes/2025-09-03-aa'", actual: "content='https://muan.co/notes/2025-09-03-aa.html'"
-  head > meta: attribute_differs - expected: "content='\\nI don’t have body dysmorphia. I am a woman in Asia.\\n\\n— @babypinkhaus\\n'", actual: "content=''"  Progress: 1300/2218 files compared...
-
+  head > meta: attribute_differs - expected: "content='\\nI don’t have body dysmorphia. I am a woman in Asia.\\n\\n— @babypinkhaus\\n'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='\\nI don’t have body dysmorphia. I am a woman in Asia.\\n\\n— @babypinkhaus\\n'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='2025-09-03T07:19:00+08:00'", actual: "content='2025-09-03 07:19'"
   body > header > time: attribute_differs - expected: "datetime='2025-09-03 07:19:00 +0800'", actual: "datetime='2025-09-03 07:19'"
@@ -11849,7 +11865,8 @@ DIFF notes/2026-01-02-aa.html (8 differences)
   head > meta: attribute_differs - expected: "content='Honestly still don’t quite know the point of “Happy New Year.” I used to really struggle with this, but now I have accepted my part in the society that I will respond with the words reflexively. But still, I’d prefer if this isn’t said t...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='2026-01-02T06:51:00+08:00'", actual: "content='2026-01-02 06:51'"
   body > header > time: attribute_differs - expected: "datetime='2026-01-02 06:51:00 +0800'", actual: "datetime='2026-01-02 06:51'"
-  body > header > time: text_differs - expected: '2026/01/02 06:51', actual: '2026-01-02 06:51'
+  body > header > time: text_differs - expected: '2026/01/02 06:51', actual: '2026-01-02 06:51'  Progress: 1400/2218 files compared...
+
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2026-01-02-aa'", actual: "href='https://likes.muan.dev/?id=/notes/2026-01-02-aa.html'"
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
 DIFF notes/2026-01-11-aa.html (8 differences)
@@ -11865,8 +11882,7 @@ DIFF notes/2026-01-21-aa.html (8 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/notes/2026-01-21-aa'", actual: "content='https://muan.co/notes/2026-01-21-aa.html'"
   head > meta: attribute_differs - expected: "content='Soooo, hello. I haven’t updated things for a while; because upon upgrading my phone, all my photo uploading shortcuts disappeared.\\nI haven’t had much to write about—not that I ever had. I am still deeply into making dice, and I continue ...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='Soooo, hello. I haven’t updated things for a while; because upon upgrading my phone, all my photo uploading shortcuts disappeared.\\nI haven’t had much to write about—not that I ever had. I am still deeply into making dice, and I continue ...'", actual: "content=''"
-  head > meta: attribute_differs - expected: "content='2026-01-21T22:25:00+08:00'", actual: "content='2026-01-21 22:25'"  Progress: 1400/2218 files compared...
-
+  head > meta: attribute_differs - expected: "content='2026-01-21T22:25:00+08:00'", actual: "content='2026-01-21 22:25'"
   body > header > time: attribute_differs - expected: "datetime='2026-01-21 22:25:00 +0800'", actual: "datetime='2026-01-21 22:25'"
   body > header > time: text_differs - expected: '2026/01/21 22:25', actual: '2026-01-21 22:25'
   body > main > div > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2026-01-21-aa'", actual: "href='https://likes.muan.dev/?id=/notes/2026-01-21-aa.html'"
@@ -12031,7 +12047,8 @@ DIFF pages/blogroll.html (6 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
   h2: extra_element - expected: '(none)', actual: '<h2>'
   p: extra_element - expected: '(none)', actual: '<p>'
-DIFF pages/causes.html (1 differences)
+DIFF pages/causes.html (2 differences)
+  body > main > article > ul > li > a: attribute_differs - expected: "href='https://www.edunion.org.tw/%E6%8D%90%E6%AC%BE%E8%B3%87%E8%A8%8A/'", actual: "href='https://www.edunion.org.tw/捐款資訊/'"
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
 DIFF pages/endorsements.html (9 differences)
   body > main > article > h2: attribute_differs - expected: "id='by-a-hrefhttpsinfrequentlyorgalex-russella-currently-microsoft-w3c-tag-previously-google'", actual: "id='by-alex-russell-currently-microsoft-w3c-tag-previously-google'"
@@ -12082,18 +12099,18 @@ DIFF pages/goodies.html (6 differences)
   body > main > article > p > a > code: extra_attribute - expected: '(none)', actual: "class='highlighter-rouge language-plaintext'"
   body > main > article > p > img: attribute_differs - expected: 'alt="Two sets of stickers with old school 88 × 31 banner design on a laptop. One reads “Member, Anti-JS JS Club, learn more” like a membership card with a pamphlet behind, the other reads “JS, Not Needed” with a red checkmark in the old W3C compliance banner style. The top sets\' color looks faded while the bottom, newer set\'s color looks bright."', actual: "alt='Two sets of stickers with old school 88 × 31 banner design on a laptop. One reads “Member, Anti-JS JS Club, learn more” like a membership card with a pamphlet behind, the other reads “JS, Not Needed” with a red checkmark in the old W3C compliance banner style. The top sets’ color looks faded while the bottom, newer set’s color looks bright.'"
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
-DIFF pages/hacking-with-swift/index.html (91 differences)
+DIFF pages/hacking-with-swift/index.html (89 differences)
   head > meta: attribute_differs - expected: 'content="Trying out 100 Days of SwiftUI. This would probably be my 5th attempt for learning iOS/macOS development. 🤞 Hopefully I keep this up.\\nDay 10\\n2021/02/27\\nSo, it\'s been half a year. I am back. Remember how confused I was by everything on Da..."', actual: "content=''"
   head > meta: attribute_differs - expected: 'content="Trying out 100 Days of SwiftUI. This would probably be my 5th attempt for learning iOS/macOS development. 🤞 Hopefully I keep this up.\\nDay 10\\n2021/02/27\\nSo, it\'s been half a year. I am back. Remember how confused I was by everything on Da..."', actual: "content=''"
   body > main > article > p: text_differs - expected: "So, it's been half a year. I am back. Remember how confused I was by everything on Day 9? I decided it's time to get some help. I reached out to my friend", actual: 'So, it’s been half a year. I am back. Remember how confused I was by everything on Day 9? I decided it’s time to get some help. I reached out to my friend'
   body > main > article > p: text_differs - expected: "I feel a lot better now, even though I think I still can't be productive yet. Let me just write down the things we covered in the 2 hours.", actual: 'I feel a lot better now, even though I think I still can’t be productive yet. Let me just write down the things we covered in the 2 hours.'
   body > main > article > ul > li > ol > li: text_differs - expected: "it won't work on", actual: 'it won’t work on'
   body > main > article > ul > li > p > code: extra_attribute - expected: '(none)', actual: "class='highlighter-rouge language-plaintext'"
-  body > main > article > ul > li > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='k'"
-  body > main > article > ul > li > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='n'"
   body > main > article > ul > li > div > div > pre > code > span: attribute_differs - expected: "class='p'", actual: "class='o'"
   body > main > article > ul > li > div > div > pre > code > span: text_differs - expected: '}', actual: '}</'
-  ... and 81 more differences
+  body > main > article > ul > li > div > div > pre > code > span: attribute_differs - expected: "class='nt'", actual: "class='na'"
+  body > main > article > ul > li > div > div > pre > code > span: text_differs - expected: '</script>', actual: 'script'
+  ... and 79 more differences
 DIFF pages/issues.html (14 differences)
   body > main > article > ul > li > p > a > code: extra_attribute - expected: '(none)', actual: "class='highlighter-rouge language-plaintext'"
   body > main > article > ul > li > p: text_differs - expected: 'Love to avoid JavaScript whenever possible, but not in love with "invoker" the name.', actual: 'Love to avoid JavaScript whenever possible, but not in love with “invoker” the name.'
@@ -12206,7 +12223,7 @@ DIFF posts/emoji-code.html (57 differences)
   body > main > article > p: text_differs - expected: "'s", actual: '’s'
   body > main > article > p: text_differs - expected: "'s", actual: '’s'
   ... and 47 more differences
-DIFF posts/first-pull-request.html (20 differences)
+DIFF posts/first-pull-request.html (21 differences)
   head > meta: attribute_differs - expected: 'content="I still remember how hard it was to open my first pull request, but when I eventually did, it became probably one of the most rewarding things I\'ve done. I wanted to share my story, in the hope of helping people getting over the first me..."', actual: "content=''"
   head > meta: attribute_differs - expected: 'content="I still remember how hard it was to open my first pull request, but when I eventually did, it became probably one of the most rewarding things I\'ve done. I wanted to share my story, in the hope of helping people getting over the first me..."', actual: "content=''"
   body > main > article > p: text_differs - expected: "I still remember how hard it was to open my first pull request, but when I eventually did, it became probably one of the most rewarding things I've done. I wanted to share my story, in the hope of helping people getting over the first mental hurdle.", actual: 'I still remember how hard it was to open my first pull request, but when I eventually did, it became probably one of the most rewarding things I’ve done. I wanted to share my story, in the hope of helping people getting over the first mental hurdle.'
@@ -12217,7 +12234,7 @@ DIFF posts/first-pull-request.html (20 differences)
   body > main > article > p: text_differs - expected: "I was putting off fixing this bug because I wasn't 100% sure if it was me who added a bad fix – and sadly I didn't know how else to achieve what we wanted, or if there was actually something wrong in Bootstrap.", actual: 'I was putting off fixing this bug because I wasn’t 100% sure if it was me who added a bad fix – and sadly I didn’t know how else to achieve what we wanted, or if there was actually something wrong in Bootstrap.'
   body > main > article > p: text_differs - expected: "The bug felt bigger than me, because it was in the ever so popular Twitter Bootstrap, what can I do about it? I'm not that good, certainly not Bootstrap contributors good, right?", actual: 'The bug felt bigger than me, because it was in the ever so popular Twitter Bootstrap, what can I do about it? I’m not that good, certainly not Bootstrap contributors good, right?'
   body > main > article > p: text_differs - expected: 'At the same time I was getting pressure from my boss – why is this bug not fixed already? And after a bit of discussions, it turned out that my boss had the same concern, "how is it possible that you found a bug in Bootstrap?" and that got me riled up.', actual: 'At the same time I was getting pressure from my boss – why is this bug not fixed already? And after a bit of discussions, it turned out that my boss had the same concern, “how is it possible that you found a bug in Bootstrap?” and that got me riled up.'
-  ... and 10 more differences
+  ... and 11 more differences
 DIFF posts/flavors-of-racism.html (3 differences)
   head > meta: attribute_differs - expected: "content='\\nGo back to your country lazy dirty chink.\\n\\nThis is a real text message I received when I was working in tech in London, in a tiny startup. At the time, I had a coworker who constantly made racist jokes—some general, some at my expense. ...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='\\nGo back to your country lazy dirty chink.\\n\\nThis is a real text message I received when I was working in tech in London, in a tiny startup. At the time, I had a coworker who constantly made racist jokes—some general, some at my expense. ...'", actual: "content=''"
@@ -12294,28 +12311,29 @@ DIFF posts/javascript.html (12 differences)
   body > main > article > p: text_differs - expected: 'From member of the Anti-JavaScript JavaScript Club,', actual: 'From member of the Anti-JavaScript JavaScript Club, Mu-An Chiou'
   body > main > article > p > br: missing_element - expected: '<br>', actual: '(none)'
   ... and 2 more differences
-DIFF posts/leaving-github.html (15 differences)
+DIFF posts/leaving-github.html (16 differences)
   head > meta: attribute_differs - expected: 'content="\\n\\nHey! I\'m leaving by Mayday\\n\\nIt is my last day at GitHub.\\nIn the last 7 years I met so many great people, and got to step into worlds that I didn’t think I belonged in. I’m extremely thankful to those of you who welcomed me with open ar..."', actual: "content=''"
   head > meta: attribute_differs - expected: 'content="\\n\\nHey! I\'m leaving by Mayday\\n\\nIt is my last day at GitHub.\\nIn the last 7 years I met so many great people, and got to step into worlds that I didn’t think I belonged in. I’m extremely thankful to those of you who welcomed me with open ar..."', actual: "content=''"
   body > main > article > child[1]: tag_name_differs - expected: 'iframe', actual: 'p'
+  body > main > article > div > a: attribute_differs - expected: "href='https://www.jpopasia.com/mayday/lyrics/37158/maydays-1st-album/hey-im-leaving-%E5%98%BF-%E6%88%91%E8%A6%81%E8%B5%B0%E4%BA%86/'", actual: "href='https://www.jpopasia.com/mayday/lyrics/37158/maydays-1st-album/hey-im-leaving-嘿-我要走了/'"
   body > main > article > p: text_differs - expected: "I have been experiencing serious burnout. Many friends saw this before I did, and before I was willing to admit it. And then 2020 came around. This year hasn't been easy on any of us. While I am fortunate and privileged in many ways, it has reached a point where I desperately need a break for my mental health. Unexpectedly, I found out that getting a break was very difficult.", actual: 'I have been experiencing serious burnout. Many friends saw this before I did, and before I was willing to admit it. And then 2020 came around. This year hasn’t been easy on any of us. While I am fortunate and privileged in many ways, it has reached a point where I desperately need a break for my mental health. Unexpectedly, I found out that getting a break was very difficult.'
   body > main > article > p: text_differs - expected: "The GitHub today isn’t the place that I so excitedly joined back when I was in my early 20s. It shouldn’t and couldn't have stayed the same, but I think it has changed so significantly that I ought to re-evaluate this choice.", actual: 'The GitHub today isn’t the place that I so excitedly joined back when I was in my early 20s. It shouldn’t and couldn’t have stayed the same, but I think it has changed so significantly that I ought to re-evaluate this choice.'
   body > main > article > p: text_differs - expected: "I thought I couldn’t afford to leave, but I can. I thought I had no choice but to stay, but I was mostly scared. I was scared because 7 years of GitHub has shaped my adulthood, because leaving a group of people I deeply respect and enjoy working with seems unwise, because making two major life decisions (resigning and moving) at the same time is overwhelming... on top of all of this, isn't everything around us terrifying enough?", actual: 'I thought I couldn’t afford to leave, but I can. I thought I had no choice but to stay, but I was mostly scared. I was scared because 7 years of GitHub has shaped my adulthood, because leaving a group of people I deeply respect and enjoy working with seems unwise, because making two major life decisions (resigning and moving) at the same time is overwhelming… on top of all of this, isn’t everything around us terrifying enough?'
   body > main > article > p: text_differs - expected: "Thanks to many friends and coworkers who lended their time to listen to my worries and frustrations. I really couldn't have come to be so sure of this decision without all their perspectives and supportive words. They helped me see that I have the materials in my inventory to craft a happier setup 🎮, and that I deserve it.", actual: 'Thanks to many friends and coworkers who lended their time to listen to my worries and frustrations. I really couldn’t have come to be so sure of this decision without all their perspectives and supportive words. They helped me see that I have the materials in my inventory to craft a happier setup 🎮, and that I deserve it.'
   body > main > article > p: text_differs - expected: "I’m going back home to Taiwan, and will try to recover from my burnout. I will look at some nature and hang out with my family and friends who won't be thousands of miles away anymore. And we can go from there.", actual: 'I’m going back home to Taiwan, and will try to recover from my burnout. I will look at some nature and hang out with my family and friends who won’t be thousands of miles away anymore. And we can go from there.'
   body > main > article > ul > li: text_differs - expected: '[💼 One time email for when I start to look for a job](', actual: '[💼 One time email for when I start to look for a job](mailto:hi+bye@muan.co?subject=📫&body=Hi Mu-An. I’d be interested to know when you start to look for a job because [reasons].)'
-  body > main > article > ul > li > a: missing_element - expected: '<a>', actual: '(none)'
-  ... and 5 more differences
+  ... and 6 more differences
 DIFF posts/logging-off.html (5 differences)
   head > meta: attribute_differs - expected: 'content="Don’t worry—still here. Just stepping off the Taiwanese zeitgeist.\\nI know I probably shouldn\'t spend precious time amid the movement to write this, but I’m finding it really hard to concentrate on anything else if I don’t take stock of e..."', actual: "content=''"
   head > meta: attribute_differs - expected: 'content="Don’t worry—still here. Just stepping off the Taiwanese zeitgeist.\\nI know I probably shouldn\'t spend precious time amid the movement to write this, but I’m finding it really hard to concentrate on anything else if I don’t take stock of e..."', actual: "content=''"
   body > main > article > p: text_differs - expected: "I know I probably shouldn't spend precious time amid the movement to write this, but I’m finding it really hard to concentrate on anything else if I don’t take stock of everything that’s happened so far.", actual: 'I know I probably shouldn’t spend precious time amid the movement to write this, but I’m finding it really hard to concentrate on anything else if I don’t take stock of everything that’s happened so far.'
   body > main > article > p: text_differs - expected: "I’m not losing my values—just recognizing my very limited reach and abilities, and taking a step back so I don't fall off a cliff.", actual: 'I’m not losing my values—just recognizing my very limited reach and abilities, and taking a step back so I don’t fall off a cliff.'
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
-DIFF posts/mission-focused.html (6 differences)
+DIFF posts/mission-focused.html (7 differences)
   head > meta: attribute_differs - expected: "content='\\n\\nGood Night! Formosa! by Fire EX.\\n\\nLast night, one of the people in my US Overwatch squad asked when I will move back to China while we were queuing for a game. I refuted, saying “well, I am from Taiwan”. Two other people in the group b...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='\\n\\nGood Night! Formosa! by Fire EX.\\n\\nLast night, one of the people in my US Overwatch squad asked when I will move back to China while we were queuing for a game. I refuted, saying “well, I am from Taiwan”. Two other people in the group b...'", actual: "content=''"
   body > main > article > child[1]: tag_name_differs - expected: 'iframe', actual: 'p'
+  body > main > article > div > a: attribute_differs - expected: "href='https://islandnationblog.wordpress.com/2017/01/19/%E6%BB%85%E7%81%AB%E5%99%A8-%E6%99%9A%E5%AE%89%E5%8F%B0%E7%81%A3good-night-formosa/'", actual: "href='https://islandnationblog.wordpress.com/2017/01/19/滅火器-晚安台灣good-night-formosa/'"
   body > main > article > p: text_differs - expected: "I can’t check politics at the door when I enter this game, this meeting, or this company. It is part of my life because everything around me contantly reminds me of it and works against me because of it. I don't want it to be, but it is. I don't have a choice but to fight against oppression every minute of my life because the alternative is pain and suffering. Action/Reaction. They come in forms small as paper cuts, and big as the very real possibility of losing human/civil rights.", actual: 'I can’t check politics at the door when I enter this game, this meeting, or this company. It is part of my life because everything around me contantly reminds me of it and works against me because of it. I don’t want it to be, but it is. I don’t have a choice but to fight against oppression every minute of my life because the alternative is pain and suffering. Action/Reaction. They come in forms small as paper cuts, and big as the very real possibility of losing human/civil rights.'
   body > main > article > p: text_differs - expected: 'I don’t know how they don’t, can’t, won’t see us, or see how "mission-focused" plainly suggests to ignore your bleeding wound for 8 hours a day while new wounds appear and old wounds deteriorate.', actual: 'I don’t know how they don’t, can’t, won’t see us, or see how “mission-focused” plainly suggests to ignore your bleeding wound for 8 hours a day while new wounds appear and old wounds deteriorate.'
   body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
@@ -12364,16 +12382,18 @@ DIFF posts/presence.html (21 differences)
   body > main > article > ul > li > ul > li: text_differs - expected: "I'm listening to this song", actual: 'I’m listening to this song'
   body > main > article > ul > li > ul > li: text_differs - expected: "I'm playing this video on the background", actual: 'I’m playing this video on the background'
   ... and 11 more differences
-DIFF posts/reparations.html (9 differences)
+DIFF posts/reparations.html (11 differences)
   head > meta: attribute_differs - expected: "content='Translation for Reparations——What being Armenian taught me about #BlackLivesMatter.\\n\\n\\n轉型正義是民主國家對過去獨裁政府實施的違法和不正義行為的彌補，通常具有司法、歷史、行政、憲法、賠償等面向。其根本基礎在還原歷史真相。...改變體制、避免重蹈覆轍、與最終的和解、撫平傷痛。 維基百科：轉型正義\\n\\n\\nTransitional justice consists of judicial and...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='Translation for Reparations——What being Armenian taught me about #BlackLivesMatter.\\n\\n\\n轉型正義是民主國家對過去獨裁政府實施的違法和不正義行為的彌補，通常具有司法、歷史、行政、憲法、賠償等面向。其根本基礎在還原歷史真相。...改變體制、避免重蹈覆轍、與最終的和解、撫平傷痛。 維基百科：轉型正義\\n\\n\\nTransitional justice consists of judicial and...'", actual: "content=''"
   body > main > article > blockquote > p: text_differs - expected: '，通常具有司法、歷史、行政、憲法、賠償等面向。其根本基礎在還原歷史真相。...改變體制、避免重蹈覆轍、與最終的和解、撫平傷痛。', actual: '，通常具有司法、歷史、行政、憲法、賠償等面向。其根本基礎在還原歷史真相。…改變體制、避免重蹈覆轍、與最終的和解、撫平傷痛。'
+  body > main > article > blockquote > p > a: attribute_differs - expected: "href='https://zh.wikipedia.org/zh-tw/%E8%BD%89%E5%9E%8B%E6%AD%A3%E7%BE%A9'", actual: "href='https://zh.wikipedia.org/zh-tw/轉型正義'"
   body > main > article > blockquote > p: text_differs - expected: 'Transitional justice consists of judicial and non-judicial measures implemented in order to redress legacies of human rights abuses. Such measures "include criminal prosecutions, truth commissions,', actual: 'Transitional justice consists of judicial and non-judicial measures implemented in order to redress legacies of human rights abuses. Such measures “include criminal prosecutions, truth commissions,'
   body > main > article > blockquote > p: text_differs - expected: 'programs, and various kinds of institutional reforms".', actual: 'programs, and various kinds of institutional reforms”.'
   body > main > article > h2: attribute_differs - expected: "id='section'", actual: "id='彌補'"
+  body > main > article > p > a: attribute_differs - expected: "href='https://anthrodo.wordpress.com/2016/04/15/%E4%BA%BA%E9%AA%A8%E8%80%83%E5%8F%A4%E7%9A%84%E7%99%BC%E5%B1%95%E6%AD%B7%E5%8F%B2%E8%88%87%E7%A0%94%E7%A9%B6%E5%80%AB%E7%90%86/'", actual: "href='https://anthrodo.wordpress.com/2016/04/15/人骨考古的發展歷史與研究倫理/'"
   body > main > article > p > a: attribute_differs - expected: "href='/posts/thoughts-on-reparations'", actual: "href='/posts/2020-06-06-thoughts-on-reparations.html'"
   body > main > article > p > a: text_differs - expected: '翻譯後記 Thoughts on "Reparations"', actual: '翻譯後記 Thoughts on “Reparations”'
-  body > footer > p > a: attribute_differs - expected: "href='/pages/banners'", actual: "href='/pages/banners.html'"
+  ... and 1 more differences
 DIFF posts/scribble-the-jekyll-theme.html (12 differences)
   head > meta: attribute_differs - expected: "content='Update: 25 Sep 2012\\nI decided it was too much work to add a new theme, and rather not destroy the joy of redesigning blogs by constraining myself with frameworks, so.. from now on the themes will be in the repository of this blog, meanin...'", actual: "content=''"
   head > meta: attribute_differs - expected: "content='Update: 25 Sep 2012\\nI decided it was too much work to add a new theme, and rather not destroy the joy of redesigning blogs by constraining myself with frameworks, so.. from now on the themes will be in the repository of this blog, meanin...'", actual: "content=''"
@@ -12530,7 +12550,8 @@ DIFF stories/04d9c79f-496c-4b9e-8c36-996dc6930d00.html (3 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/04d9c79f-496c-4b9e-8c36-996dc6930d00'", actual: "content='https://muan.co/stories/04d9c79f-496c-4b9e-8c36-996dc6930d00.html'"
   head > meta: attribute_differs - expected: "content='Making Figma stickers my own~'", actual: "content=''"
   body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/04d9c79f-496c-4b9e-8c36-996dc6930d00'", actual: "href='https://likes.muan.dev/?id=/stories/04d9c79f-496c-4b9e-8c36-996dc6930d00.html'"
-DIFF stories/051e24f3-34b8-4890-0336-33f091730d00.html (3 differences)
+DIFF stories/051e24f3-34b8-4890-0336-33f091730d00.html (3 differences)  Progress: 1500/2218 files compared...
+
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/051e24f3-34b8-4890-0336-33f091730d00'", actual: "content='https://muan.co/stories/051e24f3-34b8-4890-0336-33f091730d00.html'"
   head > meta: attribute_differs - expected: "content='She came on my lap! For the first time!'", actual: "content=''"
   body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/051e24f3-34b8-4890-0336-33f091730d00'", actual: "href='https://likes.muan.dev/?id=/stories/051e24f3-34b8-4890-0336-33f091730d00.html'"
@@ -12547,8 +12568,7 @@ DIFF stories/056a77d4-7bef-4ccb-273f-aded7e373700.html (3 differences)
 DIFF stories/05b9a39f-38a4-445b-e752-e27b2cc95a00.html (3 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/05b9a39f-38a4-445b-e752-e27b2cc95a00'", actual: "content='https://muan.co/stories/05b9a39f-38a4-445b-e752-e27b2cc95a00.html'"
   head > meta: attribute_differs - expected: "content='yes it was me who stood here for a song’s length channeling photosynthesis at 7am.'", actual: "content=''"
-  body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/05b9a39f-38a4-445b-e752-e27b2cc95a00'", actual: "href='https://likes.muan.dev/?id=/stories/05b9a39f-38a4-445b-e752-e27b2cc95a00.html'"  Progress: 1500/2218 files compared...
-
+  body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/05b9a39f-38a4-445b-e752-e27b2cc95a00'", actual: "href='https://likes.muan.dev/?id=/stories/05b9a39f-38a4-445b-e752-e27b2cc95a00.html'"
 DIFF stories/05ed0a83-0b79-4f41-b159-61a2d5aa1a00.html (2 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/05ed0a83-0b79-4f41-b159-61a2d5aa1a00'", actual: "content='https://muan.co/stories/05ed0a83-0b79-4f41-b159-61a2d5aa1a00.html'"
   body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/05ed0a83-0b79-4f41-b159-61a2d5aa1a00'", actual: "href='https://likes.muan.dev/?id=/stories/05ed0a83-0b79-4f41-b159-61a2d5aa1a00.html'"
@@ -12941,7 +12961,8 @@ DIFF stories/2c89f00d-08f2-489b-ba3c-47f4f42b7d00.html (3 differences)
 DIFF stories/2d261dd2-3342-4666-d6b1-0bb6170f3900.html (3 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/2d261dd2-3342-4666-d6b1-0bb6170f3900'", actual: "content='https://muan.co/stories/2d261dd2-3342-4666-d6b1-0bb6170f3900.html'"
   head > meta: attribute_differs - expected: "content='Willingly went to a beach. Imagine that!'", actual: "content=''"
-  body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/2d261dd2-3342-4666-d6b1-0bb6170f3900'", actual: "href='https://likes.muan.dev/?id=/stories/2d261dd2-3342-4666-d6b1-0bb6170f3900.html'"
+  body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/2d261dd2-3342-4666-d6b1-0bb6170f3900'", actual: "href='https://likes.muan.dev/?id=/stories/2d261dd2-3342-4666-d6b1-0bb6170f3900.html'"  Progress: 1600/2218 files compared...
+
 DIFF stories/2d7e01ba-b7dd-4f63-7d62-934c0cd94d00.html (3 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/2d7e01ba-b7dd-4f63-7d62-934c0cd94d00'", actual: "content='https://muan.co/stories/2d7e01ba-b7dd-4f63-7d62-934c0cd94d00.html'"
   head > meta: attribute_differs - expected: "content='gifts/souvenir from chia-wen ♡'", actual: "content=''"
@@ -12959,8 +12980,7 @@ DIFF stories/2e3fe714-2693-4d0d-76cd-576af8348100.html (3 differences)
   head > meta: attribute_differs - expected: "content='18% の世界'", actual: "content=''"
   body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/2e3fe714-2693-4d0d-76cd-576af8348100'", actual: "href='https://likes.muan.dev/?id=/stories/2e3fe714-2693-4d0d-76cd-576af8348100.html'"
 DIFF stories/2e835e73-4a07-4ce5-43eb-0d513f6ab200.html (3 differences)
-  head > meta: attribute_differs - expected: "content='https://muan.co/stories/2e835e73-4a07-4ce5-43eb-0d513f6ab200'", actual: "content='https://muan.co/stories/2e835e73-4a07-4ce5-43eb-0d513f6ab200.html'"  Progress: 1600/2218 files compared...
-
+  head > meta: attribute_differs - expected: "content='https://muan.co/stories/2e835e73-4a07-4ce5-43eb-0d513f6ab200'", actual: "content='https://muan.co/stories/2e835e73-4a07-4ce5-43eb-0d513f6ab200.html'"
   head > meta: attribute_differs - expected: "content='Mieze ♥︎'", actual: "content=''"
   body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/2e835e73-4a07-4ce5-43eb-0d513f6ab200'", actual: "href='https://likes.muan.dev/?id=/stories/2e835e73-4a07-4ce5-43eb-0d513f6ab200.html'"
 DIFF stories/2e9b0603-7ebf-43ad-5628-eac380242f00.html (3 differences)
@@ -13322,8 +13342,7 @@ DIFF stories/4c4385ff-1426-45d9-601d-801c67363400.html (3 differences)
 DIFF stories/4c971af9-4a50-40a8-0d69-2612249cf800.html (3 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/4c971af9-4a50-40a8-0d69-2612249cf800'", actual: "content='https://muan.co/stories/4c971af9-4a50-40a8-0d69-2612249cf800.html'"
   head > meta: attribute_differs - expected: "content='My barista friend came and gave me a very hands-on lesson for pulling shots. I think I improved some, conceptually.'", actual: "content=''"
-  body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/4c971af9-4a50-40a8-0d69-2612249cf800'", actual: "href='https://likes.muan.dev/?id=/stories/4c971af9-4a50-40a8-0d69-2612249cf800.html'"  Progress: 1700/2218 files compared...
-
+  body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/4c971af9-4a50-40a8-0d69-2612249cf800'", actual: "href='https://likes.muan.dev/?id=/stories/4c971af9-4a50-40a8-0d69-2612249cf800.html'"
 DIFF stories/4d3ce3f4-f046-4636-3de4-0462ece85a00.html (3 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/4d3ce3f4-f046-4636-3de4-0462ece85a00'", actual: "content='https://muan.co/stories/4d3ce3f4-f046-4636-3de4-0462ece85a00.html'"
   head > meta: attribute_differs - expected: "content='I don’t understand how these pair of exquisite cups were just free cause I bought stuff. @ 大人小學古文具'", actual: "content=''"
@@ -13354,7 +13373,8 @@ DIFF stories/4e7a8153-999e-45da-feba-4889df480200.html (3 differences)
 DIFF stories/4f3041ac-1df1-48f0-3121-85f06d7dd400.html (3 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/4f3041ac-1df1-48f0-3121-85f06d7dd400'", actual: "content='https://muan.co/stories/4f3041ac-1df1-48f0-3121-85f06d7dd400.html'"
   head > meta: attribute_differs - expected: "content='I’d give Tate Modern all of my money.'", actual: "content=''"
-  body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/4f3041ac-1df1-48f0-3121-85f06d7dd400'", actual: "href='https://likes.muan.dev/?id=/stories/4f3041ac-1df1-48f0-3121-85f06d7dd400.html'"
+  body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/4f3041ac-1df1-48f0-3121-85f06d7dd400'", actual: "href='https://likes.muan.dev/?id=/stories/4f3041ac-1df1-48f0-3121-85f06d7dd400.html'"  Progress: 1700/2218 files compared...
+
 DIFF stories/4f3189c4-b272-481d-777a-ed730a699200.html (3 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/4f3189c4-b272-481d-777a-ed730a699200'", actual: "content='https://muan.co/stories/4f3189c4-b272-481d-777a-ed730a699200.html'"
   head > meta: attribute_differs - expected: "content='💐'", actual: "content=''"
@@ -13712,7 +13732,8 @@ DIFF stories/6ebf8ae6-3f11-42d1-bf1d-a9b6adc2a200.html (3 differences)
   head > meta: attribute_differs - expected: "content='Improved a little bit. Image recognition deemed it as a heart-shaped foam.'", actual: "content=''"
   body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/6ebf8ae6-3f11-42d1-bf1d-a9b6adc2a200'", actual: "href='https://likes.muan.dev/?id=/stories/6ebf8ae6-3f11-42d1-bf1d-a9b6adc2a200.html'"
 DIFF stories/6f11ee4f-7487-4540-f500-739e7bc2d500.html (3 differences)
-  head > meta: attribute_differs - expected: "content='https://muan.co/stories/6f11ee4f-7487-4540-f500-739e7bc2d500'", actual: "content='https://muan.co/stories/6f11ee4f-7487-4540-f500-739e7bc2d500.html'"
+  head > meta: attribute_differs - expected: "content='https://muan.co/stories/6f11ee4f-7487-4540-f500-739e7bc2d500'", actual: "content='https://muan.co/stories/6f11ee4f-7487-4540-f500-739e7bc2d500.html'"  Progress: 1800/2218 files compared...
+
   head > meta: attribute_differs - expected: "content='camera repair shop cat'", actual: "content=''"
   body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/6f11ee4f-7487-4540-f500-739e7bc2d500'", actual: "href='https://likes.muan.dev/?id=/stories/6f11ee4f-7487-4540-f500-739e7bc2d500.html'"
 DIFF stories/6f44798e-f732-428a-6491-2ee8f8803a00.html (3 differences)
@@ -13730,8 +13751,7 @@ DIFF stories/6f835b01-6a62-4e8a-3144-86e71c38c400.html (3 differences)
 DIFF stories/6fd00dfe-3b03-4977-c2f8-6609777d7300.html (3 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/6fd00dfe-3b03-4977-c2f8-6609777d7300'", actual: "content='https://muan.co/stories/6fd00dfe-3b03-4977-c2f8-6609777d7300.html'"
   head > meta: attribute_differs - expected: "content='I came to see some waters, some coral reefs, and some fishes.'", actual: "content=''"
-  body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/6fd00dfe-3b03-4977-c2f8-6609777d7300'", actual: "href='https://likes.muan.dev/?id=/stories/6fd00dfe-3b03-4977-c2f8-6609777d7300.html'"  Progress: 1800/2218 files compared...
-
+  body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/6fd00dfe-3b03-4977-c2f8-6609777d7300'", actual: "href='https://likes.muan.dev/?id=/stories/6fd00dfe-3b03-4977-c2f8-6609777d7300.html'"
 DIFF stories/708ef60a-cb9f-41bb-6086-c3e2173d9100.html (3 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/708ef60a-cb9f-41bb-6086-c3e2173d9100'", actual: "content='https://muan.co/stories/708ef60a-cb9f-41bb-6086-c3e2173d9100.html'"
   head > meta: attribute_differs - expected: "content='Berlin in a nutshell.'", actual: "content=''"
@@ -14090,8 +14110,7 @@ DIFF stories/931d3ab1-62b4-4337-9b65-35ea70d5e500.html (3 differences)
 DIFF stories/93371bab-739c-4763-f74c-6b29b3c41b00.html (3 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/93371bab-739c-4763-f74c-6b29b3c41b00'", actual: "content='https://muan.co/stories/93371bab-739c-4763-f74c-6b29b3c41b00.html'"
   head > meta: attribute_differs - expected: "content='Got this two year ago.'", actual: "content=''"
-  body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/93371bab-739c-4763-f74c-6b29b3c41b00'", actual: "href='https://likes.muan.dev/?id=/stories/93371bab-739c-4763-f74c-6b29b3c41b00.html'"  Progress: 1900/2218 files compared...
-
+  body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/93371bab-739c-4763-f74c-6b29b3c41b00'", actual: "href='https://likes.muan.dev/?id=/stories/93371bab-739c-4763-f74c-6b29b3c41b00.html'"
 DIFF stories/935bce96-b324-4511-fa15-3a719cc7ce00.html (3 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/935bce96-b324-4511-fa15-3a719cc7ce00'", actual: "content='https://muan.co/stories/935bce96-b324-4511-fa15-3a719cc7ce00.html'"
   head > meta: attribute_differs - expected: "content='First time in Google Taipei. Food is not great.'", actual: "content=''"
@@ -14122,7 +14141,8 @@ DIFF stories/94ff8279-a2b3-4e56-d01a-2006030e8500.html (3 differences)
   body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/94ff8279-a2b3-4e56-d01a-2006030e8500'", actual: "href='https://likes.muan.dev/?id=/stories/94ff8279-a2b3-4e56-d01a-2006030e8500.html'"
 DIFF stories/960c9038-cc46-4135-4719-7dfc76b6da00.html (3 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/960c9038-cc46-4135-4719-7dfc76b6da00'", actual: "content='https://muan.co/stories/960c9038-cc46-4135-4719-7dfc76b6da00.html'"
-  head > meta: attribute_differs - expected: "content='sup'", actual: "content=''"
+  head > meta: attribute_differs - expected: "content='sup'", actual: "content=''"  Progress: 1900/2218 files compared...
+
   body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/960c9038-cc46-4135-4719-7dfc76b6da00'", actual: "href='https://likes.muan.dev/?id=/stories/960c9038-cc46-4135-4719-7dfc76b6da00.html'"
 DIFF stories/96fa3d0e-cb1b-4919-22e6-912eb6359200.html (3 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/96fa3d0e-cb1b-4919-22e6-912eb6359200'", actual: "content='https://muan.co/stories/96fa3d0e-cb1b-4919-22e6-912eb6359200.html'"
@@ -14480,7 +14500,8 @@ DIFF stories/b64e65b0-7279-4fb1-a405-849a069e3b00.html (3 differences)
 DIFF stories/b69ca057-59f3-4746-79ac-4f4085a39900.html (3 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/b69ca057-59f3-4746-79ac-4f4085a39900'", actual: "content='https://muan.co/stories/b69ca057-59f3-4746-79ac-4f4085a39900.html'"
   head > meta: attribute_differs - expected: "content='Baked.'", actual: "content=''"
-  body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/b69ca057-59f3-4746-79ac-4f4085a39900'", actual: "href='https://likes.muan.dev/?id=/stories/b69ca057-59f3-4746-79ac-4f4085a39900.html'"
+  body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/b69ca057-59f3-4746-79ac-4f4085a39900'", actual: "href='https://likes.muan.dev/?id=/stories/b69ca057-59f3-4746-79ac-4f4085a39900.html'"  Progress: 2000/2218 files compared...
+
 DIFF stories/b6c5ad83-d623-4ce8-8eb1-9aaf4f9a7200.html (3 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/b6c5ad83-d623-4ce8-8eb1-9aaf4f9a7200'", actual: "content='https://muan.co/stories/b6c5ad83-d623-4ce8-8eb1-9aaf4f9a7200.html'"
   head > meta: attribute_differs - expected: "content='C O L O N I Z A T I O N.'", actual: "content=''"
@@ -14499,8 +14520,7 @@ DIFF stories/b826f871-4b7a-4dc2-a9b6-1b954cd77a00.html (2 differences)
 DIFF stories/b876bb7b2bbb5a14ab69e38a7ccecc15.html (3 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/b876bb7b2bbb5a14ab69e38a7ccecc15'", actual: "content='https://muan.co/stories/b876bb7b2bbb5a14ab69e38a7ccecc15.html'"
   head > meta: attribute_differs - expected: "content='Slow zoom into a tabby cat on a window bed with its eyes closed with backdrops of greenery outdoors through a window.'", actual: "content=''"
-  body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/b876bb7b2bbb5a14ab69e38a7ccecc15'", actual: "href='https://likes.muan.dev/?id=/stories/b876bb7b2bbb5a14ab69e38a7ccecc15.html'"  Progress: 2000/2218 files compared...
-
+  body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/b876bb7b2bbb5a14ab69e38a7ccecc15'", actual: "href='https://likes.muan.dev/?id=/stories/b876bb7b2bbb5a14ab69e38a7ccecc15.html'"
 DIFF stories/b8ab677b-890e-4db1-38b6-9a373ad10200.html (2 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/b8ab677b-890e-4db1-38b6-9a373ad10200'", actual: "content='https://muan.co/stories/b8ab677b-890e-4db1-38b6-9a373ad10200.html'"
   body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/b8ab677b-890e-4db1-38b6-9a373ad10200'", actual: "href='https://likes.muan.dev/?id=/stories/b8ab677b-890e-4db1-38b6-9a373ad10200.html'"
@@ -14839,7 +14859,8 @@ DIFF stories/d5f9741c8eea4d3d836c7c84509b1159.html (3 differences)
   body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/d5f9741c8eea4d3d836c7c84509b1159'", actual: "href='https://likes.muan.dev/?id=/stories/d5f9741c8eea4d3d836c7c84509b1159.html'"
 DIFF stories/d61eed15-2e7a-4d9b-17c1-a946391f2f00.html (2 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/d61eed15-2e7a-4d9b-17c1-a946391f2f00'", actual: "content='https://muan.co/stories/d61eed15-2e7a-4d9b-17c1-a946391f2f00.html'"
-  body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/d61eed15-2e7a-4d9b-17c1-a946391f2f00'", actual: "href='https://likes.muan.dev/?id=/stories/d61eed15-2e7a-4d9b-17c1-a946391f2f00.html'"
+  body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/d61eed15-2e7a-4d9b-17c1-a946391f2f00'", actual: "href='https://likes.muan.dev/?id=/stories/d61eed15-2e7a-4d9b-17c1-a946391f2f00.html'"  Progress: 2100/2218 files compared...
+
 DIFF stories/d6327bdf-76a7-4be2-6b65-b35caf5fcd00.html (3 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/d6327bdf-76a7-4be2-6b65-b35caf5fcd00'", actual: "content='https://muan.co/stories/d6327bdf-76a7-4be2-6b65-b35caf5fcd00.html'"
   head > meta: attribute_differs - expected: "content='《活著覺得麻煩的人》. easy to digest. somewhat therapeutic in a validating way.'", actual: "content=''"
@@ -14858,8 +14879,7 @@ DIFF stories/d74d8f3a-b258-4082-b221-f47e98bcb500.html (3 differences)
 DIFF stories/d7f99b87-2940-44d1-d33b-1ffcf806b600.html (3 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/d7f99b87-2940-44d1-d33b-1ffcf806b600'", actual: "content='https://muan.co/stories/d7f99b87-2940-44d1-d33b-1ffcf806b600.html'"
   head > meta: attribute_differs - expected: "content='Today I shakshuka.'", actual: "content=''"
-  body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/d7f99b87-2940-44d1-d33b-1ffcf806b600'", actual: "href='https://likes.muan.dev/?id=/stories/d7f99b87-2940-44d1-d33b-1ffcf806b600.html'"  Progress: 2100/2218 files compared...
-
+  body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/d7f99b87-2940-44d1-d33b-1ffcf806b600'", actual: "href='https://likes.muan.dev/?id=/stories/d7f99b87-2940-44d1-d33b-1ffcf806b600.html'"
 DIFF stories/da2476f7-9824-4f96-e610-a590a1bdf300.html (3 differences)
   head > meta: attribute_differs - expected: "content='https://muan.co/stories/da2476f7-9824-4f96-e610-a590a1bdf300'", actual: "content='https://muan.co/stories/da2476f7-9824-4f96-e610-a590a1bdf300.html'"
   head > meta: attribute_differs - expected: "content='Can’t. Think.'", actual: "content=''"
@@ -15251,7 +15271,8 @@ DIFF stories/f5be4a1e560443b5bb8716d604b2c2ea.html (3 differences)
   head > meta: attribute_differs - expected: "content='Kintsugi finished on this low budget mug that really isn’t worth the time to fix. But isn’t that just what techno pes...'", actual: "content=''"
   body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/f5be4a1e560443b5bb8716d604b2c2ea'", actual: "href='https://likes.muan.dev/?id=/stories/f5be4a1e560443b5bb8716d604b2c2ea.html'"
 DIFF stories/f61c6133-cd3a-46f0-619b-b837d765e000.html (3 differences)
-  head > meta: attribute_differs - expected: "content='https://muan.co/stories/f61c6133-cd3a-46f0-619b-b837d765e000'", actual: "content='https://muan.co/stories/f61c6133-cd3a-46f0-619b-b837d765e000.html'"
+  head > meta: attribute_differs - expected: "content='https://muan.co/stories/f61c6133-cd3a-46f0-619b-b837d765e000'", actual: "content='https://muan.co/stories/f61c6133-cd3a-46f0-619b-b837d765e000.html'"  Progress: 2200/2218 files compared...
+
   head > meta: attribute_differs - expected: "content='好唷'", actual: "content=''"
   body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/f61c6133-cd3a-46f0-619b-b837d765e000'", actual: "href='https://likes.muan.dev/?id=/stories/f61c6133-cd3a-46f0-619b-b837d765e000.html'"
 DIFF stories/f7421b40-d713-4497-624b-22f057499700.html (3 differences)
@@ -15270,8 +15291,7 @@ DIFF stories/f8052e73-c2c4-4d3f-60ce-648c74a3da00.html (3 differences)
   head > meta: attribute_differs - expected: "content='Made myself a necklace colored with nail polish.'", actual: "content=''"
   body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/f8052e73-c2c4-4d3f-60ce-648c74a3da00'", actual: "href='https://likes.muan.dev/?id=/stories/f8052e73-c2c4-4d3f-60ce-648c74a3da00.html'"
 DIFF stories/f837db3a-5aa7-454b-2568-cace6fefd000.html (3 differences)
-  head > meta: attribute_differs - expected: "content='https://muan.co/stories/f837db3a-5aa7-454b-2568-cace6fefd000'", actual: "content='https://muan.co/stories/f837db3a-5aa7-454b-2568-cace6fefd000.html'"  Progress: 2200/2218 files compared...
-
+  head > meta: attribute_differs - expected: "content='https://muan.co/stories/f837db3a-5aa7-454b-2568-cace6fefd000'", actual: "content='https://muan.co/stories/f837db3a-5aa7-454b-2568-cace6fefd000.html'"
   head > meta: attribute_differs - expected: "content='She hopped on MY couch when I went to the bathroom and let me sit with her for a cool 3 minutes. ;)'", actual: "content=''"
   body > header > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/stories/f837db3a-5aa7-454b-2568-cace6fefd000'", actual: "href='https://likes.muan.dev/?id=/stories/f837db3a-5aa7-454b-2568-cace6fefd000.html'"
 DIFF stories/f90b1dce-4de8-4f96-3ab7-289597e1f900.html (3 differences)
@@ -15348,4 +15368,4 @@ DIFF zh-TW/index.html (32 differences)
   h2: extra_element - expected: '(none)', actual: '<h2>'
   ... and 22 more differences
 
-Summary: 29 files matched, 2189 files with differences, 17229 total differences
+Summary: 29 files matched, 2189 files with differences, 17256 total differences

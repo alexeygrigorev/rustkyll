@@ -4,17 +4,17 @@ Common HTML files:  2
 
 DIFF another-page.html (1 differences)
   body > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/leap-day'"
-DIFF index.html (72 differences)
+DIFF index.html (81 differences)
   body > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/leap-day'"
-  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='kt'"
-  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='nf'"
-  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='k'"
-  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='n'"
-  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='n'"
-  body > div > section > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'i18n'
-  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nx'", actual: "class='o'"
-  body > div > section > div > div > pre > code > span: text_differs - expected: 'i18n', actual: '='
-  body > div > section > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'require'
-  ... and 62 more differences
+  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='nx'"
+  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='nx'"
+  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='dl'", actual: "class='s1'"
+  body > div > section > div > div > pre > code > span: text_differs - expected: "'", actual: "'./lang/'"
+  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='s1'", actual: "class='o'"
+  body > div > section > div > div > pre > code > span: text_differs - expected: './lang/', actual: '+'
+  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='dl'", actual: "class='nx'"
+  body > div > section > div > div > pre > code > span: text_differs - expected: "'", actual: 'l'
+  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
+  ... and 71 more differences
 
-Summary: 0 files matched, 2 files with differences, 73 total differences
+Summary: 0 files matched, 2 files with differences, 82 total differences

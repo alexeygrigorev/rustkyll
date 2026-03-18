@@ -60,7 +60,7 @@ DIFF mydoc_adding_tooltips.html (16 differences)
   body > div > div > div > div > div > p: text_differs - expected: 'Suppose you have a glossary.yml file inside your _data folder. You could pull in that glossary definition like this:', actual: 'This renders to the following:'
   body > div > div > div > div > div > child[8]: tag_name_differs - expected: 'div', actual: 'p'
   ... and 6 more differences
-DIFF mydoc_alerts.html (241 differences)
+DIFF mydoc_alerts.html (202 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
@@ -71,7 +71,7 @@ DIFF mydoc_alerts.html (241 differences)
   body > div > div > div > div > div > h2: text_differs - expected: 'About alerts', actual: 'Alerts'
   body > div > div > div > div > div > p: text_differs - expected: 'Alerts are little warnings, info, or other messages that you have called out in special formatting. In order to use these alerts or callouts, reference the appropriate value stored in the alerts.yml file as described in the following sections.', actual: 'Similar to'
   body > div > div > div > div > div > p > a: extra_element - expected: '(none)', actual: '<a>'
-  ... and 231 more differences
+  ... and 192 more differences
 DIFF mydoc_atom_text_editor.html (23 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
@@ -184,7 +184,7 @@ DIFF mydoc_faq_layout.html (3 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
-DIFF mydoc_generating_pdfs.html (561 differences)
+DIFF mydoc_generating_pdfs.html (552 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
@@ -195,7 +195,7 @@ DIFF mydoc_generating_pdfs.html (561 differences)
   body > div > div > div > div > div > child[6]: tag_name_differs - expected: 'p', actual: 'h2'
   body > div > div > div > div > div > p: text_differs - expected: 'The basic approach is to generate a list of all web pages that need to be added to the PDF, and then add leverage Prince to package them up into a PDF. Once you set it up, building a pdf is just a matter of running a couple of commands. Also, creating a PDF this way gives you a lot more control and customization capabilities than with other methods for creating PDFs. If you know CSS, you can entirely customize the output.', actual: 'You can see an example of the finished product here:'
   body > div > div > div > div > div > child[8]: tag_name_differs - expected: 'h2', actual: 'p'
-  ... and 551 more differences
+  ... and 542 more differences
 DIFF mydoc_glossary.html (31 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
@@ -244,18 +244,18 @@ DIFF mydoc_icons.html (325 differences)
   body > div > div > div > div > div > p: text_differs - expected: 'The theme has two font icon sets integrated: Font Awesome and Glyphicons Halflings. The latter is part of Bootstrap, while the former is independent. Font icons allow you to insert icons drawn as vectors from a CDN (so you don’t have any local images on your own site).', actual: 'When you link to an external site, like'
   body > div > div > div > div > div > p > a: extra_element - expected: '(none)', actual: '<a>'
   ... and 315 more differences
-DIFF mydoc_images.html (25 differences)
+DIFF mydoc_images.html (27 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
   child[3]: tag_name_differs - expected: 'script', actual: 'div'
   p: extra_element - expected: '(none)', actual: '<p>'
   table: extra_element - expected: '(none)', actual: '<table>'
+  table: extra_element - expected: '(none)', actual: '<table>'
   p: extra_element - expected: '(none)', actual: '<p>'
   p: extra_element - expected: '(none)', actual: '<p>'
   p: extra_element - expected: '(none)', actual: '<p>'
   h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 15 more differences
+  ... and 17 more differences
 DIFF mydoc_install_jekyll_on_mac.html (87 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
@@ -351,7 +351,7 @@ DIFF mydoc_navtabs.html (65 differences)
   body > div > div > div > div > div > child[7]: tag_name_differs - expected: 'p', actual: 'h2'
   body > div > div > div > div > div > p: text_differs - expected: 'Navtabs are better for SEO since you avoid duplicate content and drive users to the same page.', actual: 'The following is a demo of a navtab. Refresh your page to see the tab you selected remain active.'
   ... and 55 more differences
-DIFF mydoc_pages.html (112 differences)
+DIFF mydoc_pages.html (105 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
@@ -362,8 +362,8 @@ DIFF mydoc_pages.html (112 differences)
   body > div > div > div > div > div > h2: text_differs - expected: 'Where to author content', actual: 'Where to save pages'
   body > div > div > div > div > div > p: text_differs - expected: 'Use a text editor such as Sublime Text, WebStorm, IntelliJ, Visual Studio Code or Atom to create pages. Atom is recommended because it’s created by Github, which is driving some of the Jekyll development through Github Pages.', actual: 'You can store your pages in any folder structures you want, with any level of folder nesting. The site output will pull all of those pages out of their folders and put them into the root directory. Check out the _site folder, which is where Jekyll is generated, to see the difference between your project’s structure and the resulting site output.'
   body > div > div > div > div > div > child[7]: tag_name_differs - expected: 'h2', actual: 'p'
-  ... and 102 more differences
-DIFF mydoc_posts.html (23 differences)
+  ... and 95 more differences
+DIFF mydoc_posts.html (24 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
@@ -374,7 +374,7 @@ DIFF mydoc_posts.html (23 differences)
   body > div > div > div > div > div > p: text_differs - expected: 'Posts are typically used for blogs or other news information because they contain a date and are sorted in reverse chronological order.', actual: 'Posts use the post.html layout in the _layouts folder when you are viewing the post.'
   body > div > div > div > div > div > p: text_differs - expected: 'You create a post by adding a file in the _posts folder that is named yyyy-mm-dddd-permalink.md, which might be 2016-02-25-my-latest-updates.md. You can use any number of subfolders here that you want.', actual: 'The news.html file in the root directory shows a reverse chronological listing of the 10 latest posts'
   body > div > div > div > div > div > child[8]: tag_name_differs - expected: 'p', actual: 'h2'
-  ... and 13 more differences
+  ... and 14 more differences
 DIFF mydoc_publishing_github_pages.html (35 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
@@ -423,7 +423,7 @@ DIFF mydoc_release_notes_60.html (43 differences)
   body > div > div > div > div > div > p: text_differs - expected: 'You can now view the site offline rather than solely through the Jekyll preview server or deployed on a web server. The linking approach in both the sidebar and with inline links uses relative linking throughout.', actual: 'You can creates folders and subfolders for your pages, similar to how you can store posts in folders and subfolders. When Jekyll builds the site, all pages get pushed into the root directory as single html files (rather than being pushed inside folders, or remaining in subfolders). See'
   body > div > div > div > div > div > p > a: extra_element - expected: '(none)', actual: '<a>'
   ... and 33 more differences
-DIFF mydoc_search_configuration.html (303 differences)
+DIFF mydoc_search_configuration.html (311 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
@@ -434,7 +434,7 @@ DIFF mydoc_search_configuration.html (303 differences)
   body > div > div > div > div > div > child[6]: tag_name_differs - expected: 'p', actual: 'h2'
   body > div > div > div > div > div > p: text_differs - expected: 'However, the search doesn’t work like google — you can’t hit return and see a list of results on the search results page, with the keywords in bold. Instead, this search shows a list of page titles that contain keyword matches. It’s fast, but simple.', actual: 'By default, every page is included in the search. Depending on the type of content you’re including, you may find that some pages will break the JSON formatting. If that happens, then the search will no longer work.'
   body > div > div > div > div > div > child[8]: tag_name_differs - expected: 'h2', actual: 'p'
-  ... and 293 more differences
+  ... and 301 more differences
 DIFF mydoc_series.html (57 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
@@ -543,7 +543,7 @@ DIFF mydoc_support.html (11 differences)
   body > div > div > div > div > div > child[7]: tag_name_differs - expected: 'div', actual: 'noscript'
   body > div > div > div > div > div > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF mydoc_supported_features.html (17 differences)
+DIFF mydoc_supported_features.html (18 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
@@ -551,10 +551,10 @@ DIFF mydoc_supported_features.html (17 differences)
   body > div > div > div > div > div > child[3]: tag_name_differs - expected: 'div', actual: 'p'
   body > div > div > div > div > div > child[4]: tag_name_differs - expected: 'a', actual: 'h2'
   body > div > div > div > div > div > child[5]: tag_name_differs - expected: 'p', actual: 'table'
-  body > div > div > div > div > div > h2: attribute_differs - expected: "id='supported-features'", actual: "id='features-not-available'"
-  body > div > div > div > div > div > h2: text_differs - expected: 'Supported features', actual: 'Features not available'
+  body > div > div > div > div > div > child[6]: tag_name_differs - expected: 'h2', actual: 'table'
   body > div > div > div > div > div > child[7]: tag_name_differs - expected: 'table', actual: 'p'
-  ... and 7 more differences
+  body > div > div > div > div > div > child[8]: tag_name_differs - expected: 'h2', actual: 'table'
+  ... and 8 more differences
 DIFF mydoc_syntax_highlighting.html (30 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
@@ -567,7 +567,7 @@ DIFF mydoc_syntax_highlighting.html (30 differences)
   body > div > div > div > div > div > child[7]: tag_name_differs - expected: 'pre', actual: 'div'
   body > div > div > div > div > div > p: text_differs - expected: 'This looks as follows:', actual: 'Fenced code blocks require a blank line before and after.'
   ... and 20 more differences
-DIFF mydoc_tables.html (78 differences)
+DIFF mydoc_tables.html (79 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
@@ -578,7 +578,7 @@ DIFF mydoc_tables.html (78 differences)
   body > div > div > div > div > div > p: expected_text_got_element - expected: 'You can use Multimarkdown syntax for tables. The following shows a sample:', actual: '<strong>'
   body > div > div > div > div > div > p > strong: extra_element - expected: '(none)', actual: '<strong>'
   body > div > div > div > div > div > child[7]: tag_name_differs - expected: 'div', actual: 'table'
-  ... and 68 more differences
+  ... and 69 more differences
 DIFF mydoc_tag_archives_overview.html (13 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
@@ -627,7 +627,7 @@ DIFF mydoc_troubleshooting.html (54 differences)
   body > div > div > div > div > div > p: text_differs - expected: 'When you try to build the site, you get this error in iTerm:', actual: 'This happens if a server is already in use. To fix this, edit your config file and change the port to a unique number.'
   body > div > div > div > div > div > child[8]: tag_name_differs - expected: 'div', actual: 'p'
   ... and 44 more differences
-DIFF mydoc_webstorm_text_editor.html (79 differences)
+DIFF mydoc_webstorm_text_editor.html (74 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
@@ -638,7 +638,7 @@ DIFF mydoc_webstorm_text_editor.html (79 differences)
   body > div > div > div > div > div > child[6]: tag_name_differs - expected: 'p', actual: 'h2'
   body > div > div > div > div > div > p: text_differs - expected: 'If you decide to use WebStorm, here are a few tips on configuring the editor.', actual: 'By default, WebStorm comes packaged with a lot more functionality than you probably need. You can lighten the editor by removing some of the plugins. Go to'
   body > div > div > div > div > div > p > strong: extra_element - expected: '(none)', actual: '<strong>'
-  ... and 69 more differences
+  ... and 64 more differences
 DIFF mydoc_workflow_maps.html (35 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
@@ -1051,4 +1051,4 @@ DIFF tocpage.html/index.html (3 differences)
   body: missing_element - expected: '<body>', actual: '(none)'
   script: missing_element - expected: '<script>', actual: '(none)'
 
-Summary: 1 files matched, 97 files with differences, 4961 total differences
+Summary: 1 files matched, 97 files with differences, 4914 total differences

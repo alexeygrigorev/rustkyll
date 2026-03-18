@@ -14,7 +14,7 @@ DIFF another-page.html (12 differences)
   head > meta: extra_element - expected: '(none)', actual: '<meta>'
   head > script: extra_element - expected: '(none)', actual: '<script>'
   ... and 2 more differences
-DIFF index.html (83 differences)
+DIFF index.html (92 differences)
   head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta: extra_element - expected: '(none)', actual: '<meta>'
   head > meta: extra_element - expected: '(none)', actual: '<meta>'
@@ -25,6 +25,6 @@ DIFF index.html (83 differences)
   head > meta: extra_element - expected: '(none)', actual: '<meta>'
   head > meta: extra_element - expected: '(none)', actual: '<meta>'
   head > script: extra_element - expected: '(none)', actual: '<script>'
-  ... and 73 more differences
+  ... and 82 more differences
 
-Summary: 0 files matched, 2 files with differences, 95 total differences
+Summary: 0 files matched, 2 files with differences, 104 total differences
