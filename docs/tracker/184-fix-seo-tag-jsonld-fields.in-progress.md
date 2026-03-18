@@ -71,3 +71,20 @@ None.
 
 - Build all 9 theme sites and verify JSON-LD output matches Jekyll for @type, url, and name fields.
 - Compare against Jekyll output for architect-theme `another-page.html` specifically.
+
+## Log
+
+### [SWE] 2026-03-18
+- Analyzed jekyll-seo-tag Ruby source (drop.rb, json_ld_drop.rb) to understand exact logic
+- Root causes identified:
+  1. `@type`: Was only BlogPosting (with date) or WebPage. Missing WebSite for homepage/about pages matching `^/(about/)?(index.html?)?$`
+  2. `name`: Was always included when full_title existed. Jekyll only includes name for homepage/about pages
+  3. `url`: Was only included when canonical_url was computed (requires site_url). Jekyll includes url from page_url even without site_url
+- TDD approach: wrote 9 new tests first, verified 5 failed, then fixed implementation
+- Added `is_homepage_or_about_url()` helper function (pure Rust, no regex crate needed)
+- Fixed @type logic: WebSite for homepage/about, BlogPosting for dated pages, WebPage otherwise
+- Fixed name logic: only emit for homepage/about pages, using site_title
+- Fixed url logic: fall back to page_url when canonical_url is unavailable
+- Updated existing `test_json_ld_contains_name` test to match new correct behavior
+- Tests: 1480+ unit tests pass, 0 fail; clippy clean; fmt clean
+- Files modified: src/template/seo_tag.rs

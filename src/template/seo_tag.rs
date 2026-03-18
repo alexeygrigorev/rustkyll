@@ -139,6 +139,15 @@ fn absolute_image_url(img: &str, site_url: &Option<String>) -> String {
 /// Title separator matching jekyll-seo-tag (` | `).
 const TITLE_SEPARATOR: &str = " | ";
 
+/// Check if a URL matches jekyll-seo-tag's HOMEPAGE_OR_ABOUT_REGEX:
+/// `%r!^/(about/)?(index.html?)?$!`
+/// Matches: `/`, `/index.html`, `/index.htm`, `/about/`, `/about/index.html`, `/about/index.htm`
+fn is_homepage_or_about_url(url: &str) -> bool {
+    let rest = url.strip_prefix('/').unwrap_or(url);
+    let rest = rest.strip_prefix("about/").unwrap_or(rest);
+    rest.is_empty() || rest == "index.html" || rest == "index.htm"
+}
+
 impl Renderable for SeoRenderable {
     fn render_to(&self, writer: &mut dyn Write, runtime: &dyn Runtime) -> liquid_core::Result<()> {
         let mut output = String::new();
@@ -335,8 +344,17 @@ impl Renderable for SeoRenderable {
         }
 
         // 14. JSON-LD structured data
+        // Determine if this is a homepage or about page, matching jekyll-seo-tag's
+        // HOMEPAGE_OR_ABOUT_REGEX = %r!^/(about/)?(index.html?)?$!
+        let is_homepage_or_about = page_url
+            .as_deref()
+            .map(is_homepage_or_about_url)
+            .unwrap_or(false);
+
         let schema_type = if page_date.is_some() {
             "BlogPosting"
+        } else if is_homepage_or_about {
+            "WebSite"
         } else {
             "WebPage"
         };
@@ -346,9 +364,16 @@ impl Renderable for SeoRenderable {
         output.push_str("  \"@context\": \"https://schema.org\",\n");
         output.push_str(&format!("  \"@type\": \"{}\",\n", schema_type));
 
+        // name field: jekyll-seo-tag only includes name for homepage/about pages
+        if is_homepage_or_about {
+            // Use site social name, or site_title
+            let jsonld_name = site_title.as_deref();
+            if let Some(name) = jsonld_name {
+                output.push_str(&format!("  \"name\": \"{}\",\n", json_escape(name)));
+            }
+        }
+
         if let Some(ref t) = full_title {
-            let escaped = json_escape(t);
-            output.push_str(&format!("  \"name\": \"{}\",\n", escaped));
             // headline is max 110 chars per Google guidelines
             let headline = if t.len() > 110 { &t[..110] } else { t.as_str() };
             output.push_str(&format!("  \"headline\": \"{}\",\n", json_escape(headline)));
@@ -358,7 +383,11 @@ impl Renderable for SeoRenderable {
             output.push_str(&format!("  \"description\": \"{}\",\n", json_escape(desc)));
         }
 
-        if let Some(ref url) = canonical_url {
+        // url field: jekyll-seo-tag always includes canonical_url in JSON-LD
+        // When site.url is absent, use page.url directly (Jekyll uses absolute_url which
+        // returns page.url when site.url is empty)
+        let jsonld_url = canonical_url.as_deref().or(page_url.as_deref());
+        if let Some(url) = jsonld_url {
             output.push_str(&format!("  \"url\": \"{}\",\n", json_escape(url)));
         }
 
@@ -1008,7 +1037,8 @@ mod tests {
     }
 
     #[test]
-    fn test_json_ld_contains_name() {
+    fn test_json_ld_no_name_for_non_homepage() {
+        // jekyll-seo-tag only includes name for homepage/about pages
         let eng = engine();
         let ctx = make_context(
             Some("My Page"),
@@ -1016,14 +1046,25 @@ mod tests {
             None,
             None,
             None,
-            None,
+            Some("/my-page.html"),
             None,
             None,
             None,
             None,
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
-        assert!(out.contains("\"name\": \"My Page\""));
+        let jsonld_start = out
+            .find("application/ld+json")
+            .expect("should have json-ld");
+        let jsonld_block = &out[jsonld_start..];
+        let script_end = jsonld_block
+            .find("</script>")
+            .expect("should have closing script tag");
+        let jsonld_content = &jsonld_block[..script_end];
+        assert!(
+            !jsonld_content.contains("\"name\""),
+            "Non-homepage JSON-LD should not contain name field"
+        );
     }
 
     #[test]
@@ -1043,6 +1084,237 @@ mod tests {
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
         assert!(out.contains("\"url\": \"https://example.com/about\""));
+    }
+
+    // ========================================================================
+    // JSON-LD @type: WebSite for homepage
+    // ========================================================================
+
+    #[test]
+    fn test_jsonld_type_homepage_is_website() {
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Site"),
+            Some("My Site"),
+            None,
+            None,
+            None,
+            Some("/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"@type\": \"WebSite\""),
+            "Homepage (url='/') should have @type WebSite, got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_jsonld_type_index_html_is_website() {
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Site"),
+            Some("My Site"),
+            None,
+            None,
+            None,
+            Some("/index.html"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"@type\": \"WebSite\""),
+            "Index page (url='/index.html') should have @type WebSite, got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_jsonld_type_about_is_website() {
+        let eng = engine();
+        let ctx = make_context(
+            Some("About"),
+            Some("My Site"),
+            None,
+            None,
+            None,
+            Some("/about/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"@type\": \"WebSite\""),
+            "About page (url='/about/') should have @type WebSite, got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_jsonld_type_subpage_is_webpage() {
+        let eng = engine();
+        let ctx = make_context(
+            Some("Other Page"),
+            Some("My Site"),
+            None,
+            None,
+            None,
+            Some("/about.html"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"@type\": \"WebPage\""),
+            "Subpage (url='/about.html') should have @type WebPage, got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_jsonld_type_post_with_date_is_blogposting() {
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Post"),
+            Some("My Site"),
+            None,
+            None,
+            None,
+            Some("/posts/my-post.html"),
+            None,
+            Some("2024-01-15"),
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"@type\": \"BlogPosting\""),
+            "Post with date should have @type BlogPosting, got: {}",
+            out
+        );
+    }
+
+    // ========================================================================
+    // JSON-LD url field inclusion
+    // ========================================================================
+
+    #[test]
+    fn test_jsonld_includes_url_field() {
+        let eng = engine();
+        let ctx = make_context(
+            None,
+            None,
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/about"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"url\": \"https://example.com/about\""),
+            "JSON-LD should include url field with absolute URL, got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_jsonld_url_without_site_url() {
+        // When no site.url, Jekyll still includes url from page.url
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Page"),
+            Some("My Site"),
+            None,
+            None,
+            None,
+            Some("/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"url\": \"/\""),
+            "JSON-LD should include url field even without site.url, got: {}",
+            out
+        );
+    }
+
+    // ========================================================================
+    // JSON-LD name field logic
+    // ========================================================================
+
+    #[test]
+    fn test_jsonld_website_includes_name() {
+        // Homepage (WebSite type) should include name with site title
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Site"),
+            Some("My Site"),
+            None,
+            None,
+            None,
+            Some("/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"name\": \"My Site\""),
+            "Homepage JSON-LD should include name field, got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_jsonld_webpage_no_name() {
+        // Subpage (WebPage type) should NOT include name
+        let eng = engine();
+        let ctx = make_context(
+            Some("Other Page"),
+            Some("My Site"),
+            None,
+            None,
+            None,
+            Some("/other.html"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        // Extract JSON-LD block
+        let jsonld_start = out
+            .find("application/ld+json")
+            .expect("should have json-ld");
+        let jsonld_block = &out[jsonld_start..];
+        let script_end = jsonld_block
+            .find("</script>")
+            .expect("should have closing script tag");
+        let jsonld_content = &jsonld_block[..script_end];
+        assert!(
+            !jsonld_content.contains("\"name\""),
+            "Subpage JSON-LD should NOT include name field, got: {}",
+            jsonld_content
+        );
     }
 
     // ========================================================================
