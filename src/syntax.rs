@@ -31,11 +31,14 @@ fn build_scope_map() -> Vec<ScopeMapping> {
         // Map them to `s2` (same as string.quoted.double) so they merge with the
         // string content in accumulate_and_emit, producing a single <span> per string.
         ("source.json punctuation.definition.string", "s2"),
-        // YAML: Rouge treats double-quoted string delimiters (quotes) as `s2`
-        // and the string content as `s` (generic string). Syntect gives both
-        // the `string.quoted.double` scope, so we need an explicit rule for
-        // the punctuation to prevent them from merging into one span.
-        ("source.yaml punctuation.definition.string", "s2"),
+        // YAML: Rouge treats the opening double-quote as `s2` and the closing
+        // double-quote as part of the string content (`s`). Syntect emits
+        // `punctuation.definition.string.begin` for the opening quote and
+        // `punctuation.definition.string.end` for the closing quote. We only
+        // map the `.begin` scope to `s2`; the `.end` scope falls through to
+        // the `string.quoted.double` -> `s` rule below, so the closing quote
+        // merges with the string content -- matching Rouge output exactly.
+        ("source.yaml punctuation.definition.string.begin", "s2"),
         ("source.yaml string.quoted.double", "s"),
         // YAML: Rouge does not use numeric classes; numbers in flow sequences
         // are `nv` (variable value), other numbers are `s` (string).
@@ -1998,6 +2001,24 @@ mod tests {
         assert!(
             html.contains("<span class=\"s2\">\"</span>"),
             "YAML config block: opening quote should be separate s2 span: {html}"
+        );
+    }
+
+    #[test]
+    fn test_yaml_quoted_string_matches_rouge() {
+        // Exact code block from large-docs-site integrations pages.
+        // Rouge/Jekyll output for `setting2: "example"` is:
+        //   <span class="s2">"</span><span class="s">example"</span>
+        // The opening quote gets its own `s2` span, but the closing quote
+        // merges with the string content into the `s` span.
+        let code = "integrations:\n  enabled: true\n  option_549: value\n  nested:\n    setting1: true\n    setting2: \"example\"\n";
+        let html = highlight_code("yaml", code).unwrap();
+        let expected = "<span class=\"s2\">\"</span><span class=\"s\">example\"</span>";
+        assert!(
+            html.contains(expected),
+            "YAML quoted string should match Rouge pattern.\nExpected to contain: {}\nActual: {}",
+            expected,
+            html
         );
     }
 }
