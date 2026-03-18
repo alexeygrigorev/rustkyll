@@ -1073,10 +1073,9 @@ pub fn generate_pages_cached_with_config_and_progress(
         // Pages without a layout are rendered through Liquid without wrapping.
         page_fm.insert("url".into(), serde_yaml::Value::String(page.url.clone()));
 
-        // Inject collection name for standalone pages (Jekyll exposes page.collection = "pages")
-        page_fm
-            .entry("collection".into())
-            .or_insert_with(|| serde_yaml::Value::String("pages".to_string()));
+        // In Jekyll, standalone pages (not in a named collection) have
+        // page.collection = nil. We don't inject a collection name here;
+        // only actual collection items (via generate_collection_pages) get one.
 
         // page.name -- the source filename (e.g. "index.md"), matching Jekyll's behavior.
         // Needed for templates like DTC's head.html that check page.name.
@@ -4451,6 +4450,76 @@ defaults:
             collection_val,
             Some("posts".to_string()),
             "collection_item_to_liquid_slim should include collection field"
+        );
+    }
+
+    // ========================================================================
+    // Issue 194: standalone pages should have empty page.collection (not "pages")
+    // ========================================================================
+
+    #[test]
+    fn test_standalone_page_collection_is_empty() {
+        // In Jekyll, standalone pages (not in a named collection) have
+        // page.collection = nil. When used as `col-{{ page.collection }}`,
+        // this produces `col-` (empty), NOT `col-pages`.
+        let tmp = tempfile::TempDir::new().unwrap();
+        let output_dir = tmp.path();
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            crate::template::Layout {
+                source: "<body class=\"col-{{ page.collection }}\">{{ content }}</body>"
+                    .to_string(),
+                parent_layout: None,
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let config = SiteConfig {
+            url: "https://example.com".to_string(),
+            defaults: vec![crate::config::DefaultConfig {
+                scope: crate::config::DefaultScope {
+                    path: String::new(),
+                    type_name: "pages".to_string(),
+                },
+                values: crate::config::DefaultValues {
+                    values: {
+                        let mut m = HashMap::new();
+                        m.insert(
+                            "layout".to_string(),
+                            serde_yaml::Value::String("default".to_string()),
+                        );
+                        m
+                    },
+                },
+            }],
+            ..Default::default()
+        };
+
+        let pages = vec![crate::collection::Page {
+            slug: "about".to_string(),
+            front_matter: HashMap::new(),
+            content: "About page".to_string(),
+            html_content: "<p>About page</p>".to_string(),
+            url: "/about.html".to_string(),
+            source_path: "about.md".to_string(),
+        }];
+
+        let site_context = Object::new();
+        let cached_site = LayoutEngine::build_cached_site_context(&site_context);
+        generate_pages_cached_with_config(&pages, &engine, &cached_site, output_dir, Some(&config))
+            .unwrap();
+
+        let html = fs::read_to_string(output_dir.join("about.html")).unwrap();
+        assert!(
+            html.contains("col-\"") || html.contains("col- ") || html.contains("col-\">"),
+            "Standalone page should have empty collection (col-), got: {html}"
+        );
+        assert!(
+            !html.contains("col-pages"),
+            "Standalone page should NOT have col-pages, got: {html}"
         );
     }
 }
