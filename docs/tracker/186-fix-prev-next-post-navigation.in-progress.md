@@ -68,3 +68,23 @@ None.
 - Build mojombo-blog with rustkyll and run DOM comparison.
 - Inspect at least 2 affected pages to verify previous/next links point to the correct posts.
 - Compare the navigation links against Jekyll output for those pages.
+
+## Log
+
+### [SWE] 2026-03-18
+
+- Root cause: `site.related_posts` was a global list including all posts. In Jekyll, `site.related_posts` excludes the current post (it's per-post, not global). The DOM diffs showed posts including themselves in their own related posts list.
+- Fix: Added per-render site key override mechanism to the template engine:
+  - `SiteWithOverrides` struct wraps the cached site LenientValue but overrides specific keys
+  - `LenientObject` gains `with_cached_site_overrides()` constructor
+  - `TemplateEngine` gains `render_with_site_overrides()` and `parse_and_render_with_site_overrides()`
+  - `LayoutEngine` gains `render_page_with_site_overrides()` and `render_markdown_page_with_site_overrides()`
+  - Generator pre-sorts posts and builds per-post `related_posts` (excluding current post) as a site override
+- Tests added: 4 unit tests for per-post related_posts behavior
+  - `test_per_post_related_posts_excludes_current_post`
+  - `test_per_post_related_posts_first_post`
+  - `test_per_post_related_posts_limits_to_10`
+  - `test_per_post_related_posts_same_date_posts`
+- Build: 1471 lib tests + 16 integration tests pass, clippy clean, fmt clean
+- Verified: mojombo-blog related_posts now match Jekyll output for all 3 previously-affected pages (farewell, replicated, snyk)
+- Files modified: src/template/engine.rs, src/template/layout.rs, src/generator.rs

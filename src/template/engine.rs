@@ -26,7 +26,7 @@ pub struct Template {
 ///
 /// For performance, `LenientValue` can be built once for large shared contexts
 /// (like `site`) and reused across many renders, avoiding O(n^2) deep-cloning.
-pub(crate) struct LenientValue {
+pub struct LenientValue {
     /// The original value.
     inner: Value,
     /// Pre-wrapped child objects (for returning references from `get()`).
@@ -54,7 +54,7 @@ impl LenientValue {
     /// eagerly -- they are lazily initialized on first integer-index access.
     /// This avoids creating millions of extra allocations for objects that
     /// are never integer-indexed, which was a major bottleneck on large sites.
-    pub(crate) fn from_value(value: Value) -> Self {
+    pub fn from_value(value: Value) -> Self {
         let children = if let Value::Object(ref obj) = value {
             let mut map = std::collections::HashMap::new();
             for (key, val) in obj.iter() {
@@ -263,8 +263,82 @@ struct LenientObject<'a> {
     /// Pre-wrapped site object -- either owned (built fresh) or borrowed from cache.
     /// Using an enum avoids rebuilding the expensive site LenientValue tree on every render.
     site: CachedOrOwned<'a>,
+    /// Optional per-render site key overrides (e.g., per-post related_posts).
+    site_with_overrides: Option<SiteWithOverrides<'a>>,
     /// A Nil value we can hand out references to for missing keys.
     nil: Value,
+}
+
+/// Wrapper that overrides specific keys in a cached site LenientValue.
+pub(crate) struct SiteWithOverrides<'a> {
+    base: &'a LenientValue,
+    overrides: &'a HashMap<String, LenientValue>,
+}
+
+impl std::fmt::Debug for SiteWithOverrides<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.base.fmt(f)
+    }
+}
+
+impl ValueView for SiteWithOverrides<'_> {
+    fn as_debug(&self) -> &dyn std::fmt::Debug {
+        self
+    }
+    fn render(&self) -> DisplayCow<'_> {
+        self.base.render()
+    }
+    fn source(&self) -> DisplayCow<'_> {
+        self.base.source()
+    }
+    fn type_name(&self) -> &'static str {
+        self.base.type_name()
+    }
+    fn query_state(&self, state: State) -> bool {
+        self.base.query_state(state)
+    }
+    fn to_kstr(&self) -> KStringCow<'_> {
+        self.base.to_kstr()
+    }
+    fn to_value(&self) -> Value {
+        self.base.to_value()
+    }
+    fn as_scalar(&self) -> Option<liquid::model::ScalarCow<'_>> {
+        self.base.as_scalar()
+    }
+    fn as_object(&self) -> Option<&dyn ObjectView> {
+        Some(self)
+    }
+    fn as_array(&self) -> Option<&dyn ArrayView> {
+        self.base.as_array()
+    }
+}
+
+impl ObjectView for SiteWithOverrides<'_> {
+    fn as_value(&self) -> &dyn ValueView {
+        self
+    }
+    fn size(&self) -> i64 {
+        ObjectView::size(self.base)
+    }
+    fn keys<'k>(&'k self) -> Box<dyn Iterator<Item = KStringCow<'k>> + 'k> {
+        ObjectView::keys(self.base)
+    }
+    fn values<'k>(&'k self) -> Box<dyn Iterator<Item = &'k dyn ValueView> + 'k> {
+        ObjectView::values(self.base)
+    }
+    fn iter<'k>(&'k self) -> Box<dyn Iterator<Item = (KStringCow<'k>, &'k dyn ValueView)> + 'k> {
+        ObjectView::iter(self.base)
+    }
+    fn contains_key(&self, _index: &str) -> bool {
+        true
+    }
+    fn get<'s>(&'s self, index: &str) -> Option<&'s dyn ValueView> {
+        if let Some(overridden) = self.overrides.get(index) {
+            return Some(overridden as &dyn ValueView);
+        }
+        ObjectView::get(self.base, index)
+    }
 }
 
 /// Either a borrowed reference to a pre-built `LenientValue` (for cached site context)
@@ -302,6 +376,7 @@ impl<'a> LenientObject<'a> {
             page,
             include,
             site,
+            site_with_overrides: None,
             nil: Value::Nil,
         }
     }
@@ -323,6 +398,37 @@ impl<'a> LenientObject<'a> {
             page,
             include,
             site: CachedOrOwned::Cached(cached_site),
+            site_with_overrides: None,
+            nil: Value::Nil,
+        }
+    }
+
+    /// Create with cached site and per-render key overrides.
+    fn with_cached_site_overrides(
+        inner: &'a Object,
+        cached_site: &'a LenientValue,
+        site_overrides: &'a HashMap<String, LenientValue>,
+    ) -> Self {
+        let page = inner
+            .get("page")
+            .map(|v| LenientValue::from_value(v.to_value()));
+        let include = inner
+            .get("include")
+            .map(|v| LenientValue::from_value(v.to_value()));
+        let site_with_overrides = if site_overrides.is_empty() {
+            None
+        } else {
+            Some(SiteWithOverrides {
+                base: cached_site,
+                overrides: site_overrides,
+            })
+        };
+        Self {
+            inner,
+            page,
+            include,
+            site: CachedOrOwned::Cached(cached_site),
+            site_with_overrides,
             nil: Value::Nil,
         }
     }
@@ -401,7 +507,13 @@ impl ObjectView for LenientObject<'_> {
         match index {
             "page" => self.page.as_ref().map(|v| v as &dyn ValueView),
             "include" => self.include.as_ref().map(|v| v as &dyn ValueView),
-            "site" => self.site.as_ref().map(|v| v as &dyn ValueView),
+            "site" => {
+                if let Some(ref overrides) = self.site_with_overrides {
+                    Some(overrides as &dyn ValueView)
+                } else {
+                    self.site.as_ref().map(|v| v as &dyn ValueView)
+                }
+            }
             _ => self.inner.get(index).map(|v| v as &dyn ValueView),
         }
         .or(Some(&self.nil as &dyn ValueView))
@@ -771,6 +883,37 @@ impl TemplateEngine {
     ) -> Result<String, TemplateError> {
         let template = self.parse(template_str)?;
         self.render_with_cached_site(&template, context, cached_site)
+    }
+
+    /// Render with cached site and per-render overrides.
+    pub(crate) fn render_with_site_overrides(
+        &self,
+        template: &Template,
+        context: &Object,
+        cached_site: &CachedSiteContext,
+        site_overrides: &HashMap<String, LenientValue>,
+    ) -> Result<String, TemplateError> {
+        let lenient = LenientObject::with_cached_site_overrides(
+            context,
+            &cached_site.site_lenient,
+            site_overrides,
+        );
+        template
+            .inner
+            .render(&lenient)
+            .map_err(|e| TemplateError::RenderError(e.to_string()))
+    }
+
+    /// Parse and render with cached site and per-render overrides.
+    pub(crate) fn parse_and_render_with_site_overrides(
+        &self,
+        template_str: &str,
+        context: &Object,
+        cached_site: &CachedSiteContext,
+        site_overrides: &HashMap<String, LenientValue>,
+    ) -> Result<String, TemplateError> {
+        let template = self.parse(template_str)?;
+        self.render_with_site_overrides(&template, context, cached_site, site_overrides)
     }
 }
 

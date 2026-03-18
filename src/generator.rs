@@ -310,6 +310,24 @@ fn build_related_posts(collections: &HashMap<String, Vec<CollectionItem>>) -> Ve
         .collect()
 }
 
+/// Build per-post `site.related_posts` as a `LenientValue` for site overrides.
+///
+/// In Jekyll, `site.related_posts` excludes the current post and returns the
+/// 10 most recent OTHER posts (sorted by date descending).
+fn build_per_post_related_posts_lenient(
+    sorted_posts: &[&CollectionItem],
+    current_url: &str,
+) -> crate::template::engine::LenientValue {
+    let related: Vec<LiquidValue> = sorted_posts
+        .iter()
+        .filter(|p| p.url != current_url)
+        .take(10)
+        .map(|p| collection_item_to_liquid_slim(p))
+        .collect();
+    let value = LiquidValue::Array(related);
+    crate::template::engine::LenientValue::from_value(value)
+}
+
 /// Convert a standalone `Page` to a Liquid `Value` object.
 ///
 /// Exposes front matter fields, `title`, `url`, and `content`,
@@ -704,6 +722,21 @@ pub fn generate_collection_pages_cached_with_progress(
         HashMap::new()
     };
 
+    // Pre-sort posts for per-post related_posts computation.
+    // In Jekyll, site.related_posts excludes the current post.
+    let is_posts_collection = collection_type == "posts";
+    let sorted_posts_for_related: Vec<&CollectionItem> = if is_posts_collection {
+        let mut sorted: Vec<&CollectionItem> = items.iter().collect();
+        sorted.sort_by(|a, b| {
+            let date_a = a.date.as_deref().unwrap_or("");
+            let date_b = b.date.as_deref().unwrap_or("");
+            date_b.cmp(date_a).then_with(|| b.slug.cmp(&a.slug))
+        });
+        sorted
+    } else {
+        Vec::new()
+    };
+
     let result = Mutex::new(GenerationResult {
         generated: 0,
         skipped: 0,
@@ -763,29 +796,48 @@ pub fn generate_collection_pages_cached_with_progress(
             }
         }
 
+        // Build per-post site.related_posts override for posts collection.
+        // In Jekyll, site.related_posts excludes the current post.
+        let site_overrides: HashMap<String, crate::template::engine::LenientValue> =
+            if is_posts_collection {
+                let mut overrides = HashMap::new();
+                let related =
+                    build_per_post_related_posts_lenient(&sorted_posts_for_related, &item.url);
+                overrides.insert("related_posts".to_string(), related);
+                overrides
+            } else {
+                HashMap::new()
+            };
+
         // Determine HTML output: render through layout if available,
         // otherwise output raw content (Jekyll outputs items without layout too).
         let html_result = if let Some(ref layout) = layout_name {
             // Jekyll processes Liquid first, then markdown for ALL markdown-sourced files.
-            // Use the Liquid-first-then-markdown pipeline for any collection item whose
-            // source content contains Liquid tags and comes from a markdown file. This
-            // prevents markdown-to-HTML conversion from encoding operators (< > >= <=)
-            // inside Liquid expressions like where_exp date comparisons.
             let is_markdown_source =
                 item.source_path.ends_with(".md") || item.source_path.ends_with(".markdown");
             let has_liquid_tags = item.content.contains("{{") || item.content.contains("{%");
-            let render_result = if is_markdown_source && has_liquid_tags {
+            let render_result = if !site_overrides.is_empty() {
+                if is_markdown_source && has_liquid_tags {
+                    layout_engine.render_markdown_page_with_site_overrides(
+                        layout,
+                        &item.content,
+                        &page_fm,
+                        cached_site,
+                        &site_overrides,
+                    )
+                } else {
+                    layout_engine.render_page_with_site_overrides(
+                        layout,
+                        &item.html_content,
+                        &page_fm,
+                        cached_site,
+                        &site_overrides,
+                    )
+                }
+            } else if is_markdown_source && has_liquid_tags {
                 layout_engine.render_markdown_page_with_cached_site(
                     layout,
                     &item.content,
-                    &page_fm,
-                    cached_site,
-                )
-            } else if is_markdown_source {
-                // Markdown without Liquid: use pre-converted HTML (faster)
-                layout_engine.render_page_with_cached_site(
-                    layout,
-                    &item.html_content,
                     &page_fm,
                     cached_site,
                 )
@@ -3541,6 +3593,162 @@ defaults:
                 vec!["Gamma Post", "Beta Post", "Alpha Post"],
                 "Same-date posts should be sorted by slug descending (matching Jekyll)"
             );
+        } else {
+            panic!("Expected related_posts to be an array");
+        }
+    }
+
+    // Issue 186: Per-post related_posts excludes current post
+    // ========================================================================
+
+    #[test]
+    fn test_per_post_related_posts_excludes_current_post() {
+        // Jekyll's site.related_posts excludes the current post.
+        // With 3 posts sorted descending by date, when rendering post B,
+        // related_posts should contain A and C but NOT B.
+        let posts = vec![
+            make_test_post("post-a", "2023-01-01", "Post A"),
+            make_test_post("post-b", "2023-02-01", "Post B"),
+            make_test_post("post-c", "2023-03-01", "Post C"),
+        ];
+
+        // Pre-sort posts by date descending (matching build_related_posts logic)
+        let mut sorted: Vec<&CollectionItem> = posts.iter().collect();
+        sorted.sort_by(|a, b| {
+            let date_a = a.date.as_deref().unwrap_or("");
+            let date_b = b.date.as_deref().unwrap_or("");
+            date_b.cmp(date_a).then_with(|| b.slug.cmp(&a.slug))
+        });
+
+        // Build related posts for post B (should exclude B itself)
+        let related = build_per_post_related_posts_lenient(&sorted, "/blog/post-b.html");
+        let value = related.to_value();
+        if let LiquidValue::Array(arr) = value {
+            assert_eq!(arr.len(), 2, "Should have 2 posts (A and C, not B)");
+            // First should be C (most recent), then A
+            let titles: Vec<String> = arr
+                .iter()
+                .filter_map(|v| {
+                    if let LiquidValue::Object(obj) = v {
+                        obj.get("title").map(|t| t.to_kstr().to_string())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            assert_eq!(titles, vec!["Post C", "Post A"]);
+        } else {
+            panic!("Expected related_posts to be an array");
+        }
+    }
+
+    #[test]
+    fn test_per_post_related_posts_first_post() {
+        // First post (oldest) should see all other posts in related_posts.
+        let posts = vec![
+            make_test_post("post-a", "2023-01-01", "Post A"),
+            make_test_post("post-b", "2023-02-01", "Post B"),
+            make_test_post("post-c", "2023-03-01", "Post C"),
+        ];
+
+        let mut sorted: Vec<&CollectionItem> = posts.iter().collect();
+        sorted.sort_by(|a, b| {
+            let date_a = a.date.as_deref().unwrap_or("");
+            let date_b = b.date.as_deref().unwrap_or("");
+            date_b.cmp(date_a).then_with(|| b.slug.cmp(&a.slug))
+        });
+
+        let related = build_per_post_related_posts_lenient(&sorted, "/blog/post-a.html");
+        let value = related.to_value();
+        if let LiquidValue::Array(arr) = value {
+            assert_eq!(arr.len(), 2, "Oldest post should see 2 other posts");
+            let titles: Vec<String> = arr
+                .iter()
+                .filter_map(|v| {
+                    if let LiquidValue::Object(obj) = v {
+                        obj.get("title").map(|t| t.to_kstr().to_string())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            assert_eq!(titles, vec!["Post C", "Post B"]);
+        } else {
+            panic!("Expected related_posts to be an array");
+        }
+    }
+
+    #[test]
+    fn test_per_post_related_posts_limits_to_10() {
+        // With 15 posts, related_posts for any post should have at most 10.
+        let posts: Vec<CollectionItem> = (1..=15)
+            .map(|i| {
+                make_test_post(
+                    &format!("post-{:02}", i),
+                    &format!("2024-{:02}-01", i.min(12)),
+                    &format!("Post {}", i),
+                )
+            })
+            .collect();
+
+        let mut sorted: Vec<&CollectionItem> = posts.iter().collect();
+        sorted.sort_by(|a, b| {
+            let date_a = a.date.as_deref().unwrap_or("");
+            let date_b = b.date.as_deref().unwrap_or("");
+            date_b.cmp(date_a).then_with(|| b.slug.cmp(&a.slug))
+        });
+
+        let related = build_per_post_related_posts_lenient(&sorted, "/blog/post-01.html");
+        let value = related.to_value();
+        if let LiquidValue::Array(arr) = value {
+            assert_eq!(arr.len(), 10, "Should limit to 10 posts");
+            // Should not contain post-01
+            for item in &arr {
+                if let LiquidValue::Object(obj) = item {
+                    let url = obj
+                        .get("url")
+                        .map(|u| u.to_kstr().to_string())
+                        .unwrap_or_default();
+                    assert_ne!(url, "/blog/post-01.html", "Should not contain current post");
+                }
+            }
+        } else {
+            panic!("Expected related_posts to be an array");
+        }
+    }
+
+    #[test]
+    fn test_per_post_related_posts_same_date_posts() {
+        // Posts with same date should have stable ordering and exclude current.
+        let posts = vec![
+            make_test_post("alpha", "2023-06-15", "Alpha"),
+            make_test_post("beta", "2023-06-15", "Beta"),
+            make_test_post("gamma", "2023-06-15", "Gamma"),
+        ];
+
+        let mut sorted: Vec<&CollectionItem> = posts.iter().collect();
+        sorted.sort_by(|a, b| {
+            let date_a = a.date.as_deref().unwrap_or("");
+            let date_b = b.date.as_deref().unwrap_or("");
+            date_b.cmp(date_a).then_with(|| b.slug.cmp(&a.slug))
+        });
+
+        // Related posts for beta should be gamma and alpha (in desc slug order)
+        let related = build_per_post_related_posts_lenient(&sorted, "/blog/beta.html");
+        let value = related.to_value();
+        if let LiquidValue::Array(arr) = value {
+            assert_eq!(arr.len(), 2);
+            let titles: Vec<String> = arr
+                .iter()
+                .filter_map(|v| {
+                    if let LiquidValue::Object(obj) = v {
+                        obj.get("title").map(|t| t.to_kstr().to_string())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            assert_eq!(titles, vec!["Gamma", "Alpha"]);
         } else {
             panic!("Expected related_posts to be an array");
         }

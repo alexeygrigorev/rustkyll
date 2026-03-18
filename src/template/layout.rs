@@ -247,6 +247,109 @@ impl LayoutEngine {
         }
     }
 
+    /// Like render_with_cached_site but with per-render site key overrides.
+    fn render_with_site_overrides(
+        &self,
+        layout_name: &str,
+        content: &str,
+        page_front_matter: &FrontMatter,
+        cached_site: &CachedSiteContext,
+        site_overrides: &HashMap<String, super::engine::LenientValue>,
+    ) -> Result<String, TemplateError> {
+        let layout = self
+            .layouts
+            .get(layout_name)
+            .ok_or_else(|| TemplateError::LayoutNotFound(layout_name.to_string()))?;
+        let ctx = build_render_context_page_only(content, page_front_matter);
+        let result = if let Some(compiled) = self.compiled_layouts.get(layout_name) {
+            self.engine
+                .render_with_site_overrides(compiled, &ctx, cached_site, site_overrides)?
+        } else {
+            self.engine.parse_and_render_with_site_overrides(
+                &layout.source,
+                &ctx,
+                cached_site,
+                site_overrides,
+            )?
+        };
+        if let Some(ref parent_name) = layout.parent_layout {
+            self.render_with_site_overrides(
+                parent_name,
+                &result,
+                page_front_matter,
+                cached_site,
+                site_overrides,
+            )
+        } else {
+            Ok(result)
+        }
+    }
+
+    /// Render page content with cached site and per-render site overrides.
+    pub(crate) fn render_page_with_site_overrides(
+        &self,
+        layout_name: &str,
+        raw_content: &str,
+        page_front_matter: &FrontMatter,
+        cached_site: &CachedSiteContext,
+        site_overrides: &HashMap<String, super::engine::LenientValue>,
+    ) -> Result<String, TemplateError> {
+        let rendered_content = if raw_content.contains("{{") || raw_content.contains("{%") {
+            let page_ctx = build_render_context_page_only("", page_front_matter);
+            self.engine.parse_and_render_with_site_overrides(
+                raw_content,
+                &page_ctx,
+                cached_site,
+                site_overrides,
+            )?
+        } else {
+            raw_content.to_string()
+        };
+        let result = self.render_with_site_overrides(
+            layout_name,
+            &rendered_content,
+            page_front_matter,
+            cached_site,
+            site_overrides,
+        )?;
+        Ok(crate::kramdown::normalize_html_output(&result))
+    }
+
+    /// Render markdown page with cached site and per-render site overrides.
+    pub(crate) fn render_markdown_page_with_site_overrides(
+        &self,
+        layout_name: &str,
+        raw_content: &str,
+        page_front_matter: &FrontMatter,
+        cached_site: &CachedSiteContext,
+        site_overrides: &HashMap<String, super::engine::LenientValue>,
+    ) -> Result<String, TemplateError> {
+        let after_liquid = if raw_content.contains("{{") || raw_content.contains("{%") {
+            let page_ctx = build_render_context_page_only("", page_front_matter);
+            self.engine.parse_and_render_with_site_overrides(
+                raw_content,
+                &page_ctx,
+                cached_site,
+                site_overrides,
+            )?
+        } else {
+            raw_content.to_string()
+        };
+        let dedented = crate::frontmatter::dedent_html_lines(&after_liquid);
+        let marked = crate::kramdown::mark_existing_html_headings(&dedented);
+        let collapsed = crate::kramdown::collapse_blank_lines_in_html_blocks(&marked);
+        let html_content = crate::frontmatter::markdown_to_html(&collapsed);
+        let html_content = crate::kramdown::remove_heading_markers(&html_content);
+        let result = self.render_with_site_overrides(
+            layout_name,
+            &html_content,
+            page_front_matter,
+            cached_site,
+            site_overrides,
+        )?;
+        Ok(crate::kramdown::normalize_html_output(&result))
+    }
+
     /// Render page content wrapped in a layout, with extra global variables
     /// (like `paginator`) added to the template context.
     ///
