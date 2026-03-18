@@ -48,7 +48,7 @@ Code guidelines:
 - Use idiomatic Rust (strong types, enums, Result/Option, no unwrap in library code)
 - Minimize dependencies -- only add crates when truly needed
 - Reference the original Jekyll site in `datatalksclub.github.io/` to understand expected behavior
-- Tests MUST include non-ASCII/Unicode content (Arabic, Cyrillic, CJK, etc.)
+- Tests should include non-ASCII/Unicode content when the feature touches text, URL, or HTML processing where encoding matters
 
 ### 3. Verify All Tests Pass
 

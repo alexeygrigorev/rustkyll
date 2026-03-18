@@ -43,7 +43,7 @@ Verify:
 - [ ] All tests pass (`cargo test`)
 - [ ] Tests cover the acceptance criteria
 - [ ] Edge cases tested
-- [ ] Tests include non-ASCII/Unicode content (Arabic, Cyrillic, CJK, etc.)
+- [ ] Tests include non-ASCII/Unicode content (when feature touches text/URL/HTML processing)
 
 #### TDD Compliance (Mandatory)
 - [ ] The SWE's `## Log` section shows the TDD cycle for each fix:
@@ -118,10 +118,10 @@ When the engineer applies fixes:
 - Output doesn't match expected behavior from the original Jekyll site
 - Tests only check compilation without verifying actual output correctness
 - No TDD evidence in the SWE log (tests must be written before implementation)
-- Tests don't include non-ASCII/Unicode content
 
 ### Pass with note (don't block)
 - Minor style issues
 - Edge cases not in acceptance criteria
 - Could be more efficient (if it works)
 - Minor differences from original Jekyll output (different whitespace, attribute ordering)
+- Tests don't include non-ASCII/Unicode content (only flag if the feature touches text/URL/HTML processing where encoding matters)
