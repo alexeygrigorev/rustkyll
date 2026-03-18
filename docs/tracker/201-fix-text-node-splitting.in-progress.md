@@ -116,3 +116,41 @@ fn test_dtc_br_text_placement() {
 - [ ] DTC newsletter signup sections render correctly (22 pages)
 - [ ] mlwiki.org text node diffs investigated and fixed where the same `<br>` pattern applies
 - [ ] No regressions in existing HTML output
+
+## Log
+
+### [SWE] 2026-03-18
+
+**Investigation:**
+- Root cause: Jekyll/kramdown normalizes all void elements to XHTML-style (`<br />`, `<hr />`).
+  Rustkyll was passing bare `<br>` and `<hr>` tags through from raw HTML in markdown source unchanged.
+- When BeautifulSoup's html.parser encounters bare `<br>` earlier in a document, it can misparse
+  later `<br/>` tags, causing text nodes to be placed as children of `<br>` instead of siblings.
+- The DTC `br: extra_text` diffs were caused by bare `<br>` tags in table cells (from markdown source)
+  confusing BS4's parsing of the later `<br/>` in the subscribe section.
+- The HTML output for the subscribe section was actually byte-identical between Jekyll and rustkyll,
+  but the parsing context (bare `<br>` vs `<br />` earlier in the document) caused BS4 misinterpretation.
+
+**Fix:**
+- Added `normalize_bare_void_elements()` function that converts bare void element tags
+  (`<br>`, `<hr>`, `<img ...>`, etc.) to XHTML-style (`<br />`, `<hr />`, `<img ... />`).
+- Integrated into `postprocess()`, `postprocess_for_filter()`, and `normalize_html_output()`.
+- Made `is_void_element()` available to non-test code (removed `#[cfg(test)]`).
+
+**TDD:**
+- Wrote 6 failing tests first, verified they failed, then implemented the fix.
+- Tests: `test_bare_br_converted_to_xhtml_style`, `test_bare_br_multiple_in_sequence`,
+  `test_br_self_closing_preserved`, `test_bare_br_via_markdown_to_html`,
+  `test_bare_hr_converted_to_xhtml_style`, `test_normalize_html_output_converts_bare_br`.
+- Updated `test_md_raw_html_passthrough` to expect `<img ... />` instead of `<img ...>`.
+
+**Test results:** 1523 passed, 0 failed, clippy clean, fmt clean.
+
+**Files modified:**
+- `src/kramdown.rs` -- Added `normalize_bare_void_elements()`, removed `#[cfg(test)]` from `is_void_element()`, added 6 tests
+- `src/frontmatter.rs` -- Updated `test_md_raw_html_passthrough` assertion
+- `docs/tracker/201-fix-text-node-splitting.in-progress.md` -- This file
+
+**Verification:**
+- Built DTC site and confirmed zero `br: extra_text` diffs in DOM comparison.
+- All bare `<br>` tags in output converted to `<br />` matching Jekyll format.

@@ -90,12 +90,13 @@ pub fn postprocess(html: &str) -> String {
     let html = indent_list_items(&html);
     let html = indent_blockquote_content(&html);
     let html = normalize_figcaption_whitespace(&html);
+    // Issue 201: Convert bare void elements (<br>, <hr>) to XHTML-style
+    // (<br />, <hr />) to match Jekyll/kramdown output.
+    let html = normalize_bare_void_elements(&html);
     // D2, D12: Normalize boolean attributes in the markdown output early
     // (during collection loading). This ensures that the final
     // normalize_html_output() call after layout wrapping finds nothing to change
     // and exits early, avoiding a full scan of the (often 100-300KB) page HTML.
-    // Note: void element self-closing slashes are NOT removed because
-    // Jekyll/kramdown outputs XHTML-style self-closing tags (e.g. <br />).
     normalize_boolean_attributes(&html)
 }
 
@@ -117,6 +118,7 @@ pub fn postprocess_for_filter(html: &str) -> String {
     // Note: inline code classes are now added during markdown rendering
     // (in frontmatter::add_inline_code_class_to_events) rather than here.
     let html = remove_ol_start_attribute(&html);
+    let html = normalize_bare_void_elements(&html);
     normalize_boolean_attributes(&html)
 }
 
@@ -136,11 +138,24 @@ pub fn postprocess_for_filter(html: &str) -> String {
 /// Note: void element self-closing slashes are NOT removed because
 /// Jekyll/kramdown outputs XHTML-style self-closing tags (e.g. `<br />`).
 pub fn normalize_html_output(html: &str) -> String {
-    // Quick check: if the HTML has no `=""`, skip boolean attribute normalization.
-    if !html.contains("=\"\"") {
+    let needs_bool_attrs = html.contains("=\"\"");
+    let needs_void_norm = html.contains("<br>") || html.contains("<hr>");
+
+    if !needs_bool_attrs && !needs_void_norm {
         return html.to_string();
     }
-    normalize_boolean_attributes(html)
+
+    let html = if needs_void_norm {
+        normalize_bare_void_elements(html)
+    } else {
+        html.to_string()
+    };
+
+    if needs_bool_attrs {
+        normalize_boolean_attributes(&html)
+    } else {
+        html
+    }
 }
 
 // ============================================================================
@@ -281,6 +296,268 @@ fn collapse_blank_lines(content: &str) -> String {
     result.push('\n');
 
     result
+}
+
+// ============================================================================
+// Pre-markdown: Escape headings inside markdown list context
+// ============================================================================
+
+/// Escape heading markers that appear inside a markdown list context.
+///
+/// In kramdown, a heading marker (e.g., `#### text`) that appears directly
+/// after a list item (without a blank line separator) is treated as text
+/// within the list item, NOT as a heading. pulldown-cmark (CommonMark)
+/// treats it as a heading, breaking the list.
+///
+/// This function escapes heading markers in list context by prefixing
+/// the `#` characters with a backslash, so pulldown-cmark treats them
+/// as literal text.
+///
+/// Only applies to headings that appear immediately after a list item
+/// (no blank line between).
+pub fn escape_headings_in_list_context(content: &str) -> String {
+    let lines: Vec<&str> = content.split('\n').collect();
+    let mut result = String::with_capacity(content.len());
+    let mut in_list = false;
+    let mut in_code_block = false;
+
+    for (i, line) in lines.iter().enumerate() {
+        if i > 0 {
+            result.push('\n');
+        }
+
+        let trimmed = line.trim_start();
+
+        // Track fenced code blocks
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            in_code_block = !in_code_block;
+            result.push_str(line);
+            continue;
+        }
+
+        if in_code_block {
+            result.push_str(line);
+            continue;
+        }
+
+        let is_blank = trimmed.is_empty();
+
+        if is_blank {
+            // A blank line ends the list context
+            in_list = false;
+            result.push_str(line);
+            continue;
+        }
+
+        let is_list_item = is_markdown_list_item(trimmed);
+
+        if is_list_item {
+            in_list = true;
+            result.push_str(line);
+            continue;
+        }
+
+        // Check if this line is a heading marker in list context
+        let is_heading = trimmed.starts_with('#');
+        if in_list && is_heading {
+            // Escape the heading marker by prefixing # with backslash
+            let leading_ws = &line[..line.len() - trimmed.len()];
+            result.push_str(leading_ws);
+            result.push('\\');
+            result.push_str(trimmed);
+        } else {
+            result.push_str(line);
+        }
+
+        // Non-list, non-heading lines don't end the list context
+        // (could be continuation lines)
+    }
+
+    result
+}
+
+/// Collapse blank lines between markdown list items to make partially-loose lists tight.
+///
+/// A "fully loose" list (blank lines between ALL consecutive items) keeps its
+/// blank lines because kramdown also wraps all items in `<p>`.
+/// A "partially loose" list (some blanks but not all) is collapsed to tight.
+pub fn collapse_blank_lines_between_list_items(content: &str) -> String {
+    let lines: Vec<&str> = content.split('\n').collect();
+    if lines.len() < 3 {
+        return content.to_string();
+    }
+
+    // First pass: classify list regions
+    let regions = find_list_regions(&lines);
+
+    let mut result = String::with_capacity(content.len());
+    let mut in_code_block = false;
+    let mut i = 0;
+
+    while i < lines.len() {
+        let line = lines[i];
+        let trimmed = line.trim_start();
+
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            in_code_block = !in_code_block;
+        }
+
+        if in_code_block {
+            if i > 0 {
+                result.push('\n');
+            }
+            result.push_str(line);
+            i += 1;
+            continue;
+        }
+
+        let in_partial = regions
+            .iter()
+            .any(|r| i >= r.start && i < r.end && !r.fully_loose);
+        let is_item = is_markdown_list_item(trimmed);
+
+        if is_item && in_partial {
+            if i > 0 {
+                result.push('\n');
+            }
+            result.push_str(line);
+
+            let mut j = i + 1;
+            while j < lines.len() {
+                let nt = lines[j].trim_start();
+                if nt.is_empty() {
+                    break;
+                }
+                let indent = lines[j].len() - nt.len();
+                if indent >= 2 && !is_markdown_list_item(nt) {
+                    result.push('\n');
+                    result.push_str(lines[j]);
+                    j += 1;
+                } else {
+                    break;
+                }
+            }
+
+            let mut blank_count = 0;
+            while j < lines.len() && lines[j].trim().is_empty() {
+                blank_count += 1;
+                j += 1;
+            }
+
+            if blank_count > 0 && j < lines.len() {
+                let nt = lines[j].trim_start();
+                if is_markdown_list_item(nt) {
+                    i = j;
+                    continue;
+                }
+            }
+
+            for _ in 0..blank_count {
+                result.push('\n');
+            }
+            i = j;
+        } else {
+            if i > 0 {
+                result.push('\n');
+            }
+            result.push_str(line);
+            i += 1;
+        }
+    }
+
+    result
+}
+
+struct ListRegion {
+    start: usize,
+    end: usize,
+    fully_loose: bool,
+}
+
+fn find_list_regions(lines: &[&str]) -> Vec<ListRegion> {
+    let mut regions = Vec::new();
+    let mut in_code_block = false;
+    let mut i = 0;
+    while i < lines.len() {
+        let trimmed = lines[i].trim_start();
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            in_code_block = !in_code_block;
+            i += 1;
+            continue;
+        }
+        if in_code_block {
+            i += 1;
+            continue;
+        }
+        if is_markdown_list_item(trimmed) {
+            let start = i;
+            let mut items = 0u32;
+            let mut gaps = 0u32;
+            while i < lines.len() {
+                let t = lines[i].trim_start();
+                if !is_markdown_list_item(t) {
+                    break;
+                }
+                items += 1;
+                i += 1;
+                while i < lines.len() {
+                    let ct = lines[i].trim_start();
+                    if ct.is_empty() {
+                        break;
+                    }
+                    let indent = lines[i].len() - ct.len();
+                    if indent >= 2 && !is_markdown_list_item(ct) {
+                        i += 1;
+                    } else {
+                        break;
+                    }
+                }
+                let mut blanks = 0u32;
+                while i < lines.len() && lines[i].trim().is_empty() {
+                    blanks += 1;
+                    i += 1;
+                }
+                if blanks > 0 {
+                    if i < lines.len() && is_markdown_list_item(lines[i].trim_start()) {
+                        gaps += 1;
+                    } else {
+                        break;
+                    }
+                }
+            }
+            let fully_loose = items > 1 && gaps == items - 1;
+            regions.push(ListRegion {
+                start,
+                end: i,
+                fully_loose,
+            });
+        } else {
+            i += 1;
+        }
+    }
+    regions
+}
+
+/// Check if a trimmed line starts with a markdown list item marker.
+fn is_markdown_list_item(trimmed: &str) -> bool {
+    if trimmed.starts_with("- ") || trimmed.starts_with("* ") || trimmed.starts_with("+ ") {
+        return true;
+    }
+    // Check for ordered list: digits followed by . or ) and space
+    let bytes = trimmed.as_bytes();
+    let mut pos = 0;
+    while pos < bytes.len() && bytes[pos].is_ascii_digit() {
+        pos += 1;
+    }
+    if pos > 0
+        && pos < bytes.len()
+        && (bytes[pos] == b'.' || bytes[pos] == b')')
+        && pos + 1 < bytes.len()
+        && bytes[pos + 1] == b' '
+    {
+        return true;
+    }
+    false
 }
 
 // ============================================================================
@@ -1735,7 +2012,6 @@ fn normalize_void_elements(html: &str) -> String {
 }
 
 /// Check if a tag name is a void (self-closing) HTML element.
-#[cfg(test)]
 fn is_void_element(tag_name: &str) -> bool {
     matches!(
         tag_name,
@@ -1752,6 +2028,85 @@ fn is_void_element(tag_name: &str) -> bool {
             | "track"
             | "wbr"
     )
+}
+
+// ============================================================================
+// 8b. Normalize bare void elements to XHTML-style (Issue 201)
+// ============================================================================
+
+/// Convert bare void element tags to XHTML-style self-closing tags.
+///
+/// Jekyll/kramdown outputs XHTML-style self-closing tags for void elements:
+/// `<br />`, `<hr />`, `<img ... />`, etc. When raw HTML in markdown source
+/// contains bare void tags like `<br>` (without /), this function converts
+/// them to `<br />` to match Jekyll's output.
+///
+/// This is important because some HTML parsers (e.g., BeautifulSoup's
+/// html.parser) can misinterpret subsequent self-closing tags when bare void
+/// tags are present earlier in the document, causing text nodes to be placed
+/// as children of void elements instead of siblings.
+///
+/// Only converts tags that are NOT already self-closing (i.e., does not
+/// touch `<br />` or `<br/>`).
+fn normalize_bare_void_elements(html: &str) -> String {
+    // Quick check: if there are no common bare void element patterns, skip.
+    if !html.contains("<br>")
+        && !html.contains("<hr>")
+        && !html.contains("<img ")
+        && !html.contains("<input ")
+    {
+        return html.to_string();
+    }
+
+    let bytes = html.as_bytes();
+    let len = bytes.len();
+    let mut result = String::with_capacity(len + 64);
+    let mut i = 0;
+
+    while i < len {
+        if bytes[i] == b'<' && i + 1 < len && bytes[i + 1] != b'/' {
+            // Potential opening tag -- find the tag name
+            let tag_start = i;
+            i += 1;
+            let name_start = i;
+            while i < len && bytes[i] != b'>' && bytes[i] != b' ' && bytes[i] != b'/' {
+                i += 1;
+            }
+            let tag_name = &html[name_start..i];
+
+            if is_void_element(tag_name) {
+                // Find the closing '>'
+                while i < len && bytes[i] != b'>' {
+                    i += 1;
+                }
+                if i < len {
+                    // Check if already self-closing (ends with / before >)
+                    let before_close = &html[tag_start..i];
+                    if before_close.ends_with('/') || before_close.ends_with("/ ") {
+                        // Already self-closing -- copy as-is
+                        result.push_str(&html[tag_start..=i]);
+                    } else {
+                        // Bare void tag -- convert to XHTML style: add " />"
+                        result.push_str(&html[tag_start..i]);
+                        result.push_str(" />");
+                    }
+                    i += 1;
+                } else {
+                    // Unclosed tag at end of string -- copy as-is
+                    result.push_str(&html[tag_start..]);
+                }
+            } else {
+                // Not a void element -- copy the '<' and reparse from name_start
+                result.push('<');
+                i = name_start;
+            }
+        } else {
+            result.push(bytes[i] as char);
+            i += 1;
+        }
+    }
+
+    result
 }
 
 // ============================================================================
@@ -4922,6 +5277,180 @@ by <a href="/people/author.html">Author Name</a>
                 && !html.contains("<br/>Second"),
             "Text 'Second line' should be sibling of <br>, not child. Got: {}",
             html
+        );
+    }
+
+    // ========================================================================
+    // Issue 204: Fix extra HTML elements in rustkyll output
+    // ========================================================================
+
+    #[test]
+    fn test_issue204_tight_list_no_p_wrapper() {
+        let input = "- First item text\n- Second item text\n- Third item with longer text here\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<li><p>") && !html.contains("<li>\n<p>"),
+            "Tight list items should not have <p> wrapper. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue204_kramdown_tight_list_with_continuation() {
+        let input = "- Then you should use several platforms to show yourself.\n  For example, after an achievement writes on LinkedIn.\n- You must connect to recruiters or professionals.\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<li><p>") && !html.contains("<li>\n<p>"),
+            "Tight list with continuation should not have <p> wrapper. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue204_kramdown_per_item_loose_tight() {
+        let input = "- item 1\n- item 2\n\n- item 3\n\n- item 4\n- item 5\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<li><p>") && !html.contains("<li>\n<p>"),
+            "After collapsing blank lines, list should be tight (no <p>). Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue204_heading_after_list_item_no_blank_line() {
+        let input = "- logic\n- characters\n- complex\n#### numbers\n- doubles by default\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<h4"),
+            "Heading after list item without blank line should not create <h4>. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("numbers"),
+            "Text 'numbers' should be present. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue204_collapse_blank_lines_between_list_items() {
+        let input = "- item 1\n- item 2\n\n- item 3\n\n- item 4\n- item 5\n";
+        let result = collapse_blank_lines_between_list_items(input);
+        assert_eq!(
+            result, "- item 1\n- item 2\n- item 3\n- item 4\n- item 5\n",
+            "Blank lines between list items should be collapsed"
+        );
+    }
+
+    #[test]
+    fn test_issue204_collapse_preserves_blank_after_list() {
+        let input = "- item 1\n- item 2\n\nSome paragraph text.\n";
+        let result = collapse_blank_lines_between_list_items(input);
+        assert_eq!(
+            result, "- item 1\n- item 2\n\nSome paragraph text.\n",
+            "Blank line after list should be preserved"
+        );
+    }
+
+    #[test]
+    fn test_issue204_escape_headings_in_list() {
+        let input = "- complex\n#### numbers\n- doubles\n";
+        let result = escape_headings_in_list_context(input);
+        assert!(
+            result.contains("\\####"),
+            "Heading marker in list context should be escaped. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue204_heading_after_blank_line_not_escaped() {
+        let input = "- item 1\n- item 2\n\n## Real heading\n";
+        let result = escape_headings_in_list_context(input);
+        assert!(
+            result.contains("\n## Real heading"),
+            "Heading after blank line should not be escaped. Got:\n{}",
+            result
+        );
+    }
+
+    // --- Issue 201: Bare <br> should become <br /> to match Jekyll/kramdown ---
+
+    #[test]
+    fn test_bare_br_converted_to_xhtml_style() {
+        let html = "<td>\n\"10x lol\"<br>\n\"Saved at least 1 week\"<br>\n\"Doubled\"</td>";
+        let result = postprocess(html);
+        assert!(
+            !result.contains("<br>"),
+            "Bare <br> should be converted to <br /> after postprocessing. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<br />"),
+            "Should contain <br /> (XHTML style). Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_bare_br_multiple_in_sequence() {
+        let html = "<p>Line 1<br>\nLine 2<br>\nLine 3</p>";
+        let result = postprocess(html);
+        assert!(
+            !result.contains("<br>"),
+            "All bare <br> should be converted to <br />. Got: {}",
+            result
+        );
+        assert_eq!(
+            result.matches("<br />").count(),
+            2,
+            "Should have exactly 2 <br /> tags. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_br_self_closing_preserved() {
+        let html = "<p>text<br />more</p>";
+        let result = postprocess(html);
+        assert!(
+            result.contains("<br />"),
+            "Self-closing <br /> should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_bare_br_via_markdown_to_html() {
+        let input = "<td>\"10x lol\"<br>\n\"Saved at least 1 week\"</td>";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<br>"),
+            "Bare <br> in raw HTML should become <br /> after full pipeline. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_bare_hr_converted_to_xhtml_style() {
+        let html = "<hr>\n<p>text</p>";
+        let result = postprocess(html);
+        assert!(
+            !result.contains("<hr>"),
+            "Bare <hr> should be converted to <hr />. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_normalize_html_output_converts_bare_br() {
+        let html = "<p>text<br>more</p>";
+        let result = normalize_html_output(html);
+        assert!(
+            result.contains("<br />"),
+            "normalize_html_output should convert bare <br> to <br />. Got: {}",
+            result
         );
     }
 }
