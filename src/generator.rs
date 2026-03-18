@@ -20,7 +20,7 @@ use crate::collection::{CollectionItem, Page};
 use crate::config::SiteConfig;
 use crate::data::DataTree;
 use crate::jsonld;
-use crate::template::context::{normalize_arrays, yaml_to_liquid};
+use crate::template::context::{normalize_arrays, normalize_frontmatter_date, yaml_to_liquid};
 use crate::template::engine::CachedSiteContext;
 use crate::template::layout::LayoutEngine;
 use crate::template::TemplateError;
@@ -55,6 +55,17 @@ pub enum GeneratorError {
 fn compile_scss(scss_source: &str) -> Result<String, String> {
     let options = grass::Options::default().style(grass::OutputStyle::Compressed);
     grass::from_string(scss_source.to_string(), &options).map_err(|e| e.to_string())
+}
+
+/// Extract the site timezone from the config's extras map.
+///
+/// Returns `Some(Tz)` if the config has a valid `timezone` key, `None` otherwise.
+fn get_config_timezone(config: &SiteConfig) -> Option<chrono_tz::Tz> {
+    config
+        .extras
+        .get("timezone")
+        .and_then(|v| v.as_str())
+        .and_then(|s| s.parse::<chrono_tz::Tz>().ok())
 }
 
 /// Result of generating pages for a collection.
@@ -315,15 +326,19 @@ fn collection_item_to_liquid_slim(item: &CollectionItem) -> LiquidValue {
         obj.insert("date".into(), LiquidValue::scalar(date.clone()));
     }
 
-    // Use html_content (rendered HTML) for the content field.
-    // In Jekyll, document.content is timing-dependent: raw when accessed before
-    // the document is rendered, HTML after. Since we cannot replicate Jekyll's
-    // exact rendering order, we use HTML, which is correct for display contexts
-    // like {{ guest.content }} in podcast layouts.
-    // Jekyll's content includes trailing newlines (e.g., `author.content |
-    // strip_html | jsonify` preserves them in JSON-LD output).
+    // Issue 217: Use raw markdown for the content field, matching Jekyll's behavior
+    // for site-level cross-references (e.g., `site.people | where: "short", a | first`).
+    // In Jekyll, `document.content` returns raw markdown when accessed before the
+    // document is individually rendered. This ensures that filter chains like
+    // `author.content | strip_html | jsonify` preserve markdown link syntax
+    // (strip_html is a no-op on raw markdown) and don't add trailing newlines
+    // from HTML paragraph rendering.
+    obj.insert("content".into(), LiquidValue::scalar(item.content.clone()));
+
+    // Also store rendered HTML as `output` for templates that need HTML display
+    // (e.g., {{ guest.content }} in podcast layouts that display bios as HTML).
     obj.insert(
-        "content".into(),
+        "output".into(),
         LiquidValue::scalar(item.html_content.clone()),
     );
 
@@ -831,6 +846,13 @@ pub fn generate_collection_pages_cached_with_progress(
             }
         }
 
+        // Issue 216: Normalize the date field in front matter to full datetime
+        // format with timezone offset (e.g., "2018/06/04 00:00" -> "2018-06-04 00:00:00 +0800").
+        // This must happen before the front matter is converted to the Liquid context,
+        // because yaml_to_liquid does not perform date expansion.
+        let site_tz = get_config_timezone(config);
+        normalize_frontmatter_date(&mut page_fm, site_tz);
+
         // Inject excerpt into page front matter (needed for SEO description fallback).
         // Jekyll auto-generates page.excerpt from the first paragraph of content.
         if !page_fm.contains_key("excerpt") {
@@ -1126,6 +1148,12 @@ pub fn generate_pages_cached_with_config_and_progress(
             for (key, value) in defaults {
                 page_fm.entry(key).or_insert(value);
             }
+        }
+
+        // Issue 216: Normalize the date field in page front matter
+        if let Some(cfg) = config {
+            let site_tz = get_config_timezone(cfg);
+            normalize_frontmatter_date(&mut page_fm, site_tz);
         }
 
         // Resolve layout from front matter (after defaults are applied).
@@ -4185,11 +4213,12 @@ defaults:
     }
 
     #[test]
-    fn test_collection_item_content_uses_html_content() {
-        // Collection item's content field uses rendered HTML. This is needed for
-        // templates like {{ guest.content }} in podcast layouts that display bios.
-        // In Jekyll, .content is timing-dependent (raw before render, HTML after),
-        // but we consistently use HTML for correct display rendering.
+    fn test_collection_item_content_uses_raw_markdown() {
+        // Issue 217: Collection item's content field in slim representation uses
+        // raw markdown, matching Jekyll's behavior for site-level cross-references.
+        // In Jekyll, `document.content` accessed via `site.people` returns raw
+        // markdown (before the document is individually rendered). This ensures
+        // `author.content | strip_html | jsonify` preserves markdown link syntax.
         let item = CollectionItem {
             slug: "testperson".to_string(),
             url: "/people/testperson.html".to_string(),
@@ -4219,11 +4248,182 @@ defaults:
             .map(|(_, v)| v.to_kstr().to_string())
             .unwrap();
 
-        // Content should use html_content for display rendering
+        // Content should use raw markdown (not html_content)
         assert_eq!(
-            content_val, "<p>Test Person is a developer.</p>\n",
-            "Collection item content should use html_content, got: {:?}",
+            content_val, "Test Person is a developer.",
+            "Collection item content should use raw markdown, got: {:?}",
             content_val
+        );
+    }
+
+    #[test]
+    fn test_collection_item_content_preserves_markdown_links() {
+        // Issue 217: Raw markdown content preserves link syntax, which is critical
+        // for JSON-LD author descriptions (strip_html is a no-op on raw markdown).
+        let item = CollectionItem {
+            slug: "davidgates".to_string(),
+            url: "/people/davidgates.html".to_string(),
+            date: None,
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("David Gates".to_string()),
+                );
+                fm
+            },
+            content: "David Gates is the founder of [Accents Welcome](https://accentswelcome.com),\nan English language school.".to_string(),
+            html_content: "<p>David Gates is the founder of <a href=\"https://accentswelcome.com\">Accents Welcome</a>,\nan English language school.</p>\n".to_string(),
+            excerpt: None,
+            collection_name: "people".to_string(),
+            source_path: "_people/davidgates.md".to_string(),
+            id: "/people/davidgates".to_string(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item);
+        let content_val = liquid_val
+            .as_object()
+            .unwrap()
+            .iter()
+            .find(|(k, _)| k.as_str() == "content")
+            .map(|(_, v)| v.to_kstr().to_string())
+            .unwrap();
+
+        // Raw markdown preserves link syntax
+        assert!(
+            content_val.contains("[Accents Welcome](https://accentswelcome.com)"),
+            "Content should preserve markdown links, got: {:?}",
+            content_val
+        );
+        // No trailing newline from HTML rendering
+        assert!(
+            !content_val.ends_with("</p>\n"),
+            "Content should not have HTML paragraph tags, got: {:?}",
+            content_val
+        );
+    }
+
+    #[test]
+    fn test_collection_item_content_no_trailing_html_newline() {
+        // Issue 217: Raw markdown content doesn't have trailing newline from
+        // HTML paragraph rendering, fixing JSON-LD trailing \n diffs.
+        let item = CollectionItem {
+            slug: "alexeygrigorev".to_string(),
+            url: "/people/alexeygrigorev.html".to_string(),
+            date: None,
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("Alexey Grigorev".to_string()),
+                );
+                fm
+            },
+            content: "Alexey Grigorev is the founder of DataTalks.Club".to_string(),
+            html_content: "<p>Alexey Grigorev is the founder of DataTalks.Club</p>\n".to_string(),
+            excerpt: None,
+            collection_name: "people".to_string(),
+            source_path: "_people/alexeygrigorev.md".to_string(),
+            id: "/people/alexeygrigorev".to_string(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item);
+        let content_val = liquid_val
+            .as_object()
+            .unwrap()
+            .iter()
+            .find(|(k, _)| k.as_str() == "content")
+            .map(|(_, v)| v.to_kstr().to_string())
+            .unwrap();
+
+        assert_eq!(
+            content_val, "Alexey Grigorev is the founder of DataTalks.Club",
+            "Content should be raw markdown with no trailing newline, got: {:?}",
+            content_val
+        );
+    }
+
+    #[test]
+    fn test_collection_item_content_unicode_preserved() {
+        // Issue 217: Raw markdown content preserves non-ASCII/Unicode characters.
+        let item = CollectionItem {
+            slug: "renedescartes".to_string(),
+            url: "/people/renedescartes.html".to_string(),
+            date: None,
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("Ren\u{00e9} Descartes".to_string()),
+                );
+                fm
+            },
+            content: "Ren\u{00e9} Descartes est un philosophe fran\u{00e7}ais. Il a \u{00e9}crit le [Discours](https://example.com/discours).".to_string(),
+            html_content: "<p>Ren\u{00e9} Descartes est un philosophe fran\u{00e7}ais. Il a \u{00e9}crit le <a href=\"https://example.com/discours\">Discours</a>.</p>\n".to_string(),
+            excerpt: None,
+            collection_name: "people".to_string(),
+            source_path: "_people/renedescartes.md".to_string(),
+            id: "/people/renedescartes".to_string(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item);
+        let content_val = liquid_val
+            .as_object()
+            .unwrap()
+            .iter()
+            .find(|(k, _)| k.as_str() == "content")
+            .map(|(_, v)| v.to_kstr().to_string())
+            .unwrap();
+
+        // Unicode chars preserved
+        assert!(
+            content_val.contains("Ren\u{00e9}"),
+            "Content should preserve unicode e-acute, got: {:?}",
+            content_val
+        );
+        assert!(
+            content_val.contains("fran\u{00e7}ais"),
+            "Content should preserve unicode c-cedilla, got: {:?}",
+            content_val
+        );
+        // Markdown link preserved
+        assert!(
+            content_val.contains("[Discours](https://example.com/discours)"),
+            "Content should preserve markdown links with unicode, got: {:?}",
+            content_val
+        );
+    }
+
+    #[test]
+    fn test_collection_item_slim_has_output_field() {
+        // Issue 217: The slim representation includes an `output` field with
+        // rendered HTML, for templates that need HTML display (e.g., {{ guest.content }}
+        // in podcast layouts can use {{ guest.output }} instead if needed).
+        let item = CollectionItem {
+            slug: "testperson".to_string(),
+            url: "/people/testperson.html".to_string(),
+            date: None,
+            front_matter: HashMap::new(),
+            content: "Test bio.".to_string(),
+            html_content: "<p>Test bio.</p>\n".to_string(),
+            excerpt: None,
+            collection_name: "people".to_string(),
+            source_path: "_people/testperson.md".to_string(),
+            id: "/people/testperson".to_string(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item);
+        let output_val = liquid_val
+            .as_object()
+            .unwrap()
+            .iter()
+            .find(|(k, _)| k.as_str() == "output")
+            .map(|(_, v)| v.to_kstr().to_string());
+
+        assert_eq!(
+            output_val,
+            Some("<p>Test bio.</p>\n".to_string()),
+            "Slim representation should include output field with rendered HTML"
         );
     }
 
