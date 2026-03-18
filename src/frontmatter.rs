@@ -89,16 +89,45 @@ fn split_front_matter(input: &str) -> (Option<&str>, &str) {
     (None, input)
 }
 
-/// Extract the excerpt (content before `<!--more-->`) from markdown content.
+/// Extract the excerpt from markdown content.
+///
+/// First tries to find `<!--more-->` separator. If not found, falls back to
+/// the first paragraph (text before the first blank line), matching Jekyll's
+/// default behavior where `page.excerpt` is auto-generated from content.
 fn extract_excerpt(content: &str) -> Option<String> {
-    content.find(EXCERPT_SEPARATOR).map(|pos| {
+    // Try <!--more--> separator first
+    if let Some(pos) = content.find(EXCERPT_SEPARATOR) {
         let excerpt = content[..pos].trim().to_string();
-        if excerpt.is_empty() {
-            String::new()
+        return if excerpt.is_empty() {
+            Some(String::new())
         } else {
-            excerpt
+            Some(excerpt)
+        };
+    }
+
+    // Fall back to first paragraph (text before first blank line)
+    let trimmed = content.trim_start();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    // Find the first blank line (two consecutive newlines)
+    if let Some(pos) = trimmed.find("\n\n") {
+        let first_para = trimmed[..pos].trim().to_string();
+        if first_para.is_empty() {
+            None
+        } else {
+            Some(first_para)
         }
-    })
+    } else {
+        // No blank line -- entire content is one paragraph
+        let para = trimmed.trim().to_string();
+        if para.is_empty() {
+            None
+        } else {
+            Some(para)
+        }
+    }
 }
 
 /// Parse a string containing optional YAML front matter and a markdown body.
@@ -221,6 +250,25 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // Issue 204: Collapse blank lines between list items to match kramdown's
     // tight list behavior. CommonMark makes entire list loose on any blank line.
     let markdown = crate::kramdown::collapse_blank_lines_between_list_items(&markdown);
+    // Issue 200: Convert kramdown-style pipe tables to HTML.
+    let markdown = crate::kramdown::convert_kramdown_pipe_tables(&markdown);
+
+    // Issue 203: Split text that follows HTML block close tags onto new lines.
+    // In kramdown, `</figure>Text with [links](url)` treats the text as a new
+    // paragraph, but CommonMark treats it as part of the HTML block.
+    let markdown = crate::kramdown::split_text_after_html_block_close(&markdown);
+
+    // Issue 206: Normalize zero-width spaces before emphasis markers so
+    // pulldown-cmark recognizes them as word boundaries for emphasis.
+    let markdown = normalize_zwsp_for_emphasis(&markdown);
+
+    // Issue 206: Fix emphasis patterns that CommonMark doesn't parse but
+    // kramdown does (e.g., word*.*).
+    let markdown = fix_kramdown_emphasis_patterns(&markdown);
+
+    // Issue 198: Protect consecutive single quotes ('' and ''') from smart
+    // punctuation to match kramdown behavior for MediaWiki-style markup.
+    let markdown = protect_consecutive_single_quotes(&markdown);
 
     // Protect Liquid tags from smart punctuation by replacing quotes inside
     // {% %} and {{ }} patterns with placeholders.
@@ -233,6 +281,11 @@ pub fn markdown_to_html(markdown: &str) -> String {
 
     // Restore protected quotes
     let html_output = restore_liquid_quotes(&html_output);
+    let html_output = restore_consecutive_single_quotes(&html_output);
+
+    // Issue 207: Decode pulldown-cmark's percent-encoding of special chars in URLs
+    // to match Jekyll/kramdown behavior.
+    let html_output = decode_pulldown_url_encoding(&html_output);
 
     // Apply kramdown compatibility post-processing
     crate::kramdown::postprocess(&html_output)
@@ -253,6 +306,16 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     let markdown = escape_paren_list_markers(markdown);
     let markdown = crate::kramdown::escape_headings_in_list_context(&markdown);
     let markdown = crate::kramdown::collapse_blank_lines_between_list_items(&markdown);
+    // Issue 200: Convert kramdown-style pipe tables to HTML.
+    let markdown = crate::kramdown::convert_kramdown_pipe_tables(&markdown);
+
+    let markdown = crate::kramdown::split_text_after_html_block_close(&markdown);
+
+    // Issue 198/206: Same ZWSP and emphasis handling as markdown_to_html
+    let markdown = normalize_zwsp_for_emphasis(&markdown);
+    let markdown = fix_kramdown_emphasis_patterns(&markdown);
+    let markdown = protect_consecutive_single_quotes(&markdown);
+
     let protected = protect_liquid_quotes(&markdown);
 
     let parser = Parser::new_ext(&protected, options);
@@ -261,6 +324,8 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     html::push_html(&mut html_output, events.into_iter());
 
     let html_output = restore_liquid_quotes(&html_output);
+    let html_output = restore_consecutive_single_quotes(&html_output);
+    let html_output = decode_pulldown_url_encoding(&html_output);
 
     crate::kramdown::postprocess_for_filter(&html_output)
 }
@@ -272,6 +337,205 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
 /// This converts `1) ` at the start of a line to `1\) ` so the backslash
 /// escapes the parenthesis in CommonMark. Only applies outside of code blocks
 /// and HTML blocks.
+/// Issue 198: Normalize zero-width spaces (U+200B) before underscore/asterisk
+/// emphasis markers so that pulldown-cmark recognizes them as word boundaries.
+///
+/// In CommonMark, `_emphasis_` requires the opening `_` to be preceded by
+/// whitespace or punctuation (a "left-flanking delimiter run"). Zero-width
+/// space (U+200B) is Unicode category Cf (format), which CommonMark does not
+/// classify as whitespace. So `\u{200b}_word_` is treated as mid-word and the
+/// emphasis is not applied.
+///
+/// Issue 206: Fix emphasis patterns that kramdown handles but CommonMark doesn't.
+/// In CommonMark, `word*X*` is not a left-flanking delimiter. kramdown is more
+/// permissive. This inserts ZWSP+space before such patterns to enable emphasis.
+fn fix_kramdown_emphasis_patterns(markdown: &str) -> String {
+    if !markdown.contains('*') {
+        return markdown.to_string();
+    }
+    let mut result = String::with_capacity(markdown.len() + 32);
+    let chars: Vec<char> = markdown.chars().collect();
+    let len = chars.len();
+    let mut i = 0;
+    while i < len {
+        if chars[i] == '*' && i > 0 && chars[i - 1].is_alphanumeric() {
+            let mut j = i + 1;
+            while j < len && j < i + 5 && chars[j] != '*' && !chars[j].is_whitespace() {
+                j += 1;
+            }
+            if j < len && j > i + 1 && chars[j] == '*' {
+                result.push('\u{200b}');
+                result.push(' ');
+                for ch in &chars[i..=j] {
+                    result.push(*ch);
+                }
+                i = j + 1;
+                continue;
+            }
+        }
+        result.push(chars[i]);
+        i += 1;
+    }
+    result
+}
+
+/// kramdown, however, does recognize ZWSP as a boundary. This function inserts
+/// a regular space after ZWSP when followed by `_` or `*` to enable emphasis.
+fn normalize_zwsp_for_emphasis(markdown: &str) -> String {
+    if !markdown.contains('\u{200b}') {
+        return markdown.to_string();
+    }
+
+    let mut result = String::with_capacity(markdown.len() + 32);
+    let chars: Vec<char> = markdown.chars().collect();
+    let len = chars.len();
+    let mut i = 0;
+
+    while i < len {
+        if chars[i] == '\u{200b}' && i + 1 < len && (chars[i + 1] == '_' || chars[i + 1] == '*') {
+            result.push('\u{200b}');
+            result.push(' ');
+            i += 1;
+            continue;
+        }
+        result.push(chars[i]);
+        i += 1;
+    }
+
+    result
+}
+
+/// Placeholder for consecutive single quotes used in MediaWiki-style markup.
+const SINGLE_QUOTE_3_PLACEHOLDER: &str = "\x00SQ3\x00";
+const SINGLE_QUOTE_2_PLACEHOLDER: &str = "\x00SQ2\x00";
+
+/// Issue 198: Protect consecutive single quotes (`''` and `'''`) from smart
+/// punctuation conversion.
+///
+/// kramdown does NOT convert `''text''` or `'''text'''` to curly quotes --
+/// it keeps them as literal straight single quotes. pulldown-cmark's smart
+/// punctuation converts them to curly quotes (\u2018/\u2019).
+///
+/// Replace `'''` and `''` with placeholders before markdown processing,
+/// restore after. Single `'` is left alone for normal smart quote conversion.
+fn protect_consecutive_single_quotes(input: &str) -> String {
+    if !input.contains("''") {
+        return input.to_string();
+    }
+    // Replace ''' first (3 quotes) then '' (2 quotes) to avoid partial matching
+    let result = input.replace("'''", SINGLE_QUOTE_3_PLACEHOLDER);
+    result.replace("''", SINGLE_QUOTE_2_PLACEHOLDER)
+}
+
+/// Restore consecutive single quote placeholders back to their original form.
+fn restore_consecutive_single_quotes(input: &str) -> String {
+    let result = input.replace(SINGLE_QUOTE_3_PLACEHOLDER, "'''");
+    result.replace(SINGLE_QUOTE_2_PLACEHOLDER, "''")
+}
+
+/// Issue 207: Decode percent-encoding that pulldown-cmark adds to URLs in href/src attributes.
+///
+/// pulldown-cmark percent-encodes characters in URLs (like non-ASCII characters,
+/// `]`, etc.) that Jekyll/kramdown preserves as-is. This post-processes the HTML
+/// to decode those characters back to their literal form in href and src attributes.
+///
+/// Characters decoded:
+/// - Non-ASCII bytes (> 0x7F) -- Cyrillic, CJK, etc.
+/// - `]` (0x5D) -- closing brackets in URLs
+///
+/// Characters kept encoded:
+/// - Space (%20) -- must remain encoded in URLs
+/// - Other ASCII control characters
+fn decode_pulldown_url_encoding(html: &str) -> String {
+    // Quick check: if there's no percent-encoding at all, return as-is
+    if !html.contains('%') {
+        return html.to_string();
+    }
+
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+
+    while !remaining.is_empty() {
+        // Find next href=" or src="
+        let attr_start = remaining
+            .find("href=\"")
+            .map(|p| (p, 6)) // "href=\"" is 6 chars
+            .or_else(|| remaining.find("src=\"").map(|p| (p, 5))); // "src=\"" is 5 chars
+
+        if let Some((pos, prefix_len)) = attr_start {
+            // Copy everything before and including the attribute prefix
+            result.push_str(&remaining[..pos + prefix_len]);
+            let after_quote = &remaining[pos + prefix_len..];
+
+            // Find closing quote
+            if let Some(end_quote) = after_quote.find('"') {
+                let url = &after_quote[..end_quote];
+                result.push_str(&decode_url_for_jekyll_compat(url));
+                result.push('"');
+                remaining = &after_quote[end_quote + 1..];
+            } else {
+                result.push_str(after_quote);
+                break;
+            }
+        } else {
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    result
+}
+
+/// Decode percent-encoded characters in a URL to match Jekyll's behavior.
+///
+/// Decodes:
+/// - Non-ASCII bytes (> 0x7F) back to UTF-8 characters
+/// - `]` (0x5D) back to literal `]`
+///
+/// Preserves encoding for:
+/// - Space (%20)
+/// - Other ASCII characters that should remain encoded
+fn decode_url_for_jekyll_compat(url: &str) -> String {
+    if !url.contains('%') {
+        return url.to_string();
+    }
+
+    let bytes = url.as_bytes();
+    let len = bytes.len();
+    let mut decoded: Vec<u8> = Vec::with_capacity(len);
+    let mut i = 0;
+
+    while i < len {
+        if bytes[i] == b'%' && i + 2 < len {
+            let hi = hex_val(bytes[i + 1]);
+            let lo = hex_val(bytes[i + 2]);
+            if let (Some(h), Some(l)) = (hi, lo) {
+                let byte_val = (h << 4) | l;
+                // Decode non-ASCII bytes (> 127) and ] (0x5D)
+                if byte_val > 127 || byte_val == b']' {
+                    decoded.push(byte_val);
+                    i += 3;
+                    continue;
+                }
+            }
+        }
+        decoded.push(bytes[i]);
+        i += 1;
+    }
+
+    String::from_utf8(decoded).unwrap_or_else(|_| url.to_string())
+}
+
+/// Convert a hex digit to its numeric value.
+fn hex_val(b: u8) -> Option<u8> {
+    match b {
+        b'0'..=b'9' => Some(b - b'0'),
+        b'a'..=b'f' => Some(b - b'a' + 10),
+        b'A'..=b'F' => Some(b - b'A' + 10),
+        _ => None,
+    }
+}
+
 fn escape_paren_list_markers(markdown: &str) -> String {
     let mut result = String::with_capacity(markdown.len());
     let mut in_code_block = false;
@@ -615,9 +879,45 @@ mod tests {
 
     #[test]
     fn test_excerpt_without_separator() {
+        // Without <!--more-->, Jekyll auto-generates excerpt from first paragraph
         let input = "---\ntitle: Test\n---\nJust content, no separator.";
         let doc = parse_document(input).unwrap();
-        assert!(doc.excerpt.is_none());
+        assert_eq!(
+            doc.excerpt,
+            Some("Just content, no separator.".to_string()),
+            "Should auto-generate excerpt from first paragraph"
+        );
+    }
+
+    #[test]
+    fn test_excerpt_first_paragraph_only() {
+        // Auto-excerpt should only include first paragraph (before blank line)
+        let input =
+            "---\ntitle: Test\n---\nFirst paragraph here.\n\nSecond paragraph here.\n\nThird.";
+        let doc = parse_document(input).unwrap();
+        assert_eq!(
+            doc.excerpt,
+            Some("First paragraph here.".to_string()),
+            "Auto-excerpt should be first paragraph only"
+        );
+    }
+
+    #[test]
+    fn test_excerpt_auto_with_unicode() {
+        // Non-ASCII content should be preserved in auto-excerpt
+        let input = "---\ntitle: Test\n---\n\u{1F382} Hubberversary! \u{4F60}\u{597D}\u{4E16}\u{754C}\n\nMore content.";
+        let doc = parse_document(input).unwrap();
+        let excerpt = doc.excerpt.unwrap();
+        assert!(
+            excerpt.contains("\u{1F382}"),
+            "Unicode emoji should be in excerpt. Got: {}",
+            excerpt
+        );
+        assert!(
+            excerpt.contains("\u{4F60}\u{597D}"),
+            "CJK chars should be in excerpt. Got: {}",
+            excerpt
+        );
     }
 
     #[test]
@@ -1717,5 +2017,138 @@ Some text after.
             "No trailing space in source means no space after strip_newlines. Got: {:?}",
             stripped
         );
+    }
+
+    // ========================================================================
+    // Issue 206: Inline formatting tests
+    // ========================================================================
+
+    #[test]
+    fn test_emphasis_after_zero_width_space() {
+        // Zero-width space before _word_ should still produce <em>
+        let md = "connect with \u{200b}_everyone_";
+        let html = markdown_to_html(md);
+        assert!(
+            html.contains("<em>everyone</em>"),
+            "Emphasis after zero-width space should be applied. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_emphasis_after_zero_width_space_unicode() {
+        // Non-ASCII: ZWSP before emphasis with Cyrillic content
+        let md = "\u{200b}_\u{043F}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}_";
+        let html = markdown_to_html(md);
+        assert!(
+            html.contains("<em>\u{043F}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}</em>"),
+            "Emphasis with Cyrillic after ZWSP should work. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_emphasis_dot_pattern() {
+        // *.*  should produce <em>.</em>
+        let md = "not straightforward*.*";
+        let html = markdown_to_html(md);
+        assert!(
+            html.contains("<em>.</em>"),
+            "Single-char emphasis with dot should be applied. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_kramdown_link_with_target_blank_full() {
+        let md =
+            r#"[Wikipedia](https://en.wikipedia.org/wiki/Docker_(software)){:target="_blank"}"#;
+        let html = markdown_to_html(md);
+        assert!(
+            html.contains(r#"target="_blank""#),
+            "Kramdown IAL target should be applied. Got: {html}"
+        );
+        assert!(html.contains("href="), "Should produce a link. Got: {html}");
+        assert!(
+            !html.contains("{:target"),
+            "IAL syntax should be consumed. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_inline_link_rendered() {
+        let md = "Visit our [homepage](/) for more info";
+        let html = markdown_to_html(md);
+        assert!(
+            html.contains("<a href=\"/\">homepage</a>"),
+            "Inline link should be rendered. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_normalize_zwsp_for_emphasis_preserves_normal_text() {
+        // Normal text without ZWSP should pass through unchanged
+        let input = "Hello _world_ and *bold*";
+        assert_eq!(normalize_zwsp_for_emphasis(input), input);
+    }
+
+    #[test]
+    fn test_normalize_zwsp_for_emphasis_no_zwsp() {
+        // No ZWSP means early return
+        let input = "plain text";
+        assert_eq!(normalize_zwsp_for_emphasis(input), input);
+    }
+
+    // ========================================================================
+    // Issue 207: URL encoding tests
+    // ========================================================================
+
+    #[test]
+    fn test_url_with_non_ascii_preserved_in_markdown() {
+        // Non-ASCII characters in markdown link hrefs should be preserved
+        let md =
+            "[link](/page/\u{043D}\u{0430}\u{0437}\u{0432}\u{0430}\u{043D}\u{0438}\u{0435}.html)";
+        let html = markdown_to_html(md);
+        assert!(
+            html.contains("\u{043D}\u{0430}\u{0437}\u{0432}\u{0430}\u{043D}\u{0438}\u{0435}"),
+            "Non-ASCII href should be preserved (not percent-encoded). Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_url_bracket_not_percent_encoded() {
+        // Test that ] in URLs is decoded back to literal
+        let html = decode_pulldown_url_encoding(r#"<a href="http://example.com/page%5D">link</a>"#);
+        assert!(
+            html.contains("page]"),
+            "Bracket ] should be decoded from %5D. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_url_cyrillic_decoded() {
+        // Test that Cyrillic in URLs is decoded back to literal UTF-8
+        let html = decode_pulldown_url_encoding(
+            r#"<a href="/page/%D0%BD%D0%B0%D0%B7%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5.html">link</a>"#,
+        );
+        assert!(
+            html.contains("\u{043D}\u{0430}\u{0437}\u{0432}\u{0430}\u{043D}\u{0438}\u{0435}"),
+            "Cyrillic should be decoded from percent-encoding. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_url_space_kept_encoded() {
+        // Spaces should stay percent-encoded
+        let html = decode_pulldown_url_encoding(r#"<a href="/page%20name">link</a>"#);
+        assert!(
+            html.contains("%20"),
+            "Space should remain percent-encoded. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_decode_preserves_non_url_content() {
+        // Content outside href/src attributes should not be modified
+        let html = r#"<p>some %5D text</p>"#;
+        let result = decode_pulldown_url_encoding(html);
+        assert_eq!(result, html, "Non-attribute content should be unchanged");
     }
 }

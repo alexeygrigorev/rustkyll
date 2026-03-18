@@ -122,3 +122,17 @@ fn test_inline_formatting_in_liquid_output() {
 - [ ] government-github and jekyll-docs inline formatting diffs fixed (5 pages)
 - [ ] mojombo-blog inline formatting diff fixed (1 page)
 - [ ] mlwiki.org: document what Jekyll does with `''italic''` MediaWiki syntax; fix or create sub-issue
+
+## Log
+
+### [SWE] 2026-03-18
+
+- Implemented `normalize_zwsp_for_emphasis()` in src/frontmatter.rs: inserts a space after ZWSP when followed by `_` or `*` emphasis markers, enabling pulldown-cmark to treat them as word boundaries
+- Implemented `fix_kramdown_emphasis_patterns()` in src/frontmatter.rs: detects `word*X*` patterns (short emphasis after alphanumeric) and inserts ZWSP+space to create word boundary that CommonMark recognizes
+- Implemented `protect_consecutive_single_quotes()` / `restore_consecutive_single_quotes()` for MediaWiki `''italic''` / `'''bold'''` syntax -- protects from smart punctuation
+- Both functions added to `markdown_to_html()` and `markdown_to_html_for_filter()` pipelines
+- Kramdown IAL `{:target="_blank"}` already works (verified existing implementation)
+- Tests added: 7 tests (ZWSP emphasis, ZWSP+Cyrillic, dot pattern, kramdown IAL, inline link, normalize preservation, no-ZWSP early return)
+- Build: 1604 lib tests pass, 0 fail. All integration tests pass. Clippy clean, fmt clean.
+- Files modified: src/frontmatter.rs
+- Note: mlwiki.org `''italic''` MediaWiki syntax handled by the consecutive single quote protection (prevents smart punctuation from converting them to curly quotes)

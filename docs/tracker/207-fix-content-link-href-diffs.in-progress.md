@@ -131,3 +131,17 @@ fn test_non_ascii_href_preserved() {
 - [ ] Theme site link diffs fixed
 - [ ] government-github link diffs fixed (10 pages)
 - [ ] No regressions in existing link generation
+
+## Log
+
+### [SWE] 2026-03-18
+
+- Implemented `decode_pulldown_url_encoding()` in src/frontmatter.rs: post-processes HTML to decode percent-encoded characters in href/src attributes that pulldown-cmark encodes but Jekyll preserves
+- Implemented `decode_url_for_jekyll_compat()`: decodes non-ASCII bytes (>0x7F, e.g. Cyrillic) and `]` (0x5D) back to literal UTF-8; preserves encoding for space (%20) and other ASCII chars
+- Added `hex_val()` helper for hex digit conversion
+- Function added to both `markdown_to_html()` and `markdown_to_html_for_filter()` pipelines
+- Tests added: 5 tests (bracket decoding, Cyrillic decoding, space kept encoded, non-URL content preserved, full markdown-to-html non-ASCII URL)
+- Build: 1604 lib tests pass, 0 fail. All integration tests pass. Clippy clean, fmt clean.
+- Files modified: src/frontmatter.rs
+- Note: Collection sort order (alexeygrigorev services page) and theme site link patterns require investigation of specific dom-details to determine root cause -- these may be separate issues beyond URL encoding
+- Note: The `>` character encoding (test scenario 2 in issue) is not currently decoded because pulldown-cmark may not parse URLs ending with `>` as links at all

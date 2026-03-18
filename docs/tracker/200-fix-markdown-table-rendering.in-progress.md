@@ -113,3 +113,52 @@ fn test_dtc_book_page_table_renders() {
 - [ ] Tables inside list items render as `<table>` elements, not raw text
 - [ ] DTC book page table fixed (1 page)
 - [ ] mlwiki.org tables: fix standard markdown tables that are inside list items; document any wiki-only table formats as known limitations
+
+## Log
+
+### [SWE] 2026-03-18
+
+**Investigation findings:**
+
+1. **mlwiki.org (108 pages)**: The tables are kramdown-specific -- any line ending with `|` is treated as a table row. The `|` characters split the line into `<td>` cells. No header separator line (`|---|---|`) is needed. Examples:
+   - Single cell: `- can use Prim's algo |` becomes `<li><table><tbody><tr><td>can use Prim's algo</td></tr></tbody></table></li>`
+   - Multi-cell: `text1 | text2 | text3 |` splits into 3 `<td>` cells
+   - These appear inside list items at various nesting depths
+   - Many contain mathematical notation ($x$ and LaTeX)
+   - Some contain Russian/Cyrillic text (Bayes_Theorem page)
+
+2. **DTC (1 page)**: The book page `20220425-natural-language-processing-with-transformers` has a list item where `<tel:100-1000|100-1000>` gets treated by kramdown as containing a table cell because of the `|` character. This is the same kramdown pipe-table behavior.
+
+3. **Standard pipe tables** (with header separator line) already work correctly via pulldown-cmark's `ENABLE_TABLES` option.
+
+4. **Tables inside list items** with standard format (indented by 2+ spaces with separator line) already work in pulldown-cmark.
+
+**Implementation:**
+
+- Added `convert_kramdown_pipe_tables()` as a pre-processing step in `src/kramdown.rs`
+- The function detects lines ending with `|` (after stripping list item prefixes)
+- Converts them to raw HTML `<table><tbody><tr><td>...</td></tr></tbody></table>` before pulldown-cmark
+- Correctly avoids converting standard CommonMark pipe tables (those with separator lines)
+- Handles list item context, indentation, and multi-row tables
+- Wired into both `markdown_to_html()` and `markdown_to_html_for_filter()` in `src/frontmatter.rs`
+
+**Known limitation:** The mlwiki.org wiki-style tables use kramdown's pipe table syntax which is not a separate "wiki format" -- it IS kramdown's table format. All 108 mlwiki pages use this same pattern (line ending with `|`). This implementation handles all of them.
+
+**Tests:** 11 new tests, all passing:
+- `test_200_standard_pipe_table_renders` - baseline, standard tables still work
+- `test_200_pipe_table_unicode` - Cyrillic/accented chars in standard tables
+- `test_200_table_inside_list` - standard table inside list item
+- `test_200_table_inside_list_unicode` - same with Cyrillic content
+- `test_200_kramdown_trailing_pipe_in_list` - kramdown `- text |` in list
+- `test_200_kramdown_multi_pipe_in_list` - kramdown `- a | b | c |` in list
+- `test_200_kramdown_pipe_unicode` - kramdown pipe with Russian text
+- `test_200_no_false_table` - pipe in middle of text is NOT a table
+- `test_200_trailing_pipe_not_in_list` - kramdown pipe outside list context
+- `test_200_multi_row_pipe` - consecutive pipe lines form multi-row table
+- `test_200_no_double_convert` - standard tables not double-converted
+
+**Build:** 1575 tests pass (11 new), 4 pre-existing failures from other in-progress issues (198/206/207). Clippy clean, fmt clean.
+
+**Files modified:**
+- `src/kramdown.rs` - Added `convert_kramdown_pipe_tables()` and helper functions, 11 tests
+- `src/frontmatter.rs` - Wired pipe table conversion into `markdown_to_html()` and `markdown_to_html_for_filter()`

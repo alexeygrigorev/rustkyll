@@ -776,6 +776,21 @@ pub fn generate_collection_pages_cached_with_progress(
             }
         }
 
+        // Inject excerpt into page front matter (needed for SEO description fallback).
+        // Jekyll auto-generates page.excerpt from the first paragraph of content.
+        if !page_fm.contains_key("excerpt") {
+            if let Some(ref excerpt) = item.excerpt {
+                if !excerpt.is_empty() {
+                    // Convert markdown excerpt to HTML, then strip tags for plain text
+                    let html_excerpt = crate::frontmatter::markdown_to_html(excerpt);
+                    page_fm.insert(
+                        "excerpt".to_string(),
+                        serde_yaml::Value::String(html_excerpt),
+                    );
+                }
+            }
+        }
+
         // Inject previous/next for posts
         if let Some((prev, next)) = prev_next.get(&item.slug) {
             match prev {

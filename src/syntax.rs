@@ -48,6 +48,20 @@ fn build_scope_map() -> Vec<ScopeMapping> {
         ("source.yaml punctuation.separator.sequence", "pi"),
         // YAML: block scalar indicators (| and >) are `pi` in Rouge
         ("source.yaml keyword.control.flow.block-scalar", "pi"),
+        // JavaScript: Rouge uses `kd` (keyword.declaration) for `var`, `function`, etc.
+        // Syntect scopes these as storage.type / storage.type.function which would
+        // map to `kt` / `k` generically. Override for JS specifically.
+        ("source.js storage.type.function", "kd"),
+        ("source.js storage.type", "kd"),
+        // JavaScript: Rouge uses `nx` (name.other) for most identifiers.
+        // Syntect uses entity.name.function (-> nf), variable.other (-> n),
+        // variable.parameter (-> n), variable.function (no match), and
+        // meta.property.object (no match). Override all to `nx` for JS.
+        ("source.js entity.name.function", "nx"),
+        ("source.js variable.parameter", "nx"),
+        ("source.js variable.other", "nx"),
+        ("source.js variable.function", "nx"),
+        ("source.js meta.property.object", "nx"),
         // SQL: Rouge treats aggregate/builtin functions (COUNT, SUM, etc.) as keywords (k),
         // not builtins (nb). Override the generic support.function -> nb mapping.
         ("source.sql support.function", "k"),

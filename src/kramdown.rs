@@ -186,6 +186,94 @@ pub fn collapse_blank_lines_in_html_blocks(content: &str) -> String {
     result
 }
 
+/// Block-level HTML tags after which trailing text on the same line
+/// should be split onto a new line for proper markdown parsing.
+///
+/// In CommonMark, an HTML block extends until a blank line. When text like
+/// `</figure>Photo by [Name](url)` appears, pulldown-cmark treats the text
+/// after `</figure>` as part of the HTML block and doesn't parse the markdown.
+/// kramdown, however, treats the text after the closing tag as new content.
+const BLOCK_CLOSE_SPLIT_TAGS: &[&str] = &[
+    "</figure>",
+    "</figcaption>",
+    "</div>",
+    "</table>",
+    "</blockquote>",
+    "</pre>",
+    "</section>",
+    "</article>",
+    "</header>",
+    "</footer>",
+    "</nav>",
+    "</aside>",
+    "</details>",
+    "</summary>",
+    "</form>",
+    "</fieldset>",
+];
+
+/// Split text that immediately follows a closing HTML block tag onto a new line.
+///
+/// In kramdown, text like `</figure>Photo by [Name](url)` is treated as:
+/// - `</figure>` ends the HTML block
+/// - `Photo by [Name](url)` is a new markdown paragraph
+///
+/// In CommonMark (pulldown-cmark), the entire line is part of the HTML block,
+/// so the markdown links are not parsed.
+///
+/// This pre-processing step inserts a blank line between the closing HTML tag
+/// and the trailing text, so pulldown-cmark will parse the text as markdown.
+pub fn split_text_after_html_block_close(content: &str) -> String {
+    let mut result = String::with_capacity(content.len() + 64);
+    let mut remaining = content;
+
+    while !remaining.is_empty() {
+        // Find the earliest block-close tag in the remaining content
+        let mut earliest: Option<(usize, &str)> = None;
+        for &tag in BLOCK_CLOSE_SPLIT_TAGS {
+            if let Some(pos) = remaining.find(tag) {
+                let end = pos + tag.len();
+                match earliest {
+                    None => earliest = Some((end, tag)),
+                    Some((prev_end, _)) if end < prev_end => {
+                        earliest = Some((end, tag));
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        if let Some((end, _tag)) = earliest {
+            // Copy everything up to and including the closing tag
+            result.push_str(&remaining[..end]);
+            let after = &remaining[end..];
+
+            // Check if there's non-whitespace text immediately following
+            // (not starting with newline, not empty, not another HTML tag)
+            if !after.is_empty() && !after.starts_with('\n') && !after.starts_with('<') {
+                // There's text right after the closing tag -- insert blank line
+                let trimmed = after.trim_start();
+                if !trimmed.is_empty() && !trimmed.starts_with('<') {
+                    result.push_str("\n\n");
+                    remaining = after;
+                    continue;
+                }
+            }
+
+            remaining = after;
+            if after.is_empty() {
+                break;
+            }
+        } else {
+            // No more block-close tags
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    result
+}
+
 /// Collapse blank lines inside all instances of `<tag ...>...</tag>`.
 fn collapse_blanks_in_tag(content: &str, tag: &str) -> String {
     let open_pattern = format!("<{}", tag);
@@ -466,6 +554,192 @@ pub fn collapse_blank_lines_between_list_items(content: &str) -> String {
     }
 
     result
+}
+
+/// Convert kramdown-style pipe table lines to HTML `<table>` elements.
+///
+/// kramdown treats any line ending with `|` as a table row, splitting by `|`
+/// into cells. This pre-processing converts such lines to raw HTML tables
+/// before pulldown-cmark processes the markdown.
+pub fn convert_kramdown_pipe_tables(content: &str) -> String {
+    let lines: Vec<&str> = content.split('\n').collect();
+    let mut result = String::with_capacity(content.len());
+    let mut i = 0;
+    let mut in_code_block = false;
+
+    while i < lines.len() {
+        let line = lines[i];
+        let trimmed = line.trim();
+
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            in_code_block = !in_code_block;
+        }
+
+        if in_code_block {
+            if i > 0 {
+                result.push('\n');
+            }
+            result.push_str(line);
+            i += 1;
+            continue;
+        }
+
+        if is_kramdown_table_line(trimmed) && !is_standard_pipe_table_context(&lines, i) {
+            let (prefix, content_part) = extract_line_prefix_and_content(line);
+            let mut table_rows: Vec<String> = Vec::new();
+            table_rows.push(content_part.to_string());
+
+            let base_indent = line.len() - line.trim_start().len();
+            let mut j = i + 1;
+            while j < lines.len() {
+                let next_line = lines[j];
+                let next_trimmed = next_line.trim();
+                if next_trimmed.is_empty() {
+                    break;
+                }
+                let next_indent = next_line.len() - next_line.trim_start().len();
+                if next_indent >= base_indent && is_kramdown_table_line(next_trimmed) {
+                    table_rows.push(next_trimmed.to_string());
+                    j += 1;
+                } else {
+                    break;
+                }
+            }
+
+            if i > 0 {
+                result.push('\n');
+            }
+            result.push_str(&prefix);
+            result.push_str("<table>\n<tbody>\n");
+            for row_text in &table_rows {
+                result.push_str("<tr>\n");
+                for cell in split_kramdown_table_cells(row_text) {
+                    result.push_str("<td>");
+                    result.push_str(cell.trim());
+                    result.push_str("</td>\n");
+                }
+                result.push_str("</tr>\n");
+            }
+            result.push_str("</tbody>\n</table>");
+            i = j;
+        } else {
+            if i > 0 {
+                result.push('\n');
+            }
+            result.push_str(line);
+            i += 1;
+        }
+    }
+    result
+}
+
+fn is_kramdown_table_line(trimmed: &str) -> bool {
+    if trimmed.is_empty() {
+        return false;
+    }
+    let content = strip_list_prefix_for_table(trimmed).trim();
+    if !content.ends_with('|') {
+        return false;
+    }
+    let inner = content.trim_matches('|').trim();
+    if !inner.is_empty()
+        && inner
+            .chars()
+            .all(|c| c == '-' || c == ':' || c == '|' || c == ' ')
+    {
+        return false;
+    }
+    true
+}
+
+fn strip_list_prefix_for_table(line: &str) -> &str {
+    let trimmed = line.trim_start();
+    if let Some(rest) = trimmed.strip_prefix("- ") {
+        return rest;
+    }
+    if let Some(rest) = trimmed.strip_prefix("* ") {
+        return rest;
+    }
+    if let Some(rest) = trimmed.strip_prefix("+ ") {
+        return rest;
+    }
+    if let Some(dot_pos) = trimmed.find(". ") {
+        if dot_pos <= 3 && trimmed[..dot_pos].chars().all(|c| c.is_ascii_digit()) {
+            return &trimmed[dot_pos + 2..];
+        }
+    }
+    trimmed
+}
+
+fn is_standard_pipe_table_context(lines: &[&str], index: usize) -> bool {
+    if index + 1 < lines.len() && is_table_separator_line(lines[index + 1].trim()) {
+        return true;
+    }
+    if index > 0 && is_table_separator_line(lines[index - 1].trim()) {
+        return true;
+    }
+    let trimmed = lines[index].trim();
+    let content = strip_list_prefix_for_table(trimmed).trim();
+    if content.starts_with('|') && content.ends_with('|') {
+        for offset in 1..=2 {
+            if index + offset < lines.len() && is_table_separator_line(lines[index + offset].trim())
+            {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn is_table_separator_line(line: &str) -> bool {
+    let trimmed = line.trim();
+    if !trimmed.contains('-') {
+        return false;
+    }
+    let stripped = trimmed.trim_start_matches('|').trim_end_matches('|');
+    if stripped.is_empty() {
+        return false;
+    }
+    stripped
+        .chars()
+        .all(|c| c == '-' || c == ':' || c == '|' || c == ' ')
+}
+
+fn extract_line_prefix_and_content(line: &str) -> (String, &str) {
+    let indent_len = line.len() - line.trim_start().len();
+    let indent = &line[..indent_len];
+    let trimmed = line.trim_start();
+
+    if let Some(rest) = trimmed.strip_prefix("- ") {
+        return (format!("{indent}- "), rest);
+    }
+    if let Some(rest) = trimmed.strip_prefix("* ") {
+        return (format!("{indent}* "), rest);
+    }
+    if let Some(rest) = trimmed.strip_prefix("+ ") {
+        return (format!("{indent}+ "), rest);
+    }
+    if let Some(dot_pos) = trimmed.find(". ") {
+        if dot_pos <= 3 && trimmed[..dot_pos].chars().all(|c| c.is_ascii_digit()) {
+            return (
+                format!("{indent}{}", &trimmed[..dot_pos + 2]),
+                &trimmed[dot_pos + 2..],
+            );
+        }
+    }
+    (indent.to_string(), trimmed)
+}
+
+fn split_kramdown_table_cells(row: &str) -> Vec<&str> {
+    let trimmed = row.trim();
+    let without_trailing = trimmed.strip_suffix('|').unwrap_or(trimmed);
+    let content = without_trailing
+        .strip_prefix('|')
+        .unwrap_or(without_trailing);
+    if content.is_empty() {
+        return Vec::new();
+    }
+    content.split('|').collect()
 }
 
 struct ListRegion {
@@ -5484,5 +5758,388 @@ by <a href="/people/author.html">Author Name</a>
             "normalize_html_output should convert bare <br> to <br />. Got: {}",
             result
         );
+    }
+
+    // === Issue 200: Markdown table rendering tests ===
+
+    #[test]
+    fn test_200_standard_pipe_table_renders() {
+        let input = "| Header 1 | Header 2 |\n|----------|----------|\n| Cell 1   | Cell 2   |\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(html.contains("<table>"), "Got: {html}");
+        assert!(html.contains("<thead>"), "Got: {html}");
+        assert!(html.contains("<tbody>"), "Got: {html}");
+    }
+
+    #[test]
+    fn test_200_pipe_table_unicode() {
+        let input = "| \u{0417}\u{0430}\u{0433} | R\u{00e9}sum\u{00e9} |\n|---|---|\n| \u{042f}\u{0447} | Caf\u{00e9} |\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(html.contains("<table>"), "Got: {html}");
+        assert!(html.contains("\u{0417}\u{0430}\u{0433}"), "Got: {html}");
+    }
+
+    #[test]
+    fn test_200_table_inside_list() {
+        let input = "- Item:\n\n  | A | B |\n  |---|---|\n  | 1 | 2 |\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(html.contains("<table>"), "Got: {html}");
+        assert!(html.contains("<li>"), "Got: {html}");
+    }
+
+    #[test]
+    fn test_200_table_inside_list_unicode() {
+        let input = "- \u{042d}\u{043b}\u{0435}\u{043c}:\n\n  | \u{041a} A | \u{041a} B |\n  |---|---|\n  | \u{0437}1 | \u{0437}2 |\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(html.contains("<table>"), "Got: {html}");
+    }
+
+    #[test]
+    fn test_200_kramdown_trailing_pipe_in_list() {
+        let input = "- can use Prim\u{2019}s algo |\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(html.contains("<table>"), "Got: {html}");
+        assert!(html.contains("<td>"), "Got: {html}");
+    }
+
+    #[test]
+    fn test_200_kramdown_multi_pipe_in_list() {
+        let input = "- parallel x | definition | extra |\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(html.contains("<table>"), "Got: {html}");
+    }
+
+    #[test]
+    fn test_200_kramdown_pipe_unicode() {
+        let input =
+            "- \u{041d}\u{0430}\u{0439}\u{0434}\u{0435}\u{043c} \u{0443}\u{0441}\u{043b} |\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(html.contains("<table>"), "Got: {html}");
+    }
+
+    #[test]
+    fn test_200_no_false_table() {
+        let input = "This has a | char but not a table.\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(!html.contains("<table>"), "Got: {html}");
+    }
+
+    #[test]
+    fn test_200_trailing_pipe_not_in_list() {
+        let input = "some text |\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(html.contains("<table>"), "Got: {html}");
+    }
+
+    #[test]
+    fn test_200_multi_row_pipe() {
+        let input = "- t1 | t2 |\n  t3 | t4 |\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(html.contains("<table>"), "Got: {html}");
+    }
+
+    #[test]
+    fn test_200_no_double_convert() {
+        let input = "| H1 | H2 |\n|---|---|\n| C1 | C2 |\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert_eq!(html.matches("<table>").count(), 1, "Got: {html}");
+    }
+
+    // ========================================================================
+    // Issue 198: Zero-width space around emphasis markers
+    // ========================================================================
+
+    #[test]
+    fn test_issue198_zero_width_space_emphasis_boundary() {
+        let input = "connect with \u{200b}_everyone_. \u{200b} People laugh.";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<em>everyone</em>"),
+            "Zero-width space should allow emphasis after it. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue198_zero_width_space_emphasis_unicode() {
+        let input = "\u{200b}_\u{00e9}v\u{00e9}nement_. R\u{00e9}sultat.";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<em>\u{00e9}v\u{00e9}nement</em>"),
+            "Unicode emphasis content after ZWSP should work. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue198_zwsp_preserved_without_emphasis() {
+        let input = "text\u{200b}more text";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("\u{200b}"),
+            "ZWSP without emphasis should be preserved. Got: {html}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 198: MediaWiki-style triple/double quote preservation
+    // ========================================================================
+
+    #[test]
+    fn test_issue198_double_quote_straight() {
+        let input = "A place is ''implicit'' if removing it.";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("''implicit''"),
+            "Double single-quotes should stay straight. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue198_triple_quote_straight() {
+        let input = "This is '''bold text''' here.";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("'''bold text'''"),
+            "Triple single-quotes should stay straight. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue198_quotes_cyrillic() {
+        let input = "\u{042d}\u{0442}\u{043e} '''\u{0422}\u{0435}\u{043e}\u{0440}\u{0435}\u{043c}\u{0430}.''' \u{0414}\u{043e}\u{043a}.";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("'''\u{0422}\u{0435}\u{043e}\u{0440}\u{0435}\u{043c}\u{0430}.'''"),
+            "Cyrillic in triple-quotes should have straight quotes. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue198_single_smart_quote_works() {
+        let input = "it's a test";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("\u{2019}"),
+            "Single apostrophe should still get smart punctuation. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue198_curly_quote_preserved() {
+        let input = "it\u{2019}s a test with \u{00e9}l\u{00e8}ve content";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("\u{2019}"),
+            "Pre-existing curly quotes should be preserved. Got: {html}"
+        );
+    }
+
+    // --- Issue 203: Fix missing HTML elements tests ---
+
+    #[test]
+    fn test_issue203_content_wrapped_in_paragraph_between_blocks() {
+        // Text between two HTML block elements should be wrapped in <p>
+        let html = "<div>block1</div>\nSome text content here.\n<div>block2</div>";
+        let result = postprocess(html);
+        assert!(
+            result.contains("<p>Some text content here.</p>"),
+            "Bare text between block elements should be wrapped in <p>. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue203_content_wrapped_in_paragraph_unicode() {
+        let html = "<div>block1</div>\n\u{041f}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442} \u{043c}\u{0438}\u{0440}!\n<div>block2</div>";
+        let result = postprocess(html);
+        assert!(
+            result.contains(
+                "<p>\u{041f}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442} \u{043c}\u{0438}\u{0440}!</p>"
+            ),
+            "Unicode bare text should be wrapped in <p>. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue203_markdown_link_with_ial_produces_anchor() {
+        let input = "[Source](https://example.com){:target=\"_blank\"}\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<a href=\"https://example.com\" target=\"_blank\">Source</a>"),
+            "Link with IAL should produce <a> with target attribute. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue203_markdown_link_with_ial_unicode_text() {
+        let input = "[\u{0421}\u{0441}\u{044b}\u{043b}\u{043a}\u{0430}](https://example.com){:target=\"_blank\"}\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<a href=\"https://example.com\""),
+            "Unicode link text with IAL should produce <a>. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("\u{0421}\u{0441}\u{044b}\u{043b}\u{043a}\u{0430}"),
+            "Unicode link text should be preserved. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue203_text_after_figure_close_produces_links() {
+        let input = "<figure>\n<img src=\"/img.jpg\" />\n</figure>Photo by [Author](https://example.com){:target=\"_blank\"} on [Site](https://site.com)\n";
+        let preprocessed = split_text_after_html_block_close(input);
+        let html = crate::frontmatter::markdown_to_html(&preprocessed);
+        assert!(
+            html.contains("<a href=\"https://example.com\""),
+            "Link after </figure> should be parsed as <a>. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains("[Author]"),
+            "Raw markdown link syntax should not appear. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue203_text_after_figure_close_unicode() {
+        let input = "<figure>\n<img src=\"/img.jpg\" />\n</figure>\u{0424}\u{043e}\u{0442}\u{043e} [\u{0410}\u{0432}\u{0442}\u{043e}\u{0440}](https://example.com)\n";
+        let preprocessed = split_text_after_html_block_close(input);
+        let html = crate::frontmatter::markdown_to_html(&preprocessed);
+        assert!(
+            html.contains(
+                "<a href=\"https://example.com\">\u{0410}\u{0432}\u{0442}\u{043e}\u{0440}</a>"
+            ),
+            "Unicode link after HTML block should be parsed. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue203_faq_script_preserved_in_output() {
+        let faq_html = "<div class=\"faq-accordion\">\n<div class=\"faq-item\">\n<p>Content</p>\n</div>\n</div>\n<script type=\"application/ld+json\">\n{\"@type\": \"FAQPage\"}\n</script>";
+        let result = postprocess(faq_html);
+        assert!(
+            result.contains("<script type=\"application/ld+json\">"),
+            "FAQ schema script tag should be preserved. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("\"@type\": \"FAQPage\""),
+            "FAQ schema content should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue203_faq_script_unicode_preserved() {
+        let faq_html = "<script type=\"application/ld+json\">\n{\"name\": \"\u{00bf}Qu\u{00e9} es?\"}\n</script>";
+        let result = postprocess(faq_html);
+        assert!(
+            result.contains("\u{00bf}Qu\u{00e9} es?"),
+            "Unicode in FAQ script should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue203_multiple_paragraphs_from_markdown() {
+        let input = "First paragraph.\n\nSecond paragraph.\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<p>First paragraph.</p>"),
+            "First paragraph should be in <p>. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<p>Second paragraph.</p>"),
+            "Second paragraph should be in <p>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue203_multiple_paragraphs_unicode() {
+        let input = "\u{7b2c}\u{4e00}\u{6bb5}\u{843d}\u{3002}\n\n\u{7b2c}\u{4e8c}\u{6bb5}\u{843d}\u{3002}\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<p>\u{7b2c}\u{4e00}\u{6bb5}\u{843d}\u{3002}</p>"),
+            "First Unicode paragraph should be in <p>. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<p>\u{7b2c}\u{4e8c}\u{6bb5}\u{843d}\u{3002}</p>"),
+            "Second Unicode paragraph should be in <p>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue203_container_div_preserved() {
+        let html = "<div class=\"container\">\n<p>Content inside div</p>\n</div>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("<div class=\"container\">"),
+            "Container div should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue203_link_after_html_block() {
+        let input = "<div class=\"note\">\nImportant info here.\n</div>\n\nSee [the guide](https://example.com) for details.\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<a href=\"https://example.com\">the guide</a>"),
+            "Link after HTML block should be rendered as <a>. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains("[the guide]"),
+            "Raw markdown link syntax should not appear. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue203_split_text_basic() {
+        let input = "</figure>Photo by someone";
+        let result = split_text_after_html_block_close(input);
+        assert!(
+            result.contains("</figure>\n\nPhoto by someone"),
+            "Text after </figure> should be split. Got: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue203_split_text_unicode() {
+        let input = "</figure>\u{0424}\u{043e}\u{0442}\u{043e} \u{043e}\u{0442} someone";
+        let result = split_text_after_html_block_close(input);
+        assert!(
+            result.contains("</figure>\n\n\u{0424}\u{043e}\u{0442}\u{043e}"),
+            "Unicode text after </figure> should be split. Got: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue203_split_text_preserves_newline() {
+        let input = "</figure>\nNext paragraph";
+        let result = split_text_after_html_block_close(input);
+        assert_eq!(
+            result, input,
+            "Already-separated content should be unchanged"
+        );
+    }
+
+    #[test]
+    fn test_issue203_split_text_not_for_inline_tags() {
+        let input = "</a> some text";
+        let result = split_text_after_html_block_close(input);
+        assert_eq!(result, input, "Inline tags should not be split");
     }
 }

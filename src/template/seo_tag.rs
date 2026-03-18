@@ -159,10 +159,14 @@ impl Renderable for SeoRenderable {
         let page_description = get_nested_str(runtime, &["page", "description"]);
         let page_excerpt = get_nested_str(runtime, &["page", "excerpt"]);
         let site_description = get_nested_str(runtime, &["site", "description"]);
+        let page_content = get_nested_str(runtime, &["page", "content"])
+            .or_else(|| get_nested_str(runtime, &["content"]));
         let site_url = get_nested_str(runtime, &["site", "url"]);
         let page_url = get_nested_str(runtime, &["page", "url"]);
         let page_image = get_nested_str(runtime, &["page", "image"]);
         let page_date = get_nested_str(runtime, &["page", "date"]);
+        let page_lang = get_nested_str(runtime, &["page", "lang"]);
+        let site_lang = get_nested_str(runtime, &["site", "lang"]);
         let site_locale = get_nested_str(runtime, &["site", "locale"]);
         let twitter_username = get_nested_str(runtime, &["site", "twitter", "username"]);
         let page_author = get_nested_str(runtime, &["page", "author"]);
@@ -235,27 +239,78 @@ impl Renderable for SeoRenderable {
         }
 
         // 5. og:locale
-        let locale = site_locale.as_deref().unwrap_or("en_US");
+        // Priority: page.lang > site.lang > site.locale > "en_US"
+        // jekyll-seo-tag uses page.lang || site.lang for og:locale
+        let locale = page_lang
+            .as_deref()
+            .or(site_lang.as_deref())
+            .or(site_locale.as_deref())
+            .unwrap_or("en_US");
         output.push_str(&format!(
             "<meta property=\"og:locale\" content=\"{}\" />\n",
             html_escape(locale)
         ));
 
         // 6. Description (both meta name="description" and og:description together)
+        // Priority: page.description > page.excerpt > site.description > content snippet
+        // jekyll-seo-tag also falls back to page content (stripped HTML, ~200 chars)
+        let content_snippet =
+            if page_description.is_none() && page_excerpt.is_none() && site_description.is_none() {
+                page_content.as_deref().and_then(|c| {
+                    let stripped = strip_html_tags(c);
+                    let trimmed = stripped.trim().replace('\n', " ");
+                    // Collapse multiple spaces
+                    let mut prev_space = false;
+                    let collapsed: String = trimmed
+                        .chars()
+                        .filter(|&ch| {
+                            if ch == ' ' {
+                                if prev_space {
+                                    return false;
+                                }
+                                prev_space = true;
+                            } else {
+                                prev_space = false;
+                            }
+                            true
+                        })
+                        .collect();
+                    if collapsed.is_empty() {
+                        return None;
+                    }
+                    // Truncate to ~200 chars on a word boundary
+                    if collapsed.len() > 200 {
+                        let truncated = &collapsed[..200];
+                        if let Some(last_space) = truncated.rfind(' ') {
+                            Some(truncated[..last_space].to_string())
+                        } else {
+                            Some(truncated.to_string())
+                        }
+                    } else {
+                        Some(collapsed)
+                    }
+                })
+            } else {
+                None
+            };
+
         let description = page_description
             .as_deref()
             .or(page_excerpt.as_deref())
-            .or(site_description.as_deref());
+            .or(site_description.as_deref())
+            .or(content_snippet.as_deref());
 
         if let Some(desc) = description {
-            output.push_str(&format!(
-                "<meta name=\"description\" content=\"{}\" />\n",
-                html_escape(desc)
-            ));
-            output.push_str(&format!(
-                "<meta property=\"og:description\" content=\"{}\" />\n",
-                html_escape(desc)
-            ));
+            if !desc.is_empty() {
+                output.push_str(&format!(
+                    "<meta name=\"description\" content=\"{}\" />\n",
+                    html_escape(desc)
+                ));
+                output.push_str(&format!(
+                    "<meta property=\"og:description\" content=\"{}\" />\n",
+                    html_escape(desc)
+                ));
+            }
         }
 
         // 7. Canonical URL + og:url (together)
@@ -304,8 +359,16 @@ impl Renderable for SeoRenderable {
         }
 
         // 10. og:type - "article" for posts (pages with date), "website" otherwise
-        if page_date.is_some() {
+        if let Some(ref date_str) = page_date {
             output.push_str("<meta property=\"og:type\" content=\"article\" />\n");
+            // 10b. article:published_time (only for articles)
+            let site_tz = crate::template::filters::get_site_timezone(runtime);
+            let formatted_date =
+                crate::template::filters::format_date_to_xmlschema(date_str, site_tz);
+            output.push_str(&format!(
+                "<meta property=\"article:published_time\" content=\"{}\" />\n",
+                html_escape(&formatted_date)
+            ));
         } else {
             output.push_str("<meta property=\"og:type\" content=\"website\" />\n");
         }
@@ -435,6 +498,23 @@ impl Renderable for SeoRenderable {
             .map_err(|e| liquid_core::Error::with_msg(format!("seo tag write error: {}", e)))?;
         Ok(())
     }
+}
+
+/// Strip HTML tags from a string, returning only text content.
+/// Used to extract plain text from rendered HTML content for description snippets.
+fn strip_html_tags(html: &str) -> String {
+    let mut result = String::with_capacity(html.len());
+    let mut in_tag = false;
+    for ch in html.chars() {
+        if ch == '<' {
+            in_tag = true;
+        } else if ch == '>' {
+            in_tag = false;
+        } else if !in_tag {
+            result.push(ch);
+        }
+    }
+    result
 }
 
 /// Escape a string for JSON string values.
@@ -1892,6 +1972,288 @@ mod tests {
         assert!(
             !out.contains("href=\"https://example.com//\""),
             "Must not have double slashes"
+        );
+    }
+
+    // ========================================================================
+    // Issue 195: SEO meta tag fixes
+    // ========================================================================
+
+    #[test]
+    fn test_seo_description_from_page_content() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        let site = Object::new();
+        page.insert("title".into(), Value::scalar("My Note".to_string()));
+        page.insert(
+            "content".into(),
+            Value::scalar(
+                "<p>Pretty sure my dad is the biggest winner here. Now his friends                  would have heard of the name of the company I work for.</p>"
+                    .to_string(),
+            ),
+        );
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("name=\"description\""),
+            "Description meta tag should be present when page.content exists. Got: {}",
+            out
+        );
+        assert!(
+            out.contains("Pretty sure my dad is the biggest winner"),
+            "Description should contain text from content. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_seo_description_from_content_strips_html() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        let site = Object::new();
+        page.insert(
+            "content".into(),
+            Value::scalar(
+                "<p>Hello <strong>world</strong> from <a href=\"/\">here</a>.</p>".to_string(),
+            ),
+        );
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("Hello world from here."),
+            "Description should have HTML stripped. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_seo_description_from_content_unicode() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        let site = Object::new();
+        page.insert(
+            "content".into(),
+            Value::scalar(
+                "<p>\u{1F382} 5 year hubberversary today! \u{1F389} In love with my team.</p>"
+                    .to_string(),
+            ),
+        );
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("hubberversary"),
+            "Content text should be in description. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_seo_description_truncated_to_snippet() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        let site = Object::new();
+        let long_content = format!("<p>{}</p>", "abcde ".repeat(100));
+        page.insert("content".into(), Value::scalar(long_content));
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        if let Some(start) = out.find("name=\"description\" content=\"") {
+            let after = &out[start + 27..];
+            if let Some(end) = after.find('"') {
+                let desc = &after[..end];
+                assert!(
+                    desc.len() <= 210,
+                    "Description should be truncated to ~200 chars, got {} chars",
+                    desc.len()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_seo_description_explicit_overrides_content() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        let site = Object::new();
+        page.insert(
+            "description".into(),
+            Value::scalar("Explicit description".to_string()),
+        );
+        page.insert(
+            "content".into(),
+            Value::scalar("<p>Content text</p>".to_string()),
+        );
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("Explicit description"),
+            "Explicit description should take priority over content. Got: {}",
+            out
+        );
+        assert!(
+            !out.contains("Content text"),
+            "Content text should not appear when explicit description exists. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_og_locale_from_page_lang() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        let site = Object::new();
+        page.insert("lang".into(), Value::scalar("ar".to_string()));
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<meta property=\"og:locale\" content=\"ar\" />"),
+            "og:locale should use page.lang value. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_og_locale_from_site_lang() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        let page = Object::new();
+        let mut site = Object::new();
+        site.insert("lang".into(), Value::scalar("fr".to_string()));
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<meta property=\"og:locale\" content=\"fr\" />"),
+            "og:locale should use site.lang when no page.lang. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_og_locale_site_locale_still_works() {
+        let eng = engine();
+        let ctx = make_context(
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some("ja_JP"),
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<meta property=\"og:locale\" content=\"ja_JP\" />"),
+            "site.locale should still work. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_og_locale_unicode_lang() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        let site = Object::new();
+        page.insert("lang".into(), Value::scalar("zh-Hant".to_string()));
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("og:locale\" content=\"zh-Hant\""),
+            "og:locale should handle multi-part lang tags. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_article_published_time_emitted_for_articles() {
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Post"),
+            Some("My Site"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some("2024-06-15"),
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("article:published_time"),
+            "article:published_time should be emitted for articles. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_article_published_time_not_emitted_for_website() {
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Page"),
+            Some("My Site"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            !out.contains("article:published_time"),
+            "article:published_time should not appear for website type. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_article_published_time_ordering() {
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Post"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/post"),
+            None,
+            Some("2024-06-15"),
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        let pos_og_type = out.find("og:type").expect("og:type");
+        let pos_published = out
+            .find("article:published_time")
+            .expect("article:published_time");
+        let pos_twitter = out.find("twitter:card").expect("twitter:card");
+        assert!(
+            pos_og_type < pos_published,
+            "article:published_time should appear after og:type"
+        );
+        assert!(
+            pos_published < pos_twitter,
+            "article:published_time should appear before twitter:card"
         );
     }
 }

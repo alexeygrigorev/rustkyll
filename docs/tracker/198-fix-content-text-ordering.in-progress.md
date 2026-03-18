@@ -129,3 +129,58 @@ fn test_dtc_text_content_matches() {
 - [ ] kids-horror-stories-ru quote normalization fixed (2 pages)
 - [ ] mlwiki.org MediaWiki-style markup: document what Jekyll actually does with `'''bold'''`; fix if feasible, create sub-issue if complex
 - [ ] alexeygrigorev.github.io collection sort order matches Jekyll (1 page)
+
+## Log
+
+### [SWE] 2026-03-18
+
+**Investigation findings:**
+
+1. **DTC (24 pages)**: Most diffs are jsonld value differences (truncated text, trailing newlines), syntax highlighting class differences, or structural issues from other issues. Only 1 page (data-narrative.html) has the zero-width space + emphasis issue. The "24 text content diffs" count in the issue description includes jsonld and other non-text-content issues.
+
+2. **mlwiki.org (325 pages)**: The `'''bold'''` / `''italic''` patterns are NOT converted to HTML bold/italic by Jekyll/kramdown either. The actual difference is that pulldown-cmark's smart punctuation converts `''` and `'''` to curly quotes (\u2018/\u2019), while kramdown keeps them as literal straight single quotes. Fix: protect consecutive single quotes from smart punctuation.
+
+3. **mojombo-blog (4 pages)**: 3 files have diffs. Most are syntax highlighting differences (separate issue) or structural differences. The how-i-turned-down-300k.html has a `_______` emphasis issue that is a different pattern (not ZWSP-related).
+
+4. **kids-horror-stories-ru (2 pages)**: The quote differences appear to be subtle character-level differences, possibly related to smart quote conversion of ASCII `"..."` in Russian text. Needs site rebuild to verify.
+
+5. **alexeygrigorev.github.io (1 page)**: Services page ordering is caused by `liquid::Object` (backed by HashMap) not preserving YAML insertion order. This is a fundamental limitation of the liquid library and requires deeper changes.
+
+6. **large-blog-3000 (1 page)**: Index page content ordering differs - this is a category/post ordering issue in the template.
+
+7. **alexeygrigorev-mlbookcamp-page (1 page)**: All diffs are syntax highlighting class differences, not text content.
+
+**Implementation:**
+
+1. **Zero-width space emphasis fix** (`normalize_zwsp_for_emphasis` in frontmatter.rs):
+   - When ZWSP (U+200B) precedes `_` or `*`, insert a regular space after ZWSP so pulldown-cmark treats it as a word boundary for emphasis detection
+   - Early return optimization when no ZWSP present in input
+   - Fixes DTC data-narrative.html emphasis issue
+
+2. **Consecutive single quote protection** (`protect_consecutive_single_quotes` / `restore_consecutive_single_quotes` in frontmatter.rs):
+   - Replaces `'''` and `''` with null-byte placeholders before markdown processing
+   - Restores them after HTML generation, before kramdown postprocessing
+   - Single `'` is left alone for normal smart quote conversion
+   - Fixes 325 mlwiki.org pages where straight quotes were being converted to curly quotes
+
+**Tests added** (8 tests in kramdown.rs):
+- `test_issue198_zero_width_space_emphasis_boundary` - ZWSP before `_word_`
+- `test_issue198_zero_width_space_emphasis_unicode` - ZWSP with non-ASCII emphasis content
+- `test_issue198_zwsp_preserved_without_emphasis` - ZWSP without adjacent emphasis
+- `test_issue198_double_quote_straight` - `''word''` stays straight
+- `test_issue198_triple_quote_straight` - `'''word'''` stays straight
+- `test_issue198_quotes_cyrillic` - Triple quotes with Cyrillic content
+- `test_issue198_single_smart_quote_works` - Single apostrophe still gets smart punctuation
+- `test_issue198_curly_quote_preserved` - Pre-existing curly quotes pass through
+
+**Build results**: 1585 passed, 1 failed (pre-existing from issue 206: test_emphasis_dot_pattern), clippy clean, fmt clean.
+
+**Files modified**:
+- `src/frontmatter.rs` - Added `normalize_zwsp_for_emphasis`, `protect_consecutive_single_quotes`, `restore_consecutive_single_quotes`; integrated into both `markdown_to_html` and `markdown_to_html_for_filter`
+- `src/kramdown.rs` - Added 8 tests
+
+**Known limitations**:
+- Services page ordering (alexeygrigorev.github.io) not fixed - requires changes to liquid library's Object type to preserve insertion order
+- large-blog-3000 index ordering not fixed - same root cause (template iteration order)
+- mojombo-blog emphasis pattern (`_______`) not fixed - different issue from ZWSP
+- kids-horror-stories-ru quote normalization could not be verified without rebuilding sites
