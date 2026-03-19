@@ -2866,12 +2866,13 @@ More text.
 
     #[test]
     fn test_issue211_cjk_double_quotes() {
-        // CJK: "なに" should produce LEFT_DOUBLE...RIGHT_DOUBLE
-        // pulldown-cmark produces LEFT_DOUBLE...LEFT_DOUBLE (wrong closing direction)
+        // CJK: "なに" -- kramdown produces RIGHT...RIGHT (both U+201D)
+        // because CJK chars match SQ_CLOSE (rule 7), making both quotes closing.
+        // pulldown-cmark produces LEFT...LEFT; our fix should make both RIGHT.
         let html = markdown_to_html("オープンソースとは\"なに\"\n");
         assert!(
-            html.contains("\u{201C}\u{306A}\u{306B}\u{201D}"),
-            "CJK double quotes should be LEFT...RIGHT. Got: {}",
+            html.contains("\u{201D}\u{306A}\u{306B}\u{201D}"),
+            "CJK double quotes should both be RIGHT (kramdown compat). Got: {}",
             html
         );
     }
@@ -2941,9 +2942,7 @@ More text.
         // kramdown treats " after - as LEFT (opening), because - is excluded from SQ_CLOSE.
         // "3x TACOS 230,-" -> kramdown produces LEFT...LEFT (both U+201C).
         // This matches the actual taco-stand page from kids-horror-stories-ru.
-        let html = markdown_to_html(
-            "плакатом: \"3x TACOS 230,-\". Симпатичный\n",
-        );
+        let html = markdown_to_html("плакатом: \"3x TACOS 230,-\". Симпатичный\n");
         // kramdown: both quotes are U+201C (LEFT DOUBLE)
         assert!(
             html.contains("\u{201C}3x TACOS 230,-\u{201C}"),
@@ -2959,6 +2958,28 @@ More text.
         assert!(
             html.contains("\u{201C}hello,-\u{201C}"),
             "Quote after dash should be LEFT (kramdown compat). Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue211_german_quotes_preserved() {
+        // German-style quotes use U+201E as opener and U+201C as closer.
+        // The fix_smart_quote_directions function must NOT convert U+201C to U+201D
+        // when it follows a U+201E opener.
+        // Source: kids-horror-stories-ru/254-dark-container.md
+        let html =
+            markdown_to_html("\u{201E}\u{041C}\u{0443}\u{0441}\u{043E}\u{0440}\u{043D}\u{044B}\u{0439}, \u{2014} \u{043F}\u{043E}\u{0434}\u{0443}\u{043C}\u{0430}\u{043B} \u{043E}\u{043D}, \u{2014} \u{043D}\u{0438}\u{0447}\u{0435}\u{0433}\u{043E} \u{043D}\u{0435}\u{043E}\u{0431}\u{044B}\u{0447}\u{043D}\u{043E}\u{0433}\u{043E}.\u{201C}\n");
+        // The U+201E...U+201C pair must remain intact
+        assert!(
+            html.contains("\u{201E}") && html.contains("\u{201C}"),
+            "German quotes: U+201E opener and U+201C closer must be preserved. Got: {}",
+            html
+        );
+        // Specifically, U+201C must NOT be converted to U+201D
+        assert!(
+            !html.contains("\u{201D}"),
+            "German closing quote U+201C must not be converted to U+201D. Got: {}",
             html
         );
     }

@@ -3323,6 +3323,11 @@ pub fn fix_smart_quote_directions(html: &str) -> String {
     // before the current position (skipping over HTML tags).
     let mut in_tag = false;
 
+    // Track German-style double quote openers (U+201E „). When seen, the next
+    // U+201C/U+201D should be left as U+201C (German closing quote), not
+    // converted by kramdown rules.
+    let mut german_double_open = false;
+
     for (i, &ch) in chars.iter().enumerate() {
         if ch == '<' {
             in_tag = true;
@@ -3337,16 +3342,27 @@ pub fn fix_smart_quote_directions(html: &str) -> String {
         }
 
         match ch {
+            // German-style double low-9 quotation mark (opener)
+            '\u{201E}' => {
+                german_double_open = true;
+            }
             '\u{201C}' | '\u{201D}' => {
-                // Double quote: determine direction using kramdown rules
-                let prev = prev_text_char(&chars, i);
-                let next = next_text_char(&chars, i);
-                let direction = kramdown_quote_direction(prev, next);
-                result[i] = if direction {
-                    '\u{201D}' // RIGHT (closing)
+                if german_double_open {
+                    // This is the closing quote of a German „..." pair.
+                    // Keep it as U+201C (the standard German closer).
+                    result[i] = '\u{201C}';
+                    german_double_open = false;
                 } else {
-                    '\u{201C}' // LEFT (opening)
-                };
+                    // Standard double quote: determine direction using kramdown rules
+                    let prev = prev_text_char(&chars, i);
+                    let next = next_text_char(&chars, i);
+                    let direction = kramdown_quote_direction(prev, next);
+                    result[i] = if direction {
+                        '\u{201D}' // RIGHT (closing)
+                    } else {
+                        '\u{201C}' // LEFT (opening)
+                    };
+                }
             }
             '\u{2018}' | '\u{2019}' => {
                 // Single quote: check apostrophe context first
@@ -3422,53 +3438,68 @@ fn next_text_char(chars: &[char], pos: usize) -> Option<char> {
 /// Determine quote direction using kramdown's SQ_RULES algorithm.
 /// Returns true for RIGHT (closing), false for LEFT (opening).
 ///
-/// This implements the key rules from kramdown's smart_quotes.rb SQ_RULES:
-/// 1. If preceded by SQ_CLOSE char → RIGHT (closing)
-/// 2. If preceded by space and followed by word char → LEFT (opening)
-/// 3. If followed by space/end → RIGHT (closing)
-/// 4. If followed by SQ_PUNCT (and not ..) → RIGHT (closing)
-/// 5. Fallback → LEFT (opening)
+/// kramdown's SQ_RULES process the quote with context (preceding char + following
+/// chars). The rules are tried in order -- first match wins:
+///
+/// - Rule 1: Quote before emphasis markers (`_*`) → LEFT (opening)
+/// - Rule 2: Quote before SQ_PUNCT (no prev captured) → RIGHT (closing)
+/// - Rules 3-5: Special combos (double-single quotes, decades) -- rare, skipped
+/// - Rule 6: Space + quote + word char → LEFT (opening)
+/// - Rule 7: SQ_CLOSE char + quote → RIGHT (closing)
+/// - Rule 8: Quote + space/end → RIGHT (closing)
+/// - Rules 9-10: Fallback → LEFT (opening)
+///
+/// In the post-processing context (HTML), rules 2 and 8 only apply when there's
+/// no preceding text char (rule 2 needs quote at scan position 0). When there IS
+/// a preceding char, rules 6, 7, or fallback apply.
 fn kramdown_quote_direction(prev: Option<char>, next: Option<char>) -> bool {
-    // kramdown's SQ_CLOSE: anything NOT in [ \t\r\n[{(-]
-    // If preceded by one of these chars, it's a closing quote
-    if let Some(p) = prev {
-        if is_sq_close(p) {
-            return true; // RIGHT (closing) -- kramdown rule 7
+    match prev {
+        Some(p) => {
+            // There is a preceding character. kramdown's scanner has `X"` where X is prev.
+            // Rules 1-5 don't match (they need quote at position 0).
+            // Rule 6: space + quote + word → LEFT
+            if p.is_whitespace() && next.is_some_and(|n| n.is_alphanumeric() || n == '_') {
+                return false; // LEFT (opening)
+            }
+            // Rule 7: SQ_CLOSE + quote → RIGHT
+            if is_sq_close(p) {
+                return true; // RIGHT (closing)
+            }
+            // Rule 8: quote + space/end → RIGHT
+            if next.is_none_or(|n| n.is_whitespace()) {
+                return true; // RIGHT (closing)
+            }
+            // Fallback (rules 9/10): LEFT (opening)
+            false
+        }
+        None => {
+            // No preceding character (start of text / after tag boundary).
+            // kramdown's scanner has just `"` at position 0.
+            // Rule 1: quote before emphasis → LEFT (skip, rare in HTML output)
+            // Rule 2: quote before SQ_PUNCT → RIGHT
+            if next.is_some_and(is_sq_punct) {
+                return true; // RIGHT (closing)
+            }
+            // Rule 8: quote + space/end → RIGHT
+            if next.is_none_or(|n| n.is_whitespace()) {
+                return true; // RIGHT (closing)
+            }
+            // If followed by word char (and no prev) → LEFT
+            // This comes from rule 6 with implicit leading space
+            if next.is_some_and(|n| n.is_alphanumeric() || n == '_') {
+                return false; // LEFT (opening)
+            }
+            // Fallback → LEFT
+            false
         }
     }
-
-    // If preceded by whitespace and followed by a word char → opening
-    let prev_is_space = prev.map_or(true, |p| p.is_whitespace());
-    let next_is_word = next.map_or(false, |n| n.is_alphanumeric() || n == '_');
-    if prev_is_space && next_is_word {
-        return false; // LEFT (opening) -- kramdown rule 6
-    }
-
-    // If followed by space or end → closing
-    let next_is_space_or_end = next.map_or(true, |n| n.is_whitespace());
-    if next_is_space_or_end {
-        return true; // RIGHT (closing) -- kramdown rule 8
-    }
-
-    // If followed by SQ_PUNCT → closing (kramdown rule 2)
-    if let Some(n) = next {
-        if is_sq_punct(n) {
-            return true; // RIGHT (closing)
-        }
-    }
-
-    // Fallback: opening (LEFT) -- kramdown rules 9/10
-    false
 }
 
 /// Check if a character is in kramdown's SQ_CLOSE set.
 /// SQ_CLOSE = [^ \\\t\r\n\[{(-] -- anything NOT space, backslash, tab, CR, LF,
 /// `[`, `{`, `(`, `-`.
 fn is_sq_close(ch: char) -> bool {
-    !matches!(
-        ch,
-        ' ' | '\\' | '\t' | '\r' | '\n' | '[' | '{' | '(' | '-'
-    )
+    !matches!(ch, ' ' | '\\' | '\t' | '\r' | '\n' | '[' | '{' | '(' | '-')
 }
 
 /// Check if a character is in kramdown's SQ_PUNCT set.
@@ -3514,7 +3545,7 @@ fn is_sq_punct(ch: char) -> bool {
 fn is_apostrophe_context_kramdown(chars: &[char], pos: usize) -> bool {
     let prev = prev_text_char(chars, pos);
     let next = next_text_char(chars, pos);
-    prev.map_or(false, |p| p.is_alphabetic()) && next.map_or(false, |n| n.is_alphabetic())
+    prev.is_some_and(|p| p.is_alphabetic()) && next.is_some_and(|n| n.is_alphabetic())
 }
 
 // ============================================================================
