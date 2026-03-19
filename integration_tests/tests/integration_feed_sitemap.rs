@@ -158,7 +158,10 @@ fn kids_site_dir() -> PathBuf {
 }
 
 fn rustkyll_binary() -> PathBuf {
-    // In a workspace, the binary is in the workspace target directory
+    let release = project_root().join("target/release/rustkyll");
+    if release.exists() {
+        return release;
+    }
     project_root().join("target/debug/rustkyll")
 }
 

@@ -24,7 +24,12 @@ fn run_comparison(site: &str) {
     let site_dir = root.join("websites").join(site);
     assert!(site_dir.exists(), "site source not found at {:?}", site_dir);
 
-    let binary = root.join("target/debug/rustkyll");
+    let release = root.join("target/release/rustkyll");
+    let binary = if release.exists() {
+        release
+    } else {
+        root.join("target/debug/rustkyll")
+    };
     assert!(
         binary.exists(),
         "rustkyll binary not found at {:?}. Run `cargo build` first.",

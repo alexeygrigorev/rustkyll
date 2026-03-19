@@ -19,8 +19,16 @@ fn docs_source() -> PathBuf {
     project_root().join("websites/DataTalksClub/docs")
 }
 
+fn rustkyll_binary() -> PathBuf {
+    let release = project_root().join("target/release/rustkyll");
+    if release.exists() {
+        return release;
+    }
+    project_root().join("target/debug/rustkyll")
+}
+
 fn build_dtc_docs(dest: &std::path::Path) -> String {
-    let binary = project_root().join("target/debug/rustkyll");
+    let binary = rustkyll_binary();
     assert!(
         binary.exists(),
         "rustkyll binary not found at {:?}. Run `cargo build` first.",

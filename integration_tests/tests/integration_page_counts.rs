@@ -5,7 +5,7 @@
 //!
 //! Run with: cargo test -p integration-tests --test integration_page_counts
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn project_root() -> std::path::PathBuf {
@@ -33,8 +33,16 @@ fn count_html_files(dir: &Path) -> usize {
 
 /// Build a site using rustkyll and return the output directory.
 /// Panics if the binary or source directory is missing.
+fn rustkyll_binary() -> PathBuf {
+    let release = project_root().join("target/release/rustkyll");
+    if release.exists() {
+        return release;
+    }
+    project_root().join("target/debug/rustkyll")
+}
+
 fn build_site(site_name: &str) -> tempfile::TempDir {
-    let binary = project_root().join("target/debug/rustkyll");
+    let binary = rustkyll_binary();
     assert!(
         binary.exists(),
         "rustkyll binary not found at {:?}. Run `cargo build` first.",
