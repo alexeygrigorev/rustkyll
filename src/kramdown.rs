@@ -2104,40 +2104,39 @@ fn decode_entity(entity: &str) -> Option<char> {
     }
 }
 
-/// Convert heading text to a URL-friendly slug matching kramdown's `generate_id`.
+/// Convert heading text to a URL-friendly slug matching kramdown-parser-gfm's
+/// `generate_gfm_header_id`.
 ///
-/// Kramdown's exact Ruby algorithm:
+/// Jekyll defaults to `kramdown: { input: GFM }`, so all Jekyll sites use the GFM
+/// heading ID algorithm rather than kramdown's ASCII-only `basic_generate_id`.
+///
+/// GFM algorithm from kramdown-parser-gfm (Ruby):
 /// ```ruby
-/// gen_id = str.gsub(/^[^a-zA-Z]+/, '')   # strip leading non-ASCII-alpha
-/// gen_id.tr!('^a-zA-Z0-9 -', '')          # keep only ASCII alphanum, space, hyphen
-/// gen_id.tr!(' ', '-')                     # spaces to hyphens
-/// gen_id.downcase!
-/// gen_id = 'section' if gen_id.length == 0
+/// NON_WORD_RE = /[^\p{Word}\- \t]/
+/// result = text.downcase
+/// result.gsub!(NON_WORD_RE, '')
+/// result.tr!(" \t", '-')
 /// ```
 ///
-/// This means:
-/// - Only ASCII letters and digits are kept (non-Latin scripts are stripped)
-/// - Leading digits/punctuation are stripped (up to first ASCII letter)
-/// - If nothing remains (e.g., pure Arabic/CJK), falls back to "section"
+/// `\p{Word}` matches Unicode letters, digits, and underscore.
+/// This preserves Cyrillic, Arabic, accented Latin, CJK, etc. in heading IDs.
 fn slugify(text: &str) -> String {
-    // Step 1: Strip leading characters that are not ASCII letters
-    let stripped = text.trim_start_matches(|c: char| !c.is_ascii_alphabetic());
+    // Step 1: Downcase (Unicode-aware)
+    let lower = text.to_lowercase();
 
-    // Step 2: Keep only ASCII alphanumerics, spaces, and hyphens
-    let mut slug = String::with_capacity(stripped.len());
-    for ch in stripped.chars() {
-        if ch.is_ascii_alphanumeric() || ch == ' ' || ch == '-' {
+    // Step 2: Keep only Unicode word chars (letters, digits, underscore), hyphens,
+    // spaces, and tabs. Strip everything else (punctuation, symbols, etc.)
+    let mut slug = String::with_capacity(lower.len());
+    for ch in lower.chars() {
+        if ch.is_alphanumeric() || ch == '_' || ch == '-' || ch == ' ' || ch == '\t' {
             slug.push(ch);
         }
     }
 
-    // Step 3: Replace spaces with hyphens
-    slug = slug.replace(' ', "-");
+    // Step 3: Replace spaces and tabs with hyphens
+    slug = slug.replace([' ', '\t'], "-");
 
-    // Step 4: Downcase
-    slug = slug.to_lowercase();
-
-    // Step 5: Fall back to "section" if empty
+    // Step 4: Fall back to "section" if empty
     if slug.is_empty() {
         "section".to_string()
     } else {
@@ -3668,18 +3667,16 @@ mod tests {
     }
 
     #[test]
-    fn test_slugify_leading_digits_stripped() {
-        // Kramdown strips leading non-ASCII-alpha characters (including digits)
-        // "1. DataTalksClub" -> strip "1. " -> "DataTalksClub" -> "datatalksclub"
-        assert_eq!(slugify("1. DataTalksClub"), "datatalksclub");
-        // "123 Hello" -> strip "123 " -> "Hello" -> "hello"
-        assert_eq!(slugify("123 Hello"), "hello");
+    fn test_slugify_leading_digits_preserved() {
+        // GFM preserves leading digits (unlike kramdown default which strips them)
+        assert_eq!(slugify("1. DataTalksClub"), "1-datatalksclub");
+        assert_eq!(slugify("123 Hello"), "123-hello");
     }
 
     #[test]
-    fn test_slugify_leading_spaces_stripped() {
-        // Leading spaces are stripped (non-ASCII-alpha chars)
-        assert_eq!(slugify("  Hello"), "hello");
+    fn test_slugify_leading_spaces_become_hyphens() {
+        // GFM: spaces become hyphens, leading hyphens remain
+        assert_eq!(slugify("  Hello"), "--hello");
     }
 
     #[test]
@@ -3689,57 +3686,117 @@ mod tests {
         assert_eq!(slugify("Hello World!"), "hello-world");
     }
 
-    // --- Non-ASCII slugify tests (kramdown ASCII-only generate_id) ---
+    // --- Non-ASCII slugify tests (GFM Unicode-preserving generate_id) ---
     //
-    // Kramdown's generate_id uses ASCII-only regex: [a-zA-Z0-9 -]
-    // All non-ASCII characters (Cyrillic, Arabic, CJK, etc.) are stripped.
-    // If the result is empty, it falls back to "section".
+    // Jekyll defaults to kramdown input: GFM, which uses \p{Word} (Unicode word
+    // chars) to keep letters/digits/underscores. Non-ASCII scripts are preserved.
 
     #[test]
-    fn test_slugify_cyrillic_falls_back_to_section() {
-        // Pure Cyrillic: all stripped -> "section"
+    fn test_slugify_cyrillic_with_chapter_number() {
+        // Cyrillic preserved, colon stripped, spaces become hyphens
         assert_eq!(
             slugify("Глава 1: Введение - Мир металлов вокруг нас"),
-            "section"
+            "глава-1-введение---мир-металлов-вокруг-нас"
         );
     }
 
     #[test]
-    fn test_slugify_cyrillic_emdash_falls_back_to_section() {
+    fn test_slugify_cyrillic_emdash() {
+        // Em-dash is stripped (not \p{Word}), spaces around it become hyphens
         assert_eq!(
             slugify("Глава 1: Введение — Мир металлов вокруг нас"),
-            "section"
+            "глава-1-введение--мир-металлов-вокруг-нас"
         );
     }
 
     #[test]
-    fn test_slugify_pure_cyrillic_no_ascii() {
-        assert_eq!(slugify("Уникальные дары металлов"), "section");
+    fn test_slugify_pure_cyrillic() {
+        assert_eq!(
+            slugify("Уникальные дары металлов"),
+            "уникальные-дары-металлов"
+        );
     }
 
     #[test]
-    fn test_slugify_cyrillic_with_numbers_falls_back() {
-        // Leading Cyrillic is stripped (not [a-zA-Z]), digits follow but
-        // are also stripped by leading-strip, then remaining Cyrillic stripped
+    fn test_slugify_cyrillic_with_numbers() {
         assert_eq!(
             slugify("Глава 3: Бронзовый век - революция сплавов"),
-            "section"
+            "глава-3-бронзовый-век---революция-сплавов"
         );
     }
 
     #[test]
-    fn test_slugify_simple_cyrillic_section() {
-        assert_eq!(slugify("Привет мир"), "section");
+    fn test_slugify_simple_cyrillic() {
+        assert_eq!(slugify("Привет мир"), "привет-мир");
     }
 
     #[test]
-    fn test_slugify_non_ascii_all_stripped() {
-        // All non-ASCII text falls back to "section" in kramdown's default mode
+    fn test_slugify_cyrillic_preserves_unicode() {
         let result = slugify("Глава 1: Введение - Мир металлов вокруг нас");
         assert_eq!(
-            result, "section",
-            "Non-ASCII text should fall back to 'section', got: {result}"
+            result, "глава-1-введение---мир-металлов-вокруг-нас",
+            "Cyrillic text should be preserved in GFM mode, got: {result}"
         );
+    }
+
+    // --- GFM slugify regression tests (Unicode-preserving) ---
+    // Jekyll defaults to kramdown input: GFM, which uses \p{Word} (Unicode word chars)
+    // instead of ASCII-only [a-zA-Z0-9]. This means Cyrillic, Arabic, accented Latin,
+    // etc. are all preserved in heading IDs.
+
+    #[test]
+    fn test_slugify_gfm_cyrillic_preserved() {
+        // GFM mode: Cyrillic letters are \p{Word}, so they stay
+        assert_eq!(
+            slugify("Уникальные дары металлов"),
+            "уникальные-дары-металлов"
+        );
+    }
+
+    #[test]
+    fn test_slugify_gfm_cyrillic_with_chapter_number() {
+        // "Глава 1: Введение - Мир металлов вокруг нас"
+        // colon stripped, everything else preserved
+        assert_eq!(
+            slugify("Глава 1: Введение - Мир металлов вокруг нас"),
+            "глава-1-введение---мир-металлов-вокруг-нас"
+        );
+    }
+
+    #[test]
+    fn test_slugify_gfm_leading_digits_preserved() {
+        // GFM does NOT strip leading digits
+        assert_eq!(slugify("1. DataTalksClub"), "1-datatalksclub");
+        assert_eq!(slugify("123 Hello"), "123-hello");
+    }
+
+    #[test]
+    fn test_slugify_gfm_arabic_preserved() {
+        // Arabic letters are \p{Word}, so they stay in GFM mode
+        let result = slugify("\u{0645}\u{0627} \u{0645}\u{0639}\u{0646}\u{0649}");
+        assert_eq!(result, "\u{0645}\u{0627}-\u{0645}\u{0639}\u{0646}\u{0649}");
+    }
+
+    #[test]
+    fn test_slugify_gfm_mixed_ascii_arabic() {
+        // Mixed: all kept
+        let result =
+            slugify("GitHub \u{0647}\u{0644} \u{0645}\u{0634}\u{0627}\u{0631}\u{064a}\u{0639}");
+        assert_eq!(
+            result,
+            "github-\u{0647}\u{0644}-\u{0645}\u{0634}\u{0627}\u{0631}\u{064a}\u{0639}"
+        );
+    }
+
+    #[test]
+    fn test_slugify_gfm_underscore_preserved() {
+        // \p{Word} includes underscore
+        assert_eq!(slugify("hello_world"), "hello_world");
+    }
+
+    #[test]
+    fn test_slugify_gfm_accented_latin() {
+        assert_eq!(slugify("café au lait"), "café-au-lait");
     }
 
     // --- Unique ID tests ---
@@ -6526,24 +6583,25 @@ by <a href="/people/author.html">Author Name</a>
     // Issue 228: Kramdown strips leading non-alpha chars (including digits)
     // "1. DataTalksClub" -> strip "1. " -> "DataTalksClub" -> "datatalksclub"
     #[test]
-    fn test_issue168_heading_id_leading_number_stripped() {
+    fn test_issue168_heading_id_leading_number_preserved() {
+        // GFM mode: leading digits are preserved (Jekyll defaults to GFM)
         let html = "<h2>1. DataTalksClub</h2>\n";
         let result = postprocess(html);
         assert!(
-            result.contains("id=\"datatalksclub\""),
-            "Heading ID should strip leading digit (kramdown behavior). Got: {}",
+            result.contains("id=\"1-datatalksclub\""),
+            "Heading ID should preserve leading digit (GFM behavior). Got: {}",
             result
         );
     }
 
     #[test]
-    fn test_issue168_heading_id_numeric_prefix_stripped() {
-        // "8 Newsletters for Data Science" -> strip "8 " -> "newsletters-for-data-science"
+    fn test_issue168_heading_id_numeric_prefix_preserved() {
+        // GFM mode: "8 Newsletters for Data Science" -> "8-newsletters-for-data-science"
         let html = "<h3>8 Newsletters for Data Science</h3>\n";
         let result = postprocess(html);
         assert!(
-            result.contains("id=\"newsletters-for-data-science\""),
-            "Heading ID should strip leading number (kramdown behavior). Got: {}",
+            result.contains("id=\"8-newsletters-for-data-science\""),
+            "Heading ID should preserve leading number (GFM behavior). Got: {}",
             result
         );
     }
@@ -7579,42 +7637,42 @@ by <a href="/people/author.html">Author Name</a>
         );
     }
 
-    // --- Issue 228: Heading ID for non-Latin scripts (kramdown default) ---
+    // --- Issue 228: Heading ID for non-Latin scripts (GFM Unicode-preserving) ---
 
     #[test]
-    fn test_slugify_arabic_only_falls_back_to_section() {
-        // Pure Arabic heading: all non-ASCII stripped, falls back to "section"
+    fn test_slugify_arabic_preserved() {
+        // GFM mode: Arabic letters are \p{Word}, so they are preserved
         let result = slugify("\u{0645}\u{0627} \u{0645}\u{0639}\u{0646}\u{0649}");
         assert_eq!(
-            result, "section",
-            "Pure Arabic heading should fall back to 'section'. Got: {}",
+            result, "\u{0645}\u{0627}-\u{0645}\u{0639}\u{0646}\u{0649}",
+            "Pure Arabic heading should preserve Arabic chars. Got: {}",
             result
         );
     }
 
     #[test]
     fn test_slugify_two_arabic_headings_unique_ids() {
-        // Two Arabic headings should get section and section-1
+        // Two different Arabic headings get different IDs
         let mut used = HashMap::new();
         let slug1 = slugify("\u{0645}\u{0627} \u{0645}\u{0639}\u{0646}\u{0649}");
         let id1 = get_unique_id(&mut used, &slug1);
         let slug2 = slugify("\u{0643}\u{064a}\u{0641} \u{062a}\u{0633}\u{0627}\u{0647}\u{0645}");
         let id2 = get_unique_id(&mut used, &slug2);
         assert_eq!(
-            id1, "section",
-            "First Arabic heading should be 'section'. Got: {}",
+            id1, "\u{0645}\u{0627}-\u{0645}\u{0639}\u{0646}\u{0649}",
+            "First Arabic heading should preserve Arabic. Got: {}",
             id1
         );
         assert_eq!(
-            id2, "section-1",
-            "Second Arabic heading should be 'section-1'. Got: {}",
+            id2, "\u{0643}\u{064a}\u{0641}-\u{062a}\u{0633}\u{0627}\u{0647}\u{0645}",
+            "Second Arabic heading should preserve Arabic. Got: {}",
             id2
         );
     }
 
     #[test]
-    fn test_slugify_mixed_ascii_arabic() {
-        // Mixed heading: "GitHub هل مشاريع" -- only ASCII chars kept
+    fn test_slugify_mixed_ascii_arabic_preserves_both() {
+        // GFM mode: both ASCII and Arabic are preserved
         let result =
             slugify("GitHub \u{0647}\u{0644} \u{0645}\u{0634}\u{0627}\u{0631}\u{064a}\u{0639}");
         assert!(
@@ -7623,8 +7681,8 @@ by <a href="/people/author.html">Author Name</a>
             result
         );
         assert!(
-            !result.contains("\u{0647}"),
-            "Arabic chars should be stripped in default kramdown mode. Got: {}",
+            result.contains("\u{0647}"),
+            "Arabic chars should be preserved in GFM mode. Got: {}",
             result
         );
     }
