@@ -449,13 +449,16 @@ impl Renderable for SeoRenderable {
         // name field: jekyll-seo-tag only includes name for homepage/about pages
         if is_homepage_or_about {
             if let Some(name) = site_title.as_deref() {
-                jsonld_fields.push(format!("\"name\":\"{}\"", json_escape(name)));
+                jsonld_fields.push(format!("\"name\":\"{}\"", json_escape(&html_escape(name))));
             }
         }
 
         // description before headline (matching Jekyll's field order)
         if let Some(desc) = description {
-            jsonld_fields.push(format!("\"description\":\"{}\"", json_escape(desc)));
+            jsonld_fields.push(format!(
+                "\"description\":\"{}\"",
+                json_escape(&html_escape(desc))
+            ));
         }
 
         if let Some(ref t) = og_page_title {
@@ -468,7 +471,10 @@ impl Renderable for SeoRenderable {
             } else {
                 t
             };
-            jsonld_fields.push(format!("\"headline\":\"{}\"", json_escape(headline)));
+            jsonld_fields.push(format!(
+                "\"headline\":\"{}\"",
+                json_escape(&html_escape(headline))
+            ));
         }
 
         // url field: jekyll-seo-tag always includes canonical_url in JSON-LD
@@ -1359,6 +1365,59 @@ mod tests {
     }
 
     // ========================================================================
+    // Issue 246: JSON-LD entity encoding
+    // ========================================================================
+
+    #[test]
+    fn test_json_ld_headline_ampersand_entity_encoded() {
+        // Issue 246: Jekyll HTML-entity-encodes ampersands in JSON-LD headline,
+        // producing Q&amp;A not Q&A.
+        let eng = engine();
+        let ctx = make_context(
+            Some("Q&A"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"headline\":\"Q&amp;A\""),
+            "JSON-LD headline should HTML-entity-encode ampersand. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_json_ld_headline_unicode_ampersand_entity_encoded() {
+        // Issue 246: Test with Unicode content containing ampersand.
+        let eng = engine();
+        let ctx = make_context(
+            Some("Ubersicht & Mehr"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"headline\":\"Ubersicht &amp; Mehr\""),
+            "JSON-LD headline should HTML-entity-encode ampersand with Unicode content. Got: {}",
+            out
+        );
+    }
+
+    // ========================================================================
     // JSON-LD @type: WebSite for homepage
     // ========================================================================
 
@@ -2225,9 +2284,11 @@ mod tests {
             None,
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        // Issue 246: JSON-LD values are now HTML-entity-encoded to match Jekyll.
+        // & becomes &amp;, ' becomes &#39;, " becomes &quot; (then JSON-escaped to \")
         assert!(
-            out.contains("\"description\":\"Tom & Jerry's \\\"show\\\"\""),
-            "Special chars should be JSON-escaped in compact format. Got: {}",
+            out.contains("\"description\":\"Tom &amp; Jerry&#39;s &quot;show&quot;\""),
+            "Special chars should be HTML-entity-encoded in JSON-LD. Got: {}",
             out
         );
     }

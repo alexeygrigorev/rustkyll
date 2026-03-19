@@ -78,6 +78,7 @@ pub fn postprocess(html: &str) -> String {
     let html = strip_paragraphs_in_html_blocks(html);
     let html = encode_bare_ampersands(&html);
     let html = add_heading_ids(&html);
+    let html = apply_block_ial(&html);
     let html = apply_inline_attributes(&html);
     let html = wrap_fenced_code_blocks(&html);
     // Note: inline code classes are now added during markdown rendering
@@ -1229,6 +1230,226 @@ fn contains_block_elements(content: &str) -> bool {
 // 1. Inline attribute lists (IAL)
 // ============================================================================
 
+/// Apply block-level kramdown IALs.
+///
+/// Block IALs appear as standalone paragraphs: `<p>{: .class }</p>`.
+/// This happens when markdown like:
+/// ```markdown
+/// # Heading
+/// {: .fs-9 }
+/// ```
+/// is parsed by comrak, which wraps the `{: .fs-9 }` line in a `<p>` tag.
+///
+/// This function finds `<p>{: ... }</p>` paragraphs and applies their
+/// attributes to the preceding block element, then removes the IAL paragraph.
+fn apply_block_ial(html: &str) -> String {
+    // Find all `<p>{: ... }</p>` patterns (block-level IAL paragraphs).
+    // Process from end to start to preserve positions when modifying.
+    let mut result = html.to_string();
+    let prefix = "<p>{:";
+    let suffix = "}</p>";
+
+    // Collect all match positions first
+    let mut matches: Vec<(usize, usize, String)> = Vec::new();
+    let mut search_from = 0;
+    while let Some(p_start) = result[search_from..].find(prefix) {
+        let abs_start = search_from + p_start;
+        // Find closing }</p>
+        let after_prefix = abs_start + prefix.len();
+        if let Some(close_offset) = result[after_prefix..].find(suffix) {
+            let abs_end = after_prefix + close_offset + suffix.len();
+            // Extract the attribute string between {: and }
+            let attr_str = result[after_prefix..after_prefix + close_offset]
+                .trim()
+                .to_string();
+            // Verify this <p> contains ONLY the IAL (no other content before {: )
+            matches.push((abs_start, abs_end, attr_str));
+            search_from = abs_end;
+        } else {
+            search_from = abs_start + prefix.len();
+        }
+    }
+
+    // Process from end to start
+    for (start, end, attr_str) in matches.into_iter().rev() {
+        let attrs = parse_ial_attributes(&attr_str);
+        if attrs.is_empty() {
+            continue;
+        }
+
+        // Find the preceding block element's closing tag
+        let before = &result[..start];
+        // Look for the last closing tag before this IAL paragraph
+        if let Some(close_pos) = before.rfind("</") {
+            if let Some(gt_pos) = before[close_pos..].find('>') {
+                let tag_name = before[close_pos + 2..close_pos + gt_pos].to_string();
+
+                // Find the matching opening tag
+                let search_area = &before[..close_pos];
+                if let Some(open_pos) = find_last_opening_tag(search_area, &tag_name) {
+                    // Remove the IAL paragraph (including any preceding newline)
+                    let remove_start = if start > 0 && result.as_bytes()[start - 1] == b'\n' {
+                        start - 1
+                    } else {
+                        start
+                    };
+                    result.replace_range(remove_start..end, "");
+
+                    // Apply attributes to the opening tag
+                    insert_attributes_at(&mut result, open_pos, &attrs);
+                }
+            }
+        }
+    }
+
+    // Second pass: handle IAL merged into paragraph text by comrak.
+    // When there's no blank line between paragraph text and IAL, comrak merges them:
+    //   `<p>Some text\n{: .fs-6 .fw-300 }</p>` or `<p>Some text {: .fs-6 }</p>`
+    // We find `{: ... }` at the end of text content within closing `</p>`, `</h1>`, etc.,
+    // strip it, and apply attributes to the element.
+    apply_merged_ial(&mut result);
+
+    result
+}
+
+/// Handle IAL patterns merged into block element text content by comrak.
+///
+/// When there's no blank line between paragraph text and an IAL line, comrak
+/// merges them into one element:
+///   `<p>Some text\n{: .fs-6 .fw-300 }</p>`
+///
+/// This function finds `{: ... }` at the end of text content before a closing
+/// tag (e.g., `</p>`), strips the IAL text, and applies attributes to the
+/// element's opening tag.
+fn apply_merged_ial(html: &mut String) {
+    // We search for patterns like: `{: .class1 .class2 }</p>` or `{: .class }</h1>` etc.
+    // working backwards to preserve positions.
+    let ial_marker = "{: ";
+    let mut search_from = 0;
+    let mut replacements: Vec<(usize, usize, String, usize)> = Vec::new();
+
+    while let Some(ial_start) = html[search_from..].find(ial_marker) {
+        let abs_ial_start = search_from + ial_start;
+
+        // Find the closing `}` on the same line
+        let after_marker = abs_ial_start + ial_marker.len();
+        let rest = &html[after_marker..];
+        let mut close_brace = None;
+        for (i, ch) in rest.char_indices() {
+            if ch == '}' {
+                close_brace = Some(after_marker + i);
+                break;
+            }
+            if ch == '\n' {
+                break;
+            }
+        }
+
+        let close_brace = match close_brace {
+            Some(pos) => pos,
+            None => {
+                search_from = after_marker;
+                continue;
+            }
+        };
+
+        // Check that this `}` is followed (possibly with whitespace) by a closing tag `</tag>`
+        let after_brace = close_brace + 1;
+        let trailing = &html[after_brace..];
+        let trimmed = trailing.trim_start();
+        if !trimmed.starts_with("</") {
+            search_from = after_brace;
+            continue;
+        }
+
+        // Find the closing tag name
+        let close_tag_start = after_brace + (trailing.len() - trimmed.len());
+        let tag_rest = &html[close_tag_start + 2..];
+        let tag_end = tag_rest.find('>').unwrap_or(0);
+        let tag_name = &html[close_tag_start + 2..close_tag_start + 2 + tag_end];
+
+        // Only handle block elements
+        let is_block = matches!(
+            tag_name,
+            "p" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "li" | "blockquote" | "div"
+        );
+        if !is_block {
+            search_from = after_brace;
+            continue;
+        }
+
+        // This is already handled by the first pass if the IAL is in its own <p>{: ... }</p>
+        // Check that the IAL is NOT at the very start of the element (after the opening tag)
+        // by looking for content before the {: marker
+        let before_ial = &html[..abs_ial_start];
+        // Check if the preceding non-whitespace is `>` from an opening `<p>` tag
+        let trimmed_before = before_ial.trim_end();
+        if trimmed_before.ends_with(&format!("<{}>", tag_name))
+            || trimmed_before.ends_with(&format!("<{} ", tag_name))
+        {
+            // This looks like `<p>{: ... }</p>` -- already handled by first pass
+            search_from = after_brace;
+            continue;
+        }
+
+        // Skip if the IAL immediately follows a closing tag (e.g., `</a>{: .btn }`)
+        // These are inline IALs handled by apply_inline_attributes.
+        if trimmed_before.ends_with('>') {
+            // Check if this is a closing tag by looking for `</` before `>`
+            if let Some(lt_pos) = trimmed_before.rfind("</") {
+                let candidate = &trimmed_before[lt_pos..];
+                if candidate.ends_with('>') {
+                    search_from = after_brace;
+                    continue;
+                }
+            }
+        }
+
+        // Extract the attribute string
+        let attr_str = html[after_marker..close_brace].trim().to_string();
+        let attrs = parse_ial_attributes(&attr_str);
+        if attrs.is_empty() {
+            search_from = after_brace;
+            continue;
+        }
+
+        // Find the opening tag for this element by searching backwards from the IAL
+        let search_area = &html[..abs_ial_start];
+        if let Some(open_pos) = find_last_opening_tag(search_area, tag_name) {
+            // Determine what to remove: from whitespace before `{:` to `}` (inclusive)
+            // Also strip any preceding whitespace/newline
+            let mut remove_start = abs_ial_start;
+            while remove_start > 0
+                && matches!(
+                    html.as_bytes()[remove_start - 1],
+                    b' ' | b'\n' | b'\r' | b'\t'
+                )
+            {
+                remove_start -= 1;
+                // Don't go past the opening tag content
+                if remove_start <= open_pos {
+                    remove_start = abs_ial_start;
+                    break;
+                }
+            }
+
+            replacements.push((remove_start, close_brace + 1, attr_str, open_pos));
+        }
+
+        search_from = after_brace;
+    }
+
+    // Apply replacements from end to start to preserve positions
+    for (remove_start, remove_end, attr_str, open_pos) in replacements.into_iter().rev() {
+        // Remove the IAL text
+        html.replace_range(remove_start..remove_end, "");
+
+        // Apply attributes to the opening tag
+        let attrs = parse_ial_attributes(&attr_str);
+        insert_attributes_at(html, open_pos, &attrs);
+    }
+}
+
 /// Apply kramdown inline attribute lists found in HTML output.
 ///
 /// Finds patterns like `</a>{:target="_blank"}` and moves the attributes
@@ -1369,39 +1590,40 @@ fn insert_attributes_at(html: &mut String, open_pos: usize, attrs: &[(String, St
         let gt_pos = open_pos + gt_offset;
         let existing_tag = &html[open_pos..gt_pos];
 
-        // Build new attributes string
-        let mut new_attrs = String::new();
+        // Merge all class values into a single space-separated string.
+        let mut classes: Vec<&str> = Vec::new();
+        let mut other_attrs = String::new();
         for (key, value) in attrs {
             if key == "class" {
-                // Check if class already exists on the tag
-                if let Some(class_start) = existing_tag.find("class=\"") {
-                    // Append to existing class
-                    let class_val_start = open_pos + class_start + 7; // after `class="`
-                    if let Some(class_val_end) = html[class_val_start..].find('"') {
-                        let insert_pos = class_val_start + class_val_end;
-                        html.insert_str(insert_pos, &format!(" {}", value));
-                        return; // We modified html directly, so return
-                    }
-                } else {
-                    new_attrs.push_str(&format!(" class=\"{}\"", value));
-                }
+                classes.push(value);
             } else if key == "id" {
-                // Check if id already exists (e.g., from heading ID generation)
-                if existing_tag.contains("id=\"") {
-                    // Replace existing id
-                    // For now, just skip - the explicit IAL id should win
-                    // This is handled in heading ID generation
-                    new_attrs.push_str(&format!(" id=\"{}\"", value));
-                } else {
-                    new_attrs.push_str(&format!(" id=\"{}\"", value));
+                other_attrs.push_str(&format!(" id=\"{}\"", value));
+            } else {
+                other_attrs.push_str(&format!(" {}=\"{}\"", key, value));
+            }
+        }
+
+        // Handle classes: append to existing or create new class attribute
+        if !classes.is_empty() {
+            let merged = classes.join(" ");
+            if let Some(class_start) = existing_tag.find("class=\"") {
+                // Append to existing class attribute
+                let class_val_start = open_pos + class_start + 7; // after `class="`
+                if let Some(class_val_end) = html[class_val_start..].find('"') {
+                    let insert_pos = class_val_start + class_val_end;
+                    html.insert_str(insert_pos, &format!(" {}", merged));
+                    // Recalculate gt_pos since we inserted before it
+                    let new_gt_pos = gt_pos + merged.len() + 1;
+                    html.insert_str(new_gt_pos, &other_attrs);
+                    return;
                 }
             } else {
-                new_attrs.push_str(&format!(" {}=\"{}\"", key, value));
+                other_attrs = format!(" class=\"{}\"", merged) + &other_attrs;
             }
         }
 
         // Insert before the `>`
-        html.insert_str(gt_pos, &new_attrs);
+        html.insert_str(gt_pos, &other_attrs);
     }
 }
 
@@ -1713,7 +1935,7 @@ fn get_unique_id(used: &mut HashMap<String, usize>, base: &str) -> String {
 ///
 /// Fenced code blocks without a language tag are wrapped as:
 /// ```html
-/// <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>...</code></pre></div></div>
+/// <div class="highlighter-rouge language-plaintext"><div class="highlight"><pre class="highlight"><code>...</code></pre></div></div>
 /// ```
 ///
 /// Fenced code blocks WITH a language class (e.g., `<pre><code class="language-python">`)
@@ -1776,12 +1998,11 @@ fn wrap_fenced_code_blocks(html: &str) -> String {
             if let Some(close_pos) = after_open_tag.find("</code></pre>") {
                 let code_content = &after_open_tag[..close_pos];
                 // Write the kramdown wrapper
-                // Jekyll only puts the language class on the wrapper div for
-                // language-specified code blocks. For no-language (plaintext)
-                // blocks, the wrapper div has only "highlighter-rouge".
+                // Kramdown 2.5.1 adds "language-plaintext" to the wrapper div
+                // for no-language fenced code blocks.
                 if lang == "plaintext" {
                     result.push_str(
-                        "<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>",
+                        "<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\"><pre class=\"highlight\"><code>",
                     );
                 } else {
                     result.push_str(&format!(
@@ -3391,6 +3612,158 @@ mod tests {
         );
     }
 
+    // ======================================================================
+    // Issue 246: Block-level IAL (e.g., `{: .fs-9 }` on its own line)
+    // ======================================================================
+
+    #[test]
+    fn test_block_ial_heading_single_class() {
+        // Block IAL: `# Title\n{: .fs-9 }` should apply class to heading.
+        // After markdown parsing, this becomes:
+        //   <h1>Title</h1>\n<p>{: .fs-9 }</p>
+        let html = "<h1>Title</h1>\n<p>{: .fs-9 }</p>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("class=\"fs-9\""),
+            "Block IAL should apply class to preceding heading. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("{: .fs-9 }"),
+            "Block IAL should be removed from output. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_block_ial_heading_multiple_classes() {
+        // Block IAL with multiple classes: `{: .fs-6 .fw-300 }`
+        let html = "<p>Some text</p>\n<p>{: .fs-6 .fw-300 }</p>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("class=\"fs-6 fw-300\""),
+            "Block IAL should apply multiple classes. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("{: .fs-6 .fw-300 }"),
+            "Block IAL should be removed from output. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_block_ial_heading_id() {
+        // Block IAL with id: `{: #custom-id }`
+        let html = "<h1>Title</h1>\n<p>{: #custom-id }</p>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("id=\"custom-id\""),
+            "Block IAL should apply id to preceding heading. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("{: #custom-id }"),
+            "Block IAL should be removed from output. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_block_ial_inline_link() {
+        // Inline IAL on a link: `[Click](http://example.com){: .btn .fs-5 }`
+        // After markdown parsing, this becomes:
+        //   <p><a href="http://example.com">Click</a>{: .btn .fs-5 }</p>
+        let html = "<p><a href=\"http://example.com\">Click</a>{: .btn .fs-5 }</p>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("class=\"btn fs-5\""),
+            "Inline IAL should apply classes to link. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("{: .btn .fs-5 }"),
+            "Inline IAL should be removed from output. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_block_ial_no_interference_with_normal_paragraphs() {
+        // Normal paragraphs without IAL should pass through unchanged.
+        let html = "<p>Regular paragraph</p>\n<p>Next paragraph</p>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("Regular paragraph"),
+            "Normal paragraphs should be unchanged. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("Next paragraph"),
+            "Normal paragraphs should be unchanged. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_block_ial_unicode_content() {
+        // Block IAL with Unicode content in the heading.
+        let html = "<h1>Ubersicht</h1>\n<p>{: .fs-9 }</p>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("class=\"fs-9\""),
+            "Block IAL should work with Unicode content. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("Ubersicht"),
+            "Unicode content should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_block_ial_merged_in_paragraph_text() {
+        // When comrak merges the IAL into the paragraph text (no blank line between):
+        //   `Some text\n{: .fs-6 .fw-300 }` becomes `<p>Some text\n{: .fs-6 .fw-300 }</p>`
+        // The IAL should be stripped and applied to the <p> element.
+        let html = "<p>Some text\n{: .fs-6 .fw-300 }</p>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("class=\"fs-6 fw-300\""),
+            "Merged IAL should apply classes to paragraph. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("{: .fs-6 .fw-300 }"),
+            "Merged IAL should be removed from paragraph text. Got: {}",
+            result
+        );
+        // The paragraph text should be preserved without the IAL
+        assert!(
+            result.contains(">Some text</p>") || result.contains(">Some text\n</p>"),
+            "Paragraph text should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_block_ial_merged_in_paragraph_unicode() {
+        // Unicode content with merged IAL in paragraph
+        let html = "<p>Willkommen bei uns\n{: .fs-6 .fw-300 }</p>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("class=\"fs-6 fw-300\""),
+            "Merged IAL should work with Unicode. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("{: .fs-6 .fw-300 }"),
+            "Merged IAL should be removed. Got: {}",
+            result
+        );
+    }
+
     #[test]
     fn test_postprocess_heading_whats_new() {
         let html = "<h2>What's New?</h2>\n";
@@ -3426,7 +3799,7 @@ mod tests {
         let html = "<pre><code>plain code\n</code></pre>\n";
         let result = postprocess(html);
         assert!(
-            result.contains("<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain code\n</code></pre>"),
+            result.contains("<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain code\n</code></pre>"),
             "Bare fenced code should be wrapped in kramdown divs. Got: {}",
             result
         );
@@ -3445,7 +3818,7 @@ mod tests {
         let result = postprocess(html);
         // The wrapping produces the kramdown div structure; block spacing adds newlines between closing tags
         assert!(
-            result.contains("<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain code\n</code></pre>"),
+            result.contains("<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain code\n</code></pre>"),
             "Simple fenced code wrapping failed. Got: {}",
             result
         );
@@ -3461,7 +3834,7 @@ mod tests {
             result
         );
         assert!(
-            result.contains("<div class=\"highlighter-rouge\">"),
+            result.contains("<div class=\"highlighter-rouge language-plaintext\">"),
             "Should have outer wrapper div. Got: {}",
             result
         );
@@ -3503,7 +3876,9 @@ mod tests {
     fn test_fenced_code_wrapping_multiple_bare_blocks() {
         let html = "<pre><code>block 1\n</code></pre>\n<pre><code>block 2\n</code></pre>\n";
         let result = postprocess(html);
-        let count = result.matches("<div class=\"highlighter-rouge\">").count();
+        let count = result
+            .matches("<div class=\"highlighter-rouge language-plaintext\">")
+            .count();
         assert_eq!(
             count, 2,
             "Both bare blocks should be wrapped. Got: {}",
@@ -3515,7 +3890,9 @@ mod tests {
     fn test_fenced_code_wrapping_mixed_bare_and_language() {
         let html = "<pre><code>bare code\n</code></pre>\n<pre><code class=\"language-python\">print('hi')\n</code></pre>\n";
         let result = postprocess(html);
-        let plaintext_count = result.matches("<div class=\"highlighter-rouge\">").count();
+        let plaintext_count = result
+            .matches("<div class=\"highlighter-rouge language-plaintext\">")
+            .count();
         assert_eq!(
             plaintext_count, 1,
             "Only bare block should get plaintext wrapper. Got: {}",
@@ -3540,7 +3917,9 @@ mod tests {
             result
         );
         assert!(
-            !result.contains("<div class=\"highlighter-rouge\"><div class=\"highlight\">"),
+            !result.contains(
+                "<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\">"
+            ),
             "Inline code should NOT be wrapped in divs. Got: {}",
             result
         );
@@ -3558,7 +3937,7 @@ mod tests {
         );
         // Fenced code gets div wrapper
         assert!(
-            result.contains("<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>bare code\n</code></pre>"),
+            result.contains("<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\"><pre class=\"highlight\"><code>bare code\n</code></pre>"),
             "Fenced code should get div wrapper. Got: {}",
             result
         );
@@ -3583,12 +3962,14 @@ mod tests {
         );
         // Fenced without language: wrapped
         assert!(
-            result.contains("<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain\n</code></pre>"),
+            result.contains("<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain\n</code></pre>"),
             "Bare fenced code should be wrapped. Got: {}",
             result
         );
         // Should NOT wrap the language-tagged block
-        let wrapper_count = result.matches("<div class=\"highlighter-rouge\">").count();
+        let wrapper_count = result
+            .matches("<div class=\"highlighter-rouge language-plaintext\">")
+            .count();
         assert_eq!(
             wrapper_count, 1,
             "Only one block should be wrapped. Got: {}",
@@ -3602,19 +3983,30 @@ mod tests {
 
     #[test]
     fn test_no_language_wrapper_div_class() {
-        // Jekyll uses class="highlighter-rouge" only on the wrapper div for
-        // no-language fenced code blocks (no language-plaintext on the div).
+        // Issue 246: Kramdown 2.5.1 adds language-plaintext to the wrapper div
+        // for no-language fenced code blocks.
         let html = "<pre><code>some code\n</code></pre>\n";
         let result = postprocess(html);
         assert!(
-            result.contains("<div class=\"highlighter-rouge\"><div class=\"highlight\">"),
-            "Wrapper div should have only highlighter-rouge class. Got: {}",
+            result.contains(
+                "<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\">"
+            ),
+            "Wrapper div should have highlighter-rouge language-plaintext class. Got: {}",
             result
         );
+    }
+
+    #[test]
+    fn test_no_language_wrapper_div_has_language_plaintext() {
+        // Issue 246: Kramdown 2.5.1 adds language-plaintext to the wrapper div
+        // for fenced code blocks without a language specifier.
+        let html = "<pre><code>some code\n</code></pre>\n";
+        let result = postprocess(html);
         assert!(
-            !result.contains("<div class=\"language-plaintext highlighter-rouge\">")
-                && !result.contains("<div class=\"highlighter-rouge language-plaintext\">"),
-            "Wrapper div should NOT contain language-plaintext. Got: {}",
+            result.contains(
+                "<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\">"
+            ),
+            "Wrapper div should have highlighter-rouge language-plaintext class. Got: {}",
             result
         );
     }
@@ -3627,6 +4019,18 @@ mod tests {
         assert!(
             result.contains("<div class=\"language-python highlighter-rouge\">"),
             "Language-specified wrapper should have both classes. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_language_wrapper_div_no_language_plaintext_for_python() {
+        // Regression: language-specified code blocks should NOT get language-plaintext.
+        let html = "<pre><code class=\"language-python\">print('hi')\n</code></pre>\n";
+        let result = postprocess(html);
+        assert!(
+            !result.contains("language-plaintext"),
+            "Language-specified block should NOT contain language-plaintext. Got: {}",
             result
         );
     }

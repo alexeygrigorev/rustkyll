@@ -208,8 +208,15 @@ pub fn build_site_context(
     }
 
     // url: site URL (used for absolute URLs in JSON-LD breadcrumbs)
+    // When jekyll-github-metadata is active, derive from git remote (GitHub Pages URL).
+    // Otherwise, use config.url. Explicit github.url in config always takes priority.
     if !github.contains_key("url") {
-        github.insert("url".into(), LiquidValue::scalar(config.url.clone()));
+        let url_value = if has_plugin {
+            resolve_github_pages_url(config, site_dir)
+        } else {
+            config.url.clone()
+        };
+        github.insert("url".into(), LiquidValue::scalar(url_value));
     }
 
     site.insert("github".into(), LiquidValue::Object(github));
@@ -345,6 +352,82 @@ fn resolve_repository_url(config: &SiteConfig, site_dir: Option<&Path>) -> Liqui
 
     // 3. No repository info available
     LiquidValue::Nil
+}
+
+/// Extract the owner and repo name (NWO -- "name with owner") from a git remote URL.
+///
+/// Supports both HTTPS and SSH URL formats:
+/// - `https://github.com/owner/repo` -> `("owner", "repo")`
+/// - `https://github.com/owner/repo.git` -> `("owner", "repo")`
+/// - `git@github.com:owner/repo.git` -> `("owner", "repo")`
+///
+/// Returns `None` if the URL cannot be parsed as a GitHub remote.
+fn extract_nwo_from_remote(remote_url: &str) -> Option<(String, String)> {
+    let path = if let Some(stripped) = remote_url.strip_prefix("git@github.com:") {
+        stripped.trim_end_matches(".git").to_string()
+    } else if remote_url.contains("github.com/") {
+        let after = remote_url.split("github.com/").nth(1)?;
+        after.trim_end_matches(".git").to_string()
+    } else {
+        return None;
+    };
+
+    let parts: Vec<&str> = path.splitn(2, '/').collect();
+    if parts.len() == 2 && !parts[0].is_empty() && !parts[1].is_empty() {
+        Some((parts[0].to_string(), parts[1].to_string()))
+    } else {
+        None
+    }
+}
+
+/// Convert an owner/repo pair to a GitHub Pages URL.
+///
+/// - Standard project repos: `https://{owner}.github.io/{repo}/`
+/// - User/org sites (repo name is `{owner}.github.io`): `https://{owner}.github.io/`
+///
+/// The owner comparison is case-insensitive, matching GitHub's behavior.
+fn nwo_to_pages_url(owner: &str, repo: &str) -> String {
+    let expected_site_repo = format!("{}.github.io", owner.to_lowercase());
+    if repo.to_lowercase() == expected_site_repo {
+        format!("https://{}.github.io/", owner.to_lowercase())
+    } else {
+        format!("https://{}.github.io/{}/", owner.to_lowercase(), repo)
+    }
+}
+
+/// Resolve `site.github.url` when `jekyll-github-metadata` plugin is active.
+///
+/// Derives the GitHub Pages URL from the git remote, matching Jekyll's local-build
+/// behavior. Falls back to `config.url` if the git remote cannot be resolved.
+fn resolve_github_pages_url(config: &SiteConfig, site_dir: Option<&Path>) -> String {
+    if let Some(dir) = site_dir {
+        // Try config.repository first
+        if let Some(ref repo) = config.repository {
+            if let Some((owner, name)) = extract_nwo_from_remote(&format!(
+                "https://github.com/{}",
+                repo
+            )) {
+                return nwo_to_pages_url(&owner, &name);
+            }
+        }
+
+        // Try git remote
+        if let Ok(output) = Command::new("git")
+            .args(["remote", "get-url", "origin"])
+            .current_dir(dir)
+            .output()
+        {
+            if output.status.success() {
+                let url = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                if let Some((owner, repo)) = extract_nwo_from_remote(&url) {
+                    return nwo_to_pages_url(&owner, &repo);
+                }
+            }
+        }
+    }
+
+    // Fall back to config.url
+    config.url.clone()
 }
 
 /// Check if the site has `jekyll-github-metadata` in its `plugins` list.
@@ -713,23 +796,21 @@ fn inject_children_nav(
         children.reverse();
     }
 
-    // Build the children nav HTML
+    // Build the children nav HTML -- matching Jekyll's exact format:
+    // `<hr><h2 class="text-delta">Table of contents</h2><ul><li> <a href="...">Title</a><li> ...</ul>`
+    // Jekyll omits `</li>` between items (valid HTML5 optional closing tag).
     let mut nav_html = String::new();
-    nav_html.push_str("\n<hr />\n");
-    nav_html.push_str("<h2 class=\"text-delta\">Table of contents</h2>\n");
-    nav_html.push_str("<ul>\n");
+    nav_html.push_str("<hr><h2 class=\"text-delta\">Table of contents</h2>");
+    nav_html.push_str("<ul>");
     for (title, url, _) in &children {
         let full_url = if baseurl.is_empty() {
             url.to_string()
         } else {
             format!("{}{}", baseurl, url)
         };
-        nav_html.push_str(&format!(
-            "  <li>\n    <a href=\"{}\">{}</a>\n  </li>\n",
-            full_url, title
-        ));
+        nav_html.push_str(&format!("<li> <a href=\"{}\">{}</a>", full_url, title));
     }
-    nav_html.push_str("</ul>\n");
+    nav_html.push_str("</ul>");
 
     // Insert before </main>
     if let Some(main_close_pos) = html.rfind("</main>") {
@@ -2099,6 +2180,206 @@ mod tests {
         // Pass a non-existent directory to avoid git remote resolving
         let url = resolve_repository_url(&config, Some(Path::new("/nonexistent")));
         assert_eq!(url, LiquidValue::Nil);
+    }
+
+    // ========================================================================
+    // Unit: NWO extraction and GitHub Pages URL derivation
+    // ========================================================================
+
+    #[test]
+    fn test_extract_nwo_from_https_url() {
+        let (owner, repo) = extract_nwo_from_remote("https://github.com/github/choosealicense.com")
+            .expect("should extract NWO");
+        assert_eq!(owner, "github");
+        assert_eq!(repo, "choosealicense.com");
+    }
+
+    #[test]
+    fn test_extract_nwo_from_ssh_url() {
+        let (owner, repo) =
+            extract_nwo_from_remote("git@github.com:alexeygrigorev/rustkyll.git")
+                .expect("should extract NWO");
+        assert_eq!(owner, "alexeygrigorev");
+        assert_eq!(repo, "rustkyll");
+    }
+
+    #[test]
+    fn test_extract_nwo_unicode_repo_name() {
+        let (owner, repo) =
+            extract_nwo_from_remote("https://github.com/user/projet-francais")
+                .expect("should extract NWO");
+        assert_eq!(owner, "user");
+        assert_eq!(repo, "projet-francais");
+    }
+
+    #[test]
+    fn test_nwo_to_pages_url_standard_repo() {
+        let url = nwo_to_pages_url("github", "choosealicense.com");
+        assert_eq!(url, "https://github.github.io/choosealicense.com/");
+    }
+
+    #[test]
+    fn test_nwo_to_pages_url_org_site() {
+        // When repo name matches {OWNER}.github.io, no repo suffix
+        let url = nwo_to_pages_url("DataTalksClub", "datatalksclub.github.io");
+        assert_eq!(url, "https://datatalksclub.github.io/");
+    }
+
+    #[test]
+    fn test_nwo_to_pages_url_regular_user_repo() {
+        let url = nwo_to_pages_url("alexeygrigorev", "mlbookcamp-page");
+        assert_eq!(url, "https://alexeygrigorev.github.io/mlbookcamp-page/");
+    }
+
+    // ========================================================================
+    // Unit: site.github.url resolution with github-metadata plugin
+    // ========================================================================
+
+    #[test]
+    fn test_github_url_without_metadata_plugin_uses_config_url() {
+        // When jekyll-github-metadata is NOT in plugins, site.github.url
+        // should be config.url
+        let config = SiteConfig {
+            url: "https://example.com".to_string(),
+            name: "Test".to_string(),
+            title: "Test".to_string(),
+            ..Default::default()
+        };
+        let collections = HashMap::new();
+        let data = DataTree::new();
+        let ctx = build_site_context(&config, &collections, &data, Some(&site_dir()), &[]);
+        let github = ctx.get("github").expect("should have github");
+        if let LiquidValue::Object(gh) = github {
+            let url = gh.get("url").expect("should have url");
+            assert_eq!(
+                *url,
+                LiquidValue::scalar("https://example.com"),
+                "Without plugin, github.url should be config.url"
+            );
+        } else {
+            panic!("Expected github to be an Object");
+        }
+    }
+
+    #[test]
+    fn test_github_url_with_explicit_github_url_takes_priority() {
+        // When explicit github: { url: "..." } is in config, that value wins
+        let mut github_map = serde_yaml::Mapping::new();
+        github_map.insert(
+            serde_yaml::Value::String("url".to_string()),
+            serde_yaml::Value::String("https://custom.example.com".to_string()),
+        );
+        let mut extras = HashMap::new();
+        extras.insert("github".to_string(), serde_yaml::Value::Mapping(github_map));
+        // Also add the plugin to show that explicit config wins over git-derived
+        extras.insert(
+            "plugins".to_string(),
+            serde_yaml::Value::Sequence(vec![serde_yaml::Value::String(
+                "jekyll-github-metadata".to_string(),
+            )]),
+        );
+        let config = SiteConfig {
+            url: "https://example.com".to_string(),
+            name: "Test".to_string(),
+            title: "Test".to_string(),
+            extras,
+            ..Default::default()
+        };
+        let collections = HashMap::new();
+        let data = DataTree::new();
+        let ctx = build_site_context(&config, &collections, &data, Some(&site_dir()), &[]);
+        let github = ctx.get("github").expect("should have github");
+        if let LiquidValue::Object(gh) = github {
+            let url = gh.get("url").expect("should have url");
+            assert_eq!(
+                *url,
+                LiquidValue::scalar("https://custom.example.com"),
+                "Explicit github.url should take priority"
+            );
+        } else {
+            panic!("Expected github to be an Object");
+        }
+    }
+
+    #[test]
+    fn test_github_url_with_plugin_no_git_remote_falls_back() {
+        // When plugin is active but no git remote, fall back to config.url
+        let mut extras = HashMap::new();
+        extras.insert(
+            "plugins".to_string(),
+            serde_yaml::Value::Sequence(vec![serde_yaml::Value::String(
+                "jekyll-github-metadata".to_string(),
+            )]),
+        );
+        let config = SiteConfig {
+            url: "https://fallback.example.com".to_string(),
+            name: "Test".to_string(),
+            title: "Test".to_string(),
+            extras,
+            ..Default::default()
+        };
+        let collections = HashMap::new();
+        let data = DataTree::new();
+        // Use /nonexistent so git remote fails
+        let ctx = build_site_context(
+            &config,
+            &collections,
+            &data,
+            Some(Path::new("/nonexistent")),
+            &[],
+        );
+        let github = ctx.get("github").expect("should have github");
+        if let LiquidValue::Object(gh) = github {
+            let url = gh.get("url").expect("should have url");
+            assert_eq!(
+                *url,
+                LiquidValue::scalar("https://fallback.example.com"),
+                "Without git remote, github.url should fall back to config.url"
+            );
+        } else {
+            panic!("Expected github to be an Object");
+        }
+    }
+
+    #[test]
+    fn test_github_url_with_plugin_derives_from_git_remote() {
+        // When jekyll-github-metadata plugin is active and git remote is available,
+        // site.github.url should be derived from the git remote as a GitHub Pages URL
+        let mut extras = HashMap::new();
+        extras.insert(
+            "plugins".to_string(),
+            serde_yaml::Value::Sequence(vec![serde_yaml::Value::String(
+                "jekyll-github-metadata".to_string(),
+            )]),
+        );
+        let config = SiteConfig {
+            url: "https://example.com".to_string(),
+            name: "Test".to_string(),
+            title: "Test".to_string(),
+            extras,
+            ..Default::default()
+        };
+        let collections = HashMap::new();
+        let data = DataTree::new();
+        let ctx = build_site_context(&config, &collections, &data, Some(&site_dir()), &[]);
+        let github = ctx.get("github").expect("should have github");
+        if let LiquidValue::Object(gh) = github {
+            let url = gh.get("url").expect("should have url");
+            let url_str = url.to_kstr().to_string();
+            // The test fixture is in the rustkyll repo, so the git remote should
+            // resolve to a github.io Pages URL, NOT config.url
+            assert!(
+                url_str.contains(".github.io"),
+                "With plugin active, github.url should be a GitHub Pages URL derived from git remote, got: {}",
+                url_str
+            );
+            assert_ne!(
+                url_str, "https://example.com",
+                "github.url should NOT be config.url when plugin is active and git remote is available"
+            );
+        } else {
+            panic!("Expected github to be an Object");
+        }
     }
 
     // ========================================================================
@@ -6237,6 +6518,59 @@ defaults:
         assert!(
             jobs_pos < guidelines_pos && guidelines_pos < slack_pos,
             "Children should be sorted by nav_order. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_inject_children_nav_li_structure_matches_jekyll() {
+        // Jekyll's children_nav.html template produces `<li>` without `</li>`,
+        // relying on HTML5 optional closing tags. The DOM parser interprets
+        // subsequent `<li>` elements as nested inside the first.
+        // Our output must match this exact structure.
+        let html = "<main>\n<h1>Activities</h1>\n</main>";
+        let mut parent_fm: HashMap<String, serde_yaml::Value> = HashMap::new();
+        parent_fm.insert(
+            "title".into(),
+            serde_yaml::Value::String("Activities".into()),
+        );
+        parent_fm.insert("has_children".into(), serde_yaml::Value::Bool(true));
+
+        let pages = vec![
+            make_page("Activities", "/activities/", None, Some(1)),
+            make_page(
+                "Podcast",
+                "/activities/podcast/",
+                Some("Activities"),
+                Some(1),
+            ),
+            make_page(
+                "Webinars",
+                "/activities/webinars/",
+                Some("Activities"),
+                Some(2),
+            ),
+        ];
+
+        let result = inject_children_nav(html, &parent_fm, &pages, None);
+
+        // Jekyll format: `<li>\n <a href="...">Title</a>` without closing `</li>` between items.
+        // Only the very last `</li>` chain at the end closes all.
+        // Verify there are no `</li>` between items
+        assert!(
+            result.contains("<li> <a href=\"/activities/podcast/\">Podcast</a>"),
+            "Should have Jekyll-style <li> for Podcast. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<li> <a href=\"/activities/webinars/\">Webinars</a>"),
+            "Should have Jekyll-style <li> for Webinars. Got: {}",
+            result
+        );
+        // Should NOT have `</li>\n  <li>` pattern (that's the old rustkyll format)
+        assert!(
+            !result.contains("</li>\n<li>") && !result.contains("</li>\n  <li>"),
+            "Should NOT have </li> between items (Jekyll omits them). Got: {}",
             result
         );
     }

@@ -426,10 +426,18 @@ fn build_site(
     };
 
     // 6. Build site context (always uses full collections for cross-references)
+    // Collect static file paths first so they can be exposed as site.static_files
+    let static_file_paths = static_files::collect_static_files(source, &config)?;
     progress.phase("Building site context...");
     let phase_start = Instant::now();
-    let site_context =
-        generator::build_site_context(&config, &collections, &data_tree, Some(source), &pages);
+    let site_context = generator::build_site_context_with_static_files(
+        &config,
+        &collections,
+        &data_tree,
+        Some(source),
+        &pages,
+        &static_file_paths,
+    );
     summary.timing.context = phase_start.elapsed();
 
     // 7. Create layout engine
