@@ -268,6 +268,9 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // pulldown-cmark (CommonMark) would treat these as ordered lists.
     let markdown = escape_paren_list_markers(markdown);
 
+    // Issue 227: Protect math content from backslash-escape processing.
+    let (markdown, math_saved) = protect_math_content(&markdown);
+
     // Issue 204: Escape heading markers inside list context to match kramdown.
     // In kramdown, headings after list items without a blank line are text.
     let markdown = crate::kramdown::escape_headings_in_list_context(&markdown);
@@ -307,6 +310,9 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // Restore protected quotes
     let html_output = restore_liquid_quotes(&html_output);
     let html_output = restore_consecutive_single_quotes(&html_output);
+
+    // Issue 227: Restore math content
+    let html_output = restore_math_content(&html_output, &math_saved);
 
     // Issue 207: Decode pulldown-cmark's percent-encoding of special chars in URLs
     // to match Jekyll/kramdown behavior.
@@ -349,6 +355,8 @@ pub fn markdown_to_html_with_options(
     }
 
     let markdown = escape_paren_list_markers(markdown);
+    // Issue 227: Protect math content from backslash-escape processing
+    let (markdown, math_saved) = protect_math_content(&markdown);
     let markdown = crate::kramdown::escape_headings_in_list_context(&markdown);
     let markdown = crate::kramdown::collapse_blank_lines_between_list_items(&markdown);
     let markdown = crate::kramdown::convert_kramdown_pipe_tables(&markdown);
@@ -370,6 +378,7 @@ pub fn markdown_to_html_with_options(
 
     let html_output = restore_liquid_quotes(&html_output);
     let html_output = restore_consecutive_single_quotes(&html_output);
+    let html_output = restore_math_content(&html_output, &math_saved);
     let html_output = decode_pulldown_url_encoding(&html_output);
     crate::kramdown::postprocess(&html_output)
 }
@@ -397,6 +406,8 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     options.insert(Options::ENABLE_SMART_PUNCTUATION);
 
     let markdown = escape_paren_list_markers(markdown);
+    // Issue 227: Protect math content from backslash-escape processing
+    let (markdown, math_saved) = protect_math_content(&markdown);
     let markdown = crate::kramdown::escape_headings_in_list_context(&markdown);
     let markdown = crate::kramdown::collapse_blank_lines_between_list_items(&markdown);
     // Issue 200: Convert kramdown-style pipe tables to HTML.
@@ -418,6 +429,7 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
 
     let html_output = restore_liquid_quotes(&html_output);
     let html_output = restore_consecutive_single_quotes(&html_output);
+    let html_output = restore_math_content(&html_output, &math_saved);
     let html_output = decode_pulldown_url_encoding(&html_output);
 
     crate::kramdown::postprocess_for_filter(&html_output)
@@ -502,6 +514,10 @@ fn normalize_zwsp_for_emphasis(markdown: &str) -> String {
 const SINGLE_QUOTE_3_PLACEHOLDER: &str = "\x00SQ3\x00";
 const SINGLE_QUOTE_2_PLACEHOLDER: &str = "\x00SQ2\x00";
 
+/// Placeholder prefix for protected math content (Issue 227).
+const MATH_PLACEHOLDER_PREFIX: &str = "\x00MATH";
+const MATH_PLACEHOLDER_SUFFIX: &str = "MATH\x00";
+
 /// Issue 198: Protect consecutive single quotes (`''` and `'''`) from smart
 /// punctuation conversion.
 ///
@@ -524,6 +540,114 @@ fn protect_consecutive_single_quotes(input: &str) -> String {
 fn restore_consecutive_single_quotes(input: &str) -> String {
     let result = input.replace(SINGLE_QUOTE_3_PLACEHOLDER, "'''");
     result.replace(SINGLE_QUOTE_2_PLACEHOLDER, "''")
+}
+
+/// Issue 227: Protect content inside $...$ and $$...$$ math delimiters.
+///
+/// pulldown-cmark treats \, as an escaped comma and strips the backslash.
+/// kramdown passes \, through literally inside math blocks.
+/// This replaces math block contents with placeholders before markdown processing,
+/// then restores them after HTML generation.
+fn protect_math_content(input: &str) -> (String, Vec<String>) {
+    if !input.contains('$') {
+        return (input.to_string(), Vec::new());
+    }
+
+    let mut result = String::with_capacity(input.len());
+    let mut saved: Vec<String> = Vec::new();
+    let bytes = input.as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
+
+    while i < len {
+        if bytes[i] == b'$' {
+            // Check for $$ (display math) or $ (inline math)
+            let is_display = i + 1 < len && bytes[i + 1] == b'$';
+            let delimiter = if is_display { "$$" } else { "$" };
+            let delim_len = delimiter.len();
+            let start = i;
+            let content_start = i + delim_len;
+
+            // Find closing delimiter
+            let mut j = content_start;
+            let mut found_end = false;
+            while j < len {
+                if is_display {
+                    if j + 1 < len && bytes[j] == b'$' && bytes[j + 1] == b'$' {
+                        // Found closing $$
+                        let content = &input[content_start..j];
+                        let idx = saved.len();
+                        saved.push(content.to_string());
+                        result.push_str(delimiter);
+                        result.push_str(MATH_PLACEHOLDER_PREFIX);
+                        result.push_str(&idx.to_string());
+                        result.push_str(MATH_PLACEHOLDER_SUFFIX);
+                        result.push_str(delimiter);
+                        i = j + 2;
+                        found_end = true;
+                        break;
+                    }
+                } else {
+                    // Inline math: do NOT cross line boundaries.
+                    // If we hit a newline without finding a closing $,
+                    // the opening $ is unmatched -- treat it as literal.
+                    if bytes[j] == b'\n' {
+                        break;
+                    }
+                    if bytes[j] == b'$' {
+                        // For inline math, make sure it's not $$
+                        if j + 1 < len && bytes[j + 1] == b'$' {
+                            j += 2;
+                            continue;
+                        }
+                        let content = &input[content_start..j];
+                        let idx = saved.len();
+                        saved.push(content.to_string());
+                        result.push_str(delimiter);
+                        result.push_str(MATH_PLACEHOLDER_PREFIX);
+                        result.push_str(&idx.to_string());
+                        result.push_str(MATH_PLACEHOLDER_SUFFIX);
+                        result.push_str(delimiter);
+                        i = j + 1;
+                        found_end = true;
+                        break;
+                    }
+                }
+                // Skip escaped characters inside math (but we keep tracking)
+                j += 1;
+            }
+
+            if !found_end {
+                // No closing delimiter found -- output literally
+                result.push_str(&input[start..start + delim_len]);
+                i = content_start;
+            }
+        } else {
+            // Safe to push UTF-8 char
+            let ch = input[i..].chars().next().unwrap();
+            result.push(ch);
+            i += ch.len_utf8();
+        }
+    }
+
+    (result, saved)
+}
+
+/// Issue 227: Restore protected math content from placeholders.
+fn restore_math_content(html: &str, saved: &[String]) -> String {
+    if saved.is_empty() {
+        return html.to_string();
+    }
+
+    let mut result = html.to_string();
+    for (idx, content) in saved.iter().enumerate() {
+        let placeholder = format!(
+            "{}{}{}",
+            MATH_PLACEHOLDER_PREFIX, idx, MATH_PLACEHOLDER_SUFFIX
+        );
+        result = result.replace(&placeholder, content);
+    }
+    result
 }
 
 /// Issue 207/212: Decode percent-encoding that pulldown-cmark adds to URLs in href/src attributes.
@@ -2623,6 +2747,78 @@ More text.
         assert_eq!(
             normalize_br_to_html5("<p>a<br />\nb<br />\nc</p>"),
             "<p>a<br>\nb<br>\nc</p>"
+        );
+    }
+
+    // ========================================================================
+    // Issue 227: Pattern 3 -- Math backslash protection
+    // ========================================================================
+
+    #[test]
+    fn test_issue227_math_backslash_comma_inline() {
+        // \, inside $...$ should be preserved literally
+        let html = markdown_to_html("Text $a \\, b$ more\n");
+        assert!(
+            html.contains("\\,"),
+            "\\, inside inline math should be preserved. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue227_math_backslash_comma_display() {
+        // \, inside $$...$$ should be preserved
+        let html = markdown_to_html("$$f(x) \\, g(x)$$\n");
+        assert!(
+            html.contains("\\,"),
+            "\\, inside display math should be preserved. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue227_backslash_comma_outside_math_stripped() {
+        // \, outside math should still be processed by pulldown-cmark (backslash stripped)
+        let html = markdown_to_html("Regular \\, text\n");
+        assert!(
+            !html.contains("\\,"),
+            "\\, outside math should have backslash stripped. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue227_multiple_math_blocks_on_one_line() {
+        // Multiple $...$ on one line should all preserve \,
+        let html = markdown_to_html("Inline $a \\, b$ and $c \\, d$ text\n");
+        // Count occurrences of \,
+        let count = html.matches("\\,").count();
+        assert!(
+            count >= 2,
+            "Both math blocks should preserve \\,. Got {} occurrences in: {}",
+            count,
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue227_math_backslash_sequences_preserved() {
+        // Various LaTeX backslash sequences inside math should be preserved
+        let html = markdown_to_html("$\\mathbf{v} \\in \\{1 \\, .. \\, C\\}$\n");
+        assert!(
+            html.contains("\\,"),
+            "\\, inside math should be preserved. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue227_math_protection_survives_unmatched_dollar() {
+        let html = markdown_to_html("text with lone $ sign\n\nmath $a \\, b$ here\n");
+        assert!(
+            html.contains("\\,"),
+            "\\, should be preserved despite earlier unmatched $. Got: {}",
+            html
         );
     }
 }
