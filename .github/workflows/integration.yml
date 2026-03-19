@@ -56,7 +56,7 @@ jobs:
 
       - name: Clone DTC docs (shallow)
         run: |
-          git clone --depth 1 https://github.com/DataTalksClub/datatalksclub.github.io.git \
+          git clone --depth 1 https://github.com/DataTalksClub/docs.git \
             websites/DataTalksClub/docs
 
       - name: Clone kids-horror-stories-ru (shallow)
