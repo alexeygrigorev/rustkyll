@@ -51,22 +51,19 @@ fn test_site_context_github_url_resolves() {
     let data = data::DataTree::new();
     let ctx = generator::build_site_context(&CONFIG, &colls, &data, Some(&site_dir()), &[]);
 
+    // DTC config does NOT have jekyll-github-metadata in its plugins list,
+    // so site.github.repository_url should be Nil (not resolved from git remote).
+    // This verifies the gating behavior introduced in issue 229.
     let github = ctx.get("github").expect("site should have github");
     if let LiquidValue::Object(github_obj) = github {
         let repo_url = github_obj
             .get("repository_url")
             .expect("should have repository_url");
-        assert_ne!(*repo_url, LiquidValue::Nil, "repo URL should not be nil");
-        if let LiquidValue::Scalar(s) = repo_url {
-            let url_str = s.to_kstr().to_string();
-            assert!(
-                url_str.contains("github.com"),
-                "Should be a GitHub URL: {}",
-                url_str
-            );
-        } else {
-            panic!("Expected scalar value for repository_url");
-        }
+        assert_eq!(
+            *repo_url,
+            LiquidValue::Nil,
+            "repo URL should be nil when jekyll-github-metadata plugin is not configured"
+        );
     } else {
         panic!("Expected github to be an object");
     }

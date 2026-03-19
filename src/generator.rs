@@ -160,21 +160,58 @@ pub fn build_site_context(
     }
 
     // site.github -- dynamic repository URL resolution
-    let repo_url = resolve_repository_url(config, site_dir);
-    let mut github = Object::new();
-    github.insert("repository_url".into(), repo_url);
-    // site.github.build_revision -- git HEAD SHA (used for CSS cache busting)
-    // Only populate when jekyll-github-metadata plugin is active (matches Jekyll behavior)
-    github.insert(
-        "build_revision".into(),
-        if has_github_metadata_plugin(config) {
-            resolve_build_revision(site_dir)
+    //
+    // Jekyll only populates site.github.* when either:
+    // (a) jekyll-github-metadata plugin is in the plugins list, OR
+    // (b) _config.yml has an explicit top-level `github:` key
+    //
+    // When _config.yml has an explicit github: key, its values take priority
+    // over computed fields (merge computed as defaults, config wins).
+    let has_plugin = has_github_metadata_plugin(config);
+    let explicit_github = config.extras.get("github");
+    let has_explicit_github = explicit_github.map(|v| v.is_mapping()).unwrap_or(false);
+
+    // Start with the explicit github config values if present
+    let mut github = if has_explicit_github {
+        if let Some(LiquidValue::Object(obj)) = site.get("github") {
+            obj.clone()
         } else {
-            LiquidValue::scalar("")
-        },
-    );
-    // site.github.url -- site URL (used for absolute URLs in JSON-LD breadcrumbs)
-    github.insert("url".into(), LiquidValue::scalar(config.url.clone()));
+            Object::new()
+        }
+    } else {
+        Object::new()
+    };
+
+    // repository_url: only resolve from git remote when plugin is active.
+    // If explicit github config provides repository_url, that wins.
+    if !github.contains_key("repository_url") {
+        if has_plugin {
+            github.insert(
+                "repository_url".into(),
+                resolve_repository_url(config, site_dir),
+            );
+        } else {
+            github.insert("repository_url".into(), LiquidValue::Nil);
+        }
+    }
+
+    // build_revision: populate when plugin is active OR explicit github config exists
+    if !github.contains_key("build_revision") {
+        github.insert(
+            "build_revision".into(),
+            if has_plugin || has_explicit_github {
+                resolve_build_revision(site_dir)
+            } else {
+                LiquidValue::scalar("")
+            },
+        );
+    }
+
+    // url: site URL (used for absolute URLs in JSON-LD breadcrumbs)
+    if !github.contains_key("url") {
+        github.insert("url".into(), LiquidValue::scalar(config.url.clone()));
+    }
+
     site.insert("github".into(), LiquidValue::Object(github));
 
     // site.data -- data tree
@@ -590,6 +627,125 @@ pub fn output_path(output_dir: &Path, collection: &str, slug: &str) -> std::path
 
 /// Compute the output file path from a URL.
 ///
+/// Inject a children navigation listing into the rendered HTML for parent pages.
+///
+/// For pages with `has_children: true` and `has_toc != false`, this generates
+/// the children listing (matching the just-the-docs `children_nav.html` output)
+/// and inserts it before `</main>` in the rendered HTML.
+///
+/// The listing consists of:
+/// - `<hr>` separator
+/// - `<h2 class="text-delta">Table of contents</h2>`
+/// - `<ul>` with `<li><a href="...">Child Title</a></li>` for each child page
+///
+/// Children are pages whose `parent` front matter matches this page's `title`,
+/// sorted by `nav_order`.
+fn inject_children_nav(
+    html: &str,
+    page_fm: &HashMap<String, serde_yaml::Value>,
+    all_pages: &[crate::collection::Page],
+    config: Option<&SiteConfig>,
+) -> String {
+    // Check has_children: true
+    let has_children = page_fm
+        .get("has_children")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    if !has_children {
+        return html.to_string();
+    }
+
+    // Check has_toc != false (default true)
+    let has_toc = page_fm
+        .get("has_toc")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
+    if !has_toc {
+        return html.to_string();
+    }
+
+    let page_title = page_fm.get("title").and_then(|v| v.as_str()).unwrap_or("");
+    if page_title.is_empty() {
+        return html.to_string();
+    }
+
+    // Find children: pages whose parent matches this page's title
+    let baseurl = config.map(|c| c.baseurl.as_str()).unwrap_or("");
+
+    let mut children: Vec<(&str, &str, i64)> = Vec::new();
+    for p in all_pages {
+        let parent = p
+            .front_matter
+            .get("parent")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        if parent == page_title {
+            let title = p
+                .front_matter
+                .get("title")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let nav_order = p
+                .front_matter
+                .get("nav_order")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(i64::MAX);
+            if !title.is_empty() {
+                children.push((title, &p.url, nav_order));
+            }
+        }
+    }
+
+    if children.is_empty() {
+        return html.to_string();
+    }
+
+    // Sort by nav_order, then by title
+    children.sort_by(|a, b| a.2.cmp(&b.2).then_with(|| a.0.cmp(b.0)));
+
+    // Check if child_nav_order is reversed
+    let reversed = page_fm
+        .get("child_nav_order")
+        .and_then(|v| v.as_str())
+        .map(|s| s == "desc" || s == "reversed")
+        .unwrap_or(false);
+    if reversed {
+        children.reverse();
+    }
+
+    // Build the children nav HTML
+    let mut nav_html = String::new();
+    nav_html.push_str("\n<hr />\n");
+    nav_html.push_str("<h2 class=\"text-delta\">Table of contents</h2>\n");
+    nav_html.push_str("<ul>\n");
+    for (title, url, _) in &children {
+        let full_url = if baseurl.is_empty() {
+            url.to_string()
+        } else {
+            format!("{}{}", baseurl, url)
+        };
+        nav_html.push_str(&format!(
+            "  <li>\n    <a href=\"{}\">{}</a>\n  </li>\n",
+            full_url, title
+        ));
+    }
+    nav_html.push_str("</ul>\n");
+
+    // Insert before </main>
+    if let Some(main_close_pos) = html.rfind("</main>") {
+        let mut result = String::with_capacity(html.len() + nav_html.len());
+        result.push_str(&html[..main_close_pos]);
+        result.push_str(&nav_html);
+        result.push_str(&html[main_close_pos..]);
+        result
+    } else {
+        // No </main> found -- append to end as fallback
+        let mut result = html.to_string();
+        result.push_str(&nav_html);
+        result
+    }
+}
+
 /// URLs ending with `/` produce `<output_dir>/<url>/index.html` (pretty URLs).
 /// URLs with a recognized file extension produce `<output_dir>/<url>` directly.
 /// Other URLs get `.html` appended.
@@ -1314,6 +1470,13 @@ pub fn generate_pages_cached_with_config_and_progress(
                     html
                 };
 
+                // Issue 246: Inject children nav listing for parent pages.
+                // The just-the-docs theme's children_nav.html uses complex Liquid
+                // (include_cached, group_by, where_exp, string splitting) that
+                // doesn't work reliably. We compute the children listing directly
+                // in Rust and inject it into the rendered HTML.
+                let html = inject_children_nav(&html, &page_fm, pages, config);
+
                 // Compute output path from URL (handles trailing-slash pretty URLs)
                 let out_path = url_to_output_path(output_dir, &page.url);
 
@@ -1936,6 +2099,200 @@ mod tests {
         // Pass a non-existent directory to avoid git remote resolving
         let url = resolve_repository_url(&config, Some(Path::new("/nonexistent")));
         assert_eq!(url, LiquidValue::Nil);
+    }
+
+    // ========================================================================
+    // Unit: site.github gating -- repository_url should be nil without plugin
+    // ========================================================================
+
+    #[test]
+    fn test_github_repo_url_nil_without_plugin_and_no_explicit_github_config() {
+        // When jekyll-github-metadata is NOT in plugins and there's no explicit
+        // github: key in _config.yml, site.github.repository_url should be nil
+        // (not resolved from git remote). This matches Jekyll behavior.
+        let config = SiteConfig {
+            url: "https://example.com".to_string(),
+            name: "Test".to_string(),
+            title: "Test".to_string(),
+            ..Default::default()
+        };
+        let collections = HashMap::new();
+        let data = DataTree::new();
+        // Use site_dir() which IS a git repo -- the test verifies we DON'T
+        // resolve from git remote when the plugin is absent.
+        let ctx = build_site_context(&config, &collections, &data, Some(&site_dir()), &[]);
+        let github = ctx.get("github").expect("should have github");
+        if let LiquidValue::Object(gh) = github {
+            let repo_url = gh
+                .get("repository_url")
+                .expect("should have repository_url");
+            assert_eq!(
+                *repo_url,
+                LiquidValue::Nil,
+                "repository_url should be nil without github-metadata plugin, got: {:?}",
+                repo_url
+            );
+        } else {
+            panic!("Expected github to be an Object");
+        }
+    }
+
+    #[test]
+    fn test_github_repo_url_resolved_with_plugin() {
+        // When jekyll-github-metadata IS in plugins, repository_url should
+        // be resolved from git remote (or config.repository).
+        let mut extras = HashMap::new();
+        extras.insert(
+            "plugins".to_string(),
+            serde_yaml::Value::Sequence(vec![serde_yaml::Value::String(
+                "jekyll-github-metadata".to_string(),
+            )]),
+        );
+        let config = SiteConfig {
+            url: "https://example.com".to_string(),
+            name: "Test".to_string(),
+            title: "Test".to_string(),
+            extras,
+            ..Default::default()
+        };
+        let collections = HashMap::new();
+        let data = DataTree::new();
+        let ctx = build_site_context(&config, &collections, &data, Some(&site_dir()), &[]);
+        let github = ctx.get("github").expect("should have github");
+        if let LiquidValue::Object(gh) = github {
+            let repo_url = gh
+                .get("repository_url")
+                .expect("should have repository_url");
+            assert_ne!(
+                *repo_url,
+                LiquidValue::Nil,
+                "repository_url should be resolved when github-metadata plugin is active"
+            );
+        } else {
+            panic!("Expected github to be an Object");
+        }
+    }
+
+    #[test]
+    fn test_github_config_preserved_when_explicit_github_key() {
+        // When _config.yml has an explicit github: key, its values should be
+        // preserved in site.github (not overwritten by computed fields).
+        let mut github_map = serde_yaml::Mapping::new();
+        github_map.insert(
+            serde_yaml::Value::String("private".to_string()),
+            serde_yaml::Value::Bool(false),
+        );
+        github_map.insert(
+            serde_yaml::Value::String("repository_url".to_string()),
+            serde_yaml::Value::String("https://github.com/custom/repo".to_string()),
+        );
+        let mut extras = HashMap::new();
+        extras.insert("github".to_string(), serde_yaml::Value::Mapping(github_map));
+        let config = SiteConfig {
+            url: "https://example.com".to_string(),
+            name: "Test".to_string(),
+            title: "Test".to_string(),
+            extras,
+            ..Default::default()
+        };
+        let collections = HashMap::new();
+        let data = DataTree::new();
+        let ctx = build_site_context(&config, &collections, &data, Some(&site_dir()), &[]);
+        let github = ctx.get("github").expect("should have github");
+        if let LiquidValue::Object(gh) = github {
+            // Explicit repository_url from config should win
+            let repo_url = gh
+                .get("repository_url")
+                .expect("should have repository_url");
+            assert_eq!(
+                *repo_url,
+                LiquidValue::scalar("https://github.com/custom/repo"),
+                "Config-provided repository_url should be preserved"
+            );
+            // Explicit private field should be preserved
+            let private = gh.get("private").expect("should have private");
+            assert_eq!(
+                *private,
+                LiquidValue::scalar(false),
+                "Config-provided private field should be preserved"
+            );
+            // Computed field build_revision should be merged in as default
+            assert!(
+                gh.get("build_revision").is_some(),
+                "Computed build_revision should be merged in"
+            );
+        } else {
+            panic!("Expected github to be an Object");
+        }
+    }
+
+    #[test]
+    fn test_github_config_build_revision_populated_with_explicit_github_key() {
+        // When _config.yml has an explicit github: key, build_revision should
+        // be populated from git even without the github-metadata plugin.
+        // This matches primer-theme behavior: the config explicitly sets up
+        // the github object, so the SHA should come from git.
+        let mut github_map = serde_yaml::Mapping::new();
+        github_map.insert(
+            serde_yaml::Value::String("private".to_string()),
+            serde_yaml::Value::Bool(false),
+        );
+        let mut extras = HashMap::new();
+        extras.insert("github".to_string(), serde_yaml::Value::Mapping(github_map));
+        let config = SiteConfig {
+            url: "https://example.com".to_string(),
+            name: "Test".to_string(),
+            title: "Test".to_string(),
+            extras,
+            ..Default::default()
+        };
+        let collections = HashMap::new();
+        let data = DataTree::new();
+        let ctx = build_site_context(&config, &collections, &data, Some(&site_dir()), &[]);
+        let github = ctx.get("github").expect("should have github");
+        if let LiquidValue::Object(gh) = github {
+            let build_rev = gh
+                .get("build_revision")
+                .expect("should have build_revision");
+            let rev_str = build_rev.to_kstr().to_string();
+            assert!(
+                rev_str.len() >= 7,
+                "build_revision should contain a git SHA when explicit github: config exists, got: '{}'",
+                rev_str
+            );
+        } else {
+            panic!("Expected github to be an Object");
+        }
+    }
+
+    #[test]
+    fn test_github_empty_map_gets_computed_defaults() {
+        // Config with github: {} (empty map): computed fields should fill in
+        let mut extras = HashMap::new();
+        extras.insert(
+            "github".to_string(),
+            serde_yaml::Value::Mapping(serde_yaml::Mapping::new()),
+        );
+        let config = SiteConfig {
+            url: "https://example.com".to_string(),
+            name: "Test".to_string(),
+            title: "Test".to_string(),
+            extras,
+            ..Default::default()
+        };
+        let collections = HashMap::new();
+        let data = DataTree::new();
+        let ctx = build_site_context(&config, &collections, &data, Some(&site_dir()), &[]);
+        let github = ctx.get("github").expect("should have github");
+        if let LiquidValue::Object(gh) = github {
+            // build_revision should be populated (from git)
+            assert!(gh.get("build_revision").is_some());
+            // url should be populated (from config.url)
+            let url = gh.get("url").expect("should have url");
+            assert_eq!(*url, LiquidValue::scalar("https://example.com"));
+        } else {
+            panic!("Expected github to be an Object");
+        }
     }
 
     // ========================================================================
@@ -5735,5 +6092,180 @@ defaults:
         } else {
             panic!("Expected static_files to be an array");
         }
+    }
+
+    // ======================================================================
+    // Issue 246: inject_children_nav tests
+    // ======================================================================
+
+    fn make_page(title: &str, url: &str, parent: Option<&str>, nav_order: Option<i64>) -> Page {
+        let mut fm = HashMap::new();
+        fm.insert("title".into(), serde_yaml::Value::String(title.to_string()));
+        if let Some(p) = parent {
+            fm.insert("parent".into(), serde_yaml::Value::String(p.to_string()));
+        }
+        if let Some(n) = nav_order {
+            fm.insert(
+                "nav_order".into(),
+                serde_yaml::Value::Number(serde_yaml::Number::from(n)),
+            );
+        }
+        Page {
+            slug: title.to_lowercase().replace(' ', "-"),
+            front_matter: fm,
+            content: String::new(),
+            html_content: String::new(),
+            url: url.to_string(),
+            source_path: format!("{}/index.md", url.trim_matches('/')),
+        }
+    }
+
+    #[test]
+    fn test_inject_children_nav_for_parent_page() {
+        let html = "<main>\n<h1>Activities</h1>\n</main>";
+        let mut parent_fm: HashMap<String, serde_yaml::Value> = HashMap::new();
+        parent_fm.insert(
+            "title".into(),
+            serde_yaml::Value::String("Activities".into()),
+        );
+        parent_fm.insert("has_children".into(), serde_yaml::Value::Bool(true));
+
+        let pages = vec![
+            make_page("Activities", "/activities/", None, Some(1)),
+            make_page(
+                "Podcast",
+                "/activities/podcast/",
+                Some("Activities"),
+                Some(1),
+            ),
+            make_page(
+                "Webinars",
+                "/activities/webinars/",
+                Some("Activities"),
+                Some(2),
+            ),
+        ];
+
+        let result = inject_children_nav(html, &parent_fm, &pages, None);
+        assert!(
+            result.contains("<h2 class=\"text-delta\">Table of contents</h2>"),
+            "Should inject children heading. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<a href=\"/activities/podcast/\">Podcast</a>"),
+            "Should have link to Podcast child. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<a href=\"/activities/webinars/\">Webinars</a>"),
+            "Should have link to Webinars child. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<hr"),
+            "Should have <hr> separator. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_inject_children_nav_skipped_when_has_toc_false() {
+        let html = "<main>\n<h1>Courses</h1>\n</main>";
+        let mut parent_fm: HashMap<String, serde_yaml::Value> = HashMap::new();
+        parent_fm.insert("title".into(), serde_yaml::Value::String("Courses".into()));
+        parent_fm.insert("has_children".into(), serde_yaml::Value::Bool(true));
+        parent_fm.insert("has_toc".into(), serde_yaml::Value::Bool(false));
+
+        let pages = vec![
+            make_page("Courses", "/courses/", None, Some(1)),
+            make_page("ML Zoomcamp", "/courses/ml/", Some("Courses"), Some(1)),
+        ];
+
+        let result = inject_children_nav(html, &parent_fm, &pages, None);
+        assert!(
+            !result.contains("Table of contents"),
+            "Should NOT inject children nav when has_toc is false. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_inject_children_nav_skipped_when_no_has_children() {
+        let html = "<main>\n<h1>Child Page</h1>\n</main>";
+        let mut fm: HashMap<String, serde_yaml::Value> = HashMap::new();
+        fm.insert(
+            "title".into(),
+            serde_yaml::Value::String("Child Page".into()),
+        );
+
+        let pages = vec![make_page("Child Page", "/child/", Some("Parent"), Some(1))];
+
+        let result = inject_children_nav(html, &fm, &pages, None);
+        assert!(
+            !result.contains("Table of contents"),
+            "Should NOT inject children nav for non-parent pages. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_inject_children_nav_sorted_by_nav_order() {
+        let html = "<main>\n<h1>General</h1>\n</main>";
+        let mut parent_fm: HashMap<String, serde_yaml::Value> = HashMap::new();
+        parent_fm.insert("title".into(), serde_yaml::Value::String("General".into()));
+        parent_fm.insert("has_children".into(), serde_yaml::Value::Bool(true));
+
+        let pages = vec![
+            make_page("General", "/general/", None, Some(1)),
+            make_page("Slack", "/general/slack/", Some("General"), Some(3)),
+            make_page("Jobs", "/general/jobs/", Some("General"), Some(1)),
+            make_page(
+                "Guidelines",
+                "/general/guidelines/",
+                Some("General"),
+                Some(2),
+            ),
+        ];
+
+        let result = inject_children_nav(html, &parent_fm, &pages, None);
+        let jobs_pos = result.find("Jobs").expect("Should contain Jobs");
+        let guidelines_pos = result
+            .find("Guidelines")
+            .expect("Should contain Guidelines");
+        let slack_pos = result.find("Slack").expect("Should contain Slack");
+        assert!(
+            jobs_pos < guidelines_pos && guidelines_pos < slack_pos,
+            "Children should be sorted by nav_order. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_inject_children_nav_unicode_titles() {
+        let html = "<main>\n<h1>Ubersicht</h1>\n</main>";
+        let mut parent_fm: HashMap<String, serde_yaml::Value> = HashMap::new();
+        parent_fm.insert(
+            "title".into(),
+            serde_yaml::Value::String("Ubersicht".into()),
+        );
+        parent_fm.insert("has_children".into(), serde_yaml::Value::Bool(true));
+
+        let pages = vec![
+            make_page("Ubersicht", "/ubersicht/", None, Some(1)),
+            make_page(
+                "Einfuhrung",
+                "/ubersicht/einfuhrung/",
+                Some("Ubersicht"),
+                Some(1),
+            ),
+        ];
+
+        let result = inject_children_nav(html, &parent_fm, &pages, None);
+        assert!(
+            result.contains("Einfuhrung"),
+            "Should contain Unicode child title. Got: {}",
+            result
+        );
     }
 }
