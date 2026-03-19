@@ -585,7 +585,7 @@ impl TemplateEngine {
             .tag(super::seo_tag::SeoTag)
             .tag(super::avatar_tag::AvatarTag)
             .block(super::highlight_tag::HighlightBlock)
-            .tag(super::noop_tags::FeedMetaTag)
+            .tag(super::feed_meta_tag::FeedMetaTag)
             .tag(super::noop_tags::GithubEditLinkTag)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
@@ -617,7 +617,7 @@ impl TemplateEngine {
             .tag(super::seo_tag::SeoTag)
             .tag(super::avatar_tag::AvatarTag)
             .block(super::highlight_tag::HighlightBlock)
-            .tag(super::noop_tags::FeedMetaTag)
+            .tag(super::feed_meta_tag::FeedMetaTag)
             .tag(super::noop_tags::GithubEditLinkTag)
             .partials(partials)
             .build()
@@ -645,7 +645,7 @@ impl TemplateEngine {
             .tag(super::seo_tag::SeoTag)
             .tag(super::avatar_tag::AvatarTag)
             .block(super::highlight_tag::HighlightBlock)
-            .tag(super::noop_tags::FeedMetaTag)
+            .tag(super::feed_meta_tag::FeedMetaTag)
             .tag(super::noop_tags::GithubEditLinkTag)
             .partials(partials)
             .build()
@@ -811,7 +811,7 @@ impl TemplateEngine {
         builder = builder.tag(super::seo_tag::SeoTag);
         builder = builder.tag(super::avatar_tag::AvatarTag);
         builder = builder.block(super::highlight_tag::HighlightBlock);
-        builder = builder.tag(super::noop_tags::FeedMetaTag);
+        builder = builder.tag(super::feed_meta_tag::FeedMetaTag);
         builder = builder.tag(super::noop_tags::GithubEditLinkTag);
         if self.has_include_tag {
             builder = builder.tag(super::include_tag::LenientIncludeTag);

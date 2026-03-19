@@ -40,43 +40,6 @@ fn consume_all_arguments(arguments: &mut TagTokenIter<'_>) {
 }
 
 // ---------------------------------------------------------------------------
-// {% feed_meta %} -- jekyll-feed plugin
-// ---------------------------------------------------------------------------
-
-/// No-op `{% feed_meta %}` tag (jekyll-feed plugin).
-///
-/// In Jekyll this emits `<link>` tags for Atom/RSS feeds.
-/// We render nothing so that layouts containing this tag
-/// can still be applied.
-#[derive(Copy, Clone, Debug, Default)]
-pub struct FeedMetaTag;
-
-impl TagReflection for FeedMetaTag {
-    fn tag(&self) -> &'static str {
-        "feed_meta"
-    }
-
-    fn description(&self) -> &'static str {
-        "No-op stub for the jekyll-feed {% feed_meta %} tag"
-    }
-}
-
-impl ParseTag for FeedMetaTag {
-    fn parse(
-        &self,
-        mut arguments: TagTokenIter<'_>,
-        _options: &Language,
-    ) -> liquid_core::Result<Box<dyn Renderable>> {
-        consume_all_arguments(&mut arguments);
-        Ok(Box::new(NoopTagRenderable))
-    }
-
-    fn reflection(&self) -> &dyn TagReflection {
-        self
-    }
-}
-
-// ---------------------------------------------------------------------------
 // {% github_edit_link %} -- jekyll-github-metadata plugin
 // ---------------------------------------------------------------------------
 
@@ -123,14 +86,6 @@ mod tests {
     }
 
     #[test]
-    fn test_feed_meta_no_output() {
-        let eng = engine();
-        let ctx = Object::new();
-        let out = eng.parse_and_render("{% feed_meta %}", &ctx).unwrap();
-        assert_eq!(out, "", "feed_meta should produce no output");
-    }
-
-    #[test]
     fn test_github_edit_link_no_output() {
         let eng = engine();
         let ctx = Object::new();
@@ -155,11 +110,21 @@ mod tests {
 
     #[test]
     fn test_feed_meta_in_layout_context() {
+        // feed_meta now emits a link tag, so it should appear in the output
         let eng = engine();
         let ctx = Object::new();
         let out = eng
             .parse_and_render("<head>{% feed_meta %}<title>Test</title></head>", &ctx)
             .unwrap();
-        assert_eq!(out, "<head><title>Test</title></head>");
+        assert!(
+            out.contains("<link type=\"application/atom+xml\""),
+            "feed_meta should produce link tag: {}",
+            out
+        );
+        assert!(
+            out.contains("<title>Test</title></head>"),
+            "Rest of head should follow: {}",
+            out
+        );
     }
 }
