@@ -105,8 +105,8 @@ fn test_muan_blog_page_count() {
     let tmp = build_site("muan-blog");
     let count = count_html_files(tmp.path());
     assert_eq!(
-        count, 2218,
-        "muan-blog: expected 2218 HTML files, got {}",
+        count, 2219,
+        "muan-blog: expected 2219 HTML files, got {}",
         count
     );
 }
