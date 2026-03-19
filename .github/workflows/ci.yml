@@ -40,7 +40,7 @@ jobs:
         run: cargo test -p rustkyll --verbose
 
       - name: cargo clippy
-        run: cargo clippy -p rustkyll -- -D warnings
+        run: cargo clippy -p rustkyll --no-deps -- -D warnings
 
       - name: cargo fmt --check
         run: cargo fmt --check
