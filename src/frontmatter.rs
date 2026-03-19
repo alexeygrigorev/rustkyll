@@ -268,6 +268,11 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // <div markdown="1">, etc. and strips the attribute.
     let markdown = crate::kramdown::process_markdown_attribute(markdown);
 
+    // Protect pre-existing curly quotes from being re-processed by
+    // fix_smart_quote_directions. kramdown only converts straight quotes to
+    // curly; pre-existing curly quotes pass through unchanged.
+    let markdown = protect_preexisting_curly_quotes(&markdown);
+
     // Escape parenthesis-style ordered list markers (e.g., "1) text") because
     // kramdown does not support `)` as a list delimiter -- only `.`.
     // pulldown-cmark (CommonMark) would treat these as ordered lists.
@@ -326,6 +331,9 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // Issue 211: Fix smart quote directions to match kramdown
     let html_output = crate::kramdown::fix_smart_quote_directions(&html_output);
 
+    // Restore pre-existing curly quotes after direction fix
+    let html_output = restore_preexisting_curly_quotes(&html_output);
+
     // Apply kramdown compatibility post-processing
     crate::kramdown::postprocess(&html_output)
 }
@@ -365,6 +373,9 @@ pub fn markdown_to_html_with_options(
     // Issue 228: Process markdown="1" attribute on HTML elements
     let markdown = crate::kramdown::process_markdown_attribute(markdown);
 
+    // Protect pre-existing curly quotes from fix_smart_quote_directions
+    let markdown = protect_preexisting_curly_quotes(&markdown);
+
     let markdown = escape_paren_list_markers(&markdown);
     // Issue 227: Protect math content from backslash-escape processing
     let (markdown, math_saved) = protect_math_content(&markdown);
@@ -393,6 +404,8 @@ pub fn markdown_to_html_with_options(
     let html_output = decode_pulldown_url_encoding(&html_output);
     // Issue 211: Fix smart quote directions to match kramdown
     let html_output = crate::kramdown::fix_smart_quote_directions(&html_output);
+    // Restore pre-existing curly quotes after direction fix
+    let html_output = restore_preexisting_curly_quotes(&html_output);
     crate::kramdown::postprocess(&html_output)
 }
 
@@ -418,7 +431,10 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     options.insert(Options::ENABLE_STRIKETHROUGH);
     options.insert(Options::ENABLE_SMART_PUNCTUATION);
 
-    let markdown = escape_paren_list_markers(markdown);
+    // Protect pre-existing curly quotes from fix_smart_quote_directions
+    let markdown = protect_preexisting_curly_quotes(markdown);
+
+    let markdown = escape_paren_list_markers(&markdown);
     // Issue 227: Protect math content from backslash-escape processing
     let (markdown, math_saved) = protect_math_content(&markdown);
     let markdown = crate::kramdown::escape_headings_in_list_context(&markdown);
@@ -446,6 +462,8 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     let html_output = decode_pulldown_url_encoding(&html_output);
     // Issue 211: Fix smart quote directions to match kramdown
     let html_output = crate::kramdown::fix_smart_quote_directions(&html_output);
+    // Restore pre-existing curly quotes after direction fix
+    let html_output = restore_preexisting_curly_quotes(&html_output);
 
     crate::kramdown::postprocess_for_filter(&html_output)
 }
@@ -555,6 +573,43 @@ fn protect_consecutive_single_quotes(input: &str) -> String {
 fn restore_consecutive_single_quotes(input: &str) -> String {
     let result = input.replace(SINGLE_QUOTE_3_PLACEHOLDER, "'''");
     result.replace(SINGLE_QUOTE_2_PLACEHOLDER, "''")
+}
+
+/// Placeholders for pre-existing curly quotes in the markdown source.
+/// kramdown only converts STRAIGHT quotes to curly -- pre-existing curly quotes
+/// pass through unchanged. pulldown-cmark also passes them through, but our
+/// fix_smart_quote_directions post-processing incorrectly re-processes them.
+/// By protecting them before markdown processing and restoring after the
+/// direction fix, we ensure they remain exactly as written in the source.
+const CURLY_LSINGLE_PLACEHOLDER: &str = "\x00CLS\x00";
+const CURLY_RSINGLE_PLACEHOLDER: &str = "\x00CRS\x00";
+const CURLY_LDOUBLE_PLACEHOLDER: &str = "\x00CLD\x00";
+const CURLY_RDOUBLE_PLACEHOLDER: &str = "\x00CRD\x00";
+
+/// Protect pre-existing curly quotes in the markdown source from being
+/// re-processed by fix_smart_quote_directions.
+fn protect_preexisting_curly_quotes(input: &str) -> String {
+    if !input.contains('\u{2018}')
+        && !input.contains('\u{2019}')
+        && !input.contains('\u{201C}')
+        && !input.contains('\u{201D}')
+    {
+        return input.to_string();
+    }
+    input
+        .replace('\u{2018}', CURLY_LSINGLE_PLACEHOLDER)
+        .replace('\u{2019}', CURLY_RSINGLE_PLACEHOLDER)
+        .replace('\u{201C}', CURLY_LDOUBLE_PLACEHOLDER)
+        .replace('\u{201D}', CURLY_RDOUBLE_PLACEHOLDER)
+}
+
+/// Restore pre-existing curly quote placeholders back to their original Unicode chars.
+fn restore_preexisting_curly_quotes(input: &str) -> String {
+    input
+        .replace(CURLY_LSINGLE_PLACEHOLDER, "\u{2018}")
+        .replace(CURLY_RSINGLE_PLACEHOLDER, "\u{2019}")
+        .replace(CURLY_LDOUBLE_PLACEHOLDER, "\u{201C}")
+        .replace(CURLY_RDOUBLE_PLACEHOLDER, "\u{201D}")
 }
 
 /// Issue 227: Protect content inside $...$ and $$...$$ math delimiters.
@@ -2980,6 +3035,91 @@ More text.
         assert!(
             !html.contains("\u{201D}"),
             "German closing quote U+201C must not be converted to U+201D. Got: {}",
+            html
+        );
+    }
+
+    // --- Regression: pre-existing curly quotes must pass through unchanged ---
+
+    #[test]
+    fn test_preexisting_left_single_quote_preserved() {
+        // Source: muan-blog notes/2023-05-27-uu.md has U+2018 (LEFT SINGLE) already
+        // in the source: "Kendrick\u{2018}a role?" -- kramdown passes it through as-is.
+        // fix_smart_quote_directions must NOT convert it to U+2019.
+        let input = "Anna Kendrick\u{2018}a role?\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("Kendrick\u{2018}a"),
+            "Pre-existing U+2018 must be preserved, not converted to U+2019. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_preexisting_left_double_quote_as_closer_preserved() {
+        // Source: muan-blog stories/8e9c0186 has U+201C used for both opening
+        // AND closing: \u{201C}Show the world...\u{201C}
+        // kramdown passes these through unchanged.
+        let input = "\u{201C}Show the world how much you love Javascript.\u{201C} - @phae\n";
+        let html = markdown_to_html(input);
+        // Both should remain as U+201C
+        let count_201c = html.matches('\u{201C}').count();
+        assert!(
+            count_201c >= 2,
+            "Both pre-existing U+201C quotes must be preserved. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains('\u{201D}'),
+            "Pre-existing U+201C must not be converted to U+201D. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_preexisting_curly_quotes_coexist_with_straight() {
+        // Mix of pre-existing curly quotes and straight quotes that need conversion.
+        // The straight quotes should still be converted by smart punctuation,
+        // but the pre-existing curly quotes must pass through unchanged.
+        let input = "He said \"hello\" and Kendrick\u{2018}a role\n";
+        let html = markdown_to_html(input);
+        // Straight "hello" should be converted to curly quotes
+        assert!(
+            html.contains('\u{201C}') && html.contains('\u{201D}'),
+            "Straight quotes should be converted. Got: {}",
+            html
+        );
+        // Pre-existing U+2018 between 'k' and 'a' must stay as U+2018
+        assert!(
+            html.contains("Kendrick\u{2018}a"),
+            "Pre-existing U+2018 must not change. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_preexisting_right_single_apostrophe_preserved() {
+        // Source: muan-blog notes/2024-04-27-mm.md has U+2019 (RIGHT) as
+        // I\u{2019}m -- this is already correct and should pass through.
+        let input = "I\u{2019}m working through films\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("I\u{2019}m"),
+            "Pre-existing U+2019 apostrophe must be preserved. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_preexisting_curly_double_quotes_in_cjk_context() {
+        // Source: muan-blog notes/2020-09-11-zz.md has pre-existing U+201C
+        // before "..." (ellipsis): #TIFF20 \u{201C}... stopping
+        // kramdown passes it through as-is.
+        let input = "#TIFF20 \u{201C}... stopping the virus\u{201D}\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("\u{201C}") && html.contains("\u{201D}"),
+            "Pre-existing curly double quotes must be preserved. Got: {}",
             html
         );
     }
