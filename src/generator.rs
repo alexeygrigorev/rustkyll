@@ -403,10 +403,9 @@ fn resolve_github_pages_url(config: &SiteConfig, site_dir: Option<&Path>) -> Str
     if let Some(dir) = site_dir {
         // Try config.repository first
         if let Some(ref repo) = config.repository {
-            if let Some((owner, name)) = extract_nwo_from_remote(&format!(
-                "https://github.com/{}",
-                repo
-            )) {
+            if let Some((owner, name)) =
+                extract_nwo_from_remote(&format!("https://github.com/{}", repo))
+            {
                 return nwo_to_pages_url(&owner, &name);
             }
         }
@@ -2196,18 +2195,16 @@ mod tests {
 
     #[test]
     fn test_extract_nwo_from_ssh_url() {
-        let (owner, repo) =
-            extract_nwo_from_remote("git@github.com:alexeygrigorev/rustkyll.git")
-                .expect("should extract NWO");
+        let (owner, repo) = extract_nwo_from_remote("git@github.com:alexeygrigorev/rustkyll.git")
+            .expect("should extract NWO");
         assert_eq!(owner, "alexeygrigorev");
         assert_eq!(repo, "rustkyll");
     }
 
     #[test]
     fn test_extract_nwo_unicode_repo_name() {
-        let (owner, repo) =
-            extract_nwo_from_remote("https://github.com/user/projet-francais")
-                .expect("should extract NWO");
+        let (owner, repo) = extract_nwo_from_remote("https://github.com/user/projet-francais")
+            .expect("should extract NWO");
         assert_eq!(owner, "user");
         assert_eq!(repo, "projet-francais");
     }
