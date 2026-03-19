@@ -5,7 +5,6 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
-use std::path::Path;
 
 use rustkyll::collection::{self, CollectionItem, Page};
 use rustkyll::config::SiteConfig;
@@ -453,56 +452,5 @@ title: Home
     );
 }
 
-/// Test with the hyde website which uses paginator.
-#[test]
-#[ignore] // Full site build test -- run with `cargo test -- --ignored`
-fn test_hyde_pagination_builds() {
-    use std::path::PathBuf;
-
-    let site_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("websites/hyde");
-    if !site_dir.exists() {
-        eprintln!("Skipping: hyde site not present");
-        return;
-    }
-
-    let output_dir = tempfile::TempDir::new().unwrap();
-    let config = SiteConfig::from_file(&site_dir.join("_config.yml")).unwrap();
-    let pagination_config = PaginationConfig::from_config(&config);
-    assert!(
-        pagination_config.is_some(),
-        "Hyde should have pagination config"
-    );
-    let pagination_config = pagination_config.unwrap();
-    assert_eq!(pagination_config.per_page, 5);
-
-    // Load posts
-    let (posts, _) = collection::load_collection("posts", &site_dir, &config).unwrap();
-    assert!(posts.len() > 0, "Hyde should have posts");
-
-    // Load pages
-    let (pages, _) = collection::load_pages(&site_dir, &config).unwrap();
-    let index_page = pagination::find_index_page(&pages);
-    assert!(index_page.is_some(), "Hyde should have an index page");
-}
-
-/// Test with beautiful-jekyll which uses paginator.
-#[test]
-#[ignore] // Full site build test
-fn test_beautiful_jekyll_pagination_builds() {
-    use std::path::PathBuf;
-
-    let site_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("websites/beautiful-jekyll");
-    if !site_dir.exists() {
-        eprintln!("Skipping: beautiful-jekyll site not present");
-        return;
-    }
-
-    let config = SiteConfig::from_file(&site_dir.join("_config.yml")).unwrap();
-    let pagination_config = PaginationConfig::from_config(&config);
-    assert!(
-        pagination_config.is_some(),
-        "beautiful-jekyll should have pagination config"
-    );
-    let pagination_config = pagination_config.unwrap();
-    assert_eq!(pagination_config.per_page, 5);
-}
+// Full site pagination tests (hyde, beautiful-jekyll) have been moved to
+// integration_tests/tests/integration_pagination.rs

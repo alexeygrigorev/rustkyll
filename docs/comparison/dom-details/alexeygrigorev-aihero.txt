@@ -2,29 +2,29 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/alexeygrigorev/aihero/_sit
 Rustkyll directory: /home/alexey/git/rustkyl/websites/alexeygrigorev/aihero/_site_rustkyll_recount
 Common HTML files:  2
 
-DIFF certificate.html (64 differences)
+DIFF certificate.html (90 differences)
   head > meta: attribute_differs - expected: "content='Jekyll v4.3.4'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > link: extra_element - expected: '(none)', actual: '<link>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  ... and 54 more differences
-DIFF index.html (66 differences)
+  head > meta > meta > meta > child[11]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > meta > child[12]: tag_name_differs - expected: 'script', actual: 'meta'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='website'", actual: "content='https://alexeygrigorev.com/certificate.html'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:type'", actual: "property='og:url'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='https://alexeygrigorev.com/certificate.html'", actual: "content='Certificate of Completion'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:url'", actual: "property='og:title'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='Certificate of Completion'", actual: "content='Generate your certificate for completing the 7-Day AI Agents Email Crash-Course'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:title'", actual: "property='og:description'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='Generate your certificate for completing the 7-Day AI Agents Email Crash-Course'", actual: "content='https://alexeygrigorev.com/images/logo.png'"
+  ... and 80 more differences
+DIFF index.html (92 differences)
   head > meta: attribute_differs - expected: "content='Jekyll v4.3.4'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > link: extra_element - expected: '(none)', actual: '<link>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  ... and 56 more differences
+  head > meta > meta > meta > link: attribute_differs - expected: "href='https://alexeygrigorev.com/'", actual: "href='https://alexeygrigorev.com/index.html'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='https://alexeygrigorev.com/'", actual: "content='https://alexeygrigorev.com/index.html'"
+  head > meta > meta > meta > child[13]: tag_name_differs - expected: 'meta', actual: 'script'
+  head > meta > meta > meta > child[14]: tag_name_differs - expected: 'script', actual: 'meta'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='website'", actual: "content='https://alexeygrigorev.com/index.html'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:type'", actual: "property='og:url'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='https://alexeygrigorev.com/'", actual: "content='7-Day AI Agents Email Crash-Course'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:url'", actual: "property='og:title'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='7-Day AI Agents Email Crash-Course'", actual: "content='Learn to build a production-ready AI agent for your GitHub project in just 7 days. From data ingestion to deployment and sharing results.'"
+  ... and 82 more differences
 
-Summary: 0 files matched, 2 files with differences, 130 total differences
+Summary: 0 files matched, 2 files with differences, 182 total differences

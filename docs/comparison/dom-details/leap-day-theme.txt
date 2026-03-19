@@ -2,29 +2,19 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/leap-day-theme/_site_jekyl
 Rustkyll directory: /home/alexey/git/rustkyl/websites/leap-day-theme/_site_rustkyll_recount
 Common HTML files:  2
 
-DIFF another-page.html (15 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > script: extra_element - expected: '(none)', actual: '<script>'
-  ... and 5 more differences
-DIFF index.html (76 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > script: extra_element - expected: '(none)', actual: '<script>'
-  ... and 66 more differences
+DIFF another-page.html (1 differences)
+  body > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/leap-day'"
+DIFF index.html (60 differences)
+  body > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/leap-day'"
+  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='nx'"
+  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='nx'"
+  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='dl'", actual: "class='s1'"
+  body > div > section > div > div > pre > code > span: text_differs - expected: "'", actual: "'./lang/'"
+  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='s1'", actual: "class='o'"
+  body > div > section > div > div > pre > code > span: text_differs - expected: './lang/', actual: '+'
+  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='dl'", actual: "class='nx'"
+  body > div > section > div > div > pre > code > span: text_differs - expected: "'", actual: 'l'
+  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
+  ... and 50 more differences
 
-Summary: 0 files matched, 2 files with differences, 91 total differences
+Summary: 0 files matched, 2 files with differences, 61 total differences

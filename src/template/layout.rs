@@ -664,8 +664,9 @@ fn load_layouts_recursive(
         let relative = path.strip_prefix(base_dir).unwrap_or(&path);
         let name = relative
             .to_string_lossy()
+            .replace('\\', "/")
             .strip_suffix(".html")
-            .unwrap_or(&relative.to_string_lossy())
+            .unwrap_or(&relative.to_string_lossy().replace('\\', "/"))
             .to_string();
 
         let source = fs::read_to_string(&path)?;

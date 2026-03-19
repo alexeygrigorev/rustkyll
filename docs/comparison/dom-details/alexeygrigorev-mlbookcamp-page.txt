@@ -2,173 +2,90 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/alexeygrigorev/mlbookcamp-
 Rustkyll directory: /home/alexey/git/rustkyl/websites/alexeygrigorev/mlbookcamp-page/_site_rustkyll_recount
 Common HTML files:  15
 
-DIFF article/aws-ec2.html (41 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+DIFF article/aws-ec2.html (5 differences)
+  body > div > div > div > div > div: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > div: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > div: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > div: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > div: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+DIFF article/eks.html (41 differences)
+  body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'chmod +x ./kubectl'
+  body > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > div > div > div > div > div > pre > code: missing_text - expected: '+x ./kubectl', actual: '(none)'
+  body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='k'"
+  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nv'", actual: "class='n'"
+  body > div > div > div > div > div > div > pre > code > span: text_differs - expected: '"~/bin:', actual: '"~/bin:${PATH}"'
+  body > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 31 more differences
-DIFF article/aws.html (41 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  ... and 31 more differences
-DIFF article/crisp-dm.html (41 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  ... and 31 more differences
-DIFF article/eks.html (79 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  ... and 69 more differences
-DIFF article/kfserving-eks-install.html (199 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  ... and 189 more differences
-DIFF article/kfserving-transformers.html (516 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  ... and 506 more differences
-DIFF article/linear-regression.html (52 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  ... and 42 more differences
-DIFF article/local-k8s.html (41 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  ... and 31 more differences
-DIFF article/numpy.html (199 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  ... and 189 more differences
-DIFF article/python.html (362 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  ... and 352 more differences
-DIFF articles.html (41 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  ... and 31 more differences
-DIFF course/ml-pm.html (44 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  ... and 34 more differences
-DIFF courses.html (41 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  ... and 31 more differences
-DIFF index.html (42 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  ... and 32 more differences
+DIFF article/kfserving-eks-install.html (161 differences)
+  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
+  body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > div: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > ul > li > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > ul > li > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > ul > li > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > ul > li > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  ... and 151 more differences
+DIFF article/kfserving-transformers.html (475 differences)
+  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nb'"
+  body > div > div > div > div > div > div > pre > code > span: text_differs - expected: 'kfserving', actual: 'kfserving.KFModel'
+  body > div > div > div > div > div > div > pre > code > span: text_differs - expected: '.', actual: '):'
+  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='k'"
+  body > div > div > div > div > div > div > pre > code > span: text_differs - expected: 'KFModel', actual: 'def'
+  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='p'", actual: "class='nf'"
+  body > div > div > div > div > div > div > pre > code > span: text_differs - expected: '):', actual: '__init__'
+  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='k'", actual: "class='p'"
+  body > div > div > div > div > div > div > pre > code > span: text_differs - expected: 'def', actual: '('
+  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='n'"
+  ... and 465 more differences
+DIFF article/linear-regression.html (9 differences)
+  body > div > div > div > div: expected_text_got_element - expected: '\\[w = X^T X\\]', actual: '<p>'
+  body > div > div > div > div > p: text_differs - expected: 'Where', actual: '$$w = X^T X$$'
+  body > div > div > div > div > child[3]: tag_name_differs - expected: 'ul', actual: 'p'
+  body > div > div > div > div > child[4]: tag_name_differs - expected: 'p', actual: 'ul'
+  body > div > div > div > div > child[5]: tag_name_differs - expected: 'div', actual: 'p'
+  body > div > div > div > div > child[6]: tag_name_differs - expected: 'h2', actual: 'div'
+  body > div > div > div > div: expected_text_got_element - expected: '\\[w = X^T X\\]', actual: '<h2>'
+  body > div > div > div > div > h2: extra_element - expected: '(none)', actual: '<h2>'
+  body > div > div > div > div > p: extra_element - expected: '(none)', actual: '<p>'
+DIFF article/numpy.html (232 differences)
+  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > div: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  ... and 222 more differences
+DIFF article/python.html (340 differences)
+  body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > div: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > div: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > div: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
+  body > div > div > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: ','
+  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='p'", actual: "class='n'"
+  ... and 330 more differences
+DIFF course/ml-pm.html (6 differences)
+  body > div > div > div > div > h3: attribute_differs - expected: "id='1-introduction'", actual: "id='introduction'"
+  body > div > div > div > div > child[4]: tag_name_differs - expected: 'iframe', actual: 'p'
+  body > div > div > div > div > h3: attribute_differs - expected: "id='2-processes-and-roles'", actual: "id='processes-and-roles'"
+  body > div > div > div > div > child[8]: tag_name_differs - expected: 'iframe', actual: 'p'
+  body > div > div > div > div > h3: attribute_differs - expected: "id='3-model-evaluation'", actual: "id='model-evaluation'"
+  body > div > div > div > div > child[12]: tag_name_differs - expected: 'iframe', actual: 'p'
+DIFF index.html (1 differences)
+  body > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
 
-Summary: 1 files matched, 14 files with differences, 1739 total differences
+Summary: 6 files matched, 9 files with differences, 1270 total differences

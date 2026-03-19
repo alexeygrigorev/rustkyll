@@ -3,137 +3,137 @@ Rustkyll directory: /home/alexey/git/rustkyl/websites/so-simple-theme/_site_rust
 Common HTML files:  11
 Only in Jekyll:     55
 
-DIFF categories/edge-case/index.html (30 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  ... and 20 more differences
-DIFF categories/index.html (56 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  ... and 46 more differences
-DIFF docs/index.html (18 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  ... and 8 more differences
-DIFF example/index.html (18 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  ... and 8 more differences
-DIFF index.html (28 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  ... and 18 more differences
-DIFF posts/index.html (30 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  ... and 20 more differences
-DIFF recipes/index.html (18 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  ... and 8 more differences
-DIFF search/index.html (26 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  ... and 16 more differences
-DIFF tags/index.html (118 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  ... and 108 more differences
-DIFF tags/markup/index.html (28 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  ... and 18 more differences
-DIFF theme-setup/index.html (248 differences)
-  head > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  head > meta: extra_element - expected: '(none)', actual: '<meta>'
-  ... and 238 more differences
+DIFF categories/edge-case/index.html (36 differences)
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
+  head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='It really is the best.'", actual: "content='en-US'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "name='description'", actual: '(none)'
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:locale'"
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='description'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "property='og:description'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='My Awesome Site'", actual: "content='It really is the best.'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:description'"
+  ... and 26 more differences
+DIFF categories/index.html (62 differences)
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
+  head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='It really is the best.'", actual: "content='en-US'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "name='description'", actual: '(none)'
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:locale'"
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='description'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "property='og:description'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='My Awesome Site'", actual: "content='It really is the best.'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:description'"
+  ... and 52 more differences
+DIFF docs/index.html (25 differences)
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
+  head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='A simple and clean responsive Jekyll theme for words and photos.'", actual: "content='en-US'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "name='description'", actual: '(none)'
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:locale'"
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='description'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "property='og:description'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='My Awesome Site'", actual: "content='A simple and clean responsive Jekyll theme for words and photos.'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:description'"
+  ... and 15 more differences
+DIFF example/index.html (25 differences)
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
+  head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='A simple and clean responsive Jekyll theme for words and photos.'", actual: "content='en-US'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "name='description'", actual: '(none)'
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:locale'"
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='description'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "property='og:description'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='My Awesome Site'", actual: "content='A simple and clean responsive Jekyll theme for words and photos.'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:description'"
+  ... and 15 more differences
+DIFF index.html (34 differences)
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
+  head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='It really is the best.'", actual: "content='en-US'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "name='description'", actual: '(none)'
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:locale'"
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='description'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "property='og:description'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='My Awesome Site'", actual: "content='It really is the best.'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:description'"
+  ... and 24 more differences
+DIFF posts/index.html (36 differences)
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
+  head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='It really is the best.'", actual: "content='en-US'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "name='description'", actual: '(none)'
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:locale'"
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='description'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "property='og:description'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='My Awesome Site'", actual: "content='It really is the best.'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:description'"
+  ... and 26 more differences
+DIFF recipes/index.html (24 differences)
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
+  head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='It really is the best.'", actual: "content='en-US'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "name='description'", actual: '(none)'
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:locale'"
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='description'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "property='og:description'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='My Awesome Site'", actual: "content='It really is the best.'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:description'"
+  ... and 14 more differences
+DIFF search/index.html (32 differences)
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
+  head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='It really is the best.'", actual: "content='en-US'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "name='description'", actual: '(none)'
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:locale'"
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='description'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "property='og:description'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='My Awesome Site'", actual: "content='It really is the best.'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:description'"
+  ... and 22 more differences
+DIFF tags/index.html (124 differences)
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
+  head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='It really is the best.'", actual: "content='en-US'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "name='description'", actual: '(none)'
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:locale'"
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='description'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "property='og:description'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='My Awesome Site'", actual: "content='It really is the best.'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:description'"
+  ... and 114 more differences
+DIFF tags/markup/index.html (34 differences)
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
+  head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='It really is the best.'", actual: "content='en-US'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "name='description'", actual: '(none)'
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:locale'"
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='description'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "property='og:description'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='My Awesome Site'", actual: "content='It really is the best.'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:description'"
+  ... and 24 more differences
+DIFF theme-setup/index.html (251 differences)
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
+  head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='Instructions on how to install and use the Jekyll theme So Simple.'", actual: "content='en-US'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "name='description'", actual: '(none)'
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:locale'"
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='description'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "property='og:description'", actual: '(none)'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='My Awesome Site'", actual: "content='Instructions on how to install and use the Jekyll theme So Simple.'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:description'"
+  ... and 241 more differences
 
-Summary: 0 files matched, 11 files with differences, 618 total differences
+Summary: 0 files matched, 11 files with differences, 683 total differences

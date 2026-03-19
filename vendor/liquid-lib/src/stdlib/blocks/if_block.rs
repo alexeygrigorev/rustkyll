@@ -814,15 +814,9 @@ mod test {
         let template = parser::parse(text, &options()).map(Template::new).unwrap();
 
         let runtime = RuntimeBuilder::new().build();
-        runtime.set_global(
-            "title".into(),
-            Value::scalar("\u{00DC}berblick"),
-        );
+        runtime.set_global("title".into(), Value::scalar("\u{00DC}berblick"));
         runtime.set_global("show-title".into(), Value::scalar(true));
-        runtime.set_global(
-            "site-title".into(),
-            Value::scalar("Hauptseite"),
-        );
+        runtime.set_global("site-title".into(), Value::scalar("Hauptseite"));
         let output = template.render(&runtime).unwrap();
         assert_eq!(output, "yes");
     }

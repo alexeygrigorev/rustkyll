@@ -1170,7 +1170,9 @@ mod test {
         let runtime = RuntimeBuilder::new().build();
         runtime.set_global(
             "val".into(),
-            Value::scalar("\u{041F}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442} \u{043C}\u{0438}\u{0440}"),
+            Value::scalar(
+                "\u{041F}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442} \u{043C}\u{0438}\u{0440}",
+            ),
         );
         let output = template.render(&runtime).unwrap();
         assert_eq!(

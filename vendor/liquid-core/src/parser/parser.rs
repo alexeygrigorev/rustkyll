@@ -255,7 +255,9 @@ fn parse_default_filter_shorthand(pair: Pair, options: &Language) -> Result<Box<
     let value_expr = Expression::Literal(Value::scalar(value_str.to_owned()));
 
     let f = options.filters.get("default").ok_or_else(|| {
-        Error::with_msg("The 'default' filter is not registered but is needed for string literal shorthand")
+        Error::with_msg(
+            "The 'default' filter is not registered but is needed for string literal shorthand",
+        )
     })?;
 
     let args = FilterArguments {

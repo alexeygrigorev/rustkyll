@@ -1,3 +1,6 @@
+[workspace]
+members = [".", "integration_tests"]
+
 [package]
 name = "rustkyll"
 version = "0.2.3"

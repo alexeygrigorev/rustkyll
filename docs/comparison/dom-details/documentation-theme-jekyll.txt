@@ -12,7 +12,7 @@ DIFF 404.html (9 differences)
   body > div > div > div > div > div > child[6]: tag_name_differs - expected: 'div', actual: 'noscript'
   body > div > div > div > div > div > script: missing_element - expected: '<script>', actual: '(none)'
   body > div > div > div > div > div > noscript: missing_element - expected: '<noscript>', actual: '(none)'
-DIFF index.html (455 differences)
+DIFF index.html (452 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
@@ -23,7 +23,7 @@ DIFF index.html (455 differences)
   body > div > div > div > div > div > div: extra_attribute - expected: '(none)', actual: "role='alert'"
   body > div > div > div > div > div > div > i: extra_element - expected: '(none)', actual: '<i>'
   body > div > div > div > div > div > div > b: extra_element - expected: '(none)', actual: '<b>'
-  ... and 445 more differences
+  ... and 442 more differences
 DIFF mydoc_about.html (21 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
@@ -60,7 +60,7 @@ DIFF mydoc_adding_tooltips.html (16 differences)
   body > div > div > div > div > div > p: text_differs - expected: 'Suppose you have a glossary.yml file inside your _data folder. You could pull in that glossary definition like this:', actual: 'This renders to the following:'
   body > div > div > div > div > div > child[8]: tag_name_differs - expected: 'div', actual: 'p'
   ... and 6 more differences
-DIFF mydoc_alerts.html (241 differences)
+DIFF mydoc_alerts.html (240 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
@@ -71,7 +71,7 @@ DIFF mydoc_alerts.html (241 differences)
   body > div > div > div > div > div > h2: text_differs - expected: 'About alerts', actual: 'Alerts'
   body > div > div > div > div > div > p: text_differs - expected: 'Alerts are little warnings, info, or other messages that you have called out in special formatting. In order to use these alerts or callouts, reference the appropriate value stored in the alerts.yml file as described in the following sections.', actual: 'Similar to'
   body > div > div > div > div > div > p > a: extra_element - expected: '(none)', actual: '<a>'
-  ... and 231 more differences
+  ... and 230 more differences
 DIFF mydoc_atom_text_editor.html (23 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
@@ -132,7 +132,7 @@ DIFF mydoc_collections.html (43 differences)
   body > div > div > div > div > div > p: text_differs - expected: 'Collections are custom content types different from pages and posts. You might create a collection if you want to treat a specific set of articles in a unique way, such as with a custom layout or listing. For more detail on collections, see', actual: 'To create a collection, add the following in your configuration file:'
   body > div > div > div > div > div > p > a: missing_element - expected: '<a>', actual: '(none)'
   ... and 33 more differences
-DIFF mydoc_commenting_on_files.html (37 differences)
+DIFF mydoc_commenting_on_files.html (36 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
@@ -143,7 +143,7 @@ DIFF mydoc_commenting_on_files.html (37 differences)
   body > div > div > div > div > div > p: text_differs - expected: 'If you’re using the doc as code approach, you might also consider using the same techniques for reviewing the doc as people use in reviewing code. This approach will involve using Github to edit the files.', actual: 'Here’s the code for that button on the page.html layout for GitHub:'
   body > div > div > div > div > div > child[7]: tag_name_differs - expected: 'p', actual: 'div'
   body > div > div > div > div > div > p: text_differs - expected: 'Here’s the code for that button on the page.html layout for GitHub:', actual: 'and here for GitLab:'
-  ... and 27 more differences
+  ... and 26 more differences
 DIFF mydoc_conditional_logic.html (134 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
@@ -168,7 +168,7 @@ DIFF mydoc_content_reuse.html (45 differences)
   body > div > div > div > div > div > child[7]: tag_name_differs - expected: 'div', actual: 'p'
   body > div > div > div > div > div > p: text_differs - expected: 'With content in your _includes folder, you don’t add any frontmatter to these pages because they will be included on other pages already containing frontmatter.', actual: 'See the following Jekyll cast for more info about using parameters with includes:'
   ... and 35 more differences
-DIFF mydoc_exluding_files.html (43 differences)
+DIFF mydoc_exluding_files.html (40 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > div > child[2]: tag_name_differs - expected: 'script', actual: 'a'
@@ -179,7 +179,7 @@ DIFF mydoc_exluding_files.html (43 differences)
   body > div > div > div > div > div > p > code: missing_element - expected: '<code>', actual: '(none)'
   body > div > div > div > div > div > p: missing_text - expected: 'section in the configuration file. Here’s a sample:', actual: '(none)'
   body > div > div > div > div > div > child[7]: tag_name_differs - expected: 'div', actual: 'h2'
-  ... and 33 more differences
+  ... and 30 more differences
 DIFF mydoc_faq_layout.html (3 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
@@ -256,7 +256,7 @@ DIFF mydoc_images.html (25 differences)
   h2: extra_element - expected: '(none)', actual: '<h2>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 15 more differences
-DIFF mydoc_install_jekyll_on_mac.html (87 differences)
+DIFF mydoc_install_jekyll_on_mac.html (84 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
@@ -266,8 +266,8 @@ DIFF mydoc_install_jekyll_on_mac.html (87 differences)
   body > div > div > div > div > div > child[5]: tag_name_differs - expected: 'h2', actual: 'p'
   body > div > div > div > div > div > child[6]: tag_name_differs - expected: 'p', actual: 'div'
   body > div > div > div > div > div > p: text_differs - expected: 'If you get responses that look like this:', actual: 'and'
-  body > div > div > div > div > div > div: attribute_differs - expected: "class='highlighter-rouge language-plaintext'", actual: "class='highlighter-rouge'"
-  ... and 77 more differences
+  body > div > div > div > div > div > div > div > pre > code: text_differs - expected: '/usr/local/bin/ruby', actual: '/usr/local/bin/gem'
+  ... and 74 more differences
 DIFF mydoc_install_jekyll_on_windows.html (47 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
@@ -351,7 +351,7 @@ DIFF mydoc_navtabs.html (65 differences)
   body > div > div > div > div > div > child[7]: tag_name_differs - expected: 'p', actual: 'h2'
   body > div > div > div > div > div > p: text_differs - expected: 'Navtabs are better for SEO since you avoid duplicate content and drive users to the same page.', actual: 'The following is a demo of a navtab. Refresh your page to see the tab you selected remain active.'
   ... and 55 more differences
-DIFF mydoc_pages.html (112 differences)
+DIFF mydoc_pages.html (111 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
@@ -362,7 +362,7 @@ DIFF mydoc_pages.html (112 differences)
   body > div > div > div > div > div > h2: text_differs - expected: 'Where to author content', actual: 'Where to save pages'
   body > div > div > div > div > div > p: text_differs - expected: 'Use a text editor such as Sublime Text, WebStorm, IntelliJ, Visual Studio Code or Atom to create pages. Atom is recommended because it’s created by Github, which is driving some of the Jekyll development through Github Pages.', actual: 'You can store your pages in any folder structures you want, with any level of folder nesting. The site output will pull all of those pages out of their folders and put them into the root directory. Check out the _site folder, which is where Jekyll is generated, to see the difference between your project’s structure and the resulting site output.'
   body > div > div > div > div > div > child[7]: tag_name_differs - expected: 'h2', actual: 'p'
-  ... and 102 more differences
+  ... and 101 more differences
 DIFF mydoc_posts.html (23 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
@@ -442,7 +442,7 @@ DIFF mydoc_series.html (57 differences)
   body > div > div > div > div > div > child[2]: tag_name_differs - expected: 'script', actual: 'a'
   body > div > div > div > div > div > child[3]: tag_name_differs - expected: 'div', actual: 'h2'
   body > div > div > div > div > div > child[4]: tag_name_differs - expected: 'a', actual: 'p'
-  body > div > div > div > div > div > h2: attribute_differs - expected: "id='using-series-for-pages'", actual: "id='1-create-the-series-button'"
+  body > div > div > div > div > div > h2: attribute_differs - expected: "id='using-series-for-pages'", actual: "id='create-the-series-button'"
   body > div > div > div > div > div > h2: text_differs - expected: 'Using series for pages', actual: '1. Create the series button'
   body > div > div > div > div > div > p: text_differs - expected: 'You create a series by looking for all pages within a tag namespace that contain certain frontmatter. Here’s a', actual: 'First create an include that contains your series button:'
   body > div > div > div > div > div > p > a: missing_element - expected: '<a>', actual: '(none)'
@@ -1055,4 +1055,4 @@ DIFF tocpage.html/index.html (3 differences)
   body: missing_element - expected: '<body>', actual: '(none)'
   script: missing_element - expected: '<script>', actual: '(none)'
 
-Summary: 1 files matched, 97 files with differences, 5008 total differences
+Summary: 1 files matched, 97 files with differences, 4996 total differences

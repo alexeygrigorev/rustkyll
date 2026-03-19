@@ -1,0 +1,15 @@
+[package]
+name = "integration-tests"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# This crate has no library; it only contains integration test binaries.
+# The tests live in tests/*.rs and depend on the main rustkyll crate.
+
+[dev-dependencies]
+rustkyll = { path = ".." }
+tempfile = "3"
+serde_json = "1"
+serde_yaml = "0.9"
+liquid = "0.26"

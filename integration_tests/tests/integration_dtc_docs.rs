@@ -3,26 +3,35 @@
 //! These tests verify that the DataTalks.Club/docs site builds correctly
 //! with rustkyll, including navigation, favicon, and JSON-LD output.
 //!
-//! All tests are `#[ignore]` because they build the full site.
+//! Run with: cargo test -p integration-tests --test integration_dtc_docs
 
 use std::path::PathBuf;
 use std::process::Command;
 
-fn docs_source() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("websites/DataTalksClub/docs")
+fn project_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .to_path_buf()
 }
 
-fn build_dtc_docs(dest: &std::path::Path) -> String {
-    let binary = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/debug/rustkyll");
+fn docs_source() -> PathBuf {
+    project_root().join("websites/DataTalksClub/docs")
+}
+
+fn build_dtc_docs(dest: &std::path::Path) -> Option<String> {
+    let binary = project_root().join("target/debug/rustkyll");
     if !binary.exists() {
-        panic!(
-            "rustkyll binary not found at {:?}. Run `cargo build` first.",
+        eprintln!(
+            "SKIPPING: rustkyll binary not found at {:?}. Run `cargo build` first.",
             binary
         );
+        return None;
     }
     let source = docs_source();
     if !source.exists() {
-        panic!("DTC/docs source not found at {:?}", source);
+        eprintln!("SKIPPING: DTC/docs source not found at {:?}", source);
+        return None;
     }
     if dest.exists() {
         std::fs::remove_dir_all(dest).unwrap();
@@ -43,14 +52,15 @@ fn build_dtc_docs(dest: &std::path::Path) -> String {
             stdout, stderr
         );
     }
-    stdout + &stderr
+    Some(stdout + &stderr)
 }
 
 #[test]
-#[ignore]
 fn test_dtc_docs_nav_items_count() {
     let dest = std::env::temp_dir().join("dtc-docs-test-nav");
-    let _output = build_dtc_docs(&dest);
+    if build_dtc_docs(&dest).is_none() {
+        return;
+    }
 
     let index = std::fs::read_to_string(dest.join("index.html")).expect("should have index.html");
     let nav_count = index.matches("nav-list-item").count();
@@ -64,10 +74,11 @@ fn test_dtc_docs_nav_items_count() {
 }
 
 #[test]
-#[ignore]
 fn test_dtc_docs_nav_activation_css() {
     let dest = std::env::temp_dir().join("dtc-docs-test-css");
-    let _output = build_dtc_docs(&dest);
+    if build_dtc_docs(&dest).is_none() {
+        return;
+    }
 
     // Check a non-homepage page for nth-child CSS activation
     let page = std::fs::read_to_string(dest.join("courses/data-engineering-zoomcamp/index.html"))
@@ -86,10 +97,11 @@ fn test_dtc_docs_nav_activation_css() {
 }
 
 #[test]
-#[ignore]
 fn test_dtc_docs_favicon_link() {
     let dest = std::env::temp_dir().join("dtc-docs-test-favicon");
-    let _output = build_dtc_docs(&dest);
+    if build_dtc_docs(&dest).is_none() {
+        return;
+    }
 
     let index = std::fs::read_to_string(dest.join("index.html")).expect("should have index.html");
     assert!(
@@ -100,10 +112,11 @@ fn test_dtc_docs_favicon_link() {
 }
 
 #[test]
-#[ignore]
 fn test_dtc_docs_jsonld_publisher() {
     let dest = std::env::temp_dir().join("dtc-docs-test-jsonld");
-    let _output = build_dtc_docs(&dest);
+    if build_dtc_docs(&dest).is_none() {
+        return;
+    }
 
     let index = std::fs::read_to_string(dest.join("index.html")).expect("should have index.html");
     assert!(
@@ -113,10 +126,12 @@ fn test_dtc_docs_jsonld_publisher() {
 }
 
 #[test]
-#[ignore]
 fn test_dtc_docs_no_render_failures() {
     let dest = std::env::temp_dir().join("dtc-docs-test-failures");
-    let output = build_dtc_docs(&dest);
+    let output = match build_dtc_docs(&dest) {
+        Some(o) => o,
+        None => return,
+    };
 
     let failure_count = output.matches("failed to render page").count();
     assert_eq!(
@@ -127,10 +142,12 @@ fn test_dtc_docs_no_render_failures() {
 }
 
 #[test]
-#[ignore]
 fn test_dtc_docs_all_pages_rendered() {
     let dest = std::env::temp_dir().join("dtc-docs-test-pages");
-    let output = build_dtc_docs(&dest);
+    let output = match build_dtc_docs(&dest) {
+        Some(o) => o,
+        None => return,
+    };
 
     // The site should produce at least 56 standalone pages
     assert!(

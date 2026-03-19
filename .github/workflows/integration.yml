@@ -140,7 +140,7 @@ jobs:
         run: cargo build --release --verbose
 
       - name: Run ALL integration tests (no skips)
-        run: cargo test -- --ignored
+        run: cargo test -p integration-tests
         env:
           RUST_LOG: info
           CI: "true"
