@@ -263,10 +263,15 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // kramdown converts straight quotes to curly quotes by default.
     options.insert(Options::ENABLE_SMART_PUNCTUATION);
 
+    // Issue 228: Process markdown="1" attribute on HTML elements before the
+    // main markdown pass. This renders markdown inside <aside markdown="1">,
+    // <div markdown="1">, etc. and strips the attribute.
+    let markdown = crate::kramdown::process_markdown_attribute(markdown);
+
     // Escape parenthesis-style ordered list markers (e.g., "1) text") because
     // kramdown does not support `)` as a list delimiter -- only `.`.
     // pulldown-cmark (CommonMark) would treat these as ordered lists.
-    let markdown = escape_paren_list_markers(markdown);
+    let markdown = escape_paren_list_markers(&markdown);
 
     // Issue 227: Protect math content from backslash-escape processing.
     let (markdown, math_saved) = protect_math_content(&markdown);
@@ -318,6 +323,9 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // to match Jekyll/kramdown behavior.
     let html_output = decode_pulldown_url_encoding(&html_output);
 
+    // Issue 211: Fix smart quote directions to match kramdown
+    let html_output = crate::kramdown::fix_smart_quote_directions(&html_output);
+
     // Apply kramdown compatibility post-processing
     crate::kramdown::postprocess(&html_output)
 }
@@ -354,7 +362,10 @@ pub fn markdown_to_html_with_options(
         options.insert(Options::ENABLE_SMART_PUNCTUATION);
     }
 
-    let markdown = escape_paren_list_markers(markdown);
+    // Issue 228: Process markdown="1" attribute on HTML elements
+    let markdown = crate::kramdown::process_markdown_attribute(markdown);
+
+    let markdown = escape_paren_list_markers(&markdown);
     // Issue 227: Protect math content from backslash-escape processing
     let (markdown, math_saved) = protect_math_content(&markdown);
     let markdown = crate::kramdown::escape_headings_in_list_context(&markdown);
@@ -380,6 +391,8 @@ pub fn markdown_to_html_with_options(
     let html_output = restore_consecutive_single_quotes(&html_output);
     let html_output = restore_math_content(&html_output, &math_saved);
     let html_output = decode_pulldown_url_encoding(&html_output);
+    // Issue 211: Fix smart quote directions to match kramdown
+    let html_output = crate::kramdown::fix_smart_quote_directions(&html_output);
     crate::kramdown::postprocess(&html_output)
 }
 
@@ -431,6 +444,8 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     let html_output = restore_consecutive_single_quotes(&html_output);
     let html_output = restore_math_content(&html_output, &math_saved);
     let html_output = decode_pulldown_url_encoding(&html_output);
+    // Issue 211: Fix smart quote directions to match kramdown
+    let html_output = crate::kramdown::fix_smart_quote_directions(&html_output);
 
     crate::kramdown::postprocess_for_filter(&html_output)
 }
@@ -2818,6 +2833,132 @@ More text.
         assert!(
             html.contains("\\,"),
             "\\, should be preserved despite earlier unmatched $. Got: {}",
+            html
+        );
+    }
+
+    // ========================================================================
+    // Issue 211: Fix smart quote direction mismatches vs kramdown
+    // ========================================================================
+
+    #[test]
+    fn test_issue211_english_basic_double_quotes() {
+        // Basic English: "hello" should produce LEFT_DOUBLE...RIGHT_DOUBLE
+        let html = markdown_to_html("He said \"hello\" quietly\n");
+        assert!(
+            html.contains("\u{201C}hello\u{201D}"),
+            "English double quotes should be LEFT...RIGHT. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue211_inch_mark_after_digit() {
+        // kramdown: 13" produces U+201D (right double quote / closing)
+        // pulldown-cmark incorrectly produces U+201C (left/opening)
+        let html = markdown_to_html("on 13\" laptop screens\n");
+        assert!(
+            html.contains("13\u{201D}"),
+            "Quote after digit should be RIGHT_DOUBLE (inch mark). Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue211_cjk_double_quotes() {
+        // CJK: "なに" should produce LEFT_DOUBLE...RIGHT_DOUBLE
+        // pulldown-cmark produces LEFT_DOUBLE...LEFT_DOUBLE (wrong closing direction)
+        let html = markdown_to_html("オープンソースとは\"なに\"\n");
+        assert!(
+            html.contains("\u{201C}\u{306A}\u{306B}\u{201D}"),
+            "CJK double quotes should be LEFT...RIGHT. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue211_korean_single_quotes() {
+        // Korean: 'outdated' should produce LEFT_SINGLE...RIGHT_SINGLE
+        // pulldown-cmark produces RIGHT_SINGLE...RIGHT_SINGLE (wrong opening direction)
+        let html = markdown_to_html("표시해 'outdated'로\n");
+        assert!(
+            html.contains("\u{2018}outdated\u{2019}"),
+            "Korean single quotes should be LEFT...RIGHT. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue211_cyrillic_double_quotes() {
+        // Cyrillic: "ерунда" should produce LEFT_DOUBLE...RIGHT_DOUBLE
+        let html = markdown_to_html("мол \"ерунда\"\n");
+        assert!(
+            html.contains("\u{201C}\u{0435}\u{0440}\u{0443}\u{043D}\u{0434}\u{0430}\u{201D}"),
+            "Cyrillic double quotes should be LEFT...RIGHT. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue211_apostrophe_not_regressed() {
+        // Apostrophes must still be RIGHT_SINGLE (U+2019)
+        let html = markdown_to_html("it's a test\n");
+        assert!(
+            html.contains("it\u{2019}s"),
+            "Apostrophe should still be RIGHT_SINGLE. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue211_cats_apostrophe_not_regressed() {
+        let html = markdown_to_html("the cat's whiskers\n");
+        assert!(
+            html.contains("cat\u{2019}s"),
+            "Possessive apostrophe should still be RIGHT_SINGLE. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue211_contraction_with_quotes_in_same_paragraph() {
+        // don't + "hello" in same paragraph should both work
+        let html = markdown_to_html("don't stop, he said \"hello\"\n");
+        assert!(
+            html.contains("don\u{2019}t"),
+            "Contraction apostrophe should be RIGHT_SINGLE. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("\u{201C}hello\u{201D}"),
+            "Double quotes should be LEFT...RIGHT. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue211_quote_after_dash_kramdown_compat() {
+        // kramdown treats " after - as LEFT (opening), because - is excluded from SQ_CLOSE.
+        // "3x TACOS 230,-" -> kramdown produces LEFT...LEFT (both U+201C).
+        // This matches the actual taco-stand page from kids-horror-stories-ru.
+        let html = markdown_to_html(
+            "плакатом: \"3x TACOS 230,-\". Симпатичный\n",
+        );
+        // kramdown: both quotes are U+201C (LEFT DOUBLE)
+        assert!(
+            html.contains("\u{201C}3x TACOS 230,-\u{201C}"),
+            "Quote after dash should be LEFT (kramdown compat). Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue211_quote_after_dash_simple() {
+        // Simpler test: "hello,-" -> kramdown produces LEFT...LEFT
+        let html = markdown_to_html("test \"hello,-\". text\n");
+        assert!(
+            html.contains("\u{201C}hello,-\u{201C}"),
+            "Quote after dash should be LEFT (kramdown compat). Got: {}",
             html
         );
     }

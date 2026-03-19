@@ -157,6 +157,189 @@ pub fn normalize_html_output(html: &str) -> String {
 }
 
 // ============================================================================
+// Issue 228: Process markdown="1" attribute on HTML elements
+// ============================================================================
+
+/// Process HTML elements with `markdown="1"` attribute (kramdown feature).
+///
+/// When an HTML element has `markdown="1"`:
+/// 1. Remove the `markdown="1"` attribute from the output
+/// 2. Process the content within that element as markdown
+/// 3. Affects `<aside>`, `<p>`, `<div>`, and other block elements
+///
+/// This should be called on content BEFORE markdown conversion, as the
+/// `markdown="1"` attribute appears in raw markdown source files.
+pub fn process_markdown_attribute(content: &str) -> String {
+    use pulldown_cmark::{html as cmark_html, Options, Parser};
+
+    let mut result = String::with_capacity(content.len());
+    let mut remaining = content;
+
+    while !remaining.is_empty() {
+        // Find next occurrence of markdown="1" or markdown='1'
+        let md_attr_pos = remaining
+            .find("markdown=\"1\"")
+            .or_else(|| remaining.find("markdown='1'"));
+        if md_attr_pos.is_none() {
+            result.push_str(remaining);
+            break;
+        }
+        let md_attr_pos = md_attr_pos.unwrap();
+
+        // Find the opening tag that contains this attribute (search backwards for '<')
+        let before_attr = &remaining[..md_attr_pos];
+        let tag_start = match before_attr.rfind('<') {
+            Some(pos) => pos,
+            None => {
+                result.push_str(&remaining[..md_attr_pos + 1]);
+                remaining = &remaining[md_attr_pos + 1..];
+                continue;
+            }
+        };
+
+        // Parse the opening tag
+        let after_tag_start = &remaining[tag_start..];
+        let gt_pos = match after_tag_start.find('>') {
+            Some(pos) => pos,
+            None => {
+                result.push_str(&remaining[..md_attr_pos + 1]);
+                remaining = &remaining[md_attr_pos + 1..];
+                continue;
+            }
+        };
+
+        let open_tag_str = &after_tag_start[..gt_pos + 1];
+
+        // Extract tag name
+        let tag_name = extract_markdown_tag_name(open_tag_str);
+        if tag_name.is_empty() {
+            result.push_str(&remaining[..tag_start + gt_pos + 1]);
+            remaining = &remaining[tag_start + gt_pos + 1..];
+            continue;
+        }
+
+        // Find the matching closing tag
+        let after_open = &remaining[tag_start + gt_pos + 1..];
+        let close_tag = format!("</{}>", tag_name);
+        let close_pos = match find_markdown_close_tag(after_open, &tag_name, &close_tag) {
+            Some(pos) => pos,
+            None => {
+                result.push_str(&remaining[..tag_start + gt_pos + 1]);
+                remaining = &remaining[tag_start + gt_pos + 1..];
+                continue;
+            }
+        };
+
+        let inner_content = &after_open[..close_pos];
+
+        // Build new opening tag without markdown="1" / markdown='1'
+        let clean_open_tag = remove_markdown_attr_from_tag(open_tag_str);
+
+        // Render inner content as markdown
+        let trimmed_inner = inner_content.trim();
+        let rendered_inner = if trimmed_inner.is_empty() {
+            String::new()
+        } else {
+            let mut options = Options::empty();
+            options.insert(Options::ENABLE_TABLES);
+            options.insert(Options::ENABLE_STRIKETHROUGH);
+            options.insert(Options::ENABLE_SMART_PUNCTUATION);
+            let parser = Parser::new_ext(trimmed_inner, options);
+            let mut html_output = String::new();
+            cmark_html::push_html(&mut html_output, parser);
+            // Trim trailing newline
+            if html_output.ends_with('\n') {
+                html_output.pop();
+            }
+            html_output
+        };
+
+        let is_inline_container = tag_name == "p" || tag_name == "span";
+
+        // Copy everything before the tag
+        result.push_str(&remaining[..tag_start]);
+
+        if is_inline_container {
+            // For <p> containers, strip the outer <p> from rendered content
+            let inner_rendered = strip_outer_p_tags_for_markdown(&rendered_inner);
+            result.push_str(&clean_open_tag);
+            result.push_str(&inner_rendered);
+            result.push_str(&close_tag);
+        } else {
+            // For block containers like <aside> and <div>
+            result.push_str(&clean_open_tag);
+            result.push('\n');
+            result.push_str(&rendered_inner);
+            result.push('\n');
+            result.push_str(&close_tag);
+        }
+
+        remaining = &after_open[close_pos + close_tag.len()..];
+    }
+
+    result
+}
+
+/// Extract the tag name from an opening tag like `<aside markdown="1" class="foo">`.
+fn extract_markdown_tag_name(tag: &str) -> String {
+    let inner = tag.trim_start_matches('<').trim_end_matches('>');
+    let name_end = inner
+        .find(|c: char| c.is_whitespace())
+        .unwrap_or(inner.len());
+    inner[..name_end].to_lowercase()
+}
+
+/// Remove `markdown="1"` or `markdown='1'` from an opening tag string.
+fn remove_markdown_attr_from_tag(tag: &str) -> String {
+    let result = tag
+        .replace(" markdown=\"1\"", "")
+        .replace(" markdown='1'", "")
+        .replace("markdown=\"1\" ", "")
+        .replace("markdown='1' ", "")
+        .replace("markdown=\"1\"", "")
+        .replace("markdown='1'", "");
+    // Clean up double spaces
+    result.replace("  ", " ").replace("< ", "<")
+}
+
+/// Find the matching closing tag, handling nested tags of the same type.
+fn find_markdown_close_tag(html: &str, tag_name: &str, close_tag: &str) -> Option<usize> {
+    let open_pattern = format!("<{}", tag_name);
+    let mut depth = 0i32;
+    let mut pos = 0;
+
+    while pos < html.len() {
+        if html[pos..].starts_with(close_tag) {
+            if depth == 0 {
+                return Some(pos);
+            }
+            depth -= 1;
+            pos += close_tag.len();
+            continue;
+        }
+        if html[pos..].starts_with(&open_pattern) {
+            let after = &html[pos + open_pattern.len()..];
+            if after.starts_with('>') || after.starts_with(' ') {
+                depth += 1;
+            }
+        }
+        pos += html[pos..].chars().next().map_or(1, |c| c.len_utf8());
+    }
+    None
+}
+
+/// Strip outer `<p>...</p>` wrapper from rendered markdown content.
+fn strip_outer_p_tags_for_markdown(html: &str) -> String {
+    let trimmed = html.trim();
+    if let Some(rest) = trimmed.strip_prefix("<p>") {
+        if let Some(inner) = rest.strip_suffix("</p>") {
+            return inner.to_string();
+        }
+    }
+    trimmed.to_string()
+}
+
+// ============================================================================
 // Pre-markdown: Collapse blank lines inside HTML block elements
 // ============================================================================
 
@@ -1750,13 +1933,22 @@ fn add_heading_ids(html: &str) -> String {
                 if let Some(close_pos) = after.find(&close_tag) {
                     let inner_html = &after[gt_pos + 1..close_pos];
 
-                    // Extract text content (strip HTML tags, decode entities)
-                    let text = strip_html_tags(inner_html);
-                    let text = decode_html_entities(&text);
-                    let slug = slugify(&text);
+                    // Issue 228: Check for explicit {#custom-id} syntax
+                    let (clean_inner, explicit_id) = extract_explicit_heading_id(inner_html);
 
-                    // Handle duplicates
-                    let id = get_unique_id(&mut used_ids, &slug);
+                    let id = if let Some(eid) = explicit_id {
+                        // Use explicit ID, still track for uniqueness
+                        let _ = get_unique_id(&mut used_ids, &eid);
+                        eid
+                    } else {
+                        // Extract text content (strip HTML tags, decode entities)
+                        let text = strip_html_tags(&clean_inner);
+                        let text = decode_html_entities(&text);
+                        let slug = slugify(&text);
+
+                        // Handle duplicates
+                        get_unique_id(&mut used_ids, &slug)
+                    };
 
                     // Only add IDs to headings generated by pulldown-cmark
                     // (simple <hN> tags with no existing attributes).
@@ -1766,6 +1958,11 @@ fn add_heading_ids(html: &str) -> String {
                     if !is_simple_tag {
                         // Has existing attributes or id -- leave as-is
                         result.push_str(&after[..close_pos + close_tag.len()]);
+                    } else if clean_inner != inner_html {
+                        // Issue 228: {#id} was stripped -- use cleaned inner HTML
+                        result.push_str(&format!("<h{} id=\"{}\">", level_char as char, id));
+                        result.push_str(&clean_inner);
+                        result.push_str(&close_tag);
                     } else {
                         // Simple tag: <hN> -> <hN id="...">
                         result.push_str(&after[..3]);
@@ -1789,6 +1986,29 @@ fn add_heading_ids(html: &str) -> String {
     }
 
     result
+}
+
+/// Extract an explicit heading ID from `{#custom-id}` syntax in heading text.
+///
+/// Kramdown allows `## Heading Text {#custom-id}` to set a custom ID.
+/// This is different from block IAL `{: #id}` which is already handled elsewhere.
+///
+/// Returns (cleaned_inner_html, Some(id)) if `{#id}` was found, or
+/// (original_inner_html, None) if not.
+fn extract_explicit_heading_id(inner_html: &str) -> (String, Option<String>) {
+    // Look for {#...} at the end of the heading text (possibly with trailing whitespace)
+    let trimmed = inner_html.trim_end();
+    if let Some(brace_pos) = trimmed.rfind("{#") {
+        if let Some(close_pos) = trimmed[brace_pos..].find('}') {
+            let id = &trimmed[brace_pos + 2..brace_pos + close_pos];
+            if !id.is_empty() && !id.contains(' ') {
+                // Strip the {#id} and any preceding whitespace
+                let before = trimmed[..brace_pos].trim_end();
+                return (before.to_string(), Some(id.to_string()));
+            }
+        }
+    }
+    (inner_html.to_string(), None)
 }
 
 /// Find the next heading tag in the string, returning its byte position.
@@ -1884,35 +2104,45 @@ fn decode_entity(entity: &str) -> Option<char> {
     }
 }
 
-/// Convert heading text to a URL-friendly slug matching kramdown's algorithm.
+/// Convert heading text to a URL-friendly slug matching kramdown's `generate_id`.
 ///
-/// Kramdown's `generate_id` does:
-/// 1. Downcase
-/// 2. Remove all characters except alphanumerics (including Unicode), spaces, and hyphens
-/// 3. Replace spaces with hyphens (without collapsing consecutive hyphens)
+/// Kramdown's exact Ruby algorithm:
+/// ```ruby
+/// gen_id = str.gsub(/^[^a-zA-Z]+/, '')   # strip leading non-ASCII-alpha
+/// gen_id.tr!('^a-zA-Z0-9 -', '')          # keep only ASCII alphanum, space, hyphen
+/// gen_id.tr!(' ', '-')                     # spaces to hyphens
+/// gen_id.downcase!
+/// gen_id = 'section' if gen_id.length == 0
+/// ```
 ///
-/// Note: kramdown does NOT strip leading digits. `"1. DataTalksClub"` becomes
-/// `"1-datatalksclub"`, not `"datatalksclub"`.
-///
-/// Kramdown preserves Unicode alphabetic characters (Cyrillic, CJK, etc.) in its
-/// default slugify mode, matching Jekyll's `default` slugify behavior.
+/// This means:
+/// - Only ASCII letters and digits are kept (non-Latin scripts are stripped)
+/// - Leading digits/punctuation are stripped (up to first ASCII letter)
+/// - If nothing remains (e.g., pure Arabic/CJK), falls back to "section"
 fn slugify(text: &str) -> String {
-    // Step 1: Lowercase
-    let lower = text.to_lowercase();
+    // Step 1: Strip leading characters that are not ASCII letters
+    let stripped = text.trim_start_matches(|c: char| !c.is_ascii_alphabetic());
 
-    // Step 2: Keep alphanumerics (including Unicode letters), spaces, and hyphens
-    let mut slug = String::with_capacity(lower.len());
-    for ch in lower.chars() {
-        if ch.is_alphanumeric() || ch == ' ' || ch == '-' {
+    // Step 2: Keep only ASCII alphanumerics, spaces, and hyphens
+    let mut slug = String::with_capacity(stripped.len());
+    for ch in stripped.chars() {
+        if ch.is_ascii_alphanumeric() || ch == ' ' || ch == '-' {
             slug.push(ch);
         }
-        // All other characters (punctuation, symbols like :, —, etc.) are stripped
     }
 
     // Step 3: Replace spaces with hyphens
     slug = slug.replace(' ', "-");
 
-    slug
+    // Step 4: Downcase
+    slug = slug.to_lowercase();
+
+    // Step 5: Fall back to "section" if empty
+    if slug.is_empty() {
+        "section".to_string()
+    } else {
+        slug
+    }
 }
 
 /// Get a unique ID, appending `-1`, `-2`, etc. for duplicates.
@@ -3055,6 +3285,239 @@ fn find_entity_end(bytes: &[u8], pos: usize, len: usize) -> Option<usize> {
 }
 
 // ============================================================================
+// Issue 211: Fix smart quote direction mismatches vs kramdown
+// ============================================================================
+
+/// Fix smart quote directions to match kramdown behavior.
+///
+/// pulldown-cmark's smart punctuation algorithm uses Unicode-standard character
+/// classification to decide quote direction. kramdown uses simpler heuristics
+/// based on the SmartyPants/RubyPants algorithm. They disagree in several cases.
+///
+/// This post-processing pass re-determines the direction of each smart quote
+/// using kramdown's context-based rules (from `SQ_RULES` in kramdown's
+/// `smart_quotes.rb`), which look at the character before/after the quote
+/// rather than using Unicode left-flanking/right-flanking delimiter logic.
+///
+/// Key kramdown rules:
+/// - `SQ_CLOSE` chars (anything except space, `\`, tab, `\r`, `\n`, `[`, `{`,
+///   `(`, `-`) before a quote → closing (RIGHT)
+/// - Space before quote + word char after → opening (LEFT)
+/// - Quote before space/end → closing (RIGHT)
+/// - Apostrophe context (between alphabetic chars) → RIGHT SINGLE (preserved)
+/// - Fallback → opening (LEFT)
+pub fn fix_smart_quote_directions(html: &str) -> String {
+    // Quick check: if no smart quotes present, return early
+    if !html.contains('\u{2018}')
+        && !html.contains('\u{2019}')
+        && !html.contains('\u{201C}')
+        && !html.contains('\u{201D}')
+    {
+        return html.to_string();
+    }
+
+    let chars: Vec<char> = html.chars().collect();
+    let mut result: Vec<char> = chars.clone();
+
+    // We process text outside of HTML tags. Track the last non-tag text char
+    // before the current position (skipping over HTML tags).
+    let mut in_tag = false;
+
+    for (i, &ch) in chars.iter().enumerate() {
+        if ch == '<' {
+            in_tag = true;
+            continue;
+        } else if ch == '>' {
+            in_tag = false;
+            continue;
+        }
+
+        if in_tag {
+            continue;
+        }
+
+        match ch {
+            '\u{201C}' | '\u{201D}' => {
+                // Double quote: determine direction using kramdown rules
+                let prev = prev_text_char(&chars, i);
+                let next = next_text_char(&chars, i);
+                let direction = kramdown_quote_direction(prev, next);
+                result[i] = if direction {
+                    '\u{201D}' // RIGHT (closing)
+                } else {
+                    '\u{201C}' // LEFT (opening)
+                };
+            }
+            '\u{2018}' | '\u{2019}' => {
+                // Single quote: check apostrophe context first
+                if is_apostrophe_context_kramdown(&chars, i) {
+                    result[i] = '\u{2019}'; // apostrophe = RIGHT SINGLE
+                } else {
+                    let prev = prev_text_char(&chars, i);
+                    let next = next_text_char(&chars, i);
+                    let direction = kramdown_quote_direction(prev, next);
+                    result[i] = if direction {
+                        '\u{2019}' // RIGHT (closing)
+                    } else {
+                        '\u{2018}' // LEFT (opening)
+                    };
+                }
+            }
+            _ => {}
+        }
+    }
+
+    result.into_iter().collect()
+}
+
+/// Get the previous text character, skipping over HTML tags.
+/// Returns None if at the start of text or only tags precede.
+fn prev_text_char(chars: &[char], pos: usize) -> Option<char> {
+    let mut i = pos;
+    while i > 0 {
+        i -= 1;
+        if chars[i] == '>' {
+            // Skip backwards over the tag
+            while i > 0 {
+                i -= 1;
+                if chars[i] == '<' {
+                    break;
+                }
+            }
+            continue;
+        }
+        if chars[i] == '<' {
+            continue;
+        }
+        return Some(chars[i]);
+    }
+    None
+}
+
+/// Get the next text character, skipping over HTML tags.
+/// Returns None if at the end of text or only tags follow.
+fn next_text_char(chars: &[char], pos: usize) -> Option<char> {
+    let mut i = pos + 1;
+    while i < chars.len() {
+        if chars[i] == '<' {
+            // Skip forward over the tag
+            while i < chars.len() {
+                if chars[i] == '>' {
+                    break;
+                }
+                i += 1;
+            }
+            i += 1;
+            continue;
+        }
+        if chars[i] == '>' {
+            i += 1;
+            continue;
+        }
+        return Some(chars[i]);
+    }
+    None
+}
+
+/// Determine quote direction using kramdown's SQ_RULES algorithm.
+/// Returns true for RIGHT (closing), false for LEFT (opening).
+///
+/// This implements the key rules from kramdown's smart_quotes.rb SQ_RULES:
+/// 1. If preceded by SQ_CLOSE char → RIGHT (closing)
+/// 2. If preceded by space and followed by word char → LEFT (opening)
+/// 3. If followed by space/end → RIGHT (closing)
+/// 4. If followed by SQ_PUNCT (and not ..) → RIGHT (closing)
+/// 5. Fallback → LEFT (opening)
+fn kramdown_quote_direction(prev: Option<char>, next: Option<char>) -> bool {
+    // kramdown's SQ_CLOSE: anything NOT in [ \t\r\n[{(-]
+    // If preceded by one of these chars, it's a closing quote
+    if let Some(p) = prev {
+        if is_sq_close(p) {
+            return true; // RIGHT (closing) -- kramdown rule 7
+        }
+    }
+
+    // If preceded by whitespace and followed by a word char → opening
+    let prev_is_space = prev.map_or(true, |p| p.is_whitespace());
+    let next_is_word = next.map_or(false, |n| n.is_alphanumeric() || n == '_');
+    if prev_is_space && next_is_word {
+        return false; // LEFT (opening) -- kramdown rule 6
+    }
+
+    // If followed by space or end → closing
+    let next_is_space_or_end = next.map_or(true, |n| n.is_whitespace());
+    if next_is_space_or_end {
+        return true; // RIGHT (closing) -- kramdown rule 8
+    }
+
+    // If followed by SQ_PUNCT → closing (kramdown rule 2)
+    if let Some(n) = next {
+        if is_sq_punct(n) {
+            return true; // RIGHT (closing)
+        }
+    }
+
+    // Fallback: opening (LEFT) -- kramdown rules 9/10
+    false
+}
+
+/// Check if a character is in kramdown's SQ_CLOSE set.
+/// SQ_CLOSE = [^ \\\t\r\n\[{(-] -- anything NOT space, backslash, tab, CR, LF,
+/// `[`, `{`, `(`, `-`.
+fn is_sq_close(ch: char) -> bool {
+    !matches!(
+        ch,
+        ' ' | '\\' | '\t' | '\r' | '\n' | '[' | '{' | '(' | '-'
+    )
+}
+
+/// Check if a character is in kramdown's SQ_PUNCT set.
+/// SQ_PUNCT = [!"#$%'()*+,-./:;<=>?@[\]^_`{|}~]
+fn is_sq_punct(ch: char) -> bool {
+    matches!(
+        ch,
+        '!' | '"'
+            | '#'
+            | '$'
+            | '%'
+            | '\''
+            | '('
+            | ')'
+            | '*'
+            | '+'
+            | ','
+            | '-'
+            | '.'
+            | '/'
+            | ':'
+            | ';'
+            | '<'
+            | '='
+            | '>'
+            | '?'
+            | '@'
+            | '['
+            | '\\'
+            | ']'
+            | '^'
+            | '_'
+            | '`'
+            | '{'
+            | '|'
+            | '}'
+            | '~'
+    )
+}
+
+/// Check if a quote at `pos` is in an apostrophe context (between alphabetic chars),
+/// skipping over HTML tags when looking at neighbors.
+fn is_apostrophe_context_kramdown(chars: &[char], pos: usize) -> bool {
+    let prev = prev_text_char(chars, pos);
+    let next = next_text_char(chars, pos);
+    prev.map_or(false, |p| p.is_alphabetic()) && next.map_or(false, |n| n.is_alphabetic())
+}
+
+// ============================================================================
 // Tests
 // ============================================================================
 
@@ -3174,17 +3637,18 @@ mod tests {
     }
 
     #[test]
-    fn test_slugify_leading_digits_preserved() {
-        // Kramdown does NOT strip leading digits from heading IDs
-        // "1. DataTalksClub" -> "1-datatalksclub"
-        assert_eq!(slugify("1. DataTalksClub"), "1-datatalksclub");
-        assert_eq!(slugify("123 Hello"), "123-hello");
+    fn test_slugify_leading_digits_stripped() {
+        // Kramdown strips leading non-ASCII-alpha characters (including digits)
+        // "1. DataTalksClub" -> strip "1. " -> "DataTalksClub" -> "datatalksclub"
+        assert_eq!(slugify("1. DataTalksClub"), "datatalksclub");
+        // "123 Hello" -> strip "123 " -> "Hello" -> "hello"
+        assert_eq!(slugify("123 Hello"), "hello");
     }
 
     #[test]
-    fn test_slugify_leading_spaces_become_hyphens() {
-        // Leading spaces become leading hyphens (spaces -> hyphens)
-        assert_eq!(slugify("  Hello"), "--hello");
+    fn test_slugify_leading_spaces_stripped() {
+        // Leading spaces are stripped (non-ASCII-alpha chars)
+        assert_eq!(slugify("  Hello"), "hello");
     }
 
     #[test]
@@ -3194,62 +3658,56 @@ mod tests {
         assert_eq!(slugify("Hello World!"), "hello-world");
     }
 
-    // --- Cyrillic / non-ASCII slugify tests ---
+    // --- Non-ASCII slugify tests (kramdown ASCII-only generate_id) ---
+    //
+    // Kramdown's generate_id uses ASCII-only regex: [a-zA-Z0-9 -]
+    // All non-ASCII characters (Cyrillic, Arabic, CJK, etc.) are stripped.
+    // If the result is empty, it falls back to "section".
 
     #[test]
-    fn test_slugify_preserves_cyrillic() {
-        // Kramdown preserves Unicode alphabetic chars in generate_id.
-        // "Глава 1: Введение - Мир металлов вокруг нас" should produce
-        // "глава-1-введение---мир-металлов-вокруг-нас" NOT "-1-------"
-        // (colon stripped, space-hyphen-space preserved as ---)
+    fn test_slugify_cyrillic_falls_back_to_section() {
+        // Pure Cyrillic: all stripped -> "section"
         assert_eq!(
             slugify("Глава 1: Введение - Мир металлов вокруг нас"),
-            "глава-1-введение---мир-металлов-вокруг-нас"
+            "section"
         );
     }
 
     #[test]
-    fn test_slugify_preserves_cyrillic_emdash() {
-        // Em-dash (—) is stripped, so " — " -> "  " -> "--"
+    fn test_slugify_cyrillic_emdash_falls_back_to_section() {
         assert_eq!(
             slugify("Глава 1: Введение — Мир металлов вокруг нас"),
-            "глава-1-введение--мир-металлов-вокруг-нас"
+            "section"
         );
     }
 
     #[test]
-    fn test_slugify_mixed_ascii_cyrillic() {
-        assert_eq!(
-            slugify("Уникальные дары металлов"),
-            "уникальные-дары-металлов"
-        );
+    fn test_slugify_pure_cyrillic_no_ascii() {
+        assert_eq!(slugify("Уникальные дары металлов"), "section");
     }
 
     #[test]
-    fn test_slugify_cyrillic_with_numbers() {
-        // Colon is stripped; space-hyphen-space produces triple dashes
+    fn test_slugify_cyrillic_with_numbers_falls_back() {
+        // Leading Cyrillic is stripped (not [a-zA-Z]), digits follow but
+        // are also stripped by leading-strip, then remaining Cyrillic stripped
         assert_eq!(
             slugify("Глава 3: Бронзовый век - революция сплавов"),
-            "глава-3-бронзовый-век---революция-сплавов"
+            "section"
         );
     }
 
     #[test]
-    fn test_slugify_pure_cyrillic() {
-        assert_eq!(slugify("Привет мир"), "привет-мир");
+    fn test_slugify_simple_cyrillic_section() {
+        assert_eq!(slugify("Привет мир"), "section");
     }
 
     #[test]
-    fn test_slugify_cyrillic_not_stripped() {
-        // Regression: before fix, all non-ASCII was stripped, producing "-1-------"
+    fn test_slugify_non_ascii_all_stripped() {
+        // All non-ASCII text falls back to "section" in kramdown's default mode
         let result = slugify("Глава 1: Введение - Мир металлов вокруг нас");
-        assert!(
-            result.contains("глава"),
-            "Cyrillic should be preserved in slug, got: {result}"
-        );
-        assert!(
-            result.contains("введение"),
-            "Cyrillic should be preserved in slug, got: {result}"
+        assert_eq!(
+            result, "section",
+            "Non-ASCII text should fall back to 'section', got: {result}"
         );
     }
 
@@ -6034,26 +6492,27 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     // Category 5: Heading IDs with leading numbers must be preserved.
-    // Kramdown does NOT strip leading digits from heading IDs.
-    // "1. DataTalksClub" -> id="1-datatalksclub", NOT "datatalksclub"
+    // Issue 228: Kramdown strips leading non-alpha chars (including digits)
+    // "1. DataTalksClub" -> strip "1. " -> "DataTalksClub" -> "datatalksclub"
     #[test]
-    fn test_issue168_heading_id_leading_number_preserved() {
+    fn test_issue168_heading_id_leading_number_stripped() {
         let html = "<h2>1. DataTalksClub</h2>\n";
         let result = postprocess(html);
         assert!(
-            result.contains("id=\"1-datatalksclub\""),
-            "Heading ID should preserve leading digit. Got: {}",
+            result.contains("id=\"datatalksclub\""),
+            "Heading ID should strip leading digit (kramdown behavior). Got: {}",
             result
         );
     }
 
     #[test]
-    fn test_issue168_heading_id_all_numeric_prefix() {
+    fn test_issue168_heading_id_numeric_prefix_stripped() {
+        // "8 Newsletters for Data Science" -> strip "8 " -> "newsletters-for-data-science"
         let html = "<h3>8 Newsletters for Data Science</h3>\n";
         let result = postprocess(html);
         assert!(
-            result.contains("id=\"8-newsletters-for-data-science\""),
-            "Heading ID should preserve leading number. Got: {}",
+            result.contains("id=\"newsletters-for-data-science\""),
+            "Heading ID should strip leading number (kramdown behavior). Got: {}",
             result
         );
     }
@@ -7032,5 +7491,239 @@ by <a href="/people/author.html">Author Name</a>
             "Should have block spacing and preserved non-ASCII. Got: {:?}",
             result
         );
+    }
+
+    // --- Issue 228: {#id} heading ID syntax tests ---
+
+    #[test]
+    fn test_heading_explicit_id_syntax() {
+        // {#custom-id} syntax should set the heading ID and strip from text
+        let html = "<h2>Heading Text {#custom-id}</h2>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("id=\"custom-id\""),
+            "Should use explicit ID from {{#custom-id}}. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("{#custom-id}"),
+            "Should strip {{#custom-id}} from heading text. Got: {}",
+            result
+        );
+        assert!(
+            result.contains(">Heading Text</h2>") || result.contains(">Heading Text </h2>"),
+            "Should preserve heading text without {{#id}}. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_heading_explicit_id_arabic() {
+        // Arabic explicit ID syntax
+        let html = "<h2>\u{062a}\u{0639}\u{0644}\u{0645} \u{0642}\u{0648}\u{0644} \u{0644}\u{0627} {#\u{062a}\u{0639}\u{0644}\u{0645}-\u{0642}\u{0648}\u{0644}-\u{0644}\u{0627}}</h2>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains(
+                "id=\"\u{062a}\u{0639}\u{0644}\u{0645}-\u{0642}\u{0648}\u{0644}-\u{0644}\u{0627}\""
+            ),
+            "Should use Arabic explicit ID. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("{#"),
+            "Should strip {{#id}} from heading text. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_heading_no_explicit_id_unchanged() {
+        // Heading without {#id} should use auto-generated ID
+        let html = "<h2>No Custom ID</h2>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("id=\"no-custom-id\""),
+            "Should auto-generate ID. Got: {}",
+            result
+        );
+    }
+
+    // --- Issue 228: Heading ID for non-Latin scripts (kramdown default) ---
+
+    #[test]
+    fn test_slugify_arabic_only_falls_back_to_section() {
+        // Pure Arabic heading: all non-ASCII stripped, falls back to "section"
+        let result = slugify("\u{0645}\u{0627} \u{0645}\u{0639}\u{0646}\u{0649}");
+        assert_eq!(
+            result, "section",
+            "Pure Arabic heading should fall back to 'section'. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_slugify_two_arabic_headings_unique_ids() {
+        // Two Arabic headings should get section and section-1
+        let mut used = HashMap::new();
+        let slug1 = slugify("\u{0645}\u{0627} \u{0645}\u{0639}\u{0646}\u{0649}");
+        let id1 = get_unique_id(&mut used, &slug1);
+        let slug2 = slugify("\u{0643}\u{064a}\u{0641} \u{062a}\u{0633}\u{0627}\u{0647}\u{0645}");
+        let id2 = get_unique_id(&mut used, &slug2);
+        assert_eq!(
+            id1, "section",
+            "First Arabic heading should be 'section'. Got: {}",
+            id1
+        );
+        assert_eq!(
+            id2, "section-1",
+            "Second Arabic heading should be 'section-1'. Got: {}",
+            id2
+        );
+    }
+
+    #[test]
+    fn test_slugify_mixed_ascii_arabic() {
+        // Mixed heading: "GitHub هل مشاريع" -- only ASCII chars kept
+        let result =
+            slugify("GitHub \u{0647}\u{0644} \u{0645}\u{0634}\u{0627}\u{0631}\u{064a}\u{0639}");
+        assert!(
+            result.starts_with("github"),
+            "Mixed ASCII/Arabic heading should keep ASCII part. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("\u{0647}"),
+            "Arabic chars should be stripped in default kramdown mode. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_slugify_english_unchanged() {
+        // English headings should work as before
+        assert_eq!(slugify("Getting Started"), "getting-started");
+    }
+
+    // --- Issue 228: markdown="1" attribute processing tests ---
+
+    #[test]
+    fn test_process_markdown_attr_aside() {
+        // <aside markdown="1"> should have attribute stripped and content rendered
+        let input = "<aside markdown=\"1\">\n\n![avatar](img.png)\nSome text\n\n</aside>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            !result.contains("markdown=\"1\""),
+            "markdown=\"1\" should be stripped. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<aside>"),
+            "Should have <aside> without markdown attr. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<img"),
+            "Image markdown should be rendered to <img>. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_process_markdown_attr_p_with_class() {
+        // <p markdown="1" class="pquote-credit"> should strip markdown attr, keep class
+        let input = "<p markdown=\"1\" class=\"pquote-credit\">\n-- @user, [\"Title\"](url)\n</p>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            !result.contains("markdown=\"1\""),
+            "markdown=\"1\" should be stripped. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("class=\"pquote-credit\""),
+            "class should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_process_markdown_attr_div() {
+        // <div markdown="1"> should have content rendered
+        let input = "<div markdown=\"1\">\n## Heading\n\nParagraph\n</div>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            !result.contains("markdown=\"1\""),
+            "markdown=\"1\" should be stripped. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<h2") || result.contains("<p>Paragraph</p>"),
+            "Content inside div should be rendered as markdown. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_process_markdown_attr_absent() {
+        // <aside> without markdown attr should NOT have content processed
+        let input = "<aside>\nRaw content\n</aside>";
+        let result = process_markdown_attribute(input);
+        assert_eq!(
+            result, input,
+            "Content without markdown attr should be unchanged. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_process_markdown_attr_cjk_content() {
+        // CJK (Chinese/Japanese/Korean) multi-byte UTF-8 content inside markdown="1"
+        // This tests that find_markdown_close_tag does not panic on multi-byte chars
+        let input = "<aside markdown=\"1\">\n\n这是中文内容。\n\n日本語のテスト。\n\n한국어 테스트.\n\n</aside>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            !result.contains("markdown=\"1\""),
+            "markdown attr should be stripped. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("这是中文内容"),
+            "Chinese content should be preserved. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("日本語のテスト"),
+            "Japanese content should be preserved. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("한국어 테스트"),
+            "Korean content should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_process_markdown_attr_arabic_content() {
+        // Arabic multi-byte UTF-8 content inside markdown="1"
+        let input = "<aside markdown=\"1\">\n\nمرحبا بالعالم\n\n</aside>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            !result.contains("markdown=\"1\""),
+            "markdown attr should be stripped. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("مرحبا بالعالم"),
+            "Arabic content should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_find_markdown_close_tag_with_multibyte_utf8() {
+        // Directly test find_markdown_close_tag with multi-byte UTF-8
+        let html = "这是中文</aside>";
+        let result = find_markdown_close_tag(html, "aside", "</aside>");
+        assert_eq!(result, Some("这是中文".len()));
     }
 }
