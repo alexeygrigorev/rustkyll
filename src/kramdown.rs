@@ -143,11 +143,11 @@ pub fn postprocess_for_filter(html: &str) -> String {
 pub fn normalize_html_output(html: &str) -> String {
     let needs_bool_attrs = html.contains("=\"\"");
 
-    // Only normalize br and hr in the final output -- these come from markdown
-    // rendering and need XHTML-style self-closing. Do NOT normalize meta, link,
-    // input, img etc. here because this runs on the full page output including
-    // layout HTML, and layout-sourced tags should not be modified.
-    let html = normalize_br_hr_only(html);
+    // Only normalize bare <br> in the final output -- raw HTML <br> in markdown
+    // content (e.g., table cells) needs XHTML-style self-closing. Do NOT normalize
+    // <hr> here because pulldown-cmark already outputs <hr /> for markdown rules,
+    // and converting <hr> here would incorrectly affect include/layout content.
+    let html = normalize_br_only(html);
 
     if needs_bool_attrs {
         normalize_boolean_attributes(&html)
@@ -2645,16 +2645,27 @@ fn normalize_bare_void_elements(html: &str) -> String {
     result
 }
 
-/// Like `normalize_bare_void_elements` but only converts `<br>` and `<hr>`.
-/// Used in `normalize_html_output` which runs on the FULL page output
-/// (including layout HTML). We must NOT convert layout-sourced `<meta>`,
-/// `<link>`, `<input>`, `<img>` etc. since Jekyll doesn't self-close those
-/// in layout templates — only in kramdown-rendered content.
-fn normalize_br_hr_only(html: &str) -> String {
-    if !html.contains("<br>") && !html.contains("<hr>") {
+/// Converts only bare `<br>` to `<br />` in the full page output.
+///
+/// Used in `normalize_html_output` which runs on the FULL rendered page
+/// (including layout and include HTML). We only convert `<br>` because
+/// raw HTML `<br>` tags in markdown content (e.g., table cells) need
+/// XHTML-style self-closing to match Jekyll/kramdown output.
+///
+/// We do NOT convert `<hr>` here because:
+/// 1. pulldown-cmark already outputs `<hr />` for markdown `---` rules
+/// 2. `postprocess()` already calls `normalize_bare_void_elements()` on
+///    markdown-rendered content, which converts any `<hr>` to `<hr />`
+/// 3. Converting `<hr>` here would incorrectly affect include/layout HTML
+///    (e.g., `_includes/footer.html`), where Jekyll outputs bare `<hr>`
+///
+/// We also do NOT convert `<meta>`, `<link>`, `<input>`, `<img>` etc.
+/// since Jekyll doesn't self-close those in layout templates.
+fn normalize_br_only(html: &str) -> String {
+    if !html.contains("<br>") {
         return html.to_string();
     }
-    html.replace("<br>", "<br />").replace("<hr>", "<hr />")
+    html.replace("<br>", "<br />")
 }
 
 // ============================================================================
@@ -5215,7 +5226,7 @@ by <a href="/people/author.html">Author Name</a>
 
     #[test]
     fn test_normalize_html_output_bool_attrs_only() {
-        // normalize_html_output only converts br/hr, not input.
+        // normalize_html_output only converts bare <br>, not <hr>/input/etc.
         // Boolean attrs are still normalized.
         assert_eq!(
             normalize_html_output(r#"<br /><input required="">"#),
@@ -6385,6 +6396,56 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             result.contains("<br />"),
             "normalize_html_output should convert bare <br> to <br />. Got: {}",
+            result
+        );
+    }
+
+    // === Issue 250: normalize_html_output must NOT convert <hr> to <hr /> ===
+    // pulldown-cmark already outputs <hr /> for markdown horizontal rules (---),
+    // so the post-processing replacement is unnecessary. Only <br> needs conversion
+    // because raw HTML <br> in markdown tables/content needs XHTML-style.
+    // Converting <hr> would incorrectly affect include/layout content.
+
+    #[test]
+    fn test_normalize_html_output_does_not_convert_bare_hr() {
+        // Simulates <hr> from an include file (e.g., footer.html) appearing
+        // in the final page output. normalize_html_output must NOT convert it.
+        let html = "<hr>\n<footer>Footer content</footer>";
+        let result = normalize_html_output(html);
+        assert!(
+            result.contains("<hr>"),
+            "normalize_html_output must NOT convert bare <hr> to <hr />. \
+             Include/layout <hr> must pass through unchanged. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("<hr />"),
+            "normalize_html_output must NOT produce <hr />. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_normalize_html_output_still_converts_bare_br() {
+        // <br> conversion should still work
+        let html = "<p>line1<br>line2</p>";
+        let result = normalize_html_output(html);
+        assert!(
+            result.contains("<br />"),
+            "normalize_html_output should still convert <br> to <br />. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_postprocess_still_converts_hr_in_markdown_content() {
+        // postprocess (called on markdown-rendered content only) still converts
+        // <hr> via normalize_bare_void_elements, so markdown --- still produces <hr />
+        let html = "<hr>\n<p>text</p>";
+        let result = postprocess(html);
+        assert!(
+            result.contains("<hr />"),
+            "postprocess should still convert <hr> to <hr /> for markdown content. Got: {}",
             result
         );
     }

@@ -1329,11 +1329,11 @@ fn load_includes_recursive(
             // Normalize path separators to forward slashes
             let key = relative.replace('\\', "/");
             let content = fs::read_to_string(&path)?;
-            // Pre-normalize void elements and boolean attributes in include
-            // sources. This way, the rendered output doesn't contain `/>` or
-            // `=""` from includes, and the final normalize_html_output() can
-            // exit early without scanning the entire page HTML.
-            let content = crate::kramdown::normalize_html_output(&content);
+            // Issue 250: Do NOT normalize void elements in include files.
+            // Include files contain raw HTML that should pass through as-is.
+            // Jekyll does not normalize void elements in includes.
+            // The final normalize_html_output() after layout rendering will
+            // handle markdown-rendered <br> and <hr> elements correctly.
             map.insert(key, content);
         }
     }
@@ -4052,5 +4052,65 @@ title: "Test Book"
             )
             .unwrap();
         assert_eq!(out, "<a></a>");
+    }
+
+    // ========================================================================
+    // Issue 250: Include files must NOT have void elements normalized
+    // ========================================================================
+
+    #[test]
+    fn test_load_includes_preserves_bare_hr() {
+        let dir = tempfile::tempdir().unwrap();
+        let includes_dir = dir.path();
+        std::fs::write(
+            includes_dir.join("footer.html"),
+            "<hr>\n<footer>Footer</footer>",
+        )
+        .unwrap();
+        let includes = load_includes(includes_dir).unwrap();
+        let content = includes.get("footer.html").unwrap();
+        assert!(
+            content.contains("<hr>"),
+            "Include loading must preserve bare <hr>, got: {}",
+            content
+        );
+        assert!(
+            !content.contains("<hr />"),
+            "Include loading must NOT convert <hr> to <hr />, got: {}",
+            content
+        );
+    }
+
+    #[test]
+    fn test_load_includes_preserves_bare_br() {
+        let dir = tempfile::tempdir().unwrap();
+        let includes_dir = dir.path();
+        std::fs::write(includes_dir.join("component.html"), "<p>line1<br>line2</p>").unwrap();
+        let includes = load_includes(includes_dir).unwrap();
+        let content = includes.get("component.html").unwrap();
+        assert!(
+            content.contains("<br>"),
+            "Include loading must preserve bare <br>, got: {}",
+            content
+        );
+        assert!(
+            !content.contains("<br />"),
+            "Include loading must NOT convert <br> to <br />, got: {}",
+            content
+        );
+    }
+
+    #[test]
+    fn test_load_includes_preserves_mixed_html_unchanged() {
+        let dir = tempfile::tempdir().unwrap();
+        let includes_dir = dir.path();
+        let original = "<hr>\n<meta charset=\"utf-8\">\n<div>content</div>\n<br>";
+        std::fs::write(includes_dir.join("mixed.html"), original).unwrap();
+        let includes = load_includes(includes_dir).unwrap();
+        let content = includes.get("mixed.html").unwrap();
+        assert_eq!(
+            content, original,
+            "Include files should pass through without any modification"
+        );
     }
 }
