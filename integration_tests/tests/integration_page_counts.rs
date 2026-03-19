@@ -32,21 +32,16 @@ fn count_html_files(dir: &Path) -> usize {
 }
 
 /// Build a site using rustkyll and return the output directory.
-/// Returns `None` if the binary or source directory is missing (graceful skip).
-fn build_site(site_name: &str) -> Option<tempfile::TempDir> {
+/// Panics if the binary or source directory is missing.
+fn build_site(site_name: &str) -> tempfile::TempDir {
     let binary = project_root().join("target/debug/rustkyll");
-    if !binary.exists() {
-        eprintln!(
-            "SKIPPING: rustkyll binary not found at {:?}. Run `cargo build` first.",
-            binary
-        );
-        return None;
-    }
+    assert!(
+        binary.exists(),
+        "rustkyll binary not found at {:?}. Run `cargo build` first.",
+        binary
+    );
     let source = project_root().join("websites").join(site_name);
-    if !source.exists() {
-        eprintln!("SKIPPING: site source not found at {:?}", source);
-        return None;
-    }
+    assert!(source.exists(), "site source not found at {:?}", source);
     let tmp = tempfile::TempDir::new().unwrap();
     let output = Command::new(&binary)
         .args(["build", "--source"])
@@ -61,15 +56,12 @@ fn build_site(site_name: &str) -> Option<tempfile::TempDir> {
         site_name,
         String::from_utf8_lossy(&output.stderr)
     );
-    Some(tmp)
+    tmp
 }
 
 #[test]
 fn test_large_blog_3000_page_count() {
-    let tmp = match build_site("large-blog-3000") {
-        Some(t) => t,
-        None => return,
-    };
+    let tmp = build_site("large-blog-3000");
     let count = count_html_files(tmp.path());
     assert_eq!(
         count, 3001,
@@ -80,10 +72,7 @@ fn test_large_blog_3000_page_count() {
 
 #[test]
 fn test_large_docs_site_page_count() {
-    let tmp = match build_site("large-docs-site") {
-        Some(t) => t,
-        None => return,
-    };
+    let tmp = build_site("large-docs-site");
     let count = count_html_files(tmp.path());
     assert_eq!(
         count, 801,
@@ -94,10 +83,7 @@ fn test_large_docs_site_page_count() {
 
 #[test]
 fn test_documentation_theme_jekyll_page_count() {
-    let tmp = match build_site("documentation-theme-jekyll") {
-        Some(t) => t,
-        None => return,
-    };
+    let tmp = build_site("documentation-theme-jekyll");
     let count = count_html_files(tmp.path());
     assert_eq!(
         count, 98,
@@ -108,10 +94,7 @@ fn test_documentation_theme_jekyll_page_count() {
 
 #[test]
 fn test_muan_blog_page_count() {
-    let tmp = match build_site("muan-blog") {
-        Some(t) => t,
-        None => return,
-    };
+    let tmp = build_site("muan-blog");
     let count = count_html_files(tmp.path());
     assert_eq!(
         count, 2218,
@@ -122,10 +105,7 @@ fn test_muan_blog_page_count() {
 
 #[test]
 fn test_homebrew_site_page_count() {
-    let tmp = match build_site("homebrew-site") {
-        Some(t) => t,
-        None => return,
-    };
+    let tmp = build_site("homebrew-site");
     let count = count_html_files(tmp.path());
     assert_eq!(
         count, 134,
@@ -136,10 +116,7 @@ fn test_homebrew_site_page_count() {
 
 #[test]
 fn test_muan_blog_notes_exist() {
-    let tmp = match build_site("muan-blog") {
-        Some(t) => t,
-        None => return,
-    };
+    let tmp = build_site("muan-blog");
     let notes_dir = tmp.path().join("notes");
     assert!(notes_dir.exists(), "notes directory should exist");
     let notes_count = count_html_files(&notes_dir);
@@ -152,10 +129,7 @@ fn test_muan_blog_notes_exist() {
 
 #[test]
 fn test_muan_blog_stories_exist() {
-    let tmp = match build_site("muan-blog") {
-        Some(t) => t,
-        None => return,
-    };
+    let tmp = build_site("muan-blog");
     let stories_dir = tmp.path().join("stories");
     assert!(stories_dir.exists(), "stories directory should exist");
     let stories_count = count_html_files(&stories_dir);
@@ -168,10 +142,7 @@ fn test_muan_blog_stories_exist() {
 
 #[test]
 fn test_mojombo_blog_page_count() {
-    let tmp = match build_site("mojombo-blog") {
-        Some(t) => t,
-        None => return,
-    };
+    let tmp = build_site("mojombo-blog");
     let count = count_html_files(tmp.path());
     assert_eq!(
         count, 17,
@@ -182,10 +153,7 @@ fn test_mojombo_blog_page_count() {
 
 #[test]
 fn test_mojombo_blog_date_permalinks() {
-    let tmp = match build_site("mojombo-blog") {
-        Some(t) => t,
-        None => return,
-    };
+    let tmp = build_site("mojombo-blog");
     let post = tmp.path().join("2008/11/17/blogging-like-a-hacker.html");
     assert!(
         post.exists(),
@@ -196,10 +164,7 @@ fn test_mojombo_blog_date_permalinks() {
 
 #[test]
 fn test_just_the_docs_page_count() {
-    let tmp = match build_site("just-the-docs") {
-        Some(t) => t,
-        None => return,
-    };
+    let tmp = build_site("just-the-docs");
     let count = count_html_files(tmp.path());
     assert_eq!(
         count, 47,
@@ -210,10 +175,7 @@ fn test_just_the_docs_page_count() {
 
 #[test]
 fn test_cayman_theme_page_count() {
-    let tmp = match build_site("cayman-theme") {
-        Some(t) => t,
-        None => return,
-    };
+    let tmp = build_site("cayman-theme");
     let count = count_html_files(tmp.path());
     assert_eq!(
         count, 2,
@@ -224,10 +186,7 @@ fn test_cayman_theme_page_count() {
 
 #[test]
 fn test_slate_theme_page_count() {
-    let tmp = match build_site("slate-theme") {
-        Some(t) => t,
-        None => return,
-    };
+    let tmp = build_site("slate-theme");
     let count = count_html_files(tmp.path());
     assert_eq!(
         count, 2,
@@ -238,10 +197,7 @@ fn test_slate_theme_page_count() {
 
 #[test]
 fn test_leap_day_theme_page_count() {
-    let tmp = match build_site("leap-day-theme") {
-        Some(t) => t,
-        None => return,
-    };
+    let tmp = build_site("leap-day-theme");
     let count = count_html_files(tmp.path());
     assert_eq!(
         count, 2,
@@ -252,10 +208,7 @@ fn test_leap_day_theme_page_count() {
 
 #[test]
 fn test_midnight_theme_page_count() {
-    let tmp = match build_site("midnight-theme") {
-        Some(t) => t,
-        None => return,
-    };
+    let tmp = build_site("midnight-theme");
     let count = count_html_files(tmp.path());
     assert_eq!(
         count, 2,
@@ -266,10 +219,7 @@ fn test_midnight_theme_page_count() {
 
 #[test]
 fn test_hacker_theme_page_count() {
-    let tmp = match build_site("hacker-theme") {
-        Some(t) => t,
-        None => return,
-    };
+    let tmp = build_site("hacker-theme");
     let count = count_html_files(tmp.path());
     assert_eq!(
         count, 2,
@@ -280,10 +230,7 @@ fn test_hacker_theme_page_count() {
 
 #[test]
 fn test_architect_theme_page_count() {
-    let tmp = match build_site("architect-theme") {
-        Some(t) => t,
-        None => return,
-    };
+    let tmp = build_site("architect-theme");
     let count = count_html_files(tmp.path());
     assert_eq!(
         count, 2,
@@ -294,10 +241,7 @@ fn test_architect_theme_page_count() {
 
 #[test]
 fn test_time_machine_theme_page_count() {
-    let tmp = match build_site("time-machine-theme") {
-        Some(t) => t,
-        None => return,
-    };
+    let tmp = build_site("time-machine-theme");
     let count = count_html_files(tmp.path());
     assert_eq!(
         count, 2,
@@ -308,10 +252,7 @@ fn test_time_machine_theme_page_count() {
 
 #[test]
 fn test_merlot_theme_page_count() {
-    let tmp = match build_site("merlot-theme") {
-        Some(t) => t,
-        None => return,
-    };
+    let tmp = build_site("merlot-theme");
     let count = count_html_files(tmp.path());
     assert_eq!(
         count, 2,
@@ -322,10 +263,7 @@ fn test_merlot_theme_page_count() {
 
 #[test]
 fn test_dinky_theme_page_count() {
-    let tmp = match build_site("dinky-theme") {
-        Some(t) => t,
-        None => return,
-    };
+    let tmp = build_site("dinky-theme");
     let count = count_html_files(tmp.path());
     assert_eq!(
         count, 2,

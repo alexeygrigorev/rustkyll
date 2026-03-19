@@ -19,20 +19,15 @@ fn docs_source() -> PathBuf {
     project_root().join("websites/DataTalksClub/docs")
 }
 
-fn build_dtc_docs(dest: &std::path::Path) -> Option<String> {
+fn build_dtc_docs(dest: &std::path::Path) -> String {
     let binary = project_root().join("target/debug/rustkyll");
-    if !binary.exists() {
-        eprintln!(
-            "SKIPPING: rustkyll binary not found at {:?}. Run `cargo build` first.",
-            binary
-        );
-        return None;
-    }
+    assert!(
+        binary.exists(),
+        "rustkyll binary not found at {:?}. Run `cargo build` first.",
+        binary
+    );
     let source = docs_source();
-    if !source.exists() {
-        eprintln!("SKIPPING: DTC/docs source not found at {:?}", source);
-        return None;
-    }
+    assert!(source.exists(), "DTC/docs source not found at {:?}", source);
     if dest.exists() {
         std::fs::remove_dir_all(dest).unwrap();
     }
@@ -52,15 +47,13 @@ fn build_dtc_docs(dest: &std::path::Path) -> Option<String> {
             stdout, stderr
         );
     }
-    Some(stdout + &stderr)
+    stdout + &stderr
 }
 
 #[test]
 fn test_dtc_docs_nav_items_count() {
     let dest = std::env::temp_dir().join("dtc-docs-test-nav");
-    if build_dtc_docs(&dest).is_none() {
-        return;
-    }
+    build_dtc_docs(&dest);
 
     let index = std::fs::read_to_string(dest.join("index.html")).expect("should have index.html");
     let nav_count = index.matches("nav-list-item").count();
@@ -76,9 +69,7 @@ fn test_dtc_docs_nav_items_count() {
 #[test]
 fn test_dtc_docs_nav_activation_css() {
     let dest = std::env::temp_dir().join("dtc-docs-test-css");
-    if build_dtc_docs(&dest).is_none() {
-        return;
-    }
+    build_dtc_docs(&dest);
 
     // Check a non-homepage page for nth-child CSS activation
     let page = std::fs::read_to_string(dest.join("courses/data-engineering-zoomcamp/index.html"))
@@ -99,9 +90,7 @@ fn test_dtc_docs_nav_activation_css() {
 #[test]
 fn test_dtc_docs_favicon_link() {
     let dest = std::env::temp_dir().join("dtc-docs-test-favicon");
-    if build_dtc_docs(&dest).is_none() {
-        return;
-    }
+    build_dtc_docs(&dest);
 
     let index = std::fs::read_to_string(dest.join("index.html")).expect("should have index.html");
     assert!(
@@ -114,9 +103,7 @@ fn test_dtc_docs_favicon_link() {
 #[test]
 fn test_dtc_docs_jsonld_publisher() {
     let dest = std::env::temp_dir().join("dtc-docs-test-jsonld");
-    if build_dtc_docs(&dest).is_none() {
-        return;
-    }
+    build_dtc_docs(&dest);
 
     let index = std::fs::read_to_string(dest.join("index.html")).expect("should have index.html");
     assert!(
@@ -128,10 +115,7 @@ fn test_dtc_docs_jsonld_publisher() {
 #[test]
 fn test_dtc_docs_no_render_failures() {
     let dest = std::env::temp_dir().join("dtc-docs-test-failures");
-    let output = match build_dtc_docs(&dest) {
-        Some(o) => o,
-        None => return,
-    };
+    let output = build_dtc_docs(&dest);
 
     let failure_count = output.matches("failed to render page").count();
     assert_eq!(
@@ -144,10 +128,7 @@ fn test_dtc_docs_no_render_failures() {
 #[test]
 fn test_dtc_docs_all_pages_rendered() {
     let dest = std::env::temp_dir().join("dtc-docs-test-pages");
-    let output = match build_dtc_docs(&dest) {
-        Some(o) => o,
-        None => return,
-    };
+    let output = build_dtc_docs(&dest);
 
     // The site should produce at least 56 standalone pages
     assert!(

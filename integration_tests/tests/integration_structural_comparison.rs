@@ -15,29 +15,21 @@ use std::process::Command;
 fn run_comparison(site: &str) {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
     let script = root.join("scripts/compare-output.sh");
-
-    if !script.exists() {
-        eprintln!(
-            "SKIPPING: comparison script not found at {}",
-            script.display()
-        );
-        return;
-    }
+    assert!(
+        script.exists(),
+        "comparison script not found at {}",
+        script.display()
+    );
 
     let site_dir = root.join("websites").join(site);
-    if !site_dir.exists() {
-        eprintln!("SKIPPING: site source not found at {:?}", site_dir);
-        return;
-    }
+    assert!(site_dir.exists(), "site source not found at {:?}", site_dir);
 
     let binary = root.join("target/debug/rustkyll");
-    if !binary.exists() {
-        eprintln!(
-            "SKIPPING: rustkyll binary not found at {:?}. Run `cargo build` first.",
-            binary
-        );
-        return;
-    }
+    assert!(
+        binary.exists(),
+        "rustkyll binary not found at {:?}. Run `cargo build` first.",
+        binary
+    );
 
     let output = Command::new("bash")
         .arg(&script)

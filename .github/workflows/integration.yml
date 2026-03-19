@@ -54,6 +54,11 @@ jobs:
           git clone --depth 1 https://github.com/DataTalksClub/datatalksclub.github.io.git \
             websites/DataTalksClub/datatalksclub.github.io
 
+      - name: Clone DTC docs (shallow)
+        run: |
+          git clone --depth 1 https://github.com/DataTalksClub/datatalksclub.github.io.git \
+            websites/DataTalksClub/docs
+
       - name: Clone kids-horror-stories-ru (shallow)
         run: |
           mkdir -p websites/alexeygrigorev
@@ -198,7 +203,7 @@ jobs:
         run: cargo build --release --verbose
 
       - name: Run unit tests
-        run: cargo test --verbose
+        run: cargo test -p rustkyll --verbose
 
       - name: Clone DTC site (shallow)
         run: git clone --depth 1 https://github.com/DataTalksClub/datatalksclub.github.io.git dtc-site

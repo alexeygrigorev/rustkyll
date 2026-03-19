@@ -140,5 +140,7 @@ git commit -m "Implement issue NN: short description"
 - Do NOT commit until PM accepts
 - Implement exactly what the issue asks for -- no extra features
 - Every issue must include tests
+- Tests must NEVER silently skip. No `if !exists { return; }` pattern. If a test needs files/data, it must `assert!` or `panic!` when they're missing. Silent skips hide real failures.
+- `#[ignore]` is not allowed -- move slow tests to `integration_tests/` workspace crate instead
 - Follow existing patterns
 - Use `./scripts/cargo-safe` for build/test/clippy (runs cargo in a memory-limited cgroup to prevent OOM-killing the session). Use plain `cargo fmt` for formatting (low memory).

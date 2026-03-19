@@ -162,21 +162,16 @@ fn rustkyll_binary() -> PathBuf {
     project_root().join("target/debug/rustkyll")
 }
 
-/// Build a site with rustkyll CLI and return the output directory path.
-/// Returns `None` if the binary or source directory is missing (graceful skip).
-fn build_with_rustkyll(source: &Path, dest: &Path) -> Option<()> {
+/// Build a site with rustkyll CLI.
+/// Panics if the binary or source directory is missing.
+fn build_with_rustkyll(source: &Path, dest: &Path) {
     let binary = rustkyll_binary();
-    if !binary.exists() {
-        eprintln!(
-            "SKIPPING: rustkyll binary not found at {:?}. Run `cargo build` first.",
-            binary
-        );
-        return None;
-    }
-    if !source.exists() {
-        eprintln!("SKIPPING: source not found at {:?}", source);
-        return None;
-    }
+    assert!(
+        binary.exists(),
+        "rustkyll binary not found at {:?}. Run `cargo build` first.",
+        binary
+    );
+    assert!(source.exists(), "source not found at {:?}", source);
 
     if dest.exists() {
         fs::remove_dir_all(dest).unwrap();
@@ -208,7 +203,6 @@ fn build_with_rustkyll(source: &Path, dest: &Path) -> Option<()> {
         source.display(),
         stdout.trim()
     );
-    Some(())
 }
 
 /// Build a site with Jekyll and return the output directory path.
@@ -287,9 +281,7 @@ fn test_dtc_feed_validation() {
     let tmp = tempfile::tempdir().unwrap();
     let dest = tmp.path().join("rustkyll_site");
 
-    if build_with_rustkyll(&source, &dest).is_none() {
-        return;
-    }
+    build_with_rustkyll(&source, &dest);
 
     let feed_path = dest.join("feed.xml");
     assert!(feed_path.exists(), "feed.xml should be generated");
@@ -413,9 +405,7 @@ fn test_dtc_feed_vs_jekyll() {
     let rustkyll_dest = tmp.path().join("rustkyll_site");
     let jekyll_dest = tmp.path().join("jekyll_site");
 
-    if build_with_rustkyll(&source, &rustkyll_dest).is_none() {
-        return;
-    }
+    build_with_rustkyll(&source, &rustkyll_dest);
     if build_with_jekyll(&source, &jekyll_dest).is_none() {
         return;
     }
@@ -511,9 +501,7 @@ fn test_kids_podcast_validation() {
     let tmp = tempfile::tempdir().unwrap();
     let dest = tmp.path().join("rustkyll_site");
 
-    if build_with_rustkyll(&source, &dest).is_none() {
-        return;
-    }
+    build_with_rustkyll(&source, &dest);
 
     let podcast_path = dest.join("podcast.xml");
     assert!(
@@ -612,9 +600,7 @@ fn test_kids_podcast_vs_jekyll() {
     let rustkyll_dest = tmp.path().join("rustkyll_site");
     let jekyll_dest = tmp.path().join("jekyll_site");
 
-    if build_with_rustkyll(&source, &rustkyll_dest).is_none() {
-        return;
-    }
+    build_with_rustkyll(&source, &rustkyll_dest);
     if build_with_jekyll(&source, &jekyll_dest).is_none() {
         return;
     }
@@ -668,9 +654,7 @@ fn test_dtc_sitemap_validation() {
     let tmp = tempfile::tempdir().unwrap();
     let dest = tmp.path().join("rustkyll_site");
 
-    if build_with_rustkyll(&source, &dest).is_none() {
-        return;
-    }
+    build_with_rustkyll(&source, &dest);
 
     let sitemap_path = dest.join("sitemap.xml");
     assert!(sitemap_path.exists(), "sitemap.xml should be generated");
@@ -808,9 +792,7 @@ fn test_dtc_sitemap_vs_jekyll() {
     let rustkyll_dest = tmp.path().join("rustkyll_site");
     let jekyll_dest = tmp.path().join("jekyll_site");
 
-    if build_with_rustkyll(&source, &rustkyll_dest).is_none() {
-        return;
-    }
+    build_with_rustkyll(&source, &rustkyll_dest);
     if build_with_jekyll(&source, &jekyll_dest).is_none() {
         return;
     }
@@ -888,9 +870,7 @@ fn test_kids_sitemap_validation() {
     let tmp = tempfile::tempdir().unwrap();
     let dest = tmp.path().join("rustkyll_site");
 
-    if build_with_rustkyll(&source, &dest).is_none() {
-        return;
-    }
+    build_with_rustkyll(&source, &dest);
 
     let sitemap_path = dest.join("sitemap.xml");
     if !sitemap_path.exists() {

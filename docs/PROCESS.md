@@ -167,6 +167,14 @@ What to log:
 
 Why: Without logs, the orchestrator and user have no visibility into what happened. Agents are ephemeral — the issue file is permanent.
 
+### Never Skip Tests
+
+Tests must NEVER silently skip or return early when preconditions are missing. If a test needs source files, a binary, or external data that isn't available, the test must FAIL loudly (assert/panic) — not pass silently. Silent skips hide broken CI setups and missing dependencies.
+
+- Use `assert!(path.exists(), "...")` or `panic!("...")` — never `if !exists { return; }`
+- If tests need specific files, ensure CI clones/generates them
+- `#[ignore]` is not allowed — move slow tests to the `integration_tests/` workspace crate instead
+
 ### No Silent Descoping
 
 PM must NEVER silently drop acceptance criteria. If a requirement from the original issue is too large or out of scope for the current implementation:

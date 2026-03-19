@@ -118,6 +118,7 @@ When the engineer applies fixes:
 - Output doesn't match expected behavior from the original Jekyll site
 - Tests only check compilation without verifying actual output correctness
 - No TDD evidence in the SWE log (tests must be written before implementation)
+- Tests that silently skip when preconditions are missing (`if !exists { return; }` pattern). Tests must assert/panic on missing dependencies, never pass silently. `#[ignore]` is also not allowed -- slow tests go in `integration_tests/` crate.
 
 ### Pass with note (don't block)
 - Minor style issues
