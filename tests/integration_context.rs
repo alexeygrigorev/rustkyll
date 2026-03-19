@@ -51,18 +51,24 @@ fn test_site_context_github_url_resolves() {
     let data = data::DataTree::new();
     let ctx = generator::build_site_context(&CONFIG, &colls, &data, Some(&site_dir()), &[]);
 
-    // DTC config does NOT have jekyll-github-metadata in its plugins list,
-    // so site.github.repository_url should be Nil (not resolved from git remote).
-    // This verifies the gating behavior introduced in issue 229.
+    // repository_url should always be resolved from git remote, even when
+    // jekyll-github-metadata is not in the plugins list. Jekyll on GitHub Pages
+    // auto-injects the plugin, so sites rely on repository_url without listing it.
     let github = ctx.get("github").expect("site should have github");
     if let LiquidValue::Object(github_obj) = github {
         let repo_url = github_obj
             .get("repository_url")
             .expect("should have repository_url");
-        assert_eq!(
+        assert_ne!(
             *repo_url,
             LiquidValue::Nil,
-            "repo URL should be nil when jekyll-github-metadata plugin is not configured"
+            "repo URL should always be resolved from git remote"
+        );
+        // DTC site should resolve to its GitHub repo
+        assert_eq!(
+            *repo_url,
+            LiquidValue::scalar("https://github.com/DataTalksClub/datatalksclub.github.io"),
+            "repo URL should match DTC GitHub repository"
         );
     } else {
         panic!("Expected github to be an object");

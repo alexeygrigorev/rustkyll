@@ -182,17 +182,15 @@ pub fn build_site_context(
         Object::new()
     };
 
-    // repository_url: only resolve from git remote when plugin is active.
-    // If explicit github config provides repository_url, that wins.
+    // repository_url: always resolve from git remote as a fallback.
+    // Jekyll on GitHub Pages auto-injects jekyll-github-metadata, so many sites
+    // use site.github.repository_url without explicitly listing the plugin.
+    // If explicit github config provides repository_url, that wins (already in the map).
     if !github.contains_key("repository_url") {
-        if has_plugin {
-            github.insert(
-                "repository_url".into(),
-                resolve_repository_url(config, site_dir),
-            );
-        } else {
-            github.insert("repository_url".into(), LiquidValue::Nil);
-        }
+        github.insert(
+            "repository_url".into(),
+            resolve_repository_url(config, site_dir),
+        );
     }
 
     // build_revision: populate when plugin is active OR explicit github config exists
@@ -2384,10 +2382,10 @@ mod tests {
     // ========================================================================
 
     #[test]
-    fn test_github_repo_url_nil_without_plugin_and_no_explicit_github_config() {
-        // When jekyll-github-metadata is NOT in plugins and there's no explicit
-        // github: key in _config.yml, site.github.repository_url should be nil
-        // (not resolved from git remote). This matches Jekyll behavior.
+    fn test_github_repo_url_always_resolved_even_without_plugin() {
+        // repository_url should always be resolved from git remote, even without
+        // the jekyll-github-metadata plugin. Jekyll on GitHub Pages auto-injects
+        // the plugin, so sites rely on repository_url without listing it explicitly.
         let config = SiteConfig {
             url: "https://example.com".to_string(),
             name: "Test".to_string(),
@@ -2396,19 +2394,17 @@ mod tests {
         };
         let collections = HashMap::new();
         let data = DataTree::new();
-        // Use site_dir() which IS a git repo -- the test verifies we DON'T
-        // resolve from git remote when the plugin is absent.
+        // Use site_dir() which IS a git repo
         let ctx = build_site_context(&config, &collections, &data, Some(&site_dir()), &[]);
         let github = ctx.get("github").expect("should have github");
         if let LiquidValue::Object(gh) = github {
             let repo_url = gh
                 .get("repository_url")
                 .expect("should have repository_url");
-            assert_eq!(
+            assert_ne!(
                 *repo_url,
                 LiquidValue::Nil,
-                "repository_url should be nil without github-metadata plugin, got: {:?}",
-                repo_url
+                "repository_url should always be resolved from git remote"
             );
         } else {
             panic!("Expected github to be an Object");
@@ -2498,6 +2494,38 @@ mod tests {
             assert!(
                 gh.get("build_revision").is_some(),
                 "Computed build_revision should be merged in"
+            );
+        } else {
+            panic!("Expected github to be an Object");
+        }
+    }
+
+    #[test]
+    fn test_github_repo_url_resolved_without_plugin() {
+        // Even without jekyll-github-metadata plugin in the plugins list,
+        // repository_url should resolve from git remote as a fallback.
+        // Jekyll on GitHub Pages auto-injects jekyll-github-metadata, so
+        // sites like DTC rely on repository_url without explicitly listing the plugin.
+        // No explicit github: key, no plugins: key -- just a bare config.
+        let config = SiteConfig {
+            url: "https://example.com".to_string(),
+            name: "Test".to_string(),
+            title: "Test".to_string(),
+            ..Default::default()
+        };
+        let collections = HashMap::new();
+        let data = DataTree::new();
+        // Use site_dir() which IS a git repo
+        let ctx = build_site_context(&config, &collections, &data, Some(&site_dir()), &[]);
+        let github = ctx.get("github").expect("should have github");
+        if let LiquidValue::Object(gh) = github {
+            let repo_url = gh
+                .get("repository_url")
+                .expect("should have repository_url");
+            assert_ne!(
+                *repo_url,
+                LiquidValue::Nil,
+                "repository_url should always be resolved from git remote, even without plugin"
             );
         } else {
             panic!("Expected github to be an Object");
