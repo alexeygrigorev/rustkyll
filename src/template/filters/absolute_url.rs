@@ -23,6 +23,13 @@ impl Filter for AbsoluteUrlFilter {
     fn evaluate(&self, input: &dyn ValueView, runtime: &dyn Runtime) -> Result<Value> {
         let path = input.to_kstr().to_string();
 
+        // If the input already starts with a protocol scheme, return it unchanged.
+        // This matches Jekyll's behavior where absolute_url is a no-op for
+        // already-absolute URLs (e.g., external nav links).
+        if path.starts_with("http://") || path.starts_with("https://") {
+            return Ok(Value::scalar(path));
+        }
+
         // Get site.url from context
         let site_url = runtime
             .try_get(&[ScalarCow::new("site"), ScalarCow::new("url")])
@@ -77,6 +84,23 @@ impl Filter for AbsoluteUrlFilter {
 mod tests {
     use super::*;
 
+    use liquid::Object;
+    use liquid_core::Value;
+
+    use crate::template::TemplateEngine;
+
+    fn engine() -> TemplateEngine {
+        TemplateEngine::new().unwrap()
+    }
+
+    fn make_ctx(site_url: &str) -> Object {
+        let mut ctx = Object::new();
+        let mut site = Object::new();
+        site.insert("url".into(), Value::scalar(site_url.to_string()));
+        ctx.insert("site".into(), Value::Object(site));
+        ctx
+    }
+
     #[test]
     fn test_no_context_returns_path() {
         let result = liquid_core::call_filter!(AbsoluteUrl, "/about.html").unwrap();
@@ -88,5 +112,51 @@ mod tests {
         let result =
             liquid_core::call_filter!(AbsoluteUrl, "/images/podcast/hybrid search.jpg").unwrap();
         assert_eq!(result.to_kstr(), "/images/podcast/hybrid%20search.jpg");
+    }
+
+    #[test]
+    fn test_absolute_url_skips_https_input() {
+        // When input already starts with https://, absolute_url should return it unchanged
+        // (matching Jekyll behavior). Currently this produces doubled URLs.
+        let eng = engine();
+        let ctx = make_ctx("https://mysite.com");
+        let out = eng
+            .parse_and_render("{{ 'https://example.com/path' | absolute_url }}", &ctx)
+            .unwrap();
+        assert_eq!(
+            out.trim(),
+            "https://example.com/path",
+            "absolute_url should not prepend site.url to already-absolute https URLs"
+        );
+    }
+
+    #[test]
+    fn test_absolute_url_skips_http_input() {
+        // Same for http:// URLs
+        let eng = engine();
+        let ctx = make_ctx("https://mysite.com");
+        let out = eng
+            .parse_and_render("{{ 'http://other.com/' | absolute_url }}", &ctx)
+            .unwrap();
+        assert_eq!(
+            out.trim(),
+            "http://other.com/",
+            "absolute_url should not prepend site.url to already-absolute http URLs"
+        );
+    }
+
+    #[test]
+    fn test_absolute_url_still_prepends_for_relative_paths() {
+        // Relative paths should still get site.url prepended (regression test)
+        let eng = engine();
+        let ctx = make_ctx("https://mysite.com");
+        let out = eng
+            .parse_and_render("{{ '/relative/path' | absolute_url }}", &ctx)
+            .unwrap();
+        assert_eq!(
+            out.trim(),
+            "https://mysite.com/relative/path",
+            "absolute_url should prepend site.url to relative paths"
+        );
     }
 }

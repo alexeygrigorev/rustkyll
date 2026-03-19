@@ -155,6 +155,17 @@ impl Renderable for SeoRenderable {
         // Extract values from context
         // Apply SmartyPants to titles (matching Jekyll's `| smartify` in jekyll-seo-tag)
         let page_title = get_nested_str(runtime, &["page", "title"]).map(|t| smartify(&t));
+
+        // just-the-docs theme behavior: when page has nav_order set, strip leading
+        // "N. " number prefix from the title (e.g., "1. Your First Actions" -> "Your First Actions").
+        // This affects <title>, og:title, twitter:title, and JSON-LD headline.
+        let has_nav_order = get_nested_str(runtime, &["page", "nav_order"]).is_some();
+        let page_title = if has_nav_order {
+            page_title.map(|t| strip_nav_order_prefix(&t))
+        } else {
+            page_title
+        };
+
         let site_title = get_nested_str(runtime, &["site", "title"]).map(|t| smartify(&t));
         let site_tagline = get_nested_str(runtime, &["site", "tagline"]);
         let page_description = get_nested_str(runtime, &["page", "description"]);
@@ -508,6 +519,12 @@ impl Renderable for SeoRenderable {
             ));
         }
 
+        // Sort fields after @context and @type alphabetically (matching Jekyll's
+        // jekyll-seo-tag output which uses alphabetical key ordering).
+        if jsonld_fields.len() > 2 {
+            jsonld_fields[2..].sort();
+        }
+
         output.push_str("<script type=\"application/ld+json\">\n");
         output.push('{');
         output.push_str(&jsonld_fields.join(","));
@@ -519,6 +536,25 @@ impl Renderable for SeoRenderable {
         write!(writer, "{}", output)
             .map_err(|e| liquid_core::Error::with_msg(format!("seo tag write error: {}", e)))?;
         Ok(())
+    }
+}
+
+/// Strip leading "N. " number prefix from a title string.
+/// This matches just-the-docs theme behavior where pages with `nav_order` front matter
+/// have their leading number prefix stripped for SEO purposes.
+/// Pattern: one or more digits followed by a dot and a space.
+fn strip_nav_order_prefix(title: &str) -> String {
+    let bytes = title.as_bytes();
+    let mut i = 0;
+    // Skip leading digits
+    while i < bytes.len() && bytes[i].is_ascii_digit() {
+        i += 1;
+    }
+    // Must have at least one digit, followed by ". "
+    if i > 0 && title[i..].starts_with(". ") {
+        title[i + 2..].to_string()
+    } else {
+        title.to_string()
     }
 }
 
@@ -2227,7 +2263,8 @@ mod tests {
 
     #[test]
     fn test_jsonld_homepage_name_position() {
-        // For homepage, name should appear after @type but before description
+        // For homepage, keys should be in alphabetical order after @context/@type.
+        // With alphabetical ordering: description < headline < name < url
         let eng = engine();
         let ctx = make_context(
             Some("My Site"),
@@ -2248,21 +2285,20 @@ mod tests {
             .expect("should have json-ld");
         let ld_end = out[ld_start..].find("</script>").unwrap() + ld_start;
         let jsonld = &out[ld_start..ld_end];
-        let type_pos = jsonld.find("\"@type\"").expect("should have @type");
-        let name_pos = jsonld.find("\"name\"").expect("homepage should have name");
         let desc_pos = jsonld
             .find("\"description\"")
             .expect("should have description");
+        let name_pos = jsonld.find("\"name\"").expect("homepage should have name");
         assert!(
-            type_pos < name_pos && name_pos < desc_pos,
-            "Field order should be @type < name < description. JSON-LD: {}",
+            desc_pos < name_pos,
+            "In alphabetical order, description should come before name. JSON-LD: {}",
             jsonld
         );
     }
 
     #[test]
     fn test_jsonld_article_date_published_position() {
-        // For article with date, datePublished should come after url
+        // With alphabetical ordering, datePublished should come before url
         let eng = engine();
         let ctx = make_context(
             Some("My Post"),
@@ -2277,11 +2313,14 @@ mod tests {
             None,
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
-        let url_pos = out.find("\"url\"").expect("should have url");
         let date_pos = out
             .find("\"datePublished\"")
             .expect("should have datePublished");
-        assert!(url_pos < date_pos, "url should come before datePublished");
+        let url_pos = out.find("\"url\"").expect("should have url");
+        assert!(
+            date_pos < url_pos,
+            "datePublished should come before url in alphabetical order"
+        );
     }
 
     #[test]
@@ -2956,5 +2995,188 @@ mod tests {
             "Should NOT contain publisher when no site.logo. Got:\n{}",
             out
         );
+    }
+
+    // ========================================================================
+    // Issue 245: SEO title strips leading N. prefix when nav_order is set
+    // ========================================================================
+
+    fn make_context_with_nav_order(
+        page_title: &str,
+        nav_order: Option<i64>,
+        site_title: &str,
+    ) -> Object {
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        let mut site = Object::new();
+
+        page.insert("title".into(), Value::scalar(page_title.to_string()));
+        if let Some(n) = nav_order {
+            page.insert("nav_order".into(), Value::scalar(n));
+        }
+        page.insert("url".into(), Value::scalar("/test/".to_string()));
+        site.insert("title".into(), Value::scalar(site_title.to_string()));
+        site.insert(
+            "url".into(),
+            Value::scalar("https://example.com".to_string()),
+        );
+
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+        ctx
+    }
+
+    #[test]
+    fn test_seo_title_strips_number_prefix_with_nav_order() {
+        // When page has nav_order, leading "N. " should be stripped from title
+        // Matching just-the-docs / Jekyll behavior
+        let eng = engine();
+        let ctx = make_context_with_nav_order("3. My Page Title", Some(2), "My Site");
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<title>My Page Title | My Site</title>"),
+            "Title should strip '3. ' prefix when nav_order is set. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_seo_title_no_strip_without_nav_order() {
+        // When page has NO nav_order, leading "N. " should NOT be stripped
+        let eng = engine();
+        let ctx = make_context_with_nav_order("5. Numbered Title", None, "My Site");
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<title>5. Numbered Title | My Site</title>"),
+            "Title should keep '5. ' prefix when nav_order is NOT set. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_seo_title_no_strip_without_number_prefix() {
+        // Regular title with nav_order set should not be modified
+        let eng = engine();
+        let ctx = make_context_with_nav_order("Regular Title", Some(1), "My Site");
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<title>Regular Title | My Site</title>"),
+            "Title without number prefix should be unchanged. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_seo_og_title_strips_number_prefix_with_nav_order() {
+        // og:title should also have the number prefix stripped
+        let eng = engine();
+        let ctx = make_context_with_nav_order("3. My Page Title", Some(2), "My Site");
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("og:title\" content=\"My Page Title\""),
+            "og:title should strip '3. ' prefix when nav_order is set. Got: {}",
+            out
+        );
+    }
+
+    // ========================================================================
+    // Issue 245: JSON-LD key ordering (alphabetical after @context, @type)
+    // ========================================================================
+
+    #[test]
+    fn test_jsonld_keys_alphabetical_order() {
+        // Jekyll's jekyll-seo-tag outputs JSON-LD keys in alphabetical order
+        // (after @context and @type). Verify that our output does the same.
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Page"),
+            Some("My Site"),
+            Some("A test description"),
+            None,
+            Some("https://example.com"),
+            Some("/my-page"),
+            Some("/images/test.jpg"),
+            Some("2024-01-15"),
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+
+        // Extract JSON-LD block content (between the outermost { })
+        let jsonld_start = out
+            .find("application/ld+json")
+            .expect("should have json-ld");
+        let jsonld_block = &out[jsonld_start..];
+        let brace_start = jsonld_block.find('{').expect("should have opening brace");
+        // Find matching closing brace (track nesting)
+        let inner = &jsonld_block[brace_start + 1..];
+        let mut depth = 1;
+        let mut end_pos = 0;
+        for (i, ch) in inner.char_indices() {
+            match ch {
+                '{' => depth += 1,
+                '}' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        end_pos = i;
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+        let jsonld_inner = &inner[..end_pos];
+
+        // Extract top-level keys by splitting on comma at depth 0
+        let mut keys: Vec<String> = Vec::new();
+        let mut depth = 0i32;
+        let mut field_start = 0;
+        for (i, ch) in jsonld_inner.char_indices() {
+            match ch {
+                '{' => depth += 1,
+                '}' => depth -= 1,
+                ',' if depth == 0 => {
+                    let field = jsonld_inner[field_start..i].trim();
+                    if let Some(key) = extract_json_key(field) {
+                        keys.push(key);
+                    }
+                    field_start = i + 1;
+                }
+                _ => {}
+            }
+        }
+        // Last field
+        let last_field = jsonld_inner[field_start..].trim();
+        if let Some(key) = extract_json_key(last_field) {
+            keys.push(key);
+        }
+
+        // First two must be @context and @type
+        assert_eq!(keys[0], "@context", "First key must be @context");
+        assert_eq!(keys[1], "@type", "Second key must be @type");
+
+        // Remaining keys should be in alphabetical order
+        let rest = &keys[2..];
+        for i in 1..rest.len() {
+            assert!(
+                rest[i - 1] <= rest[i],
+                "JSON-LD keys should be in alphabetical order after @context/@type, \
+                 but '{}' comes before '{}'. All keys: {:?}",
+                rest[i - 1],
+                rest[i],
+                keys
+            );
+        }
+    }
+
+    /// Helper to extract a JSON key from a "key":value field string
+    fn extract_json_key(field: &str) -> Option<String> {
+        let field = field.trim();
+        if field.starts_with('"') {
+            let end = field[1..].find('"')?;
+            Some(field[1..1 + end].to_string())
+        } else {
+            None
+        }
     }
 }
