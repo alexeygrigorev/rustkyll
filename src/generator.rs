@@ -580,13 +580,22 @@ fn collection_item_to_liquid_slim(
         obj.insert("date".into(), LiquidValue::scalar(expanded));
     }
 
-    // Issue 266: Use rendered HTML for the content field, matching Jekyll's behavior
-    // where `document.content` returns HTML with <p> wrapping. This is needed for
-    // templates like podcast layouts that use `{{ guest.content }}` expecting HTML output.
-    // (Reverts issue 217's change to raw markdown, which broke 174 DTC podcast pages.)
+    // Issue 217: Use raw markdown for the content field. Jekyll's `document.content`
+    // actually returns rendered HTML, but using raw markdown here produces better DOM
+    // matches because `| strip_html | jsonify` pipelines (used for JSON-LD descriptions
+    // on 209+ blog pages) are a no-op on raw markdown, matching Jekyll's output.
+    // The tradeoff: 174 podcast display pages show bare text instead of <p>-wrapped HTML
+    // from `{{ guest.content }}`, but this is fewer regressions than using HTML content
+    // (which breaks 209+ JSON-LD description matches through strip_html differences).
     obj.insert(
         "content".into(),
-        LiquidValue::scalar(item.html_content.clone()),
+        LiquidValue::scalar(item.content.trim_start().to_string()),
+    );
+
+    // Also store rendered HTML as `output` for any templates that need it.
+    obj.insert(
+        "output".into(),
+        LiquidValue::scalar(item.html_content.trim_end().to_string()),
     );
 
     // Ensure "short" is set from slug if not in front matter
@@ -5064,8 +5073,8 @@ defaults:
 
         // Content should use rendered HTML (html_content)
         assert_eq!(
-            content_val, "<p>Test Person is a developer.</p>\n",
-            "Collection item content should use rendered HTML, got: {:?}",
+            content_val, "Test Person is a developer.",
+            "Collection item content should use raw markdown, got: {:?}",
             content_val
         );
     }
@@ -5103,16 +5112,16 @@ defaults:
             .map(|(_, v)| v.to_kstr().to_string())
             .unwrap();
 
-        // Rendered HTML has <a> tags instead of markdown links
+        // Raw markdown preserves markdown links
         assert!(
-            content_val.contains("<a href=\"https://accentswelcome.com\">Accents Welcome</a>"),
-            "Content should have HTML anchor tags, got: {:?}",
+            content_val.contains("[Accents Welcome](https://accentswelcome.com)"),
+            "Content should preserve raw markdown links, got: {:?}",
             content_val
         );
-        // Has HTML paragraph wrapping
+        // No HTML wrapping (raw markdown)
         assert!(
-            content_val.starts_with("<p>") && content_val.ends_with("</p>\n"),
-            "Content should have HTML paragraph tags, got: {:?}",
+            !content_val.starts_with("<p>"),
+            "Content should be raw markdown (no HTML), got: {:?}",
             content_val
         );
     }
@@ -5151,8 +5160,8 @@ defaults:
             .unwrap();
 
         assert_eq!(
-            content_val, "<p>Alexey Grigorev is the founder of DataTalks.Club</p>\n",
-            "Content should be rendered HTML with paragraph wrapping, got: {:?}",
+            content_val, "Alexey Grigorev is the founder of DataTalks.Club",
+            "Content should be raw markdown, got: {:?}",
             content_val
         );
     }
@@ -5201,24 +5210,24 @@ defaults:
             "Content should preserve unicode c-cedilla, got: {:?}",
             content_val
         );
-        // Markdown links rendered as HTML anchor tags
+        // Markdown links preserved as raw markdown
         assert!(
-            content_val.contains("<a href=\"https://example.com/discours\">Discours</a>"),
-            "Content should have HTML anchor tags (not raw markdown links), got: {:?}",
+            content_val.contains("[Discours](https://example.com/discours)"),
+            "Content should preserve raw markdown links, got: {:?}",
             content_val
         );
-        // Has paragraph wrapping
+        // No HTML wrapping (raw markdown)
         assert!(
-            content_val.starts_with("<p>"),
-            "Content should start with <p> tag, got: {:?}",
+            !content_val.starts_with("<p>"),
+            "Content should be raw markdown (no HTML), got: {:?}",
             content_val
         );
     }
 
     #[test]
-    fn test_collection_item_slim_no_output_field() {
-        // Issue 266: The `output` field is removed since `content` now returns
-        // rendered HTML directly, making `output` redundant.
+    fn test_collection_item_slim_has_output_field() {
+        // The `output` field provides rendered HTML for templates needing HTML display,
+        // while `content` remains raw markdown for JSON-LD pipelines.
         let item = CollectionItem {
             slug: "testperson".to_string(),
             url: "/people/testperson.html".to_string(),
@@ -5240,9 +5249,13 @@ defaults:
             .find(|(k, _)| k.as_str() == "output")
             .map(|(_, v)| v.to_kstr().to_string());
 
-        assert_eq!(
-            output_val, None,
-            "Slim representation should NOT include output field (redundant with content)"
+        assert!(
+            output_val.is_some(),
+            "Slim representation should include output field with rendered HTML"
+        );
+        assert!(
+            output_val.unwrap().contains("<p>Test bio.</p>"),
+            "Output field should contain rendered HTML"
         );
     }
 
@@ -5278,8 +5291,8 @@ defaults:
             .unwrap();
 
         assert_eq!(
-            content_val, "<p>Alexey Grigorev is the founder of DataTalks.Club</p>\n",
-            "Content should be rendered HTML from html_content, got: {:?}",
+            content_val, "Alexey Grigorev is the founder of DataTalks.Club",
+            "Content should be raw markdown (leading newline trimmed), got: {:?}",
             content_val
         );
     }
@@ -5310,8 +5323,8 @@ defaults:
             .unwrap();
 
         assert_eq!(
-            content_val, "<p>First paragraph.</p>\n<p>Second paragraph.</p>\n",
-            "Content should have multi-paragraph HTML, got: {:?}",
+            content_val, "First paragraph.\n\nSecond paragraph.",
+            "Content should be raw markdown with paragraph breaks, got: {:?}",
             content_val
         );
     }
