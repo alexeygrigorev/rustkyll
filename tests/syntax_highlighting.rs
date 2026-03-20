@@ -74,10 +74,10 @@ fn test_js_theme_code_exact() {
         "JS property 'i18n' should be 'nx'. Got: {}",
         html
     );
-    // require should be wrapped in nx span
+    // require should be wrapped in nf span (function call, issue 249)
     assert!(
-        html.contains("<span class=\"nx\">require</span>"),
-        "JS function call 'require' should be 'nx'. Got: {}",
+        html.contains("<span class=\"nf\">require</span>"),
+        "JS function call 'require' should be 'nf'. Got: {}",
         html
     );
 }
@@ -90,6 +90,188 @@ fn test_js_equals_is_o() {
     assert!(
         html.contains("<span class=\"o\">=</span>"),
         "JS '=' should be classified as 'o' (operator). Got: {}",
+        html
+    );
+}
+
+// ── JavaScript: Issue 249 - nf vs nx and string delimiter splitting ──
+
+#[test]
+fn test_js_function_declaration_name_is_nf() {
+    // Rouge classifies function declaration names as `nf` (name.function).
+    let code = "function lang(l) { return true; }\n";
+    let html = highlight_code("javascript", code).unwrap();
+    assert!(
+        html.contains("<span class=\"nf\">lang</span>"),
+        "JS function declaration name 'lang' should be 'nf' (name.function). Got: {}",
+        html
+    );
+}
+
+#[test]
+fn test_js_function_call_is_nf() {
+    // Rouge classifies function calls as `nf` (name.function).
+    let code = "require('./lang/' + l)\n";
+    let html = highlight_code("javascript", code).unwrap();
+    assert!(
+        html.contains("<span class=\"nf\">require</span>"),
+        "JS function call 'require' should be 'nf' (name.function). Got: {}",
+        html
+    );
+}
+
+#[test]
+fn test_js_plain_identifiers_remain_nx() {
+    // Plain identifiers (not function declarations/calls) should remain nx.
+    let code = "var fun = function lang(l) {\n  dateformat.i18n = require('./lang/' + l)\n  return true;\n}\n";
+    let html = highlight_code("javascript", code).unwrap();
+    assert!(
+        html.contains("<span class=\"nx\">fun</span>"),
+        "JS identifier 'fun' should be 'nx'. Got: {}",
+        html
+    );
+    assert!(
+        html.contains("<span class=\"nx\">dateformat</span>"),
+        "JS identifier 'dateformat' should be 'nx'. Got: {}",
+        html
+    );
+    assert!(
+        html.contains("<span class=\"nx\">i18n</span>"),
+        "JS identifier 'i18n' should be 'nx'. Got: {}",
+        html
+    );
+}
+
+#[test]
+fn test_js_single_quoted_string_split_dl() {
+    // Rouge splits single-quoted JS strings into dl + s1 + dl.
+    let code = "var x = './lang/' + l\n";
+    let html = highlight_code("javascript", code).unwrap();
+    assert!(
+        html.contains("<span class=\"dl\">'</span><span class=\"s1\">./lang/</span><span class=\"dl\">'</span>"),
+        "JS single-quoted string should be split into dl + s1 + dl. Got: {}",
+        html
+    );
+}
+
+#[test]
+fn test_js_double_quoted_string_split_dl() {
+    // Rouge splits double-quoted JS strings into dl + s2 + dl.
+    let code = "var x = \"hello\"\n";
+    let html = highlight_code("javascript", code).unwrap();
+    assert!(
+        html.contains("<span class=\"dl\">\"</span><span class=\"s2\">hello</span><span class=\"dl\">\"</span>"),
+        "JS double-quoted string should be split into dl + s2 + dl. Got: {}",
+        html
+    );
+}
+
+#[test]
+fn test_json_strings_no_dl_split() {
+    // JSON strings should NOT be split into dl tokens.
+    let code = "{\"key\": \"value\"}\n";
+    let html = highlight_code("json", code).unwrap();
+    assert!(
+        !html.contains("class=\"dl\""),
+        "JSON strings should NOT contain 'dl' class. Got: {}",
+        html
+    );
+}
+
+#[test]
+fn test_python_strings_no_dl_split() {
+    // Python strings should NOT be split into dl tokens.
+    let code = "x = 'hello'\n";
+    let html = highlight_code("python", code).unwrap();
+    assert!(
+        !html.contains("class=\"dl\""),
+        "Python strings should NOT contain 'dl' class. Got: {}",
+        html
+    );
+}
+
+#[test]
+fn test_ruby_string_split_dl() {
+    // Rouge splits Ruby single-quoted strings into dl + s1 + dl too.
+    let code = "puts 'hello'\n";
+    let html = highlight_code("ruby", code).unwrap();
+    assert!(
+        html.contains(
+            "<span class=\"dl\">'</span><span class=\"s1\">hello</span><span class=\"dl\">'</span>"
+        ),
+        "Ruby single-quoted string should be split into dl + s1 + dl. Got: {}",
+        html
+    );
+}
+
+#[test]
+fn test_js_theme_code_block_full_match() {
+    // Integration test: the exact theme site JS code block with full token verification.
+    let code = "// Javascript code with syntax highlighting.\nvar fun = function lang(l) {\n  dateformat.i18n = require('./lang/' + l)\n  return true;\n}\n";
+    let html = highlight_code("javascript", code).unwrap();
+    // var -> kd
+    assert!(
+        html.contains("<span class=\"kd\">var</span>"),
+        "var should be kd. Got: {}",
+        html
+    );
+    // fun -> nx
+    assert!(
+        html.contains("<span class=\"nx\">fun</span>"),
+        "fun should be nx. Got: {}",
+        html
+    );
+    // function -> kd
+    assert!(
+        html.contains("<span class=\"kd\">function</span>"),
+        "function should be kd. Got: {}",
+        html
+    );
+    // lang -> nf
+    assert!(
+        html.contains("<span class=\"nf\">lang</span>"),
+        "lang should be nf. Got: {}",
+        html
+    );
+    // l -> nx (parameter)
+    assert!(
+        html.contains("<span class=\"nx\">l</span>"),
+        "l should be nx. Got: {}",
+        html
+    );
+    // String './lang/' -> dl + s1 + dl
+    assert!(
+        html.contains("<span class=\"dl\">'</span><span class=\"s1\">./lang/</span><span class=\"dl\">'</span>"),
+        "String should be split into dl+s1+dl. Got: {}", html
+    );
+    // require -> nf
+    assert!(
+        html.contains("<span class=\"nf\">require</span>"),
+        "require should be nf. Got: {}",
+        html
+    );
+    // return -> k
+    assert!(
+        html.contains("<span class=\"k\">return</span>"),
+        "return should be k. Got: {}",
+        html
+    );
+    // true -> kc
+    assert!(
+        html.contains("<span class=\"kc\">true</span>"),
+        "true should be kc. Got: {}",
+        html
+    );
+}
+
+#[test]
+fn test_js_unicode_string_dl_split() {
+    // Unicode content in JS string should be correctly split with dl delimiters.
+    let code = "var x = 'caf\u{00E9}'\n";
+    let html = highlight_code("javascript", code).unwrap();
+    assert!(
+        html.contains("<span class=\"dl\">'</span><span class=\"s1\">caf\u{00E9}</span><span class=\"dl\">'</span>"),
+        "JS Unicode string should be split into dl + s1 + dl. Got: {}",
         html
     );
 }

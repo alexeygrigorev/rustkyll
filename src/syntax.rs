@@ -57,10 +57,9 @@ fn build_scope_map() -> Vec<ScopeMapping> {
         // Syntect uses entity.name.function (-> nf), variable.other (-> n),
         // variable.parameter (-> n), variable.function (no match), and
         // meta.property.object (no match). Override all to `nx` for JS.
-        ("source.js entity.name.function", "nx"),
         ("source.js variable.parameter", "nx"),
         ("source.js variable.other", "nx"),
-        ("source.js variable.function", "nx"),
+        ("source.js variable.function", "nf"),
         ("source.js meta.property.object", "nx"),
         // SQL: Rouge treats aggregate/builtin functions (COUNT, SUM, etc.) as keywords (k),
         // not builtins (nb). Override the generic support.function -> nb mapping.
@@ -368,6 +367,13 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
     // + `p` (>). Merge them to match Rouge output.
     if is_xml_like_language(lang) {
         html = postprocess_xml_tag_tokens(&html);
+    }
+
+    // JS/Ruby post-processing: Rouge splits quoted strings into
+    // dl (delimiter) + s1/s2 (content) + dl (delimiter).
+    // Syntect emits the whole quoted string as a single s1/s2 span.
+    if is_dl_split_language(lang) {
+        html = postprocess_string_delimiter_split(&html);
     }
 
     Some(html)
@@ -920,6 +926,100 @@ fn postprocess_xml_tag_tokens(html: &str) -> String {
     // Also normalize string class for XML/HTML attributes:
     // Syntect uses s2 for double-quoted strings, Rouge uses plain s
     result = result.replace("class=\"s2\"", "class=\"s\"");
+
+    result
+}
+
+/// Check if a language uses `dl` (delimiter) splitting for string literals in Rouge.
+/// JavaScript and Ruby split quoted strings into dl + s1/s2 + dl.
+/// JSON, Python, and most other languages do NOT.
+fn is_dl_split_language(lang: &str) -> bool {
+    matches!(lang, "javascript" | "js" | "ruby" | "rb")
+}
+
+/// Post-process highlighted HTML to split quoted string spans into
+/// dl (delimiter) + s1/s2 (content) + dl (delimiter), matching Rouge behavior.
+///
+/// Transforms:
+///   `<span class="s1">'content'</span>` -> `<span class="dl">'</span><span class="s1">content</span><span class="dl">'</span>`
+///   `<span class="s2">"content"</span>` -> `<span class="dl">"</span><span class="s2">content</span><span class="dl">"</span>`
+fn postprocess_string_delimiter_split(html: &str) -> String {
+    let mut result = String::with_capacity(html.len() + html.len() / 8);
+    let mut remaining = html;
+
+    while !remaining.is_empty() {
+        // Look for <span class="s1"> or <span class="s2">
+        let s1_pos = remaining.find("<span class=\"s1\">");
+        let s2_pos = remaining.find("<span class=\"s2\">");
+
+        let (pos, class_tag, string_class) = match (s1_pos, s2_pos) {
+            (Some(a), Some(b)) => {
+                if a < b {
+                    (a, "<span class=\"s1\">", "s1")
+                } else {
+                    (b, "<span class=\"s2\">", "s2")
+                }
+            }
+            (Some(a), None) => (a, "<span class=\"s1\">", "s1"),
+            (None, Some(b)) => (b, "<span class=\"s2\">", "s2"),
+            (None, None) => {
+                result.push_str(remaining);
+                break;
+            }
+        };
+
+        // Copy everything before this span
+        result.push_str(&remaining[..pos]);
+        let after_open = &remaining[pos + class_tag.len()..];
+
+        // Find the closing </span>
+        if let Some(close_pos) = after_open.find("</span>") {
+            let content = &after_open[..close_pos];
+            let after_span = &after_open[close_pos + "</span>".len()..];
+
+            // Check if content starts and ends with matching quote
+            let bytes = content.as_bytes();
+            if bytes.len() >= 2 {
+                let first = bytes[0];
+                let last = bytes[bytes.len() - 1];
+                let is_single = first == b'\'' && last == b'\'';
+                let is_double = first == b'"' && last == b'"';
+
+                if is_single || is_double {
+                    let quote = if is_single { "'" } else { "\"" };
+                    let inner = &content[1..content.len() - 1];
+
+                    // Emit: <span class="dl">QUOTE</span><span class="s1/s2">INNER</span><span class="dl">QUOTE</span>
+                    result.push_str("<span class=\"dl\">");
+                    result.push_str(quote);
+                    result.push_str("</span>");
+                    if !inner.is_empty() {
+                        result.push_str("<span class=\"");
+                        result.push_str(string_class);
+                        result.push_str("\">");
+                        result.push_str(inner);
+                        result.push_str("</span>");
+                    }
+                    result.push_str("<span class=\"dl\">");
+                    result.push_str(quote);
+                    result.push_str("</span>");
+                    remaining = after_span;
+                    continue;
+                }
+            }
+
+            // Not a complete quoted string -- emit as-is
+            result.push_str(class_tag);
+            result.push_str(content);
+            result.push_str("</span>");
+            remaining = after_span;
+        } else {
+            // No closing </span> -- copy rest
+            result.push_str(class_tag);
+            result.push_str(after_open);
+            break;
+        }
+    }
 
     result
 }
