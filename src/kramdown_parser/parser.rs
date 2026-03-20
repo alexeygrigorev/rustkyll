@@ -181,6 +181,7 @@ fn parse_blocks_list_context(
 
 /// Parse a paragraph inside a list item context.
 /// Unlike normal paragraphs, these break on list markers.
+#[allow(dead_code)]
 fn parse_paragraph_in_list_context(
     lines: &[&str],
     pos: &mut usize,
@@ -224,15 +225,14 @@ fn parse_paragraph_in_list_context(
         // Break on block-level elements (including list markers)
         // Note: indented code lines do NOT break paragraphs in list context;
         // code blocks only start after a blank line.
-        if !para_lines.is_empty() {
-            if try_parse_atx_header(line, options).is_some()
+        if !para_lines.is_empty()
+            && (try_parse_atx_header(line, options).is_some()
                 || (is_horizontal_rule(line) && !is_setext_underline(line))
                 || is_list_start(line)
                 || is_blockquote_line(line)
-                || try_parse_fenced_code(lines, *pos).is_some()
-            {
-                break;
-            }
+                || try_parse_fenced_code(lines, *pos).is_some())
+        {
+            break;
         }
 
         para_lines.push(line);
@@ -303,15 +303,14 @@ fn parse_paragraph_in_list_context_with_lazy(
         }
 
         // Break on block-level elements (including list markers)
-        if !para_lines.is_empty() {
-            if try_parse_atx_header(line, options).is_some()
+        if !para_lines.is_empty()
+            && (try_parse_atx_header(line, options).is_some()
                 || (is_horizontal_rule(line) && !is_setext_underline(line))
                 || is_list_start(line)
                 || is_blockquote_line(line)
-                || try_parse_fenced_code(lines, *pos).is_some()
-            {
-                break;
-            }
+                || try_parse_fenced_code(lines, *pos).is_some())
+        {
+            break;
         }
 
         para_lines.push(line);
@@ -1169,11 +1168,11 @@ fn try_parse_separator_line(line: &str) -> Option<SeparatorLine> {
     let kind;
     let work;
 
-    if trimmed.starts_with('+') {
+    if let Some(rest) = trimmed.strip_prefix('+') {
         // Body separator: `+ :-: |`
         kind = SeparatorKind::Body;
         // Strip leading `+` and treat rest as separator content
-        work = trimmed[1..].to_string();
+        work = rest.to_string();
     } else {
         // Could be header or footer -- determine by the fill char
         // Strip leading/trailing pipes
@@ -1263,11 +1262,7 @@ fn split_table_cells(line: &str) -> Vec<String> {
     let trimmed = line.trim_end();
 
     // Strip leading pipe if present
-    let work = if trimmed.starts_with('|') {
-        &trimmed[1..]
-    } else {
-        trimmed
-    };
+    let work = trimmed.strip_prefix('|').unwrap_or(trimmed);
 
     // Strip trailing pipe if present (but not escaped)
     let work = if work.ends_with('|') && !work.ends_with("\\|") {
@@ -1303,8 +1298,8 @@ fn split_table_cells(line: &str) -> Vec<String> {
                 in_backtick = false;
                 continue;
             }
-            for j in start..i {
-                current.push(chars[j]);
+            for ch in &chars[start..i] {
+                current.push(*ch);
             }
             if i < chars.len() {
                 current.push(chars[i]);
@@ -1845,7 +1840,7 @@ fn detect_list_marker(line: &str) -> Option<ListMarkerInfo> {
 
         // Count spaces after marker
         let after_marker_str = &rest[1..];
-        let content_str = after_marker_str.trim_start_matches(|c: char| c == ' ' || c == '\t');
+        let content_str = after_marker_str.trim_start_matches([' ', '\t']);
         let space_after = after_marker_str.len() - content_str.len();
 
         return Some(ListMarkerInfo {
@@ -1884,7 +1879,7 @@ fn detect_list_marker(line: &str) -> Option<ListMarkerInfo> {
             return None; // e.g. "1984.5" is not a list
         }
 
-        let content_str = after_dot.trim_start_matches(|c: char| c == ' ' || c == '\t');
+        let content_str = after_dot.trim_start_matches([' ', '\t']);
         let space_after = after_dot.len() - content_str.len();
 
         return Some(ListMarkerInfo {
@@ -2011,8 +2006,8 @@ fn parse_list_with_lazy(
             }
 
             // If next line is indented content belonging to current item
-            if !raw_items.is_empty() {
-                let current_indent = raw_items.last().unwrap().content_indent;
+            if let Some(last_item) = raw_items.last() {
+                let current_indent = last_item.content_indent;
                 let next_expanded = expand_tabs_line(next_line);
                 let next_indent = next_expanded.len() - next_expanded.trim_start().len();
                 if next_indent >= current_indent {
@@ -2098,7 +2093,8 @@ fn parse_list_with_lazy(
         let expanded = expand_tabs_line(line);
         let indent = expanded.len() - expanded.trim_start().len();
 
-        if indent >= raw_items.last().unwrap().content_indent {
+        let current_content_indent = raw_items.last().map_or(0, |item| item.content_indent);
+        if indent >= current_content_indent {
             if let Some(item) = raw_items.last_mut() {
                 // Check if the stripped content looks like a list start
                 // (to track nested_list_found for lazy line padding)
@@ -2341,11 +2337,7 @@ fn strip_n_spaces(line: &str, n: usize) -> String {
         }
         idx = i + 1;
     }
-    if stripped >= n {
-        line[idx..].to_string()
-    } else {
-        line[idx..].to_string()
-    }
+    line[idx..].to_string()
 }
 
 /// Try to extract IAL from the start of a list item's first line.

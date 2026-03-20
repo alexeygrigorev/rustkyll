@@ -186,8 +186,8 @@ fn process_paragraph_text(text: &str, _options: &Options) -> String {
             }
             if !found {
                 // No closing backticks - output as literal
-                for j in bt_start..content_start {
-                    result.push(chars[j]);
+                for ch in &chars[bt_start..content_start] {
+                    result.push(*ch);
                 }
                 i = content_start;
             }
@@ -567,7 +567,7 @@ fn process_table_cell_content(text: &str) -> String {
         // Backtick code span
         if chars[i] == '`' {
             let mut bt = 0;
-            let start = i;
+            let _start = i;
             while i < chars.len() && chars[i] == '`' {
                 bt += 1;
                 i += 1;

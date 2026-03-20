@@ -11,9 +11,10 @@ use std::collections::HashMap;
 use std::path::Path;
 
 /// How HTML entities should be output.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum EntityOutput {
     /// Output as actual characters (e.g., &amp; -> &)
+    #[default]
     AsChar,
     /// Output as the original input form
     AsInput,
@@ -21,12 +22,6 @@ pub enum EntityOutput {
     Symbolic,
     /// Output as numeric entities (e.g., &#38;)
     Numeric,
-}
-
-impl Default for EntityOutput {
-    fn default() -> Self {
-        Self::AsChar
-    }
 }
 
 /// Syntax highlighter options (block/span sub-keys and other settings).

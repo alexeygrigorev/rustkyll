@@ -20,7 +20,6 @@ use rayon::prelude::*;
 use crate::collection::{CollectionItem, Page};
 use crate::config::SiteConfig;
 use crate::data::DataTree;
-use crate::jsonld;
 use crate::template::context::{normalize_arrays, normalize_frontmatter_date, yaml_to_liquid};
 use crate::template::engine::CachedSiteContext;
 use crate::template::layout::LayoutEngine;
@@ -1140,7 +1139,7 @@ pub fn generate_collection_pages_cached_with_progress(
     layout_engine: &LayoutEngine,
     cached_site: &CachedSiteContext,
     output_dir: &Path,
-    author_items: &[CollectionItem],
+    _author_items: &[CollectionItem],
     progress: Option<&RenderProgress>,
 ) -> Result<GenerationResult, GeneratorError> {
     let collection_out_dir = output_dir.join(collection_type);
@@ -1337,24 +1336,7 @@ pub fn generate_collection_pages_cached_with_progress(
                 )
             };
 
-            match render_result {
-                Ok(html) => {
-                    // Post-process: inject JSON-LD structured data if applicable.
-                    // Only book pages get JSON-LD; skip the clone for other layouts.
-                    if layout == "book" {
-                        Ok(jsonld::inject_jsonld(
-                            &html,
-                            layout,
-                            &page_fm,
-                            config,
-                            author_items,
-                        ))
-                    } else {
-                        Ok(html)
-                    }
-                }
-                Err(e) => Err(e),
-            }
+            render_result
         } else {
             // No layout: output just the rendered HTML content (matches Jekyll behavior).
             // If the body is empty, output a newline -- Jekyll never produces 0-byte files
