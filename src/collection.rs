@@ -149,7 +149,7 @@ pub fn page_url_suffix(permalink_style: &str) -> &'static str {
 
 /// Generate a URL from a permalink pattern by substituting all Jekyll permalink variables.
 ///
-/// Supports `:collection`, `:title`, `:slug`, `:year`, `:month`, `:day`,
+/// Supports `:collection`, `:name`, `:title`, `:slug`, `:year`, `:month`, `:day`,
 /// `:short_year`, `:i_month`, `:i_day`, `:categories`, and `:path`.
 ///
 /// Named styles (`date`, `pretty`, `ordinal`, `none`) are expanded first.
@@ -194,6 +194,7 @@ pub fn generate_url_with_context(pattern: &str, ctx: &PermalinkContext) -> Strin
 
     let mut url = expanded
         .replace(":collection", &ctx.collection)
+        .replace(":name", &ctx.title)
         .replace(":slug", &ctx.title)
         .replace(":title", &ctx.title)
         .replace(":short_year", short_year)
@@ -1328,6 +1329,68 @@ mod tests {
         };
         let url = generate_url_with_context("/:path/", &ctx);
         assert_eq!(url, "/2021-03-15-my-post/");
+    }
+
+    // ========================================================================
+    // Unit: :name placeholder (Issue 254)
+    // ========================================================================
+
+    #[test]
+    fn test_name_placeholder_basic() {
+        let ctx = PermalinkContext {
+            collection: "introduction".to_string(),
+            title: "getting-started".to_string(),
+            ..Default::default()
+        };
+        let url = generate_url_with_context("/:name/", &ctx);
+        assert_eq!(url, "/getting-started/");
+    }
+
+    #[test]
+    fn test_name_placeholder_with_collection() {
+        let ctx = PermalinkContext {
+            collection: "introduction".to_string(),
+            title: "overview".to_string(),
+            ..Default::default()
+        };
+        let url = generate_url_with_context("/:collection/:name/", &ctx);
+        assert_eq!(url, "/introduction/overview/");
+    }
+
+    #[test]
+    fn test_name_placeholder_with_html_suffix() {
+        let ctx = PermalinkContext {
+            collection: "pages".to_string(),
+            title: "my-page".to_string(),
+            ..Default::default()
+        };
+        let url = generate_url_with_context("/:name.html", &ctx);
+        assert_eq!(url, "/my-page.html");
+    }
+
+    #[test]
+    fn test_name_placeholder_equivalence_with_title() {
+        let ctx = PermalinkContext {
+            collection: "docs".to_string(),
+            title: "some-document".to_string(),
+            date: Some("2024-06-15".to_string()),
+            ..Default::default()
+        };
+        let name_url = generate_url_with_context("/:name/", &ctx);
+        let title_url = generate_url_with_context("/:title/", &ctx);
+        assert_eq!(name_url, title_url);
+    }
+
+    #[test]
+    fn test_name_placeholder_with_date() {
+        let ctx = PermalinkContext {
+            collection: "posts".to_string(),
+            title: "my-post".to_string(),
+            date: Some("2024-01-15".to_string()),
+            ..Default::default()
+        };
+        let url = generate_url_with_context("/:year/:name/", &ctx);
+        assert_eq!(url, "/2024/my-post/");
     }
 
     // ========================================================================
