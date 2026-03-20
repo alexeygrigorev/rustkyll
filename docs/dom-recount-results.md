@@ -1,6 +1,6 @@
 # DOM Comparison Results
 
-Generated: 2026-03-19 10:37 UTC
+Generated: 2026-03-20 16:57 UTC
 
 rustkyll version: rustkyll 0.2.3
 
@@ -12,29 +12,44 @@ rustkyll version: rustkyll 0.2.3
 
 # Recount a single site
 ./scripts/recount-all-dom.sh --site DataTalksClub/datatalksclub.github.io
+
+# Force Jekyll rebuild (clear cache)
+./scripts/recount-all-dom.sh --no-cache
 ```
 
 Prerequisites: Jekyll (via Ruby/Bundler), rustkyll (built via `cargo build --release`), and `uv` (for running dom_compare.py with its beautifulsoup4 dependency).
 
 The script builds both Jekyll and rustkyll for each site, runs DOM comparison via `scripts/dom_compare.py`, and writes results here. Per-site diff details are saved in `docs/comparison/dom-details/`.
 
+Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site directory. Only rustkyll output is rebuilt each time. Use `--no-cache` to force a Jekyll rebuild.
+
 ## All Sites
 
 | Site | DOM Match | File Match | Liquid Leaks |
 |------|-----------|------------|-------------|
-| alexeygrigorev/little-book-of-metals-ru | 38/43 (88%) | 43/48 | 0 |
+| DataTalksClub/datatalksclub.github.io | 538/787 (68%) | 787/787 | 1 |
 
 ## Summary
 
 - Sites compared: 1
-- Total DOM matches: 38 / 43
+- Total DOM matches: 538 / 787
 
 ## Diff Categories by Site
 
-### alexeygrigorev/little-book-of-metals-ru
+### DataTalksClub/datatalksclub.github.io
 
 ```
-      5 missing_element
+    604 jsonld_value_differs
+    326 missing_element
+    192 expected_element_got_text
+     53 text_differs
+     43 tag_name_differs
+     43 attribute_differs
+     39 extra_element
+     22 missing_text
+     16 extra_text
+     13 expected_text_got_element
+      8 missing_attribute
 ```
 
 
