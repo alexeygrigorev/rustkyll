@@ -708,8 +708,8 @@ fn build_categories_and_tags(
     collections: &HashMap<String, Vec<CollectionItem>>,
     site_tz: Option<chrono_tz::Tz>,
 ) -> (LiquidValue, LiquidValue) {
-    let mut categories: HashMap<String, Vec<LiquidValue>> = HashMap::new();
-    let mut tags: HashMap<String, Vec<LiquidValue>> = HashMap::new();
+    let mut categories: indexmap::IndexMap<String, Vec<LiquidValue>> = indexmap::IndexMap::new();
+    let mut tags: indexmap::IndexMap<String, Vec<LiquidValue>> = indexmap::IndexMap::new();
 
     if let Some(posts) = collections.get("posts") {
         for post in posts {
@@ -6916,5 +6916,303 @@ defaults:
             date_entry.is_none(),
             "No date field should be present when item.date is None"
         );
+    }
+
+    #[test]
+    fn test_categories_first_encounter_order() {
+        // Jekyll preserves insertion order (first-encounter order by date ascending).
+        // Categories should appear in the order they are first seen, NOT alphabetical.
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+
+        // Create posts with dates so that categories appear in order: zebra, apple, middle
+        let make_fm = |title: &str, cat: &str| {
+            let mut fm = HashMap::new();
+            fm.insert(
+                "title".to_string(),
+                serde_yaml::Value::String(title.to_string()),
+            );
+            fm.insert(
+                "categories".to_string(),
+                serde_yaml::Value::Sequence(vec![serde_yaml::Value::String(cat.to_string())]),
+            );
+            fm
+        };
+
+        let posts = vec![
+            CollectionItem {
+                slug: "post1".to_string(),
+                front_matter: make_fm("Post 1", "zebra"),
+                content: String::new(),
+                html_content: String::new(),
+                excerpt: None,
+                url: "/blog/post1.html".to_string(),
+                date: Some("2020-01-01".to_string()),
+                collection_name: "posts".to_string(),
+                source_path: "_posts/2020-01-01-post1.md".to_string(),
+                id: String::new(),
+            },
+            CollectionItem {
+                slug: "post2".to_string(),
+                front_matter: make_fm("Post 2", "apple"),
+                content: String::new(),
+                html_content: String::new(),
+                excerpt: None,
+                url: "/blog/post2.html".to_string(),
+                date: Some("2020-02-01".to_string()),
+                collection_name: "posts".to_string(),
+                source_path: "_posts/2020-02-01-post2.md".to_string(),
+                id: String::new(),
+            },
+            CollectionItem {
+                slug: "post3".to_string(),
+                front_matter: make_fm("Post 3", "middle"),
+                content: String::new(),
+                html_content: String::new(),
+                excerpt: None,
+                url: "/blog/post3.html".to_string(),
+                date: Some("2020-03-01".to_string()),
+                collection_name: "posts".to_string(),
+                source_path: "_posts/2020-03-01-post3.md".to_string(),
+                id: String::new(),
+            },
+        ];
+
+        let mut collections = HashMap::new();
+        collections.insert("posts".to_string(), posts);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
+
+        let categories = ctx.get("categories").expect("should have categories");
+        if let LiquidValue::Object(cats) = categories {
+            let keys: Vec<String> = cats.keys().map(|k| k.to_string()).collect();
+            assert_eq!(
+                keys,
+                vec!["zebra", "apple", "middle"],
+                "Categories must be in first-encounter order (by date ascending), not alphabetical"
+            );
+        } else {
+            panic!("Expected categories to be an object");
+        }
+    }
+
+    #[test]
+    fn test_tags_first_encounter_order() {
+        // Tags should also preserve first-encounter order, like categories.
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+
+        let make_fm = |title: &str, tag: &str| {
+            let mut fm = HashMap::new();
+            fm.insert(
+                "title".to_string(),
+                serde_yaml::Value::String(title.to_string()),
+            );
+            fm.insert(
+                "tags".to_string(),
+                serde_yaml::Value::Sequence(vec![serde_yaml::Value::String(tag.to_string())]),
+            );
+            fm
+        };
+
+        let posts = vec![
+            CollectionItem {
+                slug: "post1".to_string(),
+                front_matter: make_fm("Post 1", "zulu"),
+                content: String::new(),
+                html_content: String::new(),
+                excerpt: None,
+                url: "/blog/post1.html".to_string(),
+                date: Some("2020-01-01".to_string()),
+                collection_name: "posts".to_string(),
+                source_path: "_posts/2020-01-01-post1.md".to_string(),
+                id: String::new(),
+            },
+            CollectionItem {
+                slug: "post2".to_string(),
+                front_matter: make_fm("Post 2", "alpha"),
+                content: String::new(),
+                html_content: String::new(),
+                excerpt: None,
+                url: "/blog/post2.html".to_string(),
+                date: Some("2020-02-01".to_string()),
+                collection_name: "posts".to_string(),
+                source_path: "_posts/2020-02-01-post2.md".to_string(),
+                id: String::new(),
+            },
+            CollectionItem {
+                slug: "post3".to_string(),
+                front_matter: make_fm("Post 3", "bravo"),
+                content: String::new(),
+                html_content: String::new(),
+                excerpt: None,
+                url: "/blog/post3.html".to_string(),
+                date: Some("2020-03-01".to_string()),
+                collection_name: "posts".to_string(),
+                source_path: "_posts/2020-03-01-post3.md".to_string(),
+                id: String::new(),
+            },
+        ];
+
+        let mut collections = HashMap::new();
+        collections.insert("posts".to_string(), posts);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
+
+        let tags = ctx.get("tags").expect("should have tags");
+        if let LiquidValue::Object(tag_obj) = tags {
+            let keys: Vec<String> = tag_obj.keys().map(|k| k.to_string()).collect();
+            assert_eq!(
+                keys,
+                vec!["zulu", "alpha", "bravo"],
+                "Tags must be in first-encounter order (by date ascending), not alphabetical"
+            );
+        } else {
+            panic!("Expected tags to be an object");
+        }
+    }
+
+    #[test]
+    fn test_categories_duplicate_preserves_first_encounter() {
+        // When a category appears in multiple posts, its position in the iteration
+        // order should be determined by its first encounter only.
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+
+        let make_fm = |title: &str, cat: &str| {
+            let mut fm = HashMap::new();
+            fm.insert(
+                "title".to_string(),
+                serde_yaml::Value::String(title.to_string()),
+            );
+            fm.insert(
+                "categories".to_string(),
+                serde_yaml::Value::Sequence(vec![serde_yaml::Value::String(cat.to_string())]),
+            );
+            fm
+        };
+
+        let posts = vec![
+            CollectionItem {
+                slug: "post1".to_string(),
+                front_matter: make_fm("Post 1", "beta"),
+                content: String::new(),
+                html_content: String::new(),
+                excerpt: None,
+                url: "/blog/post1.html".to_string(),
+                date: Some("2020-01-01".to_string()),
+                collection_name: "posts".to_string(),
+                source_path: "_posts/2020-01-01-post1.md".to_string(),
+                id: String::new(),
+            },
+            CollectionItem {
+                slug: "post2".to_string(),
+                front_matter: make_fm("Post 2", "alpha"),
+                content: String::new(),
+                html_content: String::new(),
+                excerpt: None,
+                url: "/blog/post2.html".to_string(),
+                date: Some("2020-02-01".to_string()),
+                collection_name: "posts".to_string(),
+                source_path: "_posts/2020-02-01-post2.md".to_string(),
+                id: String::new(),
+            },
+            CollectionItem {
+                slug: "post3".to_string(),
+                front_matter: make_fm("Post 3", "beta"),
+                content: String::new(),
+                html_content: String::new(),
+                excerpt: None,
+                url: "/blog/post3.html".to_string(),
+                date: Some("2020-03-01".to_string()),
+                collection_name: "posts".to_string(),
+                source_path: "_posts/2020-03-01-post3.md".to_string(),
+                id: String::new(),
+            },
+        ];
+
+        let mut collections = HashMap::new();
+        collections.insert("posts".to_string(), posts);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
+
+        let categories = ctx.get("categories").expect("should have categories");
+        if let LiquidValue::Object(cats) = categories {
+            let keys: Vec<String> = cats.keys().map(|k| k.to_string()).collect();
+            assert_eq!(
+                keys,
+                vec!["beta", "alpha"],
+                "beta appeared first (date 2020-01-01), alpha second; duplicate beta should not change order"
+            );
+        } else {
+            panic!("Expected categories to be an object");
+        }
+    }
+
+    #[test]
+    fn test_categories_single_category() {
+        let config = SiteConfig::default();
+        let data = DataTree::new();
+
+        let mut fm = HashMap::new();
+        fm.insert(
+            "title".to_string(),
+            serde_yaml::Value::String("Only Post".to_string()),
+        );
+        fm.insert(
+            "categories".to_string(),
+            serde_yaml::Value::Sequence(vec![serde_yaml::Value::String("solo".to_string())]),
+        );
+
+        let posts = vec![CollectionItem {
+            slug: "only".to_string(),
+            front_matter: fm,
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            url: "/blog/only.html".to_string(),
+            date: Some("2020-01-01".to_string()),
+            collection_name: "posts".to_string(),
+            source_path: "_posts/2020-01-01-only.md".to_string(),
+            id: String::new(),
+        }];
+
+        let mut collections = HashMap::new();
+        collections.insert("posts".to_string(), posts);
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
+
+        let categories = ctx.get("categories").expect("should have categories");
+        if let LiquidValue::Object(cats) = categories {
+            let keys: Vec<String> = cats.keys().map(|k| k.to_string()).collect();
+            assert_eq!(keys, vec!["solo"]);
+        } else {
+            panic!("Expected categories to be an object");
+        }
+    }
+
+    #[test]
+    fn test_object_preserves_insertion_order() {
+        // Object (backed by the liquid-core map) should preserve insertion order
+        let mut obj = Object::new();
+        obj.insert("z".into(), LiquidValue::scalar("z_val"));
+        obj.insert("a".into(), LiquidValue::scalar("a_val"));
+        obj.insert("m".into(), LiquidValue::scalar("m_val"));
+
+        let keys: Vec<String> = obj.keys().map(|k| k.to_string()).collect();
+        assert_eq!(
+            keys,
+            vec!["z", "a", "m"],
+            "Object must preserve insertion order, not sort alphabetically"
+        );
+    }
+
+    #[test]
+    fn test_object_key_access_still_works() {
+        let mut obj = Object::new();
+        obj.insert("z".into(), LiquidValue::scalar("z_val"));
+        obj.insert("a".into(), LiquidValue::scalar("a_val"));
+        obj.insert("m".into(), LiquidValue::scalar("m_val"));
+
+        assert_eq!(obj.get("z"), Some(&LiquidValue::scalar("z_val")));
+        assert_eq!(obj.get("a"), Some(&LiquidValue::scalar("a_val")));
+        assert_eq!(obj.get("m"), Some(&LiquidValue::scalar("m_val")));
+        assert_eq!(obj.get("nonexistent"), None);
     }
 }

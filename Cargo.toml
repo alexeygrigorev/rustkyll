@@ -8,6 +8,7 @@ edition = "2021"
 
 [dependencies]
 chrono = "0.4"
+indexmap = "2"
 chrono-tz = "0.10"
 iana-time-zone = "0.1"
 grass = "0.13"
