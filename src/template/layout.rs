@@ -3141,4 +3141,282 @@ mod tests {
             output
         );
     }
+
+    // ========================================================================
+    // Issue 268: TDD tests - JSON-LD description entity escaping and smart quotes
+    // ========================================================================
+
+    #[test]
+    fn test_issue268_tdd_entity_preservation_strip_html_jsonify() {
+        // TDD: strip_html on HTML with &amp; should preserve entity, not decode to &
+        // Then jsonify wraps it in quotes.
+        // Input: "<p>HP &amp; NVIDIA</p>" -> strip_html -> "HP &amp; NVIDIA" -> jsonify -> "\"HP &amp; NVIDIA\""
+        let engine = crate::template::TemplateEngine::new().unwrap();
+        let mut ctx = liquid::Object::new();
+        ctx.insert(
+            "input".into(),
+            liquid::model::Value::scalar("<p>HP &amp; NVIDIA</p>"),
+        );
+        let output = engine
+            .parse_and_render("{{ input | strip_html | jsonify }}", &ctx)
+            .unwrap();
+        assert_eq!(
+            output, "\"HP &amp; NVIDIA\"",
+            "strip_html | jsonify must preserve &amp; entity, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_issue268_tdd_lt_entity_preservation_strip_html_jsonify() {
+        // TDD: strip_html on HTML with &lt; should preserve entity
+        let engine = crate::template::TemplateEngine::new().unwrap();
+        let mut ctx = liquid::Object::new();
+        ctx.insert(
+            "input".into(),
+            liquid::model::Value::scalar("<p>3 &lt; 5</p>"),
+        );
+        let output = engine
+            .parse_and_render("{{ input | strip_html | jsonify }}", &ctx)
+            .unwrap();
+        assert_eq!(
+            output, "\"3 &lt; 5\"",
+            "strip_html | jsonify must preserve &lt; entity, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_issue268_tdd_no_entity_plain_text() {
+        // TDD: strip_html on HTML with no entities should work normally
+        let engine = crate::template::TemplateEngine::new().unwrap();
+        let mut ctx = liquid::Object::new();
+        ctx.insert(
+            "input".into(),
+            liquid::model::Value::scalar("<p>Hello World</p>"),
+        );
+        let output = engine
+            .parse_and_render("{{ input | strip_html | jsonify }}", &ctx)
+            .unwrap();
+        assert_eq!(
+            output, "\"Hello World\"",
+            "strip_html | jsonify on plain text, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_issue268_tdd_smart_quotes_in_collection_content() {
+        // TDD: When kramdown renders "He's the author", the html_content should have
+        // curly apostrophe U+2019, and strip_html | jsonify should preserve it.
+        let html_content = crate::frontmatter::markdown_to_html("He's the author");
+
+        let engine = crate::template::TemplateEngine::new().unwrap();
+        let mut ctx = liquid::Object::new();
+        ctx.insert(
+            "input".into(),
+            liquid::model::Value::scalar(html_content.clone()),
+        );
+        let output = engine
+            .parse_and_render("{{ input | strip_html | jsonify }}", &ctx)
+            .unwrap();
+
+        assert!(
+            output.contains('\u{2019}'),
+            "strip_html | jsonify should have curly apostrophe U+2019, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_issue268_tdd_smart_quotes_unicode_content() {
+        // TDD: Non-ASCII content with apostrophes should also get smart quotes
+        let html_content =
+            crate::frontmatter::markdown_to_html("Platanomel\u{00f3}n's mission is great");
+
+        let engine = crate::template::TemplateEngine::new().unwrap();
+        let mut ctx = liquid::Object::new();
+        ctx.insert(
+            "input".into(),
+            liquid::model::Value::scalar(html_content.clone()),
+        );
+        let output = engine
+            .parse_and_render("{{ input | strip_html | jsonify }}", &ctx)
+            .unwrap();
+
+        assert!(
+            output.contains('\u{2019}'),
+            "strip_html | jsonify on unicode content should have curly apostrophe, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_issue268_tdd_trailing_newline_preservation() {
+        // TDD: Content like "<p>Short bio.</p>\n" through strip_html should preserve trailing \n
+        let engine = crate::template::TemplateEngine::new().unwrap();
+        let mut ctx = liquid::Object::new();
+        ctx.insert(
+            "input".into(),
+            liquid::model::Value::scalar("<p>Short bio.</p>\n"),
+        );
+        let output = engine
+            .parse_and_render("{{ input | strip_html | jsonify }}", &ctx)
+            .unwrap();
+        assert_eq!(
+            output, "\"Short bio.\\n\"",
+            "strip_html | jsonify must preserve trailing newline, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_issue268_tdd_full_pipeline_entity_and_smart_quotes() {
+        // TDD: Integration test: markdown with & and apostrophes through
+        // markdown_to_html -> strip_html -> jsonify should have both &amp; and U+2019
+        let markdown = "He's an Ambassador for Z by HP & NVIDIA";
+        let html_content = crate::frontmatter::markdown_to_html(markdown);
+
+        let engine = crate::template::TemplateEngine::new().unwrap();
+        let mut ctx = liquid::Object::new();
+        ctx.insert(
+            "input".into(),
+            liquid::model::Value::scalar(html_content.clone()),
+        );
+        let output = engine
+            .parse_and_render("{{ input | strip_html | jsonify }}", &ctx)
+            .unwrap();
+
+        // Should have &amp; (entity preserved)
+        assert!(
+            output.contains("&amp;"),
+            "Full pipeline should preserve &amp; entity, got: {}",
+            output
+        );
+        // Should have curly apostrophe
+        assert!(
+            output.contains('\u{2019}'),
+            "Full pipeline should have curly apostrophe, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_issue268_tdd_truncation_alignment_with_entities() {
+        // TDD: When content has &amp; entity, truncation counts each character
+        // of the literal string "&amp;" as 5 characters (matching Jekyll's
+        // behavior where Ruby's truncate works on characters, not entities).
+        let engine = crate::template::TemplateEngine::new().unwrap();
+
+        // 180 A's + " HP " (4 chars) + "&amp;" (5 chars) = 189 chars total before NVIDIA.
+        // truncate: 200 keeps first 197 chars + "..." = 200 total.
+        // 189 chars through &amp; leaves room for 8 more content chars, so &amp; fully fits.
+        let mut long_text = "A".repeat(180);
+        long_text.push_str(" HP &amp; NVIDIA are great companies that do stuff");
+        let input = format!("<p>{}</p>\n", long_text);
+        let mut ctx = liquid::Object::new();
+        ctx.insert("input".into(), liquid::model::Value::scalar(input));
+        let output = engine
+            .parse_and_render("{{ input | strip_html | truncate: 200 | jsonify }}", &ctx)
+            .unwrap();
+
+        // The full &amp; entity (5 literal chars) should be included since
+        // it ends at position 189, well within the 197-char content limit.
+        assert!(
+            output.contains("&amp;"),
+            "Truncation should include &amp; entity (entity treated as 5 literal chars), got: {}",
+            output
+        );
+        // Verify the output is truncated (has "...")
+        assert!(
+            output.contains("..."),
+            "Output should be truncated with ellipsis, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_issue268_tdd_collection_item_content_entities_and_smart_quotes() {
+        // Integration test: Simulate the DTC podcast layout pattern where
+        // author.content (from a people collection item) goes through
+        // strip_html | jsonify. The content field is html_content
+        // (rendered HTML with &amp; and smart quotes), matching Jekyll's
+        // document.content behavior.
+
+        // Markdown source with & and apostrophes (simulating a person's bio)
+        let markdown = "He's an Ambassador for Z by HP & NVIDIA. It's great work.";
+        let html_content =
+            crate::frontmatter::markdown_to_html_with_options(markdown, true, true, false);
+
+        // Verify the html_content has the expected entities and smart quotes
+        assert!(
+            html_content.contains("&amp;"),
+            "html_content should have &amp; entity, got: {:?}",
+            html_content
+        );
+        assert!(
+            html_content.contains('\u{2019}'),
+            "html_content should have curly apostrophe U+2019, got: {:?}",
+            html_content
+        );
+
+        // Build template context the same way generator.rs does:
+        // author object with content = html_content
+        let mut author = liquid::Object::new();
+        author.insert(
+            "content".into(),
+            liquid::model::Value::scalar(html_content.clone()),
+        );
+
+        // Render through strip_html | jsonify (matching DTC podcast layout)
+        let engine = crate::template::TemplateEngine::new().unwrap();
+        let mut ctx = liquid::Object::new();
+        ctx.insert("author".into(), liquid::model::Value::Object(author));
+        let output = engine
+            .parse_and_render("{{ author.content | strip_html | jsonify }}", &ctx)
+            .unwrap();
+
+        // Verify the final output has both entities and smart quotes
+        assert!(
+            output.contains("&amp;"),
+            "strip_html | jsonify on author.content should have &amp;, got: {}",
+            output
+        );
+        assert!(
+            output.contains('\u{2019}'),
+            "strip_html | jsonify on author.content should have curly apostrophe, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_issue268_tdd_collection_content_trailing_newline() {
+        // Integration test: Verify that collection item html_content preserves
+        // trailing newlines from kramdown rendering, and they survive through
+        // the strip_html | jsonify pipeline.
+        let markdown = "Short bio text.";
+        let html_content =
+            crate::frontmatter::markdown_to_html_with_options(markdown, true, true, false);
+
+        // kramdown produces "<p>Short bio text.</p>\n" -- verify trailing \n
+        assert!(
+            html_content.ends_with('\n'),
+            "html_content should end with newline, got: {:?}",
+            html_content
+        );
+
+        let engine = crate::template::TemplateEngine::new().unwrap();
+        let mut ctx = liquid::Object::new();
+        ctx.insert("input".into(), liquid::model::Value::scalar(html_content));
+        let output = engine
+            .parse_and_render("{{ input | strip_html | jsonify }}", &ctx)
+            .unwrap();
+
+        // The trailing \n should be preserved as \\n in the JSON string
+        assert!(
+            output.contains("\\n"),
+            "strip_html | jsonify should preserve trailing newline as \\n, got: {}",
+            output
+        );
+    }
 }
