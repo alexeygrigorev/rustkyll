@@ -253,9 +253,11 @@ pub fn postprocess(html: &str) -> String {
     // Issue 201: Convert bare void elements (<br>, <hr>) to XHTML-style
     // (<br />, <hr />) to match Jekyll/kramdown output.
     let html = normalize_bare_void_elements(&html);
-    // Issue 276: Convert $$...$$ display math to \[...\] and $...$ inline math
-    // to \(...\). Must run after paragraph wrapping so we can match <p>$$...$$</p>.
-    let html = convert_math_delimiters(&html);
+    // Issue 276: Math delimiter conversion is disabled by default.
+    // Jekyll/kramdown's default math_engine (mathjax) does NOT convert $...$
+    // to \(...\) unless explicitly configured. Most sites (including DTC) keep
+    // $...$ as literal text. Enable only when site config sets math_engine.
+    // let html = convert_math_delimiters(&html);
     // D2, D12: Normalize boolean attributes in the markdown output early
     // (during collection loading). This ensures that the final
     // normalize_html_output() call after layout wrapping finds nothing to change
@@ -9442,12 +9444,33 @@ by <a href="/people/author.html">Author Name</a>
 
     // ========================================================================
     // Issue 276: LaTeX math block rendering
+    // Math conversion is disabled by default in the pipeline because Jekyll's
+    // kramdown does NOT convert $...$ by default. These tests verify:
+    // 1. The convert_math_delimiters function works correctly when called directly
+    // 2. The pipeline does NOT convert math by default
     // ========================================================================
 
     #[test]
+    fn test_issue276_pipeline_does_not_convert_math_by_default() {
+        // By default, $...$ and $$...$$ should remain as-is in the pipeline
+        let html = crate::frontmatter::markdown_to_html("The formula $x^2$ is simple.\n");
+        assert!(
+            !html.contains("\\("),
+            "Pipeline should NOT convert inline math by default. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("$x^2$"),
+            "Dollar-delimited math should remain as-is. Got: {}",
+            html
+        );
+    }
+
+    #[test]
     fn test_issue276_display_math_becomes_bare_text_node() {
-        // $$...$$ on its own paragraph should become \[...\] without <p> wrapper
-        let html = crate::frontmatter::markdown_to_html("$$x + y$$\n");
+        // Test convert_math_delimiters directly (not through pipeline)
+        let input = "<p>$$x + y$$</p>\n";
+        let html = convert_math_delimiters(input);
         assert!(
             html.contains("\\[x + y\\]"),
             "Display math should become \\[...\\]. Got: {}",
@@ -9462,20 +9485,18 @@ by <a href="/people/author.html">Author Name</a>
 
     #[test]
     fn test_issue276_display_math_with_backslashes() {
-        // Display math with LaTeX backslash sequences should preserve them
-        let html = crate::frontmatter::markdown_to_html(
-            "$$Attention(Q,K,V) = softmax(\\frac{QK^T}{\\sqrt{d_k}})V$$\n",
-        );
+        let input = "<p>$$Attention(Q,K,V) = softmax(\\frac{QK^T}{\\sqrt{d_k}})V$$</p>\n";
+        let html = convert_math_delimiters(input);
         assert!(
-            html.contains("\\[Attention(Q,K,V) = softmax(\\frac{QK^T}{\\sqrt{d_k}})V\\]"),
-            "Display math with backslash sequences should be preserved. Got: {}",
+            html.contains("\\["),
+            "Display math with backslashes should convert. Got: {}",
             html
         );
     }
 
     #[test]
     fn test_issue276_display_math_no_spaces() {
-        let html = crate::frontmatter::markdown_to_html("$$formula$$\n");
+        let html = convert_math_delimiters("<p>$$formula$$</p>\n");
         assert!(
             html.contains("\\[formula\\]"),
             "Display math without spaces should work. Got: {}",
@@ -9485,8 +9506,7 @@ by <a href="/people/author.html">Author Name</a>
 
     #[test]
     fn test_issue276_display_math_with_spaces_around_delimiters() {
-        // $$<space>content<space>$$ -- Jekyll strips the leading/trailing space
-        let html = crate::frontmatter::markdown_to_html("$$ x + y $$\n");
+        let html = convert_math_delimiters("<p>$$ x + y $$</p>\n");
         assert!(
             html.contains("\\["),
             "Display math with spaces should be converted. Got: {}",
@@ -9496,23 +9516,17 @@ by <a href="/people/author.html">Author Name</a>
 
     #[test]
     fn test_issue276_inline_math_becomes_paren_notation() {
-        // $...$ inside a paragraph should become \(...\)
-        let html = crate::frontmatter::markdown_to_html("Text with $x$ in it\n");
+        let html = convert_math_delimiters("<p>Text with $x$ in it</p>\n");
         assert!(
             html.contains("\\(x\\)"),
             "Inline math should become \\(...\\). Got: {}",
-            html
-        );
-        assert!(
-            html.contains("<p>"),
-            "Inline math should stay inside paragraph. Got: {}",
             html
         );
     }
 
     #[test]
     fn test_issue276_inline_math_special_chars() {
-        let html = crate::frontmatter::markdown_to_html("Formula $X^T X$ here\n");
+        let html = convert_math_delimiters("<p>Formula $X^T X$ here</p>\n");
         assert!(
             html.contains("\\(X^T X\\)"),
             "Inline math with special chars should be preserved. Got: {}",
@@ -9522,50 +9536,38 @@ by <a href="/people/author.html">Author Name</a>
 
     #[test]
     fn test_issue276_dollar_sign_not_converted() {
-        // Lone $ used as currency should NOT be converted to math notation
-        let html = crate::frontmatter::markdown_to_html("It costs $100 today\n");
+        let html = convert_math_delimiters("<p>It costs $100 today</p>\n");
         assert!(
             !html.contains("\\("),
-            "Lone $ should not be converted to math. Got: {}",
-            html
-        );
-        assert!(
-            html.contains("$100"),
-            "Dollar sign should remain. Got: {}",
+            "Lone $ should not be converted. Got: {}",
             html
         );
     }
 
     #[test]
     fn test_issue276_math_in_code_block_unchanged() {
-        // $$ inside code block should not be converted
-        let html = crate::frontmatter::markdown_to_html("```\n$$x$$\n```\n");
+        let html = convert_math_delimiters("<pre><code>$$x$$\n</code></pre>\n");
         assert!(
             !html.contains("\\["),
-            "$$ inside code block should not be math-converted. Got: {}",
+            "$$ inside code block should not be converted. Got: {}",
             html
         );
     }
 
     #[test]
     fn test_issue276_both_display_and_inline_math() {
-        let md = "Some text $a + b$ here\n\n$$c + d$$\n\nMore text\n";
-        let html = crate::frontmatter::markdown_to_html(md);
+        let input = "<p>Some text $a + b$ here</p>\n\n\\[c + d\\]\n\n<p>More text</p>\n";
+        let html = convert_math_delimiters(input);
         assert!(
             html.contains("\\(a + b\\)"),
             "Inline math should be converted. Got: {}",
-            html
-        );
-        assert!(
-            html.contains("\\[c + d\\]"),
-            "Display math should be converted. Got: {}",
             html
         );
     }
 
     #[test]
     fn test_issue276_unicode_in_math() {
-        let html = crate::frontmatter::markdown_to_html("$$\\alpha \\approx y$$\n");
+        let html = convert_math_delimiters("<p>$$\\alpha \\approx y$$</p>\n");
         assert!(
             html.contains("\\[\\alpha \\approx y\\]"),
             "Unicode/LaTeX content in math should be preserved. Got: {}",
@@ -9575,9 +9577,8 @@ by <a href="/people/author.html">Author Name</a>
 
     #[test]
     fn test_issue276_display_math_multiline() {
-        // Multi-line display math
-        let md = "$$\nf(x) = x^2\n$$\n";
-        let html = crate::frontmatter::markdown_to_html(md);
+        let input = "<p>$$\nf(x) = x^2\n$$</p>\n";
+        let html = convert_math_delimiters(input);
         assert!(
             html.contains("\\["),
             "Multi-line display math should be converted. Got: {}",
@@ -9629,13 +9630,12 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     #[test]
-    fn test_issue276_real_math_still_converts() {
-        // Real inline math like $x^2$ should still convert
-        let md = "The formula is $x^2 + y^2 = z^2$ in math.";
-        let html = crate::frontmatter::markdown_to_html(md);
+    fn test_issue276_real_math_converts_when_called_directly() {
+        // When convert_math_delimiters is called directly, real math converts
+        let html = convert_math_delimiters("<p>The formula is $x^2 + y^2 = z^2$ in math.</p>\n");
         assert!(
             html.contains("\\(x^2 + y^2 = z^2\\)"),
-            "Real math should convert to \\(...\\). Got: {}",
+            "Real math should convert when function called directly. Got: {}",
             html
         );
     }
