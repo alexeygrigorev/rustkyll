@@ -304,6 +304,10 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // kramdown does (e.g., word*.*).
     let markdown = fix_kramdown_emphasis_patterns(&markdown);
 
+    // Issue 275: Escape inner delimiters in mixed-delimiter emphasis patterns
+    // (e.g., _*text*_ -> _\*text\*_) to match kramdown behavior.
+    let markdown = crate::kramdown::escape_mixed_delimiter_emphasis(&markdown);
+
     // Issue 198: Protect consecutive single quotes ('' and ''') from smart
     // punctuation to match kramdown behavior for MediaWiki-style markup.
     let markdown = protect_consecutive_single_quotes(&markdown);
@@ -391,6 +395,8 @@ pub fn markdown_to_html_with_options(
     let markdown = crate::kramdown::split_text_after_html_block_close(&markdown);
     let markdown = normalize_zwsp_for_emphasis(&markdown);
     let markdown = fix_kramdown_emphasis_patterns(&markdown);
+    // Issue 275: Escape inner delimiters in mixed-delimiter emphasis patterns
+    let markdown = crate::kramdown::escape_mixed_delimiter_emphasis(&markdown);
     let markdown = protect_consecutive_single_quotes(&markdown);
     let protected = protect_liquid_quotes(&markdown);
 
@@ -460,6 +466,8 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     // Issue 198/206: Same ZWSP and emphasis handling as markdown_to_html
     let markdown = normalize_zwsp_for_emphasis(&markdown);
     let markdown = fix_kramdown_emphasis_patterns(&markdown);
+    // Issue 275: Escape inner delimiters in mixed-delimiter emphasis patterns
+    let markdown = crate::kramdown::escape_mixed_delimiter_emphasis(&markdown);
     let markdown = protect_consecutive_single_quotes(&markdown);
 
     let protected = protect_liquid_quotes(&markdown);

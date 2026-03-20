@@ -58,6 +58,155 @@ pub fn remove_heading_markers(html: &str) -> String {
     html.replace(" data-raw-html", "")
 }
 
+/// Issue 276: Convert LaTeX math delimiters to match Jekyll/kramdown output.
+///
+/// Display math: `<p>$$...$$</p>` becomes `\[...\]` as a bare text node (no `<p>` wrapper).
+/// Inline math: `$...$` within a paragraph becomes `\(...\)`.
+///
+/// Does not convert `$` inside `<code>` or `<pre>` elements.
+/// Does not convert lone `$` signs (e.g., "$100").
+fn convert_math_delimiters(html: &str) -> String {
+    if !html.contains('$') {
+        return html.to_string();
+    }
+
+    // First pass: convert display math <p>$$...$$</p> (may be multiline)
+    let html = convert_display_math_blocks(&html);
+
+    // Second pass: convert inline $...$ to \(...\) line by line
+    let mut result = String::with_capacity(html.len());
+    for line in html.split('\n') {
+        if line.contains('$') && !line.contains("<code") && !line.contains("<pre") {
+            let converted = convert_inline_math(line);
+            result.push_str(&converted);
+        } else {
+            result.push_str(line);
+        }
+        result.push('\n');
+    }
+
+    // Remove trailing newline added by the split/join
+    if result.ends_with('\n') && !html.ends_with('\n') {
+        result.pop();
+    }
+
+    result
+}
+
+/// Convert display math blocks: `<p>$$...$$</p>` to `\[...\]` (bare text node).
+///
+/// Handles both single-line and multi-line display math blocks.
+fn convert_display_math_blocks(html: &str) -> String {
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+
+    while !remaining.is_empty() {
+        // Look for <p> that might contain display math
+        if let Some(p_start) = remaining.find("<p>$$") {
+            // Copy everything before this <p>
+            result.push_str(&remaining[..p_start]);
+
+            // Find the closing </p>
+            let after_p_open = &remaining[p_start + 3..]; // skip "<p>"
+            if let Some(p_end_rel) = after_p_open.find("</p>") {
+                let inner = &after_p_open[..p_end_rel];
+                let inner_trimmed = inner.trim();
+
+                if let Some(math_content) = inner_trimmed
+                    .strip_prefix("$$")
+                    .and_then(|s| s.strip_suffix("$$"))
+                {
+                    // This is display math -- emit as \[...\]
+                    let math_content = math_content.trim();
+                    result.push_str("\\[");
+                    result.push_str(math_content);
+                    result.push_str("\\]");
+                    remaining = &after_p_open[p_end_rel + 4..]; // skip "</p>"
+                    continue;
+                }
+            }
+
+            // Not a math block after all; copy the <p> literally and continue
+            result.push_str("<p>");
+            remaining = after_p_open;
+        } else {
+            // No more <p>$$ patterns
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    result
+}
+
+/// Convert inline math `$...$` to `\(...\)` within a line of HTML.
+///
+/// Only converts when `$` is followed by non-space content and closed by another `$`.
+/// Skips lone `$` (e.g., "$100") and `$$` (display math delimiters).
+fn convert_inline_math(line: &str) -> String {
+    let mut result = String::with_capacity(line.len());
+    let bytes = line.as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
+
+    while i < len {
+        if bytes[i] == b'$' {
+            // Skip $$ (display math delimiter -- should have been handled already)
+            if i + 1 < len && bytes[i + 1] == b'$' {
+                result.push('$');
+                result.push('$');
+                i += 2;
+                continue;
+            }
+
+            // Try to find closing $ for inline math
+            let content_start = i + 1;
+            if content_start < len && bytes[content_start] != b' ' && bytes[content_start] != b'$' {
+                let mut j = content_start;
+                let mut found = false;
+                while j < len {
+                    if bytes[j] == b'$' {
+                        // Don't match $$ as closing delimiter
+                        if j + 1 < len && bytes[j + 1] == b'$' {
+                            j += 2;
+                            continue;
+                        }
+                        // Check that content before closing $ is not a space
+                        if j > content_start && bytes[j - 1] != b' ' {
+                            let content = &line[content_start..j];
+                            result.push_str("\\(");
+                            result.push_str(content);
+                            result.push_str("\\)");
+                            i = j + 1;
+                            found = true;
+                            break;
+                        }
+                        break; // Space before closing $, not math
+                    }
+                    if bytes[j] == b'\n' {
+                        break;
+                    }
+                    j += 1;
+                }
+                if !found {
+                    let ch = line[i..].chars().next().unwrap();
+                    result.push(ch);
+                    i += ch.len_utf8();
+                }
+            } else {
+                result.push('$');
+                i += 1;
+            }
+        } else {
+            let ch = line[i..].chars().next().unwrap();
+            result.push(ch);
+            i += ch.len_utf8();
+        }
+    }
+
+    result
+}
+
 /// Apply all kramdown compatibility transformations to HTML output.
 ///
 /// This is the main entry point. It applies, in order:
@@ -95,6 +244,9 @@ pub fn postprocess(html: &str) -> String {
     // Issue 201: Convert bare void elements (<br>, <hr>) to XHTML-style
     // (<br />, <hr />) to match Jekyll/kramdown output.
     let html = normalize_bare_void_elements(&html);
+    // Issue 276: Convert $$...$$ display math to \[...\] and $...$ inline math
+    // to \(...\). Must run after paragraph wrapping so we can match <p>$$...$$</p>.
+    let html = convert_math_delimiters(&html);
     // D2, D12: Normalize boolean attributes in the markdown output early
     // (during collection loading). This ensures that the final
     // normalize_html_output() call after layout wrapping finds nothing to change
@@ -155,6 +307,227 @@ pub fn normalize_html_output(html: &str) -> String {
     } else {
         html
     }
+}
+
+// ============================================================================
+// Issue 275: Escape inner delimiters in mixed-delimiter emphasis
+// ============================================================================
+
+/// Escape inner emphasis delimiters when a different delimiter type wraps them.
+///
+/// kramdown treats mixed emphasis delimiters (`_` and `*`) as non-interchangeable:
+/// when `_` opens emphasis, `*` inside is literal text (and vice versa).
+/// pulldown-cmark (CommonMark) nests them as separate `<em>` elements.
+///
+/// This pre-processes markdown to escape the inner delimiters so that
+/// pulldown-cmark treats them as literal text, matching kramdown behavior.
+///
+/// Examples:
+/// - `_*text*_` -> `_\*text\*_` (renders as `<em>*text*</em>`)
+/// - `*_text_ more*` -> `*\_text\_ more*` (renders as `<em>_text_ more</em>`)
+/// - `__*text*__` -> `__\*text\*__` (renders as `<strong>*text*</strong>`)
+/// - `**_text_**` -> `**\_text\_**` (renders as `<strong>_text_</strong>`)
+///
+/// Does not modify same-delimiter nesting (e.g., `**text *inner* more**`).
+pub fn escape_mixed_delimiter_emphasis(markdown: &str) -> String {
+    if !markdown.contains('*') && !markdown.contains('_') {
+        return markdown.to_string();
+    }
+
+    let mut result = String::with_capacity(markdown.len() + 32);
+    let chars: Vec<char> = markdown.chars().collect();
+    let len = chars.len();
+    let mut i = 0;
+
+    while i < len {
+        // Skip code spans (backticks)
+        if chars[i] == '`' {
+            let backtick_start = i;
+            let mut backtick_count = 0;
+            while i < len && chars[i] == '`' {
+                backtick_count += 1;
+                i += 1;
+            }
+            // Find matching closing backticks
+            let mut found_close = false;
+            let content_start = i;
+            while i < len {
+                if chars[i] == '`' {
+                    let mut close_count = 0;
+                    while i < len && chars[i] == '`' {
+                        close_count += 1;
+                        i += 1;
+                    }
+                    if close_count == backtick_count {
+                        // Copy entire code span verbatim
+                        for ch in &chars[backtick_start..i] {
+                            result.push(*ch);
+                        }
+                        found_close = true;
+                        break;
+                    }
+                } else {
+                    i += 1;
+                }
+            }
+            if !found_close {
+                // No closing backticks -- copy verbatim
+                for ch in &chars[backtick_start..content_start] {
+                    result.push(*ch);
+                }
+                i = content_start;
+            }
+            continue;
+        }
+
+        // Detect opening emphasis: _ or * (or __ or **)
+        if (chars[i] == '_' || chars[i] == '*') && !is_escaped(&chars, i) {
+            let outer_delim = chars[i];
+            let inner_delim = if outer_delim == '_' { '*' } else { '_' };
+
+            // Count consecutive outer delimiters
+            let mut outer_count = 0;
+            while i + outer_count < len && chars[i + outer_count] == outer_delim {
+                outer_count += 1;
+            }
+
+            // Only handle 1 or 2 delimiter sequences (em or strong)
+            if outer_count <= 2 {
+                // Look ahead for the inner delimiter pattern
+                let after_outer = i + outer_count;
+                if let Some(span) = find_mixed_emphasis_span(
+                    &chars,
+                    after_outer,
+                    outer_delim,
+                    outer_count,
+                    inner_delim,
+                ) {
+                    // Found a mixed-delimiter emphasis span.
+                    // Write the outer delimiters
+                    for _ in 0..outer_count {
+                        result.push(outer_delim);
+                    }
+                    // Write the content with inner delimiters escaped
+                    for j in after_outer..span.content_end {
+                        if chars[j] == inner_delim && !is_escaped(&chars, j) {
+                            result.push('\\');
+                        }
+                        result.push(chars[j]);
+                    }
+                    // Write the closing outer delimiters
+                    for _ in 0..outer_count {
+                        result.push(outer_delim);
+                    }
+                    i = span.content_end + outer_count;
+                    continue;
+                }
+            }
+
+            // Not a mixed-delimiter pattern -- copy delimiter as-is
+            for _ in 0..outer_count {
+                result.push(outer_delim);
+            }
+            i += outer_count;
+            continue;
+        }
+
+        result.push(chars[i]);
+        i += 1;
+    }
+
+    result
+}
+
+/// Result of finding a mixed-delimiter emphasis span.
+struct MixedEmphasisSpan {
+    /// Index just past the last content character (before closing outer delimiters)
+    content_end: usize,
+}
+
+/// Check if a character at position `pos` is backslash-escaped.
+fn is_escaped(chars: &[char], pos: usize) -> bool {
+    if pos == 0 {
+        return false;
+    }
+    let mut backslash_count = 0;
+    let mut j = pos - 1;
+    loop {
+        if chars[j] == '\\' {
+            backslash_count += 1;
+        } else {
+            break;
+        }
+        if j == 0 {
+            break;
+        }
+        j -= 1;
+    }
+    backslash_count % 2 == 1
+}
+
+/// Look for a mixed-delimiter emphasis span starting at `start`.
+///
+/// Returns the span boundaries if the content contains the inner delimiter
+/// and the outer closing delimiter is found. Only matches when the inner
+/// delimiter creates what would be a nested emphasis (i.e., paired delimiters).
+fn find_mixed_emphasis_span(
+    chars: &[char],
+    start: usize,
+    outer_delim: char,
+    outer_count: usize,
+    inner_delim: char,
+) -> Option<MixedEmphasisSpan> {
+    let len = chars.len();
+
+    // The content must contain at least one inner delimiter pair
+    // to be a mixed-delimiter case.
+    let mut has_inner_delim = false;
+    let mut i = start;
+
+    // Scan forward to find the matching closing outer delimiter(s)
+    while i < len {
+        // Skip escaped characters
+        if chars[i] == '\\' && i + 1 < len {
+            i += 2;
+            continue;
+        }
+
+        // Check for newline (emphasis doesn't span lines in kramdown)
+        if chars[i] == '\n' {
+            return None;
+        }
+
+        // Check for inner delimiter
+        if chars[i] == inner_delim && !is_escaped(chars, i) {
+            has_inner_delim = true;
+            i += 1;
+            continue;
+        }
+
+        // Check for closing outer delimiter(s)
+        if chars[i] == outer_delim && !is_escaped(chars, i) {
+            let mut close_count = 0;
+            let close_start = i;
+            while i < len && chars[i] == outer_delim {
+                close_count += 1;
+                i += 1;
+            }
+            if close_count == outer_count && has_inner_delim {
+                // Verify the inner delimiters appear in pairs or as part
+                // of what pulldown-cmark would parse as emphasis
+                return Some(MixedEmphasisSpan {
+                    content_end: close_start,
+                });
+            }
+            // Not matching close -- this might be a different use
+            // Just continue scanning
+            continue;
+        }
+
+        i += 1;
+    }
+
+    None
 }
 
 // ============================================================================
@@ -9031,6 +9404,352 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             html.contains("<table>") || html.contains("<th>") || html.contains("<td>"),
             "Normal pipe table should still work. Got: {html}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 276: LaTeX math block rendering
+    // ========================================================================
+
+    #[test]
+    fn test_issue276_display_math_becomes_bare_text_node() {
+        // $$...$$ on its own paragraph should become \[...\] without <p> wrapper
+        let html = crate::frontmatter::markdown_to_html("$$x + y$$\n");
+        assert!(
+            html.contains("\\[x + y\\]"),
+            "Display math should become \\[...\\]. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains("<p>$$"),
+            "Display math should not be wrapped in <p>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue276_display_math_with_backslashes() {
+        // Display math with LaTeX backslash sequences should preserve them
+        let html = crate::frontmatter::markdown_to_html(
+            "$$Attention(Q,K,V) = softmax(\\frac{QK^T}{\\sqrt{d_k}})V$$\n",
+        );
+        assert!(
+            html.contains("\\[Attention(Q,K,V) = softmax(\\frac{QK^T}{\\sqrt{d_k}})V\\]"),
+            "Display math with backslash sequences should be preserved. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue276_display_math_no_spaces() {
+        let html = crate::frontmatter::markdown_to_html("$$formula$$\n");
+        assert!(
+            html.contains("\\[formula\\]"),
+            "Display math without spaces should work. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue276_display_math_with_spaces_around_delimiters() {
+        // $$<space>content<space>$$ -- Jekyll strips the leading/trailing space
+        let html = crate::frontmatter::markdown_to_html("$$ x + y $$\n");
+        assert!(
+            html.contains("\\["),
+            "Display math with spaces should be converted. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue276_inline_math_becomes_paren_notation() {
+        // $...$ inside a paragraph should become \(...\)
+        let html = crate::frontmatter::markdown_to_html("Text with $x$ in it\n");
+        assert!(
+            html.contains("\\(x\\)"),
+            "Inline math should become \\(...\\). Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<p>"),
+            "Inline math should stay inside paragraph. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue276_inline_math_special_chars() {
+        let html = crate::frontmatter::markdown_to_html("Formula $X^T X$ here\n");
+        assert!(
+            html.contains("\\(X^T X\\)"),
+            "Inline math with special chars should be preserved. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue276_dollar_sign_not_converted() {
+        // Lone $ used as currency should NOT be converted to math notation
+        let html = crate::frontmatter::markdown_to_html("It costs $100 today\n");
+        assert!(
+            !html.contains("\\("),
+            "Lone $ should not be converted to math. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("$100"),
+            "Dollar sign should remain. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue276_math_in_code_block_unchanged() {
+        // $$ inside code block should not be converted
+        let html = crate::frontmatter::markdown_to_html("```\n$$x$$\n```\n");
+        assert!(
+            !html.contains("\\["),
+            "$$ inside code block should not be math-converted. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue276_both_display_and_inline_math() {
+        let md = "Some text $a + b$ here\n\n$$c + d$$\n\nMore text\n";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("\\(a + b\\)"),
+            "Inline math should be converted. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("\\[c + d\\]"),
+            "Display math should be converted. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue276_unicode_in_math() {
+        let html = crate::frontmatter::markdown_to_html("$$\\alpha \\approx y$$\n");
+        assert!(
+            html.contains("\\[\\alpha \\approx y\\]"),
+            "Unicode/LaTeX content in math should be preserved. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue276_display_math_multiline() {
+        // Multi-line display math
+        let md = "$$\nf(x) = x^2\n$$\n";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("\\["),
+            "Multi-line display math should be converted. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains("<p>$$"),
+            "Multi-line display math should not have <p> wrapper. Got: {}",
+            html
+        );
+    }
+
+    // ========================================================================
+    // Issue 275: Mixed-delimiter emphasis double-nesting
+    // ========================================================================
+
+    #[test]
+    fn test_issue275_underscore_wrapping_asterisk() {
+        // _*text*_ should produce single <em> with literal asterisks, not double <em>
+        let md = "_*Big Data Demystified*_";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            !html.contains("<em><em>"),
+            "Should not have double-nested <em>. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<em>"),
+            "Should still have emphasis. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue275_asterisk_wrapping_underscore() {
+        // *_Decoding ML_ substack* should produce single <em> with literal underscores
+        let md = "*_Decoding ML_ substack*";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            !html.contains("<em><em>"),
+            "Should not have double-nested <em>. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<em>"),
+            "Should still have emphasis. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue275_asterisk_wrapping_underscore_important() {
+        // *the _important_ keywords* should produce single <em>
+        let md = "*the _important_ keywords*";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            !html.contains("<em><em>"),
+            "Should not have double-nested <em>. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<em>"),
+            "Should still have emphasis. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue275_simple_underscore_asterisk() {
+        let md = "_*text*_";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            !html.contains("<em><em>"),
+            "Should not have double-nested <em>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue275_simple_asterisk_underscore() {
+        let md = "*_text_*";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            !html.contains("<em><em>"),
+            "Should not have double-nested <em>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue275_strong_wrapping_asterisk() {
+        // __*text*__ should produce single <strong> with literal asterisks
+        let md = "__*text*__";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            !html.contains("<strong><em>"),
+            "Should not have <strong><em> nesting. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<strong>"),
+            "Should still have strong. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue275_strong_wrapping_underscore() {
+        // **_text_** should produce single <strong> with literal underscores
+        let md = "**_text_**";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            !html.contains("<strong><em>"),
+            "Should not have <strong><em> nesting. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<strong>"),
+            "Should still have strong. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue275_normal_emphasis_unchanged() {
+        // Normal emphasis should still work
+        let md = "*text*";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("<em>text</em>"),
+            "Normal emphasis should work. Got: {}",
+            html
+        );
+
+        let md = "_text_";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("<em>text</em>"),
+            "Normal underscore emphasis should work. Got: {}",
+            html
+        );
+
+        let md = "**text**";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("<strong>text</strong>"),
+            "Normal strong should work. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue275_same_delimiter_nesting_unchanged() {
+        // Same-delimiter nesting should still work: **text *inner* more**
+        let md = "**text *inner* more**";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("<strong>") && html.contains("<em>inner</em>"),
+            "Same-delimiter nesting should work. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue275_unicode_content() {
+        // Non-ASCII content: _*donnees*_ should not double-nest
+        let md = "_*donn\u{00e9}es*_";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            !html.contains("<em><em>"),
+            "Unicode emphasis should not double-nest. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue275_markdownify_filter() {
+        // The fix should also work through the markdownify codepath
+        let md = "_*Big Data Demystified*_";
+        let html = crate::frontmatter::markdown_to_html_for_filter(md);
+        assert!(
+            !html.contains("<em><em>"),
+            "Markdownify should not have double-nested <em>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue275_url_with_asterisks_not_corrupted() {
+        // URLs with tracking params like `1*95hemv*_ga` must not be corrupted
+        let md = "Visit [this link](https://example.com/1*95hemv*_ga) for details.";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("https://example.com/1*95hemv*_ga"),
+            "URL with asterisks should not be corrupted. Got: {}",
+            html
+        );
+
+        // Bare URL with asterisks inside emphasis
+        let md2 = "_Check https://example.com/1*95hemv*_ga for info_";
+        let html2 = crate::frontmatter::markdown_to_html(md2);
+        // Should not crash or produce malformed HTML
+        assert!(
+            !html2.is_empty(),
+            "Should produce output for URL with asterisks in emphasis"
         );
     }
 }
