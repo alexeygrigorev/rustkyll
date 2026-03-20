@@ -196,5 +196,27 @@ class TestArgumentForwarding(unittest.TestCase):
             os.unlink(fake_binary)
 
 
+class TestWindowsCtrlCHandling(unittest.TestCase):
+    """Test that Ctrl+C (KeyboardInterrupt) is handled gracefully on Windows."""
+
+    @mock.patch("subprocess.run")
+    def test_keyboard_interrupt_exits_with_130(self, mock_run):
+        """On Windows, KeyboardInterrupt during subprocess.run exits with code 130."""
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix="rustkyll.exe", delete=False) as f:
+            fake_binary = f.name
+
+        try:
+            mock_run.side_effect = KeyboardInterrupt
+            with mock.patch.object(_main, "_get_binary_path", return_value=fake_binary), \
+                 mock.patch("sys.platform", "win32"), \
+                 mock.patch("sys.argv", ["rustkyll", "serve"]), \
+                 self.assertRaises(SystemExit) as cm:
+                _main.main()
+            self.assertEqual(cm.exception.code, 130)
+        finally:
+            os.unlink(fake_binary)
+
+
 if __name__ == "__main__":
     unittest.main()

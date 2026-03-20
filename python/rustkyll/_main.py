@@ -70,8 +70,11 @@ def main():
 
     if sys.platform == "win32":
         # On Windows, os.execvp is not reliable; use subprocess instead
-        result = subprocess.run(args)
-        sys.exit(result.returncode)
+        try:
+            result = subprocess.run(args)
+            sys.exit(result.returncode)
+        except KeyboardInterrupt:
+            sys.exit(130)  # Standard exit code for Ctrl+C (128 + SIGINT)
     else:
         # On Unix, replace the current process with the binary
         os.execvp(binary_path, args)
