@@ -14,6 +14,7 @@ use crate::progress::RenderProgress;
 
 use liquid::model::Value as LiquidValue;
 use liquid::Object;
+use liquid::ValueView;
 use rayon::prelude::*;
 
 use crate::collection::{CollectionItem, Page};
@@ -481,6 +482,65 @@ fn resolve_build_revision(site_dir: Option<&Path>) -> LiquidValue {
 /// when rendering the current page (via `page.transcript`) and are never
 /// accessed from site-level cross-references. The current page always has
 /// its full front matter available through the `page` variable.
+/// Normalize `category`/`tag` (singular) to `categories`/`tags` (plural arrays)
+/// in a Liquid object, matching Jekyll's behavior where every document always
+/// exposes `categories` and `tags` as arrays.
+///
+/// Rules (applied for both categories/category and tags/tag):
+/// 1. If singular key exists (e.g., `category`), convert its value to a
+///    single-element array under the plural key (e.g., `categories`).
+/// 2. If plural key exists as a scalar string, convert it to a single-element array.
+/// 3. If plural key already exists as an array, leave it unchanged.
+/// 4. If neither singular nor plural key exists, set plural to an empty array.
+pub(crate) fn normalize_categories_and_tags(obj: &mut Object) {
+    for (singular, plural) in &[("category", "categories"), ("tag", "tags")] {
+        // Check if singular key exists and extract its value
+        let singular_val = obj.get(*singular).and_then(|v| {
+            if v.is_scalar() {
+                Some(v.to_kstr().to_string())
+            } else {
+                None
+            }
+        });
+
+        if let Some(val) = singular_val {
+            // Singular key found -- create plural array from it (unless plural already exists as array)
+            if obj.get(*plural).and_then(|v| v.as_array()).is_none() {
+                let arr = if val.is_empty() {
+                    LiquidValue::Array(vec![])
+                } else {
+                    // Split on whitespace to match Jekyll behavior for space-separated values
+                    let items: Vec<LiquidValue> = val
+                        .split_whitespace()
+                        .map(|s| LiquidValue::scalar(s.to_string()))
+                        .collect();
+                    LiquidValue::Array(items)
+                };
+                obj.insert((*plural).into(), arr);
+            }
+        } else if let Some(existing) = obj.get(*plural) {
+            // Plural key exists -- ensure it's an array
+            if existing.is_scalar() {
+                let s = existing.to_kstr().to_string();
+                let arr = if s.is_empty() {
+                    LiquidValue::Array(vec![])
+                } else {
+                    let items: Vec<LiquidValue> = s
+                        .split_whitespace()
+                        .map(|w| LiquidValue::scalar(w.to_string()))
+                        .collect();
+                    LiquidValue::Array(items)
+                };
+                obj.insert((*plural).into(), arr);
+            }
+            // If already an array, leave it unchanged
+        } else {
+            // Neither singular nor plural exists -- default to empty array
+            obj.insert((*plural).into(), LiquidValue::Array(vec![]));
+        }
+    }
+}
+
 fn collection_item_to_liquid_slim(item: &CollectionItem) -> LiquidValue {
     let mut obj = Object::new();
 
@@ -534,6 +594,12 @@ fn collection_item_to_liquid_slim(item: &CollectionItem) -> LiquidValue {
     if !item.front_matter.contains_key("short") {
         obj.insert("short".into(), LiquidValue::scalar(item.slug.clone()));
     }
+
+    // Issue 251: Normalize category/tag (singular) to categories/tags (plural arrays).
+    // Jekyll always exposes `post.categories` and `post.tags` as arrays on every
+    // document object. Without this, `category: release` in front matter would leave
+    // `post.categories` as nil, causing `array_to_sentence_string` errors.
+    normalize_categories_and_tags(&mut obj);
 
     LiquidValue::Object(obj)
 }
@@ -1132,6 +1198,14 @@ pub fn generate_collection_pages_cached_with_progress(
         // Normalize categories and tags to arrays (Jekyll always exposes them as arrays).
         // A front matter `categories: food` (string) must become `["food"]` so that
         // Liquid filters like `join` work correctly.
+        // First, convert singular `category`/`tag` to plural `categories`/`tags`
+        // (Jekyll does this automatically on every document object).
+        if let Some(val) = page_fm.remove("category") {
+            page_fm.entry("categories".to_string()).or_insert(val);
+        }
+        if let Some(val) = page_fm.remove("tag") {
+            page_fm.entry("tags".to_string()).or_insert(val);
+        }
         normalize_fm_to_array(&mut page_fm, "categories");
         normalize_fm_to_array(&mut page_fm, "tags");
 
@@ -6626,5 +6700,213 @@ defaults:
             "Should contain Unicode child title. Got: {}",
             result
         );
+    }
+
+    // ========================================================================
+    // Unit: category/tag normalization in collection_item_to_liquid_slim
+    // (Issue 251)
+    // ========================================================================
+
+    fn make_item_with_fm(fm: HashMap<String, serde_yaml::Value>) -> CollectionItem {
+        CollectionItem {
+            slug: "test-post".to_string(),
+            front_matter: fm,
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            url: "/blog/test-post.html".to_string(),
+            date: Some("2021-01-01".to_string()),
+            collection_name: "posts".to_string(),
+            source_path: "_posts/2021-01-01-test-post.md".to_string(),
+            id: String::new(),
+        }
+    }
+
+    #[test]
+    fn test_slim_category_singular_to_categories_array() {
+        let mut fm = HashMap::new();
+        fm.insert(
+            "category".to_string(),
+            serde_yaml::Value::String("release".to_string()),
+        );
+        let item = make_item_with_fm(fm);
+        let liquid_obj = collection_item_to_liquid_slim(&item);
+        let obj = liquid_obj.as_object().unwrap();
+        let cats = obj.get("categories").expect("categories key must exist");
+        let arr = cats.as_array().expect("categories must be an array");
+        assert_eq!(arr.size(), 1);
+        assert_eq!(arr.get(0).unwrap().to_kstr().as_str(), "release");
+    }
+
+    #[test]
+    fn test_slim_categories_string_to_array() {
+        let mut fm = HashMap::new();
+        fm.insert(
+            "categories".to_string(),
+            serde_yaml::Value::String("food".to_string()),
+        );
+        let item = make_item_with_fm(fm);
+        let liquid_obj = collection_item_to_liquid_slim(&item);
+        let obj = liquid_obj.as_object().unwrap();
+        let cats = obj.get("categories").expect("categories key must exist");
+        let arr = cats.as_array().expect("categories must be an array");
+        assert_eq!(arr.size(), 1);
+        assert_eq!(arr.get(0).unwrap().to_kstr().as_str(), "food");
+    }
+
+    #[test]
+    fn test_slim_categories_array_unchanged() {
+        let mut fm = HashMap::new();
+        fm.insert(
+            "categories".to_string(),
+            serde_yaml::Value::Sequence(vec![
+                serde_yaml::Value::String("a".to_string()),
+                serde_yaml::Value::String("b".to_string()),
+            ]),
+        );
+        let item = make_item_with_fm(fm);
+        let liquid_obj = collection_item_to_liquid_slim(&item);
+        let obj = liquid_obj.as_object().unwrap();
+        let cats = obj.get("categories").expect("categories key must exist");
+        let arr = cats.as_array().expect("categories must be an array");
+        assert_eq!(arr.size(), 2);
+        assert_eq!(arr.get(0).unwrap().to_kstr().as_str(), "a");
+        assert_eq!(arr.get(1).unwrap().to_kstr().as_str(), "b");
+    }
+
+    #[test]
+    fn test_slim_no_category_defaults_to_empty_array() {
+        let fm = HashMap::new();
+        let item = make_item_with_fm(fm);
+        let liquid_obj = collection_item_to_liquid_slim(&item);
+        let obj = liquid_obj.as_object().unwrap();
+        let cats = obj.get("categories").expect("categories key must exist");
+        let arr = cats.as_array().expect("categories must be an array");
+        assert_eq!(arr.size(), 0);
+    }
+
+    #[test]
+    fn test_slim_tag_singular_to_tags_array() {
+        let mut fm = HashMap::new();
+        fm.insert(
+            "tag".to_string(),
+            serde_yaml::Value::String("rust".to_string()),
+        );
+        let item = make_item_with_fm(fm);
+        let liquid_obj = collection_item_to_liquid_slim(&item);
+        let obj = liquid_obj.as_object().unwrap();
+        let tags = obj.get("tags").expect("tags key must exist");
+        let arr = tags.as_array().expect("tags must be an array");
+        assert_eq!(arr.size(), 1);
+        assert_eq!(arr.get(0).unwrap().to_kstr().as_str(), "rust");
+    }
+
+    #[test]
+    fn test_slim_tags_string_to_array() {
+        let mut fm = HashMap::new();
+        fm.insert(
+            "tags".to_string(),
+            serde_yaml::Value::String("python".to_string()),
+        );
+        let item = make_item_with_fm(fm);
+        let liquid_obj = collection_item_to_liquid_slim(&item);
+        let obj = liquid_obj.as_object().unwrap();
+        let tags = obj.get("tags").expect("tags key must exist");
+        let arr = tags.as_array().expect("tags must be an array");
+        assert_eq!(arr.size(), 1);
+        assert_eq!(arr.get(0).unwrap().to_kstr().as_str(), "python");
+    }
+
+    #[test]
+    fn test_slim_tags_array_unchanged() {
+        let mut fm = HashMap::new();
+        fm.insert(
+            "tags".to_string(),
+            serde_yaml::Value::Sequence(vec![
+                serde_yaml::Value::String("x".to_string()),
+                serde_yaml::Value::String("y".to_string()),
+            ]),
+        );
+        let item = make_item_with_fm(fm);
+        let liquid_obj = collection_item_to_liquid_slim(&item);
+        let obj = liquid_obj.as_object().unwrap();
+        let tags = obj.get("tags").expect("tags key must exist");
+        let arr = tags.as_array().expect("tags must be an array");
+        assert_eq!(arr.size(), 2);
+        assert_eq!(arr.get(0).unwrap().to_kstr().as_str(), "x");
+        assert_eq!(arr.get(1).unwrap().to_kstr().as_str(), "y");
+    }
+
+    #[test]
+    fn test_slim_no_tag_defaults_to_empty_array() {
+        let fm = HashMap::new();
+        let item = make_item_with_fm(fm);
+        let liquid_obj = collection_item_to_liquid_slim(&item);
+        let obj = liquid_obj.as_object().unwrap();
+        let tags = obj.get("tags").expect("tags key must exist");
+        let arr = tags.as_array().expect("tags must be an array");
+        assert_eq!(arr.size(), 0);
+    }
+
+    #[test]
+    fn test_page_fm_singular_category_to_categories_array() {
+        // Simulates the page rendering path in generate_collection_pages_cached_with_progress:
+        // front matter has `category: release` (singular), after normalization
+        // `categories` should be a YAML sequence ["release"].
+        let mut page_fm = crate::frontmatter::FrontMatter::new();
+        page_fm.insert(
+            "category".to_string(),
+            serde_yaml::Value::String("release".to_string()),
+        );
+
+        // This is the normalization done in the page rendering path:
+        // First, move singular to plural
+        if let Some(val) = page_fm.remove("category") {
+            page_fm.entry("categories".to_string()).or_insert(val);
+        }
+        if let Some(val) = page_fm.remove("tag") {
+            page_fm.entry("tags".to_string()).or_insert(val);
+        }
+        normalize_fm_to_array(&mut page_fm, "categories");
+        normalize_fm_to_array(&mut page_fm, "tags");
+
+        // Verify categories is a sequence
+        let cats = page_fm
+            .get("categories")
+            .expect("categories key must exist");
+        match cats {
+            serde_yaml::Value::Sequence(seq) => {
+                assert_eq!(seq.len(), 1, "should have one element");
+                assert_eq!(seq[0], serde_yaml::Value::String("release".to_string()));
+            }
+            _ => panic!("categories should be a sequence, got: {:?}", cats),
+        }
+    }
+
+    #[test]
+    fn test_page_fm_singular_tag_to_tags_array() {
+        let mut page_fm = crate::frontmatter::FrontMatter::new();
+        page_fm.insert(
+            "tag".to_string(),
+            serde_yaml::Value::String("update".to_string()),
+        );
+
+        if let Some(val) = page_fm.remove("category") {
+            page_fm.entry("categories".to_string()).or_insert(val);
+        }
+        if let Some(val) = page_fm.remove("tag") {
+            page_fm.entry("tags".to_string()).or_insert(val);
+        }
+        normalize_fm_to_array(&mut page_fm, "categories");
+        normalize_fm_to_array(&mut page_fm, "tags");
+
+        let tags = page_fm.get("tags").expect("tags key must exist");
+        match tags {
+            serde_yaml::Value::Sequence(seq) => {
+                assert_eq!(seq.len(), 1);
+                assert_eq!(seq[0], serde_yaml::Value::String("update".to_string()));
+            }
+            _ => panic!("tags should be a sequence, got: {:?}", tags),
+        }
     }
 }

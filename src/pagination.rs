@@ -183,6 +183,9 @@ fn collection_item_to_liquid_full(item: &CollectionItem) -> LiquidValue {
         obj.insert("short".into(), LiquidValue::scalar(item.slug.clone()));
     }
 
+    // Issue 251: Normalize category/tag to categories/tags arrays (matching Jekyll behavior)
+    crate::generator::normalize_categories_and_tags(&mut obj);
+
     LiquidValue::Object(obj)
 }
 
