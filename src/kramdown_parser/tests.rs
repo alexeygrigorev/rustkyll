@@ -1,0 +1,1386 @@
+// kramdown parser - Test harness
+//
+// Based on kramdown by Thomas Leitner (MIT License)
+// Copyright (C) 2009-2013 Thomas Leitner <t_leitner@gmx.at>
+// See LICENSE-kramdown in this directory for the full license text.
+//
+// Some test cases based on MDTest by Michel Fortin
+// Copyright (c) 2007 Michel Fortin <http://www.michelf.com/>
+
+use super::*;
+use crate::kramdown_parser::element::{Document, Element, ElementType};
+use crate::kramdown_parser::entities;
+use crate::kramdown_parser::options::{EntityOutput, Options};
+use std::path::{Path, PathBuf};
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/// Get the path to the testcases directory.
+fn testcases_dir() -> PathBuf {
+    let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    manifest
+        .join("src")
+        .join("kramdown_parser")
+        .join("testcases")
+}
+
+/// Run a single conformance test case: read .text, optionally read .options,
+/// parse through to_html, compare against .html expected output.
+fn run_conformance_test(stem: &str) -> bool {
+    let dir = testcases_dir();
+    let text_path = dir.join(format!("{stem}.text"));
+    let html_path = dir.join(format!("{stem}.html"));
+    let options_path = dir.join(format!("{stem}.options"));
+
+    assert!(
+        text_path.exists(),
+        "Test input file not found: {text_path:?}"
+    );
+    assert!(
+        html_path.exists(),
+        "Expected HTML file not found: {html_path:?}"
+    );
+
+    let input = std::fs::read_to_string(&text_path)
+        .unwrap_or_else(|e| panic!("Failed to read {text_path:?}: {e}"));
+    let expected = std::fs::read_to_string(&html_path)
+        .unwrap_or_else(|e| panic!("Failed to read {html_path:?}: {e}"));
+
+    let options = if options_path.exists() {
+        Options::from_file(&options_path)
+            .unwrap_or_else(|e| panic!("Failed to parse options {options_path:?}: {e}"))
+    } else {
+        Options::default()
+    };
+
+    let actual = to_html_with_options(&input, &options);
+    actual == expected
+}
+
+/// Assert a conformance test passes, showing a diff snippet on failure.
+fn assert_conformance(stem: &str) {
+    let dir = testcases_dir();
+    let text_path = dir.join(format!("{stem}.text"));
+    let html_path = dir.join(format!("{stem}.html"));
+    let options_path = dir.join(format!("{stem}.options"));
+
+    assert!(
+        text_path.exists(),
+        "Test input file not found: {text_path:?}"
+    );
+    assert!(
+        html_path.exists(),
+        "Expected HTML file not found: {html_path:?}"
+    );
+
+    let input = std::fs::read_to_string(&text_path)
+        .unwrap_or_else(|e| panic!("Failed to read {text_path:?}: {e}"));
+    let expected = std::fs::read_to_string(&html_path)
+        .unwrap_or_else(|e| panic!("Failed to read {html_path:?}: {e}"));
+
+    let options = if options_path.exists() {
+        Options::from_file(&options_path)
+            .unwrap_or_else(|e| panic!("Failed to parse options {options_path:?}: {e}"))
+    } else {
+        Options::default()
+    };
+
+    let actual = to_html_with_options(&input, &options);
+
+    if actual != expected {
+        // Show a useful diff snippet (first 500 chars of each)
+        let expected_snippet: String = expected.chars().take(500).collect();
+        let actual_snippet: String = actual.chars().take(500).collect();
+        panic!(
+            "Conformance test failed: {stem}\n\
+             --- expected (first 500 chars) ---\n{expected_snippet}\n\
+             --- actual (first 500 chars) ---\n{actual_snippet}\n\
+             --- end ---"
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Macro to generate individual conformance tests
+// ---------------------------------------------------------------------------
+
+macro_rules! conformance_test {
+    ($name:ident, $stem:expr) => {
+        #[test]
+        fn $name() {
+            assert_conformance($stem);
+        }
+    };
+}
+
+// ---------------------------------------------------------------------------
+// Unit tests: Element types
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_element_type_block_variants() {
+    // Verify all block element types can be constructed
+    let types = vec![
+        ElementType::Root,
+        ElementType::Blank,
+        ElementType::Paragraph,
+        ElementType::Header,
+        ElementType::Blockquote,
+        ElementType::CodeBlock,
+        ElementType::HorizontalRule,
+        ElementType::List,
+        ElementType::ListItem,
+        ElementType::Table,
+        ElementType::TableRow,
+        ElementType::TableCell,
+        ElementType::HtmlBlock,
+        ElementType::DefinitionList,
+        ElementType::DefinitionTerm,
+        ElementType::DefinitionDefinition,
+        ElementType::MathBlock,
+        ElementType::Toc,
+        ElementType::Eob,
+        ElementType::BlockExtension,
+    ];
+    assert_eq!(types.len(), 20, "Expected 20 block element types");
+}
+
+#[test]
+fn test_element_type_span_variants() {
+    // Verify all span element types can be constructed
+    let types = vec![
+        ElementType::Text,
+        ElementType::Emphasis,
+        ElementType::Strong,
+        ElementType::Link,
+        ElementType::Image,
+        ElementType::CodeSpan,
+        ElementType::LineBreak,
+        ElementType::SmartQuote,
+        ElementType::TypedSymbol,
+        ElementType::HtmlSpan,
+        ElementType::FootnoteRef,
+        ElementType::FootnoteMarker,
+        ElementType::Abbreviation,
+        ElementType::MathInline,
+        ElementType::SpanExtension,
+        ElementType::EscapedChar,
+    ];
+    assert_eq!(types.len(), 16, "Expected 16 span element types");
+}
+
+#[test]
+fn test_element_construction() {
+    let elem = Element::new(ElementType::Paragraph);
+    assert_eq!(elem.element_type, ElementType::Paragraph);
+    assert!(elem.value.is_none());
+    assert!(elem.children.is_empty());
+    assert!(elem.attr.is_empty());
+}
+
+#[test]
+fn test_element_with_value() {
+    let elem = Element::with_value(ElementType::Text, "hello world");
+    assert_eq!(elem.element_type, ElementType::Text);
+    assert_eq!(elem.value.as_deref(), Some("hello world"));
+}
+
+#[test]
+fn test_document_nested_tree() {
+    let mut doc = Document::new();
+    let mut para = Element::new(ElementType::Paragraph);
+    let text = Element::with_value(ElementType::Text, "nested text");
+    para.children.push(text);
+    doc.root.children.push(para);
+
+    assert_eq!(doc.root.element_type, ElementType::Root);
+    assert_eq!(doc.root.children.len(), 1);
+    assert_eq!(doc.root.children[0].element_type, ElementType::Paragraph);
+    assert_eq!(doc.root.children[0].children.len(), 1);
+    assert_eq!(
+        doc.root.children[0].children[0].value.as_deref(),
+        Some("nested text")
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Unit tests: Options
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_options_defaults() {
+    let opts = Options::default();
+    assert!(!opts.auto_ids);
+    assert_eq!(opts.entity_output, EntityOutput::AsChar);
+    assert_eq!(opts.footnote_nr, 1);
+    assert!(!opts.parse_block_html);
+    assert!(!opts.html_to_native);
+    assert_eq!(opts.header_offset, 0);
+    assert!(!opts.header_links);
+}
+
+#[test]
+fn test_options_parse_auto_ids() {
+    let content = ":auto_ids: true\n";
+    let opts = Options::parse_options_str(content).unwrap();
+    assert!(opts.auto_ids);
+}
+
+#[test]
+fn test_options_parse_entity_output_symbolic() {
+    let content = ":entity_output: :symbolic\n";
+    let opts = Options::parse_options_str(content).unwrap();
+    assert_eq!(opts.entity_output, EntityOutput::Symbolic);
+}
+
+#[test]
+fn test_options_parse_entity_output_numeric() {
+    let content = ":entity_output: :numeric\n";
+    let opts = Options::parse_options_str(content).unwrap();
+    assert_eq!(opts.entity_output, EntityOutput::Numeric);
+}
+
+#[test]
+fn test_options_parse_nested_syntax_highlighter_opts() {
+    let content = ":syntax_highlighter_opts:\n  block:\n    css: class\n  default_lang: ruby\n  wrap: span\n  line_numbers: null\n";
+    let opts = Options::parse_options_str(content).unwrap();
+    assert_eq!(
+        opts.syntax_highlighter_opts.default_lang.as_deref(),
+        Some("ruby")
+    );
+    assert_eq!(opts.syntax_highlighter_opts.wrap.as_deref(), Some("span"));
+    assert!(opts.syntax_highlighter_opts.line_numbers.is_none());
+}
+
+#[test]
+fn test_options_parse_typographic_symbols() {
+    let content = "typographic_symbols:\n  hellip: '...'\n  mdash: '---'\n";
+    let opts = Options::parse_options_str(content).unwrap();
+    assert_eq!(
+        opts.typographic_symbols.get("hellip").map(|s| s.as_str()),
+        Some("...")
+    );
+    assert_eq!(
+        opts.typographic_symbols.get("mdash").map(|s| s.as_str()),
+        Some("---")
+    );
+}
+
+#[test]
+fn test_options_parse_link_defs() {
+    let content = ":link_defs:\n  predefined: [predefined.html]\n  URI: [uri.html, My URI]\n";
+    let opts = Options::parse_options_str(content).unwrap();
+    assert_eq!(
+        opts.link_defs.get("predefined").map(|d| d.0.as_str()),
+        Some("predefined.html")
+    );
+    let uri_def = opts.link_defs.get("URI").unwrap();
+    assert_eq!(uri_def.0, "uri.html");
+    assert_eq!(uri_def.1.as_deref(), Some("My URI"));
+}
+
+#[test]
+fn test_options_from_missing_file() {
+    let path = Path::new("/nonexistent/path/to/options");
+    let opts = Options::from_file(path).unwrap();
+    // Should return defaults
+    assert!(!opts.auto_ids);
+}
+
+#[test]
+fn test_options_math_engine_none() {
+    let content = ":math_engine: ~\n";
+    let opts = Options::parse_options_str(content).unwrap();
+    assert!(opts.math_engine.is_none());
+}
+
+#[test]
+fn test_options_toc_levels() {
+    let content = ":toc_levels: 2..3\n:auto_ids: true\n";
+    let opts = Options::parse_options_str(content).unwrap();
+    assert_eq!(opts.toc_levels, "2..3");
+    assert!(opts.auto_ids);
+}
+
+#[test]
+fn test_options_footnote_backlink() {
+    let content = ":footnote_backlink: 'text &8617; <img />'\n";
+    let opts = Options::parse_options_str(content).unwrap();
+    assert_eq!(opts.footnote_backlink, "text &8617; <img />");
+}
+
+#[test]
+fn test_options_footnote_backlink_empty() {
+    let content = ":footnote_backlink: ''\n";
+    let opts = Options::parse_options_str(content).unwrap();
+    assert_eq!(opts.footnote_backlink, "");
+}
+
+// ---------------------------------------------------------------------------
+// Unit tests: Parser stub
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_parser_stub_nonempty() {
+    let doc = KramdownParser::parse("hello world", &Options::default());
+    assert_eq!(doc.root.element_type, ElementType::Root);
+    // Should not panic -- content shape doesn't matter yet
+}
+
+#[test]
+fn test_parser_stub_empty() {
+    let doc = KramdownParser::parse("", &Options::default());
+    assert_eq!(doc.root.element_type, ElementType::Root);
+}
+
+#[test]
+fn test_parser_stub_unicode() {
+    // Test with non-ASCII content to catch encoding issues
+    let doc = KramdownParser::parse("Привет мир 你好世界 🌍", &Options::default());
+    assert_eq!(doc.root.element_type, ElementType::Root);
+}
+
+// ---------------------------------------------------------------------------
+// Unit tests: HTML converter stub
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_html_converter_stub() {
+    let doc = Document::new();
+    let result = HtmlConverter::convert(&doc, &Options::default());
+    // Should return a string without panicking
+    assert!(result.is_empty() || !result.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// Unit tests: Entity resolution
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_entity_named() {
+    assert_eq!(entities::resolve_named_entity("amp"), Some("&"));
+    assert_eq!(entities::resolve_named_entity("lt"), Some("<"));
+    assert_eq!(entities::resolve_named_entity("gt"), Some(">"));
+    assert_eq!(entities::resolve_named_entity("ndash"), Some("\u{2013}"));
+    assert_eq!(entities::resolve_named_entity("nonexistent"), None);
+}
+
+#[test]
+fn test_entity_numeric() {
+    assert_eq!(entities::resolve_numeric_entity(38), Some('&'));
+    assert_eq!(entities::resolve_numeric_entity(60), Some('<'));
+    assert_eq!(entities::resolve_numeric_entity(0xD800), None); // surrogate
+}
+
+#[test]
+fn test_entity_hex() {
+    assert_eq!(entities::resolve_hex_entity("26"), Some('&'));
+    assert_eq!(entities::resolve_hex_entity("3C"), Some('<'));
+    assert_eq!(entities::resolve_hex_entity("ZZZZ"), None);
+}
+
+// ---------------------------------------------------------------------------
+// Integration: Conformance summary test
+// ---------------------------------------------------------------------------
+
+/// All 198 test case stems (path relative to testcases/, without extension).
+const ALL_TEST_STEMS: &[&str] = &[
+    "block/01_blank_line/spaces",
+    "block/01_blank_line/tabs",
+    "block/02_eob/beginning",
+    "block/02_eob/end",
+    "block/02_eob/middle",
+    "block/03_paragraph/indented",
+    "block/03_paragraph/line_break_last_line",
+    "block/03_paragraph/no_newline_at_end",
+    "block/03_paragraph/one_para",
+    "block/03_paragraph/standalone_image",
+    "block/03_paragraph/two_para",
+    "block/03_paragraph/with_html_to_native",
+    "block/04_header/atx_header_no_newline_at_end",
+    "block/04_header/atx_header",
+    "block/04_header/header_type_offset",
+    "block/04_header/setext_header_no_newline_at_end",
+    "block/04_header/setext_header",
+    "block/04_header/with_auto_id_prefix",
+    "block/04_header/with_auto_ids",
+    "block/04_header/with_auto_id_stripping",
+    "block/04_header/with_header_links",
+    "block/04_header/with_line_break",
+    "block/05_blockquote/indented",
+    "block/05_blockquote/lazy",
+    "block/05_blockquote/nested",
+    "block/05_blockquote/no_newline_at_end",
+    "block/05_blockquote/very_long_line",
+    "block/05_blockquote/with_code_blocks",
+    "block/06_codeblock/disable-highlighting",
+    "block/06_codeblock/error",
+    "block/06_codeblock/guess_lang_css_class",
+    "block/06_codeblock/highlighting-opts",
+    "block/06_codeblock/highlighting",
+    "block/06_codeblock/lazy",
+    "block/06_codeblock/no_newline_at_end_1",
+    "block/06_codeblock/no_newline_at_end",
+    "block/06_codeblock/normal",
+    "block/06_codeblock/rouge/disabled",
+    "block/06_codeblock/rouge/multiple",
+    "block/06_codeblock/rouge/simple",
+    "block/06_codeblock/tilde_syntax",
+    "block/06_codeblock/whitespace",
+    "block/06_codeblock/with_blank_line",
+    "block/06_codeblock/with_eob_marker",
+    "block/06_codeblock/with_ial",
+    "block/06_codeblock/with_lang_in_fenced_block_any_char",
+    "block/06_codeblock/with_lang_in_fenced_block_name_with_dash",
+    "block/06_codeblock/with_lang_in_fenced_block",
+    "block/07_horizontal_rule/error",
+    "block/07_horizontal_rule/normal",
+    "block/07_horizontal_rule/sepspaces",
+    "block/07_horizontal_rule/septabs",
+    "block/08_list/escaping",
+    "block/08_list/item_ial",
+    "block/08_list/lazy_and_nested",
+    "block/08_list/lazy",
+    "block/08_list/list_and_hr",
+    "block/08_list/list_and_others",
+    "block/08_list/mixed",
+    "block/08_list/nested",
+    "block/08_list/other_first_element",
+    "block/08_list/simple_ol",
+    "block/08_list/simple_ul",
+    "block/08_list/single_item",
+    "block/08_list/special_cases",
+    "block/09_html/cdata_section",
+    "block/09_html/comment",
+    "block/09_html/content_model/deflists",
+    "block/09_html/content_model/tables",
+    "block/09_html/html5_attributes",
+    "block/09_html/html_after_block",
+    "block/09_html/html_and_codeblocks",
+    "block/09_html/html_and_headers",
+    "block/09_html/html_to_native/code",
+    "block/09_html/html_to_native/comment",
+    "block/09_html/html_to_native/emphasis",
+    "block/09_html/html_to_native/entity",
+    "block/09_html/html_to_native/header",
+    "block/09_html/html_to_native/list_dl",
+    "block/09_html/html_to_native/list_ol",
+    "block/09_html/html_to_native/list_ul",
+    "block/09_html/html_to_native/paragraph",
+    "block/09_html/html_to_native/table_normal",
+    "block/09_html/html_to_native/table_simple",
+    "block/09_html/html_to_native/typography",
+    "block/09_html/invalid_html_1",
+    "block/09_html/invalid_html_2",
+    "block/09_html/markdown_attr",
+    "block/09_html/not_parsed",
+    "block/09_html/parse_as_raw",
+    "block/09_html/parse_as_span",
+    "block/09_html/parse_block_html",
+    "block/09_html/processing_instruction",
+    "block/09_html/simple",
+    "block/09_html/textarea",
+    "block/09_html/xml",
+    "block/10_ald/simple",
+    "block/11_ial/auto_id_and_ial",
+    "block/11_ial/nested",
+    "block/11_ial/simple",
+    "block/12_extension/comment",
+    "block/12_extension/ignored",
+    "block/12_extension/nomarkdown",
+    "block/12_extension/options2",
+    "block/12_extension/options3",
+    "block/12_extension/options",
+    "block/13_definition_list/auto_ids",
+    "block/13_definition_list/definition_at_beginning",
+    "block/13_definition_list/deflist_ial",
+    "block/13_definition_list/item_ial",
+    "block/13_definition_list/multiple_terms",
+    "block/13_definition_list/no_def_list",
+    "block/13_definition_list/para_wrapping",
+    "block/13_definition_list/separated_by_eob",
+    "block/13_definition_list/simple",
+    "block/13_definition_list/styled_terms",
+    "block/13_definition_list/too_much_space",
+    "block/13_definition_list/with_blocks",
+    "block/14_table/empty_tag_in_cell",
+    "block/14_table/errors",
+    "block/14_table/escaping",
+    "block/14_table/footer",
+    "block/14_table/header",
+    "block/14_table/no_table",
+    "block/14_table/simple",
+    "block/14_table/table_with_footnote",
+    "block/15_math/gh_128",
+    "block/15_math/no_engine",
+    "block/15_math/normal",
+    "block/16_toc/no_toc",
+    "block/16_toc/toc_exclude",
+    "block/16_toc/toc_levels",
+    "block/16_toc/toc_with_footnotes",
+    "block/16_toc/toc_with_links",
+    "cjk-line-break",
+    "encoding",
+    "span/01_link/empty",
+    "span/01_link/image_in_a",
+    "span/01_link/imagelinks",
+    "span/01_link/inline",
+    "span/01_link/link_defs",
+    "span/01_link/link_defs_with_ial",
+    "span/01_link/links_with_angle_brackets",
+    "span/01_link/reference",
+    "span/02_emphasis/empty",
+    "span/02_emphasis/errors",
+    "span/02_emphasis/nesting",
+    "span/02_emphasis/normal",
+    "span/03_codespan/empty",
+    "span/03_codespan/errors",
+    "span/03_codespan/highlighting",
+    "span/03_codespan/normal-css-class",
+    "span/03_codespan/normal",
+    "span/03_codespan/rouge/disabled",
+    "span/03_codespan/rouge/simple",
+    "span/04_footnote/backlink_inline",
+    "span/04_footnote/backlink_text",
+    "span/04_footnote/definitions",
+    "span/04_footnote/footnote_link_text",
+    "span/04_footnote/footnote_nr",
+    "span/04_footnote/footnote_prefix",
+    "span/04_footnote/inside_footnote",
+    "span/04_footnote/markers",
+    "span/04_footnote/placement",
+    "span/04_footnote/regexp_problem",
+    "span/04_footnote/without_backlink",
+    "span/05_html/across_lines",
+    "span/05_html/button",
+    "span/05_html/invalid",
+    "span/05_html/link_with_mailto",
+    "span/05_html/markdown_attr",
+    "span/05_html/mark_element",
+    "span/05_html/normal",
+    "span/05_html/raw_span_elements",
+    "span/05_html/xml",
+    "span/abbreviations/abbrev_defs",
+    "span/abbreviations/abbrev_in_html",
+    "span/abbreviations/abbrev",
+    "span/abbreviations/in_footnote",
+    "span/autolinks/url_links",
+    "span/escaped_chars/normal",
+    "span/extension/comment",
+    "span/extension/ignored",
+    "span/extension/nomarkdown",
+    "span/extension/options",
+    "span/ial/simple",
+    "span/line_breaks/normal",
+    "span/math/no_engine",
+    "span/math/normal",
+    "span/text_substitutions/entities_as_char",
+    "span/text_substitutions/entities_as_input",
+    "span/text_substitutions/entities_numeric",
+    "span/text_substitutions/entities_symbolic",
+    "span/text_substitutions/entities",
+    "span/text_substitutions/greaterthan",
+    "span/text_substitutions/lowerthan",
+    "span/text_substitutions/typography_subst",
+    "span/text_substitutions/typography",
+];
+
+/// Summary test that counts passing vs total conformance tests.
+/// Always runs, never panics -- reports the current pass rate.
+#[test]
+fn kramdown_conformance_summary() {
+    let dir = testcases_dir();
+    assert!(dir.exists(), "Testcases directory not found: {dir:?}");
+
+    let mut pass_count = 0;
+    let mut fail_count = 0;
+    let mut failed_tests = Vec::new();
+
+    for stem in ALL_TEST_STEMS {
+        if run_conformance_test(stem) {
+            pass_count += 1;
+        } else {
+            fail_count += 1;
+            failed_tests.push(*stem);
+        }
+    }
+
+    let total = pass_count + fail_count;
+    assert_eq!(total, ALL_TEST_STEMS.len(), "Test count mismatch");
+
+    eprintln!("kramdown conformance: {pass_count}/{total} passing ({fail_count} failing)");
+
+    // Print first 10 failures for visibility
+    if !failed_tests.is_empty() {
+        eprintln!("First failures (up to 10):");
+        for stem in failed_tests.iter().take(10) {
+            eprintln!("  FAIL: {stem}");
+        }
+        if failed_tests.len() > 10 {
+            eprintln!("  ... and {} more", failed_tests.len() - 10);
+        }
+    }
+
+    // This test is informational -- it does not panic on failures.
+    // It asserts the total count to ensure all test cases are discovered.
+    assert_eq!(total, 198, "Expected exactly 198 conformance test cases");
+}
+
+/// Verify that all .text files with .html pairs are covered in ALL_TEST_STEMS.
+#[test]
+fn kramdown_test_discovery_complete() {
+    let dir = testcases_dir();
+    assert!(dir.exists(), "Testcases directory not found: {dir:?}");
+
+    let mut discovered = Vec::new();
+    discover_test_pairs(&dir, &dir, &mut discovered);
+    discovered.sort();
+
+    let mut listed: Vec<&str> = ALL_TEST_STEMS.to_vec();
+    listed.sort();
+
+    // Check nothing is missing from ALL_TEST_STEMS
+    for stem in &discovered {
+        assert!(
+            listed.contains(&stem.as_str()),
+            "Test case '{stem}' found on disk but missing from ALL_TEST_STEMS"
+        );
+    }
+
+    // Check nothing extra in ALL_TEST_STEMS
+    for stem in &listed {
+        assert!(
+            discovered.contains(&stem.to_string()),
+            "Test case '{stem}' listed in ALL_TEST_STEMS but not found on disk"
+        );
+    }
+
+    assert_eq!(
+        discovered.len(),
+        198,
+        "Expected 198 test pairs, found {}",
+        discovered.len()
+    );
+}
+
+/// Recursively discover all .text/.html test pairs.
+fn discover_test_pairs(base: &Path, dir: &Path, results: &mut Vec<String>) {
+    let entries = match std::fs::read_dir(dir) {
+        Ok(e) => e,
+        Err(_) => return,
+    };
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            discover_test_pairs(base, &path, results);
+        } else if path.extension().map_or(false, |e| e == "text") {
+            let html_path = path.with_extension("html");
+            if html_path.exists() {
+                let stem = path
+                    .strip_prefix(base)
+                    .unwrap()
+                    .with_extension("")
+                    .to_string_lossy()
+                    .to_string();
+                results.push(stem);
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Individual conformance tests (one per test case)
+// ---------------------------------------------------------------------------
+
+// block/01_blank_line
+conformance_test!(
+    kramdown_block_01_blank_line_spaces,
+    "block/01_blank_line/spaces"
+);
+conformance_test!(
+    kramdown_block_01_blank_line_tabs,
+    "block/01_blank_line/tabs"
+);
+
+// block/02_eob
+conformance_test!(kramdown_block_02_eob_beginning, "block/02_eob/beginning");
+conformance_test!(kramdown_block_02_eob_end, "block/02_eob/end");
+conformance_test!(kramdown_block_02_eob_middle, "block/02_eob/middle");
+
+// block/03_paragraph
+conformance_test!(
+    kramdown_block_03_paragraph_indented,
+    "block/03_paragraph/indented"
+);
+conformance_test!(
+    kramdown_block_03_paragraph_line_break_last_line,
+    "block/03_paragraph/line_break_last_line"
+);
+conformance_test!(
+    kramdown_block_03_paragraph_no_newline_at_end,
+    "block/03_paragraph/no_newline_at_end"
+);
+conformance_test!(
+    kramdown_block_03_paragraph_one_para,
+    "block/03_paragraph/one_para"
+);
+conformance_test!(
+    kramdown_block_03_paragraph_standalone_image,
+    "block/03_paragraph/standalone_image"
+);
+conformance_test!(
+    kramdown_block_03_paragraph_two_para,
+    "block/03_paragraph/two_para"
+);
+conformance_test!(
+    kramdown_block_03_paragraph_with_html_to_native,
+    "block/03_paragraph/with_html_to_native"
+);
+
+// block/04_header
+conformance_test!(
+    kramdown_block_04_header_atx_header_no_newline_at_end,
+    "block/04_header/atx_header_no_newline_at_end"
+);
+conformance_test!(
+    kramdown_block_04_header_atx_header,
+    "block/04_header/atx_header"
+);
+conformance_test!(
+    kramdown_block_04_header_header_type_offset,
+    "block/04_header/header_type_offset"
+);
+conformance_test!(
+    kramdown_block_04_header_setext_header_no_newline_at_end,
+    "block/04_header/setext_header_no_newline_at_end"
+);
+conformance_test!(
+    kramdown_block_04_header_setext_header,
+    "block/04_header/setext_header"
+);
+conformance_test!(
+    kramdown_block_04_header_with_auto_id_prefix,
+    "block/04_header/with_auto_id_prefix"
+);
+conformance_test!(
+    kramdown_block_04_header_with_auto_ids,
+    "block/04_header/with_auto_ids"
+);
+conformance_test!(
+    kramdown_block_04_header_with_auto_id_stripping,
+    "block/04_header/with_auto_id_stripping"
+);
+conformance_test!(
+    kramdown_block_04_header_with_header_links,
+    "block/04_header/with_header_links"
+);
+conformance_test!(
+    kramdown_block_04_header_with_line_break,
+    "block/04_header/with_line_break"
+);
+
+// block/05_blockquote
+conformance_test!(
+    kramdown_block_05_blockquote_indented,
+    "block/05_blockquote/indented"
+);
+conformance_test!(
+    kramdown_block_05_blockquote_lazy,
+    "block/05_blockquote/lazy"
+);
+conformance_test!(
+    kramdown_block_05_blockquote_nested,
+    "block/05_blockquote/nested"
+);
+conformance_test!(
+    kramdown_block_05_blockquote_no_newline_at_end,
+    "block/05_blockquote/no_newline_at_end"
+);
+conformance_test!(
+    kramdown_block_05_blockquote_very_long_line,
+    "block/05_blockquote/very_long_line"
+);
+conformance_test!(
+    kramdown_block_05_blockquote_with_code_blocks,
+    "block/05_blockquote/with_code_blocks"
+);
+
+// block/06_codeblock
+conformance_test!(
+    kramdown_block_06_codeblock_disable_highlighting,
+    "block/06_codeblock/disable-highlighting"
+);
+conformance_test!(
+    kramdown_block_06_codeblock_error,
+    "block/06_codeblock/error"
+);
+conformance_test!(
+    kramdown_block_06_codeblock_guess_lang_css_class,
+    "block/06_codeblock/guess_lang_css_class"
+);
+conformance_test!(
+    kramdown_block_06_codeblock_highlighting_opts,
+    "block/06_codeblock/highlighting-opts"
+);
+conformance_test!(
+    kramdown_block_06_codeblock_highlighting,
+    "block/06_codeblock/highlighting"
+);
+conformance_test!(kramdown_block_06_codeblock_lazy, "block/06_codeblock/lazy");
+conformance_test!(
+    kramdown_block_06_codeblock_no_newline_at_end_1,
+    "block/06_codeblock/no_newline_at_end_1"
+);
+conformance_test!(
+    kramdown_block_06_codeblock_no_newline_at_end,
+    "block/06_codeblock/no_newline_at_end"
+);
+conformance_test!(
+    kramdown_block_06_codeblock_normal,
+    "block/06_codeblock/normal"
+);
+conformance_test!(
+    kramdown_block_06_codeblock_rouge_disabled,
+    "block/06_codeblock/rouge/disabled"
+);
+conformance_test!(
+    kramdown_block_06_codeblock_rouge_multiple,
+    "block/06_codeblock/rouge/multiple"
+);
+conformance_test!(
+    kramdown_block_06_codeblock_rouge_simple,
+    "block/06_codeblock/rouge/simple"
+);
+conformance_test!(
+    kramdown_block_06_codeblock_tilde_syntax,
+    "block/06_codeblock/tilde_syntax"
+);
+conformance_test!(
+    kramdown_block_06_codeblock_whitespace,
+    "block/06_codeblock/whitespace"
+);
+conformance_test!(
+    kramdown_block_06_codeblock_with_blank_line,
+    "block/06_codeblock/with_blank_line"
+);
+conformance_test!(
+    kramdown_block_06_codeblock_with_eob_marker,
+    "block/06_codeblock/with_eob_marker"
+);
+conformance_test!(
+    kramdown_block_06_codeblock_with_ial,
+    "block/06_codeblock/with_ial"
+);
+conformance_test!(
+    kramdown_block_06_codeblock_with_lang_in_fenced_block_any_char,
+    "block/06_codeblock/with_lang_in_fenced_block_any_char"
+);
+conformance_test!(
+    kramdown_block_06_codeblock_with_lang_in_fenced_block_name_with_dash,
+    "block/06_codeblock/with_lang_in_fenced_block_name_with_dash"
+);
+conformance_test!(
+    kramdown_block_06_codeblock_with_lang_in_fenced_block,
+    "block/06_codeblock/with_lang_in_fenced_block"
+);
+
+// block/07_horizontal_rule
+conformance_test!(
+    kramdown_block_07_horizontal_rule_error,
+    "block/07_horizontal_rule/error"
+);
+conformance_test!(
+    kramdown_block_07_horizontal_rule_normal,
+    "block/07_horizontal_rule/normal"
+);
+conformance_test!(
+    kramdown_block_07_horizontal_rule_sepspaces,
+    "block/07_horizontal_rule/sepspaces"
+);
+conformance_test!(
+    kramdown_block_07_horizontal_rule_septabs,
+    "block/07_horizontal_rule/septabs"
+);
+
+// block/08_list
+conformance_test!(kramdown_block_08_list_escaping, "block/08_list/escaping");
+conformance_test!(kramdown_block_08_list_item_ial, "block/08_list/item_ial");
+conformance_test!(
+    kramdown_block_08_list_lazy_and_nested,
+    "block/08_list/lazy_and_nested"
+);
+conformance_test!(kramdown_block_08_list_lazy, "block/08_list/lazy");
+conformance_test!(
+    kramdown_block_08_list_list_and_hr,
+    "block/08_list/list_and_hr"
+);
+conformance_test!(
+    kramdown_block_08_list_list_and_others,
+    "block/08_list/list_and_others"
+);
+conformance_test!(kramdown_block_08_list_mixed, "block/08_list/mixed");
+conformance_test!(kramdown_block_08_list_nested, "block/08_list/nested");
+conformance_test!(
+    kramdown_block_08_list_other_first_element,
+    "block/08_list/other_first_element"
+);
+conformance_test!(kramdown_block_08_list_simple_ol, "block/08_list/simple_ol");
+conformance_test!(kramdown_block_08_list_simple_ul, "block/08_list/simple_ul");
+conformance_test!(
+    kramdown_block_08_list_single_item,
+    "block/08_list/single_item"
+);
+conformance_test!(
+    kramdown_block_08_list_special_cases,
+    "block/08_list/special_cases"
+);
+
+// block/09_html
+conformance_test!(
+    kramdown_block_09_html_cdata_section,
+    "block/09_html/cdata_section"
+);
+conformance_test!(kramdown_block_09_html_comment, "block/09_html/comment");
+conformance_test!(
+    kramdown_block_09_html_content_model_deflists,
+    "block/09_html/content_model/deflists"
+);
+conformance_test!(
+    kramdown_block_09_html_content_model_tables,
+    "block/09_html/content_model/tables"
+);
+conformance_test!(
+    kramdown_block_09_html_html5_attributes,
+    "block/09_html/html5_attributes"
+);
+conformance_test!(
+    kramdown_block_09_html_html_after_block,
+    "block/09_html/html_after_block"
+);
+conformance_test!(
+    kramdown_block_09_html_html_and_codeblocks,
+    "block/09_html/html_and_codeblocks"
+);
+conformance_test!(
+    kramdown_block_09_html_html_and_headers,
+    "block/09_html/html_and_headers"
+);
+conformance_test!(
+    kramdown_block_09_html_html_to_native_code,
+    "block/09_html/html_to_native/code"
+);
+conformance_test!(
+    kramdown_block_09_html_html_to_native_comment,
+    "block/09_html/html_to_native/comment"
+);
+conformance_test!(
+    kramdown_block_09_html_html_to_native_emphasis,
+    "block/09_html/html_to_native/emphasis"
+);
+conformance_test!(
+    kramdown_block_09_html_html_to_native_entity,
+    "block/09_html/html_to_native/entity"
+);
+conformance_test!(
+    kramdown_block_09_html_html_to_native_header,
+    "block/09_html/html_to_native/header"
+);
+conformance_test!(
+    kramdown_block_09_html_html_to_native_list_dl,
+    "block/09_html/html_to_native/list_dl"
+);
+conformance_test!(
+    kramdown_block_09_html_html_to_native_list_ol,
+    "block/09_html/html_to_native/list_ol"
+);
+conformance_test!(
+    kramdown_block_09_html_html_to_native_list_ul,
+    "block/09_html/html_to_native/list_ul"
+);
+conformance_test!(
+    kramdown_block_09_html_html_to_native_paragraph,
+    "block/09_html/html_to_native/paragraph"
+);
+conformance_test!(
+    kramdown_block_09_html_html_to_native_table_normal,
+    "block/09_html/html_to_native/table_normal"
+);
+conformance_test!(
+    kramdown_block_09_html_html_to_native_table_simple,
+    "block/09_html/html_to_native/table_simple"
+);
+conformance_test!(
+    kramdown_block_09_html_html_to_native_typography,
+    "block/09_html/html_to_native/typography"
+);
+conformance_test!(
+    kramdown_block_09_html_invalid_html_1,
+    "block/09_html/invalid_html_1"
+);
+conformance_test!(
+    kramdown_block_09_html_invalid_html_2,
+    "block/09_html/invalid_html_2"
+);
+conformance_test!(
+    kramdown_block_09_html_markdown_attr,
+    "block/09_html/markdown_attr"
+);
+conformance_test!(
+    kramdown_block_09_html_not_parsed,
+    "block/09_html/not_parsed"
+);
+conformance_test!(
+    kramdown_block_09_html_parse_as_raw,
+    "block/09_html/parse_as_raw"
+);
+conformance_test!(
+    kramdown_block_09_html_parse_as_span,
+    "block/09_html/parse_as_span"
+);
+conformance_test!(
+    kramdown_block_09_html_parse_block_html,
+    "block/09_html/parse_block_html"
+);
+conformance_test!(
+    kramdown_block_09_html_processing_instruction,
+    "block/09_html/processing_instruction"
+);
+conformance_test!(kramdown_block_09_html_simple, "block/09_html/simple");
+conformance_test!(kramdown_block_09_html_textarea, "block/09_html/textarea");
+conformance_test!(kramdown_block_09_html_xml, "block/09_html/xml");
+
+// block/10_ald
+conformance_test!(kramdown_block_10_ald_simple, "block/10_ald/simple");
+
+// block/11_ial
+conformance_test!(
+    kramdown_block_11_ial_auto_id_and_ial,
+    "block/11_ial/auto_id_and_ial"
+);
+conformance_test!(kramdown_block_11_ial_nested, "block/11_ial/nested");
+conformance_test!(kramdown_block_11_ial_simple, "block/11_ial/simple");
+
+// block/12_extension
+conformance_test!(
+    kramdown_block_12_extension_comment,
+    "block/12_extension/comment"
+);
+conformance_test!(
+    kramdown_block_12_extension_ignored,
+    "block/12_extension/ignored"
+);
+conformance_test!(
+    kramdown_block_12_extension_nomarkdown,
+    "block/12_extension/nomarkdown"
+);
+conformance_test!(
+    kramdown_block_12_extension_options2,
+    "block/12_extension/options2"
+);
+conformance_test!(
+    kramdown_block_12_extension_options3,
+    "block/12_extension/options3"
+);
+conformance_test!(
+    kramdown_block_12_extension_options,
+    "block/12_extension/options"
+);
+
+// block/13_definition_list
+conformance_test!(
+    kramdown_block_13_definition_list_auto_ids,
+    "block/13_definition_list/auto_ids"
+);
+conformance_test!(
+    kramdown_block_13_definition_list_definition_at_beginning,
+    "block/13_definition_list/definition_at_beginning"
+);
+conformance_test!(
+    kramdown_block_13_definition_list_deflist_ial,
+    "block/13_definition_list/deflist_ial"
+);
+conformance_test!(
+    kramdown_block_13_definition_list_item_ial,
+    "block/13_definition_list/item_ial"
+);
+conformance_test!(
+    kramdown_block_13_definition_list_multiple_terms,
+    "block/13_definition_list/multiple_terms"
+);
+conformance_test!(
+    kramdown_block_13_definition_list_no_def_list,
+    "block/13_definition_list/no_def_list"
+);
+conformance_test!(
+    kramdown_block_13_definition_list_para_wrapping,
+    "block/13_definition_list/para_wrapping"
+);
+conformance_test!(
+    kramdown_block_13_definition_list_separated_by_eob,
+    "block/13_definition_list/separated_by_eob"
+);
+conformance_test!(
+    kramdown_block_13_definition_list_simple,
+    "block/13_definition_list/simple"
+);
+conformance_test!(
+    kramdown_block_13_definition_list_styled_terms,
+    "block/13_definition_list/styled_terms"
+);
+conformance_test!(
+    kramdown_block_13_definition_list_too_much_space,
+    "block/13_definition_list/too_much_space"
+);
+conformance_test!(
+    kramdown_block_13_definition_list_with_blocks,
+    "block/13_definition_list/with_blocks"
+);
+
+// block/14_table
+conformance_test!(
+    kramdown_block_14_table_empty_tag_in_cell,
+    "block/14_table/empty_tag_in_cell"
+);
+conformance_test!(kramdown_block_14_table_errors, "block/14_table/errors");
+conformance_test!(kramdown_block_14_table_escaping, "block/14_table/escaping");
+conformance_test!(kramdown_block_14_table_footer, "block/14_table/footer");
+conformance_test!(kramdown_block_14_table_header, "block/14_table/header");
+conformance_test!(kramdown_block_14_table_no_table, "block/14_table/no_table");
+conformance_test!(kramdown_block_14_table_simple, "block/14_table/simple");
+conformance_test!(
+    kramdown_block_14_table_table_with_footnote,
+    "block/14_table/table_with_footnote"
+);
+
+// block/15_math
+conformance_test!(kramdown_block_15_math_gh_128, "block/15_math/gh_128");
+conformance_test!(kramdown_block_15_math_no_engine, "block/15_math/no_engine");
+conformance_test!(kramdown_block_15_math_normal, "block/15_math/normal");
+
+// block/16_toc
+conformance_test!(kramdown_block_16_toc_no_toc, "block/16_toc/no_toc");
+conformance_test!(
+    kramdown_block_16_toc_toc_exclude,
+    "block/16_toc/toc_exclude"
+);
+conformance_test!(kramdown_block_16_toc_toc_levels, "block/16_toc/toc_levels");
+conformance_test!(
+    kramdown_block_16_toc_toc_with_footnotes,
+    "block/16_toc/toc_with_footnotes"
+);
+conformance_test!(
+    kramdown_block_16_toc_toc_with_links,
+    "block/16_toc/toc_with_links"
+);
+
+// top-level
+conformance_test!(kramdown_cjk_line_break, "cjk-line-break");
+conformance_test!(kramdown_encoding, "encoding");
+
+// span/01_link
+conformance_test!(kramdown_span_01_link_empty, "span/01_link/empty");
+conformance_test!(kramdown_span_01_link_image_in_a, "span/01_link/image_in_a");
+conformance_test!(kramdown_span_01_link_imagelinks, "span/01_link/imagelinks");
+conformance_test!(kramdown_span_01_link_inline, "span/01_link/inline");
+conformance_test!(kramdown_span_01_link_link_defs, "span/01_link/link_defs");
+conformance_test!(
+    kramdown_span_01_link_link_defs_with_ial,
+    "span/01_link/link_defs_with_ial"
+);
+conformance_test!(
+    kramdown_span_01_link_links_with_angle_brackets,
+    "span/01_link/links_with_angle_brackets"
+);
+conformance_test!(kramdown_span_01_link_reference, "span/01_link/reference");
+
+// span/02_emphasis
+conformance_test!(kramdown_span_02_emphasis_empty, "span/02_emphasis/empty");
+conformance_test!(kramdown_span_02_emphasis_errors, "span/02_emphasis/errors");
+conformance_test!(
+    kramdown_span_02_emphasis_nesting,
+    "span/02_emphasis/nesting"
+);
+conformance_test!(kramdown_span_02_emphasis_normal, "span/02_emphasis/normal");
+
+// span/03_codespan
+conformance_test!(kramdown_span_03_codespan_empty, "span/03_codespan/empty");
+conformance_test!(kramdown_span_03_codespan_errors, "span/03_codespan/errors");
+conformance_test!(
+    kramdown_span_03_codespan_highlighting,
+    "span/03_codespan/highlighting"
+);
+conformance_test!(
+    kramdown_span_03_codespan_normal_css_class,
+    "span/03_codespan/normal-css-class"
+);
+conformance_test!(kramdown_span_03_codespan_normal, "span/03_codespan/normal");
+conformance_test!(
+    kramdown_span_03_codespan_rouge_disabled,
+    "span/03_codespan/rouge/disabled"
+);
+conformance_test!(
+    kramdown_span_03_codespan_rouge_simple,
+    "span/03_codespan/rouge/simple"
+);
+
+// span/04_footnote
+conformance_test!(
+    kramdown_span_04_footnote_backlink_inline,
+    "span/04_footnote/backlink_inline"
+);
+conformance_test!(
+    kramdown_span_04_footnote_backlink_text,
+    "span/04_footnote/backlink_text"
+);
+conformance_test!(
+    kramdown_span_04_footnote_definitions,
+    "span/04_footnote/definitions"
+);
+conformance_test!(
+    kramdown_span_04_footnote_footnote_link_text,
+    "span/04_footnote/footnote_link_text"
+);
+conformance_test!(
+    kramdown_span_04_footnote_footnote_nr,
+    "span/04_footnote/footnote_nr"
+);
+conformance_test!(
+    kramdown_span_04_footnote_footnote_prefix,
+    "span/04_footnote/footnote_prefix"
+);
+conformance_test!(
+    kramdown_span_04_footnote_inside_footnote,
+    "span/04_footnote/inside_footnote"
+);
+conformance_test!(
+    kramdown_span_04_footnote_markers,
+    "span/04_footnote/markers"
+);
+conformance_test!(
+    kramdown_span_04_footnote_placement,
+    "span/04_footnote/placement"
+);
+conformance_test!(
+    kramdown_span_04_footnote_regexp_problem,
+    "span/04_footnote/regexp_problem"
+);
+conformance_test!(
+    kramdown_span_04_footnote_without_backlink,
+    "span/04_footnote/without_backlink"
+);
+
+// span/05_html
+conformance_test!(
+    kramdown_span_05_html_across_lines,
+    "span/05_html/across_lines"
+);
+conformance_test!(kramdown_span_05_html_button, "span/05_html/button");
+conformance_test!(kramdown_span_05_html_invalid, "span/05_html/invalid");
+conformance_test!(
+    kramdown_span_05_html_link_with_mailto,
+    "span/05_html/link_with_mailto"
+);
+conformance_test!(
+    kramdown_span_05_html_markdown_attr,
+    "span/05_html/markdown_attr"
+);
+conformance_test!(
+    kramdown_span_05_html_mark_element,
+    "span/05_html/mark_element"
+);
+conformance_test!(kramdown_span_05_html_normal, "span/05_html/normal");
+conformance_test!(
+    kramdown_span_05_html_raw_span_elements,
+    "span/05_html/raw_span_elements"
+);
+conformance_test!(kramdown_span_05_html_xml, "span/05_html/xml");
+
+// span/abbreviations
+conformance_test!(
+    kramdown_span_abbreviations_abbrev_defs,
+    "span/abbreviations/abbrev_defs"
+);
+conformance_test!(
+    kramdown_span_abbreviations_abbrev_in_html,
+    "span/abbreviations/abbrev_in_html"
+);
+conformance_test!(
+    kramdown_span_abbreviations_abbrev,
+    "span/abbreviations/abbrev"
+);
+conformance_test!(
+    kramdown_span_abbreviations_in_footnote,
+    "span/abbreviations/in_footnote"
+);
+
+// span/autolinks
+conformance_test!(
+    kramdown_span_autolinks_url_links,
+    "span/autolinks/url_links"
+);
+
+// span/escaped_chars
+conformance_test!(
+    kramdown_span_escaped_chars_normal,
+    "span/escaped_chars/normal"
+);
+
+// span/extension
+conformance_test!(kramdown_span_extension_comment, "span/extension/comment");
+conformance_test!(kramdown_span_extension_ignored, "span/extension/ignored");
+conformance_test!(
+    kramdown_span_extension_nomarkdown,
+    "span/extension/nomarkdown"
+);
+conformance_test!(kramdown_span_extension_options, "span/extension/options");
+
+// span/ial
+conformance_test!(kramdown_span_ial_simple, "span/ial/simple");
+
+// span/line_breaks
+conformance_test!(kramdown_span_line_breaks_normal, "span/line_breaks/normal");
+
+// span/math
+conformance_test!(kramdown_span_math_no_engine, "span/math/no_engine");
+conformance_test!(kramdown_span_math_normal, "span/math/normal");
+
+// span/text_substitutions
+conformance_test!(
+    kramdown_span_text_substitutions_entities_as_char,
+    "span/text_substitutions/entities_as_char"
+);
+conformance_test!(
+    kramdown_span_text_substitutions_entities_as_input,
+    "span/text_substitutions/entities_as_input"
+);
+conformance_test!(
+    kramdown_span_text_substitutions_entities_numeric,
+    "span/text_substitutions/entities_numeric"
+);
+conformance_test!(
+    kramdown_span_text_substitutions_entities_symbolic,
+    "span/text_substitutions/entities_symbolic"
+);
+conformance_test!(
+    kramdown_span_text_substitutions_entities,
+    "span/text_substitutions/entities"
+);
+conformance_test!(
+    kramdown_span_text_substitutions_greaterthan,
+    "span/text_substitutions/greaterthan"
+);
+conformance_test!(
+    kramdown_span_text_substitutions_lowerthan,
+    "span/text_substitutions/lowerthan"
+);
+conformance_test!(
+    kramdown_span_text_substitutions_typography_subst,
+    "span/text_substitutions/typography_subst"
+);
+conformance_test!(
+    kramdown_span_text_substitutions_typography,
+    "span/text_substitutions/typography"
+);

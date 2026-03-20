@@ -9,6 +9,7 @@ pub mod generator;
 pub mod incremental;
 pub mod jsonld;
 pub mod kramdown;
+pub mod kramdown_parser;
 pub mod livereload;
 pub mod pagination;
 pub mod progress;
