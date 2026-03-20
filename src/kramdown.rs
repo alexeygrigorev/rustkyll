@@ -86,6 +86,7 @@ pub fn postprocess(html: &str) -> String {
     // so that only backtick-generated <code> gets the class -- not raw HTML
     // <code> tags from the source.
     let html = wrap_bare_text_in_paragraphs(&html);
+    let html = wrap_standalone_comments_in_paragraphs(&html);
     let html = add_block_spacing(&html);
     let html = remove_ol_start_attribute(&html);
     let html = indent_list_items(&html);
@@ -1004,7 +1005,7 @@ fn is_kramdown_table_line(trimmed: &str) -> bool {
         return false;
     }
     let content = strip_list_prefix_for_table(trimmed).trim();
-    if !content.contains('|') {
+    if !has_pipe_outside_angle_brackets(content) {
         return false;
     }
     let inner = content.trim_matches('|').trim();
@@ -1016,6 +1017,26 @@ fn is_kramdown_table_line(trimmed: &str) -> bool {
         return false;
     }
     true
+}
+
+/// Check if `content` contains a `|` character that is NOT inside angle brackets.
+/// This prevents `<tel:100-1000|100-1000>` or other HTML/autolink tags from
+/// being incorrectly treated as pipe-table cells.
+fn has_pipe_outside_angle_brackets(content: &str) -> bool {
+    let mut depth = 0i32;
+    for ch in content.chars() {
+        match ch {
+            '<' => depth += 1,
+            '>' => {
+                if depth > 0 {
+                    depth -= 1;
+                }
+            }
+            '|' if depth == 0 => return true,
+            _ => {}
+        }
+    }
+    false
 }
 
 fn strip_list_prefix_for_table(line: &str) -> &str {
@@ -2724,6 +2745,79 @@ fn is_bare_text_context(lines: &[&str], i: usize, block_tags: &[&str]) -> bool {
 
     let t = lines[j].trim();
     is_block_line(t, block_tags)
+}
+
+// ============================================================================
+// 4c. Wrap standalone HTML comments in <p> tags (Issue 274)
+// ============================================================================
+
+/// Wrap standalone HTML comments in `<p>` tags to match kramdown behavior.
+///
+/// Kramdown treats HTML comments that appear as standalone lines (surrounded by
+/// blank lines) as inline content and wraps them in `<p>` tags. Pulldown-cmark
+/// treats them as HTML block type 2 and leaves them unwrapped.
+///
+/// This function wraps comments that are:
+/// - On their own line
+/// - Separated from surrounding content by blank lines (or at start/end)
+/// - NOT immediately adjacent (without blank line separation) to block-level
+///   HTML elements
+///
+/// Must run AFTER `wrap_bare_text_in_paragraphs` which treats comments as
+/// block-level (issue 144). This function selectively wraps the standalone ones.
+fn wrap_standalone_comments_in_paragraphs(html: &str) -> String {
+    let lines: Vec<&str> = html.split('\n').collect();
+    let len = lines.len();
+    if len == 0 {
+        return html.to_string();
+    }
+
+    let mut result: Vec<String> = Vec::with_capacity(len);
+    let mut i = 0;
+
+    while i < len {
+        let trimmed = lines[i].trim();
+
+        // Only process lines that are HTML comments
+        if !trimmed.starts_with("<!--") || !trimmed.ends_with("-->") {
+            result.push(lines[i].to_string());
+            i += 1;
+            continue;
+        }
+
+        // Already wrapped in <p>? Skip.
+        if trimmed.starts_with("<p><!--") {
+            result.push(lines[i].to_string());
+            i += 1;
+            continue;
+        }
+
+        // Check if this comment is "standalone" -- surrounded by blank lines
+        // (or at start/end of content).
+        let prev_is_blank_or_start = if i == 0 {
+            true
+        } else {
+            lines[i - 1].trim().is_empty()
+        };
+
+        let next_is_blank_or_end = if i + 1 >= len {
+            true
+        } else {
+            lines[i + 1].trim().is_empty()
+        };
+
+        if prev_is_blank_or_start && next_is_blank_or_end {
+            // This is a standalone comment -- wrap it in <p>
+            result.push(format!("<p>{}</p>", trimmed));
+        } else {
+            // Adjacent to non-blank content -- leave as-is (issue 144)
+            result.push(lines[i].to_string());
+        }
+
+        i += 1;
+    }
+
+    result.join("\n")
 }
 
 // ============================================================================
@@ -8554,10 +8648,11 @@ by <a href="/people/author.html">Author Name</a>
 
     #[test]
     fn test_272_is_kramdown_table_line_slack_ref() {
-        // Slack channel reference with embedded pipe should be detected.
+        // Issue 273: Slack channel reference with pipe inside angle brackets
+        // should NOT be detected as a table line (matches Jekyll behavior).
         assert!(
-            is_kramdown_table_line("<#C01AXGTRESH|books> would be better"),
-            "Slack ref with embedded pipe should be a kramdown table line"
+            !is_kramdown_table_line("<#C01AXGTRESH|books> would be better"),
+            "Slack ref with pipe inside angle brackets should NOT be a kramdown table line"
         );
     }
 
@@ -8620,15 +8715,15 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     #[test]
-    fn test_272_markdownify_slack_ref_produces_table() {
+    fn test_272_markdownify_slack_ref_not_table() {
+        // Issue 273: Slack channel reference with pipe inside angle brackets
+        // should NOT produce a table (pipe is inside <...>, matching Jekyll behavior).
         let input = "<#C01AXGTRESH|books> text\n";
         let html = crate::frontmatter::markdown_to_html(input);
         assert!(
-            html.contains("<table>"),
-            "Slack ref with pipe should produce table. Got: {html}"
+            !html.contains("<table>"),
+            "Slack ref with pipe inside angle brackets should NOT produce table. Got: {html}"
         );
-        let td_count = html.matches("<td>").count();
-        assert_eq!(td_count, 2, "Should have 2 cells. Got: {html}");
     }
 
     #[test]
@@ -8644,15 +8739,15 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     #[test]
-    fn test_272_markdownify_mailto_pipe_produces_table() {
+    fn test_272_markdownify_mailto_pipe_not_table() {
+        // Issue 273: mailto with pipe inside angle brackets should NOT produce
+        // a table (pipe is inside <...>, matching Jekyll behavior).
         let input = "<mailto:a@b.com|a@b.com> more\n";
         let html = crate::frontmatter::markdown_to_html(input);
         assert!(
-            html.contains("<table>"),
-            "Mailto with pipe should produce table. Got: {html}"
+            !html.contains("<table>"),
+            "Mailto with pipe inside angle brackets should NOT produce table. Got: {html}"
         );
-        let td_count = html.matches("<td>").count();
-        assert_eq!(td_count, 2, "Should have 2 cells. Got: {html}");
     }
 
     #[test]
@@ -8711,6 +8806,233 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             !html.contains("<table>"),
             "Existing 248 test: pipe then non-pipe should NOT be table. Got: {html}"
+        );
+    }
+
+    // --- Issue 273: pipe inside angle brackets should not trigger table detection ---
+
+    #[test]
+    fn test_273_has_pipe_outside_angle_brackets_plain_pipe() {
+        assert!(
+            has_pipe_outside_angle_brackets("a | b"),
+            "Plain pipe should be detected"
+        );
+    }
+
+    #[test]
+    fn test_273_has_pipe_outside_angle_brackets_inside_tags() {
+        assert!(
+            !has_pipe_outside_angle_brackets("text <tel:100-1000|100-1000> more"),
+            "Pipe inside angle brackets should NOT be detected"
+        );
+    }
+
+    #[test]
+    fn test_273_has_pipe_outside_angle_brackets_mixed() {
+        assert!(
+            has_pipe_outside_angle_brackets("a | <tag|inner> b"),
+            "Pipe outside brackets should be detected even with pipe inside brackets"
+        );
+    }
+
+    #[test]
+    fn test_273_has_pipe_outside_angle_brackets_no_pipe() {
+        assert!(
+            !has_pipe_outside_angle_brackets("no pipe here"),
+            "No pipe means false"
+        );
+    }
+
+    #[test]
+    fn test_273_has_pipe_outside_angle_brackets_unicode() {
+        assert!(
+            !has_pipe_outside_angle_brackets("text <sch\u{00f6}n|gr\u{00fc}\u{00df}> end"),
+            "Pipe inside angle brackets with unicode should NOT be detected"
+        );
+    }
+
+    #[test]
+    fn test_273_pipe_in_autolink_not_table() {
+        // Autolink <tel:100-1000|100-1000> in a list item should NOT trigger table
+        let input = "- engineering: infrastructure with <tel:100-1000|100-1000>s of GPUs\n\n";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            !html.contains("<table>"),
+            "Autolink with pipe should NOT become table. Got: {html}"
+        );
+        assert!(
+            html.contains("<li>"),
+            "Should still be a list item. Got: {html}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 274: Standalone HTML comments surrounded by blank lines should
+    // be wrapped in <p> tags to match kramdown behavior
+    // ========================================================================
+
+    #[test]
+    fn test_274_standalone_comment_wrapped_in_p() {
+        // Comment surrounded by blank lines between block elements should be wrapped in <p>
+        let input = "<p>text</p>\n\n<!-- Use manually specified posts -->\n\n<div>block</div>";
+        let result = postprocess(input);
+        assert!(
+            result.contains("<p><!-- Use manually specified posts --></p>"),
+            "Standalone comment should be wrapped in <p>. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_274_multiple_standalone_comments_each_wrapped() {
+        // Multiple standalone comments, each should be wrapped in <p>
+        let input =
+            "<!-- comment1 -->\n\n<!-- comment2 -->\n\n<div class=\"related\">block</div>";
+        let result = postprocess(input);
+        assert!(
+            result.contains("<p><!-- comment1 --></p>"),
+            "First standalone comment should be wrapped in <p>. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<p><!-- comment2 --></p>"),
+            "Second standalone comment should be wrapped in <p>. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_274_comment_adjacent_to_block_not_wrapped() {
+        // Comment adjacent to block elements (no blank line) should NOT be wrapped (issue 144)
+        let input =
+            "<h2>Heading</h2>\n<!-- comment -->\n<div>block</div>";
+        let result = postprocess(input);
+        assert!(
+            !result.contains("<p><!-- comment --></p>"),
+            "Comment adjacent to block elements should NOT be wrapped. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_274_comment_immediately_before_block_not_wrapped() {
+        // Comment immediately before block element, no blank line, should NOT be wrapped
+        let input = "<!-- FAQ Accordion Component -->\n<div class=\"faq\">content</div>";
+        let result = postprocess(input);
+        assert!(
+            !result.contains("<p><!-- FAQ Accordion Component --></p>"),
+            "Comment immediately before block should NOT be wrapped. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_274_no_comments_passes_through() {
+        // Content with no HTML comments should pass through unchanged
+        let input = "<p>Hello</p>\n\n<div>World</div>";
+        let result1 = postprocess(input);
+        // Running postprocess again should be idempotent for this content
+        assert!(
+            !result1.contains("<!--"),
+            "Content without comments should have no comments"
+        );
+    }
+
+    #[test]
+    fn test_274_related_posts_manual_posts_pattern() {
+        // Simulate Liquid-processed output of related-posts.html with manual_posts
+        let input = "<p>Some content about the course.</p>\n\n\
+                      <!-- Use manually specified posts -->\n\n\
+                      <div class=\"related-posts-section\">\n\
+                      <h3>Related posts</h3>\n\
+                      </div>";
+        let result = postprocess(input);
+        assert!(
+            result.contains("<p><!-- Use manually specified posts --></p>"),
+            "manual_posts comment should be wrapped in <p>. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_274_related_posts_auto_generate_pattern() {
+        // Simulate Liquid-processed output of related-posts.html without manual_posts
+        // All 3 comments should each be wrapped in <p>
+        let input = "<p>Some content.</p>\n\n\
+                      <!-- Auto-generate based on tags - simplified approach -->\n\n\
+                      <!-- Find posts with matching tags -->\n\n\
+                      <!-- Sort by date (most recent first) -->\n\n\
+                      <div class=\"related-posts-section\">\n\
+                      <h3>Related posts</h3>\n\
+                      </div>";
+        let result = postprocess(input);
+        assert!(
+            result.contains("<p><!-- Auto-generate based on tags - simplified approach --></p>"),
+            "Auto-generate comment should be wrapped in <p>. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<p><!-- Find posts with matching tags --></p>"),
+            "Find posts comment should be wrapped in <p>. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<p><!-- Sort by date (most recent first) --></p>"),
+            "Sort by date comment should be wrapped in <p>. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_274_issue144_accordion_regression() {
+        // Issue 144 regression: comment + div + script pattern must NOT wrap comments
+        let input = "<h2>FAQ</h2>\n\
+                      <!-- FAQ Accordion Component -->\n\
+                      <div class=\"faq-accordion\">\n\
+                      <div class=\"faq-item\">Q&amp;A</div>\n\
+                      </div>\n\
+                      \n\
+                      <!-- FAQ Schema Markup (JSON-LD) -->\n\
+                      <script type=\"application/ld+json\">\n\
+                      {\"@type\": \"FAQPage\"}\n\
+                      </script>\n\
+                      \n\
+                      <!-- Load accordion JavaScript -->\n\
+                      <script src=\"/assets/accordion.js\"></script>";
+        let result = postprocess(input);
+        // Comments adjacent to block elements should NOT be wrapped
+        assert!(
+            !result.contains("<p><!-- FAQ Accordion Component --></p>"),
+            "Comment before div should not be wrapped. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("<p><!-- Load accordion JavaScript --></p>"),
+            "Comment before script should not be wrapped. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_274_comment_at_start_with_blank_line_then_block() {
+        // Comment at start of content, followed by blank line then block
+        let input = "<!-- Use manually specified posts -->\n\n<div class=\"related\">content</div>";
+        let result = postprocess(input);
+        assert!(
+            result.contains("<p><!-- Use manually specified posts --></p>"),
+            "Comment at start followed by blank line should be wrapped. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_273_normal_pipe_table_still_works() {
+        // Regression: normal pipe tables should still be detected
+        let input = "| Col1 | Col2 |\n| a | b |\n";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<table>") || html.contains("<th>") || html.contains("<td>"),
+            "Normal pipe table should still work. Got: {html}"
         );
     }
 }

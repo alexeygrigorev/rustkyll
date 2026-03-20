@@ -338,4 +338,178 @@ mod tests {
             s
         );
     }
+
+    // --- Issue 273: DTC <br> element handling in newline_to_br | markdownify pipeline ---
+
+    /// Pattern A: inline code + br preserved
+    #[test]
+    fn test_issue273_pattern_a_code_span_followed_by_br() {
+        let input = "Use `code` here<br />\nWhat's next?";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<code"),
+            "Pattern A: Should contain <code> element. Got: {html}"
+        );
+        assert!(
+            html.contains("<br />"),
+            "Pattern A: Should preserve <br />. Got: {html}"
+        );
+    }
+
+    /// Pattern A: multiple code spans with br
+    #[test]
+    fn test_issue273_pattern_a_multiple_code_spans_with_br() {
+        let input = "`first`<br />\n`second`";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        // Both code spans must be present
+        let code_count = html.matches("<code").count();
+        assert!(
+            code_count >= 2,
+            "Pattern A: Should have 2 <code> elements. Got {code_count} in: {html}"
+        );
+        assert!(
+            html.contains("<br />"),
+            "Pattern A: Should preserve <br /> between code spans. Got: {html}"
+        );
+    }
+
+    /// Pattern B: br elements preserved within list item
+    #[test]
+    fn test_issue273_pattern_b_br_in_list_item() {
+        let input = "- line one<br />\nline two<br />\nline three";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<li>"),
+            "Pattern B: Should contain <li>. Got: {html}"
+        );
+        assert!(
+            html.contains("<br />"),
+            "Pattern B: Should preserve <br /> within list items. Got: {html}"
+        );
+    }
+
+    /// Pattern B: br in nested list item with code snippets
+    #[test]
+    fn test_issue273_pattern_b_br_in_list_with_code() {
+        let input = "- `>>> import spacy`<br />\n`>>> nlp = spacy.load('en')`<br />\n`>>> doc = nlp('Hello')`";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<li>"),
+            "Pattern B: Should contain <li>. Got: {html}"
+        );
+        let br_count = html.matches("<br />").count();
+        assert!(
+            br_count >= 2,
+            "Pattern B: Should have at least 2 <br /> in list item. Got {br_count} in: {html}"
+        );
+    }
+
+    /// Pattern C: numbered list items 4,3,2 stay as plain text with <br />,
+    /// then item 1 starts an <ol>. This matches Jekyll/kramdown behavior where
+    /// only `1.` at a paragraph boundary triggers an ordered list.
+    #[test]
+    fn test_issue273_pattern_c_numbered_list_after_br() {
+        // Full text: items 4,3,2 in paragraph, then 1 starts a list
+        let input = "great questions!<br />\n4. Writing did the trick<br />\n3. I'm not sure<br />\n2. Communication<br />\n1. I'm not sure about this";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        // Items 4,3,2 should be in a <p> with <br /> between them
+        assert!(
+            html.contains("<p>"),
+            "Pattern C: Should have <p> for non-list text. Got: {html}"
+        );
+        assert!(
+            html.contains("<br />"),
+            "Pattern C: Should preserve <br /> in paragraph. Got: {html}"
+        );
+        // Item 1 should trigger an <ol> list (kramdown behavior)
+        assert!(
+            html.contains("<ol>"),
+            "Pattern C: '1.' should render as <ol>. Got: {html}"
+        );
+        assert!(
+            html.contains("<li>"),
+            "Pattern C: Should contain <li> for item 1. Got: {html}"
+        );
+    }
+
+    /// Pattern C: unordered list after br-modified newlines
+    #[test]
+    fn test_issue273_pattern_c_unordered_list_after_br() {
+        let input = "intro text<br />\n- first item<br />\n- second item";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<ul>"),
+            "Pattern C: Should render <ul> for bullet list. Got: {html}"
+        );
+        assert!(
+            html.contains("<li>"),
+            "Pattern C: Should contain <li> elements. Got: {html}"
+        );
+    }
+
+    /// Unicode content: br handling with non-ASCII text
+    #[test]
+    fn test_issue273_unicode_br_handling() {
+        let input = "Sch\u{00f6}ne Gr\u{00fc}\u{00df}e<br />\n\u{1f600} Emoji here<br />\n\u{4f60}\u{597d} CJK text";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        let br_count = html.matches("<br />").count();
+        assert!(
+            br_count >= 2,
+            "Unicode: Should preserve <br /> with non-ASCII text. Got {br_count} in: {html}"
+        );
+        assert!(
+            html.contains("Sch\u{00f6}ne"),
+            "Unicode: Should preserve German umlauts. Got: {html}"
+        );
+        assert!(
+            html.contains("\u{1f600}"),
+            "Unicode: Should preserve emoji. Got: {html}"
+        );
+        assert!(
+            html.contains("\u{4f60}\u{597d}"),
+            "Unicode: Should preserve CJK. Got: {html}"
+        );
+    }
+
+    /// Pattern D: pipe character inside angle brackets should not trigger table parsing
+    /// in list items with br. This reproduces the NLP transformers page bug where
+    /// <tel:100-1000|100-1000> in a list item was parsed as a table.
+    #[test]
+    fn test_issue273_pattern_d_pipe_in_angle_brackets_list_item() {
+        let input = "oh there are many<br />\n- engineering: infrastructure with <tel:100-1000|100-1000>s of GPUs<br />\n- dataset: lots of data<br />\n- release: responsible release";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        // Should NOT produce a table
+        assert!(
+            !html.contains("<table>"),
+            "Pattern D: Pipe inside angle brackets should not trigger table. Got: {html}"
+        );
+        // Should produce list items
+        assert!(
+            html.contains("<li>"),
+            "Pattern D: Should have <li> elements. Got: {html}"
+        );
+        assert!(
+            html.contains("<br />"),
+            "Pattern D: Should preserve <br /> in list items. Got: {html}"
+        );
+    }
+
+    /// Regression: markdownify without br is unchanged
+    #[test]
+    fn test_issue273_regression_markdownify_without_br() {
+        let input = "## Heading\n\nSome **bold** text.\n\n- item1\n- item2\n";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<h2>"),
+            "Regression: Headings still work. Got: {html}"
+        );
+        assert!(
+            html.contains("<strong>bold</strong>"),
+            "Regression: Bold still works. Got: {html}"
+        );
+        assert!(
+            html.contains("<li>"),
+            "Regression: Lists still work. Got: {html}"
+        );
+    }
 }
