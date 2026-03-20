@@ -570,22 +570,12 @@ fn collection_item_to_liquid_slim(item: &CollectionItem) -> LiquidValue {
         obj.insert("date".into(), LiquidValue::scalar(date.clone()));
     }
 
-    // Issue 217: Use raw markdown for the content field, matching Jekyll's behavior
-    // for site-level cross-references (e.g., `site.people | where: "short", a | first`).
-    // In Jekyll, `document.content` returns raw markdown when accessed before the
-    // document is individually rendered. This ensures that filter chains like
-    // `author.content | strip_html | jsonify` preserve markdown link syntax
-    // (strip_html is a no-op on raw markdown) and don't add trailing newlines
-    // from HTML paragraph rendering.
+    // Issue 266: Use rendered HTML for the content field, matching Jekyll's behavior
+    // where `document.content` returns HTML with <p> wrapping. This is needed for
+    // templates like podcast layouts that use `{{ guest.content }}` expecting HTML output.
+    // (Reverts issue 217's change to raw markdown, which broke 174 DTC podcast pages.)
     obj.insert(
         "content".into(),
-        LiquidValue::scalar(item.content.trim_start().to_string()),
-    );
-
-    // Also store rendered HTML as `output` for templates that need HTML display
-    // (e.g., {{ guest.content }} in podcast layouts that display bios as HTML).
-    obj.insert(
-        "output".into(),
         LiquidValue::scalar(item.html_content.clone()),
     );
 
@@ -5020,12 +5010,11 @@ defaults:
     }
 
     #[test]
-    fn test_collection_item_content_uses_raw_markdown() {
-        // Issue 217: Collection item's content field in slim representation uses
-        // raw markdown, matching Jekyll's behavior for site-level cross-references.
-        // In Jekyll, `document.content` accessed via `site.people` returns raw
-        // markdown (before the document is individually rendered). This ensures
-        // `author.content | strip_html | jsonify` preserves markdown link syntax.
+    fn test_collection_item_content_uses_rendered_html() {
+        // Issue 266: Collection item's content field in slim representation uses
+        // rendered HTML, matching Jekyll's behavior where `document.content`
+        // returns HTML with <p> wrapping. This is needed for podcast layouts
+        // that use `{{ guest.content }}` expecting HTML output.
         let item = CollectionItem {
             slug: "testperson".to_string(),
             url: "/people/testperson.html".to_string(),
@@ -5055,18 +5044,18 @@ defaults:
             .map(|(_, v)| v.to_kstr().to_string())
             .unwrap();
 
-        // Content should use raw markdown (not html_content)
+        // Content should use rendered HTML (html_content)
         assert_eq!(
-            content_val, "Test Person is a developer.",
-            "Collection item content should use raw markdown, got: {:?}",
+            content_val, "<p>Test Person is a developer.</p>\n",
+            "Collection item content should use rendered HTML, got: {:?}",
             content_val
         );
     }
 
     #[test]
-    fn test_collection_item_content_preserves_markdown_links() {
-        // Issue 217: Raw markdown content preserves link syntax, which is critical
-        // for JSON-LD author descriptions (strip_html is a no-op on raw markdown).
+    fn test_collection_item_content_renders_markdown_links_as_html() {
+        // Issue 266: Content field returns rendered HTML, so markdown links
+        // become <a> tags. This matches Jekyll's behavior for `{{ guest.content }}`.
         let item = CollectionItem {
             slug: "davidgates".to_string(),
             url: "/people/davidgates.html".to_string(),
@@ -5096,24 +5085,24 @@ defaults:
             .map(|(_, v)| v.to_kstr().to_string())
             .unwrap();
 
-        // Raw markdown preserves link syntax
+        // Rendered HTML has <a> tags instead of markdown links
         assert!(
-            content_val.contains("[Accents Welcome](https://accentswelcome.com)"),
-            "Content should preserve markdown links, got: {:?}",
+            content_val.contains("<a href=\"https://accentswelcome.com\">Accents Welcome</a>"),
+            "Content should have HTML anchor tags, got: {:?}",
             content_val
         );
-        // No trailing newline from HTML rendering
+        // Has HTML paragraph wrapping
         assert!(
-            !content_val.ends_with("</p>\n"),
-            "Content should not have HTML paragraph tags, got: {:?}",
+            content_val.starts_with("<p>") && content_val.ends_with("</p>\n"),
+            "Content should have HTML paragraph tags, got: {:?}",
             content_val
         );
     }
 
     #[test]
-    fn test_collection_item_content_no_trailing_html_newline() {
-        // Issue 217: Raw markdown content doesn't have trailing newline from
-        // HTML paragraph rendering, fixing JSON-LD trailing \n diffs.
+    fn test_collection_item_content_has_html_paragraph_wrapping() {
+        // Issue 266: Content field returns rendered HTML with <p> wrapping,
+        // matching Jekyll's behavior. The trailing \n from HTML rendering is expected.
         let item = CollectionItem {
             slug: "alexeygrigorev".to_string(),
             url: "/people/alexeygrigorev.html".to_string(),
@@ -5144,15 +5133,16 @@ defaults:
             .unwrap();
 
         assert_eq!(
-            content_val, "Alexey Grigorev is the founder of DataTalks.Club",
-            "Content should be raw markdown with no trailing newline, got: {:?}",
+            content_val, "<p>Alexey Grigorev is the founder of DataTalks.Club</p>\n",
+            "Content should be rendered HTML with paragraph wrapping, got: {:?}",
             content_val
         );
     }
 
     #[test]
-    fn test_collection_item_content_unicode_preserved() {
-        // Issue 217: Raw markdown content preserves non-ASCII/Unicode characters.
+    fn test_collection_item_content_unicode_rendered_html() {
+        // Issue 266: Rendered HTML content preserves non-ASCII/Unicode characters
+        // and converts markdown links to HTML anchor tags.
         let item = CollectionItem {
             slug: "renedescartes".to_string(),
             url: "/people/renedescartes.html".to_string(),
@@ -5182,7 +5172,7 @@ defaults:
             .map(|(_, v)| v.to_kstr().to_string())
             .unwrap();
 
-        // Unicode chars preserved
+        // Unicode chars preserved in HTML
         assert!(
             content_val.contains("Ren\u{00e9}"),
             "Content should preserve unicode e-acute, got: {:?}",
@@ -5193,19 +5183,24 @@ defaults:
             "Content should preserve unicode c-cedilla, got: {:?}",
             content_val
         );
-        // Markdown link preserved
+        // Markdown links rendered as HTML anchor tags
         assert!(
-            content_val.contains("[Discours](https://example.com/discours)"),
-            "Content should preserve markdown links with unicode, got: {:?}",
+            content_val.contains("<a href=\"https://example.com/discours\">Discours</a>"),
+            "Content should have HTML anchor tags (not raw markdown links), got: {:?}",
+            content_val
+        );
+        // Has paragraph wrapping
+        assert!(
+            content_val.starts_with("<p>"),
+            "Content should start with <p> tag, got: {:?}",
             content_val
         );
     }
 
     #[test]
-    fn test_collection_item_slim_has_output_field() {
-        // Issue 217: The slim representation includes an `output` field with
-        // rendered HTML, for templates that need HTML display (e.g., {{ guest.content }}
-        // in podcast layouts can use {{ guest.output }} instead if needed).
+    fn test_collection_item_slim_no_output_field() {
+        // Issue 266: The `output` field is removed since `content` now returns
+        // rendered HTML directly, making `output` redundant.
         let item = CollectionItem {
             slug: "testperson".to_string(),
             url: "/people/testperson.html".to_string(),
@@ -5228,20 +5223,20 @@ defaults:
             .map(|(_, v)| v.to_kstr().to_string());
 
         assert_eq!(
-            output_val,
-            Some("<p>Test bio.</p>\n".to_string()),
-            "Slim representation should include output field with rendered HTML"
+            output_val, None,
+            "Slim representation should NOT include output field (redundant with content)"
         );
     }
 
     // ========================================================================
-    // Issue 219: Leading whitespace trimmed from slim content field
+    // Issue 266: Content uses rendered HTML (html_content), leading newline
+    // in raw markdown is irrelevant since html_content is used directly.
     // ========================================================================
 
     #[test]
-    fn test_slim_content_leading_newline_trimmed() {
-        // Issue 219: Content with leading newline (from blank line after front matter)
-        // should be trimmed in the slim representation.
+    fn test_slim_content_uses_html_content_regardless_of_raw_newlines() {
+        // Issue 266: Even when raw markdown has leading newlines, the content
+        // field uses html_content directly (which has no such leading newlines).
         let item = CollectionItem {
             slug: "alexeygrigorev".to_string(),
             url: "/people/alexeygrigorev.html".to_string(),
@@ -5265,22 +5260,22 @@ defaults:
             .unwrap();
 
         assert_eq!(
-            content_val, "Alexey Grigorev is the founder of DataTalks.Club",
-            "Content with leading newline should be trimmed, got: {:?}",
+            content_val, "<p>Alexey Grigorev is the founder of DataTalks.Club</p>\n",
+            "Content should be rendered HTML from html_content, got: {:?}",
             content_val
         );
     }
 
     #[test]
-    fn test_slim_content_multiple_leading_newlines_trimmed() {
-        // Issue 219: Content with multiple leading newlines should all be trimmed.
+    fn test_slim_content_multi_paragraph_html() {
+        // Issue 266: Multi-paragraph content returns multi-paragraph HTML.
         let item = CollectionItem {
             slug: "testperson".to_string(),
             url: "/people/testperson.html".to_string(),
             date: None,
             front_matter: HashMap::new(),
-            content: "\n\n\nSome bio text".to_string(),
-            html_content: "<p>Some bio text</p>\n".to_string(),
+            content: "First paragraph.\n\nSecond paragraph.".to_string(),
+            html_content: "<p>First paragraph.</p>\n<p>Second paragraph.</p>\n".to_string(),
             excerpt: None,
             collection_name: "people".to_string(),
             source_path: "_people/testperson.md".to_string(),
@@ -5297,144 +5292,9 @@ defaults:
             .unwrap();
 
         assert_eq!(
-            content_val, "Some bio text",
-            "Content with multiple leading newlines should be trimmed, got: {:?}",
+            content_val, "<p>First paragraph.</p>\n<p>Second paragraph.</p>\n",
+            "Content should have multi-paragraph HTML, got: {:?}",
             content_val
-        );
-    }
-
-    #[test]
-    fn test_slim_content_no_leading_whitespace_unchanged() {
-        // Issue 219: Content with no leading whitespace should be unchanged.
-        let item = CollectionItem {
-            slug: "testperson".to_string(),
-            url: "/people/testperson.html".to_string(),
-            date: None,
-            front_matter: HashMap::new(),
-            content: "Already trimmed content".to_string(),
-            html_content: "<p>Already trimmed content</p>\n".to_string(),
-            excerpt: None,
-            collection_name: "people".to_string(),
-            source_path: "_people/testperson.md".to_string(),
-            id: "/people/testperson".to_string(),
-        };
-
-        let liquid_val = collection_item_to_liquid_slim(&item);
-        let content_val = liquid_val
-            .as_object()
-            .unwrap()
-            .iter()
-            .find(|(k, _)| k.as_str() == "content")
-            .map(|(_, v)| v.to_kstr().to_string())
-            .unwrap();
-
-        assert_eq!(
-            content_val, "Already trimmed content",
-            "Content with no leading whitespace should be unchanged, got: {:?}",
-            content_val
-        );
-    }
-
-    #[test]
-    fn test_slim_content_leading_newline_unicode() {
-        // Issue 219: Content with leading newline and non-ASCII characters.
-        let item = CollectionItem {
-            slug: "renedescartes".to_string(),
-            url: "/people/renedescartes.html".to_string(),
-            date: None,
-            front_matter: HashMap::new(),
-            content: "\nRen\u{00e9} Descartes est un philosophe fran\u{00e7}ais".to_string(),
-            html_content: "<p>Ren\u{00e9} Descartes est un philosophe fran\u{00e7}ais</p>\n"
-                .to_string(),
-            excerpt: None,
-            collection_name: "people".to_string(),
-            source_path: "_people/renedescartes.md".to_string(),
-            id: "/people/renedescartes".to_string(),
-        };
-
-        let liquid_val = collection_item_to_liquid_slim(&item);
-        let content_val = liquid_val
-            .as_object()
-            .unwrap()
-            .iter()
-            .find(|(k, _)| k.as_str() == "content")
-            .map(|(_, v)| v.to_kstr().to_string())
-            .unwrap();
-
-        assert!(
-            content_val.starts_with("Ren\u{00e9}"),
-            "Content should start with 'Ren\u{00e9}' (no leading newline), got: {:?}",
-            content_val
-        );
-        assert!(
-            content_val.contains("fran\u{00e7}ais"),
-            "Content should preserve unicode c-cedilla, got: {:?}",
-            content_val
-        );
-    }
-
-    #[test]
-    fn test_slim_content_leading_newline_markdown_links() {
-        // Issue 219: Content with leading newline and markdown links.
-        let item = CollectionItem {
-            slug: "davidgates".to_string(),
-            url: "/people/davidgates.html".to_string(),
-            date: None,
-            front_matter: HashMap::new(),
-            content: "\nDavid Gates is the founder of [Accents Welcome](https://accentswelcome.com)".to_string(),
-            html_content: "<p>David Gates is the founder of <a href=\"https://accentswelcome.com\">Accents Welcome</a></p>\n".to_string(),
-            excerpt: None,
-            collection_name: "people".to_string(),
-            source_path: "_people/davidgates.md".to_string(),
-            id: "/people/davidgates".to_string(),
-        };
-
-        let liquid_val = collection_item_to_liquid_slim(&item);
-        let content_val = liquid_val
-            .as_object()
-            .unwrap()
-            .iter()
-            .find(|(k, _)| k.as_str() == "content")
-            .map(|(_, v)| v.to_kstr().to_string())
-            .unwrap();
-
-        assert_eq!(
-            content_val,
-            "David Gates is the founder of [Accents Welcome](https://accentswelcome.com)",
-            "Content should have leading newline removed and markdown links preserved, got: {:?}",
-            content_val
-        );
-    }
-
-    #[test]
-    fn test_slim_output_field_not_trimmed() {
-        // Issue 219: The output field (html_content) should NOT be trimmed.
-        let item = CollectionItem {
-            slug: "testperson".to_string(),
-            url: "/people/testperson.html".to_string(),
-            date: None,
-            front_matter: HashMap::new(),
-            content: "\nSome bio".to_string(),
-            html_content: "<p>Some bio</p>\n".to_string(),
-            excerpt: None,
-            collection_name: "people".to_string(),
-            source_path: "_people/testperson.md".to_string(),
-            id: "/people/testperson".to_string(),
-        };
-
-        let liquid_val = collection_item_to_liquid_slim(&item);
-        let output_val = liquid_val
-            .as_object()
-            .unwrap()
-            .iter()
-            .find(|(k, _)| k.as_str() == "output")
-            .map(|(_, v)| v.to_kstr().to_string())
-            .unwrap();
-
-        assert_eq!(
-            output_val, "<p>Some bio</p>\n",
-            "Output field should NOT be trimmed, got: {:?}",
-            output_val
         );
     }
 
