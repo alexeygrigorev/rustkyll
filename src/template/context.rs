@@ -64,7 +64,7 @@ fn expand_date_only_string(s: &str) -> String {
     expand_date_only_string_with_tz(s, None)
 }
 
-fn expand_date_only_string_with_tz(s: &str, site_tz: Option<chrono_tz::Tz>) -> String {
+pub(crate) fn expand_date_only_string_with_tz(s: &str, site_tz: Option<chrono_tz::Tz>) -> String {
     // Try to parse as a date or date+time that needs expansion to full datetime.
     // Already-complete datetimes (with timezone offset) pass through unchanged.
 

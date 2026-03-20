@@ -329,7 +329,13 @@ fn build_site(
     // Jekyll assigns the build timestamp as the default `date` for collection
     // items that don't have an explicit date.  Generate once so every item in
     // this build gets the same value.
-    let build_time = collection::build_timestamp();
+    let build_time = collection::build_timestamp(
+        config
+            .extras
+            .get("timezone")
+            .and_then(|v| v.as_str())
+            .and_then(|s| s.parse::<chrono_tz::Tz>().ok()),
+    );
     for items in collections.values_mut() {
         collection::backfill_default_dates(items, &build_time);
     }

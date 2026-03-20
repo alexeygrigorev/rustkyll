@@ -322,10 +322,29 @@ pub fn extract_date(front_matter: &FrontMatter, filename_date: Option<&str>) -> 
 /// Jekyll assigns `site.time` (the build timestamp) as the default `date`
 /// for collection items that don't have an explicit date in their front matter
 /// or filename.  The format is `YYYY-MM-DD HH:MM:SS +0000`.
-pub fn build_timestamp() -> String {
-    chrono::Utc::now()
-        .format("%Y-%m-%d %H:%M:%S +0000")
-        .to_string()
+pub fn build_timestamp(site_tz: Option<chrono_tz::Tz>) -> String {
+    match site_tz {
+        Some(tz) => {
+            use chrono::Offset;
+            let now = chrono::Utc::now().with_timezone(&tz);
+            let offset = now.offset().fix();
+            let total_secs = offset.local_minus_utc();
+            let sign = if total_secs >= 0 { '+' } else { '-' };
+            let abs_secs = total_secs.unsigned_abs();
+            let hours = abs_secs / 3600;
+            let minutes = (abs_secs % 3600) / 60;
+            format!(
+                "{} {}{:02}{:02}",
+                now.format("%Y-%m-%d %H:%M:%S"),
+                sign,
+                hours,
+                minutes
+            )
+        }
+        None => chrono::Utc::now()
+            .format("%Y-%m-%d %H:%M:%S +0000")
+            .to_string(),
+    }
 }
 
 /// Fill in a default date for collection items that have no date.
@@ -2431,7 +2450,7 @@ mod tests {
 
     #[test]
     fn test_build_timestamp_format() {
-        let ts = build_timestamp();
+        let ts = build_timestamp(None);
         // Must match Jekyll's format: "YYYY-MM-DD HH:MM:SS +0000"
         assert!(
             ts.ends_with(" +0000"),
@@ -2549,6 +2568,48 @@ mod tests {
 
         assert_eq!(items[0].date.as_deref(), Some("2023-06-01"));
         assert_eq!(items[1].date.as_deref(), Some(build_time));
+    }
+
+    // ========================================================================
+    // Issue 267: build_timestamp with timezone support
+    // ========================================================================
+
+    #[test]
+    fn test_build_timestamp_with_no_tz() {
+        let ts = build_timestamp(None);
+        assert!(
+            ts.ends_with(" +0000"),
+            "build_timestamp(None) should end with ' +0000', got: {ts}"
+        );
+        assert_eq!(ts.len(), 25, "Unexpected timestamp length: {ts}");
+    }
+
+    #[test]
+    fn test_build_timestamp_with_berlin_tz() {
+        let tz: chrono_tz::Tz = "Europe/Berlin".parse().unwrap();
+        let ts = build_timestamp(Some(tz));
+        // Europe/Berlin is +0100 (CET) or +0200 (CEST), never +0000
+        assert!(
+            !ts.ends_with("+0000"),
+            "build_timestamp with Europe/Berlin should not use +0000, got: {ts}"
+        );
+        assert_eq!(ts.len(), 25, "Unexpected timestamp length: {ts}");
+        // Verify it ends with a timezone offset pattern
+        let offset = &ts[20..];
+        assert!(
+            offset.starts_with('+') || offset.starts_with('-'),
+            "Timezone offset should start with + or -, got: {offset}"
+        );
+    }
+
+    #[test]
+    fn test_build_timestamp_with_utc_tz() {
+        let tz: chrono_tz::Tz = "UTC".parse().unwrap();
+        let ts = build_timestamp(Some(tz));
+        assert!(
+            ts.ends_with(" +0000"),
+            "build_timestamp with UTC should end with ' +0000', got: {ts}"
+        );
     }
 
     // ========================================================================

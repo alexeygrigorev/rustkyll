@@ -137,8 +137,12 @@ pub fn build_site_context(
     // when rendering the current page (via page.X) and are never accessed
     // from site-level cross-references. Excluding them dramatically reduces
     // the cost of `where`, `sort`, and other filters that clone objects.
+    let site_tz = get_config_timezone(config);
     for (name, items) in collections {
-        let mut arr: Vec<LiquidValue> = items.iter().map(collection_item_to_liquid_slim).collect();
+        let mut arr: Vec<LiquidValue> = items
+            .iter()
+            .map(|item| collection_item_to_liquid_slim(item, site_tz))
+            .collect();
         // Jekyll exposes site.posts in reverse chronological order (newest first).
         // Other collections are kept in their load order (date ascending).
         if name == "posts" {
@@ -151,7 +155,7 @@ pub fn build_site_context(
     }
 
     // site.categories and site.tags -- built from posts only (Jekyll behavior)
-    let (categories_map, tags_map) = build_categories_and_tags(collections);
+    let (categories_map, tags_map) = build_categories_and_tags(collections, site_tz);
     site.insert("categories".into(), categories_map);
     site.insert("tags".into(), tags_map);
 
@@ -229,7 +233,7 @@ pub fn build_site_context(
     site.insert("data".into(), LiquidValue::Object(data_obj));
 
     // site.related_posts -- 10 most recent posts sorted by date descending
-    let related_posts = build_related_posts(collections);
+    let related_posts = build_related_posts(collections, site_tz);
     site.insert(
         "related_posts".into(),
         normalize_arrays(LiquidValue::Array(related_posts)),
@@ -541,7 +545,10 @@ pub(crate) fn normalize_categories_and_tags(obj: &mut Object) {
     }
 }
 
-fn collection_item_to_liquid_slim(item: &CollectionItem) -> LiquidValue {
+fn collection_item_to_liquid_slim(
+    item: &CollectionItem,
+    site_tz: Option<chrono_tz::Tz>,
+) -> LiquidValue {
     let mut obj = Object::new();
 
     // Copy front matter fields, normalizing arrays so that objects
@@ -566,8 +573,11 @@ fn collection_item_to_liquid_slim(item: &CollectionItem) -> LiquidValue {
         LiquidValue::scalar(item.collection_name.clone()),
     );
 
+    // Issue 267: Expand bare YYYY-MM-DD dates to include time component,
+    // matching Jekyll's behavior where Ruby YAML parses dates as Time objects.
     if let Some(ref date) = item.date {
-        obj.insert("date".into(), LiquidValue::scalar(date.clone()));
+        let expanded = crate::template::context::expand_date_only_string_with_tz(date, site_tz);
+        obj.insert("date".into(), LiquidValue::scalar(expanded));
     }
 
     // Issue 266: Use rendered HTML for the content field, matching Jekyll's behavior
@@ -599,7 +609,10 @@ fn collection_item_to_liquid_slim(item: &CollectionItem) -> LiquidValue {
 /// In Jekyll, `site.related_posts` defaults to the 10 most recent posts
 /// (unless LSI is enabled, which we do not support). Each entry has the same
 /// structure as entries in `site.posts`.
-fn build_related_posts(collections: &HashMap<String, Vec<CollectionItem>>) -> Vec<LiquidValue> {
+fn build_related_posts(
+    collections: &HashMap<String, Vec<CollectionItem>>,
+    site_tz: Option<chrono_tz::Tz>,
+) -> Vec<LiquidValue> {
     let Some(posts) = collections.get("posts") else {
         return Vec::new();
     };
@@ -619,7 +632,7 @@ fn build_related_posts(collections: &HashMap<String, Vec<CollectionItem>>) -> Ve
     sorted
         .into_iter()
         .take(10)
-        .map(collection_item_to_liquid_slim)
+        .map(|item| collection_item_to_liquid_slim(item, site_tz))
         .collect()
 }
 
@@ -630,12 +643,13 @@ fn build_related_posts(collections: &HashMap<String, Vec<CollectionItem>>) -> Ve
 fn build_per_post_related_posts_lenient(
     sorted_posts: &[&CollectionItem],
     current_url: &str,
+    site_tz: Option<chrono_tz::Tz>,
 ) -> crate::template::engine::LenientValue {
     let related: Vec<LiquidValue> = sorted_posts
         .iter()
         .filter(|p| p.url != current_url)
         .take(10)
-        .map(|p| collection_item_to_liquid_slim(p))
+        .map(|p| collection_item_to_liquid_slim(p, site_tz))
         .collect();
     let value = LiquidValue::Array(related);
     crate::template::engine::LenientValue::from_value(value)
@@ -683,13 +697,14 @@ fn page_to_liquid(page: &Page) -> LiquidValue {
 /// Liquid object mapping category/tag name to an array of post objects.
 fn build_categories_and_tags(
     collections: &HashMap<String, Vec<CollectionItem>>,
+    site_tz: Option<chrono_tz::Tz>,
 ) -> (LiquidValue, LiquidValue) {
     let mut categories: HashMap<String, Vec<LiquidValue>> = HashMap::new();
     let mut tags: HashMap<String, Vec<LiquidValue>> = HashMap::new();
 
     if let Some(posts) = collections.get("posts") {
         for post in posts {
-            let liquid_post = collection_item_to_liquid_slim(post);
+            let liquid_post = collection_item_to_liquid_slim(post, site_tz);
 
             let post_categories = crate::collection::extract_categories(&post.front_matter);
             for cat in post_categories {
@@ -1261,8 +1276,11 @@ pub fn generate_collection_pages_cached_with_progress(
         let site_overrides: HashMap<String, crate::template::engine::LenientValue> =
             if is_posts_collection {
                 let mut overrides = HashMap::new();
-                let related =
-                    build_per_post_related_posts_lenient(&sorted_posts_for_related, &item.url);
+                let related = build_per_post_related_posts_lenient(
+                    &sorted_posts_for_related,
+                    &item.url,
+                    get_config_timezone(config),
+                );
                 overrides.insert("related_posts".to_string(), related);
                 overrides
             } else {
@@ -4515,7 +4533,7 @@ defaults:
         });
 
         // Build related posts for post B (should exclude B itself)
-        let related = build_per_post_related_posts_lenient(&sorted, "/blog/post-b.html");
+        let related = build_per_post_related_posts_lenient(&sorted, "/blog/post-b.html", None);
         let value = related.to_value();
         if let LiquidValue::Array(arr) = value {
             assert_eq!(arr.len(), 2, "Should have 2 posts (A and C, not B)");
@@ -4552,7 +4570,7 @@ defaults:
             date_b.cmp(date_a).then_with(|| b.slug.cmp(&a.slug))
         });
 
-        let related = build_per_post_related_posts_lenient(&sorted, "/blog/post-a.html");
+        let related = build_per_post_related_posts_lenient(&sorted, "/blog/post-a.html", None);
         let value = related.to_value();
         if let LiquidValue::Array(arr) = value {
             assert_eq!(arr.len(), 2, "Oldest post should see 2 other posts");
@@ -4592,7 +4610,7 @@ defaults:
             date_b.cmp(date_a).then_with(|| b.slug.cmp(&a.slug))
         });
 
-        let related = build_per_post_related_posts_lenient(&sorted, "/blog/post-01.html");
+        let related = build_per_post_related_posts_lenient(&sorted, "/blog/post-01.html", None);
         let value = related.to_value();
         if let LiquidValue::Array(arr) = value {
             assert_eq!(arr.len(), 10, "Should limit to 10 posts");
@@ -4628,7 +4646,7 @@ defaults:
         });
 
         // Related posts for beta should be gamma and alpha (in desc slug order)
-        let related = build_per_post_related_posts_lenient(&sorted, "/blog/beta.html");
+        let related = build_per_post_related_posts_lenient(&sorted, "/blog/beta.html", None);
         let value = related.to_value();
         if let LiquidValue::Array(arr) = value {
             assert_eq!(arr.len(), 2);
@@ -5035,7 +5053,7 @@ defaults:
             id: "/people/testperson".to_string(),
         };
 
-        let liquid_val = collection_item_to_liquid_slim(&item);
+        let liquid_val = collection_item_to_liquid_slim(&item, None);
         let content_val = liquid_val
             .as_object()
             .unwrap()
@@ -5076,7 +5094,7 @@ defaults:
             id: "/people/davidgates".to_string(),
         };
 
-        let liquid_val = collection_item_to_liquid_slim(&item);
+        let liquid_val = collection_item_to_liquid_slim(&item, None);
         let content_val = liquid_val
             .as_object()
             .unwrap()
@@ -5123,7 +5141,7 @@ defaults:
             id: "/people/alexeygrigorev".to_string(),
         };
 
-        let liquid_val = collection_item_to_liquid_slim(&item);
+        let liquid_val = collection_item_to_liquid_slim(&item, None);
         let content_val = liquid_val
             .as_object()
             .unwrap()
@@ -5163,7 +5181,7 @@ defaults:
             id: "/people/renedescartes".to_string(),
         };
 
-        let liquid_val = collection_item_to_liquid_slim(&item);
+        let liquid_val = collection_item_to_liquid_slim(&item, None);
         let content_val = liquid_val
             .as_object()
             .unwrap()
@@ -5214,7 +5232,7 @@ defaults:
             id: "/people/testperson".to_string(),
         };
 
-        let liquid_val = collection_item_to_liquid_slim(&item);
+        let liquid_val = collection_item_to_liquid_slim(&item, None);
         let output_val = liquid_val
             .as_object()
             .unwrap()
@@ -5250,7 +5268,7 @@ defaults:
             id: "/people/alexeygrigorev".to_string(),
         };
 
-        let liquid_val = collection_item_to_liquid_slim(&item);
+        let liquid_val = collection_item_to_liquid_slim(&item, None);
         let content_val = liquid_val
             .as_object()
             .unwrap()
@@ -5282,7 +5300,7 @@ defaults:
             id: "/people/testperson".to_string(),
         };
 
-        let liquid_val = collection_item_to_liquid_slim(&item);
+        let liquid_val = collection_item_to_liquid_slim(&item, None);
         let content_val = liquid_val
             .as_object()
             .unwrap()
@@ -5581,7 +5599,7 @@ defaults:
             id: String::new(),
         };
 
-        let liquid_val = collection_item_to_liquid_slim(&item);
+        let liquid_val = collection_item_to_liquid_slim(&item, None);
         let obj = liquid_val.as_object().unwrap();
         let collection_val = obj
             .iter()
@@ -6590,7 +6608,7 @@ defaults:
             serde_yaml::Value::String("release".to_string()),
         );
         let item = make_item_with_fm(fm);
-        let liquid_obj = collection_item_to_liquid_slim(&item);
+        let liquid_obj = collection_item_to_liquid_slim(&item, None);
         let obj = liquid_obj.as_object().unwrap();
         let cats = obj.get("categories").expect("categories key must exist");
         let arr = cats.as_array().expect("categories must be an array");
@@ -6606,7 +6624,7 @@ defaults:
             serde_yaml::Value::String("food".to_string()),
         );
         let item = make_item_with_fm(fm);
-        let liquid_obj = collection_item_to_liquid_slim(&item);
+        let liquid_obj = collection_item_to_liquid_slim(&item, None);
         let obj = liquid_obj.as_object().unwrap();
         let cats = obj.get("categories").expect("categories key must exist");
         let arr = cats.as_array().expect("categories must be an array");
@@ -6625,7 +6643,7 @@ defaults:
             ]),
         );
         let item = make_item_with_fm(fm);
-        let liquid_obj = collection_item_to_liquid_slim(&item);
+        let liquid_obj = collection_item_to_liquid_slim(&item, None);
         let obj = liquid_obj.as_object().unwrap();
         let cats = obj.get("categories").expect("categories key must exist");
         let arr = cats.as_array().expect("categories must be an array");
@@ -6638,7 +6656,7 @@ defaults:
     fn test_slim_no_category_defaults_to_empty_array() {
         let fm = HashMap::new();
         let item = make_item_with_fm(fm);
-        let liquid_obj = collection_item_to_liquid_slim(&item);
+        let liquid_obj = collection_item_to_liquid_slim(&item, None);
         let obj = liquid_obj.as_object().unwrap();
         let cats = obj.get("categories").expect("categories key must exist");
         let arr = cats.as_array().expect("categories must be an array");
@@ -6653,7 +6671,7 @@ defaults:
             serde_yaml::Value::String("rust".to_string()),
         );
         let item = make_item_with_fm(fm);
-        let liquid_obj = collection_item_to_liquid_slim(&item);
+        let liquid_obj = collection_item_to_liquid_slim(&item, None);
         let obj = liquid_obj.as_object().unwrap();
         let tags = obj.get("tags").expect("tags key must exist");
         let arr = tags.as_array().expect("tags must be an array");
@@ -6669,7 +6687,7 @@ defaults:
             serde_yaml::Value::String("python".to_string()),
         );
         let item = make_item_with_fm(fm);
-        let liquid_obj = collection_item_to_liquid_slim(&item);
+        let liquid_obj = collection_item_to_liquid_slim(&item, None);
         let obj = liquid_obj.as_object().unwrap();
         let tags = obj.get("tags").expect("tags key must exist");
         let arr = tags.as_array().expect("tags must be an array");
@@ -6688,7 +6706,7 @@ defaults:
             ]),
         );
         let item = make_item_with_fm(fm);
-        let liquid_obj = collection_item_to_liquid_slim(&item);
+        let liquid_obj = collection_item_to_liquid_slim(&item, None);
         let obj = liquid_obj.as_object().unwrap();
         let tags = obj.get("tags").expect("tags key must exist");
         let arr = tags.as_array().expect("tags must be an array");
@@ -6701,7 +6719,7 @@ defaults:
     fn test_slim_no_tag_defaults_to_empty_array() {
         let fm = HashMap::new();
         let item = make_item_with_fm(fm);
-        let liquid_obj = collection_item_to_liquid_slim(&item);
+        let liquid_obj = collection_item_to_liquid_slim(&item, None);
         let obj = liquid_obj.as_object().unwrap();
         let tags = obj.get("tags").expect("tags key must exist");
         let arr = tags.as_array().expect("tags must be an array");
@@ -6768,5 +6786,122 @@ defaults:
             }
             _ => panic!("tags should be a sequence, got: {:?}", tags),
         }
+    }
+
+    // ========================================================================
+    // Issue 267: Date expansion in collection_item_to_liquid_slim
+    // ========================================================================
+
+    #[test]
+    fn test_slim_bare_date_expanded_no_tz() {
+        // Bug 1: bare YYYY-MM-DD dates must be expanded to include time component
+        let item = CollectionItem {
+            slug: "ep1".to_string(),
+            url: "/podcast/ep1.html".to_string(),
+            date: Some("2025-11-07".to_string()),
+            front_matter: HashMap::new(),
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            collection_name: "podcast".to_string(),
+            source_path: "_podcast/ep1.md".to_string(),
+            id: "/podcast/ep1".to_string(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item, None);
+        let obj = liquid_val.as_object().unwrap();
+        let date_val = obj
+            .iter()
+            .find(|(k, _)| k.as_str() == "date")
+            .map(|(_, v)| v.to_kstr().to_string())
+            .unwrap();
+        assert_eq!(
+            date_val, "2025-11-07 00:00:00 +0000",
+            "Bare date should be expanded to full datetime, got: {date_val}"
+        );
+    }
+
+    #[test]
+    fn test_slim_bare_date_expanded_with_tz() {
+        // With Europe/Berlin timezone, winter date should get +0100
+        let tz: chrono_tz::Tz = "Europe/Berlin".parse().unwrap();
+        let item = CollectionItem {
+            slug: "ep2".to_string(),
+            url: "/podcast/ep2.html".to_string(),
+            date: Some("2025-11-07".to_string()),
+            front_matter: HashMap::new(),
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            collection_name: "podcast".to_string(),
+            source_path: "_podcast/ep2.md".to_string(),
+            id: "/podcast/ep2".to_string(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item, Some(tz));
+        let obj = liquid_val.as_object().unwrap();
+        let date_val = obj
+            .iter()
+            .find(|(k, _)| k.as_str() == "date")
+            .map(|(_, v)| v.to_kstr().to_string())
+            .unwrap();
+        assert_eq!(
+            date_val, "2025-11-07 00:00:00 +0100",
+            "Bare date with Europe/Berlin tz should get +0100 in winter, got: {date_val}"
+        );
+    }
+
+    #[test]
+    fn test_slim_already_expanded_date_unchanged() {
+        // Already-expanded dates should pass through unchanged
+        let item = CollectionItem {
+            slug: "ep3".to_string(),
+            url: "/podcast/ep3.html".to_string(),
+            date: Some("2025-11-07 00:00:00 +0200".to_string()),
+            front_matter: HashMap::new(),
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            collection_name: "podcast".to_string(),
+            source_path: "_podcast/ep3.md".to_string(),
+            id: "/podcast/ep3".to_string(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item, None);
+        let obj = liquid_val.as_object().unwrap();
+        let date_val = obj
+            .iter()
+            .find(|(k, _)| k.as_str() == "date")
+            .map(|(_, v)| v.to_kstr().to_string())
+            .unwrap();
+        assert_eq!(
+            date_val, "2025-11-07 00:00:00 +0200",
+            "Already-expanded date should pass through unchanged, got: {date_val}"
+        );
+    }
+
+    #[test]
+    fn test_slim_no_date_field_when_none() {
+        // When date is None, no date field should be inserted
+        let item = CollectionItem {
+            slug: "ep4".to_string(),
+            url: "/podcast/ep4.html".to_string(),
+            date: None,
+            front_matter: HashMap::new(),
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            collection_name: "podcast".to_string(),
+            source_path: "_podcast/ep4.md".to_string(),
+            id: "/podcast/ep4".to_string(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item, None);
+        let obj = liquid_val.as_object().unwrap();
+        let date_entry = obj.iter().find(|(k, _)| k.as_str() == "date");
+        assert!(
+            date_entry.is_none(),
+            "No date field should be present when item.date is None"
+        );
     }
 }
