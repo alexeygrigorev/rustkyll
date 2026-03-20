@@ -174,11 +174,20 @@ fn convert_inline_math(line: &str) -> String {
                         // Check that content before closing $ is not a space
                         if j > content_start && bytes[j - 1] != b' ' {
                             let content = &line[content_start..j];
-                            result.push_str("\\(");
-                            result.push_str(content);
-                            result.push_str("\\)");
-                            i = j + 1;
-                            found = true;
+                            // Only convert if content looks like math (contains
+                            // at least one letter or backslash). Pure digits/
+                            // punctuation like $10,000 is currency, not math.
+                            if content.contains('\\')
+                                || content.chars().any(|c| c.is_alphabetic())
+                            {
+                                result.push_str("\\(");
+                                result.push_str(content);
+                                result.push_str("\\)");
+                                i = j + 1;
+                                found = true;
+                                break;
+                            }
+                            // Not math — push the opening $ and continue
                             break;
                         }
                         break; // Space before closing $, not math
@@ -1397,8 +1406,16 @@ fn is_kramdown_table_line(trimmed: &str) -> bool {
 /// being incorrectly treated as pipe-table cells.
 fn has_pipe_outside_angle_brackets(content: &str) -> bool {
     let mut depth = 0i32;
+    let mut prev_backslash = false;
     for ch in content.chars() {
+        if prev_backslash {
+            prev_backslash = false;
+            continue;
+        }
         match ch {
+            '\\' => {
+                prev_backslash = true;
+            }
             '<' => depth += 1,
             '>' => {
                 if depth > 0 {
@@ -9124,6 +9141,22 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     #[test]
+    fn test_272_escaped_pipe_not_table() {
+        // Escaped pipes \| should NOT trigger table detection.
+        // This is a real DTC pattern: "Company \| Partner \| Relationship"
+        let input = "Schneider Electric \\| EV Connect \\| Acquirer - Acquired\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<table>"),
+            "Escaped pipes should NOT produce table. Got: {html}"
+        );
+        assert!(
+            html.contains("<p>"),
+            "Should be a paragraph. Got: {html}"
+        );
+    }
+
+    #[test]
     fn test_272_markdownify_unicode_with_pipes_produces_table() {
         // Non-ASCII content with embedded pipes should produce correct table.
         let input = "\u{041A}\u{043E}\u{043B}\u{043E}\u{043D}\u{043A}\u{0430} | \u{0417}\u{043D}\u{0430}\u{0447}\u{0435}\u{043D}\u{043D}\u{044F}\n";
@@ -9553,6 +9586,56 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             !html.contains("<p>$$"),
             "Multi-line display math should not have <p> wrapper. Got: {}",
+            html
+        );
+    }
+
+    // ========================================================================
+    // Issue 276 regression: Dollar sign currency must not be converted to math
+    // ========================================================================
+
+    #[test]
+    fn test_issue276_currency_pair_not_converted() {
+        // $10,000-$20,000+ should NOT be converted to math
+        let md = "bootcamps that charge $10,000-$20,000+";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("$10,000"),
+            "Currency $10,000 should remain as-is. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("$20,000"),
+            "Currency $20,000 should remain as-is. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains("\\("),
+            "Should NOT convert currency to math notation. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue276_currency_in_table_not_converted() {
+        // $2,000–$10,000+ should remain as currency
+        let md = "| Cost | $2,000–$10,000+ |";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            !html.contains("\\("),
+            "Currency in table should not become math. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue276_real_math_still_converts() {
+        // Real inline math like $x^2$ should still convert
+        let md = "The formula is $x^2 + y^2 = z^2$ in math.";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("\\(x^2 + y^2 = z^2\\)"),
+            "Real math should convert to \\(...\\). Got: {}",
             html
         );
     }
