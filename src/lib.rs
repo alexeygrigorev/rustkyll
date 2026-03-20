@@ -1,3 +1,4 @@
+pub mod archives;
 pub mod collection;
 pub mod compare;
 pub mod config;

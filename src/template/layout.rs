@@ -435,6 +435,55 @@ impl LayoutEngine {
         }
     }
 
+    /// Render content through a layout with extra fields injected into the page object.
+    ///
+    /// This is used by the jekyll-archives plugin to inject `page.posts` (a Liquid
+    /// array of post objects) into the template context alongside the standard
+    /// page front matter fields.
+    pub fn render_with_extra_page_fields(
+        &self,
+        layout_name: &str,
+        content: &str,
+        page_front_matter: &FrontMatter,
+        extra_page_fields: &[(String, LiquidValue)],
+        cached_site: &CachedSiteContext,
+    ) -> Result<String, TemplateError> {
+        let layout = self
+            .layouts
+            .get(layout_name)
+            .ok_or_else(|| TemplateError::LayoutNotFound(layout_name.to_string()))?;
+
+        let mut ctx = build_render_context_page_only(content, page_front_matter);
+
+        // Inject extra fields into the page object
+        if let Some(LiquidValue::Object(mut page_obj)) = ctx.remove("page") {
+            for (key, value) in extra_page_fields {
+                page_obj.insert(key.clone().into(), value.clone());
+            }
+            ctx.insert("page".into(), LiquidValue::Object(page_obj));
+        }
+
+        let result = if let Some(compiled) = self.compiled_layouts.get(layout_name) {
+            self.engine
+                .render_with_cached_site(compiled, &ctx, cached_site)?
+        } else {
+            self.engine
+                .parse_and_render_with_cached_site(&layout.source, &ctx, cached_site)?
+        };
+
+        if let Some(ref parent_name) = layout.parent_layout {
+            self.render_with_extra_page_fields(
+                parent_name,
+                &result,
+                page_front_matter,
+                extra_page_fields,
+                cached_site,
+            )
+        } else {
+            Ok(result)
+        }
+    }
+
     /// Render page content through the template engine then wrap in a layout,
     /// using a pre-built cached site context.
     ///

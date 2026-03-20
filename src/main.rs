@@ -674,6 +674,21 @@ fn build_site(
         summary.standalone_pages += redirect_count;
     }
 
+    // 10d. Generate archive pages (jekyll-archives support)
+    if let Some(ref archives_config) = rustkyll::archives::ArchivesConfig::from_config(&config) {
+        if let Some(posts) = collections.get("posts") {
+            let count = rustkyll::archives::generate_archive_pages(
+                posts,
+                archives_config,
+                &layout_engine,
+                &cached_site,
+                &config,
+                destination,
+            )?;
+            summary.standalone_pages += count;
+        }
+    }
+
     render_progress.finish();
     summary.timing.generation = phase_start.elapsed();
 
