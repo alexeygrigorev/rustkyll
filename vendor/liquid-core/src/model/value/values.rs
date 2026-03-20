@@ -13,7 +13,7 @@ use crate::model::object::{Object, ObjectView};
 use crate::model::scalar::{Scalar, ScalarCow};
 
 /// An enum to represent different value types
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
 pub enum Value {
     /// A scalar value.
@@ -25,6 +25,7 @@ pub enum Value {
     /// Query symbol.
     State(State),
     /// Nothing.
+    #[default]
     Nil,
 }
 
@@ -225,11 +226,7 @@ impl From<State> for Value {
     }
 }
 
-impl Default for Value {
-    fn default() -> Self {
-        Self::Nil
-    }
-}
+
 
 impl PartialEq<Value> for Value {
     fn eq(&self, other: &Self) -> bool {

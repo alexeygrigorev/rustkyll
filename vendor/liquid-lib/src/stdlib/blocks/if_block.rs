@@ -438,7 +438,7 @@ fn parse_conjunction_chain(arguments: &mut PeekableTagTokenIter<'_>) -> Result<C
     Ok(lh)
 }
 
-/// Parse a full condition (with or/and chains) from an existing PeekableTagTokenIter.
+/// Parse a full condition (with or/and chains) from an existing `PeekableTagTokenIter`.
 /// Used for parenthesized sub-expressions where we already have a peekable iterator.
 fn parse_condition_inner(arguments: &mut PeekableTagTokenIter<'_>) -> Result<Condition> {
     let mut lh = parse_conjunction_chain(arguments)?;
