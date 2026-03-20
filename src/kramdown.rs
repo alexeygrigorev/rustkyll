@@ -739,9 +739,18 @@ pub fn collapse_blank_lines_between_list_items(content: &str) -> String {
 
 /// Convert kramdown-style pipe table lines to HTML `<table>` elements.
 ///
-/// kramdown treats any line ending with `|` as a table row, splitting by `|`
-/// into cells. This pre-processing converts such lines to raw HTML tables
-/// before pulldown-cmark processes the markdown.
+/// kramdown treats lines containing `|` as table rows when they appear at
+/// block boundaries. This pre-processing converts such lines to raw HTML
+/// tables before pulldown-cmark processes the markdown.
+///
+/// Key kramdown rules (from kramdown source `table.rb`):
+/// - Table must start after a block boundary (blank line, start of document,
+///   or end of preceding block element).
+/// - Table must end before a block boundary (blank line, EOF, or start of
+///   new block element). If the next line after pipe rows is non-empty
+///   non-pipe text, the entire block is NOT a table.
+/// - Inside list items, the table's block boundaries are relative to the
+///   list item content.
 pub fn convert_kramdown_pipe_tables(content: &str) -> String {
     let lines: Vec<&str> = content.split('\n').collect();
     let mut result = String::with_capacity(content.len());
@@ -766,6 +775,19 @@ pub fn convert_kramdown_pipe_tables(content: &str) -> String {
         }
 
         if is_kramdown_table_line(trimmed) && !is_standard_pipe_table_context(&lines, i) {
+            // Check after_block_boundary: previous line must be blank, start
+            // of file, or a block-level element start. If the previous line
+            // is non-empty non-block text, this pipe line is part of a
+            // paragraph and should not become a table.
+            if !is_after_block_boundary(&lines, i) {
+                if i > 0 {
+                    result.push('\n');
+                }
+                result.push_str(line);
+                i += 1;
+                continue;
+            }
+
             let (prefix, content_part) = extract_line_prefix_and_content(line);
             let mut table_rows: Vec<String> = Vec::new();
             table_rows.push(content_part.to_string());
@@ -785,6 +807,23 @@ pub fn convert_kramdown_pipe_tables(content: &str) -> String {
                 } else {
                     break;
                 }
+            }
+
+            // Check before_block_boundary: the line after the table rows
+            // must be blank, EOF, or a block-level element. If a non-pipe,
+            // non-blank line follows, kramdown does not treat the block as
+            // a table.
+            if !is_before_block_boundary(&lines, j) {
+                // Not at a block boundary -- output all collected lines
+                // as-is (not as a table).
+                for (offset, &line_text) in lines[i..j].iter().enumerate() {
+                    if i + offset > 0 {
+                        result.push('\n');
+                    }
+                    result.push_str(line_text);
+                }
+                i = j;
+                continue;
             }
 
             if i > 0 {
@@ -812,6 +851,152 @@ pub fn convert_kramdown_pipe_tables(content: &str) -> String {
         }
     }
     result
+}
+
+/// Check if position `index` is after a block boundary.
+///
+/// A block boundary exists when:
+/// - `index == 0` (start of document)
+/// - The previous line is blank
+/// - The previous line is a block-level element (heading, HR, list item, HTML block, etc.)
+/// - The previous line is itself a kramdown table line (table continues)
+///
+/// For list items: `- text | pipes |` is at a block boundary because
+/// the `- ` prefix starts a new list item (block element). But a line
+/// that is indented continuation of a previous non-pipe list item is
+/// NOT at a block boundary.
+fn is_after_block_boundary(lines: &[&str], index: usize) -> bool {
+    if index == 0 {
+        return true;
+    }
+    let prev = lines[index - 1];
+    let prev_trimmed = prev.trim();
+
+    // Blank line = block boundary
+    if prev_trimmed.is_empty() {
+        return true;
+    }
+
+    // Previous line is a block-level element start
+    if is_block_level_line(prev_trimmed) {
+        return true;
+    }
+
+    // Previous line is also a kramdown table line (continuing a table)
+    if is_kramdown_table_line(prev_trimmed) {
+        return true;
+    }
+
+    // Current line starts a new list item = block boundary within the list
+    let current_trimmed = lines[index].trim();
+    if is_markdown_list_item(current_trimmed) {
+        return true;
+    }
+
+    false
+}
+
+/// Check if position `index` is before a block boundary.
+///
+/// The line at `index` is the first line AFTER the table rows.
+/// A block boundary exists when:
+/// - `index >= lines.len()` (EOF)
+/// - The line at `index` is blank
+/// - The line at `index` is a block-level element start
+/// - The line at `index` is a new list item (block boundary for previous item)
+fn is_before_block_boundary(lines: &[&str], index: usize) -> bool {
+    if index >= lines.len() {
+        return true;
+    }
+    let line = lines[index];
+    let trimmed = line.trim();
+
+    // Blank line = block boundary
+    if trimmed.is_empty() {
+        return true;
+    }
+
+    // New block-level element
+    if is_block_level_line(trimmed) {
+        return true;
+    }
+
+    // New list item = block boundary for previous list item
+    if is_markdown_list_item(trimmed) {
+        return true;
+    }
+
+    false
+}
+
+/// Check if a line starts a block-level element.
+///
+/// This approximates kramdown's block boundary detection for use in the
+/// preprocessor. It detects headings, horizontal rules, HTML block tags,
+/// code fences, and blockquotes.
+fn is_block_level_line(trimmed: &str) -> bool {
+    // ATX heading
+    if trimmed.starts_with('#') {
+        return true;
+    }
+    // Horizontal rule
+    if trimmed.len() >= 3
+        && (trimmed.chars().all(|c| c == '-' || c == ' ')
+            || trimmed.chars().all(|c| c == '*' || c == ' ')
+            || trimmed.chars().all(|c| c == '_' || c == ' '))
+        && trimmed
+            .chars()
+            .filter(|&c| c == '-' || c == '*' || c == '_')
+            .count()
+            >= 3
+    {
+        return true;
+    }
+    // Code fence
+    if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+        return true;
+    }
+    // HTML block tag
+    if trimmed.starts_with('<') && !trimmed.starts_with("<!-") {
+        // Check for common block-level HTML tags
+        let lower = trimmed.to_lowercase();
+        if lower.starts_with("<div")
+            || lower.starts_with("<p>")
+            || lower.starts_with("<p ")
+            || lower.starts_with("<table")
+            || lower.starts_with("<blockquote")
+            || lower.starts_with("<pre")
+            || lower.starts_with("<hr")
+            || lower.starts_with("<h1")
+            || lower.starts_with("<h2")
+            || lower.starts_with("<h3")
+            || lower.starts_with("<h4")
+            || lower.starts_with("<h5")
+            || lower.starts_with("<h6")
+            || lower.starts_with("<ul")
+            || lower.starts_with("<ol")
+            || lower.starts_with("<li")
+            || lower.starts_with("<dl")
+            || lower.starts_with("<dt")
+            || lower.starts_with("<dd")
+            || lower.starts_with("<figure")
+            || lower.starts_with("<aside")
+            || lower.starts_with("<section")
+            || lower.starts_with("<article")
+            || lower.starts_with("<nav")
+            || lower.starts_with("<header")
+            || lower.starts_with("<footer")
+            || lower.starts_with("<details")
+            || lower.starts_with("</")
+        {
+            return true;
+        }
+    }
+    // Blockquote
+    if trimmed.starts_with('>') {
+        return true;
+    }
+    false
 }
 
 fn is_kramdown_table_line(trimmed: &str) -> bool {
@@ -3545,6 +3730,307 @@ fn is_apostrophe_context_kramdown(chars: &[char], pos: usize) -> bool {
     let prev = prev_text_char(chars, pos);
     let next = next_text_char(chars, pos);
     prev.is_some_and(|p| p.is_alphabetic()) && next.is_some_and(|n| n.is_alphabetic())
+}
+
+/// Issue 247: Apply kramdown's SQ_RULES to straight single quotes in HTML text.
+///
+/// After `restore_consecutive_single_quotes()` restores `''`/`'''` placeholders
+/// back to straight quotes (U+0027), this function processes those straight quotes
+/// using kramdown's sequential, context-dependent SQ_RULES algorithm.
+///
+/// kramdown uses a StringScanner that processes quotes left-to-right. The scanner
+/// finds quotes via `SMART_QUOTES_RE = /[^\\]?["']/` which matches a quote
+/// optionally preceded by a non-backslash character. This means Rule 7's
+/// `(SQ_CLOSE)(')` can match `''` as a unit (first `'` is SQ_CLOSE, second is
+/// the quote), consuming both at once.
+///
+/// The key patterns (from verified kramdown test cases):
+///
+/// - Start of text + `''` + word: Rule 7 matches pair -> text(`'`) + rsquo
+/// - Space + `''` + word: Rule 9 for first (lsquo), Rule 9 for second (lsquo)
+/// - Word char + `''` + space/end: Rule 7 for first (rsquo), Rule 8 for second (rsquo)
+/// - Word char + `''` + punctuation: Rule 7 for first (rsquo), Rule 2 for second (rsquo)
+/// - Start of text + `'''` + word: Rule 2 for first (rsquo), Rule 7 for pair (text+rsquo)
+pub fn apply_kramdown_smart_quotes_to_straight(html: &str) -> String {
+    // Quick check: if no straight single quotes, nothing to do
+    if !html.contains('\'') {
+        return html.to_string();
+    }
+
+    let chars: Vec<char> = html.chars().collect();
+    let len = chars.len();
+    let mut result = String::with_capacity(html.len());
+    let mut i = 0;
+    let mut in_tag = false;
+    // Track nesting depth inside <code>, <pre>, <script> elements where
+    // smart quotes must NOT be applied.
+    let mut skip_depth: usize = 0;
+
+    while i < len {
+        let ch = chars[i];
+
+        if ch == '<' {
+            in_tag = true;
+            // Check if this tag opens or closes a skip element
+            let tag_content = collect_tag_name(&chars, i + 1);
+            if is_skip_open_tag(&tag_content) {
+                skip_depth += 1;
+            } else if is_skip_close_tag(&tag_content) {
+                skip_depth = skip_depth.saturating_sub(1);
+            }
+            result.push(ch);
+            i += 1;
+            continue;
+        } else if ch == '>' {
+            in_tag = false;
+            result.push(ch);
+            i += 1;
+            continue;
+        }
+
+        if in_tag {
+            result.push(ch);
+            i += 1;
+            continue;
+        }
+
+        // Inside <code>/<pre>/<script>: leave all quotes straight
+        if skip_depth > 0 {
+            result.push(ch);
+            i += 1;
+            continue;
+        }
+
+        if ch != '\'' {
+            result.push(ch);
+            i += 1;
+            continue;
+        }
+
+        // We have a straight quote. Count consecutive straight quotes.
+        let quote_start = i;
+        let mut quote_count = 0;
+        while i < len && chars[i] == '\'' {
+            quote_count += 1;
+            i += 1;
+        }
+
+        // Get the preceding and following text characters (skipping HTML tags)
+        let prev = prev_text_char(&chars, quote_start);
+        let next_after = next_text_char_at(&chars, i);
+
+        // Apply kramdown SQ_RULES based on the context and count
+        let converted = apply_sq_rules_for_sequence(prev, next_after, quote_count);
+        result.push_str(&converted);
+    }
+
+    result
+}
+
+/// Collect the tag name starting at position `start` (just after '<').
+/// Returns lowercase tag name, e.g. "code", "/code", "pre", "/pre".
+fn collect_tag_name(chars: &[char], start: usize) -> String {
+    let mut name = String::new();
+    let mut i = start;
+    // Include leading '/' for close tags
+    if i < chars.len() && chars[i] == '/' {
+        name.push('/');
+        i += 1;
+    }
+    while i < chars.len() {
+        let c = chars[i];
+        if c.is_ascii_alphanumeric() || c == '-' {
+            name.push(c.to_ascii_lowercase());
+            i += 1;
+        } else {
+            break;
+        }
+    }
+    name
+}
+
+/// Check if a tag name (from collect_tag_name) is an opening skip element.
+fn is_skip_open_tag(tag: &str) -> bool {
+    matches!(tag, "code" | "pre" | "script")
+}
+
+/// Check if a tag name (from collect_tag_name) is a closing skip element.
+fn is_skip_close_tag(tag: &str) -> bool {
+    matches!(tag, "/code" | "/pre" | "/script")
+}
+
+/// Get the next text character at exactly position `pos` (not after it),
+/// skipping HTML tags if the position is at a `<`.
+fn next_text_char_at(chars: &[char], pos: usize) -> Option<char> {
+    let mut i = pos;
+    while i < chars.len() {
+        if chars[i] == '<' {
+            while i < chars.len() {
+                if chars[i] == '>' {
+                    break;
+                }
+                i += 1;
+            }
+            i += 1;
+            continue;
+        }
+        if chars[i] == '>' {
+            i += 1;
+            continue;
+        }
+        return Some(chars[i]);
+    }
+    None
+}
+
+/// Apply kramdown SQ_RULES to a sequence of `count` consecutive straight quotes,
+/// given the preceding character (before the sequence) and the following character
+/// (after the sequence).
+///
+/// Returns a String with the appropriate mix of straight quotes, lsquo, and rsquo.
+///
+/// The rules are based on verified kramdown test cases:
+///
+/// **For `''` (count=2):**
+/// - Space/None(start) + `''` + word: both become lsquo (Rule 9 fallback)
+///   EXCEPT at true start of text (no prev): Rule 7 matches pair -> straight + rsquo
+/// - Word/SQ_CLOSE + `''` + space/end: both become rsquo (Rule 7 + Rule 8)
+/// - Word/SQ_CLOSE + `''` + SQ_PUNCT: both become rsquo (Rule 7 + Rule 2)
+///
+/// **For `'''` (count=3):**
+/// - Start of text + `'''` + word: rsquo + straight + rsquo (Rule 2 + Rule 7)
+/// - Space + `'''` + word: lsquo + lsquo + lsquo (all Rule 9 fallback)
+/// - Word + `'''` + space/end: rsquo + rsquo + rsquo (Rule 7 chain)
+fn apply_sq_rules_for_sequence(prev: Option<char>, next: Option<char>, count: usize) -> String {
+    if count == 0 {
+        return String::new();
+    }
+
+    // For single quotes (not from ''/'''' sequences but could appear), apply basic rules
+    if count == 1 {
+        let ch = apply_single_sq_rule(prev, next);
+        return String::from(ch);
+    }
+
+    let prev_is_space_or_start = prev.is_none_or(|p| p.is_whitespace());
+    let prev_is_sq_close = prev.is_some_and(is_sq_close);
+    let next_is_word = next.is_some_and(|n| n.is_alphanumeric() || n == '_');
+    let next_is_space_or_end = next.is_none_or(|n| n.is_whitespace());
+    let next_is_sq_punct = next.is_some_and(is_sq_punct);
+
+    if count == 2 {
+        if prev.is_none() && next_is_word {
+            // Start of text + '' + word: Rule 7 matches pair -> straight + rsquo
+            return format!("'{}", '\u{2019}');
+        }
+        if prev.is_some_and(|p| p.is_whitespace()) && next_is_word {
+            // Space + '' + word: both lsquo (Rule 9 fallback for each)
+            return format!("{}{}", '\u{2018}', '\u{2018}');
+        }
+        if prev_is_sq_close && (next_is_space_or_end || next_is_sq_punct) {
+            // Word/close + '' + space/end/punct: both rsquo
+            return format!("{}{}", '\u{2019}', '\u{2019}');
+        }
+        if prev_is_sq_close && next_is_word {
+            // SQ_CLOSE + '' + word: Rule 7 for first (rsquo), then second has no
+            // preceding char from scanner -> Rule 9 fallback (lsquo)?
+            // Actually: if prev is a word char (SQ_CLOSE), SMART_QUOTES_RE matches
+            // the prev char + first quote. Rule 7: SQ_CLOSE + ' -> text + rsquo.
+            // Then second quote at scanner start: '' + word -> but only one quote left,
+            // followed by word. Rule 9 fallback -> lsquo.
+            // But this pattern doesn't appear in our test cases.
+            // Conservative: rsquo + lsquo
+            return format!("{}{}", '\u{2019}', '\u{2018}');
+        }
+        if prev_is_space_or_start && next_is_space_or_end {
+            // Space + '' + space/end: both rsquo (Rule 8)
+            return format!("{}{}", '\u{2019}', '\u{2019}');
+        }
+        if prev_is_space_or_start && next_is_sq_punct {
+            // Space + '' + punct: first lsquo (Rule 9), second rsquo (Rule 2 before punct)
+            return format!("{}{}", '\u{2018}', '\u{2019}');
+        }
+    }
+
+    if count == 3 {
+        if prev.is_none() && next_is_word {
+            // Start of text + ''' + word: rsquo + straight + rsquo (Rule 2 + Rule 7)
+            return format!("{}'{}", '\u{2019}', '\u{2019}');
+        }
+        if prev.is_some_and(|p| p.is_whitespace()) && next_is_word {
+            // Space + ''' + word: all three lsquo (Rule 9 fallback chain)
+            return format!("{}{}{}", '\u{2018}', '\u{2018}', '\u{2018}');
+        }
+        if prev_is_sq_close && next_is_space_or_end {
+            // Word + ''' + space/end: all three rsquo
+            return format!("{}{}{}", '\u{2019}', '\u{2019}', '\u{2019}');
+        }
+        if prev_is_sq_close && next_is_sq_punct {
+            // Word + ''' + punct: all three rsquo
+            return format!("{}{}{}", '\u{2019}', '\u{2019}', '\u{2019}');
+        }
+    }
+
+    // For count > 3 or unhandled patterns, process each quote individually
+    // using the sequential scanner approach
+    let mut out = String::new();
+    // Track "effective prev" for the scanner
+    let mut eff_prev = prev;
+    for j in 0..count {
+        let eff_next = if j < count - 1 {
+            Some('\'') // next quote in sequence
+        } else {
+            next // actual next char after sequence
+        };
+        let ch = apply_single_sq_rule(eff_prev, eff_next);
+        out.push(ch);
+        // After processing, the scanner has consumed this quote.
+        // If this was a Rule 7 match (consumed prev + quote), the next quote
+        // has no preceding char. Otherwise, the converted char is the new prev.
+        if eff_prev.is_some_and(is_sq_close) && ch == '\u{2019}' {
+            // Rule 7 consumed prev + quote. Next has no preceding char.
+            eff_prev = None;
+        } else {
+            eff_prev = Some(ch);
+        }
+    }
+    out
+}
+
+/// Apply kramdown SQ_RULES to a single straight quote given its context.
+fn apply_single_sq_rule(prev: Option<char>, next: Option<char>) -> char {
+    match prev {
+        None => {
+            // No preceding character (start of text or after scanner consumption).
+            // Rule 2: quote before SQ_PUNCT -> rsquo
+            if next.is_some_and(is_sq_punct) {
+                return '\u{2019}';
+            }
+            // Rule 8: quote before space/end -> rsquo
+            if next.is_none_or(|n| n.is_whitespace()) {
+                return '\u{2019}';
+            }
+            // Rule 9 fallback -> lsquo
+            '\u{2018}'
+        }
+        Some(p) => {
+            // There is a preceding character.
+            // Rule 6: space + quote + word char -> lsquo
+            if p.is_whitespace() && next.is_some_and(|n| n.is_alphanumeric() || n == '_') {
+                return '\u{2018}';
+            }
+            // Rule 7: SQ_CLOSE + quote -> rsquo
+            if is_sq_close(p) {
+                return '\u{2019}';
+            }
+            // Rule 8: quote + space/end -> rsquo
+            if next.is_none_or(|n| n.is_whitespace()) {
+                return '\u{2019}';
+            }
+            // Fallback (Rule 9): lsquo
+            '\u{2018}'
+        }
+    }
 }
 
 // ============================================================================
@@ -7268,31 +7754,38 @@ by <a href="/people/author.html">Author Name</a>
 
     #[test]
     fn test_issue198_double_quote_straight() {
+        // Issue 247: kramdown converts ''word'' to smart quotes based on context.
+        // Mid-sentence (space before, space after): lsquo+lsquo...rsquo+rsquo
         let input = "A place is ''implicit'' if removing it.";
         let html = crate::frontmatter::markdown_to_html(input);
         assert!(
-            html.contains("''implicit''"),
-            "Double single-quotes should stay straight. Got: {html}"
+            html.contains("\u{2018}\u{2018}implicit\u{2019}\u{2019}"),
+            "Double single-quotes mid-sentence should become smart quotes. Got: {html}"
         );
     }
 
     #[test]
     fn test_issue198_triple_quote_straight() {
+        // Issue 247: kramdown converts '''word''' to smart quotes based on context.
+        // Space before + triple quotes + word: all three lsquo opening
+        // Word + triple quotes + space: all three rsquo closing
         let input = "This is '''bold text''' here.";
         let html = crate::frontmatter::markdown_to_html(input);
         assert!(
-            html.contains("'''bold text'''"),
-            "Triple single-quotes should stay straight. Got: {html}"
+            html.contains("\u{2018}\u{2018}\u{2018}bold text\u{2019}\u{2019}\u{2019}"),
+            "Triple single-quotes mid-sentence should become smart quotes. Got: {html}"
         );
     }
 
     #[test]
     fn test_issue198_quotes_cyrillic() {
+        // Issue 247: kramdown converts '''word.''' with Cyrillic to smart quotes.
+        // Space before: all three lsquo. After '.': all three rsquo.
         let input = "\u{042d}\u{0442}\u{043e} '''\u{0422}\u{0435}\u{043e}\u{0440}\u{0435}\u{043c}\u{0430}.''' \u{0414}\u{043e}\u{043a}.";
         let html = crate::frontmatter::markdown_to_html(input);
         assert!(
-            html.contains("'''\u{0422}\u{0435}\u{043e}\u{0440}\u{0435}\u{043c}\u{0430}.'''"),
-            "Cyrillic in triple-quotes should have straight quotes. Got: {html}"
+            html.contains("\u{2018}\u{2018}\u{2018}\u{0422}\u{0435}\u{043e}\u{0440}\u{0435}\u{043c}\u{0430}.\u{2019}\u{2019}\u{2019}"),
+            "Cyrillic in triple-quotes should get smart quotes. Got: {html}"
         );
     }
 
@@ -7814,5 +8307,204 @@ by <a href="/people/author.html">Author Name</a>
         let html = "这是中文</aside>";
         let result = find_markdown_close_tag(html, "aside", "</aside>");
         assert_eq!(result, Some("这是中文".len()));
+    }
+
+    // ========================================================================
+    // Issue 248: Research kramdown pipe table rules and fix false table parsing
+    // ========================================================================
+
+    #[test]
+    fn test_248_lone_pipe_after_list_item_not_table() {
+        // From mlwiki.org Cancellation_Regions.md: a lone ` |` line after a
+        // list item is lazy continuation in kramdown, NOT a table.
+        let input = "  - but now it can fire the second time\n |\n## Sources\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<table>"),
+            "Lone pipe after list item should NOT produce a table. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_248_lone_pipe_between_text_not_table() {
+        // A pipe line followed by non-pipe text is NOT a table in kramdown.
+        let input = "| A | B |\nnot a pipe\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<table>"),
+            "Pipe line followed by non-pipe text should NOT be a table. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_248_pipe_preceded_by_text_not_table() {
+        // A pipe line preceded by text (part of a paragraph) is NOT a table.
+        let input = "some text\n| A | B |\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<table>"),
+            "Pipe line preceded by text should NOT be a table. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_248_pipe_followed_by_blank_is_table() {
+        // A pipe line followed by blank line IS a table in kramdown.
+        let input = "| A | B |\n\nmore text\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<table>"),
+            "Pipe line followed by blank should be a table. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_248_pipe_at_eof_is_table() {
+        // A pipe line at EOF IS a table in kramdown.
+        let input = "| A | B |\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<table>"),
+            "Pipe line at EOF should be a table. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_248_multi_pipe_then_nonpipe_not_table() {
+        // Multiple pipe lines followed by non-pipe text: NOT a table.
+        let input = "| A | B |\n| C | D |\nnot a pipe\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<table>"),
+            "Pipe lines followed by non-pipe text should NOT be a table. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_248_list_pipe_followed_by_continuation_not_table() {
+        // In kramdown: `- text | pipes |` then `  continuation text` = NOT table.
+        let input = "- text | with | pipes |\n  continuation text\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<table>"),
+            "Pipe line in list followed by continuation should NOT be a table. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_248_list_pipe_followed_by_next_item_is_table() {
+        // In kramdown: `- text | pipes |` then `- next item` = IS a table.
+        let input = "- text | with | pipes |\n- next item\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<table>"),
+            "Pipe line in list followed by next list item should be a table. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_248_unicode_pipe_boundary_check() {
+        // Unicode content with pipe boundary checks.
+        let input =
+            "| \u{041A}\u{043E}\u{043B} | \u{0417}\u{043D}\u{0430}\u{0447} |\n\u{0422}\u{0435}\u{043A}\u{0441}\u{0442}\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<table>"),
+            "Pipe line followed by non-pipe Unicode text should NOT be a table. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_248_gfm_table_with_blank_after_preserved() {
+        // Standard GFM table followed by blank line should work.
+        let input = "| H1 | H2 |\n|---|---|\n| C1 | C2 |\n\nParagraph.\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<table>"),
+            "Standard GFM table with blank after should render. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_248_standard_table_unicode_preserved() {
+        // Regression guard: Unicode in standard table.
+        let input = "| Kolonne | V\u{00e6}rdi |\n|---|---|\n| Tekst | Nummer |\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<table>"),
+            "Standard table with Unicode should render. Got: {html}"
+        );
+    }
+
+    // --- Issue 247 QA fix: skip <code>/<pre>/<script> elements ---
+
+    #[test]
+    fn test_issue247_fix_isolated_apostrophe_becomes_rsquo() {
+        // Single straight quote between word chars is an apostrophe.
+        // apply_kramdown_smart_quotes_to_straight converts it to rsquo,
+        // matching kramdown behavior. This is correct for content that
+        // bypasses pulldown-cmark (e.g., Liquid templates, YAML titles).
+        let input = "<p>don\u{0027}t</p>";
+        let result = apply_kramdown_smart_quotes_to_straight(input);
+        assert!(
+            result.contains("don\u{2019}t"),
+            "Isolated apostrophe should become rsquo (U+2019). Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue247_fix_quote_inside_code_stays_straight() {
+        // Straight quotes inside <code> elements must NOT be converted.
+        let input = "<p>Use <code>'requirements.txt'</code> for deps</p>";
+        let result = apply_kramdown_smart_quotes_to_straight(input);
+        assert!(
+            result.contains("<code>'requirements.txt'</code>"),
+            "Quotes inside <code> must stay straight. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue247_fix_quote_inside_pre_stays_straight() {
+        // Straight quotes inside <pre> elements must NOT be converted.
+        let input = "<pre>echo 'hello'</pre>";
+        let result = apply_kramdown_smart_quotes_to_straight(input);
+        assert!(
+            result.contains("<pre>echo 'hello'</pre>"),
+            "Quotes inside <pre> must stay straight. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue247_fix_double_quotes_still_converted() {
+        // Consecutive '' sequences must still be converted.
+        let input = "<p>The ''word'' here</p>";
+        let result = apply_kramdown_smart_quotes_to_straight(input);
+        // Space before '' -> lsquo pair, word before '' + space after -> rsquo pair
+        assert!(
+            result.contains("\u{2018}\u{2018}word\u{2019}\u{2019}"),
+            "Consecutive '' must still be converted to smart quotes. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue247_fix_arent_youll_dont_regression() {
+        // Full pipeline test: apostrophes in contractions must survive.
+        let input = "Aren't You'll don't\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        // pulldown-cmark with smart punctuation converts these to rsquo already.
+        // apply_kramdown_smart_quotes_to_straight must not mangle them.
+        // After pulldown-cmark they should be curly quotes (U+2019), NOT
+        // further modified into something wrong.
+        assert!(
+            html.contains("Aren\u{2019}t")
+                && html.contains("You\u{2019}ll")
+                && html.contains("don\u{2019}t"),
+            "Contractions must have rsquo apostrophes. Got: {}",
+            html
+        );
     }
 }
