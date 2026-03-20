@@ -1,40 +1,11 @@
-Jekyll directory:   /home/alexey/git/rustkyl/websites/DataTalksClub/docs/_site_jekyll_recount
+Jekyll directory:   /home/alexey/git/rustkyl/websites/DataTalksClub/docs/_site_jekyll_cached
 Rustkyll directory: /home/alexey/git/rustkyl/websites/DataTalksClub/docs/_site_rustkyll_recount
 Common HTML files:  57
 
-DIFF courses/data-engineering-zoomcamp/getting-started/index.html (6 differences)
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='1-star-the-github-repository'", actual: "id='star-the-github-repository'"
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='2-join-telegram-optional-but-recommended'", actual: "id='join-telegram-optional-but-recommended'"
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='3-join-the-slack-workspace'", actual: "id='join-the-slack-workspace'"
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='4-subscribe-to-youtube'", actual: "id='subscribe-to-youtube'"
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='5-set-up-gcp-account'", actual: "id='set-up-gcp-account'"
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='6-start-module-1'", actual: "id='start-module-1'"
-DIFF courses/data-engineering-zoomcamp/resources/github/index.html (1 differences)
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='2026-cohort'", actual: "id='cohort'"
-DIFF courses/ml-zoomcamp/assignments-and-scoring/index.html (4 differences)
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='1-homework'", actual: "id='homework'"
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='2-staying-updated-with-deadlines-and-announcements'", actual: "id='staying-updated-with-deadlines-and-announcements'"
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='3-homework-for-certification'", actual: "id='homework-for-certification'"
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='4-leaderboard'", actual: "id='leaderboard'"
-DIFF courses/ml-zoomcamp/certification/index.html (4 differences)
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='1-what-you-need-to-pass'", actual: "id='what-you-need-to-pass'"
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='2-timeline-and-expectations'", actual: "id='timeline-and-expectations'"
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='3-understanding-whats-required-vs-optional'", actual: "id='understanding-whats-required-vs-optional'"
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='4-project-submission-and-technology-choices'", actual: "id='project-submission-and-technology-choices'"
-DIFF courses/ml-zoomcamp/getting-started/index.html (4 differences)
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='1-access-your-learning-materials'", actual: "id='access-your-learning-materials'"
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='2-course-structure-and-flexibility'", actual: "id='course-structure-and-flexibility'"
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='3-technical-setup'", actual: "id='technical-setup'"
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='4-join-the-learning-community'", actual: "id='join-the-learning-community'"
-DIFF courses/ml-zoomcamp/prerequisites/index.html (4 differences)
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='1-required-skills-and-tools'", actual: "id='required-skills-and-tools'"
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='2-what-you-dont-need'", actual: "id='what-you-dont-need'"
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='3-adapting-to-your-background'", actual: "id='adapting-to-your-background'"
-  head > meta > meta > meta > link > body > div > div > div > main > h2: attribute_differs - expected: "id='4-course-context-and-technical-framework'", actual: "id='course-context-and-technical-framework'"
 DIFF general/guidelines/promotion/index.html (4 differences)
   head > meta > meta > meta > link > body > div > div > div > main > ul > li: text_differs - expected: '“We’re conducting a survey to better understand how people use', actual: '“We’re conducting a survey to better understand how people use ____.”'
   head > meta > meta > meta > link > body > div > div > div > main > ul > li > child[1]: tag_name_differs - expected: 'em', actual: 'li'
   head > meta > meta > meta > link > body > div > div > div > main > ul > li: missing_text - expected: '.”', actual: '(none)'
   head > meta > meta > meta > link > body > div > div > div > main > ul > li > li: missing_element - expected: '<li>', actual: '(none)'
 
-Summary: 50 files matched, 7 files with differences, 27 total differences
+Summary: 56 files matched, 1 files with differences, 4 total differences

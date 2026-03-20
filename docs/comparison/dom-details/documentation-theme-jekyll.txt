@@ -1,4 +1,4 @@
-Jekyll directory:   /home/alexey/git/rustkyl/websites/documentation-theme-jekyll/_site_jekyll_recount
+Jekyll directory:   /home/alexey/git/rustkyl/websites/documentation-theme-jekyll/_site_jekyll_cached
 Rustkyll directory: /home/alexey/git/rustkyl/websites/documentation-theme-jekyll/_site_rustkyll_recount
 Common HTML files:  98
 
@@ -108,7 +108,7 @@ DIFF mydoc_build_scripts.html (81 differences)
   body > div > div > div > div > div > h2: attribute_differs - expected: "id='about-the-build-scripts'", actual: "id='get-set-up'"
   body > div > div > div > div > div > h2: text_differs - expected: 'About the build scripts', actual: 'Get Set Up'
   ... and 71 more differences
-DIFF mydoc_code_samples.html (30 differences)
+DIFF mydoc_code_samples.html (32 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
@@ -119,7 +119,7 @@ DIFF mydoc_code_samples.html (30 differences)
   body > div > div > div > div > div > p: expected_text_got_element - expected: 'Use fenced code blocks with the language specified, like this:', actual: '<strong>'
   body > div > div > div > div > div > p > strong: extra_element - expected: '(none)', actual: '<strong>'
   body > div > div > div > div > div > div: attribute_differs - expected: "class='highlighter-rouge language-plaintext'", actual: "class='highlighter-rouge language-js'"
-  ... and 20 more differences
+  ... and 22 more differences
 DIFF mydoc_collections.html (43 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
@@ -184,7 +184,7 @@ DIFF mydoc_faq_layout.html (3 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
-DIFF mydoc_generating_pdfs.html (552 differences)
+DIFF mydoc_generating_pdfs.html (566 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
@@ -195,7 +195,7 @@ DIFF mydoc_generating_pdfs.html (552 differences)
   body > div > div > div > div > div > child[6]: tag_name_differs - expected: 'p', actual: 'h2'
   body > div > div > div > div > div > p: text_differs - expected: 'The basic approach is to generate a list of all web pages that need to be added to the PDF, and then add leverage Prince to package them up into a PDF. Once you set it up, building a pdf is just a matter of running a couple of commands. Also, creating a PDF this way gives you a lot more control and customization capabilities than with other methods for creating PDFs. If you know CSS, you can entirely customize the output.', actual: 'You can see an example of the finished product here:'
   body > div > div > div > div > div > child[8]: tag_name_differs - expected: 'h2', actual: 'p'
-  ... and 542 more differences
+  ... and 556 more differences
 DIFF mydoc_glossary.html (31 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
@@ -423,7 +423,7 @@ DIFF mydoc_release_notes_60.html (43 differences)
   body > div > div > div > div > div > p: text_differs - expected: 'You can now view the site offline rather than solely through the Jekyll preview server or deployed on a web server. The linking approach in both the sidebar and with inline links uses relative linking throughout.', actual: 'You can creates folders and subfolders for your pages, similar to how you can store posts in folders and subfolders. When Jekyll builds the site, all pages get pushed into the root directory as single html files (rather than being pushed inside folders, or remaining in subfolders). See'
   body > div > div > div > div > div > p > a: extra_element - expected: '(none)', actual: '<a>'
   ... and 33 more differences
-DIFF mydoc_search_configuration.html (311 differences)
+DIFF mydoc_search_configuration.html (305 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
@@ -434,7 +434,7 @@ DIFF mydoc_search_configuration.html (311 differences)
   body > div > div > div > div > div > child[6]: tag_name_differs - expected: 'p', actual: 'h2'
   body > div > div > div > div > div > p: text_differs - expected: 'However, the search doesn’t work like google — you can’t hit return and see a list of results on the search results page, with the keywords in bold. Instead, this search shows a list of page titles that contain keyword matches. It’s fast, but simple.', actual: 'By default, every page is included in the search. Depending on the type of content you’re including, you may find that some pages will break the JSON formatting. If that happens, then the search will no longer work.'
   body > div > div > div > div > div > child[8]: tag_name_differs - expected: 'h2', actual: 'p'
-  ... and 301 more differences
+  ... and 295 more differences
 DIFF mydoc_series.html (57 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
@@ -442,7 +442,7 @@ DIFF mydoc_series.html (57 differences)
   body > div > div > div > div > div > child[2]: tag_name_differs - expected: 'script', actual: 'a'
   body > div > div > div > div > div > child[3]: tag_name_differs - expected: 'div', actual: 'h2'
   body > div > div > div > div > div > child[4]: tag_name_differs - expected: 'a', actual: 'p'
-  body > div > div > div > div > div > h2: attribute_differs - expected: "id='using-series-for-pages'", actual: "id='create-the-series-button'"
+  body > div > div > div > div > div > h2: attribute_differs - expected: "id='using-series-for-pages'", actual: "id='1-create-the-series-button'"
   body > div > div > div > div > div > h2: text_differs - expected: 'Using series for pages', actual: '1. Create the series button'
   body > div > div > div > div > div > p: text_differs - expected: 'You create a series by looking for all pages within a tag namespace that contain certain frontmatter. Here’s a', actual: 'First create an include that contains your series button:'
   body > div > div > div > div > div > p > a: missing_element - expected: '<a>', actual: '(none)'
@@ -543,7 +543,7 @@ DIFF mydoc_support.html (11 differences)
   body > div > div > div > div > div > child[7]: tag_name_differs - expected: 'div', actual: 'noscript'
   body > div > div > div > div > div > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF mydoc_supported_features.html (18 differences)
+DIFF mydoc_supported_features.html (13 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
@@ -552,9 +552,9 @@ DIFF mydoc_supported_features.html (18 differences)
   body > div > div > div > div > div > child[4]: tag_name_differs - expected: 'a', actual: 'h2'
   body > div > div > div > div > div > child[5]: tag_name_differs - expected: 'p', actual: 'table'
   body > div > div > div > div > div > child[6]: tag_name_differs - expected: 'h2', actual: 'table'
-  body > div > div > div > div > div > child[7]: tag_name_differs - expected: 'table', actual: 'p'
-  body > div > div > div > div > div > child[8]: tag_name_differs - expected: 'h2', actual: 'table'
-  ... and 8 more differences
+  body > div > div > div > div > div > child[7]: tag_name_differs - expected: 'table', actual: 'h2'
+  body > div > div > div > div > div > child[8]: tag_name_differs - expected: 'h2', actual: 'p'
+  ... and 3 more differences
 DIFF mydoc_syntax_highlighting.html (30 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
@@ -567,7 +567,7 @@ DIFF mydoc_syntax_highlighting.html (30 differences)
   body > div > div > div > div > div > child[7]: tag_name_differs - expected: 'pre', actual: 'div'
   body > div > div > div > div > div > p: text_differs - expected: 'This looks as follows:', actual: 'Fenced code blocks require a blank line before and after.'
   ... and 20 more differences
-DIFF mydoc_tables.html (121 differences)
+DIFF mydoc_tables.html (141 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
@@ -578,7 +578,7 @@ DIFF mydoc_tables.html (121 differences)
   body > div > div > div > div > div > p: expected_text_got_element - expected: 'You can use Multimarkdown syntax for tables. The following shows a sample:', actual: '<strong>'
   body > div > div > div > div > div > p > strong: extra_element - expected: '(none)', actual: '<strong>'
   body > div > div > div > div > div > child[7]: tag_name_differs - expected: 'div', actual: 'table'
-  ... and 111 more differences
+  ... and 131 more differences
 DIFF mydoc_tag_archives_overview.html (13 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
@@ -615,7 +615,7 @@ DIFF mydoc_themes.html (24 differences)
   body > div > div > div > div > div > div > i: extra_element - expected: '(none)', actual: '<i>'
   body > div > div > div > div > div > div > b: extra_element - expected: '(none)', actual: '<b>'
   ... and 14 more differences
-DIFF mydoc_troubleshooting.html (54 differences)
+DIFF mydoc_troubleshooting.html (53 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
@@ -626,7 +626,7 @@ DIFF mydoc_troubleshooting.html (54 differences)
   body > div > div > div > div > div > child[6]: tag_name_differs - expected: 'h3', actual: 'div'
   body > div > div > div > div > div > p: text_differs - expected: 'When you try to build the site, you get this error in iTerm:', actual: 'This happens if a server is already in use. To fix this, edit your config file and change the port to a unique number.'
   body > div > div > div > div > div > child[8]: tag_name_differs - expected: 'div', actual: 'p'
-  ... and 44 more differences
+  ... and 43 more differences
 DIFF mydoc_webstorm_text_editor.html (79 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
@@ -639,7 +639,7 @@ DIFF mydoc_webstorm_text_editor.html (79 differences)
   body > div > div > div > div > div > p: text_differs - expected: 'If you decide to use WebStorm, here are a few tips on configuring the editor.', actual: 'By default, WebStorm comes packaged with a lot more functionality than you probably need. You can lighten the editor by removing some of the plugins. Go to'
   body > div > div > div > div > div > p > strong: extra_element - expected: '(none)', actual: '<strong>'
   ... and 69 more differences
-DIFF mydoc_workflow_maps.html (35 differences)
+DIFF mydoc_workflow_maps.html (37 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
@@ -650,7 +650,7 @@ DIFF mydoc_workflow_maps.html (35 differences)
   body > div > div > div > div > div > child[6]: tag_name_differs - expected: 'p', actual: 'h2'
   body > div > div > div > div > div > child[7]: tag_name_differs - expected: 'ul', actual: 'ol'
   body > div > div > div > div > div > child[8]: tag_name_differs - expected: 'h2', actual: 'div'
-  ... and 25 more differences
+  ... and 27 more differences
 DIFF mydoc_yaml_tutorial.html (427 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > ul > li: text_differs - expected: 'Jekyll Doc Theme 6.0', actual: 'Jekyll Doc Theme 6'
@@ -774,132 +774,102 @@ DIFF p2_landing_page.html (4 differences)
   body > nav > div > div > ul > li > ul > li: missing_attribute - expected: "class='dropdownActive'", actual: '(none)'
   body > div > div > div > div > ul > li: text_differs - expected: 'Product2 1.0', actual: 'Product2 1'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
-DIFF p2_sample1.html (8 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  child[3]: tag_name_differs - expected: 'script', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF p2_sample10.html (8 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  child[3]: tag_name_differs - expected: 'script', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF p2_sample11.html (8 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  child[3]: tag_name_differs - expected: 'script', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF p2_sample12.html (8 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  child[3]: tag_name_differs - expected: 'script', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF p2_sample13.html (8 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  child[3]: tag_name_differs - expected: 'script', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF p2_sample14.html (8 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  child[3]: tag_name_differs - expected: 'script', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF p2_sample2.html (8 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  child[3]: tag_name_differs - expected: 'script', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF p2_sample3.html (8 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  child[3]: tag_name_differs - expected: 'script', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF p2_sample4.html (8 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  child[3]: tag_name_differs - expected: 'script', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF p2_sample5.html (8 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  child[3]: tag_name_differs - expected: 'script', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF p2_sample6.html (8 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  child[3]: tag_name_differs - expected: 'script', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF p2_sample7.html (8 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  child[3]: tag_name_differs - expected: 'script', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF p2_sample8.html (8 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  child[3]: tag_name_differs - expected: 'script', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-DIFF p2_sample9.html (8 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'h2'
-  child[2]: tag_name_differs - expected: 'body', actual: 'p'
-  child[3]: tag_name_differs - expected: 'script', actual: 'p'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  p: extra_element - expected: '(none)', actual: '<p>'
+DIFF p2_sample1.html (17 differences)
+  head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
+  body > div > div > div > div > ul > li: text_differs - expected: 'Product2 1.0', actual: 'Product2 1'
+  body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
+  body > div > div > div > div > div > child[2]: tag_name_differs - expected: 'script', actual: 'a'
+  body > div > div > div > div > div > child[3]: tag_name_differs - expected: 'div', actual: 'h2'
+  body > div > div > div > div > div > child[4]: tag_name_differs - expected: 'a', actual: 'p'
+  body > div > div > div > div > div > child[5]: tag_name_differs - expected: 'h2', actual: 'p'
+  body > div > div > div > div > div > child[6]: tag_name_differs - expected: 'p', actual: 'h2'
+  body > div > div > div > div > div > p: text_differs - expected: 'It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using ‘Content here, content here’, making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for ‘lorem ipsum’ will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).', actual: 'Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source. Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of “de Finibus Bonorum et Malorum” (The Extremes of Good and Evil) by Cicero, written in 45 BC. This book is a treatise on the theory of ethics, very popular during the Renaissance. The first line of Lorem Ipsum, “Lorem ipsum dolor sit amet..”, comes from a line in section 1.10.32.'
+  body > div > div > div > div > div > child[8]: tag_name_differs - expected: 'h2', actual: 'p'
+  ... and 7 more differences
+DIFF p2_sample10.html (3 differences)
+  head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
+  body > div > div > div > div > ul > li: text_differs - expected: 'Product2 1.0', actual: 'Product2 1'
+  body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
+DIFF p2_sample11.html (3 differences)
+  head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
+  body > div > div > div > div > ul > li: text_differs - expected: 'Product2 1.0', actual: 'Product2 1'
+  body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
+DIFF p2_sample12.html (3 differences)
+  head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
+  body > div > div > div > div > ul > li: text_differs - expected: 'Product2 1.0', actual: 'Product2 1'
+  body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
+DIFF p2_sample13.html (3 differences)
+  head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
+  body > div > div > div > div > ul > li: text_differs - expected: 'Product2 1.0', actual: 'Product2 1'
+  body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
+DIFF p2_sample14.html (3 differences)
+  head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
+  body > div > div > div > div > ul > li: text_differs - expected: 'Product2 1.0', actual: 'Product2 1'
+  body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
+DIFF p2_sample2.html (17 differences)
+  head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
+  body > div > div > div > div > ul > li: text_differs - expected: 'Product2 1.0', actual: 'Product2 1'
+  body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
+  body > div > div > div > div > div > child[2]: tag_name_differs - expected: 'script', actual: 'a'
+  body > div > div > div > div > div > child[3]: tag_name_differs - expected: 'div', actual: 'h2'
+  body > div > div > div > div > div > child[4]: tag_name_differs - expected: 'a', actual: 'p'
+  body > div > div > div > div > div > child[5]: tag_name_differs - expected: 'h2', actual: 'p'
+  body > div > div > div > div > div > child[6]: tag_name_differs - expected: 'p', actual: 'h2'
+  body > div > div > div > div > div > p: text_differs - expected: 'It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using ‘Content here, content here’, making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for ‘lorem ipsum’ will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).', actual: 'Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source. Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of “de Finibus Bonorum et Malorum” (The Extremes of Good and Evil) by Cicero, written in 45 BC. This book is a treatise on the theory of ethics, very popular during the Renaissance. The first line of Lorem Ipsum, “Lorem ipsum dolor sit amet..”, comes from a line in section 1.10.32.'
+  body > div > div > div > div > div > child[8]: tag_name_differs - expected: 'h2', actual: 'p'
+  ... and 7 more differences
+DIFF p2_sample3.html (17 differences)
+  head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
+  body > div > div > div > div > ul > li: text_differs - expected: 'Product2 1.0', actual: 'Product2 1'
+  body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
+  body > div > div > div > div > div > child[2]: tag_name_differs - expected: 'script', actual: 'a'
+  body > div > div > div > div > div > child[3]: tag_name_differs - expected: 'div', actual: 'h2'
+  body > div > div > div > div > div > child[4]: tag_name_differs - expected: 'a', actual: 'p'
+  body > div > div > div > div > div > child[5]: tag_name_differs - expected: 'h2', actual: 'p'
+  body > div > div > div > div > div > child[6]: tag_name_differs - expected: 'p', actual: 'h2'
+  body > div > div > div > div > div > p: text_differs - expected: 'It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using ‘Content here, content here’, making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for ‘lorem ipsum’ will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).', actual: 'Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source. Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of “de Finibus Bonorum et Malorum” (The Extremes of Good and Evil) by Cicero, written in 45 BC. This book is a treatise on the theory of ethics, very popular during the Renaissance. The first line of Lorem Ipsum, “Lorem ipsum dolor sit amet..”, comes from a line in section 1.10.32.'
+  body > div > div > div > div > div > child[8]: tag_name_differs - expected: 'h2', actual: 'p'
+  ... and 7 more differences
+DIFF p2_sample4.html (17 differences)
+  head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
+  body > div > div > div > div > ul > li: text_differs - expected: 'Product2 1.0', actual: 'Product2 1'
+  body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
+  body > div > div > div > div > div > child[2]: tag_name_differs - expected: 'script', actual: 'a'
+  body > div > div > div > div > div > child[3]: tag_name_differs - expected: 'div', actual: 'h2'
+  body > div > div > div > div > div > child[4]: tag_name_differs - expected: 'a', actual: 'p'
+  body > div > div > div > div > div > child[5]: tag_name_differs - expected: 'h2', actual: 'p'
+  body > div > div > div > div > div > child[6]: tag_name_differs - expected: 'p', actual: 'h2'
+  body > div > div > div > div > div > p: text_differs - expected: 'It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using ‘Content here, content here’, making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for ‘lorem ipsum’ will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).', actual: 'Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source. Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of “de Finibus Bonorum et Malorum” (The Extremes of Good and Evil) by Cicero, written in 45 BC. This book is a treatise on the theory of ethics, very popular during the Renaissance. The first line of Lorem Ipsum, “Lorem ipsum dolor sit amet..”, comes from a line in section 1.10.32.'
+  body > div > div > div > div > div > child[8]: tag_name_differs - expected: 'h2', actual: 'p'
+  ... and 7 more differences
+DIFF p2_sample5.html (17 differences)
+  head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
+  body > div > div > div > div > ul > li: text_differs - expected: 'Product2 1.0', actual: 'Product2 1'
+  body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
+  body > div > div > div > div > div > child[2]: tag_name_differs - expected: 'script', actual: 'a'
+  body > div > div > div > div > div > child[3]: tag_name_differs - expected: 'div', actual: 'h2'
+  body > div > div > div > div > div > child[4]: tag_name_differs - expected: 'a', actual: 'p'
+  body > div > div > div > div > div > child[5]: tag_name_differs - expected: 'h2', actual: 'p'
+  body > div > div > div > div > div > child[6]: tag_name_differs - expected: 'p', actual: 'h2'
+  body > div > div > div > div > div > p: text_differs - expected: 'It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using ‘Content here, content here’, making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for ‘lorem ipsum’ will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).', actual: 'Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source. Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of “de Finibus Bonorum et Malorum” (The Extremes of Good and Evil) by Cicero, written in 45 BC. This book is a treatise on the theory of ethics, very popular during the Renaissance. The first line of Lorem Ipsum, “Lorem ipsum dolor sit amet..”, comes from a line in section 1.10.32.'
+  body > div > div > div > div > div > child[8]: tag_name_differs - expected: 'h2', actual: 'p'
+  ... and 7 more differences
+DIFF p2_sample6.html (3 differences)
+  head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
+  body > div > div > div > div > ul > li: text_differs - expected: 'Product2 1.0', actual: 'Product2 1'
+  body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
+DIFF p2_sample7.html (3 differences)
+  head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
+  body > div > div > div > div > ul > li: text_differs - expected: 'Product2 1.0', actual: 'Product2 1'
+  body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
+DIFF p2_sample8.html (3 differences)
+  head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
+  body > div > div > div > div > ul > li: text_differs - expected: 'Product2 1.0', actual: 'Product2 1'
+  body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
+DIFF p2_sample9.html (3 differences)
+  head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
+  body > div > div > div > div > ul > li: text_differs - expected: 'Product2 1.0', actual: 'Product2 1'
+  body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
 DIFF samplepost.html (2 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > article > header > p > time: attribute_differs - expected: "datetime='2016-02-26T00:00:00+01:00'", actual: "datetime='2016-02-26T00:00:00+00:00'"
@@ -1055,4 +1025,4 @@ DIFF tocpage.html/index.html (3 differences)
   body: missing_element - expected: '<body>', actual: '(none)'
   script: missing_element - expected: '<script>', actual: '(none)'
 
-Summary: 1 files matched, 97 files with differences, 4996 total differences
+Summary: 1 files matched, 97 files with differences, 5022 total differences

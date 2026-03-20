@@ -1,4 +1,4 @@
-Jekyll directory:   /home/alexey/git/rustkyl/websites/alexeygrigorev/snippets/_site_jekyll_recount
+Jekyll directory:   /home/alexey/git/rustkyl/websites/alexeygrigorev/snippets/_site_jekyll_cached
 Rustkyll directory: /home/alexey/git/rustkyl/websites/alexeygrigorev/snippets/_site_rustkyll_recount
 Common HTML files:  25
 

@@ -1,18 +1,18 @@
-Jekyll directory:   /home/alexey/git/rustkyl/websites/slate-theme/_site_jekyll_recount
+Jekyll directory:   /home/alexey/git/rustkyl/websites/slate-theme/_site_jekyll_cached
 Rustkyll directory: /home/alexey/git/rustkyl/websites/slate-theme/_site_rustkyll_recount
 Common HTML files:  2
 
-DIFF index.html (59 differences)
-  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='nx'"
-  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='nx'"
-  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='dl'", actual: "class='s1'"
-  body > div > section > div > div > pre > code > span: text_differs - expected: "'", actual: "'./lang/'"
-  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='s1'", actual: "class='o'"
-  body > div > section > div > div > pre > code > span: text_differs - expected: './lang/', actual: '+'
-  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='dl'", actual: "class='nx'"
-  body > div > section > div > div > pre > code > span: text_differs - expected: "'", actual: 'l'
+DIFF index.html (41 differences)
+  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='no'", actual: "class='nb'"
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
-  body > div > section > div > div > pre > code > span: text_differs - expected: '+', actual: ')'
-  ... and 49 more differences
+  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='no'", actual: "class='nb'"
+  body > div > section > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'gems'
+  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='p'"
+  body > div > section > div > div > pre > code > span: text_differs - expected: 'gems', actual: '.'
+  body > div > section > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'each'
+  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='p'", actual: "class='k'"
+  body > div > section > div > div > pre > code > span: text_differs - expected: '.', actual: 'do'
+  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='p'"
+  ... and 31 more differences
 
-Summary: 1 files matched, 1 files with differences, 59 total differences
+Summary: 1 files matched, 1 files with differences, 41 total differences

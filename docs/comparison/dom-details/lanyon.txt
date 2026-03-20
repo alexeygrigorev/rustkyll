@@ -1,0 +1,23 @@
+Jekyll directory:   /home/alexey/git/rustkyl/websites/lanyon/_site_jekyll_cached
+Rustkyll directory: /home/alexey/git/rustkyl/websites/lanyon/_site_rustkyll_recount
+Common HTML files:  6
+
+DIFF 2020/04/02/example-content/index.html (4 differences)
+  body > div > div > div > figure > pre > code > span: attribute_differs - expected: "class='k'", actual: "class='o'"
+  body > div > div > div > figure > pre > code > span: attribute_differs - expected: "class='nc'", actual: "class='nb'"
+  body > div > div > div > figure > pre > code > span: attribute_differs - expected: "class='mi'", actual: "class='m'"
+  body > div > div > div > figure > pre > code > span: attribute_differs - expected: "class='mi'", actual: "class='m'"
+DIFF index.html (20 differences)
+  head > link: attribute_differs - expected: "href='http://lanyon.getpoole.com/'", actual: "href='http://lanyon.getpoole.com/index.html'"
+  body > div > div > div > div > child[15]: tag_name_differs - expected: 'figure', actual: 'p'
+  body > div > div > div > div > p: text_differs - expected: 'Aenean lacinia bibendum nulla sed consectetur. Etiam porta sem malesuada magna mollis euismod. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa.', actual: '// Create a function that takes two arguments and returns the sum of those arguments var adder = new Function(“a”, “b”, “return a + b”);'
+  body > div > div > div > div > child[17]: tag_name_differs - expected: 'h3', actual: 'p'
+  body > div > div > div > div > p: text_differs - expected: 'Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Aenean lacinia bibendum nulla sed consectetur. Etiam porta sem malesuada magna mollis euismod. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus.', actual: 'Aenean lacinia bibendum nulla sed consectetur. Etiam porta sem malesuada magna mollis euismod. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa.'
+  body > div > div > div > div > child[19]: tag_name_differs - expected: 'ul', actual: 'h3'
+  body > div > div > div > div > p: text_differs - expected: 'Donec ullamcorper nulla non metus auctor fringilla. Nulla vitae elit libero, a pharetra augue.', actual: 'Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Aenean lacinia bibendum nulla sed consectetur. Etiam porta sem malesuada magna mollis euismod. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus.'
+  body > div > div > div > div > child[21]: tag_name_differs - expected: 'ol', actual: 'ul'
+  body > div > div > div > div > p: text_differs - expected: 'Cras mattis consectetur purus sit amet fermentum. Sed posuere consectetur est at lobortis.', actual: 'Donec ullamcorper nulla non metus auctor fringilla. Nulla vitae elit libero, a pharetra augue.'
+  body > div > div > div > div > child[23]: tag_name_differs - expected: 'dl', actual: 'ol'
+  ... and 10 more differences
+
+Summary: 4 files matched, 2 files with differences, 24 total differences

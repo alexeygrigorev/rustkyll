@@ -21,6 +21,8 @@ Several block element types remain unimplemented: HTML blocks (raw HTML passed t
 - **XML namespaced tags**: `<some:url>` etc.
 - **textarea**: block-level textarea elements
 - **HTML5 boolean attributes**: `<p class>` (valueless attributes)
+- **html_to_native option**: converts HTML elements (`<p>`, `<em>`, `<strong>`, `<code>`, `<h1>`-`<h6>`, `<ul>`, `<ol>`, `<dl>`, `<table>`, etc.) to native kramdown elements for markdown processing
+- **Content model handling**: how block HTML interacts with definition lists and tables when nested
 
 ### Definition Lists (category 13)
 
@@ -45,14 +47,22 @@ Several block element types remain unimplemented: HTML blocks (raw HTML passed t
 - **XSS prevention**: HTML tags inside math are escaped
 - **Indentation**: 4+ spaces means code block, not math
 
+## Current test status
+
+- **HTML blocks (29 total):** 0 pass, 29 fail (17 root + 12 html_to_native + 2 content_model -- note: 2 root tests `invalid_html_1` and `processing_instruction` may already pass)
+- **Definition lists (12 total):** 3 pass (definition_at_beginning, no_def_list, too_much_space), 9 fail
+- **Math blocks (3 total):** 0 pass, 3 fail
+- **Combined target:** 44 tests total, currently ~3 passing, ~41 failing
+
 ## Dependencies
 
 - Issue #280 (Phase 2a) must be `.done.md`
-- Issue #281a (Lists) should ideally be done first (definition list `with_blocks` test has list content in definitions, and HTML `markdown_attr` test has `<dd markdown="1">`)
+- Issue #281a (Lists) must be `.done.md` -- definition list `with_blocks` test has list content in definitions, and HTML `markdown_attr` test has `<dd markdown="1">`
+- Issue #281b (Tables) must be `.done.md` -- content_model/tables test requires table support
 
 ## Test Cases to Pass
 
-### HTML Blocks (17 tests with .html files)
+### HTML Blocks - Root tests (17 tests with .html files)
 
 | Test file | What it tests | Options |
 |-----------|---------------|---------|
@@ -75,6 +85,34 @@ Several block element types remain unimplemented: HTML blocks (raw HTML passed t
 | `xml` | XML namespaced tags | none |
 
 **Note:** `standalone_image_in_div` and `table` have no `.html` reference files -- skip them.
+
+### HTML Blocks - html_to_native subdirectory (12 tests)
+
+These tests cover the `html_to_native` option which converts HTML elements to native kramdown elements for processing:
+
+| Test file | What it tests | Options |
+|-----------|---------------|---------|
+| `code` | `<code>` HTML converted to native code span | `html_to_native: true` |
+| `comment` | HTML comments with html_to_native | `html_to_native: true` |
+| `emphasis` | `<em>`/`<strong>` HTML converted to native emphasis | `html_to_native: true` |
+| `entity` | HTML entities with html_to_native | `html_to_native: true` |
+| `header` | `<h1>`-`<h6>` HTML converted to native headers | `html_to_native: true` |
+| `list_dl` | `<dl>` HTML converted to native definition list | `html_to_native: true` |
+| `list_ol` | `<ol>` HTML converted to native ordered list | `html_to_native: true` |
+| `list_ul` | `<ul>` HTML converted to native unordered list | `html_to_native: true` |
+| `paragraph` | `<p>` HTML converted to native paragraph | `html_to_native: true` |
+| `table_normal` | `<table>` HTML converted to native table | `html_to_native: true` |
+| `table_simple` | Simple table HTML converted to native table | `html_to_native: true` |
+| `typography` | Typographic HTML entities with html_to_native | `html_to_native: true` |
+
+### HTML Blocks - content_model subdirectory (2 tests)
+
+These tests cover HTML content model handling (how block HTML interacts with definition lists and tables):
+
+| Test file | What it tests | Options |
+|-----------|---------------|---------|
+| `deflists` | Definition lists inside/around block HTML | none |
+| `tables` | Tables inside/around block HTML | none |
 
 ### Definition Lists (12 tests)
 
@@ -105,8 +143,11 @@ Several block element types remain unimplemented: HTML blocks (raw HTML passed t
 
 - [ ] `cargo build` compiles without errors
 - [ ] `cargo test` passes all existing tests (no regressions)
-- [ ] At least 12 of 17 HTML block conformance tests pass (the 5 that require `parse_block_html: true` with full markdown-in-HTML support may be deferred if too complex)
-- [ ] All 12 definition list conformance tests pass
+- [ ] At least 12 of 17 HTML block root conformance tests pass (the 5 that require `parse_block_html: true` with full markdown-in-HTML support may be deferred if too complex)
+- [ ] At least 8 of 12 html_to_native conformance tests pass (complex ones like table_normal may be deferred)
+- [ ] Both content_model tests pass (deflists, tables)
+- [ ] All 9 currently-failing definition list conformance tests pass (simple, multiple_terms, para_wrapping, separated_by_eob, with_blocks, styled_terms, item_ial, deflist_ial, auto_ids)
+- [ ] 3 definition list tests that already pass remain passing (definition_at_beginning, no_def_list, too_much_space)
 - [ ] All 3 math block conformance tests pass
 - [ ] HTML comments (`<!-- ... -->`) pass through unchanged
 - [ ] Block-level `<div>` elements are detected and not parsed as markdown (default mode)
@@ -121,6 +162,7 @@ Several block element types remain unimplemented: HTML blocks (raw HTML passed t
 - [ ] Inline math at block boundaries renders as `\(...\)`
 - [ ] Math content is HTML-escaped (prevents XSS)
 - [ ] If any HTML block tests requiring deep markdown-in-HTML parsing are deferred, follow-up issues are created
+- [ ] If any html_to_native tests are deferred, follow-up issues are created
 
 ## Test Scenarios
 
@@ -147,3 +189,62 @@ Several block element types remain unimplemented: HTML blocks (raw HTML passed t
 - Parse `simple.text` (HTML blocks) with `parse_block_html: true`, verify nested markdown parsing
 - Parse `with_blocks.text` (definition lists), verify blockquotes, code, nested deflists in definitions
 - Parse `normal.text` (math), verify `\[...\]` and `\(...\)` output
+
+## Log
+
+### [SWE] 2026-03-20
+
+**Implementation Summary:**
+
+1. **HTML Blocks (parser.rs, html.rs)**:
+   - Processing instructions (`<?...?>`) no longer treated as HTML blocks (paragraph text instead)
+   - Closing tags without openers (`</div>`) no longer treated as HTML blocks
+   - Void elements (`<hr>`, `<br>`) now output as self-closing (`<hr />`)
+   - HTML block parsing with proper tag nesting (tracks open/close tags)
+   - Attribute normalization: single quotes -> double quotes, boolean attrs -> `=""`, unquoted values -> quoted
+   - XML namespaced tags (`<some:url>`, `<webgen:block>`) treated as block HTML with case preservation
+   - Raw tags (`<script>`, `<style>`) content preserved literally
+   - `<textarea>` blocks span across blank lines
+   - HTML comments pass through correctly
+   - Invalid HTML inside blocks gets escaped (`</p>` orphan -> `&lt;/p&gt;`)
+   - HTML block tags interrupt paragraphs and blockquote lazy continuation
+   - `parse_block_html: true` enables markdown parsing inside block HTML (block/span modes)
+   - `markdown="block|span|1|0"` attribute controls per-element parsing
+
+2. **Definition Lists (parser.rs, html.rs)**:
+   - Complete rewrite of definition list parser
+   - Multiple terms before definitions
+   - Para wrapping when blank line precedes definition
+   - Block content in definitions: blockquotes, code blocks, headers, nested deflists, lists
+   - EOB (`^`) separates definition lists
+   - Item IAL (`{:.cls}`) on definitions and terms
+   - Definition list IAL (`{:.dl-horizontal}`) on the `<dl>` element
+   - Auto IDs (`{:auto_ids}` and `{:auto_ids-prefix-}`)
+   - Proper indent handling for continuation lines and nested content
+
+3. **Math Blocks (parser.rs)**:
+   - Inline math detection: `$$ expr $$` within paragraph text becomes `\(...\)`
+   - Display math: standalone `$$...$$` becomes `\[...\]`
+   - No-engine mode: `math_engine: ~` renders as `<div class="kdmath">$$...$$</div>`
+   - XSS prevention: HTML tags inside math are escaped
+
+**Test Results:**
+- block_09 (HTML): 12/31 passing (up from 4/31) -- +8 new passes
+- block_13 (definition lists): 12/12 passing (up from 3/12) -- ALL PASS
+- block_15 (math): 3/3 passing (up from 0/3) -- ALL PASS
+- Full suite: 2217 passed, 56 failed, 15 ignored (no regressions)
+- Clippy: clean in modified files
+- Fmt: clean
+
+**Remaining block_09 failures (19 tests):**
+- 5 parse_block_html tests: require deep markdown-in-HTML parsing with proper indentation
+- 9 html_to_native tests: require converting HTML elements to native kramdown elements
+- 2 content_model tests: require content model awareness
+- 1 html5_attributes test: attribute normalization edge cases
+- 1 cdata test: CDATA content stripping
+- 1 xml test: case-sensitive tag matching for non-standard tags
+
+**Files modified:**
+- `src/kramdown_parser/parser.rs` - HTML block parsing, definition list parser rewrite, math block inline detection
+- `src/kramdown_parser/html.rs` - HTML block converter with parse modes, definition list converter with para wrap/block content/auto_ids, invalid HTML escaping
+- `docs/tracker/281c-kramdown-phase2b-html-blocks.in-progress.md` - this issue file

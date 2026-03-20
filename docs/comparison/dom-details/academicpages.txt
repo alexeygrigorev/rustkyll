@@ -1,4 +1,4 @@
-Jekyll directory:   /home/alexey/git/rustkyl/websites/academicpages/_site_jekyll_recount
+Jekyll directory:   /home/alexey/git/rustkyl/websites/academicpages/_site_jekyll_cached
 Rustkyll directory: /home/alexey/git/rustkyl/websites/academicpages/_site_rustkyll_recount
 Common HTML files:  17
 Only in Jekyll:     28
@@ -32,11 +32,9 @@ DIFF posts/2012/08/blog-post-1/index.html (4 differences)
   child[2]: tag_name_differs - expected: 'body', actual: 'h1'
   h1: extra_element - expected: '(none)', actual: '<h1>'
   h2: extra_element - expected: '(none)', actual: '<h2>'
-DIFF posts/2012/08/blog-post-4/index.html (4 differences)
+DIFF posts/2012/08/blog-post-4/index.html (2 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h1'
-  h1: extra_element - expected: '(none)', actual: '<h1>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
+  body: missing_element - expected: '<body>', actual: '(none)'
 DIFF posts/2013/08/blog-post-2/index.html (4 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   child[2]: tag_name_differs - expected: 'body', actual: 'h1'
@@ -83,18 +81,18 @@ DIFF publication/2015-10-01-paper-title-number-3.html (27 differences)
   body > div > article > div > section > a: attribute_differs - expected: "title='Share on Facebook'", actual: "title='Share on LinkedIn'"
   body > div > article > div > section > a > i: attribute_differs - expected: "class='fa-facebook fab'", actual: "class='fa-linkedin fab'"
   ... and 17 more differences
-DIFF publication/2024-02-17-paper-title-number-4.html (35 differences)
-  head > title: text_differs - expected: 'Paper Title Number 5, with math \\(E=mc^2\\) - Your Name / Site Title', actual: 'Paper Title Number 5, with math $$E=mc^2$$ - Your Name / Site Title'
-  head > meta: attribute_differs - expected: "content='This paper is about a famous math equation, \\\\(E=mc^2\\\\)'", actual: "content='This paper is about a famous math equation, $$E=mc^2$$'"
-  head > meta: attribute_differs - expected: "content='Paper Title Number 5, with math \\\\(E=mc^2\\\\)'", actual: "content='Paper Title Number 5, with math $$E=mc^2$$'"
-  head > meta: attribute_differs - expected: "content='This paper is about a famous math equation, \\\\(E=mc^2\\\\)'", actual: "content='This paper is about a famous math equation, $$E=mc^2$$'"
-  body > div > article > meta: attribute_differs - expected: "content='Paper Title Number 5, with math \\\\(E=mc^2\\\\)'", actual: "content='Paper Title Number 5, with math $$E=mc^2$$'"
-  body > div > article > meta: attribute_differs - expected: "content='This paper is about a famous math equation, \\\\(E=mc^2\\\\)'", actual: "content='This paper is about a famous math equation, $$E=mc^2$$'"
-  body > div > article > div > header > h1: text_differs - expected: 'Paper Title Number 5, with math \\(E=mc^2\\)', actual: 'Paper Title Number 5, with math $$E=mc^2$$'
-  body > div > article > div > section > p: text_differs - expected: 'in the description is supported - \\(E=mc^2\\) - however, the use must be mindful that the default delimiters are', actual: 'in the description is supported - $$E=mc^2$$ - however, the use must be mindful that the default delimiters are'
-  body > div > article > div > section > child[1]: tag_name_differs - expected: 'h4', actual: 'a'
-  body > div > article > div > section > a: attribute_differs - expected: "class='btn btn--bluesky'", actual: "class='btn btn--facebook'"
-  ... and 25 more differences
+DIFF publication/2024-02-17-paper-title-number-4.html (48 differences)
+  head > title: text_differs - expected: 'Paper Title Number 5, with math \\(E=mc^2\\) - Your Name / Site Title', actual: 'Paper Title Number 4 - Your Name / Site Title'
+  head > meta: attribute_differs - expected: "content='This paper is about a famous math equation, \\\\(E=mc^2\\\\)'", actual: "content='This paper is about fixing template issue #693.'"
+  head > meta: attribute_differs - expected: "content='Paper Title Number 5, with math \\\\(E=mc^2\\\\)'", actual: "content='Paper Title Number 4'"
+  head > meta: attribute_differs - expected: "content='This paper is about a famous math equation, \\\\(E=mc^2\\\\)'", actual: "content='This paper is about fixing template issue #693.'"
+  body > div > article > meta: attribute_differs - expected: "content='Paper Title Number 5, with math \\\\(E=mc^2\\\\)'", actual: "content='Paper Title Number 4'"
+  body > div > article > meta: attribute_differs - expected: "content='This paper is about a famous math equation, \\\\(E=mc^2\\\\)'", actual: "content='This paper is about fixing template issue #693.'"
+  body > div > article > div > header > h1: text_differs - expected: 'Paper Title Number 5, with math \\(E=mc^2\\)', actual: 'Paper Title Number 4'
+  body > div > article > div > section > p: text_differs - expected: 'Using', actual: 'The contents above will be part of a list of publications, if the user clicks the link for the publication than the contents of section will be rendered as a full page, allowing you to provide more information about the paper for the reader. When publications are displayed as a single page, the contents of the above “citation” field will automatically be included below this section in a smaller font.'
+  body > div > article > div > section > p > a: missing_element - expected: '<a>', actual: '(none)'
+  body > div > article > div > section > p: missing_text - expected: 'in the description is supported - \\(E=mc^2\\) - however, the use must be mindful that the default del', actual: '(none)'
+  ... and 38 more differences
 DIFF talks/2012-03-01-talk-1.html (27 differences)
   body > div > article > div > section > child[1]: tag_name_differs - expected: 'h4', actual: 'a'
   body > div > article > div > section > a: attribute_differs - expected: "class='btn btn--bluesky'", actual: "class='btn btn--facebook'"
@@ -168,4 +166,4 @@ DIFF teaching/2015-spring-teaching-1.html (27 differences)
   body > div > article > div > section > a > i: attribute_differs - expected: "class='fa-facebook fab'", actual: "class='fa-linkedin fab'"
   ... and 17 more differences
 
-Summary: 1 files matched, 16 files with differences, 350 total differences
+Summary: 1 files matched, 16 files with differences, 361 total differences

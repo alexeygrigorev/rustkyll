@@ -1,0 +1,164 @@
+Jekyll directory:   /home/alexey/git/rustkyl/websites/chirpy/_site_jekyll_cached
+Rustkyll directory: /home/alexey/git/rustkyl/websites/chirpy/_site_rustkyll_recount
+Common HTML files:  13
+Only in Jekyll:     4
+Only in rustkyll:   4
+
+DIFF 404.html (14 differences)
+  head > meta > meta > meta > meta > meta > child[1]: tag_name_differs - expected: 'link', actual: 'meta'
+  head > meta > meta > meta > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/categories/'", actual: "href='/tabs/about'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-fw fa-stream fas'", actual: "class='fa-fw fa-info-circle fas'"
+  body > aside > nav > ul > li > a > span: missing_text - expected: 'CATEGORIES', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/tags/'", actual: "href='/tabs/archives'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-fw fa-tags fas'", actual: "class='fa-archive fa-fw fas'"
+  body > aside > nav > ul > li > a > span: missing_text - expected: 'TAGS', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/archives/'", actual: "href='/tabs/categories'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-archive fa-fw fas'", actual: "class='fa-fw fa-stream fas'"
+  ... and 4 more differences
+DIFF categories/blogging/index.html (22 differences)
+  head > meta > meta > meta > meta > meta > child[1]: tag_name_differs - expected: 'link', actual: 'meta'
+  head > meta > meta > meta > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/categories/'", actual: "href='/tabs/about'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-fw fa-stream fas'", actual: "class='fa-fw fa-info-circle fas'"
+  body > aside > nav > ul > li > a > span: missing_text - expected: 'CATEGORIES', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/tags/'", actual: "href='/tabs/archives'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-fw fa-tags fas'", actual: "class='fa-archive fa-fw fas'"
+  body > aside > nav > ul > li > a > span: missing_text - expected: 'TAGS', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/archives/'", actual: "href='/tabs/categories'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-archive fa-fw fas'", actual: "class='fa-fw fa-stream fas'"
+  ... and 12 more differences
+DIFF categories/demo/index.html (18 differences)
+  head > meta > meta > meta > meta > meta > child[1]: tag_name_differs - expected: 'link', actual: 'meta'
+  head > meta > meta > meta > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/categories/'", actual: "href='/tabs/about'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-fw fa-stream fas'", actual: "class='fa-fw fa-info-circle fas'"
+  body > aside > nav > ul > li > a > span: missing_text - expected: 'CATEGORIES', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/tags/'", actual: "href='/tabs/archives'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-fw fa-tags fas'", actual: "class='fa-archive fa-fw fas'"
+  body > aside > nav > ul > li > a > span: missing_text - expected: 'TAGS', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/archives/'", actual: "href='/tabs/categories'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-archive fa-fw fas'", actual: "class='fa-fw fa-stream fas'"
+  ... and 8 more differences
+DIFF categories/tutorial/index.html (21 differences)
+  head > meta > meta > meta > meta > meta > child[1]: tag_name_differs - expected: 'link', actual: 'meta'
+  head > meta > meta > meta > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/categories/'", actual: "href='/tabs/about'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-fw fa-stream fas'", actual: "class='fa-fw fa-info-circle fas'"
+  body > aside > nav > ul > li > a > span: missing_text - expected: 'CATEGORIES', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/tags/'", actual: "href='/tabs/archives'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-fw fa-tags fas'", actual: "class='fa-archive fa-fw fas'"
+  body > aside > nav > ul > li > a > span: missing_text - expected: 'TAGS', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/archives/'", actual: "href='/tabs/categories'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-archive fa-fw fas'", actual: "class='fa-fw fa-stream fas'"
+  ... and 11 more differences
+DIFF index.html (27 differences)
+  head > meta > meta > meta > meta > meta > child[1]: tag_name_differs - expected: 'link', actual: 'meta'
+  head > meta > meta > meta > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/categories/'", actual: "href='/tabs/about'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-fw fa-stream fas'", actual: "class='fa-fw fa-info-circle fas'"
+  body > aside > nav > ul > li > a > span: missing_text - expected: 'CATEGORIES', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/tags/'", actual: "href='/tabs/archives'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-fw fa-tags fas'", actual: "class='fa-archive fa-fw fas'"
+  body > aside > nav > ul > li > a > span: missing_text - expected: 'TAGS', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/archives/'", actual: "href='/tabs/categories'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-archive fa-fw fas'", actual: "class='fa-fw fa-stream fas'"
+  ... and 17 more differences
+DIFF posts/customize-the-favicon/index.html (76 differences)
+  head > meta > meta > meta > meta > meta: attribute_differs - expected: "content='The favicons of Chirpy are placed in the directory assets/img/favicons/. You may want to replace them with your own. The following sections will guide you to create and replace the default favicons.'", actual: "content='The favicons of Chirpy are placed in the directory assets/img/favicons/. You may want to replace them with your own. The following sections will guide you to create and replace the default favicons.\\n'"
+  head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='The favicons of Chirpy are placed in the directory assets/img/favicons/. You may want to replace them with your own. The following sections will guide you to create and replace the default favicons.'", actual: "content='The favicons of Chirpy are placed in the directory assets/img/favicons/. You may want to replace them with your own. The following sections will guide you to create and replace the default favicons.\\n'"
+  head > meta > meta > meta > meta > meta > meta > child[1]: tag_name_differs - expected: 'link', actual: 'meta'
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='/posts/customize-the-favicon/'", actual: "content='article'"
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "property='og:url'", actual: "property='og:type'"
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='Chirpy'", actual: "content='2019-08-11T00:34:00+08:00'"
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='article:published_time'"
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='article'", actual: "content='summary'"
+  head > meta > meta > meta > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > meta > meta > meta > meta > meta: missing_attribute - expected: "property='og:type'", actual: '(none)'
+  ... and 66 more differences
+DIFF posts/getting-started/index.html (137 differences)
+  head > meta > meta > meta > meta > meta > meta > child[1]: tag_name_differs - expected: 'link', actual: 'meta'
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='/posts/getting-started/'", actual: "content='article'"
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "property='og:url'", actual: "property='og:type'"
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='Chirpy'", actual: "content='2019-08-09T20:55:00+08:00'"
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='article:published_time'"
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='article'", actual: "content='summary'"
+  head > meta > meta > meta > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > meta > meta > meta > meta > meta: missing_attribute - expected: "property='og:type'", actual: '(none)'
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='2019-08-09T14:55:00+02:00'", actual: "content='Getting Started'"
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "property='article:published_time'", actual: "property='twitter:title'"
+  ... and 127 more differences
+DIFF posts/text-and-typography/index.html (172 differences)
+  head > meta > meta > meta > meta > meta > meta > child[1]: tag_name_differs - expected: 'link', actual: 'meta'
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='/posts/text-and-typography/'", actual: "content='path\\n\\n    \\n\\n    \\n      \\n        \\n      \\n    \\n  /commons/devices-mockup.pnglqipdata:image/webp;base64,UklGRpoAAABXRUJQVlA4WAoAAAAQAAAADwAABwAAQUxQSDIAAAARL0AmbZurmr57yyIiqE8oiG0bejIYEQTgqiDA9vqnsUSI6H+oAERp2HZ65qP/VIAWAFZQOCBCAAAA8AEAnQEqEAAIAAVAfCWkAALp8sF8rgRgAP7o9FDvMCkMde9PK7euH5M1m6VWoDXf2FkP3BqV0ZYbO6NA/VFIAAAAaltResponsive rendering of Chirpy theme on multiple devices.'"
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "property='og:url'", actual: "property='og:image'"
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='Chirpy'", actual: "content='article'"
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:type'"
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='/commons/devices-mockup.png'", actual: "content='2019-08-08T11:33:00+08:00'"
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "property='og:image'", actual: "property='article:published_time'"
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='Responsive rendering of Chirpy theme on multiple devices.'", actual: "content='summary_large_image'"
+  head > meta > meta > meta > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:card'"
+  head > meta > meta > meta > meta > meta > meta > meta: missing_attribute - expected: "property='og:image:alt'", actual: '(none)'
+  ... and 162 more differences
+DIFF posts/write-a-new-post/index.html (137 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h2: extra_element - expected: '(none)', actual: '<h2>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  div: extra_element - expected: '(none)', actual: '<div>'
+  blockquote: extra_element - expected: '(none)', actual: '<blockquote>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  h3: extra_element - expected: '(none)', actual: '<h3>'
+  ... and 127 more differences
+DIFF tags/favicon/index.html (19 differences)
+  head > meta > meta > meta > meta > meta > child[1]: tag_name_differs - expected: 'link', actual: 'meta'
+  head > meta > meta > meta > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/categories/'", actual: "href='/tabs/about'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-fw fa-stream fas'", actual: "class='fa-fw fa-info-circle fas'"
+  body > aside > nav > ul > li > a > span: missing_text - expected: 'CATEGORIES', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/tags/'", actual: "href='/tabs/archives'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-fw fa-tags fas'", actual: "class='fa-archive fa-fw fas'"
+  body > aside > nav > ul > li > a > span: missing_text - expected: 'TAGS', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/archives/'", actual: "href='/tabs/categories'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-archive fa-fw fas'", actual: "class='fa-fw fa-stream fas'"
+  ... and 9 more differences
+DIFF tags/getting-started/index.html (18 differences)
+  head > meta > meta > meta > meta > meta > child[1]: tag_name_differs - expected: 'link', actual: 'meta'
+  head > meta > meta > meta > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/categories/'", actual: "href='/tabs/about'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-fw fa-stream fas'", actual: "class='fa-fw fa-info-circle fas'"
+  body > aside > nav > ul > li > a > span: missing_text - expected: 'CATEGORIES', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/tags/'", actual: "href='/tabs/archives'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-fw fa-tags fas'", actual: "class='fa-archive fa-fw fas'"
+  body > aside > nav > ul > li > a > span: missing_text - expected: 'TAGS', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/archives/'", actual: "href='/tabs/categories'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-archive fa-fw fas'", actual: "class='fa-fw fa-stream fas'"
+  ... and 8 more differences
+DIFF tags/typography/index.html (18 differences)
+  head > meta > meta > meta > meta > meta > child[1]: tag_name_differs - expected: 'link', actual: 'meta'
+  head > meta > meta > meta > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/categories/'", actual: "href='/tabs/about'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-fw fa-stream fas'", actual: "class='fa-fw fa-info-circle fas'"
+  body > aside > nav > ul > li > a > span: missing_text - expected: 'CATEGORIES', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/tags/'", actual: "href='/tabs/archives'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-fw fa-tags fas'", actual: "class='fa-archive fa-fw fas'"
+  body > aside > nav > ul > li > a > span: missing_text - expected: 'TAGS', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/archives/'", actual: "href='/tabs/categories'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-archive fa-fw fas'", actual: "class='fa-fw fa-stream fas'"
+  ... and 8 more differences
+DIFF tags/writing/index.html (18 differences)
+  head > meta > meta > meta > meta > meta > child[1]: tag_name_differs - expected: 'link', actual: 'meta'
+  head > meta > meta > meta > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/categories/'", actual: "href='/tabs/about'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-fw fa-stream fas'", actual: "class='fa-fw fa-info-circle fas'"
+  body > aside > nav > ul > li > a > span: missing_text - expected: 'CATEGORIES', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/tags/'", actual: "href='/tabs/archives'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-fw fa-tags fas'", actual: "class='fa-archive fa-fw fas'"
+  body > aside > nav > ul > li > a > span: missing_text - expected: 'TAGS', actual: '(none)'
+  body > aside > nav > ul > li > a: attribute_differs - expected: "href='/archives/'", actual: "href='/tabs/categories'"
+  body > aside > nav > ul > li > a > i: attribute_differs - expected: "class='fa-archive fa-fw fas'", actual: "class='fa-fw fa-stream fas'"
+  ... and 8 more differences
+
+Summary: 0 files matched, 13 files with differences, 697 total differences

@@ -1,4 +1,4 @@
-Jekyll directory:   /home/alexey/git/rustkyl/websites/government-github/_site_jekyll_recount
+Jekyll directory:   /home/alexey/git/rustkyl/websites/government-github/_site_jekyll_cached
 Rustkyll directory: /home/alexey/git/rustkyl/websites/government-github/_site_rustkyll_recount
 Common HTML files:  21
 
@@ -35,7 +35,7 @@ DIFF best-practices/index.html (8 differences)
   meta: missing_element - expected: '<meta>', actual: '(none)'
   h1: missing_element - expected: '<h1>', actual: '(none)'
   a: missing_element - expected: '<a>', actual: '(none)'
-DIFF community/index.html (9147 differences)
+DIFF community/index.html (9497 differences)
   head > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   head > meta > meta > meta > meta: attribute_differs - expected: "content='Government agencies at the national, state, and local level use GitHub to share and collaborate. If you don’t see your organization on this list, follow the instructions below to add it!'", actual: 'content="Government agencies at the national, state, and local level use GitHub to share and collaborate. If you don\'t see your organization on this list, follow the instructions below to add it!"'
   head > meta > meta > meta > meta: attribute_differs - expected: "content='Government agencies at the national, state, and local level use GitHub to share and collaborate. If you don’t see your organization on this list, follow the instructions below to add it!'", actual: 'content="Government agencies at the national, state, and local level use GitHub to share and collaborate. If you don\'t see your organization on this list, follow the instructions below to add it!"'
@@ -46,7 +46,7 @@ DIFF community/index.html (9147 differences)
   body > div > div > div > div > div > div > div > a > img: missing_attribute - expected: "data-srcset='https://avatars2.githubusercontent.com/argob?v=3&s=60 1x, https://avatars2.githubusercontent.com/argob?v=3&s=120 2x, https://avatars2.githubusercontent.com/argob?v=3&s=180 3x, https://avatars2.githubusercontent.com/argob?v=3&s=240 4x'", actual: '(none)'
   body > div > div > div > div > div > div > div > a > img: attribute_differs - expected: "src=''", actual: "src='https://avatars.githubusercontent.com/lazy?v=4&s=60'"
   body > div > div > div > div > div > div > div > a > img: extra_attribute - expected: '(none)', actual: "srcset='https://avatars.githubusercontent.com/lazy?v=4&s=60 1x, https://avatars.githubusercontent.com/lazy?v=4&s=120 2x, https://avatars.githubusercontent.com/lazy?v=4&s=180 3x, https://avatars.githubusercontent.com/lazy?v=4&s=240 4x'"
-  ... and 9137 more differences
+  ... and 9487 more differences
 DIFF fedramp-confirmation/index.html (2 differences)
   head > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
   body > footer > div > div > a > svg: missing_element - expected: '<svg>', actual: '(none)'
@@ -125,4 +125,4 @@ DIFF stories/xas-software.html (4 differences)
   a: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/xas-software.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
   script: text_differs - expected: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/xas-software.md'", actual: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
 
-Summary: 1 files matched, 20 files with differences, 9238 total differences
+Summary: 1 files matched, 20 files with differences, 9588 total differences

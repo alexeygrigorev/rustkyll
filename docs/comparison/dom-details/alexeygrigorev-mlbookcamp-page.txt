@@ -1,4 +1,4 @@
-Jekyll directory:   /home/alexey/git/rustkyl/websites/alexeygrigorev/mlbookcamp-page/_site_jekyll_recount
+Jekyll directory:   /home/alexey/git/rustkyl/websites/alexeygrigorev/mlbookcamp-page/_site_jekyll_cached
 Rustkyll directory: /home/alexey/git/rustkyl/websites/alexeygrigorev/mlbookcamp-page/_site_rustkyll_recount
 Common HTML files:  15
 
@@ -20,7 +20,7 @@ DIFF article/eks.html (41 differences)
   body > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 31 more differences
-DIFF article/kfserving-eks-install.html (161 differences)
+DIFF article/kfserving-eks-install.html (160 differences)
   body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
   body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
   body > div > div > div > div > div: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
@@ -31,7 +31,7 @@ DIFF article/kfserving-eks-install.html (161 differences)
   body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
   body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
   body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
-  ... and 151 more differences
+  ... and 150 more differences
 DIFF article/kfserving-transformers.html (475 differences)
   body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nb'"
   body > div > div > div > div > div > div > pre > code > span: text_differs - expected: 'kfserving', actual: 'kfserving.KFModel'
@@ -54,7 +54,7 @@ DIFF article/linear-regression.html (9 differences)
   body > div > div > div > div: expected_text_got_element - expected: '\\[w = X^T X\\]', actual: '<h2>'
   body > div > div > div > div > h2: extra_element - expected: '(none)', actual: '<h2>'
   body > div > div > div > div > p: extra_element - expected: '(none)', actual: '<p>'
-DIFF article/numpy.html (232 differences)
+DIFF article/numpy.html (230 differences)
   body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
   body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
   body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
@@ -65,7 +65,7 @@ DIFF article/numpy.html (232 differences)
   body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
   body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
   body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
-  ... and 222 more differences
+  ... and 220 more differences
 DIFF article/python.html (340 differences)
   body > div > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
   body > div > div > div > div > div: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
@@ -78,14 +78,11 @@ DIFF article/python.html (340 differences)
   body > div > div > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: ','
   body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='p'", actual: "class='n'"
   ... and 330 more differences
-DIFF course/ml-pm.html (6 differences)
-  body > div > div > div > div > h3: attribute_differs - expected: "id='1-introduction'", actual: "id='introduction'"
+DIFF course/ml-pm.html (3 differences)
   body > div > div > div > div > child[4]: tag_name_differs - expected: 'iframe', actual: 'p'
-  body > div > div > div > div > h3: attribute_differs - expected: "id='2-processes-and-roles'", actual: "id='processes-and-roles'"
   body > div > div > div > div > child[8]: tag_name_differs - expected: 'iframe', actual: 'p'
-  body > div > div > div > div > h3: attribute_differs - expected: "id='3-model-evaluation'", actual: "id='model-evaluation'"
   body > div > div > div > div > child[12]: tag_name_differs - expected: 'iframe', actual: 'p'
 DIFF index.html (1 differences)
   body > div > div > div > p > code: attribute_differs - expected: "class='highlighter-rouge'", actual: "class='highlighter-rouge language-plaintext'"
 
-Summary: 6 files matched, 9 files with differences, 1270 total differences
+Summary: 6 files matched, 9 files with differences, 1264 total differences

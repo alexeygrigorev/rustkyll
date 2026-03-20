@@ -1,10 +1,10 @@
-Jekyll directory:   /home/alexey/git/rustkyl/websites/so-simple-theme/_site_jekyll_recount
+Jekyll directory:   /home/alexey/git/rustkyl/websites/so-simple-theme/_site_jekyll_cached
 Rustkyll directory: /home/alexey/git/rustkyl/websites/so-simple-theme/_site_rustkyll_recount
 Common HTML files:  11
 Only in Jekyll:     55
 
 DIFF categories/edge-case/index.html (36 differences)
-  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='namepictureemailtwitterlinkstitleurlicon'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
   head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
   head > meta > meta > meta > meta: attribute_differs - expected: "content='It really is the best.'", actual: "content='en-US'"
@@ -16,7 +16,7 @@ DIFF categories/edge-case/index.html (36 differences)
   head > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:description'"
   ... and 26 more differences
 DIFF categories/index.html (62 differences)
-  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='namepictureemailtwitterlinkstitleurlicon'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
   head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
   head > meta > meta > meta > meta: attribute_differs - expected: "content='It really is the best.'", actual: "content='en-US'"
@@ -28,7 +28,7 @@ DIFF categories/index.html (62 differences)
   head > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:description'"
   ... and 52 more differences
 DIFF docs/index.html (25 differences)
-  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='namepictureemailtwitterlinkstitleurlicon'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
   head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
   head > meta > meta > meta > meta: attribute_differs - expected: "content='A simple and clean responsive Jekyll theme for words and photos.'", actual: "content='en-US'"
@@ -40,7 +40,7 @@ DIFF docs/index.html (25 differences)
   head > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:description'"
   ... and 15 more differences
 DIFF example/index.html (25 differences)
-  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='namepictureemailtwitterlinkstitleurlicon'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
   head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
   head > meta > meta > meta > meta: attribute_differs - expected: "content='A simple and clean responsive Jekyll theme for words and photos.'", actual: "content='en-US'"
@@ -52,7 +52,7 @@ DIFF example/index.html (25 differences)
   head > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:description'"
   ... and 15 more differences
 DIFF index.html (34 differences)
-  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='namepictureemailtwitterlinkstitleurlicon'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
   head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
   head > meta > meta > meta > meta: attribute_differs - expected: "content='It really is the best.'", actual: "content='en-US'"
@@ -64,7 +64,7 @@ DIFF index.html (34 differences)
   head > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:description'"
   ... and 24 more differences
 DIFF posts/index.html (36 differences)
-  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='namepictureemailtwitterlinkstitleurlicon'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
   head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
   head > meta > meta > meta > meta: attribute_differs - expected: "content='It really is the best.'", actual: "content='en-US'"
@@ -76,7 +76,7 @@ DIFF posts/index.html (36 differences)
   head > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:description'"
   ... and 26 more differences
 DIFF recipes/index.html (24 differences)
-  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='namepictureemailtwitterlinkstitleurlicon'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
   head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
   head > meta > meta > meta > meta: attribute_differs - expected: "content='It really is the best.'", actual: "content='en-US'"
@@ -88,7 +88,7 @@ DIFF recipes/index.html (24 differences)
   head > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:description'"
   ... and 14 more differences
 DIFF search/index.html (32 differences)
-  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='namepictureemailtwitterlinkstitleurlicon'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
   head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
   head > meta > meta > meta > meta: attribute_differs - expected: "content='It really is the best.'", actual: "content='en-US'"
@@ -100,7 +100,7 @@ DIFF search/index.html (32 differences)
   head > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:description'"
   ... and 22 more differences
 DIFF tags/index.html (124 differences)
-  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='namepictureemailtwitterlinkstitleurlicon'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
   head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
   head > meta > meta > meta > meta: attribute_differs - expected: "content='It really is the best.'", actual: "content='en-US'"
@@ -112,7 +112,7 @@ DIFF tags/index.html (124 differences)
   head > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:description'"
   ... and 114 more differences
 DIFF tags/markup/index.html (34 differences)
-  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='namepictureemailtwitterlinkstitleurlicon'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
   head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
   head > meta > meta > meta > meta: attribute_differs - expected: "content='It really is the best.'", actual: "content='en-US'"
@@ -124,7 +124,7 @@ DIFF tags/markup/index.html (34 differences)
   head > meta > meta > meta > meta: attribute_differs - expected: "property='og:site_name'", actual: "property='og:description'"
   ... and 24 more differences
 DIFF theme-setup/index.html (251 differences)
-  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='emaillinksicontitleurlnamepicturetwitter'"
+  head > meta > meta > meta: attribute_differs - expected: "content='en_US'", actual: "content='namepictureemailtwitterlinkstitleurlicon'"
   head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='author'"
   head > meta > meta > meta: missing_attribute - expected: "property='og:locale'", actual: '(none)'
   head > meta > meta > meta > meta: attribute_differs - expected: "content='Instructions on how to install and use the Jekyll theme So Simple.'", actual: "content='en-US'"

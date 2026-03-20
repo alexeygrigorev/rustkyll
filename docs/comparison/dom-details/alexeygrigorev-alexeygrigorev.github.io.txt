@@ -1,18 +1,6 @@
-Jekyll directory:   /home/alexey/git/rustkyl/websites/alexeygrigorev/alexeygrigorev.github.io/_site_jekyll_recount
+Jekyll directory:   /home/alexey/git/rustkyl/websites/alexeygrigorev/alexeygrigorev.github.io/_site_jekyll_cached
 Rustkyll directory: /home/alexey/git/rustkyl/websites/alexeygrigorev/alexeygrigorev.github.io/_site_rustkyll_recount
 Common HTML files:  8
 
-DIFF services.html (12 differences)
-  body > main > div > div > div > div > div > a: attribute_differs - expected: "href='/services/workshops.html'", actual: "href='/services/devrel.html'"
-  body > main > div > div > div > div > div > a > div > h2: text_differs - expected: 'Workshops', actual: 'DevRel & Content'
-  body > main > div > div > div > div > div > a > div > p: text_differs - expected: 'I deliver hands-on workshops for engineering teams. Drawing from experience creating ML Zoomcamp, LLM Zoomcamp, and AI Dev Tools Zoomcamp - courses taken by 100,000+ students worldwide.', actual: 'I create educational content that helps companies reach developers. Courses, tutorials, documentation, videos - whatever format resonates with your audience.'
-  body > main > div > div > div > div > div > a > div > div > span: text_differs - expected: 'LLMs & Prompt Engineering', actual: 'Online Courses'
-  body > main > div > div > div > div > div > a > div > div > span: text_differs - expected: 'AI Dev Tools', actual: 'Technical Content'
-  body > main > div > div > div > div > div > a > div > div > span: text_differs - expected: 'MLOps & LLMOps', actual: 'Video Content'
-  body > main > div > div > div > div > div > a: attribute_differs - expected: "href='/services/devrel.html'", actual: "href='/services/workshops.html'"
-  body > main > div > div > div > div > div > a > div > h2: text_differs - expected: 'DevRel & Content', actual: 'Workshops'
-  body > main > div > div > div > div > div > a > div > p: text_differs - expected: 'I create educational content that helps companies reach developers. Courses, tutorials, documentation, videos - whatever format resonates with your audience.', actual: 'I deliver hands-on workshops for engineering teams. Drawing from experience creating ML Zoomcamp, LLM Zoomcamp, and AI Dev Tools Zoomcamp - courses taken by 100,000+ students worldwide.'
-  body > main > div > div > div > div > div > a > div > div > span: text_differs - expected: 'Online Courses', actual: 'LLMs & Prompt Engineering'
-  ... and 2 more differences
 
-Summary: 7 files matched, 1 files with differences, 12 total differences
+Summary: 8 files matched, 0 files with differences, 0 total differences

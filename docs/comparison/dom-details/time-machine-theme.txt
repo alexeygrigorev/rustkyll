@@ -1,21 +1,21 @@
-Jekyll directory:   /home/alexey/git/rustkyl/websites/time-machine-theme/_site_jekyll_recount
+Jekyll directory:   /home/alexey/git/rustkyl/websites/time-machine-theme/_site_jekyll_cached
 Rustkyll directory: /home/alexey/git/rustkyl/websites/time-machine-theme/_site_rustkyll_recount
 Common HTML files:  2
 
 DIFF another-page.html (2 differences)
   body > div > div > div > div > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/time-machine'"
   body > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/time-machine'"
-DIFF index.html (61 differences)
+DIFF index.html (43 differences)
   body > div > div > div > div > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/time-machine'"
-  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='nx'"
-  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='nx'"
-  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='dl'", actual: "class='s1'"
-  body > div > div > div > article > div > div > pre > code > span: text_differs - expected: "'", actual: "'./lang/'"
-  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='s1'", actual: "class='o'"
-  body > div > div > div > article > div > div > pre > code > span: text_differs - expected: './lang/', actual: '+'
-  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='dl'", actual: "class='nx'"
-  body > div > div > div > article > div > div > pre > code > span: text_differs - expected: "'", actual: 'l'
+  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='no'", actual: "class='nb'"
   body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
-  ... and 51 more differences
+  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='no'", actual: "class='nb'"
+  body > div > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'gems'
+  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='p'"
+  body > div > div > div > article > div > div > pre > code > span: text_differs - expected: 'gems', actual: '.'
+  body > div > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'each'
+  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='p'", actual: "class='k'"
+  body > div > div > div > article > div > div > pre > code > span: text_differs - expected: '.', actual: 'do'
+  ... and 33 more differences
 
-Summary: 0 files matched, 2 files with differences, 63 total differences
+Summary: 0 files matched, 2 files with differences, 45 total differences

@@ -60,6 +60,14 @@ Phase 2a implemented basic IAL. This issue enhances it with:
 - **Duplicate headers**: second occurrence gets `-1` suffix on ID (`header-1`)
 - **`no_toc` marker**: `* TOC text` followed by `{:toc}` -- the list is replaced, its text content is discarded
 
+## Current test status
+
+- **ALD (1 test):** 0 pass, 1 fail
+- **IAL (3 tests):** 1 pass (`auto_id_and_ial`), 2 fail (`simple`, `nested`)
+- **Extensions (6 tests):** 0 pass, 6 fail
+- **TOC (5 tests):** 0 pass, 5 fail
+- **Combined target:** 15 tests total, currently 1 passing, 14 failing
+
 ## Dependencies
 
 - Issue #280 (Phase 2a) must be `.done.md` -- provides basic IAL, header parsing

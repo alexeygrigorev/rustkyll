@@ -28,21 +28,9 @@
   Progress: 2800/3001 files compared...
   Progress: 2900/3001 files compared...
   Progress: 3000/3001 files compared...
-Jekyll directory:   /home/alexey/git/rustkyl/websites/large-blog-3000/_site_jekyll_recount
+Jekyll directory:   /home/alexey/git/rustkyl/websites/large-blog-3000/_site_jekyll_cached
 Rustkyll directory: /home/alexey/git/rustkyl/websites/large-blog-3000/_site_rustkyll_recount
 Common HTML files:  3001
 
-DIFF index.html (144 differences)
-  body > main > h2: text_differs - expected: 'Technology (300 posts)', actual: 'Arts (300 posts)'
-  body > main > ul > li > a: attribute_differs - expected: "href='/2020/11/27/post-670/'", actual: "href='/2023/11/27/post-838/'"
-  body > main > ul > li > a: text_differs - expected: 'Blog Post Number 670: A Discussion on technology', actual: 'Blog Post Number 838: A Discussion on arts'
-  body > main > ul > li: text_differs - expected: '- 2020-11-27', actual: '- 2023-11-27'
-  body > main > ul > li > a: attribute_differs - expected: "href='/2020/11/27/post-250/'", actual: "href='/2023/11/27/post-418/'"
-  body > main > ul > li > a: text_differs - expected: 'Blog Post Number 250: A Discussion on technology', actual: 'Blog Post Number 418: A Discussion on arts'
-  body > main > ul > li: text_differs - expected: '- 2020-11-27', actual: '- 2023-11-27'
-  body > main > ul > li > a: attribute_differs - expected: "href='/2020/11/23/post-610/'", actual: "href='/2023/11/27/post-2938/'"
-  body > main > ul > li > a: text_differs - expected: 'Blog Post Number 610: A Discussion on technology', actual: 'Blog Post Number 2938: A Discussion on arts'
-  body > main > ul > li: text_differs - expected: '- 2020-11-23', actual: '- 2023-11-27'
-  ... and 134 more differences
 
-Summary: 3000 files matched, 1 files with differences, 144 total differences
+Summary: 3001 files matched, 0 files with differences, 0 total differences

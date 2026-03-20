@@ -1,4 +1,4 @@
-Jekyll directory:   /home/alexey/git/rustkyl/websites/jekyll-docs/lib/blank_template/_site_jekyll_recount
+Jekyll directory:   /home/alexey/git/rustkyl/websites/jekyll-docs/lib/blank_template/_site_jekyll_cached
 Rustkyll directory: /home/alexey/git/rustkyl/websites/jekyll-docs/lib/blank_template/_site_rustkyll_recount
 Common HTML files:  1
 
