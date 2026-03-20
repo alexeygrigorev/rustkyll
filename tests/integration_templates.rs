@@ -464,3 +464,105 @@ fn test_for_loop_over_site_collection_reversed() {
         .unwrap();
     assert_eq!(result, "3 2 1 ");
 }
+
+// ============================================================================
+// Issue 256: Interpolated variable paths in include tags (end-to-end)
+// ============================================================================
+
+use rustkyll::template::TemplateEngine;
+
+#[test]
+fn test_interpolated_include_path_end_to_end() {
+    // Set up includes: analytics/google.html with known content
+    let mut includes = HashMap::new();
+    includes.insert(
+        "analytics/google.html".to_string(),
+        "<script>google analytics</script>".to_string(),
+    );
+    let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+
+    let mut ctx = Object::new();
+    ctx.insert("platform".into(), LiquidValue::scalar("google"));
+
+    let result = engine
+        .parse_and_render("{% include analytics/{{ platform }}.html %}", &ctx)
+        .unwrap();
+    assert_eq!(result, "<script>google analytics</script>");
+}
+
+#[test]
+fn test_interpolated_include_path_include_cached_end_to_end() {
+    let mut includes = HashMap::new();
+    includes.insert(
+        "comments/disqus.html".to_string(),
+        "<div>disqus comments</div>".to_string(),
+    );
+    let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+
+    let mut ctx = Object::new();
+    ctx.insert("provider".into(), LiquidValue::scalar("disqus"));
+
+    let result = engine
+        .parse_and_render("{% include_cached comments/{{ provider }}.html %}", &ctx)
+        .unwrap();
+    assert_eq!(result, "<div>disqus comments</div>");
+}
+
+#[test]
+fn test_interpolated_include_path_unicode_variable() {
+    // Test with a non-ASCII variable value to verify encoding correctness
+    let mut includes = HashMap::new();
+    includes.insert(
+        "greetings/\u{4f60}\u{597d}.html".to_string(),
+        "<p>\u{4f60}\u{597d}\u{4e16}\u{754c}</p>".to_string(),
+    );
+    let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+
+    let mut ctx = Object::new();
+    ctx.insert("lang".into(), LiquidValue::scalar("\u{4f60}\u{597d}"));
+
+    let result = engine
+        .parse_and_render("{% include greetings/{{ lang }}.html %}", &ctx)
+        .unwrap();
+    assert_eq!(result, "<p>\u{4f60}\u{597d}\u{4e16}\u{754c}</p>");
+}
+
+#[test]
+fn test_interpolated_include_path_nil_variable_errors() {
+    // When the variable is nil/unset, the path resolves to "analytics/.html"
+    // which should not exist, causing a render error.
+    let mut includes = HashMap::new();
+    includes.insert(
+        "analytics/google.html".to_string(),
+        "google content".to_string(),
+    );
+    let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+
+    let ctx = Object::new(); // no "platform" set
+
+    let result = engine.parse_and_render("{% include analytics/{{ platform }}.html %}", &ctx);
+    assert!(
+        result.is_err(),
+        "Should error when interpolated variable is nil (path 'analytics/.html' not found), got: {:?}",
+        result
+    );
+}
+
+#[test]
+fn test_fully_dynamic_include_still_works_end_to_end() {
+    // Regression: fully dynamic include (no prefix/suffix) must still work
+    let mut includes = HashMap::new();
+    includes.insert(
+        "header.html".to_string(),
+        "<header>Hello</header>".to_string(),
+    );
+    let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+
+    let mut ctx = Object::new();
+    ctx.insert("partial".into(), LiquidValue::scalar("header.html"));
+
+    let result = engine
+        .parse_and_render("{% include {{ partial }} %}", &ctx)
+        .unwrap();
+    assert_eq!(result, "<header>Hello</header>");
+}

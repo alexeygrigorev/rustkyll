@@ -439,13 +439,27 @@ pub fn preprocess_include_paths(template: &str) -> String {
             if let Some((tag_name, after_tag_name)) = include_match {
                 let after_include = after_tag_name.trim_start();
 
-                // Handle dynamic include paths: {% include {{ expr }} ... %}
-                // Replace with sentinel + expression so the parser can
-                // distinguish dynamic paths from literal filenames.
-                if after_include.starts_with("{{") {
+                // Handle dynamic/interpolated include paths that contain {{ expr }}.
+                // This covers three patterns:
+                //   1. Fully dynamic:    {% include {{ expr }} %}
+                //   2. Suffix only:      {% include {{ expr }}.html %}
+                //   3. Interpolated:     {% include prefix/{{ expr }}.suffix %}
+                // All are rewritten to use the DYNAMIC_INCLUDE_SENTINEL with
+                // appropriate prepend/append filters for any literal prefix/suffix.
+                if let Some(open_pos) = after_include.find("{{") {
                     if let Some(close_pos) = after_include.find("}}") {
-                        let inner_expr = after_include[2..close_pos].trim();
-                        let rest_after_braces = after_include[close_pos + 2..].trim_start();
+                        let prefix = &after_include[..open_pos];
+                        let inner_expr = after_include[open_pos + 2..close_pos].trim();
+                        let after_braces = &after_include[close_pos + 2..];
+
+                        // The suffix is the literal text immediately after }}
+                        // up to the first whitespace (or end of string).
+                        // Everything after the suffix is params / rest.
+                        let suffix_end =
+                            after_braces.find([' ', '\t']).unwrap_or(after_braces.len());
+                        let suffix = &after_braces[..suffix_end];
+                        let rest_after_path = after_braces[suffix_end..].trim_start();
+
                         // Preserve original whitespace-control markers
                         let orig_tag = &remaining[start..tag_end];
                         let open_marker = if orig_tag.starts_with("{%-") {
@@ -458,16 +472,27 @@ pub fn preprocess_include_paths(template: &str) -> String {
                         } else {
                             "%}"
                         };
+
+                        // Build the rewritten expression: inner_expr with
+                        // optional prepend (for prefix) and append (for suffix).
+                        let mut expr = inner_expr.to_string();
+                        if !prefix.is_empty() {
+                            expr.push_str(&format!(r#" | prepend: "{}""#, prefix));
+                        }
+                        if !suffix.is_empty() {
+                            expr.push_str(&format!(r#" | append: "{}""#, suffix));
+                        }
+
                         result.push_str(open_marker);
                         result.push(' ');
                         result.push_str(tag_name);
                         result.push(' ');
                         result.push_str(DYNAMIC_INCLUDE_SENTINEL);
                         result.push(' ');
-                        result.push_str(inner_expr);
-                        if !rest_after_braces.is_empty() {
+                        result.push_str(&expr);
+                        if !rest_after_path.is_empty() {
                             result.push(' ');
-                            result.push_str(rest_after_braces);
+                            result.push_str(rest_after_path);
                         }
                         result.push(' ');
                         result.push_str(close_marker);
@@ -934,6 +959,224 @@ mod tests {
             output.contains(DYNAMIC_INCLUDE_SENTINEL),
             "Should contain dynamic include sentinel, got: {}",
             output
+        );
+    }
+
+    // ========================================================================
+    // Issue 256: Interpolated variable paths in include tags
+    // ========================================================================
+
+    #[test]
+    fn test_preprocess_interpolated_path_basic() {
+        // analytics/{{ platform }}.html -> dynamic include with prepend/append
+        let input = "{% include analytics/{{ platform }}.html %}";
+        let output = preprocess_include_paths(input);
+        assert!(
+            output.contains(DYNAMIC_INCLUDE_SENTINEL),
+            "Should contain dynamic include sentinel, got: {}",
+            output
+        );
+        assert!(
+            !output.contains("{{"),
+            "Should strip {{ braces, got: {}",
+            output
+        );
+        assert!(
+            output.contains("platform"),
+            "Should preserve variable name, got: {}",
+            output
+        );
+        // Should have prepend for the prefix and append for the suffix
+        assert!(
+            output.contains(r#"prepend: "analytics/""#),
+            "Should prepend the prefix, got: {}",
+            output
+        );
+        assert!(
+            output.contains(r#"append: ".html""#),
+            "Should append the suffix, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_interpolated_path_prefix_only() {
+        // dir/{{ var }} -> dynamic include with only prepend
+        let input = "{% include dir/{{ var }} %}";
+        let output = preprocess_include_paths(input);
+        assert!(
+            output.contains(DYNAMIC_INCLUDE_SENTINEL),
+            "Should contain dynamic include sentinel, got: {}",
+            output
+        );
+        assert!(
+            output.contains(r#"prepend: "dir/""#),
+            "Should prepend the prefix, got: {}",
+            output
+        );
+        // No append needed since there's no suffix
+        assert!(
+            !output.contains("append:"),
+            "Should not have append when there's no suffix, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_interpolated_path_suffix_only() {
+        // {{ var }}.html -> dynamic include with only append
+        let input = "{% include {{ var }}.html %}";
+        let output = preprocess_include_paths(input);
+        assert!(
+            output.contains(DYNAMIC_INCLUDE_SENTINEL),
+            "Should contain dynamic include sentinel, got: {}",
+            output
+        );
+        assert!(
+            output.contains(r#"append: ".html""#),
+            "Should append the suffix, got: {}",
+            output
+        );
+        // No prepend needed since there's no prefix
+        assert!(
+            !output.contains("prepend:"),
+            "Should not have prepend when there's no prefix, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_interpolated_path_with_filters() {
+        // analytics/{{ platform | downcase }}.html -> preserve filters, add prepend/append
+        let input = "{% include analytics/{{ platform | downcase }}.html %}";
+        let output = preprocess_include_paths(input);
+        assert!(
+            output.contains(DYNAMIC_INCLUDE_SENTINEL),
+            "Should contain dynamic include sentinel, got: {}",
+            output
+        );
+        assert!(
+            output.contains("platform | downcase"),
+            "Should preserve existing filters, got: {}",
+            output
+        );
+        assert!(
+            output.contains(r#"prepend: "analytics/""#),
+            "Should prepend the prefix, got: {}",
+            output
+        );
+        assert!(
+            output.contains(r#"append: ".html""#),
+            "Should append the suffix, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_interpolated_path_with_params() {
+        // analytics/{{ var }}.html param="value" -> preserve params
+        let input = r#"{% include analytics/{{ var }}.html param="value" %}"#;
+        let output = preprocess_include_paths(input);
+        assert!(
+            output.contains(DYNAMIC_INCLUDE_SENTINEL),
+            "Should contain dynamic include sentinel, got: {}",
+            output
+        );
+        assert!(
+            output.contains(r#"param="value""#),
+            "Should preserve params after the path, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_interpolated_path_include_cached() {
+        let input = "{% include_cached analytics/{{ var }}.html %}";
+        let output = preprocess_include_paths(input);
+        assert!(
+            output.contains(DYNAMIC_INCLUDE_SENTINEL),
+            "Should contain dynamic include sentinel, got: {}",
+            output
+        );
+        assert!(
+            output.contains("include_cached"),
+            "Should preserve include_cached tag name, got: {}",
+            output
+        );
+        assert!(
+            output.contains(r#"prepend: "analytics/""#),
+            "Should prepend the prefix, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_interpolated_path_whitespace_control() {
+        let input = "{%- include analytics/{{ var }}.html -%}";
+        let output = preprocess_include_paths(input);
+        assert!(
+            output.starts_with("{%-"),
+            "Should preserve open whitespace control, got: {}",
+            output
+        );
+        assert!(
+            output.ends_with("-%}"),
+            "Should preserve close whitespace control, got: {}",
+            output
+        );
+        assert!(
+            output.contains(DYNAMIC_INCLUDE_SENTINEL),
+            "Should contain dynamic include sentinel, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_fully_dynamic_still_works() {
+        // Regression: fully dynamic path (no prefix/suffix) should still work
+        let input = "{% include {{ var }} %}";
+        let output = preprocess_include_paths(input);
+        assert!(
+            output.contains(DYNAMIC_INCLUDE_SENTINEL),
+            "Should contain dynamic include sentinel, got: {}",
+            output
+        );
+        assert!(
+            output.contains("var"),
+            "Should preserve variable name, got: {}",
+            output
+        );
+        // Fully dynamic: no prepend/append needed
+        assert!(
+            !output.contains("prepend:"),
+            "Should not have prepend for fully dynamic, got: {}",
+            output
+        );
+        assert!(
+            !output.contains("append:"),
+            "Should not have append for fully dynamic, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_no_interpolation_unchanged() {
+        // Regression: literal paths should remain unchanged
+        let input = "{% include simple.html %}";
+        assert_eq!(preprocess_include_paths(input), input);
+
+        let input2 = "{% include subdir/file.html %}";
+        let output2 = preprocess_include_paths(input2);
+        // Should be quoted (existing behavior), not treated as dynamic
+        assert!(
+            output2.contains("\"subdir/file.html\""),
+            "Should quote path with /, got: {}",
+            output2
+        );
+        assert!(
+            !output2.contains(DYNAMIC_INCLUDE_SENTINEL),
+            "Should NOT contain dynamic sentinel for literal paths, got: {}",
+            output2
         );
     }
 }
