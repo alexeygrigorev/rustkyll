@@ -1004,7 +1004,7 @@ fn is_kramdown_table_line(trimmed: &str) -> bool {
         return false;
     }
     let content = strip_list_prefix_for_table(trimmed).trim();
-    if !content.ends_with('|') {
+    if !content.contains('|') {
         return false;
     }
     let inner = content.trim_matches('|').trim();
@@ -7553,10 +7553,13 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     #[test]
-    fn test_200_no_false_table() {
+    fn test_200_embedded_pipe_at_block_boundary_is_table() {
+        // Issue 272: kramdown treats ANY line containing `|` at a block boundary
+        // as a table row. A standalone line with an embedded pipe at SOF/EOF IS
+        // a table.
         let input = "This has a | char but not a table.\n";
         let html = crate::frontmatter::markdown_to_html(input);
-        assert!(!html.contains("<table>"), "Got: {html}");
+        assert!(html.contains("<table>"), "Got: {html}");
     }
 
     #[test]
@@ -8531,6 +8534,183 @@ by <a href="/people/author.html">Author Name</a>
                 && html.contains("don\u{2019}t"),
             "Contractions must have rsquo apostrophes. Got: {}",
             html
+        );
+    }
+
+    // ========================================================================
+    // Issue 272: Kramdown table detection too strict -- requires trailing pipe
+    // ========================================================================
+
+    // --- Unit tests for is_kramdown_table_line relaxation ---
+
+    #[test]
+    fn test_272_is_kramdown_table_line_pipe_in_middle() {
+        // A line with a pipe in the middle (no trailing pipe) should be detected.
+        assert!(
+            is_kramdown_table_line("text | more text"),
+            "Line with pipe in middle should be a kramdown table line"
+        );
+    }
+
+    #[test]
+    fn test_272_is_kramdown_table_line_slack_ref() {
+        // Slack channel reference with embedded pipe should be detected.
+        assert!(
+            is_kramdown_table_line("<#C01AXGTRESH|books> would be better"),
+            "Slack ref with embedded pipe should be a kramdown table line"
+        );
+    }
+
+    #[test]
+    fn test_272_is_kramdown_table_line_multiple_pipes() {
+        // Multiple embedded pipes should be detected.
+        assert!(
+            is_kramdown_table_line("NLP  | CV | Time series | ..."),
+            "Multiple embedded pipes should be a kramdown table line"
+        );
+    }
+
+    #[test]
+    fn test_272_is_kramdown_table_line_separator_excluded() {
+        // Separator lines should still be excluded.
+        assert!(
+            !is_kramdown_table_line("|---|---|"),
+            "Separator line should NOT be a kramdown table line"
+        );
+    }
+
+    #[test]
+    fn test_272_is_kramdown_table_line_no_pipe() {
+        assert!(
+            !is_kramdown_table_line("no pipe here"),
+            "Line without pipe should NOT be a kramdown table line"
+        );
+    }
+
+    #[test]
+    fn test_272_is_kramdown_table_line_just_text() {
+        assert!(
+            !is_kramdown_table_line("just text"),
+            "Plain text should NOT be a kramdown table line"
+        );
+    }
+
+    #[test]
+    fn test_272_is_kramdown_table_line_whitespace_dashes() {
+        assert!(
+            !is_kramdown_table_line("  ---  "),
+            "Line with only whitespace and dashes should NOT be a kramdown table line"
+        );
+    }
+
+    // --- markdownify integration tests with embedded-pipe table lines ---
+
+    #[test]
+    fn test_272_markdownify_embedded_pipe_produces_table() {
+        // Single line with embedded pipe at block boundary should produce table.
+        let input = "text | more text\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<table>"),
+            "Line with embedded pipe at EOF should produce table. Got: {html}"
+        );
+        // Should have 2 cells
+        let td_count = html.matches("<td>").count();
+        assert_eq!(td_count, 2, "Should have 2 cells. Got: {html}");
+    }
+
+    #[test]
+    fn test_272_markdownify_slack_ref_produces_table() {
+        let input = "<#C01AXGTRESH|books> text\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<table>"),
+            "Slack ref with pipe should produce table. Got: {html}"
+        );
+        let td_count = html.matches("<td>").count();
+        assert_eq!(td_count, 2, "Should have 2 cells. Got: {html}");
+    }
+
+    #[test]
+    fn test_272_markdownify_multiple_pipes_produces_table() {
+        let input = "a | b | c | d\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<table>"),
+            "Multiple pipes should produce table. Got: {html}"
+        );
+        let td_count = html.matches("<td>").count();
+        assert_eq!(td_count, 4, "Should have 4 cells. Got: {html}");
+    }
+
+    #[test]
+    fn test_272_markdownify_mailto_pipe_produces_table() {
+        let input = "<mailto:a@b.com|a@b.com> more\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<table>"),
+            "Mailto with pipe should produce table. Got: {html}"
+        );
+        let td_count = html.matches("<td>").count();
+        assert_eq!(td_count, 2, "Should have 2 cells. Got: {html}");
+    }
+
+    #[test]
+    fn test_272_markdownify_unicode_with_pipes_produces_table() {
+        // Non-ASCII content with embedded pipes should produce correct table.
+        let input = "\u{041A}\u{043E}\u{043B}\u{043E}\u{043D}\u{043A}\u{0430} | \u{0417}\u{043D}\u{0430}\u{0447}\u{0435}\u{043D}\u{043D}\u{044F}\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<table>"),
+            "Unicode content with pipe should produce table. Got: {html}"
+        );
+        let td_count = html.matches("<td>").count();
+        assert_eq!(td_count, 2, "Should have 2 cells. Got: {html}");
+    }
+
+    // --- No false-positives tests ---
+
+    #[test]
+    fn test_272_no_table_pipe_followed_by_nonpipe_continuation() {
+        // Line with pipe followed by non-pipe continuation should NOT be table.
+        let input = "text | more\nnon-pipe continuation\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<table>"),
+            "Pipe line followed by non-pipe text should NOT be table. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_272_no_table_pipe_preceded_by_text() {
+        // Line with pipe preceded by non-blank text should NOT be table.
+        let input = "paragraph text\nhas | pipe\nmore text\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<table>"),
+            "Pipe in middle of paragraph should NOT be table. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_272_no_table_pipe_inside_code_block() {
+        // Pipes inside code blocks should NOT be treated as tables.
+        let input = "```\na | b | c\n```\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<table>"),
+            "Pipe inside code block should NOT be table. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_272_existing_248_tests_still_pass_pipe_then_nonpipe() {
+        // Regression: pipe lines followed by non-pipe text should not be table.
+        let input = "| A | B |\nnot a pipe\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<table>"),
+            "Existing 248 test: pipe then non-pipe should NOT be table. Got: {html}"
         );
     }
 }
