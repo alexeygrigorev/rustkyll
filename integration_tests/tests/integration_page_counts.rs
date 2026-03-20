@@ -279,3 +279,14 @@ fn test_dinky_theme_page_count() {
         count
     );
 }
+
+#[test]
+fn test_lanyon_page_count() {
+    let tmp = build_site("lanyon");
+    let count = count_html_files(tmp.path());
+    assert_eq!(
+        count, 6,
+        "lanyon: expected 6 HTML files (3 posts + index + about + 404), got {}",
+        count
+    );
+}
