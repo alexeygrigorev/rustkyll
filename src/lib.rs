@@ -7,7 +7,6 @@ pub mod feed;
 pub mod frontmatter;
 pub mod generator;
 pub mod incremental;
-pub mod jsonld;
 pub mod kramdown;
 pub mod kramdown_parser;
 pub mod livereload;

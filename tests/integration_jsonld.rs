@@ -114,12 +114,10 @@ fn render_item(layout: &str, item: &CollectionItem) -> String {
     } else {
         &item.content
     };
-    let html = FIXTURE
+    FIXTURE
         .layout_engine
         .render_page(layout, content, &fm, &FIXTURE.site_context)
-        .unwrap();
-    // Apply JSON-LD post-processing (same as generate_collection_pages does)
-    rustkyll::jsonld::inject_jsonld(&html, layout, &fm, &CONFIG, &FIXTURE.people)
+        .unwrap()
 }
 
 // ========================================================================
