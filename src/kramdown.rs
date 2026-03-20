@@ -177,8 +177,7 @@ fn convert_inline_math(line: &str) -> String {
                             // Only convert if content looks like math (contains
                             // at least one letter or backslash). Pure digits/
                             // punctuation like $10,000 is currency, not math.
-                            if content.contains('\\')
-                                || content.chars().any(|c| c.is_alphabetic())
+                            if content.contains('\\') || content.chars().any(|c| c.is_alphabetic())
                             {
                                 result.push_str("\\(");
                                 result.push_str(content);
@@ -3180,16 +3179,47 @@ fn wrap_standalone_comments_in_paragraphs(html: &str) -> String {
 
         // Check if this comment is "standalone" -- surrounded by blank lines
         // (or at start/end of content).
-        let prev_is_blank_or_start = if i == 0 {
-            true
-        } else {
-            lines[i - 1].trim().is_empty()
+        //
+        // Issue 279: A group of consecutive comment-only lines surrounded by
+        // blank lines should each be wrapped. We look past adjacent comment
+        // lines to find the nearest non-comment neighbor and check if it's
+        // blank (or start/end of content).
+        let prev_is_blank_or_start = {
+            let mut j = i;
+            // Skip backwards over adjacent comment lines
+            while j > 0 {
+                let prev = lines[j - 1].trim();
+                if prev.starts_with("<!--") && prev.ends_with("-->") && !prev.starts_with("<p><!--")
+                {
+                    j -= 1;
+                } else {
+                    break;
+                }
+            }
+            if j == 0 {
+                true
+            } else {
+                lines[j - 1].trim().is_empty()
+            }
         };
 
-        let next_is_blank_or_end = if i + 1 >= len {
-            true
-        } else {
-            lines[i + 1].trim().is_empty()
+        let next_is_blank_or_end = {
+            let mut j = i;
+            // Skip forwards over adjacent comment lines
+            while j + 1 < len {
+                let next = lines[j + 1].trim();
+                if next.starts_with("<!--") && next.ends_with("-->") && !next.starts_with("<p><!--")
+                {
+                    j += 1;
+                } else {
+                    break;
+                }
+            }
+            if j + 1 >= len {
+                true
+            } else {
+                lines[j + 1].trim().is_empty()
+            }
         };
 
         if prev_is_blank_or_start && next_is_blank_or_end {
@@ -9146,10 +9176,7 @@ by <a href="/people/author.html">Author Name</a>
             !html.contains("<table>"),
             "Escaped pipes should NOT produce table. Got: {html}"
         );
-        assert!(
-            html.contains("<p>"),
-            "Should be a paragraph. Got: {html}"
-        );
+        assert!(html.contains("<p>"), "Should be a paragraph. Got: {html}");
     }
 
     #[test]
@@ -9640,9 +9667,8 @@ by <a href="/people/author.html">Author Name</a>
     #[test]
     fn test_dtc_markdownify_converts_straight_double_quotes_to_smart() {
         // Jekyll's kramdown converts " to smart quotes in markdownify output
-        let html = crate::frontmatter::markdown_to_html_for_filter(
-            "\"Successfully replicated 10TB/day\"",
-        );
+        let html =
+            crate::frontmatter::markdown_to_html_for_filter("\"Successfully replicated 10TB/day\"");
         assert!(
             html.contains('\u{201C}') && html.contains('\u{201D}'),
             "Markdownify should convert straight double quotes to smart quotes. Got: {}",
@@ -9664,7 +9690,9 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             left_count >= 1 && right_count >= 1,
             "Should have both left and right double quotes. Left: {}, Right: {}. Got: {}",
-            left_count, right_count, html
+            left_count,
+            right_count,
+            html
         );
     }
 
@@ -9905,6 +9933,127 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             !html2.is_empty(),
             "Should produce output for URL with asterisks in emphasis"
+        );
+    }
+
+    // ====================================================================
+    // Issue 279: Consecutive standalone HTML comments must each be <p>-wrapped
+    // ====================================================================
+
+    #[test]
+    fn test_279_consecutive_comments_between_blank_lines_each_wrapped() {
+        // Consecutive HTML comment lines (no blank lines between them) but the
+        // group as a whole is surrounded by blank lines -- each should be wrapped.
+        // This reproduces the related-posts.html Liquid include output pattern.
+        let input = "<p>Some content.</p>\n\n\
+                      <!-- Get related posts -->\n\
+                      <!-- Use manually specified posts -->\n\
+                      <!-- Limit to max_related posts -->\n\n\
+                      <div class=\"related-posts\">content</div>";
+        let result = postprocess(input);
+        assert!(
+            result.contains("<p><!-- Get related posts --></p>"),
+            "First consecutive comment should be wrapped in <p>. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("<p><!-- Use manually specified posts --></p>"),
+            "Second consecutive comment should be wrapped in <p>. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("<p><!-- Limit to max_related posts --></p>"),
+            "Third consecutive comment should be wrapped in <p>. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_279_two_consecutive_comments_wrapped() {
+        // Two consecutive comments between blank lines
+        let input = "<p>text</p>\n\n<!-- comment A -->\n<!-- comment B -->\n\n<div>block</div>";
+        let result = postprocess(input);
+        assert!(
+            result.contains("<p><!-- comment A --></p>"),
+            "First of two consecutive comments should be wrapped. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("<p><!-- comment B --></p>"),
+            "Second of two consecutive comments should be wrapped. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_279_indented_consecutive_comments_wrapped() {
+        // Indented consecutive comments (from Liquid include output)
+        let input = "<p>text</p>\n\n  <!-- Use manually specified posts -->\n  <!-- Limit to 3 -->\n\n<div>block</div>";
+        let result = postprocess(input);
+        assert!(
+            result.contains("<p><!-- Use manually specified posts --></p>"),
+            "Indented consecutive comment should be wrapped. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("<p><!-- Limit to 3 --></p>"),
+            "Second indented consecutive comment should be wrapped. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_279_unicode_comment_wrapped() {
+        // Non-ASCII/Unicode content in comments should be handled
+        let input = "<p>text</p>\n\n<!-- Kommentar: Zugehörige Beiträge -->\n\n<div>block</div>";
+        let result = postprocess(input);
+        assert!(
+            result.contains("<p><!-- Kommentar: Zugehörige Beiträge --></p>"),
+            "Unicode comment should be wrapped in <p>. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_279_consecutive_comments_adjacent_to_block_not_wrapped() {
+        // Consecutive comments directly adjacent to a block element (no blank
+        // line) should NOT be wrapped -- this is the issue 144 accordion pattern.
+        let input = "<h2>FAQ</h2>\n<!-- Component start -->\n<!-- Load scripts -->\n<div class=\"faq\">content</div>";
+        let result = postprocess(input);
+        assert!(
+            !result.contains("<p><!-- Component start --></p>"),
+            "Comment adjacent to block should NOT be wrapped. Got:\n{}",
+            result
+        );
+        assert!(
+            !result.contains("<p><!-- Load scripts --></p>"),
+            "Comment adjacent to block should NOT be wrapped. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_279_comment_inside_div_not_wrapped() {
+        // Comments inside block-level elements should NOT be wrapped
+        let input = "<div>\n<!-- inner comment -->\n<p>content</p>\n</div>";
+        let result = postprocess(input);
+        assert!(
+            !result.contains("<p><!-- inner comment --></p>"),
+            "Comment inside div should NOT be wrapped in <p>. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_279_comment_inline_with_text_not_wrapped() {
+        // Comment on the same line as text should not be separately wrapped
+        let input = "<p>text <!-- inline comment --> more</p>";
+        let result = postprocess(input);
+        // The comment is inside a <p>, should stay as-is
+        assert!(
+            result.contains("<p>text <!-- inline comment --> more</p>"),
+            "Inline comment should not be wrapped separately. Got:\n{}",
+            result
         );
     }
 }
