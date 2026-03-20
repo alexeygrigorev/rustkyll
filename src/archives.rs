@@ -282,6 +282,7 @@ pub fn generate_archive_pages(
 }
 
 /// Generate a single archive page for one category or tag.
+#[allow(clippy::too_many_arguments)]
 fn generate_single_archive_page(
     name: &str,
     archive_type: &str,

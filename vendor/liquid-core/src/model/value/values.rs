@@ -226,8 +226,6 @@ impl From<State> for Value {
     }
 }
 
-
-
 impl PartialEq<Value> for Value {
     fn eq(&self, other: &Self) -> bool {
         super::value_eq(self.as_view(), other.as_view())

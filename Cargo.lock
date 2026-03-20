@@ -862,6 +862,7 @@ name = "liquid-core"
 version = "0.26.11"
 dependencies = [
  "anymap2",
+ "indexmap 2.13.0",
  "itertools",
  "kstring",
  "liquid-derive",
@@ -1338,6 +1339,7 @@ dependencies = [
  "clap",
  "grass",
  "iana-time-zone",
+ "indexmap 2.13.0",
  "indicatif",
  "kstring",
  "liquid",

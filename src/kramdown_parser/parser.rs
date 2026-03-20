@@ -7,6 +7,9 @@
 // Some test cases based on MDTest by Michel Fortin
 // Copyright (c) 2007 Michel Fortin <http://www.michelf.com/>
 
+#![allow(clippy::manual_strip)]
+#![allow(clippy::needless_return)]
+
 use crate::kramdown_parser::element::{Document, Element, ElementType};
 use crate::kramdown_parser::options::Options;
 
@@ -392,9 +395,13 @@ fn is_horizontal_rule(line: &str) -> bool {
 }
 
 /// Check if a line is a block-level IAL.
+/// IAL starts with `{:` but NOT `{::` (block extension) or `{:/` (close tag).
 fn is_block_ial(line: &str) -> bool {
     let trimmed = line.trim();
-    trimmed.starts_with("{:") && trimmed.ends_with('}')
+    trimmed.starts_with("{:")
+        && !trimmed.starts_with("{::")
+        && !trimmed.starts_with("{:/")
+        && trimmed.ends_with('}')
 }
 
 /// Parse IAL attributes from a string like `{: #id .class key="value"}`.
@@ -814,8 +821,9 @@ fn parse_blockquote(
             // A real blank line (no `>` prefix) always ends the blockquote.
             // Paragraph breaks within a blockquote use `>` on the blank line.
             break;
-        } else if !bq_lines.is_empty() {
+        } else if !bq_lines.is_empty() && !is_html_block_start(line) {
             // Lazy continuation: non-blank, non-blockquote line continues the blockquote
+            // But HTML block tags break the blockquote
             bq_lines.push((line.to_string(), true));
             *pos += 1;
         } else {
@@ -923,6 +931,27 @@ fn parse_blocks_with_lazy(
             continue;
         }
 
+        // Block extension ({::comment}, {::nomarkdown}, {::options})
+        if let Some(mut ext) = try_parse_block_extension(lines, pos) {
+            apply_pending!(&mut ext);
+            children.push(ext);
+            continue;
+        }
+
+        // HTML block (must be before fenced code)
+        if let Some(mut html_block) = try_parse_html_block(lines, pos, options) {
+            apply_pending!(&mut html_block);
+            children.push(html_block);
+            continue;
+        }
+
+        // Math block ($$...$$)
+        if let Some(mut math) = try_parse_math_block(lines, pos) {
+            apply_pending!(&mut math);
+            children.push(math);
+            continue;
+        }
+
         // Fenced code block
         if let Some(mut fence_result) = try_parse_fenced_code(lines, *pos) {
             apply_pending!(&mut fence_result.element);
@@ -980,6 +1009,13 @@ fn parse_blocks_with_lazy(
             apply_pending!(&mut header);
             children.push(header);
             *pos += 1;
+            continue;
+        }
+
+        // Definition list: term line(s) followed by `: ` definition
+        if let Some(mut dl) = try_parse_definition_list(lines, pos, has_trailing_newline, options) {
+            apply_pending!(&mut dl);
+            children.push(dl);
             continue;
         }
 
@@ -1080,6 +1116,10 @@ fn parse_paragraph_with_lazy(
                     break;
                 }
             }
+            // HTML block tags interrupt paragraphs
+            if is_html_block_start(line) {
+                break;
+            }
         }
 
         if para_lines.is_empty() && is_indented_code_line(line) {
@@ -1104,23 +1144,27 @@ fn parse_paragraph_with_lazy(
 // parse_paragraph is handled by parse_paragraph_with_lazy
 
 /// Build paragraph text from lines.
+/// Preserves trailing whitespace on non-last lines since 2+ trailing spaces = line break.
+/// Strips trailing whitespace from the last line.
 fn build_paragraph_text(lines: &[&str], _has_trailing_newline: bool, _at_end: bool) -> String {
     if lines.is_empty() {
         return String::new();
     }
 
-    // First line: strip up to 3 spaces of indent
-    let first = strip_up_to_3_spaces(lines[0]).trim_end();
-
     if lines.len() == 1 {
-        return first.to_string();
+        return strip_up_to_3_spaces(lines[0]).trim_end().to_string();
     }
 
-    // Multi-line: join with newlines, preserving original spacing for continuation lines
+    let first = strip_up_to_3_spaces(lines[0]);
     let mut result = first.to_string();
-    for line in &lines[1..] {
+    for (idx, line) in lines[1..].iter().enumerate() {
         result.push('\n');
-        result.push_str(line.trim_end());
+        if idx == lines.len() - 2 {
+            // Last line: strip trailing spaces
+            result.push_str(line.trim_end());
+        } else {
+            result.push_str(line);
+        }
     }
     result
 }
@@ -2404,4 +2448,1442 @@ fn is_setext_underline(line: &str) -> bool {
         _ => return false,
     };
     trimmed.chars().all(|c| c == first)
+}
+
+// ---------------------------------------------------------------------------
+// HTML block parsing
+// ---------------------------------------------------------------------------
+
+/// HTML block tags that are considered block-level.
+const HTML_BLOCK_TAGS: &[&str] = &[
+    "address",
+    "article",
+    "aside",
+    "base",
+    "basefont",
+    "blockquote",
+    "body",
+    "caption",
+    "center",
+    "col",
+    "colgroup",
+    "dd",
+    "details",
+    "dialog",
+    "dir",
+    "div",
+    "dl",
+    "dt",
+    "fieldset",
+    "figcaption",
+    "figure",
+    "footer",
+    "form",
+    "frame",
+    "frameset",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "head",
+    "header",
+    "hr",
+    "html",
+    "iframe",
+    "legend",
+    "li",
+    "link",
+    "main",
+    "math",
+    "menu",
+    "menuitem",
+    "meta",
+    "nav",
+    "noframes",
+    "ol",
+    "optgroup",
+    "option",
+    "p",
+    "param",
+    "section",
+    "source",
+    "summary",
+    "table",
+    "tbody",
+    "td",
+    "textarea",
+    "tfoot",
+    "th",
+    "thead",
+    "title",
+    "tr",
+    "track",
+    "ul",
+];
+
+/// Check if a tag name is a known HTML block element.
+fn is_html_block_tag(tag: &str) -> bool {
+    HTML_BLOCK_TAGS.contains(&tag.to_lowercase().as_str())
+}
+
+/// Check if a line starts with a block-level HTML tag (for interrupting paragraphs).
+fn is_html_block_start(line: &str) -> bool {
+    let trimmed = line.trim_start();
+    let indent = line.len() - trimmed.len();
+    if indent >= 4 {
+        return false;
+    }
+    if !trimmed.starts_with('<') {
+        return false;
+    }
+    // HTML comments inside paragraphs are inline, not block-breaking
+    if trimmed.starts_with("<!--") {
+        return false;
+    }
+    if trimmed.starts_with("<?") || trimmed.starts_with("</") || trimmed.starts_with("<!") {
+        return false;
+    }
+    let after_lt = &trimmed[1..];
+    let tag_name: String = after_lt
+        .chars()
+        .take_while(|c| c.is_ascii_alphanumeric() || *c == ':')
+        .collect();
+    if tag_name.is_empty() {
+        return false;
+    }
+    // Reject URL-like patterns
+    let after_tag = &after_lt[tag_name.len()..];
+    if after_tag.starts_with("//") {
+        return false;
+    }
+    let tag_lc = tag_name.to_lowercase();
+    // Known inline tags don't start blocks
+    if HTML_SPAN_TAGS.contains(&tag_lc.as_str()) && !is_html_block_tag(&tag_lc) {
+        return false;
+    }
+    true
+}
+
+/// HTML void elements (self-closing, no end tag).
+const HTML_VOID_TAGS: &[&str] = &[
+    "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source",
+    "track", "wbr",
+];
+
+/// HTML tags whose content is never parsed as markdown (raw).
+const HTML_RAW_TAGS: &[&str] = &["script", "style", "math", "svg"];
+
+/// HTML tags whose content is parsed as span-level markdown.
+const HTML_SPAN_TAGS: &[&str] = &[
+    "a", "abbr", "acronym", "address", "b", "big", "cite", "code", "del", "dfn", "em", "font", "i",
+    "ins", "kbd", "mark", "p", "pre", "q", "s", "samp", "small", "span", "strike", "strong", "sub",
+    "sup", "tt", "u", "var",
+];
+
+/// Check if a tag is a void (self-closing) element.
+fn is_html_void_tag(tag: &str) -> bool {
+    HTML_VOID_TAGS.contains(&tag.to_lowercase().as_str())
+}
+
+/// Check if a tag's content should be treated as raw (never parsed).
+fn is_html_raw_tag(tag: &str) -> bool {
+    HTML_RAW_TAGS.contains(&tag.to_lowercase().as_str())
+}
+
+/// Parse HTML tag attributes from a string like `id='test' class="foo" disabled`.
+/// Returns normalized attributes as a list of (key, value) pairs.
+fn parse_html_tag_attrs(attr_str: &str) -> Vec<(String, String)> {
+    let mut attrs = Vec::new();
+    let mut chars = attr_str.chars().peekable();
+
+    loop {
+        // Skip whitespace
+        while chars.peek().is_some_and(|c| c.is_whitespace()) {
+            chars.next();
+        }
+        if chars.peek().is_none() {
+            break;
+        }
+
+        // Read attribute name (may contain colons for XML namespaced attrs)
+        let mut name = String::new();
+        while chars.peek().is_some_and(|c| {
+            c.is_ascii_alphanumeric() || *c == '-' || *c == '_' || *c == ':' || *c == '.'
+        }) {
+            name.push(chars.next().unwrap_or(' '));
+        }
+        if name.is_empty() {
+            // Skip unexpected character
+            chars.next();
+            continue;
+        }
+
+        // Skip whitespace
+        while chars.peek().is_some_and(|c| c.is_whitespace()) {
+            chars.next();
+        }
+
+        // Check for = sign
+        if chars.peek() == Some(&'=') {
+            chars.next(); // consume =
+                          // Skip whitespace
+            while chars.peek().is_some_and(|c| c.is_whitespace()) {
+                chars.next();
+            }
+            // Read value
+            let value = if chars.peek() == Some(&'"') {
+                chars.next(); // consume opening "
+                let v: String = chars.by_ref().take_while(|c| *c != '"').collect();
+                v
+            } else if chars.peek() == Some(&'\'') {
+                chars.next(); // consume opening '
+                let v: String = chars.by_ref().take_while(|c| *c != '\'').collect();
+                v
+            } else {
+                // Unquoted value
+                let v: String = chars
+                    .by_ref()
+                    .take_while(|c| !c.is_whitespace() && *c != '>' && *c != '/')
+                    .collect();
+                v
+            };
+            attrs.push((name, value));
+        } else {
+            // Boolean attribute (no value) -> normalize to =""
+            attrs.push((name, String::new()));
+        }
+    }
+
+    attrs
+}
+
+/// Format HTML attributes back to string with double quotes.
+fn format_html_attrs(attrs: &[(String, String)]) -> String {
+    let mut result = String::new();
+    for (key, value) in attrs {
+        result.push(' ');
+        result.push_str(key);
+        result.push_str("=\"");
+        result.push_str(value);
+        result.push('"');
+    }
+    result
+}
+
+/// Parse an HTML opening tag, extracting tag name, attributes, and whether self-closing.
+/// Returns (tag_name, attrs_string, is_self_closing, rest_after_tag).
+fn parse_html_opening_tag(s: &str) -> Option<(String, String, bool, String)> {
+    if !s.starts_with('<') {
+        return None;
+    }
+    let after_lt = &s[1..];
+    if after_lt.starts_with('/') || after_lt.starts_with('!') || after_lt.starts_with('?') {
+        return None;
+    }
+
+    // Extract tag name (may contain colons for XML namespaced tags)
+    let tag_name: String = after_lt
+        .chars()
+        .take_while(|c| c.is_ascii_alphanumeric() || *c == ':')
+        .collect();
+
+    if tag_name.is_empty() {
+        return None;
+    }
+
+    let after_name = &after_lt[tag_name.len()..];
+
+    // Find the closing >
+    // Need to handle self-closing />
+    if let Some(gt_pos) = after_name.find('>') {
+        let before_gt = &after_name[..gt_pos];
+        let is_self_closing = before_gt.trim_end().ends_with('/');
+        let attr_str = if is_self_closing {
+            before_gt
+                .trim_end()
+                .strip_suffix('/')
+                .unwrap_or(before_gt)
+                .trim()
+        } else {
+            before_gt.trim()
+        };
+        let rest = &after_name[gt_pos + 1..];
+        Some((
+            tag_name,
+            attr_str.to_string(),
+            is_self_closing,
+            rest.to_string(),
+        ))
+    } else {
+        None
+    }
+}
+
+/// Normalize an HTML tag: parse attributes, convert quotes to double, etc.
+fn normalize_html_tag(tag_str: &str) -> String {
+    if let Some((tag_name, attr_str, is_self_closing, _rest)) = parse_html_opening_tag(tag_str) {
+        let attrs = parse_html_tag_attrs(&attr_str);
+        let attrs_str = format_html_attrs(&attrs);
+        if is_self_closing || is_html_void_tag(&tag_name) {
+            format!("<{tag_name}{attrs_str} />")
+        } else {
+            format!("<{tag_name}{attrs_str}>")
+        }
+    } else {
+        // Not a parseable opening tag, return as-is
+        tag_str.to_string()
+    }
+}
+
+/// Try to parse an HTML block starting at the current position.
+fn try_parse_html_block(lines: &[&str], pos: &mut usize, options: &Options) -> Option<Element> {
+    let line = lines[*pos];
+    let trimmed = line.trim_start();
+
+    // Must not be indented 4+ spaces
+    let indent = line.len() - trimmed.len();
+    if indent >= 4 {
+        return None;
+    }
+
+    // HTML comment: <!-- ... -->
+    if trimmed.starts_with("<!--") {
+        let result = parse_html_comment_block(lines, pos);
+        let mut elem = result.element;
+        if let Some(trailing) = result.trailing_text {
+            elem.options.insert("trailing_text".to_string(), trailing);
+        }
+        return Some(elem);
+    }
+
+    // CDATA section: <![CDATA[ ... ]]>
+    // Note: Only standalone CDATA is a block. CDATA inside tags is inline (handled by span parser).
+    if trimmed.starts_with("<![CDATA[") {
+        // If the line starts with a block-level tag, it's part of that tag, not standalone CDATA
+        return Some(parse_html_cdata_block(lines, pos));
+    }
+
+    // Processing instructions are NOT HTML blocks in kramdown - they are paragraph text
+    if trimmed.starts_with("<?") {
+        return None;
+    }
+
+    // HTML tag: <tagname ... > or </tagname>
+    if !trimmed.starts_with('<') {
+        return None;
+    }
+
+    // Extract tag info
+    let after_lt = &trimmed[1..];
+    let is_closing = after_lt.starts_with('/');
+
+    // Closing tags alone are NOT HTML blocks in kramdown - they are paragraph text
+    if is_closing {
+        return None;
+    }
+
+    // Parse opening tag
+    let tag_start = after_lt;
+
+    // Tag name: alphanumeric chars, plus colon for XML namespaced tags
+    let tag_name: String = tag_start
+        .chars()
+        .take_while(|c| c.is_ascii_alphanumeric() || *c == ':')
+        .collect();
+
+    if tag_name.is_empty() {
+        return None;
+    }
+
+    // Validate: after tag name must be whitespace, >, or / (not // which would be a URL)
+    let after_tag = &tag_start[tag_name.len()..];
+    if !after_tag.is_empty() {
+        let next_char = after_tag.chars().next().unwrap_or(' ');
+        if next_char != ' '
+            && next_char != '\t'
+            && next_char != '>'
+            && next_char != '/'
+            && next_char != '\n'
+        {
+            return None;
+        }
+        // Also reject if it looks like a URL: scheme://
+        if after_tag.starts_with("//") {
+            return None;
+        }
+    }
+
+    // Determine if this tag should be treated as block-level:
+    // - Known HTML block tags: always block
+    // - XML namespaced tags: always block
+    // - Unknown tags: block unless they're known inline/span tags
+    let tag_lc = tag_name.to_lowercase();
+    let _is_namespaced = tag_name.contains(':');
+    let is_known_inline = HTML_SPAN_TAGS.contains(&tag_lc.as_str()) && !is_html_block_tag(&tag_lc);
+
+    if is_known_inline {
+        return None;
+    }
+
+    // Parse the HTML block with proper tag matching and normalization
+    Some(parse_html_block_element(lines, pos, &tag_name, options))
+}
+
+/// Result of parsing an HTML comment: the comment element and optional trailing text.
+struct HtmlCommentResult {
+    element: Element,
+    /// Text that appeared after `-->` on the same line, to be parsed as a new block.
+    trailing_text: Option<String>,
+}
+
+/// Parse an HTML comment block: <!-- ... -->
+fn parse_html_comment_block(lines: &[&str], pos: &mut usize) -> HtmlCommentResult {
+    let mut content = String::new();
+    let start_line = lines[*pos];
+    content.push_str(start_line.trim_start());
+    *pos += 1;
+
+    // Check if comment closes on the same line
+    if let Some(end_idx) = content.find("-->") {
+        let comment_end = end_idx + 3;
+        let after = content[comment_end..].trim().to_string();
+        content.truncate(comment_end);
+        let mut elem = Element::with_value(ElementType::HtmlBlock, content);
+        elem.options
+            .insert("type".to_string(), "comment".to_string());
+        return HtmlCommentResult {
+            element: elem,
+            trailing_text: if after.is_empty() { None } else { Some(after) },
+        };
+    }
+
+    // Multi-line comment
+    while *pos < lines.len() {
+        let line = lines[*pos];
+        content.push('\n');
+        content.push_str(line);
+        *pos += 1;
+        if line.contains("-->") {
+            if let Some(total_end) = content.rfind("-->") {
+                let comment_end = total_end + 3;
+                let after = content[comment_end..].trim().to_string();
+                content.truncate(comment_end);
+                let mut elem = Element::with_value(ElementType::HtmlBlock, content);
+                elem.options
+                    .insert("type".to_string(), "comment".to_string());
+                return HtmlCommentResult {
+                    element: elem,
+                    trailing_text: if after.is_empty() { None } else { Some(after) },
+                };
+            }
+            break;
+        }
+    }
+
+    let mut elem = Element::with_value(ElementType::HtmlBlock, content);
+    elem.options
+        .insert("type".to_string(), "comment".to_string());
+    HtmlCommentResult {
+        element: elem,
+        trailing_text: None,
+    }
+}
+
+/// Parse CDATA block.
+fn parse_html_cdata_block(lines: &[&str], pos: &mut usize) -> Element {
+    let mut content = String::new();
+    while *pos < lines.len() {
+        let line = lines[*pos];
+        if !content.is_empty() {
+            content.push('\n');
+        }
+        content.push_str(line);
+        *pos += 1;
+        if line.contains("]]>") {
+            break;
+        }
+    }
+    Element::with_value(ElementType::HtmlBlock, content)
+}
+
+/// Parse processing instruction block.
+#[allow(dead_code)]
+fn parse_html_pi_block(lines: &[&str], pos: &mut usize) -> Element {
+    let mut content = String::new();
+    while *pos < lines.len() {
+        let line = lines[*pos];
+        if !content.is_empty() {
+            content.push('\n');
+        }
+        content.push_str(line);
+        *pos += 1;
+        if line.contains("?>") {
+            break;
+        }
+    }
+    Element::with_value(ElementType::HtmlBlock, content)
+}
+
+/// Parse a generic HTML block (block-level tag until blank line or matching close).
+#[allow(dead_code)]
+fn parse_html_block_content(lines: &[&str], pos: &mut usize) -> Element {
+    let mut content = String::new();
+
+    while *pos < lines.len() {
+        let line = lines[*pos];
+
+        // HTML block ends at a blank line
+        if is_blank_line(line) {
+            break;
+        }
+
+        if !content.is_empty() {
+            content.push('\n');
+        }
+        content.push_str(line);
+        *pos += 1;
+    }
+
+    Element::with_value(ElementType::HtmlBlock, content)
+}
+
+/// Parse an HTML block element with proper tag matching, attribute normalization,
+/// and optional markdown parsing inside.
+fn parse_html_block_element(
+    lines: &[&str],
+    pos: &mut usize,
+    tag_name: &str,
+    options: &Options,
+) -> Element {
+    let tag_lc = tag_name.to_lowercase();
+
+    // Check for void elements (self-closing)
+    if is_html_void_tag(&tag_lc) {
+        let line = lines[*pos];
+        let trimmed = line.trim();
+        let normalized = normalize_html_tag(trimmed);
+        *pos += 1;
+        return Element::with_value(ElementType::HtmlBlock, normalized);
+    }
+
+    // For raw tags (script, style), collect everything until the closing tag
+    if is_html_raw_tag(&tag_lc) {
+        return parse_html_raw_block(lines, pos, &tag_lc);
+    }
+
+    // For textarea, collect content including blank lines until closing tag
+    if tag_lc == "textarea" {
+        return parse_html_textarea_block(lines, pos);
+    }
+
+    // Determine markdown parsing mode from markdown attr and options
+    let first_line = lines[*pos];
+    let first_trimmed = first_line.trim_start();
+    let markdown_attr = extract_markdown_attr(first_trimmed);
+    let parse_mode = determine_parse_mode(&tag_lc, &markdown_attr, options);
+
+    // Collect the raw HTML block lines with nesting
+    let collected = collect_html_block_lines(lines, pos, &tag_lc);
+
+    match parse_mode {
+        HtmlParseMode::Raw => {
+            // Pass through with attribute normalization on the opening tag only
+            let mut output = String::new();
+            for (i, line) in collected.iter().enumerate() {
+                if i > 0 {
+                    output.push('\n');
+                }
+                if i == 0 {
+                    // Normalize the opening tag line
+                    output.push_str(&normalize_html_line(line));
+                } else {
+                    output.push_str(line);
+                }
+            }
+            Element::with_value(ElementType::HtmlBlock, output)
+        }
+        HtmlParseMode::Block => {
+            // Parse inner content as block-level markdown
+            let mut elem = Element::new(ElementType::HtmlBlock);
+            elem.options.insert("tag".to_string(), tag_lc.clone());
+            elem.options
+                .insert("parse_mode".to_string(), "block".to_string());
+            // Store normalized attrs (minus markdown)
+            if let Some((_, attr_str, _, _)) = parse_html_opening_tag(first_trimmed) {
+                let attrs = parse_html_tag_attrs(&attr_str);
+                let filtered: Vec<_> = attrs.into_iter().filter(|(k, _)| k != "markdown").collect();
+                elem.options
+                    .insert("attrs".to_string(), format_html_attrs(&filtered));
+            }
+            // Extract inner content (skip first opening tag line and last closing tag line)
+            let inner_content = extract_inner_content(&collected, &tag_lc);
+            let inner_lines: Vec<&str> = inner_content.lines().collect();
+            let mut inner_pos = 0;
+            let options_copy = options.clone();
+            parse_blocks(
+                &inner_lines,
+                &mut inner_pos,
+                true,
+                &mut elem.children,
+                &options_copy,
+                1,
+            );
+            elem
+        }
+        HtmlParseMode::Span => {
+            // Parse inner content as span-level markdown
+            let mut elem = Element::new(ElementType::HtmlBlock);
+            elem.options.insert("tag".to_string(), tag_lc.clone());
+            elem.options
+                .insert("parse_mode".to_string(), "span".to_string());
+            if let Some((_, attr_str, _, _)) = parse_html_opening_tag(first_trimmed) {
+                let attrs = parse_html_tag_attrs(&attr_str);
+                let filtered: Vec<_> = attrs.into_iter().filter(|(k, _)| k != "markdown").collect();
+                elem.options
+                    .insert("attrs".to_string(), format_html_attrs(&filtered));
+            }
+            let inner_content = extract_inner_content(&collected, &tag_lc);
+            elem.value = Some(inner_content);
+            elem
+        }
+    }
+}
+
+/// HTML parsing mode for content inside HTML blocks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum HtmlParseMode {
+    Raw,
+    Block,
+    Span,
+}
+
+/// Extract the `markdown` attribute value from an HTML tag string.
+fn extract_markdown_attr(tag_line: &str) -> Option<String> {
+    if let Some(idx) = tag_line.find("markdown=") {
+        let after = &tag_line[idx + 9..];
+        if after.starts_with('"') {
+            after[1..].find('"').map(|e| after[1..e + 1].to_string())
+        } else if after.starts_with('\'') {
+            after[1..].find('\'').map(|e| after[1..e + 1].to_string())
+        } else {
+            let v: String = after
+                .chars()
+                .take_while(|c| !c.is_whitespace() && *c != '>' && *c != '/')
+                .collect();
+            if v.is_empty() {
+                None
+            } else {
+                Some(v)
+            }
+        }
+    } else {
+        None
+    }
+}
+
+/// Determine parse mode for HTML content.
+fn determine_parse_mode(
+    tag_lc: &str,
+    markdown_attr: &Option<String>,
+    options: &Options,
+) -> HtmlParseMode {
+    if let Some(ref attr) = markdown_attr {
+        return match attr.as_str() {
+            "0" => HtmlParseMode::Raw,
+            "block" => HtmlParseMode::Block,
+            "span" => HtmlParseMode::Span,
+            "1" => {
+                if HTML_SPAN_TAGS.contains(&tag_lc) {
+                    HtmlParseMode::Span
+                } else {
+                    HtmlParseMode::Block
+                }
+            }
+            _ => HtmlParseMode::Raw,
+        };
+    }
+    if options.parse_block_html {
+        if is_html_raw_tag(tag_lc) {
+            return HtmlParseMode::Raw;
+        }
+        if HTML_SPAN_TAGS.contains(&tag_lc) {
+            return HtmlParseMode::Span;
+        }
+        return HtmlParseMode::Block;
+    }
+    HtmlParseMode::Raw
+}
+
+/// Collect all lines belonging to an HTML block, tracking tag nesting.
+/// Returns the collected lines (including opening and closing tag lines).
+fn collect_html_block_lines(lines: &[&str], pos: &mut usize, tag_lc: &str) -> Vec<String> {
+    let mut collected: Vec<String> = Vec::new();
+    let mut nesting = 0i32;
+    let _close_pattern = format!("</{}", tag_lc);
+
+    while *pos < lines.len() {
+        let line = lines[*pos];
+        let line_lc = line.to_lowercase();
+
+        // Count opening tags (excluding self-closing)
+        let opens = count_open_tags_in_line(&line_lc, tag_lc);
+        let closes = count_close_tags_in_line(&line_lc, tag_lc);
+
+        nesting += opens as i32 - closes as i32;
+
+        collected.push(line.to_string());
+        *pos += 1;
+
+        if nesting <= 0 {
+            break;
+        }
+    }
+
+    // If we never found a closing tag, just return what we collected
+    collected
+}
+
+/// Count opening tags for a given tag name in a line (case-insensitive).
+/// Excludes self-closing tags like `<tag ... />`.
+fn count_open_tags_in_line(line_lc: &str, tag_lc: &str) -> usize {
+    let open_pattern = format!("<{}", tag_lc);
+    let close_pattern = format!("</{}", tag_lc);
+    let mut count = 0;
+    let mut search_from = 0;
+
+    while let Some(idx) = line_lc[search_from..].find(&open_pattern) {
+        let abs_idx = search_from + idx;
+        // Verify this is not a closing tag
+        if abs_idx > 0
+            && line_lc[abs_idx - 1..]
+                .starts_with(&close_pattern[..close_pattern.len().min(line_lc.len() - abs_idx + 1)])
+        {
+            search_from = abs_idx + 1;
+            continue;
+        }
+        // Check it's actually a closing tag by looking at abs_idx-1 for /
+        if abs_idx > 0 && line_lc.as_bytes().get(abs_idx.wrapping_sub(1)) == Some(&b'/') {
+            search_from = abs_idx + 1;
+            continue;
+        }
+        // Check for self-closing: find the > and see if /> precedes it
+        let after = &line_lc[abs_idx + open_pattern.len()..];
+        let is_self_closing = if let Some(gt_pos) = after.find('>') {
+            let before_gt = &after[..gt_pos];
+            before_gt.trim_end().ends_with('/')
+        } else {
+            false
+        };
+        if !is_self_closing {
+            count += 1;
+        }
+        search_from = abs_idx + open_pattern.len();
+    }
+
+    count
+}
+
+/// Count closing tags for a given tag name in a line (case-insensitive).
+fn count_close_tags_in_line(line_lc: &str, tag_lc: &str) -> usize {
+    let pattern = format!("</{}", tag_lc);
+    let mut count = 0;
+    let mut search_from = 0;
+    while let Some(idx) = line_lc[search_from..].find(&pattern) {
+        count += 1;
+        search_from = search_from + idx + pattern.len();
+    }
+    count
+}
+
+/// Normalize the first HTML tag on a line (attribute quotes, etc).
+fn normalize_html_line(line: &str) -> String {
+    let trimmed = line.trim_start();
+    if !trimmed.starts_with('<') || trimmed.starts_with("</") || trimmed.starts_with("<!") {
+        return line.to_string();
+    }
+    // Try to parse as an opening tag for normalization
+    if let Some((tag_name, attr_str, is_self_closing, rest)) = parse_html_opening_tag(trimmed) {
+        let attrs = parse_html_tag_attrs(&attr_str);
+        // Remove markdown attribute
+        let filtered: Vec<_> = attrs
+            .iter()
+            .filter(|(k, _)| k != "markdown")
+            .cloned()
+            .collect();
+        let indent = &line[..line.len() - trimmed.len()];
+        let tag_lc = tag_name.to_lowercase();
+        // Preserve case for non-standard HTML tags (namespaced, unknown)
+        let output_tag = if is_html_block_tag(&tag_lc) {
+            tag_lc.clone()
+        } else {
+            tag_name.clone()
+        };
+        let attrs_str = format_html_attrs(&filtered);
+        if is_self_closing || is_html_void_tag(&tag_lc) {
+            format!("{indent}<{output_tag}{attrs_str} />{rest}")
+        } else {
+            format!("{indent}<{output_tag}{attrs_str}>{rest}")
+        }
+    } else {
+        line.to_string()
+    }
+}
+
+/// Extract inner content from collected HTML block lines, removing the opening
+/// tag from the first line and closing tag from the last line.
+fn extract_inner_content(collected: &[String], tag_lc: &str) -> String {
+    if collected.is_empty() {
+        return String::new();
+    }
+
+    let mut lines = collected.to_vec();
+
+    // Remove opening tag from first line
+    if let Some(first) = lines.first_mut() {
+        if let Some(gt_pos) = first.find('>') {
+            *first = first[gt_pos + 1..].to_string();
+            if first.trim().is_empty() {
+                lines.remove(0);
+            }
+        }
+    }
+
+    // Remove closing tag from last line
+    let _close_tag = format!("</{}>", tag_lc);
+    let _close_tag_upper = format!("</{}>", tag_lc.to_uppercase());
+    if let Some(last) = lines.last_mut() {
+        let last_lc = last.to_lowercase();
+        if let Some(idx) = last_lc.rfind(&format!("</{}", tag_lc)) {
+            *last = last[..idx].to_string();
+            if last.trim().is_empty() {
+                lines.pop();
+            }
+        }
+    }
+
+    lines.join("\n")
+}
+
+/// Find the position of a closing tag (case-insensitive) in a string.
+#[allow(dead_code)]
+fn find_closing_tag_ci(s: &str, tag_lc: &str) -> Option<usize> {
+    let s_lc = s.to_lowercase();
+    let pattern = format!("</{}", tag_lc);
+    s_lc.find(&pattern)
+}
+
+/// Find the last closing tag position.
+#[allow(dead_code)]
+fn find_last_closing_tag_ci(s: &str, tag_lc: &str) -> Option<usize> {
+    let s_lc = s.to_lowercase();
+    let pattern = format!("</{}", tag_lc);
+    s_lc.rfind(&pattern)
+}
+
+/// Find the end position after a closing tag starting at `start`.
+#[allow(dead_code)]
+fn find_after_closing_tag(s: &str, start: usize, _tag_lc: &str) -> usize {
+    if let Some(gt_pos) = s[start..].find('>') {
+        start + gt_pos + 1
+    } else {
+        s.len()
+    }
+}
+
+/// Count opening tag occurrences (excluding closing tags).
+#[allow(dead_code)]
+fn count_tag_occurrences(s_lc: &str, open_pattern: &str, close_pattern: &str) -> usize {
+    let mut count = 0;
+    let mut search_from = 0;
+    while let Some(idx) = s_lc[search_from..].find(open_pattern) {
+        let abs_idx = search_from + idx;
+        // Make sure this is not actually a closing tag
+        if !s_lc[abs_idx..].starts_with(close_pattern) {
+            count += 1;
+        }
+        search_from = abs_idx + 1;
+    }
+    count
+}
+
+/// Count closing tag occurrences.
+#[allow(dead_code)]
+fn count_closing_tags(s_lc: &str, tag_lc: &str) -> usize {
+    let pattern = format!("</{}", tag_lc);
+    let mut count = 0;
+    let mut search_from = 0;
+    while let Some(idx) = s_lc[search_from..].find(&pattern) {
+        count += 1;
+        search_from = search_from + idx + 1;
+    }
+    count
+}
+
+/// Parse an HTML block with a "raw" tag (script, style) that preserves content literally.
+fn parse_html_raw_block(lines: &[&str], pos: &mut usize, tag_lc: &str) -> Element {
+    let close_pattern = format!("</{}>", tag_lc);
+    let close_pattern_upper = format!("</{}>", tag_lc.to_uppercase());
+    let mut content = String::new();
+
+    while *pos < lines.len() {
+        let line = lines[*pos];
+        if !content.is_empty() {
+            content.push('\n');
+        }
+        content.push_str(line);
+        *pos += 1;
+
+        let line_lc = line.to_lowercase();
+        if line_lc.contains(&close_pattern) || line.contains(&close_pattern_upper) {
+            break;
+        }
+    }
+
+    let mut elem = Element::with_value(ElementType::HtmlBlock, content);
+    elem.options.insert("type".to_string(), "raw".to_string());
+    elem
+}
+
+/// Parse a textarea HTML block (content preserved, crosses blank lines).
+fn parse_html_textarea_block(lines: &[&str], pos: &mut usize) -> Element {
+    let mut content = String::new();
+
+    while *pos < lines.len() {
+        let line = lines[*pos];
+        if !content.is_empty() {
+            content.push('\n');
+        }
+        content.push_str(line);
+        *pos += 1;
+
+        let line_lc = line.to_lowercase();
+        if line_lc.contains("</textarea>") {
+            break;
+        }
+    }
+
+    Element::with_value(ElementType::HtmlBlock, content)
+}
+
+// ---------------------------------------------------------------------------
+// Block extension parsing ({::comment}, {::nomarkdown}, {::options})
+// ---------------------------------------------------------------------------
+
+/// Try to parse a block extension.
+fn try_parse_block_extension(lines: &[&str], pos: &mut usize) -> Option<Element> {
+    let line = lines[*pos];
+    let trimmed = line.trim();
+
+    if !trimmed.starts_with("{::") {
+        return None;
+    }
+
+    // Self-closing extension: {::name attrs /}
+    if trimmed.ends_with("/}") {
+        let inner = &trimmed[3..trimmed.len() - 2].trim();
+        // Extract extension name
+        let name = inner.split_whitespace().next().unwrap_or("");
+        match name {
+            "comment" => {
+                // Self-closing comment produces nothing
+                *pos += 1;
+                // Return empty comment that won't produce output
+                let elem = Element::with_value(ElementType::BlockExtension, "");
+                return Some(elem);
+            }
+            "nomarkdown" => {
+                // Self-closing nomarkdown - check for type attribute
+                let attrs_str = inner.strip_prefix("nomarkdown").unwrap_or("").trim();
+                let is_html_type =
+                    attrs_str.contains("type='html'") || attrs_str.contains("type=\"html\"");
+                if is_html_type || !attrs_str.contains("type=") {
+                    // Produce empty output for self-closing nomarkdown
+                    *pos += 1;
+                    let elem = Element::with_value(ElementType::BlockExtension, "");
+                    return Some(elem);
+                } else {
+                    // Non-html type - suppress
+                    *pos += 1;
+                    let elem = Element::with_value(ElementType::BlockExtension, "");
+                    return Some(elem);
+                }
+            }
+            "options" => {
+                // Options extension - ignore for now (handled in options parsing)
+                *pos += 1;
+                let elem = Element::with_value(ElementType::BlockExtension, "");
+                return Some(elem);
+            }
+            _ => {
+                // Unknown extension - treat as text (return None to fall through to paragraph)
+                return None;
+            }
+        }
+    }
+
+    // Block extension with end tag: {::name} ... {:/name}
+    let inner = trimmed[3..].strip_suffix('}')?;
+    let inner = inner.trim();
+
+    // Extract extension name
+    let name = inner.split_whitespace().next().unwrap_or("");
+
+    match name {
+        "comment" => {
+            // Collect content until {:/comment} or {:/} on its own line
+            let saved = *pos;
+            *pos += 1;
+            let mut content = String::new();
+            let mut found_close = false;
+            while *pos < lines.len() {
+                let l = lines[*pos];
+                let lt = l.trim();
+                if lt == "{:/comment}" || lt == "{:/}" {
+                    *pos += 1;
+                    found_close = true;
+                    break;
+                }
+                if !content.is_empty() {
+                    content.push('\n');
+                }
+                content.push_str(l);
+                *pos += 1;
+            }
+            if !found_close {
+                // Unclosed comment - revert, treat as text
+                *pos = saved;
+                return None;
+            }
+            let mut elem = Element::with_value(ElementType::BlockExtension, content);
+            elem.options
+                .insert("ext_type".to_string(), "comment".to_string());
+            Some(elem)
+        }
+        "nomarkdown" => {
+            // Check for type attribute
+            let attrs_str = inner.strip_prefix("nomarkdown").unwrap_or("").trim();
+            let is_html_type =
+                attrs_str.contains("type='html'") || attrs_str.contains("type=\"html\"");
+            let is_latex_type =
+                attrs_str.contains("type=\"latex\"") || attrs_str.contains("type='latex'");
+            let saved = *pos;
+            *pos += 1;
+            let mut content = String::new();
+            let mut found_close = false;
+            while *pos < lines.len() {
+                let l = lines[*pos];
+                let lt = l.trim();
+                if lt == "{:/nomarkdown}" || lt == "{:/}" {
+                    *pos += 1;
+                    found_close = true;
+                    break;
+                }
+                if !content.is_empty() {
+                    content.push('\n');
+                }
+                content.push_str(l);
+                *pos += 1;
+            }
+            if !found_close {
+                // Unclosed nomarkdown - revert, treat as text
+                *pos = saved;
+                return None;
+            }
+            if is_latex_type {
+                // Latex type - suppress
+                let elem = Element::with_value(ElementType::BlockExtension, "");
+                return Some(elem);
+            }
+            let mut elem = Element::with_value(ElementType::BlockExtension, content);
+            elem.options
+                .insert("ext_type".to_string(), "nomarkdown".to_string());
+            if is_html_type {
+                elem.options
+                    .insert("nomarkdown_type".to_string(), "html".to_string());
+            }
+            Some(elem)
+        }
+        "options" => {
+            // Block options
+            *pos += 1;
+            let elem = Element::with_value(ElementType::BlockExtension, "");
+            Some(elem)
+        }
+        _ => {
+            // Unknown extension - treat as text
+            None
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Math block parsing ($$...$$)
+// ---------------------------------------------------------------------------
+
+/// Try to parse a display math block ($$...$$).
+fn try_parse_math_block(lines: &[&str], pos: &mut usize) -> Option<Element> {
+    let line = lines[*pos];
+
+    // Must start with $$ and not be indented 4+ spaces
+    let stripped = line.trim_start();
+    let indent = line.len() - stripped.len();
+    if indent >= 4 {
+        return None;
+    }
+
+    if !stripped.starts_with("$$") {
+        return None;
+    }
+
+    let after_open = &stripped[2..];
+
+    // Check for single-line math: $$content$$
+    if let Some(close_pos) = after_open.find("$$") {
+        // Single-line: $$content$$
+        let content = &after_open[..close_pos];
+        let after_close = after_open[close_pos + 2..].trim();
+        if after_close.is_empty() {
+            // Only treat as block math if followed by blank line, EOB, or end of document
+            let next_line = if *pos + 1 < lines.len() {
+                Some(lines[*pos + 1])
+            } else {
+                None
+            };
+            let is_block = match next_line {
+                None => true,                        // End of document
+                Some(l) if is_blank_line(l) => true, // Blank line after
+                Some(l) if l.trim() == "^" => true,  // EOB after
+                Some(l) if is_block_ial(l) => true,  // IAL after (for attributes)
+                _ => false,                          // Text follows - inline math
+            };
+            if is_block {
+                *pos += 1;
+                let elem = Element::with_value(ElementType::MathBlock, content.trim());
+                return Some(elem);
+            }
+            return None; // Not a block math - let paragraph handle it
+        }
+        // Has trailing content after $$ - not a valid math block
+        return None;
+    }
+
+    // Multi-line math: starts with $$ on one line, content, ends with $$
+    let first_content = after_open;
+    let mut content_lines: Vec<String> = Vec::new();
+    if !first_content.is_empty() {
+        content_lines.push(first_content.to_string());
+    }
+
+    let start_pos = *pos;
+    *pos += 1;
+
+    while *pos < lines.len() {
+        let l = lines[*pos];
+        let lt = l.trim();
+        if lt.ends_with("$$") {
+            let before_close = &lt[..lt.len() - 2];
+            if !before_close.is_empty() {
+                content_lines.push(before_close.to_string());
+            }
+            *pos += 1;
+            let content = content_lines.join("\n");
+            let elem = Element::with_value(ElementType::MathBlock, content);
+            return Some(elem);
+        }
+        content_lines.push(l.to_string());
+        *pos += 1;
+    }
+
+    // Unclosed math block - revert
+    *pos = start_pos;
+    None
+}
+
+// ---------------------------------------------------------------------------
+// Definition list parsing
+// ---------------------------------------------------------------------------
+
+/// Check if a line is a definition list definition marker (starts with `: ` or is just `:`).
+fn is_definition_marker(line: &str) -> bool {
+    let trimmed = line.trim_start();
+    trimmed.starts_with(": ") || trimmed == ":"
+}
+
+/// Try to parse a definition list.
+/// In kramdown, a definition list is:
+///   term
+///   : definition
+fn try_parse_definition_list(
+    lines: &[&str],
+    pos: &mut usize,
+    has_trailing_newline: bool,
+    options: &Options,
+) -> Option<Element> {
+    let start = *pos;
+    // Verify: need term line(s) followed by definition marker
+    let mut look = start;
+    let mut found_term = false;
+    let mut blank_count = 0;
+    while look < lines.len() {
+        let line = lines[look];
+        if is_blank_line(line) {
+            if !found_term {
+                return None;
+            }
+            blank_count += 1;
+            if blank_count > 1 {
+                return None;
+            }
+            look += 1;
+            continue;
+        }
+        if line.trim() == "^" {
+            return None;
+        }
+        if is_definition_marker(line) {
+            if found_term {
+                break;
+            }
+            return None;
+        }
+        if blank_count > 0 {
+            return None;
+        }
+        found_term = true;
+        look += 1;
+    }
+    if !found_term || look >= lines.len() || !is_definition_marker(lines[look]) {
+        return None;
+    }
+
+    let mut dl = Element::new(ElementType::DefinitionList);
+    *pos = start;
+
+    loop {
+        if *pos < lines.len() && lines[*pos].trim() == "^" {
+            *pos += 1;
+            break;
+        }
+
+        let mut terms: Vec<String> = Vec::new();
+        while *pos < lines.len() {
+            let line = lines[*pos];
+            if is_blank_line(line)
+                || is_definition_marker(line)
+                || line.trim() == "^"
+                || is_block_ial(line)
+            {
+                break;
+            }
+            terms.push(line.trim().to_string());
+            *pos += 1;
+        }
+
+        let mut had_blank = false;
+        while *pos < lines.len() && is_blank_line(lines[*pos]) {
+            had_blank = true;
+            *pos += 1;
+        }
+
+        for term_text in &terms {
+            let (term_clean, term_attrs) = extract_term_ial(term_text);
+            let mut dt = Element::with_value(ElementType::DefinitionTerm, term_clean);
+            if let Some(attrs) = term_attrs {
+                apply_attrs(&mut dt, &attrs);
+            }
+            dl.children.push(dt);
+        }
+
+        while *pos < lines.len() && is_definition_marker(lines[*pos]) {
+            let line = lines[*pos];
+            let trimmed = line.trim_start();
+            let line_indent = line.len() - trimmed.len();
+            let def_content = if trimmed == ":" {
+                String::new()
+            } else {
+                trimmed[2..].to_string()
+            };
+            // Calculate content indent for stripping continuation lines
+            let first_content_char_pos = def_content.len() - def_content.trim_start().len();
+            let mut strip_amount = line_indent + 2 + first_content_char_pos;
+            *pos += 1;
+
+            let (def_clean, def_ial) = extract_def_ial(&def_content);
+            // If content is empty (just IAL or empty def), increase strip amount
+            if def_clean.trim().is_empty() {
+                if def_ial.is_some() {
+                    let ial_len = def_content.trim().len() - def_clean.len();
+                    strip_amount += ial_len.min(2);
+                }
+                // Ensure minimum strip of 4 for empty definitions with block content
+                if strip_amount < 4 {
+                    strip_amount = 4;
+                }
+            }
+            let first_def = def_clean.trim_start().to_string();
+            // Detect block content markers at the start of the definition
+            let starts_with_block = first_def.starts_with("> ")
+                || first_def.starts_with("# ")
+                || first_def.starts_with("* ")
+                || first_def.starts_with("+ ")
+                || first_def.starts_with("- ")
+                || first_def.starts_with("    ")
+                || first_def.starts_with('\t');
+            let mut def_lines: Vec<String> = vec![first_def];
+            let mut has_block = starts_with_block;
+
+            while *pos < lines.len() {
+                let next = lines[*pos];
+                if is_blank_line(next) {
+                    let mut la = *pos + 1;
+                    while la < lines.len() && is_blank_line(lines[la]) {
+                        la += 1;
+                    }
+                    if la < lines.len()
+                        && !is_definition_marker(lines[la])
+                        && (lines[la].starts_with("  ") || lines[la].starts_with('\t'))
+                        && lines[la].trim() != "^"
+                    {
+                        has_block = true;
+                        for _ in *pos..la {
+                            def_lines.push(String::new());
+                        }
+                        *pos = la;
+                        continue;
+                    }
+                    break;
+                }
+                // Only break on definition markers at the outer level (not indented)
+                let next_indent = next.len() - next.trim_start().len();
+                if next_indent == 0
+                    && (is_definition_marker(next) || next.trim() == "^" || is_block_ial(next))
+                {
+                    break;
+                }
+                if next_indent > 0 && is_definition_marker(next) {
+                    // Indented definition marker -> nested definition list (block content)
+                    has_block = true;
+                }
+                // Non-blank, non-definition continuation line
+                // Strip the same indent as the definition content start
+                def_lines.push(strip_n_spaces(next, strip_amount).to_string());
+                *pos += 1;
+            }
+
+            while def_lines.last().is_some_and(|l| l.is_empty()) {
+                def_lines.pop();
+            }
+
+            // Additional block detection: empty first line + indented continuation
+            if !has_block && def_lines.first().is_some_and(|f| f.is_empty()) && def_lines.len() > 1
+            {
+                has_block = true;
+            }
+            // Detect nested definition list in continuation
+            if !has_block && def_lines.len() > 1 {
+                for dl_line in &def_lines[1..] {
+                    if is_definition_marker(dl_line) {
+                        has_block = true;
+                        break;
+                    }
+                }
+            }
+
+            let mut dd = Element::new(ElementType::DefinitionDefinition);
+            if let Some(ref ial) = def_ial {
+                apply_attrs(&mut dd, ial);
+            }
+
+            if has_block {
+                dd.options
+                    .insert("block_content".to_string(), "true".to_string());
+                let inner: Vec<&str> = def_lines.iter().map(|s| s.as_str()).collect();
+                let mut inner_pos = 0;
+                parse_blocks(
+                    &inner,
+                    &mut inner_pos,
+                    has_trailing_newline,
+                    &mut dd.children,
+                    options,
+                    2,
+                );
+            } else if had_blank {
+                dd.options
+                    .insert("para_wrap".to_string(), "true".to_string());
+                dd.value = Some(def_lines.join("\n").trim_end().to_string());
+            } else {
+                dd.value = Some(def_lines.join("\n").trim_end().to_string());
+            }
+
+            dl.children.push(dd);
+
+            had_blank = false;
+            while *pos < lines.len() && is_blank_line(lines[*pos]) {
+                had_blank = true;
+                *pos += 1;
+            }
+        }
+
+        if *pos < lines.len() && lines[*pos].trim() == "^" {
+            *pos += 1;
+            break;
+        }
+
+        if *pos < lines.len()
+            && !is_definition_marker(lines[*pos])
+            && !is_blank_line(lines[*pos])
+            && lines[*pos].trim() != "^"
+        {
+            let mut future = *pos;
+            while future < lines.len()
+                && !is_blank_line(lines[future])
+                && !is_definition_marker(lines[future])
+                && lines[future].trim() != "^"
+            {
+                future += 1;
+            }
+            let mut future2 = future;
+            while future2 < lines.len() && is_blank_line(lines[future2]) {
+                future2 += 1;
+            }
+            if future2 < lines.len() && is_definition_marker(lines[future2]) {
+                continue;
+            }
+        }
+        break;
+    }
+
+    if dl.children.is_empty() {
+        *pos = start;
+        return None;
+    }
+    Some(dl)
+}
+
+fn extract_term_ial(text: &str) -> (String, Option<Vec<(String, String)>>) {
+    let trimmed = text.trim();
+    if trimmed.starts_with("{:") {
+        if let Some(end) = trimmed.find('}') {
+            let ial_str = &trimmed[..end + 1];
+            let rest = trimmed[end + 1..].trim();
+            let attrs = parse_ial(ial_str);
+            return (rest.to_string(), Some(attrs));
+        }
+    }
+    (text.to_string(), None)
+}
+
+fn extract_def_ial(text: &str) -> (String, Option<Vec<(String, String)>>) {
+    let trimmed = text.trim();
+    if trimmed.starts_with("{:") {
+        if let Some(end) = trimmed.find('}') {
+            let ial_str = &trimmed[..end + 1];
+            let rest = trimmed[end + 1..].trim();
+            let attrs = parse_ial(ial_str);
+            return (rest.to_string(), Some(attrs));
+        }
+    }
+    (text.to_string(), None)
 }

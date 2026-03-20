@@ -65,13 +65,14 @@ pub fn remove_heading_markers(html: &str) -> String {
 ///
 /// Does not convert `$` inside `<code>` or `<pre>` elements.
 /// Does not convert lone `$` signs (e.g., "$100").
+#[allow(dead_code)]
 fn convert_math_delimiters(html: &str) -> String {
     if !html.contains('$') {
         return html.to_string();
     }
 
     // First pass: convert display math <p>$$...$$</p> (may be multiline)
-    let html = convert_display_math_blocks(&html);
+    let html = convert_display_math_blocks(html);
 
     // Second pass: convert inline $...$ to \(...\) line by line
     let mut result = String::with_capacity(html.len());
@@ -96,6 +97,7 @@ fn convert_math_delimiters(html: &str) -> String {
 /// Convert display math blocks: `<p>$$...$$</p>` to `\[...\]` (bare text node).
 ///
 /// Handles both single-line and multi-line display math blocks.
+#[allow(dead_code)]
 fn convert_display_math_blocks(html: &str) -> String {
     let mut result = String::with_capacity(html.len());
     let mut remaining = html;
@@ -143,6 +145,7 @@ fn convert_display_math_blocks(html: &str) -> String {
 ///
 /// Only converts when `$` is followed by non-space content and closed by another `$`.
 /// Skips lone `$` (e.g., "$100") and `$$` (display math delimiters).
+#[allow(dead_code)]
 fn convert_inline_math(line: &str) -> String {
     let mut result = String::with_capacity(line.len());
     let bytes = line.as_bytes();

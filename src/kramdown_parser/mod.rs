@@ -24,11 +24,13 @@ pub mod entities;
 pub mod html;
 pub mod options;
 pub mod parser;
+pub mod span_parser;
 
 use element::Document;
 use html::HtmlConverter;
 use options::Options;
 use parser::KramdownParser;
+use span_parser::SpanContext;
 
 /// Parse kramdown input and convert to HTML using default options.
 pub fn to_html(input: &str) -> String {
@@ -38,8 +40,15 @@ pub fn to_html(input: &str) -> String {
 
 /// Parse kramdown input and convert to HTML using the given options.
 pub fn to_html_with_options(input: &str, options: &Options) -> String {
-    let doc: Document = KramdownParser::parse(input, options);
-    HtmlConverter::convert(&doc, options)
+    // Create span context and extract definitions (link defs, abbreviations, footnotes)
+    let mut span_ctx = SpanContext::new(options);
+    let cleaned = span_parser::extract_definitions(input, &mut span_ctx);
+
+    // Parse blocks from the cleaned text (definitions removed)
+    let doc: Document = KramdownParser::parse(&cleaned, options);
+
+    // Convert to HTML with span processing
+    HtmlConverter::convert_with_context(&doc, options, &mut span_ctx)
 }
 
 #[cfg(test)]

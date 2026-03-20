@@ -9,15 +9,31 @@
 
 use crate::kramdown_parser::element::{Document, Element, ElementType};
 use crate::kramdown_parser::options::Options;
+use crate::kramdown_parser::parser::KramdownParser;
+use crate::kramdown_parser::span_parser::{self, SpanContext};
 
 /// Converts a kramdown Document AST into HTML output.
 pub struct HtmlConverter;
 
 impl HtmlConverter {
-    /// Convert a Document AST to an HTML string.
+    /// Convert a Document AST to an HTML string (without span context - legacy path).
     pub fn convert(doc: &Document, options: &Options) -> String {
+        let mut ctx = SpanContext::new(options);
+        Self::convert_with_context(doc, options, &mut ctx)
+    }
+
+    /// Convert a Document AST to an HTML string with a span context for inline processing.
+    pub fn convert_with_context(
+        doc: &Document,
+        options: &Options,
+        ctx: &mut SpanContext,
+    ) -> String {
         let mut output = String::new();
-        convert_children(&doc.root.children, &mut output, options, 0);
+        convert_children(&doc.root.children, &mut output, options, 0, ctx);
+
+        // Render footnotes if any were referenced
+        let footnotes = render_footnotes(options, ctx);
+        output.push_str(&footnotes);
 
         // Ensure trailing newline (kramdown always outputs at least \n)
         if output.is_empty() || !output.ends_with('\n') {
@@ -29,7 +45,13 @@ impl HtmlConverter {
 }
 
 /// Convert a list of child elements to HTML.
-fn convert_children(children: &[Element], output: &mut String, options: &Options, indent: usize) {
+fn convert_children(
+    children: &[Element],
+    output: &mut String,
+    options: &Options,
+    indent: usize,
+    ctx: &mut SpanContext,
+) {
     let mut prev_was_block = false;
     let mut first = true;
 
@@ -52,7 +74,7 @@ fn convert_children(children: &[Element], output: &mut String, options: &Options
             }
         }
 
-        convert_element(child, output, options, indent);
+        convert_element(child, output, options, indent, ctx);
         if is_visible_block(child) {
             prev_was_block = true;
             first = false;
@@ -80,38 +102,71 @@ fn had_blank_between(children: &[Element], i: usize) -> bool {
 
 /// Check if an element produces visible block output.
 fn is_visible_block(elem: &Element) -> bool {
-    !matches!(elem.element_type, ElementType::Blank | ElementType::Eob)
+    match elem.element_type {
+        ElementType::Blank | ElementType::Eob => false,
+        ElementType::BlockExtension => {
+            // Empty block extensions (options, self-closing) produce no output
+            let ext_type = elem
+                .options
+                .get("ext_type")
+                .map(|s| s.as_str())
+                .unwrap_or("");
+            match ext_type {
+                "comment" | "nomarkdown" => elem.value.as_ref().is_some_and(|v| !v.is_empty()),
+                _ => false,
+            }
+        }
+        _ => true,
+    }
 }
 
 /// Convert a single element to HTML.
-fn convert_element(elem: &Element, output: &mut String, options: &Options, indent: usize) {
+fn convert_element(
+    elem: &Element,
+    output: &mut String,
+    options: &Options,
+    indent: usize,
+    ctx: &mut SpanContext,
+) {
     match elem.element_type {
         ElementType::Blank | ElementType::Eob => {
             // No output
         }
         ElementType::Paragraph => {
-            convert_paragraph(elem, output, options, indent);
+            convert_paragraph(elem, output, options, indent, ctx);
         }
         ElementType::Header => {
-            convert_header(elem, output, options, indent);
+            convert_header(elem, output, options, indent, ctx);
         }
         ElementType::CodeBlock => {
             convert_code_block(elem, output, options, indent);
         }
         ElementType::Blockquote => {
-            convert_blockquote(elem, output, options, indent);
+            convert_blockquote(elem, output, options, indent, ctx);
         }
         ElementType::HorizontalRule => {
             convert_horizontal_rule(elem, output, indent);
         }
         ElementType::List => {
-            convert_list(elem, output, options, indent);
+            convert_list(elem, output, options, indent, ctx);
         }
         ElementType::ListItem => {
-            convert_list_item(elem, output, options, indent);
+            convert_list_item(elem, output, options, indent, ctx);
         }
         ElementType::Table => {
-            convert_table(elem, output, options, indent);
+            convert_table(elem, output, options, indent, ctx);
+        }
+        ElementType::HtmlBlock => {
+            convert_html_block(elem, output, indent, options, ctx);
+        }
+        ElementType::DefinitionList => {
+            convert_definition_list(elem, output, options, indent, ctx);
+        }
+        ElementType::MathBlock => {
+            convert_math_block(elem, output, options, indent);
+        }
+        ElementType::BlockExtension => {
+            convert_block_extension(elem, output, indent);
         }
         ElementType::Text => {
             if let Some(ref val) = elem.value {
@@ -122,111 +177,6 @@ fn convert_element(elem: &Element, output: &mut String, options: &Options, inden
             // Unsupported element types: output nothing for now
         }
     }
-}
-
-/// Convert paragraph to HTML.
-fn convert_paragraph(elem: &Element, output: &mut String, options: &Options, indent: usize) {
-    write_indent(output, indent);
-    output.push_str("<p>");
-
-    let text = get_element_text(elem);
-    let processed = process_paragraph_text(&text, options);
-    output.push_str(&processed);
-
-    output.push_str("</p>\n");
-}
-
-/// Process paragraph text for typographic conversions and inline code spans.
-fn process_paragraph_text(text: &str, _options: &Options) -> String {
-    let mut result = String::with_capacity(text.len());
-    let chars: Vec<char> = text.chars().collect();
-    let mut i = 0;
-
-    while i < chars.len() {
-        // Backtick code spans
-        if chars[i] == '`' {
-            let mut bt = 0;
-            let bt_start = i;
-            while i < chars.len() && chars[i] == '`' {
-                bt += 1;
-                i += 1;
-            }
-            // Find matching closing backticks
-            let content_start = i;
-            let mut found = false;
-            while i < chars.len() {
-                if chars[i] == '`' {
-                    let mut close_bt = 0;
-                    let close_start = i;
-                    while i < chars.len() && chars[i] == '`' {
-                        close_bt += 1;
-                        i += 1;
-                    }
-                    if close_bt == bt {
-                        let content: String = chars[content_start..close_start].iter().collect();
-                        // Trim single leading/trailing space if content has them and isn't all spaces
-                        let trimmed = if content.len() >= 2
-                            && content.starts_with(' ')
-                            && content.ends_with(' ')
-                            && content.trim().len() < content.len() - 2 + content.trim().len()
-                        {
-                            &content[1..content.len() - 1]
-                        } else {
-                            content.trim()
-                        };
-                        result.push_str("<code>");
-                        result.push_str(&escape_html(trimmed));
-                        result.push_str("</code>");
-                        found = true;
-                        break;
-                    }
-                } else {
-                    i += 1;
-                }
-            }
-            if !found {
-                // No closing backticks - output as literal
-                for ch in &chars[bt_start..content_start] {
-                    result.push(*ch);
-                }
-                i = content_start;
-            }
-            continue;
-        }
-
-        if chars[i] == '-' {
-            // Count consecutive dashes
-            let start = i;
-            while i < chars.len() && chars[i] == '-' {
-                i += 1;
-            }
-            let count = i - start;
-            // Convert: every 3 dashes -> em-dash, remaining 2 -> en-dash, remaining 1 -> dash
-            let em_dashes = count / 3;
-            let remaining = count % 3;
-            let en_dashes = remaining / 2;
-            let single_dashes = remaining % 2;
-
-            for _ in 0..em_dashes {
-                result.push('\u{2014}'); // em-dash
-            }
-            for _ in 0..en_dashes {
-                result.push('\u{2013}'); // en-dash
-            }
-            for _ in 0..single_dashes {
-                result.push('-');
-            }
-        } else if chars[i] == '\\' && i + 1 < chars.len() && is_escapable_char(chars[i + 1]) {
-            // Escaped character: \- \. \# \| etc.
-            result.push(chars[i + 1]);
-            i += 2;
-        } else {
-            result.push(chars[i]);
-            i += 1;
-        }
-    }
-
-    result
 }
 
 /// Get the text content of an element (from its Text children).
@@ -240,8 +190,32 @@ fn get_element_text(elem: &Element) -> String {
     text
 }
 
+/// Convert paragraph to HTML.
+fn convert_paragraph(
+    elem: &Element,
+    output: &mut String,
+    _options: &Options,
+    indent: usize,
+    ctx: &mut SpanContext,
+) {
+    write_indent(output, indent);
+    output.push_str("<p>");
+
+    let text = get_element_text(elem);
+    let processed = span_parser::spans_to_html(&text, ctx);
+    output.push_str(&processed);
+
+    output.push_str("</p>\n");
+}
+
 /// Convert header to HTML.
-fn convert_header(elem: &Element, output: &mut String, _options: &Options, indent: usize) {
+fn convert_header(
+    elem: &Element,
+    output: &mut String,
+    _options: &Options,
+    indent: usize,
+    ctx: &mut SpanContext,
+) {
     let level = elem
         .options
         .get("level")
@@ -254,8 +228,7 @@ fn convert_header(elem: &Element, output: &mut String, _options: &Options, inden
     output.push('>');
 
     let text = get_element_text(elem);
-    // Process escaped hashes in header text
-    let processed = text.replace("\\#", "#");
+    let processed = span_parser::spans_to_html(&text, ctx);
     output.push_str(&processed);
 
     output.push_str(&format!("</h{level}>\n"));
@@ -319,13 +292,19 @@ fn convert_code_block(elem: &Element, output: &mut String, _options: &Options, i
 }
 
 /// Convert blockquote to HTML.
-fn convert_blockquote(elem: &Element, output: &mut String, options: &Options, indent: usize) {
+fn convert_blockquote(
+    elem: &Element,
+    output: &mut String,
+    options: &Options,
+    indent: usize,
+    ctx: &mut SpanContext,
+) {
     write_indent(output, indent);
     output.push_str("<blockquote");
     write_attrs(&elem.attr, output);
     output.push_str(">\n");
 
-    convert_children(&elem.children, output, options, indent + 2);
+    convert_children(&elem.children, output, options, indent + 2, ctx);
 
     write_indent(output, indent);
     output.push_str("</blockquote>\n");
@@ -344,7 +323,13 @@ fn convert_horizontal_rule(elem: &Element, output: &mut String, indent: usize) {
 }
 
 /// Convert list to HTML.
-fn convert_list(elem: &Element, output: &mut String, options: &Options, indent: usize) {
+fn convert_list(
+    elem: &Element,
+    output: &mut String,
+    options: &Options,
+    indent: usize,
+    ctx: &mut SpanContext,
+) {
     let tag = elem
         .options
         .get("list_type")
@@ -358,7 +343,7 @@ fn convert_list(elem: &Element, output: &mut String, options: &Options, indent: 
     output.push_str(">\n");
 
     for child in &elem.children {
-        convert_list_item(child, output, options, indent + 2);
+        convert_list_item(child, output, options, indent + 2, ctx);
     }
 
     write_indent(output, indent);
@@ -368,7 +353,13 @@ fn convert_list(elem: &Element, output: &mut String, options: &Options, indent: 
 }
 
 /// Convert list item to HTML.
-fn convert_list_item(elem: &Element, output: &mut String, options: &Options, indent: usize) {
+fn convert_list_item(
+    elem: &Element,
+    output: &mut String,
+    options: &Options,
+    indent: usize,
+    ctx: &mut SpanContext,
+) {
     write_indent(output, indent);
     output.push_str("<li");
     write_attrs(&elem.attr, output);
@@ -399,8 +390,15 @@ fn convert_list_item(elem: &Element, output: &mut String, options: &Options, ind
 
     if !has_block_children {
         // Simple item: inline content on same line as <li>
-        for child in &elem.children {
-            convert_element(child, output, options, 0);
+        // Process inline text through span parser
+        let text = get_element_text_from_children(&elem.children);
+        if !text.is_empty() {
+            let processed = span_parser::spans_to_html(&text, ctx);
+            output.push_str(&processed);
+        } else {
+            for child in &elem.children {
+                convert_element(child, output, options, 0, ctx);
+            }
         }
         output.push_str("</li>\n");
     } else {
@@ -414,20 +412,34 @@ fn convert_list_item(elem: &Element, output: &mut String, options: &Options, ind
             // Mixed: text inline after <li>, then newline, then indented blocks
             let text_child = &elem.children[0];
             if let Some(ref val) = text_child.value {
-                output.push_str(val);
+                let processed = span_parser::spans_to_html(val, ctx);
+                output.push_str(&processed);
             }
             output.push('\n');
-            convert_list_item_children(&elem.children[1..], output, options, indent + 2);
+            convert_list_item_children(&elem.children[1..], output, options, indent + 2, ctx);
             write_indent(output, indent);
             output.push_str("</li>\n");
         } else {
             // Pure block content: newline after <li>, then indented content
             output.push('\n');
-            convert_list_item_children(&elem.children, output, options, indent + 2);
+            convert_list_item_children(&elem.children, output, options, indent + 2, ctx);
             write_indent(output, indent);
             output.push_str("</li>\n");
         }
     }
+}
+
+/// Get text from a list of children elements (for simple list items).
+fn get_element_text_from_children(children: &[Element]) -> String {
+    let mut text = String::new();
+    for child in children {
+        if child.element_type == ElementType::Text {
+            if let Some(ref val) = child.value {
+                text.push_str(val);
+            }
+        }
+    }
+    text
 }
 
 /// Convert list item children to HTML, handling spacing between block elements.
@@ -436,6 +448,7 @@ fn convert_list_item_children(
     output: &mut String,
     options: &Options,
     indent: usize,
+    ctx: &mut SpanContext,
 ) {
     let mut prev_was_visible = false;
 
@@ -453,7 +466,7 @@ fn convert_list_item_children(
             }
         }
 
-        convert_element(child, output, options, indent);
+        convert_element(child, output, options, indent, ctx);
         if is_visible_block(child) {
             prev_was_visible = true;
         }
@@ -461,7 +474,13 @@ fn convert_list_item_children(
 }
 
 /// Convert table to HTML.
-fn convert_table(elem: &Element, output: &mut String, _options: &Options, indent: usize) {
+fn convert_table(
+    elem: &Element,
+    output: &mut String,
+    _options: &Options,
+    indent: usize,
+    ctx: &mut SpanContext,
+) {
     // Parse alignments from options
     let alignments: Vec<&str> = elem
         .options
@@ -511,12 +530,12 @@ fn convert_table(elem: &Element, output: &mut String, _options: &Options, indent
                 }
                 output.push('>');
 
-                // Write cell content with inline processing
+                // Write cell content with span processing
                 let text = get_element_text(cell);
                 if text.is_empty() {
                     output.push('\u{a0}');
                 } else {
-                    let processed = process_table_cell_content(&text);
+                    let processed = span_parser::spans_to_html(&text, ctx);
                     output.push_str(&processed);
                 }
 
@@ -555,118 +574,6 @@ fn convert_table(elem: &Element, output: &mut String, _options: &Options, indent
     output.push_str("</table>\n");
 }
 
-/// Process table cell content: convert backtick code spans to <code> tags,
-/// handle escaped pipes, and balance/escape HTML tags.
-fn process_table_cell_content(text: &str) -> String {
-    let mut result = String::new();
-    let chars: Vec<char> = text.chars().collect();
-    let mut i = 0;
-    let mut open_tags: Vec<String> = Vec::new();
-
-    while i < chars.len() {
-        // Backtick code span
-        if chars[i] == '`' {
-            let mut bt = 0;
-            let _start = i;
-            while i < chars.len() && chars[i] == '`' {
-                bt += 1;
-                i += 1;
-            }
-            // Find matching closing backticks
-            let mut found = false;
-            let content_start = i;
-            while i < chars.len() {
-                if chars[i] == '`' {
-                    let mut close_bt = 0;
-                    let close_start = i;
-                    while i < chars.len() && chars[i] == '`' {
-                        close_bt += 1;
-                        i += 1;
-                    }
-                    if close_bt == bt {
-                        // Found matching close
-                        let content: String = chars[content_start..close_start].iter().collect();
-                        let trimmed = content.trim();
-                        result.push_str("<code>");
-                        result.push_str(&escape_html(trimmed));
-                        result.push_str("</code>");
-                        found = true;
-                        break;
-                    }
-                    // Not enough backticks, keep looking
-                } else {
-                    i += 1;
-                }
-            }
-            if !found {
-                // No closing backticks - output as literal
-                for _ in 0..bt {
-                    result.push('`');
-                }
-                // Re-process from content_start
-                i = content_start;
-            }
-            continue;
-        }
-
-        // HTML tag detection
-        if chars[i] == '<' {
-            let remaining: String = chars[i..].iter().collect();
-            // Check for closing tag
-            if remaining.starts_with("</") {
-                if let Some(gt) = remaining.find('>') {
-                    let tag_content = &remaining[2..gt];
-                    let tag_name = tag_content.split_whitespace().next().unwrap_or("");
-                    // Check if this closing tag matches an open tag
-                    if let Some(pos) = open_tags.iter().rposition(|t| t == tag_name) {
-                        // Valid close
-                        result.push_str(&remaining[..=gt]);
-                        open_tags.remove(pos);
-                        i += gt + 1;
-                    } else {
-                        // Stray closing tag - escape the entire tag
-                        let tag_str = &remaining[..=gt];
-                        result.push_str(&escape_html(tag_str));
-                        i += gt + 1;
-                    }
-                    continue;
-                }
-            }
-            // Check for opening tag
-            if let Some(gt) = remaining.find('>') {
-                let tag_content = &remaining[1..gt];
-                let tag_name = tag_content
-                    .split_whitespace()
-                    .next()
-                    .unwrap_or("")
-                    .trim_end_matches('/');
-                // Self-closing tags
-                let is_self_closing = tag_content.ends_with('/');
-                let is_void = matches!(
-                    tag_name,
-                    "br" | "hr" | "img" | "input" | "col" | "area" | "base" | "link" | "meta"
-                );
-                result.push_str(&remaining[..=gt]);
-                i += gt + 1;
-                if !is_self_closing && !is_void && !tag_name.is_empty() {
-                    open_tags.push(tag_name.to_string());
-                }
-                continue;
-            }
-        }
-
-        result.push(chars[i]);
-        i += 1;
-    }
-
-    // Auto-close any unclosed tags
-    for tag in open_tags.iter().rev() {
-        result.push_str(&format!("</{tag}>"));
-    }
-
-    result
-}
-
 /// Write HTML attributes.
 fn write_attrs(attrs: &std::collections::HashMap<String, String>, output: &mut String) {
     // Write id first, then class, then rest alphabetically
@@ -694,34 +601,174 @@ fn write_indent(output: &mut String, indent: usize) {
     }
 }
 
-/// Check if a character can be escaped with backslash in kramdown.
-fn is_escapable_char(c: char) -> bool {
+/// Escape invalid HTML inside a block-level HTML element.
+/// Orphan closing tags (no matching opener) and non-HTML angle bracket content
+/// get their `<` and `>` escaped to `&lt;` and `&gt;`.
+fn escape_invalid_html_in_block(html: &str) -> String {
+    let mut result = String::with_capacity(html.len());
+    let lines: Vec<&str> = html.split('\n').collect();
+
+    // Track which tags are open to detect orphan closing tags
+    let mut open_tags: Vec<String> = Vec::new();
+    // Track if we're inside the outermost block tag (skip escaping there)
+    let mut depth = 0;
+    let mut _first_line = true;
+
+    for (li, line) in lines.iter().enumerate() {
+        if li > 0 {
+            result.push('\n');
+        }
+
+        // Process char by char to find and validate HTML tags
+        let chars: Vec<char> = line.chars().collect();
+        let mut i = 0;
+
+        while i < chars.len() {
+            if chars[i] == '<' {
+                // Try to parse as an HTML tag
+                let remaining: String = chars[i..].iter().collect();
+
+                if remaining.starts_with("</") {
+                    // Closing tag
+                    if let Some((tag_name, end_pos)) = extract_tag_name_from_closing(&remaining) {
+                        let tag_lc = tag_name.to_lowercase();
+                        // Check if this closing tag has a matching opener
+                        if depth <= 1 && !open_tags.iter().rev().any(|t| t == &tag_lc) {
+                            // Orphan closing tag - escape it
+                            result.push_str("&lt;");
+                            i += 1;
+                            continue;
+                        }
+                        // Valid closing tag
+                        if let Some(pos) = open_tags.iter().rposition(|t| t == &tag_lc) {
+                            open_tags.truncate(pos);
+                        }
+                        depth -= 1;
+                        // Pass through
+                        for ch in remaining[..end_pos].chars() {
+                            result.push(ch);
+                        }
+                        i += end_pos;
+                        continue;
+                    }
+                    // Not a valid closing tag - escape
+                    result.push_str("&lt;");
+                    i += 1;
+                    continue;
+                } else if remaining.starts_with("<!") || remaining.starts_with("<?") {
+                    // Comment or PI - pass through
+                    result.push(chars[i]);
+                    i += 1;
+                    continue;
+                } else {
+                    // Opening tag candidate
+                    if let Some((tag_name, end_pos, is_self_closing)) =
+                        extract_tag_info_from_opening(&remaining)
+                    {
+                        let tag_lc = tag_name.to_lowercase();
+                        if !is_self_closing && !is_void_tag_name(&tag_lc) {
+                            open_tags.push(tag_lc);
+                            depth += 1;
+                        }
+                        // Pass through the tag
+                        for ch in remaining[..end_pos].chars() {
+                            result.push(ch);
+                        }
+                        i += end_pos;
+                        continue;
+                    }
+                    // Not a valid opening tag - escape the <
+                    result.push_str("&lt;");
+                    i += 1;
+                    continue;
+                }
+            } else if chars[i] == '>' {
+                // Standalone > that's not part of a tag
+                result.push_str("&gt;");
+                i += 1;
+            } else {
+                result.push(chars[i]);
+                i += 1;
+            }
+        }
+
+        _first_line = false;
+    }
+
+    result
+}
+
+/// Extract tag name from a closing tag string like `</div>`.
+/// Returns (tag_name, end_position).
+fn extract_tag_name_from_closing(s: &str) -> Option<(String, usize)> {
+    if !s.starts_with("</") {
+        return None;
+    }
+    let after = &s[2..];
+    let tag_name: String = after
+        .chars()
+        .take_while(|c| c.is_ascii_alphanumeric() || *c == ':')
+        .collect();
+    if tag_name.is_empty() {
+        return None;
+    }
+    let tag_len = tag_name.len();
+    let after_name = &after[tag_len..];
+    let gt_pos = after_name.find('>')?;
+    Some((tag_name, 2 + tag_len + gt_pos + 1))
+}
+
+/// Extract tag info from an opening tag string like `<div class="test">`.
+/// Returns (tag_name, end_position, is_self_closing).
+fn extract_tag_info_from_opening(s: &str) -> Option<(String, usize, bool)> {
+    if !s.starts_with('<') || s.starts_with("</") || s.starts_with("<!") || s.starts_with("<?") {
+        return None;
+    }
+    let after = &s[1..];
+    let tag_name: String = after
+        .chars()
+        .take_while(|c| c.is_ascii_alphanumeric() || *c == ':')
+        .collect();
+    if tag_name.is_empty() {
+        return None;
+    }
+    let tag_len = tag_name.len();
+    // Tag name must be followed by space, >, or / (but not // which is a URL)
+    let after_name = &after[tag_len..];
+    if !after_name.is_empty() {
+        let next = after_name.chars().next()?;
+        if next != ' ' && next != '\t' && next != '>' && next != '/' && next != '\n' {
+            return None;
+        }
+        // Reject URL-like patterns: <http://...>
+        if after_name.starts_with("//") {
+            return None;
+        }
+    }
+    let gt_pos = after_name.find('>')?;
+    let before_gt = &after_name[..gt_pos];
+    let is_self_closing = before_gt.trim_end().ends_with('/');
+    Some((tag_name, 1 + tag_len + gt_pos + 1, is_self_closing))
+}
+
+/// Check if a tag name is a void (self-closing) HTML element.
+fn is_void_tag_name(tag: &str) -> bool {
     matches!(
-        c,
-        '\\' | '`'
-            | '*'
-            | '_'
-            | '{'
-            | '}'
-            | '['
-            | ']'
-            | '('
-            | ')'
-            | '#'
-            | '+'
-            | '-'
-            | '.'
-            | '!'
-            | '|'
-            | '~'
-            | '^'
-            | '>'
-            | '<'
-            | '/'
-            | '='
-            | ':'
-            | '"'
-            | '\''
+        tag,
+        "area"
+            | "base"
+            | "br"
+            | "col"
+            | "embed"
+            | "hr"
+            | "img"
+            | "input"
+            | "link"
+            | "meta"
+            | "param"
+            | "source"
+            | "track"
+            | "wbr"
     )
 }
 
@@ -731,4 +778,386 @@ fn escape_html(s: &str) -> String {
     s.replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
+}
+
+/// Convert HTML block to output.
+fn convert_html_block(
+    elem: &Element,
+    output: &mut String,
+    indent: usize,
+    options: &Options,
+    ctx: &mut SpanContext,
+) {
+    let parse_mode = elem.options.get("parse_mode").map(|s| s.as_str());
+
+    match parse_mode {
+        Some("block") => {
+            // Block-parsed HTML: output opening tag, then children, then closing tag
+            let tag = elem.options.get("tag").map(|s| s.as_str()).unwrap_or("div");
+            let attrs = elem.options.get("attrs").map(|s| s.as_str()).unwrap_or("");
+            write_indent(output, indent);
+            output.push('<');
+            output.push_str(tag);
+            output.push_str(attrs);
+            output.push_str(">\n");
+            convert_children(&elem.children, output, options, indent + 2, ctx);
+            write_indent(output, indent);
+            output.push_str("</");
+            output.push_str(tag);
+            output.push_str(">\n");
+        }
+        Some("span") => {
+            // Span-parsed HTML: output opening tag, then span-processed content, then closing tag
+            let tag = elem.options.get("tag").map(|s| s.as_str()).unwrap_or("p");
+            let attrs = elem.options.get("attrs").map(|s| s.as_str()).unwrap_or("");
+            write_indent(output, indent);
+            output.push('<');
+            output.push_str(tag);
+            output.push_str(attrs);
+            output.push_str(">\n");
+            if let Some(ref val) = elem.value {
+                let processed = span_parser::spans_to_html(val.trim(), ctx);
+                output.push_str(&processed);
+                output.push('\n');
+            }
+            write_indent(output, indent);
+            output.push_str("</");
+            output.push_str(tag);
+            output.push_str(">\n");
+        }
+        _ => {
+            // Raw HTML: pass through
+            let elem_type = elem.options.get("type").map(|s| s.as_str());
+            let skip_escape = matches!(elem_type, Some("comment") | Some("raw"));
+            if let Some(ref val) = elem.value {
+                if !val.is_empty() {
+                    if skip_escape {
+                        output.push_str(val);
+                    } else {
+                        let processed = escape_invalid_html_in_block(val);
+                        output.push_str(&processed);
+                    }
+                    if !val.ends_with('\n') {
+                        output.push('\n');
+                    }
+                }
+            }
+            // Handle trailing text after HTML comments (e.g., --> para)
+            if let Some(trailing) = elem.options.get("trailing_text") {
+                output.push_str("<p>");
+                output.push_str(trailing);
+                output.push_str("</p>\n");
+            }
+        }
+    }
+}
+
+/// Convert definition list to HTML.
+fn convert_definition_list(
+    elem: &Element,
+    output: &mut String,
+    options: &Options,
+    indent: usize,
+    ctx: &mut SpanContext,
+) {
+    // Check for auto_ids directive in attributes
+    let mut auto_ids_prefix: Option<String> = None;
+    let mut dl_attrs = elem.attr.clone();
+    // Look for auto_ids or auto_ids-prefix- style attributes
+    let auto_ids_keys: Vec<String> = dl_attrs
+        .keys()
+        .filter(|k| k.starts_with("auto_ids"))
+        .cloned()
+        .collect();
+    for key in &auto_ids_keys {
+        if key == "auto_ids" {
+            auto_ids_prefix = Some(String::new());
+        } else if key.starts_with("auto_ids-") && key.ends_with('-') {
+            let prefix = &key[9..key.len() - 1];
+            auto_ids_prefix = Some(format!("{prefix}-"));
+        }
+        dl_attrs.remove(key);
+    }
+
+    write_indent(output, indent);
+    output.push_str("<dl");
+    write_attrs(&dl_attrs, output);
+    output.push_str(">\n");
+
+    for child in &elem.children {
+        match child.element_type {
+            ElementType::DefinitionTerm => {
+                write_indent(output, indent + 2);
+                output.push_str("<dt");
+                // Auto-generate ID if auto_ids is set and dt doesn't have one
+                if let Some(ref prefix) = auto_ids_prefix {
+                    if !child.attr.contains_key("id") {
+                        if let Some(ref val) = child.value {
+                            let id = generate_term_id(val, prefix);
+                            output.push_str(&format!(" id=\"{id}\""));
+                        }
+                    }
+                }
+                write_attrs(&child.attr, output);
+                output.push('>');
+                if let Some(ref val) = child.value {
+                    let processed = span_parser::spans_to_html(val, ctx);
+                    output.push_str(&processed);
+                }
+                output.push_str("</dt>\n");
+            }
+            ElementType::DefinitionDefinition => {
+                let has_block = child.options.contains_key("block_content");
+                let has_para = child.options.contains_key("para_wrap");
+
+                if has_block {
+                    // Block content in dd
+                    write_indent(output, indent + 2);
+                    output.push_str("<dd");
+                    write_attrs(&child.attr, output);
+                    output.push_str(">\n");
+                    convert_children(&child.children, output, options, indent + 4, ctx);
+                    write_indent(output, indent + 2);
+                    output.push_str("</dd>\n");
+                } else if has_para {
+                    // Para-wrapped dd
+                    write_indent(output, indent + 2);
+                    output.push_str("<dd");
+                    write_attrs(&child.attr, output);
+                    output.push_str(">\n");
+                    write_indent(output, indent + 4);
+                    output.push_str("<p>");
+                    if let Some(ref val) = child.value {
+                        let processed = span_parser::spans_to_html(val, ctx);
+                        output.push_str(&processed);
+                    }
+                    output.push_str("</p>\n");
+                    write_indent(output, indent + 2);
+                    output.push_str("</dd>\n");
+                } else {
+                    // Simple dd
+                    write_indent(output, indent + 2);
+                    output.push_str("<dd");
+                    write_attrs(&child.attr, output);
+                    output.push('>');
+                    if let Some(ref val) = child.value {
+                        if !val.is_empty() {
+                            let processed = span_parser::spans_to_html(val, ctx);
+                            output.push_str(&processed);
+                        }
+                    }
+                    output.push_str("</dd>\n");
+                }
+            }
+            _ => {}
+        }
+    }
+
+    write_indent(output, indent);
+    output.push_str("</dl>\n");
+}
+
+/// Generate an ID for a definition term from its text.
+fn generate_term_id(text: &str, prefix: &str) -> String {
+    let cleaned = text
+        .to_lowercase()
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '-'
+            }
+        })
+        .collect::<String>();
+    // Remove leading/trailing hyphens and collapse multiple
+    let collapsed: String = cleaned
+        .split('-')
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join("-");
+    format!("{prefix}{collapsed}")
+}
+
+/// Convert math block to HTML.
+fn convert_math_block(elem: &Element, output: &mut String, options: &Options, indent: usize) {
+    if let Some(ref content) = elem.value {
+        let escaped = escape_html(content);
+
+        // Check if math engine is disabled (None = disabled via `~`)
+        let no_engine = options.math_engine.is_none();
+
+        if no_engine {
+            write_indent(output, indent);
+            output.push_str("<div");
+            write_attrs(&elem.attr, output);
+            if !elem.attr.contains_key("class") {
+                output.push_str(" class=\"kdmath\"");
+            } else {
+                // Append kdmath to existing class
+            }
+            output.push_str(">$$\n");
+            output.push_str(&escaped);
+            output.push_str("\n$$</div>\n");
+        } else {
+            // Default: use MathJax-style delimiters
+            if elem.attr.is_empty() {
+                write_indent(output, indent);
+                output.push_str("\\[");
+                output.push_str(&escaped);
+                output.push_str("\\]\n");
+            } else {
+                // With attributes, wrap in a div
+                write_indent(output, indent);
+                output.push_str("<div");
+                write_attrs(&elem.attr, output);
+                output.push('>');
+                output.push_str("\\[");
+                output.push_str(&escaped);
+                output.push_str("\\]\n");
+                output.push_str("</div>\n");
+            }
+        }
+    }
+}
+
+/// Convert block extension to HTML.
+fn convert_block_extension(elem: &Element, output: &mut String, _indent: usize) {
+    let ext_type = elem
+        .options
+        .get("ext_type")
+        .map(|s| s.as_str())
+        .unwrap_or("");
+    match ext_type {
+        "comment" => {
+            // Output as HTML comment
+            if let Some(ref val) = elem.value {
+                if !val.is_empty() {
+                    output.push_str("<!-- ");
+                    output.push_str(val);
+                    output.push_str(" -->\n");
+                }
+            }
+        }
+        "nomarkdown" => {
+            // Output raw content
+            if let Some(ref val) = elem.value {
+                if !val.is_empty() {
+                    output.push_str(val);
+                    output.push('\n');
+                }
+            }
+        }
+        _ => {
+            // Empty/options - no output
+        }
+    }
+}
+
+/// Render the footnotes section at the end of the document.
+/// Uses the block parser to process footnote content (which can contain
+/// headings, blockquotes, code blocks, lists, etc.).
+fn render_footnotes(options: &Options, ctx: &mut SpanContext) -> String {
+    if ctx.footnote_order.is_empty() {
+        return String::new();
+    }
+
+    let mut output = String::new();
+    let start_nr = options.footnote_nr as usize;
+    if start_nr != 1 {
+        output.push_str(&format!(
+            "\n<div class=\"footnotes\" role=\"doc-endnotes\">\n  <ol start=\"{start_nr}\">\n"
+        ));
+    } else {
+        output.push_str("\n<div class=\"footnotes\" role=\"doc-endnotes\">\n  <ol>\n");
+    }
+
+    let backlink_text = span_parser::encode_backlink_text(&options.footnote_backlink);
+    let backlink_empty = options.footnote_backlink.is_empty();
+    let prefix = options.footnote_prefix.clone();
+
+    let mut i = 0;
+    while i < ctx.footnote_order.len() {
+        let name = ctx.footnote_order[i].clone();
+        let content = ctx.footnote_defs.get(&name).cloned().unwrap_or_default();
+
+        let prefixed_name = if prefix.is_empty() {
+            name.clone()
+        } else {
+            format!("{prefix}{name}")
+        };
+        let fn_id = format!("fn:{prefixed_name}");
+        let fnref_id = format!("fnref:{prefixed_name}");
+
+        output.push_str(&format!("    <li id=\"{fn_id}\">\n"));
+
+        let fn_content_html = render_footnote_content(&content, options, ctx);
+
+        if backlink_empty {
+            output.push_str(&fn_content_html);
+        } else {
+            let ref_count = ctx.footnote_ref_counts.get(&name).copied().unwrap_or(1);
+            let nbsp = "\u{a0}";
+            let mut bl = format!(
+                "{nbsp}<a href=\"#{fnref_id}\" class=\"reversefootnote\" role=\"doc-backlink\">{backlink_text}</a>"
+            );
+            for ref_num in 1..ref_count {
+                bl.push_str(&format!(
+                    "{nbsp}<a href=\"#{fnref_id}:{ref_num}\" class=\"reversefootnote\" role=\"doc-backlink\">{backlink_text}<sup>{}</sup></a>",
+                    ref_num + 1
+                ));
+            }
+
+            let inserted = insert_backlink_into_content(&fn_content_html, &bl);
+            output.push_str(&inserted);
+        }
+
+        output.push_str("    </li>\n");
+        i += 1;
+    }
+
+    output.push_str("  </ol>\n</div>\n");
+    output
+}
+
+/// Render footnote content through the block parser for full block-level support.
+fn render_footnote_content(content: &str, options: &Options, ctx: &mut SpanContext) -> String {
+    if content.is_empty() {
+        return String::new();
+    }
+
+    // Add trailing newline for the block parser
+    let input = if content.ends_with('\n') {
+        content.to_string()
+    } else {
+        format!("{content}\n")
+    };
+
+    // Parse through block parser
+    let doc = KramdownParser::parse(&input, options);
+
+    // Convert to HTML with span processing (reuse the same context for footnote refs)
+    let mut html_output = String::new();
+    convert_children(&doc.root.children, &mut html_output, options, 6, ctx);
+
+    html_output
+}
+
+/// Insert backlink HTML into the last paragraph (or last block element) of footnote content.
+/// If the content ends with a <p>...</p>, insert the backlink before the closing </p>.
+/// If it ends with another block element, append a new <p> with just the backlink.
+fn insert_backlink_into_content(content: &str, backlink_html: &str) -> String {
+    // Find the last </p> in the content
+    if let Some(last_p_close) = content.rfind("</p>\n") {
+        let mut result = String::new();
+        result.push_str(&content[..last_p_close]);
+        result.push_str(backlink_html);
+        result.push_str(&content[last_p_close..]);
+        return result;
+    }
+
+    // No paragraph found - append a new paragraph with the backlink
+    let mut result = content.to_string();
+    result.push_str(&format!("      <p>{backlink_html}</p>\n"));
+    result
 }

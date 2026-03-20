@@ -1302,7 +1302,7 @@ pub fn generate_collection_pages_cached_with_progress(
             let is_markdown_source =
                 item.source_path.ends_with(".md") || item.source_path.ends_with(".markdown");
             let has_liquid_tags = item.content.contains("{{") || item.content.contains("{%");
-            let render_result = if !site_overrides.is_empty() {
+            if !site_overrides.is_empty() {
                 if is_markdown_source && has_liquid_tags {
                     layout_engine.render_markdown_page_with_site_overrides(
                         layout,
@@ -1334,9 +1334,7 @@ pub fn generate_collection_pages_cached_with_progress(
                     &page_fm,
                     cached_site,
                 )
-            };
-
-            render_result
+            }
         } else {
             // No layout: output just the rendered HTML content (matches Jekyll behavior).
             // If the body is empty, output a newline -- Jekyll never produces 0-byte files

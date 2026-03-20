@@ -101,7 +101,7 @@ impl Default for Options {
             entity_output: EntityOutput::default(),
             footnote_nr: 1,
             footnote_prefix: String::new(),
-            footnote_backlink: "\u{21A9}\u{FE0E}".to_string(),
+            footnote_backlink: "&#8617;".to_string(),
             footnote_backlink_inline: false,
             footnote_link_text: String::new(),
             math_engine: Some("mathjax".to_string()),
@@ -242,11 +242,17 @@ impl Options {
                     opts.remove_line_breaks_for_cjk = Self::parse_bool(&val)
                 }
                 "smart_quotes" => {
-                    // Could be a YAML array like [lsquo, rsquo, ldquo, rdquo]
-                    if val.starts_with('[') && val.ends_with(']') {
-                        let inner = &val[1..val.len() - 1];
-                        opts.smart_quotes =
-                            inner.split(',').map(|s| s.trim().to_string()).collect();
+                    // Can be YAML array [lsquo, rsquo, ldquo, rdquo] or
+                    // comma-separated string apos,apos,quot,quot
+                    let inner = if val.starts_with('[') && val.ends_with(']') {
+                        &val[1..val.len() - 1]
+                    } else {
+                        &val
+                    };
+                    let parts: Vec<String> =
+                        inner.split(',').map(|s| s.trim().to_string()).collect();
+                    if parts.len() == 4 {
+                        opts.smart_quotes = parts;
                     }
                 }
                 _ => {

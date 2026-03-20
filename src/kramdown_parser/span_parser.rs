@@ -4,6 +4,18 @@
 // Copyright (C) 2009-2013 Thomas Leitner <t_leitner@gmx.at>
 // See LICENSE-kramdown in this directory for the full license text.
 
+#![allow(clippy::manual_strip)]
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::needless_return)]
+#![allow(clippy::useless_conversion)]
+#![allow(clippy::option_map_or_none)]
+#![allow(clippy::manual_find)]
+#![allow(clippy::match_single_binding)]
+#![allow(clippy::manual_is_ascii_check)]
+#![allow(clippy::char_lit_as_u8)]
+#![allow(clippy::option_map_unit_fn)]
+#![allow(clippy::manual_pattern_char_comparison)]
+
 use crate::kramdown_parser::entities;
 use crate::kramdown_parser::options::{EntityOutput, Options};
 use std::collections::HashMap;
@@ -254,9 +266,7 @@ fn parse_link_definition(
         }
     } else {
         // URL is everything up to first whitespace or end of line
-        let parts: Vec<&str> = after_colon
-            .splitn(2, |c: char| c == ' ' || c == '\t')
-            .collect();
+        let parts: Vec<&str> = after_colon.splitn(2, [' ', '\t']).collect();
         let url = parts[0].to_string();
         let rest = parts
             .get(1)
@@ -544,33 +554,38 @@ fn parse_spans(
         // Backslash escape
         if chars[i] == '\\' && i + 1 < end {
             let next = chars[i + 1];
-            // \\ followed by optional spaces and then \n => line break
+            // \\ immediately followed by \n => line break (kramdown rule)
             if next == '\\' {
-                // Check what follows the \\
-                let mut j = i + 2;
-                let mut space_count = 0;
-                while j < end && chars[j] == ' ' {
-                    space_count += 1;
-                    j += 1;
-                }
-                if j < end && chars[j] == '\n' {
-                    if space_count > 0 {
-                        // \\ + spaces + \n => literal \ then <br /> (spaces trigger the break)
-                        output.push_str("\\ <br />\n");
-                    } else {
-                        // \\ + \n => <br /> (\\ = escaped \, then \ at end of line = line break)
-                        output.push_str("<br />\n");
-                    }
-                    i = j + 1;
+                if i + 2 < end && chars[i + 2] == '\n' {
+                    // \\ + \n => <br />
+                    output.push_str("<br />\n");
+                    i += 3;
                     continue;
-                } else if j >= end {
-                    // \\ at end of text (no newline after) => just output backslash
+                } else if i + 2 >= end {
+                    // \\ at end of text => literal backslash
                     output.push('\\');
                     i += 2;
                     continue;
                 }
+                // \\ followed by other chars: treat as escaped backslash (literal \)
+                // Don't consume here; fall through to is_escapable_char below
             }
             if is_escapable_char(next) {
+                // Special case: \$ before $$ - if \ is at start or after whitespace,
+                // the \ is literal text and $$ starts inline math (kramdown behavior).
+                // If \ is after non-whitespace, \$ is an escape producing literal $.
+                if next == '$' && i + 2 < end && chars[i + 2] == '$' {
+                    let prev_is_ws = i == start
+                        || (i > 0
+                            && (chars[i - 1] == ' '
+                                || chars[i - 1] == '\n'
+                                || chars[i - 1] == '\t'));
+                    if prev_is_ws {
+                        output.push('\\');
+                        i += 1;
+                        continue;
+                    }
+                }
                 output.push_str(&escape_html_char(next));
                 i += 2;
                 continue;
@@ -738,8 +753,8 @@ fn parse_spans(
             }
         }
 
-        // Image link: ![alt](url) or ![alt][ref]
-        if chars[i] == '!' && i + 1 < end && chars[i + 1] == '[' && !in_link {
+        // Image link: ![alt](url) or ![alt][ref] (allowed inside links too)
+        if chars[i] == '!' && i + 1 < end && chars[i + 1] == '[' {
             if let Some((html, advance)) = try_parse_image(chars, i, end, ctx) {
                 output.push_str(&html);
                 i += advance;
@@ -869,6 +884,10 @@ fn parse_spans(
             }
             let space_count = i - space_start;
             if i < end && chars[i] == '\n' && space_count >= 2 {
+                // Output extra spaces before the line break (kramdown only consumes 2)
+                for _ in 0..space_count.saturating_sub(2) {
+                    output.push(' ');
+                }
                 output.push_str("<br />\n");
                 i += 1; // skip the \n
                 continue;
@@ -1226,10 +1245,11 @@ fn try_parse_inline_math(chars: &[char], start: usize, end: usize) -> Option<(St
     while i + 1 < end {
         if chars[i] == '$' && chars[i + 1] == '$' {
             let content: String = chars[content_start..i].iter().collect();
-            if content.is_empty() {
+            let trimmed = content.trim();
+            if trimmed.is_empty() {
                 return None;
             }
-            return Some((content, i + 2 - start));
+            return Some((trimmed.to_string(), i + 2 - start));
         }
         i += 1;
     }
@@ -1373,31 +1393,63 @@ fn try_parse_html_span(
         let tag_str = &remaining[..=gt];
         let inner = &remaining[1..gt];
 
-        // Extract tag name
+        // Extract tag name (may include : for XML namespaced tags)
         let tag_name_end = inner
             .find(|c: char| c.is_whitespace() || c == '/' || c == '>')
             .unwrap_or(inner.len());
-        let tag_name = inner[..tag_name_end].to_lowercase();
+        let tag_name_raw = &inner[..tag_name_end];
+        let tag_name = tag_name_raw.to_lowercase();
+        let is_xml_tag =
+            tag_name_raw.contains(':') || tag_name_raw.chars().any(|c| c.is_uppercase());
 
         if tag_name.is_empty() {
             return None;
         }
 
-        // Must be a valid HTML tag
-        if !is_valid_span_tag(&tag_name) && !is_valid_block_tag(&tag_name) {
+        // Tag name must start with an ASCII letter
+        if !tag_name.starts_with(|c: char| c.is_ascii_alphabetic()) {
             return None;
         }
 
-        // Block-level tags in span context are escaped
-        if is_block_level_tag(&tag_name) && !is_also_span_tag(&tag_name) {
+        // Tag name must only contain valid characters (alphanumeric, -, _, ., :)
+        if !tag_name_raw
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.' || c == ':')
+        {
+            return None;
+        }
+
+        // Must be a valid HTML tag or XML namespaced tag (contains :)
+        let is_known_tag = is_valid_span_tag(&tag_name) || is_valid_block_tag(&tag_name);
+        if !is_known_tag && !tag_name_raw.contains(':') && !is_xml_tag {
+            return None;
+        }
+
+        // Block-level tags in span context are escaped (but not XML tags)
+        if !is_xml_tag && is_block_level_tag(&tag_name) && !is_also_span_tag(&tag_name) {
             return None;
         }
 
         let is_self_closing = inner.trim_end().ends_with('/');
         let is_void = is_void_element(&tag_name);
 
-        // Normalize HTML attributes
-        let normalized = normalize_html_tag(tag_str);
+        // Check for markdown attribute and determine processing mode
+        let attrs = parse_html_attrs(if inner.len() > tag_name_end {
+            &inner[tag_name_end..]
+        } else {
+            ""
+        });
+        let markdown_val = attrs
+            .iter()
+            .find(|(k, _)| k == "markdown")
+            .and_then(|(_, v)| v.clone());
+
+        // Normalize HTML attributes (preserve case for XML tags), removing markdown attr
+        let normalized = if is_xml_tag {
+            remove_attr_from_tag(&normalize_xml_tag(tag_str), "markdown")
+        } else {
+            remove_attr_from_tag(&normalize_html_tag(tag_str), "markdown")
+        };
 
         if is_self_closing || is_void {
             // Self-closing: <br />, <img ... />
@@ -1425,20 +1477,37 @@ fn try_parse_html_span(
 
         // Regular inline tag: <span>, <em>, <strong>, etc.
         // Find the matching closing tag
-        let close_tag_lower = format!("</{}>", tag_name);
+        // For XML tags: use case-sensitive matching with original name
+        // For HTML tags: use case-insensitive matching
+        let close_tag_name = if is_xml_tag {
+            tag_name_raw.to_string()
+        } else {
+            tag_name.clone()
+        };
+        let close_tag_pattern = format!("</{}>", close_tag_name);
         let search_start = start + gt + 1;
 
-        // For inline tags, find the closing tag and process content between
         let rest: String = chars[search_start..end].iter().collect();
-        let close_pos = find_case_insensitive(&rest, &close_tag_lower);
+        let close_pos = if is_xml_tag {
+            // Case-sensitive search for XML tags
+            rest.find(&close_tag_pattern)
+        } else {
+            find_case_insensitive(&rest, &close_tag_pattern)
+        };
 
         if let Some(cp) = close_pos {
-            // Found closing tag - process inner content as spans
             let inner_chars: Vec<char> = rest[..cp].chars().collect();
             let mut inner_html = String::new();
 
-            // For markdown-processable tags, process inner content
-            if is_markdown_processable_tag(&tag_name) {
+            // Determine if content should be markdown-processed
+            let should_process = match markdown_val.as_deref() {
+                Some("0") => false,
+                Some("1") | Some("span") | Some("block") => true,
+                None => is_markdown_processable_tag(&tag_name) || is_xml_tag,
+                _ => is_markdown_processable_tag(&tag_name),
+            };
+
+            if should_process {
                 parse_spans(
                     &inner_chars,
                     0,
@@ -1451,18 +1520,22 @@ fn try_parse_html_span(
                 inner_html = rest[..cp].to_string();
             }
 
-            let total_advance = gt + 1 + cp + close_tag_lower.len();
-            // Also handle case-insensitive close
+            let total_advance = gt + 1 + cp + close_tag_pattern.len();
             return Some((
-                format!("{normalized}{inner_html}</{tag_name}>"),
+                format!("{normalized}{inner_html}</{close_tag_name}>"),
                 total_advance,
             ));
         }
 
         // No closing tag - auto-close at end of content
-        // Process remaining content and wrap with the tag
         let rest_content: String = chars[search_start..end].iter().collect();
-        if is_markdown_processable_tag(&tag_name) {
+        let should_process = match markdown_val.as_deref() {
+            Some("0") => false,
+            Some("1") | Some("span") | Some("block") => true,
+            None => is_markdown_processable_tag(&tag_name) || is_xml_tag,
+            _ => is_markdown_processable_tag(&tag_name),
+        };
+        if should_process {
             let inner_chars: Vec<char> = rest_content.chars().collect();
             let mut inner_html = String::new();
             parse_spans(
@@ -1475,14 +1548,14 @@ fn try_parse_html_span(
             );
             let total_advance = end - start;
             return Some((
-                format!("{normalized}{inner_html}</{tag_name}>"),
+                format!("{normalized}{inner_html}</{close_tag_name}>"),
                 total_advance,
             ));
         }
 
         let total_advance = end - start;
         return Some((
-            format!("{normalized}{rest_content}</{tag_name}>"),
+            format!("{normalized}{rest_content}</{close_tag_name}>"),
             total_advance,
         ));
     }
@@ -1666,25 +1739,25 @@ fn is_raw_content_tag(tag: &str) -> bool {
 }
 
 fn is_markdown_processable_tag(tag: &str) -> bool {
-    // Tags whose inner content should be processed for markdown
+    // Tags whose inner content should be processed for markdown.
+    // Raw-like tags (kbd, samp, var) are NOT processed to preserve literal content.
     matches!(
         tag,
         "a" | "abbr"
             | "b"
             | "bdi"
             | "bdo"
+            | "button"
             | "cite"
             | "del"
             | "dfn"
             | "em"
             | "i"
             | "ins"
-            | "kbd"
             | "label"
             | "mark"
             | "q"
             | "s"
-            | "samp"
             | "small"
             | "span"
             | "strong"
@@ -1692,7 +1765,6 @@ fn is_markdown_processable_tag(tag: &str) -> bool {
             | "sup"
             | "time"
             | "u"
-            | "var"
     )
 }
 
@@ -1729,10 +1801,58 @@ fn normalize_html_tag(tag: &str) -> String {
     for (name, value) in &attrs {
         let name_lower = name.to_lowercase();
         if let Some(val) = value {
-            result.push_str(&format!(" {name_lower}=\"{val}\""));
+            // Normalize newlines in attribute values to spaces
+            let normalized_val = val.replace('\n', " ");
+            result.push_str(&format!(" {name_lower}=\"{normalized_val}\""));
         } else {
             // Boolean attribute
             result.push_str(&format!(" {name_lower}=\"\""));
+        }
+    }
+
+    if is_self_closing {
+        result.push_str(" />");
+    } else {
+        result.push('>');
+    }
+    result
+}
+
+/// Normalize an XML tag: preserve case for tag name and attribute names,
+/// but normalize attribute quotes to double quotes.
+fn normalize_xml_tag(tag: &str) -> String {
+    if !tag.starts_with('<') || !tag.ends_with('>') {
+        return tag.to_string();
+    }
+
+    let inner = &tag[1..tag.len() - 1];
+    let is_self_closing = inner.ends_with('/');
+    let inner = if is_self_closing {
+        inner[..inner.len() - 1].trim()
+    } else {
+        inner.trim()
+    };
+
+    let parts: Vec<&str> = inner.splitn(2, |c: char| c.is_whitespace()).collect();
+    let tag_name = parts[0]; // preserve case
+    let attr_str = if parts.len() > 1 { parts[1] } else { "" };
+
+    if attr_str.is_empty() {
+        if is_self_closing {
+            return format!("<{tag_name} />");
+        }
+        return format!("<{tag_name}>");
+    }
+
+    let attrs = parse_html_attrs(attr_str);
+    let mut result = format!("<{tag_name}");
+    for (name, value) in &attrs {
+        // Preserve case for XML attribute names
+        if let Some(val) = value {
+            let normalized_val = val.replace('\n', " ");
+            result.push_str(&format!(" {name}=\"{normalized_val}\""));
+        } else {
+            result.push_str(&format!(" {name}=\"\""));
         }
     }
 
@@ -1827,6 +1947,45 @@ fn ensure_self_closing(tag: &str, tag_name: &str) -> String {
         return format!("{without} />");
     }
     tag.to_string()
+}
+
+/// Remove an attribute from an HTML tag string.
+fn remove_attr_from_tag(tag: &str, attr_name: &str) -> String {
+    // Simple approach: use regex-like removal of attr="value"
+    // Handle: attr="value", attr='value', attr=value
+    let mut result = tag.to_string();
+    let patterns = [
+        format!(" {attr_name}=\""),
+        format!(" {attr_name}='"),
+        format!(" {attr_name}="),
+    ];
+    for pattern in &patterns {
+        if let Some(start) = result.find(pattern.as_str()) {
+            let after_eq = start + pattern.len();
+            let quote_char = if pattern.ends_with('"') {
+                Some('"')
+            } else if pattern.ends_with('\'') {
+                Some('\'')
+            } else {
+                None
+            };
+            if let Some(qc) = quote_char {
+                // Find closing quote
+                if let Some(end_q) = result[after_eq..].find(qc) {
+                    let end = after_eq + end_q + 1;
+                    result = format!("{}{}", &result[..start], &result[end..]);
+                }
+            } else {
+                // Unquoted value: ends at space or >
+                let end = result[after_eq..]
+                    .find(|c: char| c.is_whitespace() || c == '>' || c == '/')
+                    .map(|p| after_eq + p)
+                    .unwrap_or(result.len());
+                result = format!("{}{}", &result[..start], &result[end..]);
+            }
+        }
+    }
+    result
 }
 
 /// Try to parse emphasis/strong.
@@ -2832,7 +2991,7 @@ fn is_opening_quote(chars: &[char], pos: usize, end: usize) -> bool {
 
     // At start of text: only opening if followed by alphanumeric or clear content openers
     if pos == 0 {
-        return next.map_or(false, |c| {
+        return next.is_some_and(|c| {
             c.is_alphanumeric()
                 || c == '.'
                 || c == '\''
@@ -2865,7 +3024,7 @@ fn is_opening_quote(chars: &[char], pos: usize, end: usize) -> bool {
     }
 
     // Must be followed by non-space and non-closing-punctuation
-    next.map_or(false, |c| {
+    next.is_some_and(|c| {
         c != ' '
             && c != '\n'
             && c != '\t'
@@ -2882,8 +3041,8 @@ fn has_matching_single_close(chars: &[char], start: usize, end: usize) -> bool {
     let mut i = start;
     while i < end {
         if chars[i] == '\'' {
-            // Check if this is a valid closing '
-            if i > start && chars[i - 1] != ' ' && chars[i - 1] != '\n' {
+            // Check if this is a valid closing ' (adjacent or preceded by non-space)
+            if i == start || (i > start && chars[i - 1] != ' ' && chars[i - 1] != '\n') {
                 return true;
             }
         }
@@ -2999,8 +3158,8 @@ fn try_parse_entity(
         let original = format!("&{entity_content};");
         match ctx.options.entity_output {
             EntityOutput::AsChar => {
-                let ch_str = entities::resolve_named_entity(&entity_content)
-                    .unwrap_or(&entity_content);
+                let ch_str =
+                    entities::resolve_named_entity(&entity_content).unwrap_or(&entity_content);
                 Some((ch_str.to_string(), advance))
             }
             EntityOutput::Symbolic => {
@@ -3008,8 +3167,8 @@ fn try_parse_entity(
                 Some((original, advance))
             }
             EntityOutput::Numeric => {
-                let ch_str = entities::resolve_named_entity(&entity_content)
-                    .unwrap_or(&entity_content);
+                let ch_str =
+                    entities::resolve_named_entity(&entity_content).unwrap_or(&entity_content);
                 let cp = ch_str.chars().next().unwrap_or_default() as u32;
                 Some((format!("&#{cp};"), advance))
             }
@@ -3118,11 +3277,12 @@ fn try_parse_footnote_ref(
     };
 
     let prefix = &ctx.options.footnote_prefix;
-    let fn_id = if prefix.is_empty() {
-        format!("fn:{name}")
+    let prefixed_name = if prefix.is_empty() {
+        name.clone()
     } else {
-        format!("fn:{prefix}:{name}")
+        format!("{prefix}{name}")
     };
+    let fn_id = format!("fn:{prefixed_name}");
 
     // Track reference count for duplicate IDs
     let ref_count = ctx.footnote_ref_counts.entry(name.clone()).or_insert(0);
@@ -3132,80 +3292,58 @@ fn try_parse_footnote_ref(
     } else {
         String::new()
     };
-    let fnref_id = if prefix.is_empty() {
-        format!("fnref:{name}{suffix}")
+    let fnref_id = format!("fnref:{prefixed_name}{suffix}");
+
+    // Format the link text using footnote_link_text option
+    let link_text = if ctx.options.footnote_link_text.is_empty() {
+        fn_number.to_string()
     } else {
-        format!("fnref:{prefix}:{name}{suffix}")
+        ctx.options
+            .footnote_link_text
+            .replace("%s", &fn_number.to_string())
     };
 
     Some((
         format!(
-            "<sup id=\"{fnref_id}\"><a href=\"#{fn_id}\" class=\"footnote\" rel=\"footnote\" role=\"doc-noteref\">{fn_number}</a></sup>",
+            "<sup id=\"{fnref_id}\"><a href=\"#{fn_id}\" class=\"footnote\" rel=\"footnote\" role=\"doc-noteref\">{link_text}</a></sup>",
         ),
         i + 1 - start,
     ))
 }
 
-/// Render footnotes section (called after all content is processed)
-pub fn render_footnotes(ctx: &mut SpanContext) -> String {
-    if ctx.footnote_order.is_empty() {
-        return String::new();
-    }
+/// Get the footnote data needed for rendering. Returns Vec of (name, content, ref_count).
+/// The actual rendering is done in html.rs which has access to the block parser.
+pub fn get_footnote_data(ctx: &SpanContext) -> Vec<(String, String, usize)> {
+    ctx.footnote_order
+        .iter()
+        .map(|name| {
+            let content = ctx.footnote_defs.get(name).cloned().unwrap_or_default();
+            let ref_count = ctx.footnote_ref_counts.get(name).copied().unwrap_or(1);
+            (name.clone(), content, ref_count)
+        })
+        .collect()
+}
 
-    let mut output = String::new();
-    output.push_str("\n<div class=\"footnotes\" role=\"doc-endnotes\">\n  <ol>\n");
-
-    for (idx, name) in ctx.footnote_order.clone().iter().enumerate() {
-        let _fn_number = idx + ctx.options.footnote_nr as usize;
-        let prefix = &ctx.options.footnote_prefix;
-        let fn_id = if prefix.is_empty() {
-            format!("fn:{name}")
-        } else {
-            format!("fn:{prefix}:{name}")
-        };
-        let fnref_id = if prefix.is_empty() {
-            format!("fnref:{name}")
-        } else {
-            format!("fnref:{prefix}:{name}")
-        };
-
-        let content = ctx.footnote_defs.get(name).cloned().unwrap_or_default();
-
-        let backlink = &ctx.options.footnote_backlink;
-        let backlink_html = if ctx.options.footnote_backlink_inline {
-            format!("&nbsp;<a href=\"#{fnref_id}\" class=\"reversefootnote\" role=\"doc-backlink\">{backlink}</a>")
-        } else {
-            format!(" <a href=\"#{fnref_id}\" class=\"reversefootnote\" role=\"doc-backlink\">{backlink}</a>")
-        };
-
-        output.push_str(&format!("    <li id=\"{fn_id}\">\n"));
-
-        // Parse the footnote content as paragraphs
-        let mut fn_html = String::new();
-        let content_html = spans_to_html(&content, ctx);
-
-        // Wrap in paragraph
-        if content.contains('\n') && content.contains("\n\n") {
-            // Multi-paragraph footnote
-            let paragraphs: Vec<&str> = content.split("\n\n").collect();
-            for (pi, para) in paragraphs.iter().enumerate() {
-                let para_html = spans_to_html(para.trim(), ctx);
-                if pi == paragraphs.len() - 1 {
-                    fn_html.push_str(&format!("      <p>{para_html}{backlink_html}</p>\n"));
-                } else {
-                    fn_html.push_str(&format!("      <p>{para_html}</p>\n"));
-                }
-            }
-        } else {
-            fn_html.push_str(&format!("      <p>{content_html}{backlink_html}</p>\n"));
+/// Convert backlink text to HTML entity form.
+/// Default backlink chars U+21A9 U+FE0E become `&#8617;`.
+/// Also escapes HTML special chars.
+pub fn encode_backlink_text(text: &str) -> String {
+    let mut result = String::new();
+    for ch in text.chars() {
+        // Variation selectors are ignored in entity output
+        if ('\u{FE00}'..='\u{FE0F}').contains(&ch) {
+            continue;
         }
-
-        output.push_str(&fn_html);
-        output.push_str("    </li>\n");
+        match ch {
+            '<' => result.push_str("&lt;"),
+            '>' => result.push_str("&gt;"),
+            c if !c.is_ascii() => {
+                result.push_str(&format!("&#{};", c as u32));
+            }
+            c => result.push(c),
+        }
     }
-
-    output.push_str("  </ol>\n</div>\n");
-    output
+    result
 }
 
 /// Apply abbreviations to HTML output, replacing whole-word occurrences
@@ -3222,7 +3360,12 @@ fn apply_abbreviations(html: &str, abbreviations: &HashMap<String, String>) -> S
     abbrs.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
 
     for (abbr, full) in abbrs {
-        let replacement = format!("<abbr title=\"{full}\">{abbr}</abbr>");
+        let replacement = if full.is_empty() {
+            format!("<abbr>{abbr}</abbr>")
+        } else {
+            let escaped_full = escape_html_attr(full);
+            format!("<abbr title=\"{escaped_full}\">{abbr}</abbr>")
+        };
         result = replace_outside_tags(&result, abbr, &replacement);
     }
 

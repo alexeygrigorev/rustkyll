@@ -90,7 +90,7 @@ impl Filter for NumberOfWordsFilter {
         let args = self.args.evaluate(runtime)?;
         let text = input.to_kstr();
 
-        let use_cjk = args.mode.as_ref().map_or(false, |m| {
+        let use_cjk = args.mode.as_ref().is_some_and(|m| {
             let mode_str = m.to_kstr();
             mode_str.as_ref() == "auto" || mode_str.as_ref() == "cjk"
         });
