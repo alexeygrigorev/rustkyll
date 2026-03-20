@@ -698,6 +698,7 @@ impl TemplateEngine {
             // Must come after with_stdlib() to override the default url_encode (%20)
             .filter(filters::UrlEncode)
             .filter(filters::CgiEscape)
+            .filter(filters::UriEscape)
             // Lenient math filters: non-numeric strings coerce to 0 (Issue 196)
             // Must come after with_stdlib() to override strict versions
             .filter(filters::math::Times)

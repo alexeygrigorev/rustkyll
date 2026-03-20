@@ -271,6 +271,66 @@ Warnings (1):
 
 jekyll-theme-chirpy triggers many more rustkyll limitations than the vitepress theme. The core issues are: filter arguments, dynamic include paths, the highlight tag, and SASS compilation. Even with config edits, the site cannot render correctly without engine-level fixes.
 
+## Worked Example: chirpy-starter (Issue 236)
+
+**Repository:** https://github.com/cotes2020/chirpy-starter (user-facing starter)
+**Theme source:** https://github.com/cotes2020/jekyll-theme-chirpy (v7.5)
+
+### Setup
+
+The chirpy-starter is a minimal site that uses the chirpy theme as a gem dependency. Since rustkyll cannot use gem-based themes, the setup merges theme files into the starter:
+
+```bash
+git clone --depth 1 https://github.com/cotes2020/chirpy-starter websites/chirpy
+# Copy theme files from the already-cloned theme source
+cp -r websites/jekyll-theme-chirpy/_layouts  websites/chirpy/
+cp -r websites/jekyll-theme-chirpy/_includes websites/chirpy/
+cp -r websites/jekyll-theme-chirpy/_sass     websites/chirpy/
+cp -r websites/jekyll-theme-chirpy/assets/*  websites/chirpy/assets/
+cp -r websites/jekyll-theme-chirpy/_data/locales websites/chirpy/_data/
+cp    websites/jekyll-theme-chirpy/_posts/*   websites/chirpy/_posts/
+# Comment out theme: in _config.yml, add plugins list
+```
+
+One workaround was needed: the sidebar template uses `.tabs.[tab_name]` syntax (dot before bracket) which rustkyll's Liquid parser does not support. Changed to `.tabs[tab_name]` (functionally equivalent in Jekyll).
+
+### Build results
+
+**Jekyll:** 17 HTML files, 0 warnings, 0.59s build time.
+
+**rustkyll:** 17 HTML files, 0.11s build time. Warnings:
+- 1 post (`write-a-new-post`) fails to render because it mentions `{% highlight %}` literally in a blockquote (the parser interprets it as a real Liquid tag)
+- SCSS compilation fails (`@use 'main'` not supported) -- expected, CSS is missing from output
+
+### Page count comparison
+
+| Source | HTML files |
+|--------|-----------|
+| Jekyll | 17 |
+| rustkyll | 17 |
+
+Both produce: 1 index, 4 posts, 4 tab pages, 3 category archives, 4 tag archives, 1 404 page.
+
+### DOM comparison
+
+- 13 common HTML files compared (4 tab pages at different paths: Jekyll puts them at `/:title/index.html`, rustkyll at `/tabs/:name.html`)
+- 687 total DOM differences across 13 files, 0 exact matches
+- Main categories of differences:
+  1. **Tab collection permalink:** rustkyll outputs tabs at `/tabs/about.html` etc. instead of `/about/index.html`, `/archives/index.html`, etc. This causes all sidebar navigation links to differ.
+  2. **SEO meta tag ordering:** `jekyll-seo-tag` plugin produces meta tags in a different order than rustkyll's built-in SEO generation.
+  3. **One fallback post:** `write-a-new-post` renders as fallback HTML due to the `{% highlight %}` parse issue.
+
+### Remaining issues
+
+1. **Tab collection permalink `/:title/` not applied.** The `_config.yml` sets `permalink: /:title/` for the `tabs` collection, but rustkyll outputs tabs at their source path (`/tabs/name.html`) instead of the configured permalink. This is a bug in collection permalink resolution.
+2. **`{% highlight %}` in content text.** One post mentions `{% highlight %}` inside a Markdown blockquote. The Liquid parser attempts to interpret it, causing a parse error. The post renders as fallback HTML.
+3. **SCSS compilation.** `@use 'main'` is not supported. The site renders without CSS.
+4. **`.tabs.[var]` Liquid syntax.** The dot-before-bracket syntax (`site.data.locales[lang].tabs.[tab_name]`) is valid Jekyll Liquid but not supported by rustkyll. Workaround: remove the dot before the bracket.
+
+### Summary
+
+After resolving the earlier blockers (issues 254-258), the chirpy-starter site builds successfully with rustkyll, producing the correct page count (17 pages matching Jekyll exactly). Category and tag archive pages are generated correctly via `jekyll-archives`. The main remaining issues are the tab collection permalink resolution and CSS compilation. The site is structurally complete but needs the permalink fix for full URL parity with Jekyll.
+
 ## Common Theme Blockers
 
 The table below lists every unsupported feature encountered across the two tested themes.
