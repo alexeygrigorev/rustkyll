@@ -1,11 +1,12 @@
 //! Custom `{% highlight lang %}...{% endhighlight %}` block tag.
 //!
-//! Wraps the block content in `<pre><code class="language-{lang}">...</code></pre>`,
-//! HTML-escaping the body. Accepts and ignores the optional `linenos` parameter.
+//! Uses syntect-based syntax highlighting via `crate::syntax::highlight_code()`
+//! to produce Rouge-compatible `<span>` markup, wrapped in
+//! `<figure class="highlight"><pre><code class="language-{lang}" data-lang="{lang}">...</code></pre></figure>`.
 //!
-//! This does not perform actual syntax highlighting (no colored spans); it
-//! produces the HTML structure expected by client-side libraries such as
-//! Prism or highlight.js.
+//! When the language is unknown or plaintext, falls back to HTML-escaped plain
+//! text inside the same wrapper structure. Accepts and ignores the optional
+//! `linenos` parameter.
 
 use std::io::Write;
 
@@ -93,16 +94,23 @@ fn html_escape(s: &str) -> String {
 
 impl Renderable for Highlight {
     fn render_to(&self, writer: &mut dyn Write, _runtime: &dyn Runtime) -> liquid_core::Result<()> {
+        let escaped_lang = html_escape(&self.lang);
+
         write!(
             writer,
-            "<pre><code class=\"language-{}\">",
-            html_escape(&self.lang)
+            "<figure class=\"highlight\"><pre><code class=\"language-{}\" data-lang=\"{}\">",
+            escaped_lang, escaped_lang
         )
         .replace("Failed to render")?;
 
-        write!(writer, "{}", html_escape(&self.body)).replace("Failed to render")?;
+        // Try syntect-based syntax highlighting; fall back to plain HTML escaping.
+        if let Some(highlighted) = crate::syntax::highlight_code(&self.lang, &self.body) {
+            write!(writer, "{}", highlighted).replace("Failed to render")?;
+        } else {
+            write!(writer, "{}", html_escape(&self.body)).replace("Failed to render")?;
+        }
 
-        write!(writer, "</code></pre>").replace("Failed to render")?;
+        write!(writer, "</code></pre></figure>").replace("Failed to render")?;
 
         Ok(())
     }
@@ -117,112 +125,199 @@ mod tests {
         TemplateEngine::new().unwrap()
     }
 
-    #[test]
-    fn test_highlight_basic_js() {
+    fn render(template: &str) -> String {
         let eng = engine();
         let ctx = Object::new();
-        let output = eng
-            .parse_and_render("{% highlight js %}var x = 1;{% endhighlight %}", &ctx)
-            .unwrap();
-        assert_eq!(
-            output,
-            "<pre><code class=\"language-js\">var x = 1;</code></pre>"
+        eng.parse_and_render(template, &ctx).unwrap()
+    }
+
+    // --- Syntax-highlighted output tests ---
+
+    #[test]
+    fn test_highlight_python_has_spans() {
+        let output = render("{% highlight python %}print(\"hello\"){% endhighlight %}");
+        // Must contain Rouge-compatible span markup from syntect
+        assert!(
+            output.contains("<span class=\""),
+            "Expected syntax-highlighted spans, got: {output}"
         );
     }
 
     #[test]
-    fn test_highlight_python() {
-        let eng = engine();
-        let ctx = Object::new();
-        let output = eng
-            .parse_and_render(
-                "{% highlight python %}print(\"hello\"){% endhighlight %}",
-                &ctx,
-            )
-            .unwrap();
-        assert_eq!(
-            output,
-            "<pre><code class=\"language-python\">print(&quot;hello&quot;)</code></pre>"
+    fn test_highlight_python_figure_wrapper() {
+        let output = render("{% highlight python %}print(\"hello\"){% endhighlight %}");
+        assert!(
+            output.starts_with("<figure class=\"highlight\"><pre><code class=\"language-python\" data-lang=\"python\">"),
+            "Expected <figure class=\"highlight\"> wrapper, got: {output}"
+        );
+        assert!(
+            output.ends_with("</code></pre></figure>"),
+            "Expected </code></pre></figure> ending, got: {output}"
         );
     }
 
     #[test]
-    fn test_highlight_scss() {
-        let eng = engine();
-        let ctx = Object::new();
-        let output = eng
-            .parse_and_render(
-                "{% highlight scss %}.class { color: red; }{% endhighlight %}",
-                &ctx,
-            )
-            .unwrap();
-        assert_eq!(
-            output,
-            "<pre><code class=\"language-scss\">.class { color: red; }</code></pre>"
+    fn test_highlight_js_has_spans() {
+        let output = render("{% highlight js %}var x = 1;{% endhighlight %}");
+        assert!(
+            output.contains("<span class=\""),
+            "Expected syntax-highlighted spans for JS, got: {output}"
+        );
+        assert!(
+            output.contains("data-lang=\"js\""),
+            "Expected data-lang attribute, got: {output}"
         );
     }
 
     #[test]
-    fn test_highlight_html_escaping() {
-        let eng = engine();
-        let ctx = Object::new();
-        let output = eng
-            .parse_and_render(
-                "{% highlight html %}<div class=\"test\">&amp;</div>{% endhighlight %}",
-                &ctx,
-            )
-            .unwrap();
+    fn test_highlight_scss_figure_wrapper() {
+        let output = render("{% highlight scss %}.class { color: red; }{% endhighlight %}");
+        assert!(
+            output.starts_with("<figure class=\"highlight\"><pre><code class=\"language-scss\" data-lang=\"scss\">"),
+            "Expected figure wrapper for scss, got: {output}"
+        );
+        assert!(
+            output.ends_with("</code></pre></figure>"),
+            "Expected closing wrapper, got: {output}"
+        );
+    }
+
+    #[test]
+    fn test_highlight_multiline_has_spans() {
+        let output = render("{% highlight python %}x = 1\ny = 2\nprint(x + y){% endhighlight %}");
+        // Multiple lines should all get highlighted
+        assert!(
+            output.contains("<span class=\""),
+            "Expected spans in multiline output, got: {output}"
+        );
+        assert!(
+            output.contains("data-lang=\"python\""),
+            "Expected data-lang attribute, got: {output}"
+        );
+    }
+
+    // --- Fallback for unknown language ---
+
+    #[test]
+    fn test_highlight_unknown_lang_fallback() {
+        let output = render("{% highlight unknownlang123 %}some code{% endhighlight %}");
+        assert!(
+            output.starts_with("<figure class=\"highlight\"><pre><code class=\"language-unknownlang123\" data-lang=\"unknownlang123\">"),
+            "Expected figure wrapper for unknown lang, got: {output}"
+        );
+        assert!(
+            output.contains("some code"),
+            "Expected plain text content, got: {output}"
+        );
+        assert!(
+            !output.contains("<span class=\""),
+            "Expected no span tags for unknown lang, got: {output}"
+        );
+        assert!(
+            output.ends_with("</code></pre></figure>"),
+            "Expected closing wrapper, got: {output}"
+        );
+    }
+
+    #[test]
+    fn test_highlight_plaintext_fallback() {
+        let output = render("{% highlight plaintext %}some code{% endhighlight %}");
+        assert!(
+            !output.contains("<span class=\""),
+            "Expected no span tags for plaintext, got: {output}"
+        );
+        assert!(
+            output.starts_with("<figure class=\"highlight\"><pre><code class=\"language-plaintext\" data-lang=\"plaintext\">"),
+            "Expected figure wrapper for plaintext, got: {output}"
+        );
+    }
+
+    // --- Edge cases ---
+
+    #[test]
+    fn test_highlight_empty_content() {
+        let output = render("{% highlight python %}{% endhighlight %}");
         assert_eq!(
             output,
-            "<pre><code class=\"language-html\">&lt;div class=&quot;test&quot;&gt;&amp;amp;&lt;/div&gt;</code></pre>"
+            "<figure class=\"highlight\"><pre><code class=\"language-python\" data-lang=\"python\"></code></pre></figure>"
+        );
+    }
+
+    #[test]
+    fn test_highlight_html_special_chars_fallback() {
+        // Unknown language: manual HTML escaping must happen
+        let output = render(
+            "{% highlight unknownlang123 %}<div class=\"test\">&amp;</div>{% endhighlight %}",
+        );
+        assert!(
+            output.contains("&lt;div"),
+            "Expected HTML-escaped content in fallback, got: {output}"
+        );
+        assert!(
+            output.contains("&amp;amp;"),
+            "Expected double-escaped ampersand in fallback, got: {output}"
+        );
+    }
+
+    #[test]
+    fn test_highlight_html_special_chars_highlighted() {
+        // Known language (html): syntect handles escaping
+        let output =
+            render("{% highlight html %}<div class=\"test\">&amp;</div>{% endhighlight %}");
+        assert!(
+            output.starts_with("<figure class=\"highlight\"><pre><code class=\"language-html\" data-lang=\"html\">"),
+            "Expected figure wrapper, got: {output}"
+        );
+        // syntect should handle the escaping internally
+        assert!(
+            output.contains("<span class=\""),
+            "Expected spans for html highlighting, got: {output}"
         );
     }
 
     #[test]
     fn test_highlight_linenos_ignored() {
-        let eng = engine();
-        let ctx = Object::new();
-        let output = eng
-            .parse_and_render(
-                "{% highlight ruby linenos %}puts \"hi\"{% endhighlight %}",
-                &ctx,
-            )
-            .unwrap();
-        assert_eq!(
-            output,
-            "<pre><code class=\"language-ruby\">puts &quot;hi&quot;</code></pre>"
+        let output = render("{% highlight ruby linenos %}puts \"hi\"{% endhighlight %}");
+        assert!(
+            output.starts_with("<figure class=\"highlight\"><pre><code class=\"language-ruby\" data-lang=\"ruby\">"),
+            "Expected figure wrapper with ruby, got: {output}"
+        );
+        assert!(
+            output.ends_with("</code></pre></figure>"),
+            "Expected closing wrapper, got: {output}"
         );
     }
 
     #[test]
-    fn test_highlight_multiline() {
-        let eng = engine();
-        let ctx = Object::new();
-        let output = eng
-            .parse_and_render(
-                "{% highlight js %}line1\nline2\nline3{% endhighlight %}",
-                &ctx,
-            )
-            .unwrap();
-        assert_eq!(
-            output,
-            "<pre><code class=\"language-js\">line1\nline2\nline3</code></pre>"
+    fn test_highlight_unicode_content() {
+        let output = render("{% highlight python %}x = \"cafe\\u0301\"{% endhighlight %}");
+        assert!(
+            output.starts_with("<figure class=\"highlight\"><pre><code class=\"language-python\" data-lang=\"python\">"),
+            "Expected figure wrapper, got: {output}"
+        );
+        assert!(
+            output.ends_with("</code></pre></figure>"),
+            "Expected closing wrapper, got: {output}"
         );
     }
 
     #[test]
-    fn test_highlight_empty_content() {
-        let eng = engine();
-        let ctx = Object::new();
-        let output = eng
-            .parse_and_render("{% highlight js %}{% endhighlight %}", &ctx)
-            .unwrap();
-        assert_eq!(output, "<pre><code class=\"language-js\"></code></pre>");
+    fn test_highlight_data_lang_attribute() {
+        let output = render("{% highlight javascript %}var x;{% endhighlight %}");
+        assert!(
+            output.contains("data-lang=\"javascript\""),
+            "Expected data-lang=\"javascript\", got: {output}"
+        );
+        assert!(
+            output.contains("class=\"language-javascript\""),
+            "Expected class=\"language-javascript\", got: {output}"
+        );
     }
+
+    // --- Registration tests ---
 
     #[test]
     fn test_highlight_registered_in_engine_new() {
-        // Verify that TemplateEngine::new() (without includes) can parse highlight tags.
         let eng = TemplateEngine::new().unwrap();
         let result = eng.parse("{% highlight js %}code{% endhighlight %}");
         assert!(
@@ -233,7 +328,6 @@ mod tests {
 
     #[test]
     fn test_highlight_registered_in_engine_with_includes_map() {
-        // Verify that TemplateEngine::with_includes_map() can parse highlight tags.
         let includes = std::collections::HashMap::new();
         let eng = TemplateEngine::with_includes_map(&includes).unwrap();
         let result = eng.parse("{% highlight js %}code{% endhighlight %}");
