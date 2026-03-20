@@ -1404,12 +1404,18 @@ fn is_kramdown_table_line(trimmed: &str) -> bool {
 }
 
 /// Check if `content` contains a `|` character that is NOT inside angle brackets.
-/// This prevents `<tel:100-1000|100-1000>` or other HTML/autolink tags from
-/// being incorrectly treated as pipe-table cells.
+/// This prevents `<tel:100-1000|100-1000>` and `<mailto:a@b.com|a@b.com>` autolinks
+/// from being incorrectly treated as pipe-table cells. Only skips pipes inside
+/// recognized autolink patterns (http/https/mailto/tel). Other `<...|...>` patterns
+/// like Slack refs `<#C01|books>` are NOT protected — kramdown treats those pipes
+/// as table delimiters.
 fn has_pipe_outside_angle_brackets(content: &str) -> bool {
-    let mut depth = 0i32;
     let mut prev_backslash = false;
-    for ch in content.chars() {
+    let mut in_autolink = false;
+    let mut angle_start = 0usize;
+    let chars: Vec<char> = content.chars().collect();
+
+    for (i, &ch) in chars.iter().enumerate() {
         if prev_backslash {
             prev_backslash = false;
             continue;
@@ -1418,13 +1424,21 @@ fn has_pipe_outside_angle_brackets(content: &str) -> bool {
             '\\' => {
                 prev_backslash = true;
             }
-            '<' => depth += 1,
-            '>' => {
-                if depth > 0 {
-                    depth -= 1;
-                }
+            '<' => {
+                angle_start = i;
+                // Check if this starts a recognized autolink
+                let rest: String = chars[i + 1..].iter().collect();
+                let rest_lower = rest.to_lowercase();
+                in_autolink = rest_lower.starts_with("http:")
+                    || rest_lower.starts_with("https:")
+                    || rest_lower.starts_with("mailto:")
+                    || rest_lower.starts_with("tel:");
             }
-            '|' if depth == 0 => return true,
+            '>' => {
+                in_autolink = false;
+                let _ = angle_start; // suppress warning
+            }
+            '|' if !in_autolink => return true,
             _ => {}
         }
     }
@@ -9040,11 +9054,11 @@ by <a href="/people/author.html">Author Name</a>
 
     #[test]
     fn test_272_is_kramdown_table_line_slack_ref() {
-        // Issue 273: Slack channel reference with pipe inside angle brackets
-        // should NOT be detected as a table line (matches Jekyll behavior).
+        // Slack channel ref: kramdown DOES treat the | as a table delimiter
+        // (only autolinks like <tel:> and <mailto:> are protected).
         assert!(
-            !is_kramdown_table_line("<#C01AXGTRESH|books> would be better"),
-            "Slack ref with pipe inside angle brackets should NOT be a kramdown table line"
+            is_kramdown_table_line("<#C01AXGTRESH|books> would be better"),
+            "Slack ref pipe should be detected as kramdown table line (matches Jekyll)"
         );
     }
 
@@ -9107,14 +9121,14 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     #[test]
-    fn test_272_markdownify_slack_ref_not_table() {
-        // Issue 273: Slack channel reference with pipe inside angle brackets
-        // should NOT produce a table (pipe is inside <...>, matching Jekyll behavior).
+    fn test_272_markdownify_slack_ref_produces_table() {
+        // Slack refs: kramdown treats | in <#C01|name> as table delimiter
+        // (only autolinks like <tel:> and <mailto:> are protected).
         let input = "<#C01AXGTRESH|books> text\n";
         let html = crate::frontmatter::markdown_to_html(input);
         assert!(
-            !html.contains("<table>"),
-            "Slack ref with pipe inside angle brackets should NOT produce table. Got: {html}"
+            html.contains("<table>"),
+            "Slack ref pipe should produce table (matches Jekyll/kramdown). Got: {html}"
         );
     }
 
@@ -9253,9 +9267,10 @@ by <a href="/people/author.html">Author Name</a>
 
     #[test]
     fn test_273_has_pipe_outside_angle_brackets_unicode() {
+        // Non-autolink angle brackets: pipe IS detected (kramdown behavior)
         assert!(
-            !has_pipe_outside_angle_brackets("text <sch\u{00f6}n|gr\u{00fc}\u{00df}> end"),
-            "Pipe inside angle brackets with unicode should NOT be detected"
+            has_pipe_outside_angle_brackets("text <sch\u{00f6}n|gr\u{00fc}\u{00df}> end"),
+            "Pipe in non-autolink angle brackets SHOULD be detected (kramdown behavior)"
         );
     }
 
@@ -9636,6 +9651,85 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             html.contains("\\(x^2 + y^2 = z^2\\)"),
             "Real math should convert when function called directly. Got: {}",
+            html
+        );
+    }
+
+    // ========================================================================
+    // DTC smart quote and ellipsis tests (TDD)
+    // ========================================================================
+
+    #[test]
+    fn test_dtc_markdownify_converts_straight_double_quotes_to_smart() {
+        // Jekyll's kramdown converts " to smart quotes in markdownify output
+        let html = crate::frontmatter::markdown_to_html_for_filter(
+            "\"Successfully replicated 10TB/day\"",
+        );
+        assert!(
+            html.contains('\u{201C}') && html.contains('\u{201D}'),
+            "Markdownify should convert straight double quotes to smart quotes. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_dtc_double_quote_direction_opening_is_left() {
+        // The opening " should be U+201C (LEFT), closing should be U+201D (RIGHT)
+        // This is the exact DTC book page pattern
+        let html = crate::frontmatter::markdown_to_html(
+            "put \u{201C}Successfully replicated\u{201D} in review",
+        );
+        // After smart quote direction fix, opening should stay U+201C
+        let chars: Vec<char> = html.chars().collect();
+        let left_count = chars.iter().filter(|&&c| c == '\u{201C}').count();
+        let right_count = chars.iter().filter(|&&c| c == '\u{201D}').count();
+        assert!(
+            left_count >= 1 && right_count >= 1,
+            "Should have both left and right double quotes. Left: {}, Right: {}. Got: {}",
+            left_count, right_count, html
+        );
+    }
+
+    #[test]
+    fn test_dtc_opening_double_quote_at_word_boundary() {
+        // pulldown-cmark smart punctuation: opening " at start or after space → U+201C
+        // This is the real issue: pulldown-cmark may produce U+201D for both
+        let html = crate::frontmatter::markdown_to_html(
+            "If you put \"Successfully replicated 10TB/day\" some shame",
+        );
+        // Check that opening quote is U+201C (left), not U+201D (right)
+        let idx = html.find('\u{201C}').or_else(|| html.find('\u{201D}'));
+        assert!(
+            html.contains('\u{201C}'),
+            "Opening double quote should be U+201C (left). Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_dtc_markdownify_converts_ellipsis() {
+        // Jekyll's kramdown converts ... to … (U+2026)
+        let html = crate::frontmatter::markdown_to_html_for_filter(
+            "but unable to choose one specifically...",
+        );
+        assert!(
+            html.contains('\u{2026}'),
+            "Markdownify should convert ... to ellipsis. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_dtc_book_text_with_newline_to_br_preserves_smart_quotes() {
+        // DTC book layout: {{ thread.text | newline_to_br | markdownify }}
+        // The newline_to_br inserts <br />\n before markdownify processes it.
+        // Smart quotes should still be converted.
+        let text_after_newline_to_br = "If you put \u{201C}Successfully replicated 10TB/day\u{201D}<br />\nsome shame is on you.";
+        let html = crate::frontmatter::markdown_to_html_for_filter(text_after_newline_to_br);
+        // The pre-existing curly quotes should be preserved
+        assert!(
+            html.contains('\u{201C}'),
+            "Pre-existing smart quotes should survive markdownify. Got: {}",
             html
         );
     }
