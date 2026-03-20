@@ -2,9 +2,13 @@
 # Recount DOM matches for all benchmark sites.
 # Builds both Jekyll and rustkyll, runs dom_compare.py, outputs fresh stats.
 #
+# Jekyll output is deterministic and cached in _site_jekyll_cached/ per site.
+# Only rustkyll output is rebuilt each time. Use --no-cache to force Jekyll rebuild.
+#
 # Usage:
 #   ./scripts/recount-all-dom.sh                    # all sites
 #   ./scripts/recount-all-dom.sh --site DataTalksClub/datatalksclub.github.io  # one site
+#   ./scripts/recount-all-dom.sh --no-cache          # force Jekyll rebuild
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -14,10 +18,12 @@ RUSTKYLL="$PROJECT_DIR/target/release/rustkyll"
 OUTPUT_FILE="$PROJECT_DIR/docs/dom-recount-results.md"
 DETAILS_DIR="$PROJECT_DIR/docs/comparison/dom-details"
 SINGLE_SITE=""
+NO_CACHE=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --site) SINGLE_SITE="$2"; shift 2 ;;
+        --no-cache) NO_CACHE=1; shift ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
 done
@@ -77,39 +83,96 @@ for site in "${SITES[@]}"; do
     fi
     src_dir="$site_dir"
 
-    # Build with Jekyll
-    jekyll_site="$src_dir/_site_jekyll_recount"
-    rm -rf "$jekyll_site"
-
-    echo "  Building with Jekyll..."
+    # Build with Jekyll (cached -- only rebuild if no cache or --no-cache)
+    jekyll_site="$src_dir/_site_jekyll_cached"
     jekyll_ok=0
-    if [[ -f "$src_dir/Gemfile.lock" ]]; then
-        cd "$src_dir"
-        if timeout 120 bundle exec jekyll build --destination "$jekyll_site" --quiet 2>/dev/null; then
-            jekyll_ok=1
-        fi
-        cd "$PROJECT_DIR"
+
+    if [[ "$NO_CACHE" -eq 1 ]]; then
+        rm -rf "$jekyll_site"
+    fi
+
+    if [[ -d "$jekyll_site" ]] && [[ "$(find "$jekyll_site" -name '*.html' 2>/dev/null | head -1)" ]]; then
+        echo "  Using cached Jekyll output"
+        jekyll_ok=1
     else
-        if timeout 120 jekyll build --source "$src_dir" --destination "$jekyll_site" --quiet 2>/dev/null; then
-            jekyll_ok=1
+        rm -rf "$jekyll_site"
+        echo "  Building with Jekyll..."
+
+        if [[ -f "$src_dir/Gemfile" ]]; then
+            # Run bundle install first (with timeout)
+            echo "  Running bundle install..."
+            cd "$src_dir"
+            if ! timeout 60 bundle install --quiet 2>/dev/null; then
+                echo "  bundle install failed"
+            fi
+            # Always use bundle exec when Gemfile exists
+            if timeout 120 bundle exec jekyll build --destination "$jekyll_site" --quiet 2>/dev/null; then
+                jekyll_ok=1
+            fi
+            cd "$PROJECT_DIR"
+        elif [[ -f "$src_dir/Gemfile.lock" ]]; then
+            cd "$src_dir"
+            if timeout 120 bundle exec jekyll build --destination "$jekyll_site" --quiet 2>/dev/null; then
+                jekyll_ok=1
+            fi
+            cd "$PROJECT_DIR"
+        else
+            if timeout 120 jekyll build --source "$src_dir" --destination "$jekyll_site" --quiet 2>/dev/null; then
+                jekyll_ok=1
+            fi
         fi
     fi
 
     if [[ "$jekyll_ok" -eq 0 ]]; then
         echo "  Jekyll FAILED"
         rm -rf "$jekyll_site"
-        RESULTS+=("$site|JEKYLL_FAIL||||")
+
+        # Attempt rustkyll-only build for useful stats
+        rustkyll_site="$src_dir/_site_rustkyll_recount"
+        rm -rf "$rustkyll_site"
+
+        echo "  Attempting rustkyll-only build..."
+        if timeout 120 "$RUSTKYLL" build --source "$src_dir" --destination "$rustkyll_site" 2>/dev/null; then
+            # Count rustkyll pages
+            rustkyll_count=$(find "$rustkyll_site" -name "*.html" | wc -l)
+
+            # Count liquid leaks
+            liquid_leaks=0
+            while IFS= read -r f; do
+                [[ -z "$f" ]] && continue
+                if grep -qE '\{%|\{\{' "$rustkyll_site/$f" 2>/dev/null; then
+                    liquid_leaks=$((liquid_leaks + 1))
+                fi
+            done <<< "$(cd "$rustkyll_site" && find . -name '*.html')"
+
+            # Count empty HTML files
+            empty_files=0
+            while IFS= read -r f; do
+                [[ -z "$f" ]] && continue
+                if [[ ! -s "$rustkyll_site/$f" ]]; then
+                    empty_files=$((empty_files + 1))
+                fi
+            done <<< "$(cd "$rustkyll_site" && find . -name '*.html')"
+
+            echo "  rustkyll-only: $rustkyll_count pages, $liquid_leaks liquid leaks, $empty_files empty files"
+            RESULTS+=("$site|JEKYLL_FAIL|$rustkyll_count|$liquid_leaks|$empty_files|")
+            rm -rf "$rustkyll_site"
+        else
+            echo "  Both Jekyll and rustkyll FAILED"
+            rm -rf "$rustkyll_site"
+            RESULTS+=("$site|BOTH_FAIL||||")
+        fi
         continue
     fi
 
-    # Build with rustkyll
+    # Build with rustkyll (always rebuilt)
     rustkyll_site="$src_dir/_site_rustkyll_recount"
     rm -rf "$rustkyll_site"
 
     echo "  Building with rustkyll..."
     if ! timeout 120 "$RUSTKYLL" build --source "$src_dir" --destination "$rustkyll_site" 2>/dev/null; then
         echo "  rustkyll FAILED"
-        rm -rf "$jekyll_site" "$rustkyll_site"
+        rm -rf "$rustkyll_site"
         RESULTS+=("$site|RUSTKYLL_FAIL||||")
         continue
     fi
@@ -134,7 +197,7 @@ for site in "${SITES[@]}"; do
 
     if [[ "$common_count" -eq 0 ]]; then
         echo "  No common HTML files"
-        rm -rf "$jekyll_site" "$rustkyll_site"
+        rm -rf "$rustkyll_site"
         RESULTS+=("$site|0|0|$jekyll_count|$rustkyll_count|$liquid_leaks")
         continue
     fi
@@ -165,8 +228,8 @@ for site in "${SITES[@]}"; do
 
     RESULTS+=("$site|$dom_match|$common_count|$jekyll_count|$rustkyll_count|$liquid_leaks")
 
-    # Clean up build outputs
-    rm -rf "$jekyll_site" "$rustkyll_site"
+    # Clean up rustkyll build output (Jekyll cache is kept)
+    rm -rf "$rustkyll_site"
 done
 
 # Write results
@@ -188,11 +251,16 @@ rustkyll version: $("$RUSTKYLL" --version 2>&1 || echo "unknown")
 
 # Recount a single site
 ./scripts/recount-all-dom.sh --site DataTalksClub/datatalksclub.github.io
+
+# Force Jekyll rebuild (clear cache)
+./scripts/recount-all-dom.sh --no-cache
 \`\`\`
 
 Prerequisites: Jekyll (via Ruby/Bundler), rustkyll (built via \`cargo build --release\`), and \`uv\` (for running dom_compare.py with its beautifulsoup4 dependency).
 
 The script builds both Jekyll and rustkyll for each site, runs DOM comparison via \`scripts/dom_compare.py\`, and writes results here. Per-site diff details are saved in \`docs/comparison/dom-details/\`.
+
+Jekyll output is deterministic and cached in \`_site_jekyll_cached/\` per site directory. Only rustkyll output is rebuilt each time. Use \`--no-cache\` to force a Jekyll rebuild.
 
 ## All Sites
 
@@ -207,8 +275,27 @@ total_sites=0
 for r in "${RESULTS[@]}"; do
     IFS='|' read -r site f1 f2 f3 f4 f5 <<< "$r"
 
-    if [[ "$f1" == SKIP* ]] || [[ "$f1" == JEKYLL_FAIL* ]] || [[ "$f1" == RUSTKYLL_FAIL* ]]; then
-        echo "| $site | $f1 | - | - |" >> "$OUTPUT_FILE"
+    if [[ "$f1" == "SKIP" ]]; then
+        echo "| $site | SKIP | - | - |" >> "$OUTPUT_FILE"
+        continue
+    fi
+
+    if [[ "$f1" == "BOTH_FAIL" ]]; then
+        echo "| $site | BOTH_FAIL | - | - |" >> "$OUTPUT_FILE"
+        continue
+    fi
+
+    if [[ "$f1" == "JEKYLL_FAIL" ]]; then
+        # f2=rustkyll_count, f3=liquid_leaks, f4=empty_files
+        rustkyll_count="$f2"
+        liquid_leaks="$f3"
+        empty_files="$f4"
+        echo "| $site | JEKYLL_FAIL | $rustkyll_count pages (rustkyll-only) | $liquid_leaks |" >> "$OUTPUT_FILE"
+        continue
+    fi
+
+    if [[ "$f1" == "RUSTKYLL_FAIL" ]]; then
+        echo "| $site | RUSTKYLL_FAIL | - | - |" >> "$OUTPUT_FILE"
         continue
     fi
 
