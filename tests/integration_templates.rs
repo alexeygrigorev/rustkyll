@@ -242,6 +242,41 @@ fn test_number_of_words_integration() {
 }
 
 #[test]
+fn test_number_of_words_auto_mode_integration() {
+    if !site_dir().exists() {
+        return;
+    }
+    let engine = rustkyll::template::TemplateEngine::new().unwrap();
+    let mut ctx = Object::new();
+    ctx.insert(
+        "content".into(),
+        LiquidValue::scalar("Hello \u{4e16}\u{754c}"),
+    );
+
+    // 'auto' mode: 1 Latin word + 2 CJK characters = 3
+    let result = engine
+        .parse_and_render("{{ content | number_of_words: 'auto' }}", &ctx)
+        .unwrap();
+    assert_eq!(result.trim(), "3");
+}
+
+#[test]
+fn test_number_of_words_no_arg_regression_integration() {
+    if !site_dir().exists() {
+        return;
+    }
+    let engine = rustkyll::template::TemplateEngine::new().unwrap();
+    let mut ctx = Object::new();
+    ctx.insert("content".into(), LiquidValue::scalar("one two three four"));
+
+    // No argument: whitespace splitting
+    let result = engine
+        .parse_and_render("{{ content | number_of_words }}", &ctx)
+        .unwrap();
+    assert_eq!(result.trim(), "4");
+}
+
+#[test]
 fn test_xml_escape_integration() {
     if !site_dir().exists() {
         return;
