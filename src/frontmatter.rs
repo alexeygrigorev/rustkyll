@@ -331,6 +331,12 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // Issue 211: Fix smart quote directions to match kramdown
     let html_output = crate::kramdown::fix_smart_quote_directions(&html_output);
 
+    // Issue 247: Apply kramdown SQ_RULES to straight quotes from restored ''/'''' sequences.
+    // This runs AFTER fix_smart_quote_directions because that function would re-process
+    // the smart quotes we produce. By running after, the straight quotes from ''/'''' are
+    // still straight (fix_smart_quote_directions only processes curly quotes).
+    let html_output = crate::kramdown::apply_kramdown_smart_quotes_to_straight(&html_output);
+
     // Restore pre-existing curly quotes after direction fix
     let html_output = restore_preexisting_curly_quotes(&html_output);
 
@@ -404,6 +410,13 @@ pub fn markdown_to_html_with_options(
     let html_output = decode_pulldown_url_encoding(&html_output);
     // Issue 211: Fix smart quote directions to match kramdown
     let html_output = crate::kramdown::fix_smart_quote_directions(&html_output);
+    // Issue 247: Apply kramdown SQ_RULES to straight quotes from restored ''/'''' sequences.
+    // Only when smart punctuation is enabled (kramdown mode). Runs AFTER fix_smart_quote_directions.
+    let html_output = if enable_smart_punctuation {
+        crate::kramdown::apply_kramdown_smart_quotes_to_straight(&html_output)
+    } else {
+        html_output
+    };
     // Restore pre-existing curly quotes after direction fix
     let html_output = restore_preexisting_curly_quotes(&html_output);
     crate::kramdown::postprocess(&html_output)
@@ -462,6 +475,8 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     let html_output = decode_pulldown_url_encoding(&html_output);
     // Issue 211: Fix smart quote directions to match kramdown
     let html_output = crate::kramdown::fix_smart_quote_directions(&html_output);
+    // Issue 247: Apply kramdown SQ_RULES to straight quotes from restored ''/'''' sequences
+    let html_output = crate::kramdown::apply_kramdown_smart_quotes_to_straight(&html_output);
     // Restore pre-existing curly quotes after direction fix
     let html_output = restore_preexisting_curly_quotes(&html_output);
 
@@ -3120,6 +3135,162 @@ More text.
         assert!(
             html.contains("\u{201C}") && html.contains("\u{201D}"),
             "Pre-existing curly double quotes must be preserved. Got: {}",
+            html
+        );
+    }
+
+    // Issue 247: kramdown SQ_RULES for consecutive quote sequences
+
+    #[test]
+    fn test_issue247_double_quotes_mid_sentence_lsquo_pair() {
+        // ''implicit'' mid-sentence: space before '' -> both become lsquo (U+2018)
+        // closing '' -> both become rsquo (U+2019)
+        let input = "A place is ''implicit'' if\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("\u{2018}\u{2018}implicit\u{2019}\u{2019}"),
+            "Mid-sentence ''word'' should produce lsquo+lsquo...rsquo+rsquo. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue247_double_quotes_start_of_line() {
+        // ''Atomicity'' at start: Rule 7 matches '' as text(') + rsquo
+        // closing '' -> rsquo + rsquo
+        let input = "''Atomicity''\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("'\u{2019}Atomicity\u{2019}\u{2019}"),
+            "Start-of-line ''word'' should produce straight+rsquo...rsquo+rsquo. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue247_double_quotes_before_punctuation() {
+        // ''Views'': at start, closing '' before colon
+        let input = "''Views'': definition\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("'\u{2019}Views\u{2019}\u{2019}:"),
+            "''word'': should produce straight+rsquo...rsquo+rsquo before colon. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue247_triple_quotes() {
+        // '''Bold''' triple quotes
+        let input = "'''Bold'''\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("\u{2019}'\u{2019}Bold\u{2019}\u{2019}\u{2019}"),
+            "'''word''' should produce rsquo+straight+rsquo...rsquo+rsquo+rsquo. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue247_apostrophe_inside_double_quotes() {
+        // ''cat's'' with apostrophe inside
+        let input = "The ''cat's'' whiskers\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("\u{2018}\u{2018}cat\u{2019}s\u{2019}\u{2019}"),
+            "''cat's'' should produce lsquo+lsquo...rsquo(apostrophe)...rsquo+rsquo. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue247_smart_punctuation_disabled_straight_quotes() {
+        // When smart punctuation is disabled, '' stays as literal straight quotes
+        let input = "''Atomicity''\n";
+        let html = markdown_to_html_with_options(input, false, false, false);
+        assert!(
+            html.contains("''Atomicity''"),
+            "With smart punctuation off, ''word'' should stay as straight quotes. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue247_no_regression_normal_apostrophe() {
+        // Normal apostrophes should still work
+        let input = "It's a cat's life\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("It\u{2019}s") && html.contains("cat\u{2019}s"),
+            "Normal apostrophes should produce rsquo. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue247_unicode_consecutive_quotes() {
+        // Cyrillic text with consecutive quotes
+        let input = "\u{0422}\u{0435}\u{043A}\u{0441}\u{0442} ''\u{0422}\u{0435}\u{043E}\u{0440}\u{0435}\u{043C}\u{0430}'' \u{0432}\u{0430}\u{0436}\u{043D}\u{0430}\n";
+        let html = markdown_to_html(input);
+        // Mid-sentence: space before '' -> lsquo pair, closing '' -> rsquo pair
+        assert!(
+            html.contains("\u{2018}\u{2018}\u{0422}\u{0435}\u{043E}\u{0440}\u{0435}\u{043C}\u{0430}\u{2019}\u{2019}"),
+            "Cyrillic ''word'' mid-sentence should produce lsquo+lsquo...rsquo+rsquo. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue247_after_dollar_math() {
+        // $X$ is called the ''body'' -- space before '' triggers lsquo pair
+        let input = "$X$ is called the ''body''\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("\u{2018}\u{2018}body\u{2019}\u{2019}"),
+            "''body'' after math should produce lsquo+lsquo...rsquo+rsquo. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue247_preexisting_curly_quotes_unchanged() {
+        // Pre-existing curly quotes in source should pass through unchanged
+        let input = "He said \u{2018}hello\u{2019} and left\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("\u{2018}hello\u{2019}"),
+            "Pre-existing curly quotes should be preserved. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue247_math_and_consecutive_quotes() {
+        // Math content f'(x) preserved AND ''term'' gets correct smart quotes
+        let input = "$f'(x)$ and ''term''\n";
+        let html = markdown_to_html(input);
+        // Math should be preserved
+        assert!(
+            html.contains("f'(x)") || html.contains("f\u{2019}(x)"),
+            "Math content should be preserved. Got: {}",
+            html
+        );
+        // ''term'' at end of line (after space) -> lsquo pair, then rsquo pair at end
+        assert!(
+            html.contains("\u{2018}\u{2018}term\u{2019}\u{2019}"),
+            "''term'' after math should get correct smart quotes. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue247_with_options_mid_sentence() {
+        // Same test via markdown_to_html_with_options with smart punctuation on
+        let input = "A place is ''implicit'' if\n";
+        let html = markdown_to_html_with_options(input, true, true, false);
+        assert!(
+            html.contains("\u{2018}\u{2018}implicit\u{2019}\u{2019}"),
+            "markdown_to_html_with_options mid-sentence ''word'' should work. Got: {}",
             html
         );
     }

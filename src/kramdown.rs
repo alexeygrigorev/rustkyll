@@ -3815,6 +3815,17 @@ pub fn apply_kramdown_smart_quotes_to_straight(html: &str) -> String {
             i += 1;
         }
 
+        // Single straight quotes are left alone. pulldown-cmark's smart
+        // punctuation already handles apostrophes in markdown content.
+        // This function only needs to process restored ''/'''' sequences
+        // (count >= 2). Converting single quotes causes regressions when
+        // Liquid template output contains straight apostrophes that should
+        // not be curled (e.g., {{ post.title }} with "Aren't").
+        if quote_count == 1 {
+            result.push('\'');
+            continue;
+        }
+
         // Get the preceding and following text characters (skipping HTML tags)
         let prev = prev_text_char(&chars, quote_start);
         let next_after = next_text_char_at(&chars, i);
@@ -8439,16 +8450,31 @@ by <a href="/people/author.html">Author Name</a>
     // --- Issue 247 QA fix: skip <code>/<pre>/<script> elements ---
 
     #[test]
-    fn test_issue247_fix_isolated_apostrophe_becomes_rsquo() {
-        // Single straight quote between word chars is an apostrophe.
-        // apply_kramdown_smart_quotes_to_straight converts it to rsquo,
-        // matching kramdown behavior. This is correct for content that
-        // bypasses pulldown-cmark (e.g., Liquid templates, YAML titles).
+    fn test_single_apostrophe_stays_straight() {
+        // Single straight quotes must NOT be converted by this function.
+        // pulldown-cmark's smart punctuation already handles apostrophes
+        // in markdown content. This function's purpose is only to handle
+        // restored ''/'''' sequences (count >= 2). Converting single quotes
+        // causes regressions when Liquid template output contains straight
+        // apostrophes (e.g., {{ post.title }} with "Aren't").
         let input = "<p>don\u{0027}t</p>";
         let result = apply_kramdown_smart_quotes_to_straight(input);
         assert!(
-            result.contains("don\u{2019}t"),
-            "Isolated apostrophe should become rsquo (U+2019). Got: {}",
+            result.contains("don\u{0027}t"),
+            "Single straight apostrophe must stay straight. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_single_apostrophe_in_title_stays_straight() {
+        // Regression test: Liquid-rendered titles like {{ post.title }}
+        // contain straight apostrophes that must not be converted.
+        let input = "<p>Data Engineers Aren\u{0027}t Plumbers</p>";
+        let result = apply_kramdown_smart_quotes_to_straight(input);
+        assert!(
+            result.contains("Aren\u{0027}t"),
+            "Single apostrophe in title must stay straight. Got: {}",
             result
         );
     }
