@@ -8886,8 +8886,7 @@ by <a href="/people/author.html">Author Name</a>
     #[test]
     fn test_274_multiple_standalone_comments_each_wrapped() {
         // Multiple standalone comments, each should be wrapped in <p>
-        let input =
-            "<!-- comment1 -->\n\n<!-- comment2 -->\n\n<div class=\"related\">block</div>";
+        let input = "<!-- comment1 -->\n\n<!-- comment2 -->\n\n<div class=\"related\">block</div>";
         let result = postprocess(input);
         assert!(
             result.contains("<p><!-- comment1 --></p>"),
@@ -8904,8 +8903,7 @@ by <a href="/people/author.html">Author Name</a>
     #[test]
     fn test_274_comment_adjacent_to_block_not_wrapped() {
         // Comment adjacent to block elements (no blank line) should NOT be wrapped (issue 144)
-        let input =
-            "<h2>Heading</h2>\n<!-- comment -->\n<div>block</div>";
+        let input = "<h2>Heading</h2>\n<!-- comment -->\n<div>block</div>";
         let result = postprocess(input);
         assert!(
             !result.contains("<p><!-- comment --></p>"),
