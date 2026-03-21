@@ -200,11 +200,11 @@ pub fn build_site_context(
         Object::new()
     };
 
-    // repository_url: always resolve from git remote as a fallback.
-    // Jekyll on GitHub Pages auto-injects jekyll-github-metadata, so many sites
-    // use site.github.repository_url without explicitly listing the plugin.
-    // If explicit github config provides repository_url, that wins (already in the map).
-    if !github.contains_key("repository_url") {
+    // repository_url: only resolve from git remote when the jekyll-github-metadata
+    // plugin is listed OR the config has an explicit `github:` key.
+    // Jekyll leaves site.github.repository_url nil/empty without the plugin,
+    // so we must not unconditionally populate it.
+    if !github.contains_key("repository_url") && (has_plugin || has_explicit_github) {
         github.insert(
             "repository_url".into(),
             resolve_repository_url(config, site_dir),
@@ -605,8 +605,8 @@ fn collection_item_to_liquid_slim(
     // `{{ guest.content }}` which output rendered HTML in the page body.
     // We trim both ends to avoid trailing newlines that would appear in
     // `strip_html | jsonify` output as unwanted `\n` characters.
-    let normalized = crate::frontmatter::normalize_block_whitespace(item.html_content.trim_start());
-    let escaped_content = crate::frontmatter::escape_quotes_in_text_nodes(&normalized);
+    let escaped_content =
+        crate::frontmatter::escape_quotes_in_text_nodes(item.html_content.trim_start());
     obj.insert("content".into(), LiquidValue::scalar(escaped_content));
 
     // Also store rendered HTML as `output` for any templates that need it.
@@ -2471,10 +2471,9 @@ mod tests {
     // ========================================================================
 
     #[test]
-    fn test_github_repo_url_always_resolved_even_without_plugin() {
-        // repository_url should always be resolved from git remote, even without
-        // the jekyll-github-metadata plugin. Jekyll on GitHub Pages auto-injects
-        // the plugin, so sites rely on repository_url without listing it explicitly.
+    fn test_github_repo_url_nil_without_plugin_or_explicit_config() {
+        // Without jekyll-github-metadata plugin and without explicit github: key,
+        // repository_url should NOT be populated (matches Jekyll local build behavior).
         let config = SiteConfig {
             url: "https://example.com".to_string(),
             name: "Test".to_string(),
@@ -2483,17 +2482,13 @@ mod tests {
         };
         let collections = HashMap::new();
         let data = DataTree::new();
-        // Use site_dir() which IS a git repo
         let ctx = build_site_context(&config, &collections, &data, Some(&site_dir()), &[]);
         let github = ctx.get("github").expect("should have github");
         if let LiquidValue::Object(gh) = github {
-            let repo_url = gh
-                .get("repository_url")
-                .expect("should have repository_url");
-            assert_ne!(
-                *repo_url,
-                LiquidValue::Nil,
-                "repository_url should always be resolved from git remote"
+            // repository_url should NOT be present without plugin or explicit config
+            assert!(
+                gh.get("repository_url").is_none(),
+                "repository_url should not be populated without plugin or explicit github config"
             );
         } else {
             panic!("Expected github to be an Object");
@@ -2590,31 +2585,36 @@ mod tests {
     }
 
     #[test]
-    fn test_github_repo_url_resolved_without_plugin() {
-        // Even without jekyll-github-metadata plugin in the plugins list,
-        // repository_url should resolve from git remote as a fallback.
-        // Jekyll on GitHub Pages auto-injects jekyll-github-metadata, so
-        // sites like DTC rely on repository_url without explicitly listing the plugin.
-        // No explicit github: key, no plugins: key -- just a bare config.
+    fn test_github_repo_url_resolved_with_repository_config_and_plugin() {
+        // With the plugin listed, repository_url should be resolved even if
+        // no explicit github: key is present.
+        let mut extras = HashMap::new();
+        extras.insert(
+            "plugins".to_string(),
+            serde_yaml::Value::Sequence(vec![serde_yaml::Value::String(
+                "jekyll-github-metadata".to_string(),
+            )]),
+        );
         let config = SiteConfig {
             url: "https://example.com".to_string(),
             name: "Test".to_string(),
             title: "Test".to_string(),
+            repository: Some("owner/repo".to_string()),
+            extras,
             ..Default::default()
         };
         let collections = HashMap::new();
         let data = DataTree::new();
-        // Use site_dir() which IS a git repo
         let ctx = build_site_context(&config, &collections, &data, Some(&site_dir()), &[]);
         let github = ctx.get("github").expect("should have github");
         if let LiquidValue::Object(gh) = github {
             let repo_url = gh
                 .get("repository_url")
                 .expect("should have repository_url");
-            assert_ne!(
+            assert_eq!(
                 *repo_url,
-                LiquidValue::Nil,
-                "repository_url should always be resolved from git remote, even without plugin"
+                LiquidValue::scalar("https://github.com/owner/repo"),
+                "repository_url should be resolved from config.repository when plugin is active"
             );
         } else {
             panic!("Expected github to be an Object");

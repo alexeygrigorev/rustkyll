@@ -43,7 +43,7 @@ fn test_site_context_has_data_events() {
 }
 
 #[test]
-fn test_site_context_github_url_resolves() {
+fn test_site_context_github_url_nil_without_plugin() {
     if !site_dir().exists() {
         return;
     }
@@ -51,24 +51,15 @@ fn test_site_context_github_url_resolves() {
     let data = data::DataTree::new();
     let ctx = generator::build_site_context(&CONFIG, &colls, &data, Some(&site_dir()), &[]);
 
-    // repository_url should always be resolved from git remote, even when
-    // jekyll-github-metadata is not in the plugins list. Jekyll on GitHub Pages
-    // auto-injects the plugin, so sites rely on repository_url without listing it.
+    // DTC _config.yml does NOT list jekyll-github-metadata plugin and does NOT
+    // have an explicit `github:` key, so repository_url should NOT be populated.
+    // This matches Jekyll local build behavior (the plugin is only auto-injected
+    // on GitHub Pages).
     let github = ctx.get("github").expect("site should have github");
     if let LiquidValue::Object(github_obj) = github {
-        let repo_url = github_obj
-            .get("repository_url")
-            .expect("should have repository_url");
-        assert_ne!(
-            *repo_url,
-            LiquidValue::Nil,
-            "repo URL should always be resolved from git remote"
-        );
-        // DTC site should resolve to its GitHub repo
-        assert_eq!(
-            *repo_url,
-            LiquidValue::scalar("https://github.com/DataTalksClub/datatalksclub.github.io"),
-            "repo URL should match DTC GitHub repository"
+        assert!(
+            github_obj.get("repository_url").is_none(),
+            "repository_url should not be populated without plugin or explicit github config"
         );
     } else {
         panic!("Expected github to be an object");
