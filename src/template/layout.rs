@@ -814,14 +814,22 @@ pub fn build_render_context(
     // Jekyll makes the rendered HTML available as page.content in layout context.
     // This is needed for templates that use {{ page.content | strip_html }} for
     // meta descriptions. Always set it (overriding any front matter "content" key).
-    page.insert("content".into(), LiquidValue::scalar(content.to_owned()));
+    // Escape " to &quot; in text nodes to match kramdown behavior -- kramdown
+    // always escapes " in HTML text content, which is critical because templates
+    // like {{ page.content | strip_html | truncate: 240 }} place the result in
+    // HTML attributes where unescaped " would break parsing.
+    let content_escaped = crate::frontmatter::escape_quotes_in_text_nodes(content);
+    page.insert(
+        "content".into(),
+        LiquidValue::scalar(content_escaped.clone()),
+    );
     ctx.insert("page".into(), LiquidValue::Object(page));
 
     // Insert site context
     ctx.insert("site".into(), LiquidValue::Object(site_context.clone()));
 
-    // Insert content
-    ctx.insert("content".into(), LiquidValue::scalar(content.to_owned()));
+    // Insert content (the body HTML used by {{ content }} in layouts)
+    ctx.insert("content".into(), LiquidValue::scalar(content_escaped));
 
     ctx
 }
@@ -849,11 +857,15 @@ pub fn build_render_context_page_only(content: &str, page_front_matter: &FrontMa
     }
     // Jekyll makes the rendered HTML available as page.content in layout context.
     // This is needed for templates that use {{ page.content | strip_html }} for
-    // meta descriptions.
-    page.insert("content".into(), LiquidValue::scalar(content.to_owned()));
+    // meta descriptions. Escape " to &quot; in text nodes to match kramdown.
+    let content_escaped = crate::frontmatter::escape_quotes_in_text_nodes(content);
+    page.insert(
+        "content".into(),
+        LiquidValue::scalar(content_escaped.clone()),
+    );
     ctx.insert("page".into(), LiquidValue::Object(page));
 
-    ctx.insert("content".into(), LiquidValue::scalar(content.to_owned()));
+    ctx.insert("content".into(), LiquidValue::scalar(content_escaped));
 
     ctx
 }

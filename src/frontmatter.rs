@@ -252,6 +252,57 @@ fn html_escape_for_code(s: &str) -> String {
     out
 }
 
+/// Escape double quotes (`"`) to `&quot;` in HTML text nodes, matching kramdown behavior.
+///
+/// kramdown escapes `"` in text content to `&quot;`, which is important because
+/// templates like `{{ page.content | strip_html | truncate: 240 }}` place the
+/// result in HTML attribute values like `content="..."`. Unescaped `"` in text
+/// would break the attribute parsing.
+///
+/// This function only escapes `"` that appear outside of HTML tags (i.e., in text
+/// nodes). Quotes inside tag attributes (e.g., `href="..."`) are left unchanged.
+/// Quotes inside `<script>` and `<style>` blocks are also left unchanged, since
+/// those blocks contain code (e.g., JSON-LD) where `"` is required.
+pub fn escape_quotes_in_text_nodes(html: &str) -> String {
+    let mut result = String::with_capacity(html.len());
+    let mut in_tag = false;
+    let mut in_script = false;
+    let mut in_style = false;
+    let bytes = html.as_bytes();
+
+    for (byte_pos, ch) in html.char_indices() {
+        match ch {
+            '<' => {
+                in_tag = true;
+                let rest = &bytes[byte_pos..];
+                // Check for <script, </script>, <style, </style>
+                // All tag names are ASCII so byte comparison is safe.
+                if rest.len() >= 7 && rest[..7].eq_ignore_ascii_case(b"<script") {
+                    in_script = true;
+                } else if rest.len() >= 6 && rest[..6].eq_ignore_ascii_case(b"<style") {
+                    in_style = true;
+                } else if rest.len() >= 9 && rest[..9].eq_ignore_ascii_case(b"</script>") {
+                    in_script = false;
+                } else if rest.len() >= 8 && rest[..8].eq_ignore_ascii_case(b"</style>") {
+                    in_style = false;
+                }
+                result.push(ch);
+            }
+            '>' => {
+                in_tag = false;
+                result.push(ch);
+            }
+            '"' if !in_tag && !in_script && !in_style => {
+                result.push_str("&quot;");
+            }
+            _ => {
+                result.push(ch);
+            }
+        }
+    }
+    result
+}
+
 /// Supports headings, paragraphs, links, images, bold/italic, blockquotes,
 /// code blocks, lists, horizontal rules, and raw HTML passthrough
 /// (including Liquid-like tags such as `{% include ... %}`).
@@ -3300,6 +3351,58 @@ More text.
             html.contains("\u{2018}\u{2018}implicit\u{2019}\u{2019}"),
             "markdown_to_html_with_options mid-sentence ''word'' should work. Got: {}",
             html
+        );
+    }
+
+    // ========================================================================
+    // escape_quotes_in_text_nodes unit tests
+    // ========================================================================
+
+    #[test]
+    fn test_escape_quotes_in_text_simple() {
+        let input = r#"<p>"hello"</p>"#;
+        let result = escape_quotes_in_text_nodes(input);
+        assert_eq!(result, "<p>&quot;hello&quot;</p>");
+    }
+
+    #[test]
+    fn test_escape_quotes_preserves_attribute_quotes() {
+        let input = r#"<a href="http://example.com">link</a>"#;
+        let result = escape_quotes_in_text_nodes(input);
+        assert_eq!(result, r#"<a href="http://example.com">link</a>"#);
+    }
+
+    #[test]
+    fn test_escape_quotes_skips_script_blocks() {
+        let input = r#"<script>{"key": "value"}</script>"#;
+        let result = escape_quotes_in_text_nodes(input);
+        assert_eq!(result, r#"<script>{"key": "value"}</script>"#);
+    }
+
+    #[test]
+    fn test_escape_quotes_skips_style_blocks() {
+        let input = r#"<style>body { font-family: "Arial"; }</style>"#;
+        let result = escape_quotes_in_text_nodes(input);
+        assert_eq!(result, r#"<style>body { font-family: "Arial"; }</style>"#);
+    }
+
+    #[test]
+    fn test_escape_quotes_unicode_content() {
+        let input = "<p>\u{201C}curly\u{201D} and \"straight\"</p>";
+        let result = escape_quotes_in_text_nodes(input);
+        assert!(result.contains("&quot;straight&quot;"));
+        // Curly quotes should not be affected
+        assert!(result.contains("\u{201C}curly\u{201D}"));
+    }
+
+    #[test]
+    fn test_escape_quotes_mixed_tags_and_text() {
+        let input = "<meta content=\"test\"><p>\"Email Mu-An\"</p>";
+        let result = escape_quotes_in_text_nodes(input);
+        // Attribute quotes unchanged, text quotes escaped
+        assert_eq!(
+            result,
+            "<meta content=\"test\"><p>&quot;Email Mu-An&quot;</p>"
         );
     }
 }

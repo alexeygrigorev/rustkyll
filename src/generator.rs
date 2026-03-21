@@ -594,14 +594,16 @@ fn collection_item_to_liquid_slim(
         obj.insert("date".into(), LiquidValue::scalar(expanded));
     }
 
-    // Jekyll's `document.content` returns rendered HTML. Use html_content to match.
-    // This is needed for templates that use `{{ guest.content | strip_html | jsonify }}`
-    // in JSON-LD descriptions: raw `&` must become `&amp;` through HTML rendering,
-    // and trailing `\n` from `<p>` wrapping must be preserved after strip_html.
-    obj.insert(
-        "content".into(),
-        LiquidValue::scalar(item.html_content.trim_start().to_string()),
-    );
+    // Jekyll's `document.content` returns rendered HTML for the current page,
+    // but raw markdown for cross-referenced collection items (via site.<collection>).
+    // Since this function builds the cross-reference representation, we use html_content
+    // (rendered HTML) to match Jekyll's behavior for templates like
+    // `{{ guest.content }}` which output rendered HTML in the page body.
+    // We trim both ends to avoid trailing newlines that would appear in
+    // `strip_html | jsonify` output as unwanted `\n` characters.
+    let escaped_content =
+        crate::frontmatter::escape_quotes_in_text_nodes(item.html_content.trim_start());
+    obj.insert("content".into(), LiquidValue::scalar(escaped_content));
 
     // Also store rendered HTML as `output` for any templates that need it.
     obj.insert(
@@ -690,10 +692,9 @@ fn page_to_liquid(page: &Page) -> LiquidValue {
     // Add computed fields (may override front matter)
     obj.insert("url".into(), LiquidValue::scalar(page.url.clone()));
     obj.insert("slug".into(), LiquidValue::scalar(page.slug.clone()));
-    obj.insert(
-        "content".into(),
-        LiquidValue::scalar(page.html_content.clone()),
-    );
+    // Escape " to &quot; in text nodes to match kramdown behavior.
+    let escaped_content = crate::frontmatter::escape_quotes_in_text_nodes(&page.html_content);
+    obj.insert("content".into(), LiquidValue::scalar(escaped_content));
 
     // page.name -- the source filename (e.g. "index.md"), matching Jekyll's behavior
     // This is needed for templates that check page.name to customize output
