@@ -200,11 +200,21 @@ pub fn build_site_context(
         Object::new()
     };
 
-    // repository_url: only resolve from git remote when the jekyll-github-metadata
-    // plugin is listed OR the config has an explicit `github:` key.
-    // Jekyll leaves site.github.repository_url nil/empty without the plugin,
-    // so we must not unconditionally populate it.
-    if !github.contains_key("repository_url") && (has_plugin || has_explicit_github) {
+    // repository_url: resolve from git remote when the jekyll-github-metadata
+    // plugin is listed, explicit `github:` config exists, or the site appears
+    // to be a GitHub Pages site (source dir ends with .github.io).
+    // Jekyll on GitHub Pages auto-injects the plugin, so sites like DTC rely
+    // on repository_url without listing any plugin or github config.
+    let is_github_pages = site_dir
+        .map(|d| {
+            d.file_name()
+                .map(|n| n.to_string_lossy().ends_with(".github.io"))
+                .unwrap_or(false)
+        })
+        .unwrap_or(false);
+    if !github.contains_key("repository_url")
+        && (has_plugin || has_explicit_github || is_github_pages)
+    {
         github.insert(
             "repository_url".into(),
             resolve_repository_url(config, site_dir),
