@@ -540,7 +540,9 @@ pub fn markdown_to_html_with_options(
     };
     // Restore pre-existing curly quotes after direction fix
     let html_output = restore_preexisting_curly_quotes(&html_output);
-    crate::kramdown::postprocess(&html_output)
+    // Issue 297: Use add_code_classes as kramdown mode indicator.
+    // When true (kramdown), indent list items. When false (CommonMarkGhPages), do not.
+    crate::kramdown::postprocess_with_options(&html_output, add_code_classes)
 }
 
 /// Convert XHTML-style `<br />` to HTML5-style `<br>` for CommonMarkGhPages
@@ -4110,6 +4112,59 @@ More text.
         assert!(
             html.contains(r#"<a href="https://other.org">https://other.org</a>"#),
             "Second URL should be auto-linked. Got: {html}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 297: CommonMarkGhPages list items should NOT be indented
+    // ========================================================================
+
+    #[test]
+    fn test_issue297_commonmark_list_no_indent() {
+        // CommonMarkGhPages (Jekyll) does NOT indent <li> inside <ul>.
+        let html =
+            markdown_to_html_with_options("- item 1\n- item 2\n", false, false, false, false);
+        assert!(
+            html.contains("<ul>\n<li>item 1</li>\n<li>item 2</li>\n</ul>"),
+            "CommonMark mode: <li> should NOT be indented. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue297_commonmark_ordered_list_no_indent() {
+        let html =
+            markdown_to_html_with_options("1. first\n2. second\n", false, false, false, false);
+        assert!(
+            html.contains("<ol>\n<li>first</li>\n<li>second</li>\n</ol>"),
+            "CommonMark mode: <li> in <ol> should NOT be indented. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue297_kramdown_list_still_indented() {
+        let html = markdown_to_html("- item 1\n- item 2\n");
+        assert!(
+            html.contains("<ul>\n  <li>item 1</li>\n  <li>item 2</li>\n</ul>"),
+            "Kramdown mode: <li> should still be indented. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue297_strip_html_truncate_pipeline() {
+        // End-to-end: list content without indentation has no leading spaces after strip_html.
+        let html = "<ul>\n<li>Jeff Bridges</li>\n<li>Julianne Moore</li>\n</ul>";
+        let stripped = html
+            .replace("<ul>", "")
+            .replace("</ul>", "")
+            .replace("<li>", "")
+            .replace("</li>", "");
+        assert!(
+            !stripped.contains("  Jeff"),
+            "After strip_html, no leading spaces before names. Got: {:?}",
+            stripped
         );
     }
 }

@@ -232,8 +232,17 @@ fn convert_inline_math(line: &str) -> String {
 /// 8. Remove self-closing slash from void elements (D3)
 /// 9. Normalize boolean HTML attributes (D2, D12)
 /// 10. Normalize `<figcaption>` closing tag whitespace (D6)
-/// 11. Indent loose list items to match kramdown formatting
+/// 11. Indent loose list items to match kramdown formatting (kramdown mode only)
 pub fn postprocess(html: &str) -> String {
+    postprocess_with_options(html, true)
+}
+
+/// Apply all kramdown compatibility transformations to HTML output.
+///
+/// When `indent_lists` is true (kramdown mode), list items are indented with
+/// 2 spaces to match Jekyll's kramdown renderer. When false (CommonMarkGhPages),
+/// list items are NOT indented, matching Jekyll's CommonMark renderer.
+pub fn postprocess_with_options(html: &str, indent_lists: bool) -> String {
     let html = strip_paragraphs_in_html_blocks(html);
     let html = encode_bare_ampersands(&html);
     let html = add_heading_ids(&html);
@@ -248,7 +257,13 @@ pub fn postprocess(html: &str) -> String {
     let html = wrap_standalone_comments_in_paragraphs(&html);
     let html = add_block_spacing(&html);
     let html = remove_ol_start_attribute(&html);
-    let html = indent_list_items(&html);
+    // Issue 297: Only indent list items for kramdown mode. CommonMarkGhPages
+    // (Jekyll) does not indent <li> elements inside <ul>/<ol>.
+    let html = if indent_lists {
+        indent_list_items(&html)
+    } else {
+        html
+    };
     let html = indent_blockquote_content(&html);
     let html = normalize_figcaption_whitespace(&html);
     // Issue 201: Convert bare void elements (<br>, <hr>) to XHTML-style
@@ -321,28 +336,6 @@ pub fn normalize_html_output(html: &str) -> String {
         normalize_boolean_attributes(&html)
     } else {
         html
-    }
-}
-
-/// Owned-string version of `normalize_html_output` that avoids allocating
-/// when nothing changes. Takes ownership of the input `String` and returns
-/// it unmodified on the fast path, avoiding the clone that the borrow-based
-/// version would incur. Used in the per-page rendering hot path.
-pub fn normalize_html_output_owned(html: String) -> String {
-    let needs_bool_attrs = html.contains("=\"\"");
-    let needs_br = html.contains("<br>");
-
-    // Fast path: nothing to normalize -- return the original String without allocating.
-    if !needs_bool_attrs && !needs_br {
-        return html;
-    }
-
-    let after_br = normalize_br_only(&html);
-
-    if needs_bool_attrs {
-        normalize_boolean_attributes(&after_br)
-    } else {
-        after_br
     }
 }
 

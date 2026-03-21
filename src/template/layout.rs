@@ -358,7 +358,7 @@ impl LayoutEngine {
             cached_site,
             site_overrides,
         )?;
-        let normalized = crate::kramdown::normalize_html_output(&result);
+        let normalized = crate::kramdown::normalize_html_output_owned(result);
         Ok(if self.enable_hardbreaks {
             crate::frontmatter::normalize_br_to_html5(&normalized)
         } else {
@@ -404,7 +404,7 @@ impl LayoutEngine {
             cached_site,
             site_overrides,
         )?;
-        let normalized = crate::kramdown::normalize_html_output(&result);
+        let normalized = crate::kramdown::normalize_html_output_owned(result);
         Ok(if self.enable_hardbreaks {
             crate::frontmatter::normalize_br_to_html5(&normalized)
         } else {
@@ -534,7 +534,7 @@ impl LayoutEngine {
             cached_site,
         )?;
         // D2, D3, D12: Normalize boolean attributes and void elements
-        let normalized = crate::kramdown::normalize_html_output(&result);
+        let normalized = crate::kramdown::normalize_html_output_owned(result);
         Ok(if self.enable_hardbreaks {
             crate::frontmatter::normalize_br_to_html5(&normalized)
         } else {
@@ -603,7 +603,7 @@ impl LayoutEngine {
             cached_site,
         )?;
         // D2, D3, D12: Normalize boolean attributes and void elements
-        let normalized = crate::kramdown::normalize_html_output(&result);
+        let normalized = crate::kramdown::normalize_html_output_owned(result);
         Ok(if self.enable_hardbreaks {
             crate::frontmatter::normalize_br_to_html5(&normalized)
         } else {
@@ -748,7 +748,7 @@ fn load_layouts_recursive(
         // Pre-normalize void elements and boolean attributes in layout sources.
         // This way, the rendered output doesn't contain `/>` or `=""` from the
         // layout HTML, and the final normalize_html_output() can exit early.
-        let clean_source = crate::kramdown::normalize_html_output(&clean_source);
+        let clean_source = crate::kramdown::normalize_html_output_owned(clean_source);
 
         layouts.insert(
             name,
@@ -3134,7 +3134,7 @@ mod tests {
 
         // The render method doesn't call normalize_html_output, so we simulate
         // the full production pipeline: normalize then convert <br /> to <br>.
-        let normalized = crate::kramdown::normalize_html_output(&output);
+        let normalized = crate::kramdown::normalize_html_output_owned(output);
         let final_output = if engine.enable_hardbreaks {
             crate::frontmatter::normalize_br_to_html5(&normalized)
         } else {

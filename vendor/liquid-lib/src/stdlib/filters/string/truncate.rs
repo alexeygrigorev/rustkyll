@@ -9,7 +9,6 @@ use liquid_core::{
     Display_filter, Filter, FilterParameters, FilterReflection, FromFilterParameters, ParseFilter,
 };
 use liquid_core::{Value, ValueView};
-use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Debug, FilterParameters)]
 struct TruncateArgs {
@@ -28,11 +27,8 @@ struct TruncateArgs {
 
 /// `truncate` shortens a string down to the number of characters passed as a parameter.
 ///
-/// Note that this function operates on [grapheme
-/// clusters](http://www.unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries) (or *user-perceived
-/// character*), rather than Unicode code points.  Each grapheme cluster may be composed of more
-/// than one Unicode code point, and does not necessarily correspond to rust's conception of a
-/// character.
+/// Note that this function counts Unicode codepoints (matching Ruby's `String#length`),
+/// not bytes or grapheme clusters.
 ///
 /// If the number of characters specified is less than the length of the string, an ellipsis
 /// (`...`) is appended to the string and is included in the character count.
@@ -74,20 +70,17 @@ impl Filter for TruncateFilter {
 
         let length = args.length.unwrap_or(50) as usize;
         let truncate_string = args.ellipsis.unwrap_or_else(|| "...".into());
-        let diff = if length >= truncate_string.len() {
-            length - truncate_string.len()
-        } else {
-            0
-        };
-        let l = cmp::max(diff, 0);
+        // Issue 297: Count characters (codepoints) not bytes, matching Ruby.
+        let ellipsis_char_len = truncate_string.chars().count();
+        let l = length.saturating_sub(ellipsis_char_len);
 
         let input_string = input.to_kstr();
-        let result = if length < input_string.len() {
-            let result = UnicodeSegmentation::graphemes(input_string.as_str(), true)
-                .take(l)
-                .collect::<Vec<&str>>()
-                .join("")
-                + truncate_string.as_str();
+        // Issue 297: Count characters (codepoints) not bytes for input length,
+        // matching Ruby's String#length. CJK chars are 1 codepoint each.
+        let input_char_len = input_string.chars().count();
+        let result = if length < input_char_len {
+            let result: String =
+                input_string.chars().take(l).collect::<String>() + truncate_string.as_str();
             Value::scalar(result)
         } else {
             input.to_value()
@@ -223,13 +216,11 @@ mod tests {
 
     #[test]
     fn unit_truncate_unicode_codepoints_examples() {
-        // The examples below came from the unicode_segmentation documentation.
+        // Issue 297: truncate counts Unicode codepoints (matching Ruby's String#length).
+        // Combining characters count as separate codepoints.
         //
-        // https://unicode-rs.github.io/unicode-segmentation/unicode_segmentation/ ...
-        //               ...  trait.UnicodeSegmentation.html#tymethod.graphemes
-        //
-        // Note that the accents applied to each letter are treated as part of the single grapheme
-        // cluster for the applicable letter.
+        // "Here is an a\u{310}, e\u{301}, and o\u{308}\u{332}." = 27 codepoints
+        // truncate: 20 -> keep 17 codepoints + "..."
         assert_eq!(
             liquid_core::call_filter!(
                 Truncate,
@@ -237,13 +228,19 @@ mod tests {
                 20i64
             )
             .unwrap(),
-            liquid_core::value!("Here is an a\u{310}, e\u{301}, ...")
+            liquid_core::value!("Here is an a\u{310}, e\u{301}...")
         );
 
-        // Note that the 🇷🇺🇸🇹 is treated as a single grapheme cluster.
+        // "Here is a RUST: \u{1F1F7}\u{1F1FA}\u{1F1F8}\u{1F1F9}." = 21 codepoints
+        // truncate: 20 -> keep 17 codepoints + "..."
         assert_eq!(
-            liquid_core::call_filter!(Truncate, "Here is a RUST: 🇷🇺🇸🇹.", 20i64).unwrap(),
-            liquid_core::value!("Here is a RUST: 🇷🇺...")
+            liquid_core::call_filter!(
+                Truncate,
+                "Here is a RUST: \u{1F1F7}\u{1F1FA}\u{1F1F8}\u{1F1F9}.",
+                20i64
+            )
+            .unwrap(),
+            liquid_core::value!("Here is a RUST: \u{1F1F7}...")
         );
     }
 
@@ -301,5 +298,57 @@ mod tests {
             liquid_core::call_filter!(TruncateWords, "", 1_i64).unwrap(),
             liquid_core::value!("")
         );
+    }
+
+    // Issue 297: CJK/Unicode character counting tests
+
+    #[test]
+    fn unit_truncate_cjk_counts_chars_not_bytes() {
+        // 81 CJK characters = 243 bytes in UTF-8, but only 81 codepoints.
+        // Ruby's truncate counts characters (codepoints), so truncate: 240 should NOT truncate.
+        let cjk_81: String = std::iter::repeat('\u{4E16}').take(81).collect();
+        assert_eq!(cjk_81.len(), 243); // 243 bytes
+        assert_eq!(cjk_81.chars().count(), 81); // 81 chars
+
+        let result = liquid_core::call_filter!(Truncate, cjk_81.as_str(), 240_i64).unwrap();
+        // Should NOT be truncated (81 chars < 240 limit)
+        assert_eq!(
+            result,
+            liquid_core::value!(cjk_81.as_str()),
+            "CJK string of 81 chars (243 bytes) should NOT be truncated at limit 240"
+        );
+    }
+
+    #[test]
+    fn unit_truncate_241_ascii_chars() {
+        // 241 ASCII characters should be truncated to 237 + "..."
+        let input: String = "a".repeat(241);
+        let result = liquid_core::call_filter!(Truncate, input.as_str(), 240_i64).unwrap();
+        let expected = format!("{}{}", "a".repeat(237), "...");
+        assert_eq!(result, liquid_core::value!(expected.as_str()));
+    }
+
+    #[test]
+    fn unit_truncate_240_ascii_chars_no_truncation() {
+        // Exactly 240 ASCII characters should NOT be truncated
+        let input: String = "a".repeat(240);
+        let result = liquid_core::call_filter!(Truncate, input.as_str(), 240_i64).unwrap();
+        assert_eq!(
+            result,
+            liquid_core::value!(input.as_str()),
+            "Exactly 240 chars should not be truncated"
+        );
+    }
+
+    #[test]
+    fn unit_truncate_mixed_ascii_cjk_counts_codepoints() {
+        // 200 ASCII + 41 CJK = 241 codepoints. Should truncate.
+        let input: String = "a".repeat(200) + &"\u{4E16}".repeat(41);
+        assert_eq!(input.chars().count(), 241);
+        let result = liquid_core::call_filter!(Truncate, input.as_str(), 240_i64).unwrap();
+        // Should be truncated to 237 codepoints + "..."
+        let expected_prefix: String = input.chars().take(237).collect::<String>();
+        let expected = format!("{}...", expected_prefix);
+        assert_eq!(result, liquid_core::value!(expected.as_str()));
     }
 }
