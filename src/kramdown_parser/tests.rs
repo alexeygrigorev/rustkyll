@@ -1990,3 +1990,144 @@ fn test_non_standalone_image_stays_paragraph() {
         "Image without standalone should be in a paragraph: {html}"
     );
 }
+
+// Issue 275: Adjacent bold markers
+#[test]
+fn test_adjacent_bold_markers_with_quotes() {
+    // Pattern from data-engineers-arent-plumbers.html
+    let input = r#""**What is a data engineer?**" or "**The difference between data engineer and data scientist**" we get a cliche answer: *Data engineers are like plumbers.*"#;
+    let input = format!("{input}\n");
+    let html = super::to_html(&input);
+    // Rustkyll smart-quotes produce Unicode curly quotes; check bold nesting is correct
+    assert!(
+        html.contains("<strong>What is a data engineer?</strong>"),
+        "First bold should be correct: {html}"
+    );
+    assert!(
+        html.contains("<strong>The difference between data engineer and data scientist</strong>"),
+        "Second bold should be correct: {html}"
+    );
+    let strong_count = html.matches("<strong>").count();
+    assert_eq!(strong_count, 2, "Expected 2 <strong> elements: {html}");
+    assert!(
+        html.contains("<em>Data engineers are like plumbers.</em>"),
+        "Trailing italic should work: {html}"
+    );
+}
+
+#[test]
+fn test_adjacent_bold_simple() {
+    let input = "**A** and **B** and **C**\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<strong>A</strong> and <strong>B</strong> and <strong>C</strong>"),
+        "Three separate <strong> elements expected: {html}"
+    );
+}
+
+#[test]
+fn test_adjacent_bold_separated_by_or() {
+    let input = "\"**text1**\" or \"**text2**\"\n";
+    let html = super::to_html(input);
+    // Should produce two separate <strong> elements
+    let strong_count = html.matches("<strong>").count();
+    assert_eq!(
+        strong_count, 2,
+        "Expected 2 <strong> elements, got {strong_count}: {html}"
+    );
+    assert!(
+        html.contains("<strong>text1</strong>"),
+        "First bold should be correct: {html}"
+    );
+    assert!(
+        html.contains("<strong>text2</strong>"),
+        "Second bold should be correct: {html}"
+    );
+}
+
+#[test]
+fn test_bold_then_italic_link_interaction() {
+    // Pattern from airflow page
+    let input = r#"**Apache Airflow** locally (see [*What means "to run one software locally"*](https://example.com){:target="_blank"}) with **Docker** and **Docker Compose**"#;
+    let input = format!("{input}\n");
+    let html = super::to_html(&input);
+    assert!(
+        html.contains("<strong>Apache Airflow</strong>"),
+        "First bold should be <strong>Apache Airflow</strong>: {html}"
+    );
+    assert!(
+        html.contains("<strong>Docker</strong>"),
+        "Should have <strong>Docker</strong>: {html}"
+    );
+    assert!(
+        html.contains("<strong>Docker Compose</strong>"),
+        "Should have <strong>Docker Compose</strong>: {html}"
+    );
+    assert!(
+        html.contains(r#"<a href="https://example.com" target="_blank"><em>"#),
+        "Link should contain italic: {html}"
+    );
+}
+
+#[test]
+fn test_italic_wrapping_link_with_ial() {
+    // Pattern from interview-with-valerii-chetvertakov.html
+    let input =
+        "*[EV Connect, Inc.](https://example.com){:target=\"_blank\"}, a premier provider*\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<em><a href=\"https://example.com\" target=\"_blank\">EV Connect, Inc.</a>, a premier provider</em>"),
+        "Italic should wrap link and trailing text: {html}"
+    );
+}
+
+#[test]
+fn test_multiple_italic_spans_with_links() {
+    // Multiple italic spans each wrapping links
+    let input = "*[Link1](url1){:target=\"_blank\"}, text1* and *[Link2](url2){:target=\"_blank\"}, text2*\n";
+    let html = super::to_html(input);
+    let em_count = html.matches("<em>").count();
+    assert_eq!(
+        em_count, 2,
+        "Expected 2 <em> elements, got {em_count}: {html}"
+    );
+}
+
+// Issue 275: Unicode emphasis content
+#[test]
+fn test_adjacent_bold_german_quotes() {
+    let input = "**\u{201e}Ziel\u{201c}** und **\u{201e}Ergebnis\u{201c}**\n";
+    let html = super::to_html(input);
+    let strong_count = html.matches("<strong>").count();
+    assert_eq!(
+        strong_count, 2,
+        "Expected 2 <strong> elements with German quotes, got {strong_count}: {html}"
+    );
+}
+
+#[test]
+fn test_adjacent_bold_curly_quotes() {
+    let input = "**\u{201c}emphasis\u{201d}** or **\u{201c}emphasis\u{201d}**\n";
+    let html = super::to_html(input);
+    let strong_count = html.matches("<strong>").count();
+    assert_eq!(
+        strong_count, 2,
+        "Expected 2 <strong> elements with curly quotes, got {strong_count}: {html}"
+    );
+}
+
+#[test]
+fn test_bold_italic_alternating() {
+    let input = "**bold** *italic* **bold**\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<strong>bold</strong>"),
+        "Should have <strong>bold</strong>: {html}"
+    );
+    assert!(
+        html.contains("<em>italic</em>"),
+        "Should have <em>italic</em>: {html}"
+    );
+    let strong_count = html.matches("<strong>").count();
+    assert_eq!(strong_count, 2, "Expected 2 <strong> elements: {html}");
+}

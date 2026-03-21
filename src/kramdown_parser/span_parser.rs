@@ -1284,8 +1284,20 @@ fn parse_spans(
         // Link: [text](url) or [text][ref] or [ref]
         if chars[i] == '[' && !in_link {
             if let Some((html, advance)) = try_parse_link(chars, i, end, ctx) {
-                output.push_str(&html);
-                i += advance;
+                let mut after = i + advance;
+                // Check for IAL(s) after link
+                let mut all_ial_attrs: Vec<(String, String)> = Vec::new();
+                while let Some((ial_attrs, ial_len)) = try_parse_span_ial(chars, after, end) {
+                    all_ial_attrs.extend(ial_attrs);
+                    after += ial_len;
+                }
+                if !all_ial_attrs.is_empty() {
+                    output.push_str(&apply_ial_to_a_tag(&html, &all_ial_attrs));
+                    i = after;
+                } else {
+                    output.push_str(&html);
+                    i += advance;
+                }
                 continue;
             }
         }
@@ -1632,6 +1644,32 @@ fn format_attrs(attrs: &[(String, String)]) -> String {
         result.push_str(&format!(" {k}=\"{v}\""));
     }
     result
+}
+
+/// Apply IAL attributes to an `<a ...>` tag string.
+/// Inserts the IAL attributes into the opening `<a` tag, right before the `>`.
+fn apply_ial_to_a_tag(html: &str, attrs: &[(String, String)]) -> String {
+    // Find the first `<a` opening tag and its closing `>`
+    let a_open = if let Some(pos) = html.find("<a ") {
+        pos
+    } else if let Some(pos) = html.find("<a>") {
+        pos
+    } else {
+        return html.to_string();
+    };
+
+    // Find the closing > of this <a tag
+    if let Some(close_gt) = html[a_open..].find('>') {
+        let close_pos = a_open + close_gt;
+        let attrs_str = format_attrs(attrs);
+        let mut result = String::with_capacity(html.len() + attrs_str.len());
+        result.push_str(&html[..close_pos]);
+        result.push_str(&attrs_str);
+        result.push_str(&html[close_pos..]);
+        result
+    } else {
+        html.to_string()
+    }
 }
 
 /// Output an entity based on the entity_output option and typographic_symbols overrides.
@@ -2858,8 +2896,20 @@ fn parse_spans_until_emphasis_close(
         // Link
         if chars[i] == '[' && !in_link {
             if let Some((html, advance)) = try_parse_link(chars, i, end, ctx) {
-                output.push_str(&html);
-                i += advance;
+                let mut after = i + advance;
+                // Check for IAL(s) after link
+                let mut all_ial_attrs: Vec<(String, String)> = Vec::new();
+                while let Some((ial_attrs, ial_len)) = try_parse_span_ial(chars, after, end) {
+                    all_ial_attrs.extend(ial_attrs);
+                    after += ial_len;
+                }
+                if !all_ial_attrs.is_empty() {
+                    output.push_str(&apply_ial_to_a_tag(&html, &all_ial_attrs));
+                    i = after;
+                } else {
+                    output.push_str(&html);
+                    i += advance;
+                }
                 has_content = true;
                 continue;
             }
