@@ -255,6 +255,10 @@ pub fn postprocess(html: &str) -> String {
     // Issue 201: Convert bare void elements (<br>, <hr>) to XHTML-style
     // (<br />, <hr />) to match Jekyll/kramdown output.
     let html = normalize_bare_void_elements(&html);
+    // Issue 270: Collapse newlines inside HTML tags to spaces, matching
+    // Jekyll/kramdown behavior where raw HTML tags with multi-line attributes
+    // are normalized to single-line output.
+    let html = normalize_newlines_in_html_tags(&html);
     // Issue 276: Math delimiter conversion is disabled by default.
     // Jekyll/kramdown's default math_engine (mathjax) does NOT convert $...$
     // to \(...\) unless explicitly configured. Most sites (including DTC) keep
@@ -342,6 +346,97 @@ pub fn normalize_html_output(html: &str) -> String {
 /// - `**_text_**` -> `**\_text\_**` (renders as `<strong>_text_</strong>`)
 ///
 /// Does not modify same-delimiter nesting (e.g., `**text *inner* more**`).
+///
+/// Convert runs of 4+ consecutive underscores to match kramdown behavior.
+///
+/// Kramdown treats underscore runs differently from CommonMark:
+///   - 4 underscores: `<em>__</em>`
+///   - 6+ underscores: `<strong>__</strong>` + literal remainder
+///   - 2, 3, 5 underscores: stay literal (same as CommonMark)
+///
+/// This only applies when the run is not adjacent to alphanumeric characters
+/// (kramdown's word-boundary rule for `_` emphasis).
+pub fn convert_kramdown_underscore_runs(markdown: &str) -> String {
+    if !markdown.contains("____") {
+        return markdown.to_string();
+    }
+
+    let mut result = String::with_capacity(markdown.len() + 64);
+    let chars: Vec<char> = markdown.chars().collect();
+    let len = chars.len();
+    let mut i = 0;
+
+    while i < len {
+        // Skip code spans (backticks)
+        if chars[i] == '`' {
+            let backtick_start = i;
+            let mut backtick_count = 0;
+            while i < len && chars[i] == '`' {
+                backtick_count += 1;
+                i += 1;
+            }
+            let mut found_close = false;
+            while i < len {
+                if chars[i] == '`' {
+                    let mut close_count = 0;
+                    while i < len && chars[i] == '`' {
+                        close_count += 1;
+                        i += 1;
+                    }
+                    if close_count == backtick_count {
+                        found_close = true;
+                        break;
+                    }
+                } else {
+                    i += 1;
+                }
+            }
+            let end = if found_close { i } else { len };
+            for c in &chars[backtick_start..end] {
+                result.push(*c);
+            }
+            continue;
+        }
+
+        // Check for underscore run
+        if chars[i] == '_' {
+            let run_start = i;
+            while i < len && chars[i] == '_' {
+                i += 1;
+            }
+            let run_len = i - run_start;
+
+            // Check word boundary: underscore emphasis doesn't open after alpha
+            let preceded_by_alpha = run_start > 0 && chars[run_start - 1].is_alphabetic();
+            // Check what follows: underscore emphasis doesn't close before alnum
+            let followed_by_alnum = i < len && chars[i].is_alphanumeric();
+
+            if run_len >= 6 && !preceded_by_alpha && !followed_by_alnum {
+                // Strong: <strong>__</strong> + remainder
+                result.push_str("<strong>__</strong>");
+                let remainder = run_len - 6;
+                for _ in 0..remainder {
+                    result.push('_');
+                }
+            } else if run_len == 4 && !preceded_by_alpha && !followed_by_alnum {
+                // Em: <em>__</em>
+                result.push_str("<em>__</em>");
+            } else {
+                // Leave as literal underscores
+                for _ in 0..run_len {
+                    result.push('_');
+                }
+            }
+            continue;
+        }
+
+        result.push(chars[i]);
+        i += 1;
+    }
+
+    result
+}
+
 pub fn escape_mixed_delimiter_emphasis(markdown: &str) -> String {
     if !markdown.contains('*') && !markdown.contains('_') {
         return markdown.to_string();
@@ -3484,6 +3579,56 @@ fn is_void_element(tag_name: &str) -> bool {
 
 /// Convert bare void element tags to XHTML-style self-closing tags.
 ///
+/// Collapse newlines inside HTML tags to spaces.
+///
+/// Jekyll/kramdown normalizes raw HTML tags that span multiple lines into
+/// single-line tags. For example:
+///   `<img alt="Creative\nCommons License" ...>` becomes
+///   `<img alt="Creative Commons License" ...>`
+///
+/// This only modifies content inside `<...>` (HTML tags), not text between tags.
+fn normalize_newlines_in_html_tags(html: &str) -> String {
+    if !html.contains('\n') {
+        return html.to_string();
+    }
+
+    let mut result = String::with_capacity(html.len());
+    let mut inside_tag = false;
+    let mut inside_quote: Option<char> = None;
+
+    for ch in html.chars() {
+        if inside_tag {
+            if let Some(q) = inside_quote {
+                if ch == q {
+                    inside_quote = None;
+                }
+                if ch == '\n' {
+                    result.push(' ');
+                } else {
+                    result.push(ch);
+                }
+            } else if ch == '"' || ch == '\'' {
+                inside_quote = Some(ch);
+                result.push(ch);
+            } else if ch == '>' {
+                inside_tag = false;
+                result.push(ch);
+            } else if ch == '\n' {
+                result.push(' ');
+            } else {
+                result.push(ch);
+            }
+        } else if ch == '<' {
+            inside_tag = true;
+            result.push(ch);
+        } else {
+            result.push(ch);
+        }
+    }
+
+    result
+}
+
 /// Jekyll/kramdown outputs XHTML-style self-closing tags for void elements:
 /// `<br />`, `<hr />`, `<img ... />`, etc. When raw HTML in markdown source
 /// contains bare void tags like `<br>` (without /), this function converts

@@ -252,6 +252,43 @@ fn html_escape_for_code(s: &str) -> String {
     out
 }
 
+/// Normalize extra whitespace between block HTML tags to match kramdown output.
+pub fn normalize_block_whitespace(html: &str) -> String {
+    let mut result = String::with_capacity(html.len());
+    let bytes = html.as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
+    while i < len {
+        if bytes[i] == b'>' {
+            result.push('>');
+            i += 1;
+            let nl_start = i;
+            while i < len && bytes[i] == b'\n' {
+                i += 1;
+            }
+            let nl_count = i - nl_start;
+            if nl_count >= 2 && i < len && bytes[i] == b'<' {
+                result.push('\n');
+            } else {
+                for _ in 0..nl_count {
+                    result.push('\n');
+                }
+            }
+        } else if bytes[i] < 0x80 {
+            result.push(bytes[i] as char);
+            i += 1;
+        } else {
+            let ch_start = i;
+            i += 1;
+            while i < len && (bytes[i] & 0xC0) == 0x80 {
+                i += 1;
+            }
+            result.push_str(&html[ch_start..i]);
+        }
+    }
+    result
+}
+
 /// Escape double quotes (`"`) to `&quot;` in HTML text nodes, matching kramdown behavior.
 ///
 /// kramdown escapes `"` in text content to `&quot;`, which is important because
@@ -359,6 +396,11 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // (e.g., _*text*_ -> _\*text\*_) to match kramdown behavior.
     let markdown = crate::kramdown::escape_mixed_delimiter_emphasis(&markdown);
 
+    // Issue 270: Convert runs of 4+ consecutive underscores to match kramdown
+    // behavior. CommonMark leaves them as literal text but kramdown treats
+    // them as emphasis (4 -> em, 6+ -> strong).
+    let markdown = crate::kramdown::convert_kramdown_underscore_runs(&markdown);
+
     // Issue 198: Protect consecutive single quotes ('' and ''') from smart
     // punctuation to match kramdown behavior for MediaWiki-style markup.
     let markdown = protect_consecutive_single_quotes(&markdown);
@@ -448,6 +490,8 @@ pub fn markdown_to_html_with_options(
     let markdown = fix_kramdown_emphasis_patterns(&markdown);
     // Issue 275: Escape inner delimiters in mixed-delimiter emphasis patterns
     let markdown = crate::kramdown::escape_mixed_delimiter_emphasis(&markdown);
+    // Issue 270: Convert runs of 4+ consecutive underscores to match kramdown
+    let markdown = crate::kramdown::convert_kramdown_underscore_runs(&markdown);
     let markdown = protect_consecutive_single_quotes(&markdown);
     let protected = protect_liquid_quotes(&markdown);
 
@@ -3403,6 +3447,106 @@ More text.
         assert_eq!(
             result,
             "<meta content=\"test\"><p>&quot;Email Mu-An&quot;</p>"
+        );
+    }
+
+    // ========================================================================
+    // normalize_block_whitespace unit tests
+    // ========================================================================
+
+    #[test]
+    fn test_normalize_block_whitespace_collapses_double_newline() {
+        let input = "<div>\n\n<p>text</p>";
+        assert_eq!(normalize_block_whitespace(input), "<div>\n<p>text</p>");
+    }
+
+    #[test]
+    fn test_normalize_block_whitespace_preserves_single_newline() {
+        let input = "<div>\n<p>text</p>";
+        assert_eq!(normalize_block_whitespace(input), "<div>\n<p>text</p>");
+    }
+
+    #[test]
+    fn test_normalize_block_whitespace_preserves_non_tag_after_newlines() {
+        let input = "<div>\n\ntext";
+        assert_eq!(normalize_block_whitespace(input), "<div>\n\ntext");
+    }
+
+    #[test]
+    fn test_normalize_block_whitespace_collapses_triple_newline() {
+        let input = "<div>\n\n\n<p>text</p>";
+        assert_eq!(normalize_block_whitespace(input), "<div>\n<p>text</p>");
+    }
+
+    #[test]
+    fn test_normalize_block_whitespace_empty() {
+        assert_eq!(normalize_block_whitespace(""), "");
+    }
+
+    #[test]
+    fn test_normalize_block_whitespace_no_tags() {
+        let input = "just plain text";
+        assert_eq!(normalize_block_whitespace(input), "just plain text");
+    }
+
+    #[test]
+    fn test_normalize_block_whitespace_utf8() {
+        let input = "<div>\n\n<p>Привет мир</p>";
+        assert_eq!(
+            normalize_block_whitespace(input),
+            "<div>\n<p>Привет мир</p>"
+        );
+    }
+
+    // Issue 270: Underscore emphasis runs (kramdown-specific behavior)
+
+    #[test]
+    fn test_markdown_underscore_emphasis_seven_in_quotes() {
+        let input = "\"I can has _______\" was also\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("<strong>__</strong>_"),
+            "Expected <strong>__</strong>_ for 7 underscores, got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_markdown_underscore_emphasis_six() {
+        let input = "text ______\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("<strong>__</strong>"),
+            "Expected <strong>__</strong> for 6 underscores, got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_markdown_underscore_emphasis_four() {
+        let input = "text ____\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("<em>__</em>"),
+            "Expected <em>__</em> for 4 underscores, got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_markdown_underscore_emphasis_three_literal() {
+        let input = "text ___\n";
+        let html = markdown_to_html(input);
+        assert!(
+            !html.contains("<em>") && !html.contains("<strong>"),
+            "3 underscores inline should stay literal, got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_markdown_underscore_emphasis_unicode() {
+        let input = "__\u{041f}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}__\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("<strong>\u{041f}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}</strong>"),
+            "Expected strong around Unicode content, got: {html}"
         );
     }
 }

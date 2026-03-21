@@ -3320,6 +3320,9 @@ fn try_parse_image(
         .replace("\\|", "|")
         .replace("\\[", "[")
         .replace("\\]", "]");
+    // Normalize whitespace in alt attribute: collapse newlines and tabs to spaces
+    // (standard HTML attribute value normalization per the spec)
+    let alt_text = alt_text.replace(['\n', '\t'], " ");
     let alt_escaped = escape_html_attr(&alt_text);
     let after_bracket = i;
 

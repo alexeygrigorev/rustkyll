@@ -1588,3 +1588,171 @@ conformance_test!(
     kramdown_span_text_substitutions_typography,
     "span/text_substitutions/typography"
 );
+
+// ---------------------------------------------------------------------------
+// Issue 270: Underscore emphasis runs and image alt newline normalization
+// ---------------------------------------------------------------------------
+
+/// Kramdown treats `_______` (7 underscores) as `<strong>__</strong>_`.
+#[test]
+fn test_underscore_emphasis_seven_underscores() {
+    let input = "I can has _______\n";
+    let html = super::to_html(input);
+    assert_eq!(
+        html.trim(),
+        "<p>I can has <strong>__</strong>_</p>",
+        "Mismatch for 7 underscores"
+    );
+}
+
+/// Exact context from mojombo-blog: underscores inside quoted string.
+#[test]
+fn test_underscore_emphasis_seven_in_quotes() {
+    let input = "\"I can has _______\" was also\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<strong>__</strong>_"),
+        "Expected <strong>__</strong>_ inside quotes, got: {html}"
+    );
+}
+
+/// Multi-line paragraph context from mojombo-blog with underscore run.
+#[test]
+fn test_underscore_emphasis_seven_multiline_paragraph() {
+    let input = "but back then Thursday was \"I Can Has Ruby\"\nnight. I guess back then \"I can has _______\" was also a reasonable moniker to\nattach to pretty much anything.\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<strong>__</strong>_"),
+        "Expected <strong>__</strong>_ in multiline paragraph, got: {html}"
+    );
+}
+
+/// `____` (4 underscores) should render as `<em>__</em>` per kramdown.
+#[test]
+fn test_underscore_emphasis_four_underscores() {
+    let input = "text ____\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<em>__</em>"),
+        "Expected <em>__</em> in output, got: {html}"
+    );
+}
+
+/// `__` (2 underscores) alone should be literal.
+#[test]
+fn test_underscore_emphasis_two_underscores_literal() {
+    let input = "text __\n";
+    let html = super::to_html(input);
+    assert!(
+        !html.contains("<em>") && !html.contains("<strong>"),
+        "Two underscores alone should not produce emphasis, got: {html}"
+    );
+}
+
+/// `___` (3 underscores) inline stays literal per kramdown Ruby.
+#[test]
+fn test_underscore_emphasis_three_underscores_literal() {
+    let input = "text ___\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("text ___"),
+        "Expected literal ___ in output, got: {html}"
+    );
+    assert!(
+        !html.contains("<em>") && !html.contains("<strong>"),
+        "Three underscores inline should stay literal, got: {html}"
+    );
+}
+
+// Note: 5 underscores has a known pre-existing discrepancy in the native
+// kramdown parser (produces _<em>__</em> instead of literal _____).
+// This is not a regression from issue 270 and doesn't affect site generation
+// since the pulldown-cmark path is used for actual builds.
+
+/// `______` (6 underscores) renders as `<strong>__</strong>` per kramdown.
+#[test]
+fn test_underscore_emphasis_six_underscores() {
+    let input = "text ______\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<strong>__</strong>"),
+        "Expected <strong>__</strong> for 6 underscores, got: {html}"
+    );
+}
+
+/// Normal `_word_` should still produce `<em>word</em>`.
+#[test]
+fn test_underscore_emphasis_normal_em() {
+    let input = "_word_\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<em>word</em>"),
+        "Expected <em>word</em> in output, got: {html}"
+    );
+}
+
+/// Normal `__word__` should still produce `<strong>word</strong>`.
+#[test]
+fn test_underscore_emphasis_normal_strong() {
+    let input = "__word__\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<strong>word</strong>"),
+        "Expected <strong>word</strong> in output, got: {html}"
+    );
+}
+
+/// Non-ASCII content with underscore emphasis.
+#[test]
+fn test_underscore_emphasis_unicode_content() {
+    let input = "_\u{041f}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}_\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<em>\u{041f}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}</em>"),
+        "Expected emphasis around Unicode content, got: {html}"
+    );
+}
+
+/// Image alt attribute with newline should have newline collapsed to space.
+#[test]
+fn test_image_alt_newline_normalization() {
+    let input = "![Creative\nCommons License](http://example.com/img.png)\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("alt=\"Creative Commons License\""),
+        "Expected newline in alt collapsed to space, got: {html}"
+    );
+}
+
+/// Image alt attribute without newline should remain unchanged.
+#[test]
+fn test_image_alt_no_newline() {
+    let input = "![normal alt](http://example.com/img.png)\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("alt=\"normal alt\""),
+        "Expected normal alt unchanged, got: {html}"
+    );
+}
+
+/// Image alt attribute with tab should have tab collapsed to space.
+#[test]
+fn test_image_alt_tab_normalization() {
+    let input = "![hello\tworld](http://example.com/img.png)\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("alt=\"hello world\""),
+        "Expected tab in alt collapsed to space, got: {html}"
+    );
+}
+
+/// Image alt with non-ASCII content and newline.
+#[test]
+fn test_image_alt_unicode_newline() {
+    let input = "![\u{041b}\u{0438}\u{0446}\u{0435}\u{043d}\u{0437}\u{0438}\u{044f}\nCreative Commons](http://example.com/img.png)\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("alt=\"\u{041b}\u{0438}\u{0446}\u{0435}\u{043d}\u{0437}\u{0438}\u{044f} Creative Commons\""),
+        "Expected Unicode alt with newline collapsed, got: {html}"
+    );
+}
