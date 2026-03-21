@@ -890,7 +890,13 @@ fn load_pages_recursive(
             None => continue,
         };
 
-        if name == "README.md" || name.starts_with('_') {
+        // Skip underscore-prefixed files.
+        // README.md in subdirectories is kept (Jekyll's jekyll-readme-index
+        // converts them to index.html). Root-level README.md is still skipped
+        // because it's typically the project README, not a site page.
+        let is_readme = name == "README.md";
+        let is_root_level = path.parent() == Some(site_dir);
+        if name.starts_with('_') || (is_readme && is_root_level) {
             continue;
         }
 
@@ -908,19 +914,30 @@ fn load_pages_recursive(
         };
 
         // Jekyll only processes files that have YAML front matter (starting with ---)
-        // This applies to all file types including .md files
-        if !has_front_matter(&raw) {
+        // This applies to all file types including .md files.
+        // Exception: README.md files are processed even without front matter
+        // (matching Jekyll's jekyll-readme-index plugin behavior).
+        if !has_front_matter(&raw) && !is_readme {
             continue;
         }
 
-        let doc = match frontmatter::parse_document(&raw) {
-            Ok(doc) => doc,
-            Err(e) => {
-                errors.push(CollectionError::Parse {
-                    path: path.display().to_string(),
-                    source: e,
-                });
-                continue;
+        let doc = if has_front_matter(&raw) {
+            match frontmatter::parse_document(&raw) {
+                Ok(doc) => doc,
+                Err(e) => {
+                    errors.push(CollectionError::Parse {
+                        path: path.display().to_string(),
+                        source: e,
+                    });
+                    continue;
+                }
+            }
+        } else {
+            // README.md without front matter: treat entire content as body
+            frontmatter::Document {
+                front_matter: FrontMatter::new(),
+                content: raw.clone(),
+                excerpt: None,
             }
         };
 
@@ -946,8 +963,9 @@ fn load_pages_recursive(
             .unwrap_or_else(|| {
                 if is_markdown {
                     let rel_stem = rel_path.strip_suffix(".md").unwrap_or(&rel_path);
-                    // Index pages always get directory URL (e.g. "/" or "/subdir/")
-                    if stem == "index" {
+                    // Index pages and README.md always get directory URL (e.g. "/" or "/subdir/")
+                    // README.md -> index.html (matching jekyll-readme-index behavior)
+                    if stem == "index" || stem == "README" {
                         let dir = rel_path.rsplit_once('/').map(|(d, _)| d).unwrap_or("");
                         if dir.is_empty() {
                             "/".to_string()
@@ -1716,11 +1734,13 @@ mod tests {
     }
 
     #[test]
-    fn test_load_pages_excludes_readme() {
+    fn test_load_pages_excludes_root_readme() {
+        // Root-level README.md is the project README, not a site page.
+        // Subdirectory README.md files ARE included (see test_load_pages_includes_readme_*).
         let config = test_config();
         let (pages, _) = load_pages(&site_dir(), &config).unwrap();
         let readme = pages.iter().find(|p| p.slug == "README");
-        assert!(readme.is_none(), "README.md should be excluded");
+        assert!(readme.is_none(), "Root-level README.md should be excluded");
     }
 
     // ========================================================================
@@ -2844,5 +2864,139 @@ mod tests {
         let collisions = detect_url_collisions(&entries);
         assert_eq!(collisions.len(), 1);
         assert_eq!(collisions[0].url, "/blog/über-uns.html");
+    }
+
+    // ========================================================================
+    // README.md pages: Jekyll includes README.md in site.pages
+    // ========================================================================
+
+    #[test]
+    fn test_load_pages_includes_readme_in_subdirectory() {
+        // Jekyll (via jekyll-readme-index) includes README.md files as pages,
+        // converting them to index.html in their directory. Templates like
+        // the metals-ru book rely on finding README.md pages in site.pages.
+        let dir = tempfile::TempDir::new().unwrap();
+        let sub = dir.path().join("subdir");
+        fs::create_dir(&sub).unwrap();
+        fs::write(sub.join("README.md"), "# Hello from subdirectory").unwrap();
+
+        let config = SiteConfig {
+            permalink: "pretty".to_string(),
+            ..Default::default()
+        };
+
+        let (pages, errors) = load_pages(dir.path(), &config).unwrap();
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+        let readme_page = pages.iter().find(|p| p.source_path.contains("README.md"));
+        assert!(
+            readme_page.is_some(),
+            "README.md in subdirectory should be included in site.pages"
+        );
+
+        let readme_page = readme_page.unwrap();
+        // README.md should get a directory index URL (like index.md)
+        assert_eq!(
+            readme_page.url, "/subdir/",
+            "README.md should produce directory index URL"
+        );
+        // source_path should contain README.md for template matching
+        assert!(
+            readme_page.source_path.contains("README.md"),
+            "source_path should contain README.md, got: {}",
+            readme_page.source_path
+        );
+    }
+
+    #[test]
+    fn test_load_pages_readme_without_front_matter() {
+        // README.md files often have no YAML front matter.
+        // Jekyll still processes them as pages. rustkyll should too.
+        let dir = tempfile::TempDir::new().unwrap();
+        let sub = dir.path().join("часть_1");
+        fs::create_dir(&sub).unwrap();
+        fs::write(
+            sub.join("README.md"),
+            "# Часть 1: Введение\n\nСодержание части.",
+        )
+        .unwrap();
+
+        let config = SiteConfig {
+            permalink: "pretty".to_string(),
+            ..Default::default()
+        };
+
+        let (pages, errors) = load_pages(dir.path(), &config).unwrap();
+        assert!(errors.is_empty());
+
+        let readme = pages.iter().find(|p| p.source_path.contains("README.md"));
+        assert!(
+            readme.is_some(),
+            "README.md without front matter should still be included"
+        );
+        let readme = readme.unwrap();
+        assert!(
+            readme.html_content.contains("Часть 1"),
+            "README.md content should be converted to HTML"
+        );
+    }
+
+    #[test]
+    fn test_load_pages_readme_with_front_matter() {
+        // README.md with explicit front matter should also work
+        let dir = tempfile::TempDir::new().unwrap();
+        let sub = dir.path().join("docs");
+        fs::create_dir(&sub).unwrap();
+        fs::write(
+            sub.join("README.md"),
+            "---\ntitle: Documentation\nlayout: default\n---\n# Docs\nWelcome.",
+        )
+        .unwrap();
+
+        let config = SiteConfig {
+            permalink: "pretty".to_string(),
+            ..Default::default()
+        };
+
+        let (pages, errors) = load_pages(dir.path(), &config).unwrap();
+        assert!(errors.is_empty());
+
+        let readme = pages.iter().find(|p| p.source_path.contains("README.md"));
+        assert!(
+            readme.is_some(),
+            "README.md with front matter should be a page"
+        );
+        let readme = readme.unwrap();
+        assert_eq!(
+            readme.front_matter.get("title").and_then(|v| v.as_str()),
+            Some("Documentation")
+        );
+        assert_eq!(readme.url, "/docs/");
+    }
+
+    #[test]
+    fn test_load_pages_root_readme_excluded() {
+        // Root-level README.md should NOT be included (it's the project README,
+        // not a site page). Only subdirectory README.md files are included.
+        let dir = tempfile::TempDir::new().unwrap();
+        fs::write(dir.path().join("README.md"), "# Project Readme").unwrap();
+        // Also add an index.md so there's at least one page
+        fs::write(
+            dir.path().join("index.md"),
+            "---\ntitle: Home\n---\nWelcome",
+        )
+        .unwrap();
+
+        let config = SiteConfig {
+            permalink: "pretty".to_string(),
+            ..Default::default()
+        };
+
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        let root_readme = pages.iter().find(|p| p.source_path == "README.md");
+        assert!(
+            root_readme.is_none(),
+            "Root-level README.md should be excluded from pages"
+        );
     }
 }
