@@ -50,6 +50,12 @@ fn build_scope_map() -> Vec<ScopeMapping> {
             "source.ruby string.quoted.single punctuation.definition.string",
             "s1",
         ),
+        // PHP: Rouge classifies $variable as `nv` (Name.Variable).
+        // Syntect scopes PHP variables as variable.other -> n. Override for PHP.
+        ("source.php variable.other", "nv"),
+        // PHP: Rouge classifies class names (after `new`, in extends/implements, etc.) as `nc` (Name.Class).
+        // Syntect scopes these as support.class.php -> nb. Override for PHP.
+        ("source.php support.class", "nc"),
         // JSON: Rouge renders string delimiters (quotes) as part of the string token.
         // Syntect emits punctuation.definition.string.{begin,end} as separate scopes.
         // Map them to `s2` (same as string.quoted.double) so they merge with the
@@ -2433,6 +2439,48 @@ mod tests {
         assert!(
             html.contains("<span class=\"nc\">MyClass</span>"),
             "Python class name should be nc: {html}"
+        );
+    }
+
+    // ── PHP token mapping tests (issue 293) ──
+
+    #[test]
+    fn test_php_variable_is_nv() {
+        // PHP requires <?php prefix for syntect to recognize PHP code
+        let html = highlight_code("php", "<?php\n$foo = new Bar;\n").unwrap();
+        // Extract the second line (after <?php)
+        let second_line = html.split('\n').nth(1).unwrap_or(&html);
+        assert!(
+            second_line.contains("<span class=\"nv\">$foo</span>"),
+            "PHP variable $foo should be nv (Name.Variable): {html}"
+        );
+    }
+
+    #[test]
+    fn test_php_class_name_is_nc() {
+        let html = highlight_code("php", "<?php\n$foo = new Bar;\n").unwrap();
+        assert!(
+            html.contains("<span class=\"nc\">Bar</span>"),
+            "PHP class name Bar should be nc (Name.Class): {html}"
+        );
+    }
+
+    #[test]
+    fn test_php_unicode_variable_is_nv() {
+        // Non-ASCII: PHP allows Unicode in variable names
+        let html = highlight_code("php", "<?php\n$caf\u{00e9} = new B\u{00e4}r;\n").unwrap();
+        assert!(
+            html.contains("<span class=\"nv\">$caf\u{00e9}</span>"),
+            "PHP Unicode variable should be nv: {html}"
+        );
+    }
+
+    #[test]
+    fn test_php_new_keyword_is_k() {
+        let html = highlight_code("php", "<?php\n$foo = new Bar;\n").unwrap();
+        assert!(
+            html.contains("<span class=\"k\">new</span>"),
+            "PHP 'new' should be k (keyword): {html}"
         );
     }
 }

@@ -906,23 +906,18 @@ conformance_test!(
     kramdown_block_06_codeblock_rouge_disabled,
     "block/06_codeblock/rouge/disabled"
 );
-// Deferred: requires Rouge-compatible syntax highlighting token classes (nv for PHP variables,
-// nc for class names, s2 for double-quoted strings without dl delimiter splitting).
-// Root cause: syntect's scope-to-CSS-class mapping differs from Rouge for PHP (nv vs n,
-// nc vs nb) and Ruby (s2 vs dl+s2+dl). Also needs custom-class wrapper div from
-// formatter options. See issue 293.
+// Deferred: PHP token classes fixed (issue 293), but still needs:
+// 1. `formatter: RougeHTMLFormatters` custom-class wrapper div (html.rs change)
+// 2. Ruby string dl+s2+dl -> single s2 merging for this test's Ruby blocks
 conformance_test_deferred!(
     kramdown_block_06_codeblock_rouge_multiple,
     "block/06_codeblock/rouge/multiple",
-    "requires Rouge-compatible token class mapping in syntax.rs"
+    "requires custom-class wrapper div and Ruby string delimiter merging"
 );
-// Deferred: PHP token class mismatch (nv vs n, nc vs nb) between syntect and Rouge.
-// Root cause: syntect maps PHP variables to scope 'variable.other' (-> 'n') but Rouge
-// uses 'nv'. Similarly, class names are 'nb' (builtin) vs Rouge 'nc'. See issue 293.
-conformance_test_deferred!(
+// Issue 293: PHP token class mapping fixed (nv for variables, nc for class names).
+conformance_test!(
     kramdown_block_06_codeblock_rouge_simple,
-    "block/06_codeblock/rouge/simple",
-    "requires Rouge-compatible PHP token class mapping in syntax.rs"
+    "block/06_codeblock/rouge/simple"
 );
 conformance_test!(
     kramdown_block_06_codeblock_tilde_syntax,
