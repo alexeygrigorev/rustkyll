@@ -1261,6 +1261,123 @@ conformance_test!(
 conformance_test!(kramdown_cjk_line_break, "cjk-line-break");
 conformance_test!(kramdown_encoding, "encoding");
 
+// ---------------------------------------------------------------------------
+// Unit tests: CJK line break handling
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_cjk_line_break_chinese_chars_joined() {
+    // Chinese characters across line breaks should be joined without space
+    let mut opts = super::options::Options::default();
+    opts.remove_line_breaks_for_cjk = true;
+    let input = "\u{4e2d}\u{6587}\n\u{6587}\u{5b57}\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("\u{4e2d}\u{6587}\u{6587}\u{5b57}"),
+        "CJK chars should be joined without space: {html:?}"
+    );
+}
+
+#[test]
+fn test_cjk_line_break_japanese_chars_joined() {
+    // Japanese characters across line breaks should be joined without space
+    let mut opts = super::options::Options::default();
+    opts.remove_line_breaks_for_cjk = true;
+    let input = "\u{3042}\u{3044}\n\u{3046}\u{3048}\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("\u{3042}\u{3044}\u{3046}\u{3048}"),
+        "Japanese chars should be joined without space: {html:?}"
+    );
+}
+
+#[test]
+fn test_cjk_line_break_latin_preserves_space() {
+    // CJK followed by Latin should preserve space (standard behavior)
+    let mut opts = super::options::Options::default();
+    opts.remove_line_breaks_for_cjk = true;
+    let input = "\u{4e2d}\u{6587}\nhello\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("\u{4e2d}\u{6587}\nhello") || html.contains("\u{4e2d}\u{6587} hello"),
+        "CJK-to-Latin should preserve space/newline: {html:?}"
+    );
+}
+
+#[test]
+fn test_cjk_line_break_disabled_by_default() {
+    // With default options, CJK line breaks should produce a space (newline -> space)
+    let input = "\u{4e2d}\u{6587}\n\u{6587}\u{5b57}\n";
+    let html = super::to_html(&input);
+    // Standard behavior: newline becomes space in paragraph text
+    assert!(
+        html.contains("\u{4e2d}\u{6587}\n\u{6587}\u{5b57}"),
+        "Default behavior preserves newline in paragraph: {html:?}"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Unit tests: Non-ASCII/UTF-8 encoding
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_encoding_german_umlauts_in_paragraph() {
+    let input = "Das ist gew\u{00f6}hnlich ein \u{00dc}ber-Problem.\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("gew\u{00f6}hnlich"),
+        "German umlauts should be preserved: {html:?}"
+    );
+    assert!(
+        html.contains("\u{00dc}ber"),
+        "Uppercase umlauts should be preserved: {html:?}"
+    );
+}
+
+#[test]
+fn test_encoding_emphasis_with_umlauts() {
+    let input = "*h\u{00f6}re* nicht richtig\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<em>h\u{00f6}re</em>"),
+        "Emphasis with umlauts should work: {html:?}"
+    );
+}
+
+#[test]
+fn test_encoding_header_with_nonascii() {
+    let input = "## Manche m\u{00f6}gens *\u{00e4}rmer*\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("m\u{00f6}gens"),
+        "Header with umlauts should work: {html:?}"
+    );
+    assert!(
+        html.contains("<em>\u{00e4}rmer</em>"),
+        "Emphasis in header with umlaut should work: {html:?}"
+    );
+}
+
+#[test]
+fn test_encoding_cjk_in_emphasis() {
+    let input = "*\u{4e2d}\u{6587}* text\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<em>\u{4e2d}\u{6587}</em>"),
+        "CJK in emphasis should work: {html:?}"
+    );
+}
+
+#[test]
+fn test_encoding_emoji_in_paragraph() {
+    let input = "Hello \u{1f600} world\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("\u{1f600}"),
+        "Emoji should be preserved: {html:?}"
+    );
+}
+
 // span/01_link
 conformance_test!(kramdown_span_01_link_empty, "span/01_link/empty");
 conformance_test!(kramdown_span_01_link_image_in_a, "span/01_link/image_in_a");

@@ -68,6 +68,7 @@ pub struct Options {
 
     // HTML parsing
     pub parse_block_html: bool,
+    pub parse_span_html: bool,
     pub html_to_native: bool,
 
     // Smart quotes and typography
@@ -106,6 +107,7 @@ impl Default for Options {
             footnote_link_text: String::new(),
             math_engine: Some("mathjax".to_string()),
             parse_block_html: false,
+            parse_span_html: false,
             html_to_native: false,
             smart_quotes: vec![
                 "lsquo".to_string(),
@@ -219,6 +221,7 @@ impl Options {
                     };
                 }
                 "parse_block_html" => opts.parse_block_html = Self::parse_bool(&val),
+                "parse_span_html" => opts.parse_span_html = Self::parse_bool(&val),
                 "html_to_native" => opts.html_to_native = Self::parse_bool(&val),
                 "syntax_highlighter" => {
                     opts.syntax_highlighter = if val == "~" || val.is_empty() {

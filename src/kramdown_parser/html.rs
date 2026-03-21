@@ -28,6 +28,11 @@ impl HtmlConverter {
         options: &Options,
         ctx: &mut SpanContext,
     ) -> String {
+        // Pre-collect headers for TOC generation
+        if options.auto_ids {
+            collect_headers(&doc.root.children, options, ctx);
+        }
+
         let mut output = String::new();
         convert_children(&doc.root.children, &mut output, options, 0, ctx);
 
@@ -40,7 +45,209 @@ impl HtmlConverter {
             output.push('\n');
         }
 
+        // If the document ends with a trailing Blank element AND there was
+        // visible content before it AND no footnotes were rendered,
+        // kramdown outputs an extra trailing newline.
+        if footnotes.is_empty() {
+            let has_visible_before_blank = doc.root.children.iter().any(is_visible_block);
+            let has_trailing_blank = doc
+                .root
+                .children
+                .last()
+                .is_some_and(|e| e.element_type == ElementType::Blank);
+            if has_trailing_blank && has_visible_before_blank && !output.ends_with("\n\n") {
+                output.push('\n');
+            }
+        }
+
         output
+    }
+}
+
+/// Collect headers from the document for TOC generation.
+fn collect_headers(children: &[Element], options: &Options, ctx: &mut SpanContext) {
+    let mut used_ids: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    for child in children {
+        if child.element_type == ElementType::Header {
+            let level = child
+                .options
+                .get("level")
+                .and_then(|l| l.parse::<usize>().ok())
+                .unwrap_or(1);
+            let text = get_element_text(child);
+            let has_no_toc = child
+                .attr
+                .get("class")
+                .is_some_and(|c| c.split_whitespace().any(|cls| cls == "no_toc"));
+
+            // Generate ID from text (slug)
+            let id = if let Some(existing_id) = child.attr.get("id") {
+                existing_id.clone()
+            } else {
+                let base_id = generate_header_id(&text, options);
+                let count = used_ids.entry(base_id.clone()).or_insert(0);
+                let final_id = if *count == 0 {
+                    base_id.clone()
+                } else {
+                    format!("{}-{}", base_id, count)
+                };
+                *count += 1;
+                final_id
+            };
+
+            ctx.toc_headers.push((level, id, text, has_no_toc));
+        }
+    }
+}
+
+/// Generate a header ID from text (slug).
+fn generate_header_id(text: &str, _options: &Options) -> String {
+    // Strip footnote references [^N] from text for ID generation
+    let clean = strip_footnote_refs_from_text(text);
+    // Strip link references
+    let clean = strip_link_refs_from_text(&clean);
+    clean
+        .to_lowercase()
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '-'
+            }
+        })
+        .collect::<String>()
+        .split('-')
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join("-")
+}
+
+/// Strip footnote reference markers from header text.
+fn strip_footnote_refs_from_text(text: &str) -> String {
+    let mut result = String::new();
+    let mut i = 0;
+    let chars: Vec<char> = text.chars().collect();
+    while i < chars.len() {
+        if chars[i] == '[' && i + 1 < chars.len() && chars[i + 1] == '^' {
+            // Skip until closing ]
+            let mut j = i + 2;
+            while j < chars.len() && chars[j] != ']' {
+                j += 1;
+            }
+            if j < chars.len() {
+                i = j + 1;
+                continue;
+            }
+        }
+        result.push(chars[i]);
+        i += 1;
+    }
+    result
+}
+
+/// Strip link reference syntax like [Text] from header text.
+fn strip_link_refs_from_text(text: &str) -> String {
+    let mut result = String::new();
+    let mut i = 0;
+    let chars: Vec<char> = text.chars().collect();
+    while i < chars.len() {
+        if chars[i] == '[' {
+            let mut j = i + 1;
+            while j < chars.len() && chars[j] != ']' {
+                j += 1;
+            }
+            if j < chars.len() {
+                // Extract text inside brackets
+                let inner: String = chars[i + 1..j].iter().collect();
+                result.push_str(&inner);
+                i = j + 1;
+                continue;
+            }
+        }
+        result.push(chars[i]);
+        i += 1;
+    }
+    result
+}
+
+/// Generate TOC HTML from collected headers.
+fn generate_toc(output: &mut String, options: &Options, ctx: &SpanContext) {
+    // Parse toc_levels
+    let (min_level, max_level) = parse_toc_levels(&options.toc_levels);
+
+    // Filter headers for TOC
+    let headers: Vec<&(usize, String, String, bool)> = ctx
+        .toc_headers
+        .iter()
+        .filter(|(level, _, _, no_toc)| !no_toc && *level >= min_level && *level <= max_level)
+        .collect();
+
+    if headers.is_empty() {
+        return;
+    }
+
+    output.push_str("<ul id=\"markdown-toc\">\n");
+
+    let mut stack: Vec<usize> = Vec::new(); // stack of levels for nesting
+
+    for (i, (level, id, text, _)) in headers.iter().enumerate() {
+        let level = *level;
+
+        // Close nested lists as needed
+        while stack.last().is_some_and(|&l| l >= level) {
+            stack.pop();
+            let indent = 2 + stack.len() * 4;
+            output.push_str(&" ".repeat(indent + 2));
+            output.push_str("</ul>\n");
+            output.push_str(&" ".repeat(indent));
+            output.push_str("</li>\n");
+        }
+
+        let indent = 2 + stack.len() * 4;
+
+        // Check if next header is deeper
+        let next_is_deeper = headers.get(i + 1).is_some_and(|(nl, _, _, _)| *nl > level);
+
+        let clean_text = strip_footnote_refs_from_text(text);
+        let clean_text = strip_link_refs_from_text(&clean_text);
+
+        output.push_str(&" ".repeat(indent));
+        output.push_str(&format!(
+            "<li><a href=\"#{}\" id=\"markdown-toc-{}\">{}</a>",
+            id, id, clean_text
+        ));
+
+        if next_is_deeper {
+            let ul_indent = "    ".repeat(stack.len() + 1);
+            output.push_str(&ul_indent);
+            output.push_str("<ul>\n");
+            stack.push(level);
+        } else {
+            output.push_str("</li>\n");
+        }
+    }
+
+    // Close remaining open lists
+    while stack.pop().is_some() {
+        let indent = 2 + stack.len() * 4;
+        output.push_str(&" ".repeat(indent + 2));
+        output.push_str("</ul>\n");
+        output.push_str(&" ".repeat(indent));
+        output.push_str("</li>\n");
+    }
+
+    output.push_str("</ul>\n");
+}
+
+/// Parse toc_levels string like "1..6" or "2..3" into (min, max).
+fn parse_toc_levels(s: &str) -> (usize, usize) {
+    if let Some((min_s, max_s)) = s.split_once("..") {
+        let min = min_s.trim().parse().unwrap_or(1);
+        let max = max_s.trim().parse().unwrap_or(6);
+        (min, max)
+    } else {
+        (1, 6)
     }
 }
 
@@ -199,7 +406,9 @@ fn convert_paragraph(
     ctx: &mut SpanContext,
 ) {
     write_indent(output, indent);
-    output.push_str("<p>");
+    output.push_str("<p");
+    write_attrs(&elem.attr, output);
+    output.push('>');
 
     let text = get_element_text(elem);
     let processed = span_parser::spans_to_html(&text, ctx);
@@ -212,7 +421,7 @@ fn convert_paragraph(
 fn convert_header(
     elem: &Element,
     output: &mut String,
-    _options: &Options,
+    options: &Options,
     indent: usize,
     ctx: &mut SpanContext,
 ) {
@@ -222,9 +431,23 @@ fn convert_header(
         .and_then(|l| l.parse::<usize>().ok())
         .unwrap_or(1);
 
+    // Build attributes, adding auto-ID if needed
+    let mut attrs = elem.attr.clone();
+    if options.auto_ids && !attrs.contains_key("id") {
+        let text = get_element_text(elem);
+        // Find the matching header in toc_headers to get its ID
+        if let Some((_, id, _, _)) = ctx.toc_headers.iter().find(|(_, _, t, _)| *t == text) {
+            attrs.insert("id".to_string(), id.clone());
+        } else {
+            // Generate ID directly
+            let id = generate_header_id(&text, options);
+            attrs.insert("id".to_string(), id);
+        }
+    }
+
     write_indent(output, indent);
     output.push_str(&format!("<h{level}"));
-    write_attrs(&elem.attr, output);
+    write_attrs(&attrs, output);
     output.push('>');
 
     let text = get_element_text(elem);
@@ -330,6 +553,16 @@ fn convert_list(
     indent: usize,
     ctx: &mut SpanContext,
 ) {
+    // TOC list: replace with generated TOC or suppress
+    if elem.options.get("toc").is_some_and(|v| v == "true") {
+        if options.auto_ids {
+            // Generate TOC from collected headers
+            generate_toc(output, options, ctx);
+        }
+        // If auto_ids is false, suppress the list (no output)
+        return;
+    }
+
     let tag = elem
         .options
         .get("list_type")
@@ -780,6 +1013,28 @@ fn escape_html(s: &str) -> String {
         .replace('>', "&gt;")
 }
 
+/// Inject IAL attributes into the first HTML tag in a raw HTML string.
+/// E.g., inject class="cls" into `<div>` -> `<div class="cls">`
+fn inject_attrs_into_html(html: &str, attrs: &std::collections::HashMap<String, String>) -> String {
+    if attrs.is_empty() {
+        return html.to_string();
+    }
+    // Find the first `>` that closes an opening tag
+    if let Some(gt_pos) = html.find('>') {
+        let before_gt = &html[..gt_pos];
+        // Build attribute string
+        let mut attr_str = String::new();
+        write_attrs(attrs, &mut attr_str);
+        let mut result = String::with_capacity(html.len() + attr_str.len());
+        result.push_str(before_gt);
+        result.push_str(&attr_str);
+        result.push_str(&html[gt_pos..]);
+        result
+    } else {
+        html.to_string()
+    }
+}
+
 /// Convert HTML block to output.
 fn convert_html_block(
     elem: &Element,
@@ -807,37 +1062,41 @@ fn convert_html_block(
             output.push_str(">\n");
         }
         Some("span") => {
-            // Span-parsed HTML: output opening tag, then span-processed content, then closing tag
+            // Span-parsed HTML: opening tag inline with content, closing tag after content
+            // kramdown outputs: <tag>content</tag> (no extra newlines around content)
             let tag = elem.options.get("tag").map(|s| s.as_str()).unwrap_or("p");
             let attrs = elem.options.get("attrs").map(|s| s.as_str()).unwrap_or("");
             write_indent(output, indent);
             output.push('<');
             output.push_str(tag);
             output.push_str(attrs);
-            output.push_str(">\n");
+            output.push('>');
             if let Some(ref val) = elem.value {
                 let processed = span_parser::spans_to_html(val.trim(), ctx);
                 output.push_str(&processed);
-                output.push('\n');
             }
-            write_indent(output, indent);
             output.push_str("</");
             output.push_str(tag);
             output.push_str(">\n");
         }
         _ => {
-            // Raw HTML: pass through
+            // Raw HTML: pass through, but inject IAL attributes into opening tag
             let elem_type = elem.options.get("type").map(|s| s.as_str());
             let skip_escape = matches!(elem_type, Some("comment") | Some("raw"));
             if let Some(ref val) = elem.value {
                 if !val.is_empty() {
-                    if skip_escape {
-                        output.push_str(val);
+                    let html_str = if !elem.attr.is_empty() {
+                        inject_attrs_into_html(val, &elem.attr)
                     } else {
-                        let processed = escape_invalid_html_in_block(val);
+                        val.clone()
+                    };
+                    if skip_escape {
+                        output.push_str(&html_str);
+                    } else {
+                        let processed = escape_invalid_html_in_block(&html_str);
                         output.push_str(&processed);
                     }
-                    if !val.ends_with('\n') {
+                    if !html_str.ends_with('\n') {
                         output.push('\n');
                     }
                 }
@@ -1139,6 +1398,11 @@ fn render_footnote_content(content: &str, options: &Options, ctx: &mut SpanConte
     // Convert to HTML with span processing (reuse the same context for footnote refs)
     let mut html_output = String::new();
     convert_children(&doc.root.children, &mut html_output, options, 6, ctx);
+
+    // Remove any trailing blank lines from footnote content
+    while html_output.ends_with("\n\n") {
+        html_output.pop();
+    }
 
     html_output
 }

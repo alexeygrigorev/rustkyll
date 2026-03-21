@@ -36,6 +36,8 @@ pub struct SpanContext {
     pub footnote_ref_counts: HashMap<String, usize>,
     /// Attribute List Definitions: name -> list of (key, value) pairs
     pub ald_defs: HashMap<String, Vec<(String, String)>>,
+    /// TOC headers: (level, id, text, has_no_toc)
+    pub toc_headers: Vec<(usize, String, String, bool)>,
     /// Options
     pub options: Options,
 }
@@ -68,6 +70,7 @@ impl SpanContext {
             footnote_order: Vec::new(),
             footnote_ref_counts: HashMap::new(),
             ald_defs: HashMap::new(),
+            toc_headers: Vec::new(),
             options: options.clone(),
         }
     }
@@ -235,9 +238,24 @@ pub fn extract_definitions(text: &str, ctx: &mut SpanContext) -> String {
         i += 1;
     }
 
-    // Reconstruct text
+    // Reconstruct text, preserving trailing blank lines
+    let defs_were_removed = output_lines.len() < lines.len();
     let mut result = output_lines.join("\n");
+    // Ensure trailing newline matches original
     if text.ends_with('\n') && !result.ends_with('\n') {
+        result.push('\n');
+    }
+    // If original had trailing blank lines (multiple newlines at end),
+    // preserve them so the parser sees trailing Blank elements
+    if text.ends_with("\n\n") && !result.ends_with("\n\n") {
+        result.push('\n');
+    }
+    // When definitions were removed and output ends with a blank line,
+    // join("\n") loses the trailing blank. Restore it.
+    if defs_were_removed
+        && output_lines.last().is_some_and(|l| l.is_empty())
+        && !result.ends_with("\n\n")
+    {
         result.push('\n');
     }
     result
@@ -460,8 +478,10 @@ pub fn parse_ial(s: &str) -> Vec<(String, String)> {
                         v
                     };
                     attrs.push((key.trim().to_string(), value));
+                } else {
+                    // Bare word: ALD reference
+                    attrs.push(("__ald_ref__".to_string(), key));
                 }
-                // else: bare word without =, skip/ignore (ALD reference, handled elsewhere)
             }
         }
     }

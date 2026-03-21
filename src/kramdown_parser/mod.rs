@@ -45,10 +45,24 @@ pub fn to_html_with_options(input: &str, options: &Options) -> String {
     let cleaned = span_parser::extract_definitions(input, &mut span_ctx);
 
     // Parse blocks from the cleaned text (definitions removed)
-    let doc: Document = KramdownParser::parse(&cleaned, options);
+    // Pass ALDs extracted by extract_definitions so IAL can resolve ALD references
+    let doc: Document = KramdownParser::parse_with_alds(&cleaned, options, &mut span_ctx.ald_defs);
 
     // Convert to HTML with span processing
-    HtmlConverter::convert_with_context(&doc, options, &mut span_ctx)
+    let mut html = HtmlConverter::convert_with_context(&doc, options, &mut span_ctx);
+
+    // Kramdown preserves trailing blank lines: if the cleaned text (after def extraction)
+    // ended with a blank line AND there are no footnotes (which consume trailing blanks),
+    // ensure the output also ends with \n\n.
+    if cleaned.ends_with("\n\n")
+        && html.len() > 1
+        && !html.ends_with("\n\n")
+        && span_ctx.footnote_order.is_empty()
+    {
+        html.push('\n');
+    }
+
+    html
 }
 
 #[cfg(test)]

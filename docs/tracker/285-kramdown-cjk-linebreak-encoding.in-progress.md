@@ -54,3 +54,37 @@ Two root-level conformance tests fail that are not covered by any existing phase
 ### Integration
 - Parse `cjk-line-break.text` and compare output to `cjk-line-break.html`
 - Parse `encoding.text` and compare output to `encoding.html`
+
+## Log
+
+### [SWE] 2026-03-21
+
+**Root causes identified:**
+
+1. **CJK trailing newline**: The CJK test expected `\n\n` at end of output (because input ended with `\n\n`), but `extract_definitions()` in span_parser.rs was stripping trailing blank lines. Also, `to_html_with_options()` didn't preserve trailing `\n\n` from input.
+
+2. **Encoding - missing blank between DL and table**: The definition list parser consumed trailing blank lines that should have been left for the parent parser to create Blank elements (needed for inter-block spacing).
+
+3. **Encoding - span-mode HTML block rendering**: `<p markdown='1'>` content was rendered with `<p>\n` + content + `\n</p>` instead of kramdown's `<p>content</p>` format.
+
+**Fixes applied:**
+
+- `src/kramdown_parser/span_parser.rs`: Preserve trailing `\n\n` in `extract_definitions()` output when original input had trailing blank lines
+- `src/kramdown_parser/parser.rs`: In DL parser, restore `*pos` to the blank line position when breaking out of the DL loop, so parent parser creates proper Blank elements
+- `src/kramdown_parser/html.rs`: (a) Fixed span-mode HTML block rendering to output `<tag>content</tag>` inline; (b) Added trailing blank detection in `convert_with_context` for documents ending with Blank elements
+- `src/kramdown_parser/mod.rs`: In `to_html_with_options`, preserve trailing `\n\n` when original input ended with blank lines
+
+**Tests added:** 9 unit tests
+- 4 CJK line break tests (Chinese joined, Japanese joined, Latin preserves space, disabled by default)
+- 5 encoding tests (German umlauts, emphasis with umlauts, header with non-ASCII, CJK in emphasis, emoji)
+
+**Test results:** 2 conformance tests fixed (kramdown_cjk_line_break, kramdown_encoding), 9 new unit tests pass, 0 regressions from my changes. Clippy clean, fmt clean.
+
+**Files modified:**
+- src/kramdown_parser/span_parser.rs
+- src/kramdown_parser/parser.rs
+- src/kramdown_parser/html.rs
+- src/kramdown_parser/mod.rs
+- src/kramdown_parser/tests.rs
+
+**Note:** Another agent is concurrently modifying parser.rs and span_parser.rs (issue 282 - ALD support). Their changes introduced a separate regression in `kramdown_block_13_definition_list_auto_ids` (bare words in IAL treated as ALD references instead of attributes). This is not caused by issue 285 changes.

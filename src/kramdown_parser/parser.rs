@@ -12,7 +12,12 @@
 
 use crate::kramdown_parser::element::{Document, Element, ElementType};
 use crate::kramdown_parser::options::Options;
+use std::collections::HashMap;
 
+/// Type alias for Attribute List Definition map.
+pub type AldMap = HashMap<String, Vec<(String, String)>>;
+
+/// Attribute List Definitions map.
 /// The kramdown parser. Converts kramdown-flavored Markdown text into a Document AST.
 pub struct KramdownParser;
 
@@ -24,10 +29,14 @@ pub fn debug_is_list_start(line: &str) -> bool {
 impl KramdownParser {
     /// Parse kramdown input text into a Document AST.
     pub fn parse(input: &str, options: &Options) -> Document {
+        let mut empty_alds = AldMap::new();
+        Self::parse_with_alds(input, options, &mut empty_alds)
+    }
+
+    /// Parse with pre-defined ALDs from extract_definitions.
+    pub fn parse_with_alds(input: &str, options: &Options, alds: &mut AldMap) -> Document {
         let mut doc = Document::new();
         let lines: Vec<&str> = input.lines().collect();
-        // If input ends with newline, lines() doesn't include a trailing empty element,
-        // but we need to know if the file ended with newline for correct behavior.
         let has_trailing_newline = input.ends_with('\n');
         let mut pos = 0;
         parse_blocks(
@@ -37,6 +46,7 @@ impl KramdownParser {
             &mut doc.root.children,
             options,
             0,
+            alds,
         );
         doc
     }
@@ -50,6 +60,7 @@ fn parse_blocks(
     children: &mut Vec<Element>,
     options: &Options,
     _indent_level: usize,
+    alds: &mut AldMap,
 ) {
     let empty_lazy: Vec<bool> = vec![false; lines.len()];
     parse_blocks_with_lazy(
@@ -60,6 +71,7 @@ fn parse_blocks(
         options,
         0,
         &empty_lazy,
+        alds,
     );
 }
 
@@ -404,73 +416,24 @@ fn is_block_ial(line: &str) -> bool {
         && trimmed.ends_with('}')
 }
 
-/// Parse IAL attributes from a string like `{: #id .class key="value"}`.
+/// Parse IAL attributes - delegates to span_parser::parse_ial.
 fn parse_ial(s: &str) -> Vec<(String, String)> {
-    let mut attrs = Vec::new();
-    // Strip `{:` and `}`
-    let inner = s
-        .trim()
-        .strip_prefix('{')
-        .unwrap_or(s)
-        .strip_prefix(':')
-        .unwrap_or(s);
-    let inner = inner.strip_suffix('}').unwrap_or(inner).trim();
-
-    let mut chars = inner.chars().peekable();
-    while chars.peek().is_some() {
-        // Skip whitespace
-        while chars.peek().is_some_and(|c| c.is_whitespace()) {
-            chars.next();
-        }
-        if chars.peek().is_none() {
-            break;
-        }
-
-        match chars.peek() {
-            Some('#') => {
-                chars.next(); // consume #
-                let id: String = chars.by_ref().take_while(|c| !c.is_whitespace()).collect();
-                if !id.is_empty() {
-                    attrs.push(("id".to_string(), id));
-                }
-            }
-            Some('.') => {
-                chars.next(); // consume .
-                let class: String = chars.by_ref().take_while(|c| !c.is_whitespace()).collect();
-                if !class.is_empty() {
-                    attrs.push(("class".to_string(), class));
-                }
-            }
-            _ => {
-                // key="value" or key=value
-                let key: String = chars.by_ref().take_while(|c| *c != '=').collect();
-                if key.is_empty() {
-                    break;
-                }
-                // Now read value
-                let value = if chars.peek() == Some(&'"') {
-                    chars.next(); // consume opening quote
-                    let v: String = chars.by_ref().take_while(|c| *c != '"').collect();
-                    v
-                } else if chars.peek() == Some(&'\'') {
-                    chars.next();
-                    let v: String = chars.by_ref().take_while(|c| *c != '\'').collect();
-                    v
-                } else {
-                    let v: String = chars.by_ref().take_while(|c| !c.is_whitespace()).collect();
-                    v
-                };
-                attrs.push((key.trim().to_string(), value));
-            }
-        }
-    }
-
-    attrs
+    crate::kramdown_parser::span_parser::parse_ial(s)
 }
 
 /// Apply parsed attributes to an element.
 fn apply_attrs(element: &mut Element, attrs: &[(String, String)]) {
     for (key, value) in attrs {
+        if key == "__ald_ref__" {
+            // Check for special references like "toc"
+            if value == "toc" {
+                element
+                    .options
+                    .insert("toc".to_string(), "true".to_string());
+            }
+            // Also store "no_toc" class from ALD references
+            continue;
+        }
         if key == "class" {
             // Append to existing class
             if let Some(existing) = element.attr.get_mut("class") {
@@ -484,6 +447,80 @@ fn apply_attrs(element: &mut Element, attrs: &[(String, String)]) {
             element.attr.insert(key.clone(), value.clone());
         } else {
             element.attr.insert(key.clone(), value.clone());
+        }
+    }
+}
+
+/// Merge IAL attributes into an existing attribute list.
+fn is_ald(line: &str) -> bool {
+    let trimmed = line.trim();
+    if let Some(inner) = trimmed.strip_prefix("{:").and_then(|s| s.strip_suffix('}')) {
+        if let Some(cp) = inner.find(':') {
+            let name = inner[..cp].trim();
+            !name.is_empty() && !name.contains(' ') && !inner.starts_with(':')
+        } else {
+            false
+        }
+    } else {
+        false
+    }
+}
+
+fn parse_ald(line: &str) -> Option<(String, Vec<(String, String)>)> {
+    let trimmed = line.trim();
+    let inner = trimmed.strip_prefix("{:")?.strip_suffix('}')?;
+    let cp = inner.find(':')?;
+    let name = inner[..cp].trim();
+    let rest_a = inner[cp + 1..].trim();
+    if name.is_empty() || name.contains(' ') || rest_a.is_empty() {
+        return None;
+    }
+    let attrs = parse_ial(&format!("{{: {rest_a}}}"));
+    Some((name.to_string(), attrs))
+}
+
+fn resolve_ald_refs(attrs: &[(String, String)], alds: &AldMap) -> Vec<(String, String)> {
+    resolve_ald_refs_inner(attrs, alds, 0)
+}
+
+fn resolve_ald_refs_inner(
+    attrs: &[(String, String)],
+    alds: &AldMap,
+    depth: usize,
+) -> Vec<(String, String)> {
+    if depth > 10 {
+        return attrs.to_vec();
+    }
+    let mut resolved = Vec::new();
+    for (key, value) in attrs {
+        if key == "__ald_ref__" {
+            if let Some(ald_attrs) = alds.get(value) {
+                let sub = resolve_ald_refs_inner(ald_attrs, alds, depth + 1);
+                resolved.extend(sub);
+            } else {
+                // Keep unresolved refs so apply_attrs can handle special ones (e.g., "toc")
+                resolved.push((key.clone(), value.clone()));
+            }
+        } else {
+            resolved.push((key.clone(), value.clone()));
+        }
+    }
+    resolved
+}
+
+fn merge_ial_attrs(existing: &mut Vec<(String, String)>, new_attrs: &[(String, String)]) {
+    for (key, value) in new_attrs {
+        if key == "class" {
+            if let Some(ex) = existing.iter_mut().find(|(k, _)| k == "class") {
+                ex.1.push(' ');
+                ex.1.push_str(value);
+            } else {
+                existing.push((key.clone(), value.clone()));
+            }
+        } else if let Some(ex) = existing.iter_mut().find(|(k, _)| k == key) {
+            ex.1 = value.clone();
+        } else {
+            existing.push((key.clone(), value.clone()));
         }
     }
 }
@@ -838,6 +875,7 @@ fn parse_blockquote(
 
     let mut elem = Element::new(ElementType::Blockquote);
     let mut inner_pos = 0;
+    let mut bq_alds = AldMap::new();
     parse_blocks_with_lazy(
         &inner_lines,
         &mut inner_pos,
@@ -846,6 +884,7 @@ fn parse_blockquote(
         options,
         1,
         &lazy_flags,
+        &mut bq_alds,
     );
 
     elem
@@ -853,6 +892,7 @@ fn parse_blockquote(
 
 /// Parse blocks with lazy continuation awareness.
 /// `lazy_flags[i]` is true if line `i` was a lazy continuation in a parent blockquote.
+#[allow(clippy::too_many_arguments)]
 fn parse_blocks_with_lazy(
     lines: &[&str],
     pos: &mut usize,
@@ -861,6 +901,7 @@ fn parse_blocks_with_lazy(
     options: &Options,
     _indent_level: usize,
     lazy_flags: &[bool],
+    alds: &mut AldMap,
 ) {
     // Pending IAL attributes to apply to the next visible element
     let mut pending_ial: Option<Vec<(String, String)>> = None;
@@ -883,9 +924,33 @@ fn parse_blocks_with_lazy(
             continue;
         }
 
+        // ALD (Attribute List Definition)
+        if is_ald(line) {
+            if let Some((name, new_attrs)) = parse_ald(line) {
+                let entry = alds.entry(name).or_default();
+                for (k, v) in &new_attrs {
+                    if k == "class" {
+                        if let Some(existing) = entry.iter_mut().find(|(ek, _)| ek == "class") {
+                            existing.1.push(' ');
+                            existing.1.push_str(v);
+                        } else {
+                            entry.push((k.clone(), v.clone()));
+                        }
+                    } else if let Some(existing) = entry.iter_mut().find(|(ek, _)| ek == k) {
+                        existing.1 = v.clone();
+                    } else {
+                        entry.push((k.clone(), v.clone()));
+                    }
+                }
+            }
+            *pos += 1;
+            continue;
+        }
+
         // Block-level IAL
         if is_block_ial(line) {
-            let attrs = parse_ial(line.trim());
+            let raw_attrs = parse_ial(line.trim());
+            let attrs = resolve_ald_refs(&raw_attrs, alds);
             // Apply to previous visible element, or store as pending for next
             let applied = if let Some(last) = children.last_mut() {
                 if !matches!(last.element_type, ElementType::Blank | ElementType::Eob) {
@@ -898,7 +963,11 @@ fn parse_blocks_with_lazy(
                 false
             };
             if !applied {
-                pending_ial = Some(attrs);
+                if let Some(ref mut existing) = pending_ial {
+                    merge_ial_attrs(existing, &attrs);
+                } else {
+                    pending_ial = Some(attrs);
+                }
             }
             *pos += 1;
             continue;
@@ -2156,6 +2225,8 @@ fn parse_list_with_lazy(
             if is_blockquote_line(line)
                 || try_parse_atx_header(line, options).is_some()
                 || try_parse_fenced_code(lines, *pos).is_some()
+                || is_block_ial(line)
+                || is_ald(line)
             {
                 break;
             }
@@ -3029,6 +3100,7 @@ fn parse_html_block_element(
                 &mut elem.children,
                 &options_copy,
                 1,
+                &mut AldMap::new(),
             );
             elem
         }
@@ -3660,6 +3732,7 @@ fn try_parse_definition_list(
 
     let mut dl = Element::new(ElementType::DefinitionList);
     *pos = start;
+    let mut blank_start_after_dd = *pos;
 
     loop {
         if *pos < lines.len() && lines[*pos].trim() == "^" {
@@ -3808,6 +3881,7 @@ fn try_parse_definition_list(
                     &mut dd.children,
                     options,
                     2,
+                    &mut AldMap::new(),
                 );
             } else if had_blank {
                 dd.options
@@ -3820,6 +3894,7 @@ fn try_parse_definition_list(
             dl.children.push(dd);
 
             had_blank = false;
+            blank_start_after_dd = *pos;
             while *pos < lines.len() && is_blank_line(lines[*pos]) {
                 had_blank = true;
                 *pos += 1;
@@ -3851,6 +3926,11 @@ fn try_parse_definition_list(
             if future2 < lines.len() && is_definition_marker(lines[future2]) {
                 continue;
             }
+        }
+        // When breaking out of the DL, restore position to the blank line(s)
+        // so the parent parser can create Blank elements for proper spacing.
+        if had_blank {
+            *pos = blank_start_after_dd;
         }
         break;
     }

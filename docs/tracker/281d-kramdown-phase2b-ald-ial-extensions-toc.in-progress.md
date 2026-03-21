@@ -167,3 +167,47 @@ Phase 2a implemented basic IAL. This issue enhances it with:
 - Parse `simple.text` (IAL) with ALD definitions, verify attributes on all element types
 - Parse `toc_exclude.text` with `auto_ids: true`, verify full TOC output matches expected
 - Parse `options.text`, verify `parse_block_html` toggle takes effect mid-document
+
+## Log
+
+### [SWE] 2026-03-21
+- Implemented ALD (Attribute List Definitions) parsing and storage
+  - `is_ald()` detects ALD lines `{:name: attrs}`
+  - `parse_ald()` extracts name and attributes
+  - ALDs stored in `AldMap` (HashMap), merged on redefinition
+  - ALDs produce no visible output (test `block/10_ald/simple` passes)
+- Enhanced IAL parsing with ALD reference resolution
+  - Replaced parser.rs `parse_ial` with delegation to span_parser's version (handles shorthand, escapes)
+  - Added `__ald_ref__` entries for bare words in IAL
+  - `resolve_ald_refs()` recursively expands ALD references
+  - Unresolved refs kept for special handling (e.g., `toc`)
+  - `apply_attrs` skips `__ald_ref__` entries, detects `toc` reference
+- Added paragraph attribute rendering in HTML converter
+  - `convert_paragraph` now calls `write_attrs` on `<p>` tag
+- Added HTML block IAL attribute injection
+  - `inject_attrs_into_html()` merges IAL attributes into raw HTML opening tags
+- Added TOC support
+  - `collect_headers()` pre-scans document headers
+  - `generate_toc()` produces nested `<ul>` with links and IDs
+  - `{:toc}` IAL on list suppresses list, generates TOC (or removes if no auto_ids)
+  - Header auto-ID generation via `generate_header_id()`
+- Fixed trailing blank line preservation in `extract_definitions`
+  - When definitions are removed from end of text, preceding blank lines are preserved
+- Fixed list parser to break on IAL/ALD lines (not consume them as lazy continuation)
+- Added `parse_span_html` to Options struct
+- Tests: 592/651 kramdown tests passing (was 579), 0 regressions
+- Clippy clean, fmt clean
+- Files modified:
+  - src/kramdown_parser/parser.rs (ALD, IAL, list parser fix)
+  - src/kramdown_parser/html.rs (paragraph attrs, TOC, header auto-IDs, HTML attr injection)
+  - src/kramdown_parser/span_parser.rs (ALD in extract_definitions, ald_ref in parse_ial, toc_headers)
+  - src/kramdown_parser/options.rs (parse_span_html)
+  - src/kramdown_parser/mod.rs (pass ALDs from extract_definitions to parser)
+
+### Known limitations (need follow-up issues)
+- IAL `simple` test: attribute ordering doesn't match kramdown (HashMap vs insertion order)
+- IAL `nested`: pending IAL before HTML blocks needs attribute injection into raw HTML tags
+- Extension `options`: `{::options}` doesn't modify parser behavior mid-document (needs mutable options threading)
+- Extension `options2`, `options3`: require footnote support / syntax highlighting integration
+- TOC `toc_exclude`: attribute ordering on headers, TOC nesting indentation off by spaces
+- TOC `toc_levels`, `toc_with_footnotes`, `toc_with_links`: need refined TOC generation
