@@ -471,6 +471,9 @@ fn build_site(
     // Issue 223: Enable HARDBREAKS if the site config has commonmark.options: ["HARDBREAKS"]
     layout_engine.set_hardbreaks(config.has_commonmark_hardbreaks());
 
+    // Issue 294: Enable autolink if the site config has commonmark.extensions: ["autolink"]
+    layout_engine.set_autolink(config.has_commonmark_autolink());
+
     summary.timing.layouts = phase_start.elapsed();
 
     // 8. Clean and create destination directory (only for full rebuilds)

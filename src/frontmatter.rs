@@ -463,6 +463,7 @@ pub fn markdown_to_html_with_options(
     add_code_classes: bool,
     enable_smart_punctuation: bool,
     enable_hardbreaks: bool,
+    enable_autolink: bool,
 ) -> String {
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TABLES);
@@ -493,6 +494,14 @@ pub fn markdown_to_html_with_options(
     // Issue 270: Convert runs of 4+ consecutive underscores to match kramdown
     let markdown = crate::kramdown::convert_kramdown_underscore_runs(&markdown);
     let markdown = protect_consecutive_single_quotes(&markdown);
+    // Issue 294: Auto-link bare URLs for CommonMarkGhPages sites with autolink extension.
+    // Wraps bare http/https URLs in angle brackets so pulldown-cmark treats them as autolinks.
+    let markdown = if enable_autolink {
+        autolink_bare_urls(&markdown)
+    } else {
+        markdown
+    };
+
     let protected = protect_liquid_quotes(&markdown);
 
     let parser = Parser::new_ext(&protected, options);
@@ -943,6 +952,300 @@ fn hex_val(b: u8) -> Option<u8> {
         b'a'..=b'f' => Some(b - b'a' + 10),
         b'A'..=b'F' => Some(b - b'A' + 10),
         _ => None,
+    }
+}
+
+/// Issue 294: Wrap bare http/https URLs in angle brackets so pulldown-cmark
+/// treats them as autolinks. This implements GFM-style autolink behavior for
+/// CommonMarkGhPages sites with the autolink extension.
+///
+/// Only wraps URLs that are NOT:
+/// - Already inside angle brackets (`<url>`)
+/// - Inside markdown links (`[text](url)` or `](url)`)
+/// - Inside code spans or code blocks
+/// - Already wrapped in an HTML `<a>` tag
+fn autolink_bare_urls(input: &str) -> String {
+    let mut result = String::with_capacity(input.len());
+    let mut in_fenced_code = false;
+    let mut fence_char = ' ';
+    let mut fence_len = 0;
+
+    for line in input.split('\n') {
+        if !result.is_empty() {
+            result.push('\n');
+        }
+
+        let trimmed = line.trim_start();
+        if !in_fenced_code {
+            if let Some(fc) = autolink_detect_fence_start(trimmed) {
+                in_fenced_code = true;
+                fence_char = fc.0;
+                fence_len = fc.1;
+                result.push_str(line);
+                continue;
+            }
+        } else if autolink_is_fence_end(trimmed, fence_char, fence_len) {
+            in_fenced_code = false;
+            result.push_str(line);
+            continue;
+        }
+
+        if in_fenced_code {
+            result.push_str(line);
+            continue;
+        }
+
+        // Skip indented code blocks (4+ spaces or tab at start)
+        if line.starts_with("    ") || line.starts_with('\t') {
+            result.push_str(line);
+            continue;
+        }
+
+        let processed = autolink_process_line(line);
+        result.push_str(&processed);
+    }
+
+    result
+}
+
+/// Detect the start of a fenced code block. Returns (fence_char, fence_length).
+fn autolink_detect_fence_start(trimmed: &str) -> Option<(char, usize)> {
+    let first = trimmed.chars().next()?;
+    if first != '`' && first != '~' {
+        return None;
+    }
+    let count = trimmed.chars().take_while(|&c| c == first).count();
+    if count >= 3 {
+        Some((first, count))
+    } else {
+        None
+    }
+}
+
+/// Check if a line ends a fenced code block.
+fn autolink_is_fence_end(trimmed: &str, fence_char: char, fence_len: usize) -> bool {
+    let count = trimmed.chars().take_while(|&c| c == fence_char).count();
+    count >= fence_len && trimmed.trim().chars().all(|c| c == fence_char)
+}
+
+/// Process a single line for bare URL autolinking, respecting code spans,
+/// angle-bracket autolinks, markdown links, and HTML `<a>` tags.
+fn autolink_process_line(line: &str) -> String {
+    // Build a list of byte-offset regions to skip
+    let skip_regions = {
+        let mut regions = Vec::new();
+        autolink_find_code_spans(line, &mut regions);
+        autolink_find_angle_brackets(line, &mut regions);
+        autolink_find_markdown_links(line, &mut regions);
+        autolink_find_html_a_tags(line, &mut regions);
+        regions.sort_by_key(|r| r.0);
+        regions
+    };
+
+    let mut result = String::with_capacity(line.len());
+    let mut pos = 0;
+    let bytes = line.as_bytes();
+    let len = bytes.len();
+
+    while pos < len {
+        // Check if we're inside a skip region
+        if let Some(&(_, end)) = skip_regions.iter().find(|&&(s, e)| pos >= s && pos < e) {
+            // Copy the skip region as-is
+            let end = end.min(len);
+            result.push_str(&line[pos..end]);
+            pos = end;
+            continue;
+        }
+
+        // Look for http:// or https://
+        if bytes[pos] == b'h'
+            && (line[pos..].starts_with("https://") || line[pos..].starts_with("http://"))
+        {
+            // Check that the char before is not part of a URL context
+            let prev_char = if pos > 0 {
+                line[..pos].chars().last()
+            } else {
+                None
+            };
+            let skip = matches!(prev_char, Some('<') | Some('(') | Some('"') | Some('\''));
+
+            if !skip {
+                // Find the end of the URL
+                let url_end = find_url_end(line, pos);
+                if url_end > pos {
+                    result.push('<');
+                    result.push_str(&line[pos..url_end]);
+                    result.push('>');
+                    pos = url_end;
+                    continue;
+                }
+            }
+        }
+
+        // Copy character as-is
+        let ch = line[pos..].chars().next().unwrap();
+        result.push(ch);
+        pos += ch.len_utf8();
+    }
+
+    result
+}
+
+/// Find the end of a URL starting at `start`. Returns the byte offset after the URL.
+/// Strips trailing punctuation that is typically not part of URLs.
+fn find_url_end(line: &str, start: usize) -> usize {
+    let mut end = start;
+    let bytes = line.as_bytes();
+    let len = bytes.len();
+
+    while end < len {
+        let b = bytes[end];
+        // URL terminates at whitespace, angle brackets, or certain delimiters
+        if b == b' ' || b == b'\t' || b == b'<' || b == b'>' || b == b'[' || b == b']' {
+            break;
+        }
+        end += 1;
+    }
+
+    // Strip trailing punctuation that is typically not part of the URL
+    while end > start {
+        let last_byte = bytes[end - 1];
+        if matches!(
+            last_byte,
+            b'.' | b',' | b';' | b':' | b'!' | b'?' | b')' | b'\'' | b'"'
+        ) {
+            // Special case: closing paren is part of URL if there's a matching open paren
+            if last_byte == b')' {
+                let url = &line[start..end];
+                let open_count = url.bytes().filter(|&b| b == b'(').count();
+                let close_count = url.bytes().filter(|&b| b == b')').count();
+                if open_count >= close_count {
+                    break;
+                }
+            }
+            end -= 1;
+        } else {
+            break;
+        }
+    }
+
+    end
+}
+
+/// Find byte ranges of backtick code spans in a line.
+fn autolink_find_code_spans(line: &str, regions: &mut Vec<(usize, usize)>) {
+    let bytes = line.as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
+
+    while i < len {
+        if bytes[i] == b'`' {
+            let start = i;
+            let backtick_count = bytes[i..].iter().take_while(|&&b| b == b'`').count();
+            i += backtick_count;
+            // Find matching closing backticks
+            let mut found = false;
+            while i + backtick_count <= len {
+                if bytes[i] == b'`' {
+                    let close_count = bytes[i..].iter().take_while(|&&b| b == b'`').count();
+                    if close_count == backtick_count {
+                        regions.push((start, i + close_count));
+                        i += close_count;
+                        found = true;
+                        break;
+                    }
+                    i += close_count;
+                } else {
+                    i += 1;
+                }
+            }
+            if !found {
+                i = start + backtick_count;
+            }
+        } else {
+            i += 1;
+        }
+    }
+}
+
+/// Find byte ranges of angle-bracket autolinks `<url>`.
+fn autolink_find_angle_brackets(line: &str, regions: &mut Vec<(usize, usize)>) {
+    let bytes = line.as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
+
+    while i < len {
+        if bytes[i] == b'<' {
+            if let Some(close) = line[i + 1..].find('>') {
+                let end = i + 1 + close + 1;
+                let inner = &line[i + 1..end - 1];
+                if inner.starts_with("http://") || inner.starts_with("https://") {
+                    regions.push((i, end));
+                }
+                i = end;
+            } else {
+                i += 1;
+            }
+        } else {
+            i += 1;
+        }
+    }
+}
+
+/// Find byte ranges of markdown link targets: `](url)`.
+fn autolink_find_markdown_links(line: &str, regions: &mut Vec<(usize, usize)>) {
+    let bytes = line.as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
+
+    while i < len {
+        if bytes[i] == b']' && i + 1 < len && bytes[i + 1] == b'(' {
+            let paren_start = i + 1;
+            let mut depth = 0;
+            let mut j = paren_start;
+            while j < len {
+                if bytes[j] == b'(' {
+                    depth += 1;
+                } else if bytes[j] == b')' {
+                    depth -= 1;
+                    if depth == 0 {
+                        regions.push((paren_start, j + 1));
+                        i = j + 1;
+                        break;
+                    }
+                }
+                j += 1;
+            }
+            if j >= len {
+                i += 1;
+            }
+        } else {
+            i += 1;
+        }
+    }
+}
+
+/// Find byte ranges of HTML `<a ...>...</a>` regions.
+fn autolink_find_html_a_tags(line: &str, regions: &mut Vec<(usize, usize)>) {
+    let lower = line.to_ascii_lowercase();
+    let mut search_from = 0;
+
+    while search_from < lower.len() {
+        let start = lower[search_from..]
+            .find("<a ")
+            .or_else(|| lower[search_from..].find("<a>"));
+        if let Some(rel_start) = start {
+            let abs_start = search_from + rel_start;
+            if let Some(rel_end) = lower[abs_start..].find("</a>") {
+                let abs_end = abs_start + rel_end + 4;
+                regions.push((abs_start, abs_end));
+                search_from = abs_end;
+            } else {
+                search_from = abs_start + 1;
+            }
+        } else {
+            break;
+        }
     }
 }
 
@@ -2388,8 +2691,13 @@ Some text after.
     fn test_issue216_commonmark_no_inline_code_class() {
         // When markdown processor is CommonMark (not kramdown), backtick inline
         // code should NOT get language-plaintext highlighter-rouge class
-        let html =
-            markdown_to_html_with_options("Use `pip install` to set up.\n", false, true, false);
+        let html = markdown_to_html_with_options(
+            "Use `pip install` to set up.\n",
+            false,
+            true,
+            false,
+            false,
+        );
         assert!(
             html.contains("<code>pip install</code>"),
             "CommonMark mode should produce bare <code> tags. Got: {}",
@@ -2405,8 +2713,13 @@ Some text after.
     #[test]
     fn test_issue216_kramdown_keeps_inline_code_class() {
         // Default (kramdown) mode should still add the class
-        let html =
-            markdown_to_html_with_options("Use `pip install` to set up.\n", true, true, false);
+        let html = markdown_to_html_with_options(
+            "Use `pip install` to set up.\n",
+            true,
+            true,
+            false,
+            false,
+        );
         assert!(
             html.contains(
                 "<code class=\"language-plaintext highlighter-rouge\">pip install</code>"
@@ -2419,8 +2732,13 @@ Some text after.
     #[test]
     fn test_issue216_commonmark_unicode_inline_code() {
         // Non-ASCII content in inline code under CommonMark mode
-        let html =
-            markdown_to_html_with_options("Use `einrichten` to configure.\n", false, true, false);
+        let html = markdown_to_html_with_options(
+            "Use `einrichten` to configure.\n",
+            false,
+            true,
+            false,
+            false,
+        );
         assert!(
             html.contains("<code>einrichten</code>"),
             "CommonMark mode with Unicode content should produce bare <code>. Got: {}",
@@ -2433,7 +2751,7 @@ Some text after.
         // Fenced code blocks with language specifier should still get language class
         // regardless of markdown processor setting (regression guard)
         let input = "```python\nprint('hello')\n```\n";
-        let html = markdown_to_html_with_options(input, false, true, false);
+        let html = markdown_to_html_with_options(input, false, true, false, false);
         assert!(
             html.contains("language-python"),
             "Fenced code blocks should keep language class even in CommonMark mode. Got: {}",
@@ -2449,7 +2767,7 @@ Some text after.
     fn test_issue220_smart_punctuation_off_preserves_straight_apostrophe() {
         // When smart punctuation is disabled (CommonMarkGhPages mode),
         // straight apostrophes should remain as-is (U+0027), not curly quotes.
-        let html = markdown_to_html_with_options("it's great\n", false, false, false);
+        let html = markdown_to_html_with_options("it's great\n", false, false, false, false);
         assert!(
             html.contains("it's great"),
             "Smart punctuation OFF should preserve straight apostrophe. Got: {}",
@@ -2465,7 +2783,8 @@ Some text after.
     #[test]
     fn test_issue220_smart_punctuation_off_preserves_straight_double_quotes() {
         // When smart punctuation is disabled, straight double quotes should remain.
-        let html = markdown_to_html_with_options("She said \"hello\"\n", false, false, false);
+        let html =
+            markdown_to_html_with_options("She said \"hello\"\n", false, false, false, false);
         assert!(
             !html.contains('\u{201C}') && !html.contains('\u{201D}'),
             "Smart punctuation OFF should NOT produce curly double quotes. Got: {}",
@@ -2477,7 +2796,7 @@ Some text after.
     fn test_issue220_smart_punctuation_off_preserves_three_dots() {
         // When smart punctuation is disabled, three dots should remain as three
         // separate U+002E characters, not become the ellipsis character U+2026.
-        let html = markdown_to_html_with_options("Wait for it...\n", false, false, false);
+        let html = markdown_to_html_with_options("Wait for it...\n", false, false, false, false);
         assert!(
             html.contains("..."),
             "Smart punctuation OFF should preserve three dots. Got: {}",
@@ -2495,6 +2814,7 @@ Some text after.
         // Non-ASCII content with quotes should also be preserved when smart punctuation is off.
         let html = markdown_to_html_with_options(
             "c'est la vie, \"Gem\u{00FC}tlichkeit\"\n",
+            false,
             false,
             false,
             false,
@@ -2520,7 +2840,7 @@ Some text after.
     fn test_issue220_smart_punctuation_on_converts_apostrophe() {
         // Regression guard: kramdown mode (smart punctuation ON) should still
         // convert straight apostrophes to curly quotes.
-        let html = markdown_to_html_with_options("it's great\n", true, true, false);
+        let html = markdown_to_html_with_options("it's great\n", true, true, false, false);
         assert!(
             html.contains('\u{2019}'),
             "Smart punctuation ON should convert apostrophe to curly quote. Got: {}",
@@ -2531,7 +2851,7 @@ Some text after.
     #[test]
     fn test_issue220_smart_punctuation_on_converts_ellipsis() {
         // Regression guard: kramdown mode should still convert ... to ellipsis.
-        let html = markdown_to_html_with_options("Wait for it...\n", true, true, false);
+        let html = markdown_to_html_with_options("Wait for it...\n", true, true, false, false);
         assert!(
             html.contains('\u{2026}'),
             "Smart punctuation ON should convert three dots to ellipsis. Got: {}",
@@ -2816,7 +3136,7 @@ More text.
         // because pulldown-cmark's HardBreak renders as <br />. The final
         // conversion to <br> (HTML5) happens in LayoutEngine's render methods
         // via normalize_br_to_html5().
-        let html = markdown_to_html_with_options("line one\nline two\n", false, false, true);
+        let html = markdown_to_html_with_options("line one\nline two\n", false, false, true, false);
         assert!(
             html.contains("<br"),
             "Hardbreaks enabled should produce a break element. Got: {}",
@@ -2833,7 +3153,8 @@ More text.
     fn test_issue223_soft_break_stays_soft_without_hardbreaks() {
         // When hardbreaks is disabled, soft breaks should NOT produce <br>.
         // This is a regression guard for existing behavior.
-        let html = markdown_to_html_with_options("line one\nline two\n", false, false, false);
+        let html =
+            markdown_to_html_with_options("line one\nline two\n", false, false, false, false);
         assert!(
             !html.contains("<br"),
             "Hardbreaks disabled should NOT produce <br>. Got: {}",
@@ -2844,7 +3165,7 @@ More text.
     #[test]
     fn test_issue223_multiple_newlines_produce_multiple_breaks() {
         // Multiple soft breaks within a paragraph should each produce a break.
-        let html = markdown_to_html_with_options("a\nb\nc\n", false, false, true);
+        let html = markdown_to_html_with_options("a\nb\nc\n", false, false, true, false);
         let br_count = html.matches("<br").count();
         assert_eq!(
             br_count, 2,
@@ -2861,6 +3182,7 @@ More text.
             false,
             false,
             true,
+            false,
         );
         assert!(
             html.contains("<br"),
@@ -2882,7 +3204,8 @@ More text.
     #[test]
     fn test_issue223_hardbreaks_inside_blockquote() {
         // Soft breaks inside blockquotes should also become hard breaks when enabled.
-        let html = markdown_to_html_with_options("> line one\n> line two\n", false, false, true);
+        let html =
+            markdown_to_html_with_options("> line one\n> line two\n", false, false, true, false);
         assert!(
             html.contains("<br"),
             "Hardbreaks inside blockquote should produce a break. Got: {}",
@@ -2893,7 +3216,8 @@ More text.
     #[test]
     fn test_issue223_hardbreaks_inside_list_item() {
         // Soft breaks inside list items should become hard breaks when enabled.
-        let html = markdown_to_html_with_options("- item\n  continued\n", false, false, true);
+        let html =
+            markdown_to_html_with_options("- item\n  continued\n", false, false, true, false);
         assert!(
             html.contains("<br"),
             "Hardbreaks inside list item should produce a break. Got: {}",
@@ -2905,7 +3229,8 @@ More text.
     fn test_issue223_explicit_hard_break_still_works() {
         // Two trailing spaces before newline should produce <br> even without
         // hardbreaks enabled. This is standard CommonMark behavior.
-        let html = markdown_to_html_with_options("line one  \nline two\n", false, false, false);
+        let html =
+            markdown_to_html_with_options("line one  \nline two\n", false, false, false, false);
         assert!(
             html.contains("<br"),
             "Explicit hard break (2 spaces) should produce <br>. Got: {}",
@@ -3310,7 +3635,7 @@ More text.
     fn test_issue247_smart_punctuation_disabled_straight_quotes() {
         // When smart punctuation is disabled, '' stays as literal straight quotes
         let input = "''Atomicity''\n";
-        let html = markdown_to_html_with_options(input, false, false, false);
+        let html = markdown_to_html_with_options(input, false, false, false, false);
         assert!(
             html.contains("''Atomicity''"),
             "With smart punctuation off, ''word'' should stay as straight quotes. Got: {}",
@@ -3390,7 +3715,7 @@ More text.
     fn test_issue247_with_options_mid_sentence() {
         // Same test via markdown_to_html_with_options with smart punctuation on
         let input = "A place is ''implicit'' if\n";
-        let html = markdown_to_html_with_options(input, true, true, false);
+        let html = markdown_to_html_with_options(input, true, true, false, false);
         assert!(
             html.contains("\u{2018}\u{2018}implicit\u{2019}\u{2019}"),
             "markdown_to_html_with_options mid-sentence ''word'' should work. Got: {}",
@@ -3547,6 +3872,190 @@ More text.
         assert!(
             html.contains("<strong>\u{041f}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}</strong>"),
             "Expected strong around Unicode content, got: {html}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 294: GFM autolink for bare URLs
+    // ========================================================================
+
+    #[test]
+    fn test_issue294_bare_https_url_autolinked() {
+        let html = markdown_to_html_with_options(
+            "Visit https://example.com for details.\n",
+            false,
+            false,
+            false,
+            true,
+        );
+        assert!(
+            html.contains(r#"<a href="https://example.com">https://example.com</a>"#),
+            "Bare HTTPS URL should be auto-linked. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue294_bare_http_url_autolinked() {
+        let html = markdown_to_html_with_options(
+            "Check http://old.example.com too.\n",
+            false,
+            false,
+            false,
+            true,
+        );
+        assert!(
+            html.contains(r#"<a href="http://old.example.com">http://old.example.com</a>"#),
+            "Bare HTTP URL should be auto-linked. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue294_bare_url_end_of_line() {
+        let html =
+            markdown_to_html_with_options("See https://example.com\n", false, false, false, true);
+        assert!(
+            html.contains(r#"<a href="https://example.com">https://example.com</a>"#),
+            "Bare URL at end of line should be auto-linked. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue294_bare_url_followed_by_period() {
+        let html = markdown_to_html_with_options(
+            "Go to https://example.com.\n",
+            false,
+            false,
+            false,
+            true,
+        );
+        assert!(
+            html.contains(r#"<a href="https://example.com">https://example.com</a>"#),
+            "URL followed by period should link URL without the period. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue294_bare_url_in_parens() {
+        let html =
+            markdown_to_html_with_options("(see https://example.com)\n", false, false, false, true);
+        assert!(
+            html.contains(r#"<a href="https://example.com">https://example.com</a>"#),
+            "URL in parens should link URL without the paren. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue294_no_double_linking_markdown_link() {
+        let html = markdown_to_html_with_options(
+            "[Example](https://example.com)\n",
+            false,
+            false,
+            false,
+            true,
+        );
+        let a_count = html.matches("<a ").count();
+        assert_eq!(
+            a_count, 1,
+            "Markdown link should not be double-linked. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue294_no_autolink_in_code_span() {
+        let html =
+            markdown_to_html_with_options("`https://example.com`\n", false, false, false, true);
+        assert!(
+            !html.contains("<a "),
+            "URL inside code span should NOT be auto-linked. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue294_autolink_disabled_by_default() {
+        let html = markdown_to_html_with_options(
+            "Visit https://example.com for details.\n",
+            false,
+            false,
+            false,
+            false,
+        );
+        assert!(
+            !html.contains("<a "),
+            "Bare URL should NOT be auto-linked when autolink is disabled. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue294_kramdown_mode_no_autolink() {
+        let html = markdown_to_html("Visit https://example.com for details.\n");
+        assert!(
+            !html.contains(r#"<a href="https://example.com">"#),
+            "kramdown mode should NOT auto-link bare URLs. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue294_angle_bracket_autolink_still_works() {
+        let html = markdown_to_html_with_options(
+            "Visit <https://example.com> for details.\n",
+            false,
+            false,
+            false,
+            true,
+        );
+        assert!(
+            html.contains(r#"<a href="https://example.com">https://example.com</a>"#),
+            "Angle bracket autolinks should still work. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue294_bare_url_unicode_text() {
+        let html = markdown_to_html_with_options(
+            "\u{041f}\u{043e}\u{0441}\u{0435}\u{0442}\u{0438}\u{0442}\u{0435} https://example.com \u{0434}\u{043b}\u{044f} \u{0438}\u{043d}\u{0444}\u{043e}\u{0440}\u{043c}\u{0430}\u{0446}\u{0438}\u{0438}.\n",
+            false, false, false, true,
+        );
+        assert!(
+            html.contains(r#"<a href="https://example.com">https://example.com</a>"#),
+            "Bare URL with surrounding Unicode text should be auto-linked. Got: {html}"
+        );
+        assert!(
+            html.contains("\u{041f}\u{043e}\u{0441}\u{0435}\u{0442}\u{0438}\u{0442}\u{0435}"),
+            "Surrounding Unicode text should be preserved. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue294_no_autolink_in_code_block() {
+        let html = markdown_to_html_with_options(
+            "```\nhttps://example.com\n```\n",
+            false,
+            false,
+            false,
+            true,
+        );
+        assert!(
+            !html.contains("<a "),
+            "URL inside code block should NOT be auto-linked. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue294_multiple_urls_in_paragraph() {
+        let html = markdown_to_html_with_options(
+            "Check https://example.com and https://other.org for info.\n",
+            false,
+            false,
+            false,
+            true,
+        );
+        assert!(
+            html.contains(r#"<a href="https://example.com">https://example.com</a>"#),
+            "First URL should be auto-linked. Got: {html}"
+        );
+        assert!(
+            html.contains(r#"<a href="https://other.org">https://other.org</a>"#),
+            "Second URL should be auto-linked. Got: {html}"
         );
     }
 }

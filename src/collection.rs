@@ -475,6 +475,9 @@ pub fn load_collection(
     // Issue 223: Check if HARDBREAKS option is enabled in commonmark.options.
     let enable_hardbreaks = has_commonmark_hardbreaks(config);
 
+    // Issue 294: Check if autolink extension is enabled in commonmark.extensions.
+    let enable_autolink = config.has_commonmark_autolink();
+
     // Phase 2: Process files in parallel (read, parse, convert markdown)
     let results: Vec<Result<CollectionItem, CollectionError>> = file_paths
         .par_iter()
@@ -487,6 +490,7 @@ pub fn load_collection(
                 &permalink_pattern,
                 add_code_classes,
                 enable_hardbreaks,
+                enable_autolink,
             )
         })
         .collect();
@@ -579,6 +583,7 @@ fn collect_collection_paths(
 ///
 /// Returns None if the file should be skipped (no front matter for non-markdown,
 /// published: false, etc.). Returns Some(Ok(item)) on success or Some(Err(e)) on error.
+#[allow(clippy::too_many_arguments)]
 fn process_collection_file(
     path: &Path,
     _collection_dir: &Path,
@@ -587,6 +592,7 @@ fn process_collection_file(
     permalink_pattern: &str,
     add_code_classes: bool,
     enable_hardbreaks: bool,
+    enable_autolink: bool,
 ) -> Option<Result<CollectionItem, CollectionError>> {
     let filename = path.file_name()?.to_str()?.to_string();
 
@@ -690,6 +696,7 @@ fn process_collection_file(
             add_code_classes,
             add_code_classes,
             enable_hardbreaks,
+            enable_autolink,
         )
     } else {
         doc.content.clone()
@@ -1022,12 +1029,16 @@ fn load_pages_recursive(
         // Issue 223: Check if HARDBREAKS option is enabled in commonmark.options.
         let enable_hardbreaks = has_commonmark_hardbreaks(config);
 
+        // Issue 294: Check if autolink extension is enabled.
+        let enable_autolink = config.has_commonmark_autolink();
+
         let html_content = if is_markdown {
             frontmatter::markdown_to_html_with_options(
                 &doc.content,
                 add_code_classes,
                 add_code_classes,
                 enable_hardbreaks,
+                enable_autolink,
             )
         } else {
             // Non-markdown files: content is used as-is (will be rendered

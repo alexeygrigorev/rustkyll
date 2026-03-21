@@ -361,6 +361,42 @@ impl SiteConfig {
             })
             .unwrap_or(false)
     }
+
+    /// Check if the CommonMark autolink extension is enabled in the site config.
+    ///
+    /// Returns `true` when the config has:
+    /// ```yaml
+    /// commonmark:
+    ///   extensions: ["autolink"]
+    /// ```
+    /// AND the markdown processor is NOT kramdown (since autolink is a
+    /// CommonMark/GFM-specific extension).
+    pub fn has_commonmark_autolink(&self) -> bool {
+        // Only applies to non-kramdown processors
+        let is_kramdown = self
+            .extras
+            .get("markdown")
+            .and_then(|v| v.as_str())
+            .map(|m| m.eq_ignore_ascii_case("kramdown"))
+            .unwrap_or(true);
+        if is_kramdown {
+            return false;
+        }
+
+        self.extras
+            .get("commonmark")
+            .and_then(|v| v.as_mapping())
+            .and_then(|m| m.get(serde_yaml::Value::String("extensions".to_string())))
+            .and_then(|v| v.as_sequence())
+            .map(|seq| {
+                seq.iter().any(|item| {
+                    item.as_str()
+                        .map(|s| s.eq_ignore_ascii_case("autolink"))
+                        .unwrap_or(false)
+                })
+            })
+            .unwrap_or(false)
+    }
 }
 
 #[cfg(test)]
@@ -1520,13 +1556,101 @@ commonmark:
     fn test_issue223_real_muan_blog_config() {
         let config_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("websites/muan-blog/_config.yml");
-        if !config_path.exists() {
-            return; // Skip if muan-blog not available
-        }
+        assert!(
+            config_path.exists(),
+            "Required test fixture not found: {}",
+            config_path.display()
+        );
         let config = SiteConfig::from_file(&config_path).unwrap();
         assert!(
             config.has_commonmark_hardbreaks(),
             "muan-blog config should have HARDBREAKS enabled. extras: {:?}",
+            config.extras.get("commonmark")
+        );
+    }
+
+    // ========================================================================
+    // Issue 294: has_commonmark_autolink config parsing
+    // ========================================================================
+
+    #[test]
+    fn test_issue294_autolink_extension_detected() {
+        let yaml = r#"
+markdown: CommonMarkGhPages
+commonmark:
+  options: ["HARDBREAKS"]
+  extensions: ["strikethrough", "autolink", "table"]
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(
+            config.has_commonmark_autolink(),
+            "Should detect autolink in commonmark.extensions"
+        );
+    }
+
+    #[test]
+    fn test_issue294_autolink_not_present() {
+        let yaml = r#"
+markdown: CommonMarkGhPages
+commonmark:
+  extensions: ["strikethrough", "table"]
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(
+            !config.has_commonmark_autolink(),
+            "Should return false when autolink not in extensions"
+        );
+    }
+
+    #[test]
+    fn test_issue294_autolink_kramdown_ignored() {
+        let yaml = r#"
+markdown: kramdown
+commonmark:
+  extensions: ["autolink"]
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(
+            !config.has_commonmark_autolink(),
+            "Should return false for kramdown even with autolink extension"
+        );
+    }
+
+    #[test]
+    fn test_issue294_autolink_no_commonmark_key() {
+        let yaml = r#"
+markdown: CommonMarkGhPages
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(
+            !config.has_commonmark_autolink(),
+            "Should return false when commonmark key is absent"
+        );
+    }
+
+    #[test]
+    fn test_issue294_autolink_default_markdown() {
+        let yaml = "title: Test Site\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(
+            !config.has_commonmark_autolink(),
+            "Should return false when markdown defaults to kramdown"
+        );
+    }
+
+    #[test]
+    fn test_issue294_real_muan_blog_autolink() {
+        let config_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("websites/muan-blog/_config.yml");
+        assert!(
+            config_path.exists(),
+            "Required test fixture not found: {}",
+            config_path.display()
+        );
+        let config = SiteConfig::from_file(&config_path).unwrap();
+        assert!(
+            config.has_commonmark_autolink(),
+            "muan-blog config should have autolink extension. extras: {:?}",
             config.extras.get("commonmark")
         );
     }
