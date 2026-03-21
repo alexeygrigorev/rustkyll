@@ -183,7 +183,7 @@ def is_acceptable_trailing_newline_diff(diff: 'DiffResult') -> bool:
     Jekyll's strip_html sometimes preserves a trailing \\n while rustkyll strips it
     (or vice versa). These diffs are cosmetic and should be filtered.
     """
-    if diff.diff_type != 'attribute_differs':
+    if diff.diff_type not in ('attribute_differs', 'jsonld_value_differs', 'text_differs'):
         return False
     expected = diff.expected or ''
     actual = diff.actual or ''
