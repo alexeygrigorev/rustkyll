@@ -49,6 +49,9 @@ pub struct LayoutEngine {
     /// Whether to convert soft line breaks to `<br>` elements.
     /// True when CommonMarkGhPages HARDBREAKS option is enabled.
     enable_hardbreaks: bool,
+    /// Whether to auto-link bare URLs in markdown content.
+    /// True when CommonMarkGhPages autolink extension is enabled.
+    enable_autolink: bool,
 }
 
 impl LayoutEngine {
@@ -73,6 +76,7 @@ impl LayoutEngine {
             engine,
             use_kramdown_code_classes: true,
             enable_hardbreaks: false,
+            enable_autolink: false,
         })
     }
 
@@ -91,6 +95,7 @@ impl LayoutEngine {
             engine,
             use_kramdown_code_classes: true,
             enable_hardbreaks: false,
+            enable_autolink: false,
         })
     }
 
@@ -109,6 +114,14 @@ impl LayoutEngine {
     /// be set to `true` so every soft line break produces a `<br>` in the output.
     pub fn set_hardbreaks(&mut self, enabled: bool) {
         self.enable_hardbreaks = enabled;
+    }
+
+    /// Set whether to auto-link bare URLs in markdown content.
+    ///
+    /// When the site config has `commonmark.extensions: ["autolink"]`, this should
+    /// be set to `true` so bare URLs in paragraph text are wrapped in `<a>` tags.
+    pub fn set_autolink(&mut self, enabled: bool) {
+        self.enable_autolink = enabled;
     }
 
     fn compile_layouts(
@@ -375,6 +388,7 @@ impl LayoutEngine {
             self.use_kramdown_code_classes,
             self.use_kramdown_code_classes,
             self.enable_hardbreaks,
+            self.enable_autolink,
         );
         let html_content = crate::kramdown::remove_heading_markers(&html_content);
         let result = self.render_with_site_overrides(
@@ -569,6 +583,7 @@ impl LayoutEngine {
             self.use_kramdown_code_classes,
             self.use_kramdown_code_classes,
             self.enable_hardbreaks,
+            self.enable_autolink,
         );
 
         // Step 3.5 (D1): Remove the heading markers after postprocessing
@@ -647,6 +662,7 @@ impl LayoutEngine {
             self.use_kramdown_code_classes,
             self.use_kramdown_code_classes,
             self.enable_hardbreaks,
+            self.enable_autolink,
         ))
     }
 }
@@ -2675,6 +2691,7 @@ mod tests {
             false,
             false,
             false,
+            false,
         );
 
         let layout_source = concat!(
@@ -2726,6 +2743,7 @@ mod tests {
             false,
             false,
             false,
+            false,
         );
 
         let layout_source = r#"<desc>{{ page.content | strip_html }}</desc>"#;
@@ -2773,6 +2791,7 @@ mod tests {
         // Both apostrophes and double quotes in CommonMarkGhPages mode
         let html_content = crate::frontmatter::markdown_to_html_with_options(
             r#"I don't like "fancy" things"#,
+            false,
             false,
             false,
             false,
@@ -2827,6 +2846,7 @@ mod tests {
         // German umlaut content with apostrophe in CommonMarkGhPages mode
         let html_content = crate::frontmatter::markdown_to_html_with_options(
             "B\u{00fc}scher's Buchladen",
+            false,
             false,
             false,
             false,
@@ -2909,8 +2929,9 @@ mod tests {
         // Verify truncation still works correctly with straight quotes
         // Create content longer than 240 chars with apostrophes
         let long_text = "Nathan doesn't write tests. ".repeat(15); // ~420 chars
-        let html_content =
-            crate::frontmatter::markdown_to_html_with_options(&long_text, false, false, false);
+        let html_content = crate::frontmatter::markdown_to_html_with_options(
+            &long_text, false, false, false, false,
+        );
 
         let layout_source = concat!(
             r#"<meta content="{{ page.content | strip_html | truncate: 240 }}" name="description">"#,
@@ -3096,6 +3117,7 @@ mod tests {
             false,
             false,
             true,
+            false,
         );
 
         let fm = FrontMatter::new();
@@ -3142,6 +3164,7 @@ mod tests {
             "line one\nline two\n",
             true,
             true,
+            false,
             false,
         );
 
@@ -3267,7 +3290,8 @@ mod tests {
 
     #[test]
     fn test_issue268_tdd_trailing_newline_preservation() {
-        // TDD: Content like "<p>Short bio.</p>\n" through strip_html should preserve trailing \n
+        // Issue 293: strip_html now strips one trailing newline to match Jekyll.
+        // Content like "<p>Short bio.</p>\n" through strip_html produces "Short bio."
         let engine = crate::template::TemplateEngine::new().unwrap();
         let mut ctx = liquid::Object::new();
         ctx.insert(
@@ -3278,8 +3302,8 @@ mod tests {
             .parse_and_render("{{ input | strip_html | jsonify }}", &ctx)
             .unwrap();
         assert_eq!(
-            output, "\"Short bio.\\n\"",
-            "strip_html | jsonify must preserve trailing newline, got: {}",
+            output, "\"Short bio.\"",
+            "strip_html | jsonify should not have trailing newline (issue 293), got: {}",
             output
         );
     }
@@ -3360,7 +3384,7 @@ mod tests {
         // Markdown source with & and apostrophes (simulating a person's bio)
         let markdown = "He's an Ambassador for Z by HP & NVIDIA. It's great work.";
         let html_content =
-            crate::frontmatter::markdown_to_html_with_options(markdown, true, true, false);
+            crate::frontmatter::markdown_to_html_with_options(markdown, true, true, false, false);
 
         // Verify the html_content has the expected entities and smart quotes
         assert!(
@@ -3406,11 +3430,10 @@ mod tests {
     #[test]
     fn test_issue268_tdd_collection_content_trailing_newline() {
         // Integration test: Verify that collection item html_content preserves
-        // trailing newlines from kramdown rendering, and they survive through
-        // the strip_html | jsonify pipeline.
+        // trailing newlines from kramdown rendering.
         let markdown = "Short bio text.";
         let html_content =
-            crate::frontmatter::markdown_to_html_with_options(markdown, true, true, false);
+            crate::frontmatter::markdown_to_html_with_options(markdown, true, true, false, false);
 
         // kramdown produces "<p>Short bio text.</p>\n" -- verify trailing \n
         assert!(
@@ -3426,10 +3449,11 @@ mod tests {
             .parse_and_render("{{ input | strip_html | jsonify }}", &ctx)
             .unwrap();
 
-        // The trailing \n should be preserved as \\n in the JSON string
+        // Issue 293: strip_html now strips one trailing newline to match Jekyll.
+        // The trailing \n should NOT appear in the jsonified output.
         assert!(
-            output.contains("\\n"),
-            "strip_html | jsonify should preserve trailing newline as \\n, got: {}",
+            !output.contains("\\n"),
+            "strip_html | jsonify should NOT have trailing newline (issue 293), got: {}",
             output
         );
     }

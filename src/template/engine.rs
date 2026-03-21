@@ -713,6 +713,9 @@ impl TemplateEngine {
             .filter(filters::Compact)
             // Ruby Liquid sample filter: random sampling from arrays (Issue 214)
             .filter(filters::Sample)
+            // Jekyll-compatible strip_html: strips tags + trailing whitespace (Issue 293)
+            // Must come after with_stdlib() to override the default strip_html
+            .filter(filters::StripHtml)
     }
 
     /// Create a `TemplateEngine` from a pre-built `liquid::Parser`.
@@ -1874,6 +1877,154 @@ mod tests {
             .parse_and_render("{{ text | strip_html }}", &ctx)
             .unwrap();
         assert_eq!(out, "Hello World");
+    }
+
+    // ========================================================================
+    // Issue 293: strip_html must match Jekyll's behavior
+    // ========================================================================
+
+    #[test]
+    fn test_issue293_strip_html_trailing_newline_paragraph() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("text".into(), LiquidValue::scalar("<p>Hello world.</p>\n"));
+        let out = eng
+            .parse_and_render("{{ text | strip_html }}", &ctx)
+            .unwrap();
+        assert_eq!(
+            out, "Hello world.",
+            "strip_html should not have trailing newline"
+        );
+    }
+
+    #[test]
+    fn test_issue293_strip_html_multiple_paragraphs() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "text".into(),
+            LiquidValue::scalar("<p>Line one.</p>\n<p>Line two.</p>\n"),
+        );
+        let out = eng
+            .parse_and_render("{{ text | strip_html }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "Line one.\nLine two.");
+    }
+
+    #[test]
+    fn test_issue293_strip_html_inline_tags_trailing_newline() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "text".into(),
+            LiquidValue::scalar("<p>Text with <a href='url'>link</a> inside.</p>\n"),
+        );
+        let out = eng
+            .parse_and_render("{{ text | strip_html }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "Text with link inside.");
+    }
+
+    #[test]
+    fn test_issue293_strip_html_list_no_indentation() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "text".into(),
+            LiquidValue::scalar("<ul>\n<li>A</li>\n<li>B</li>\n</ul>\n"),
+        );
+        let out = eng
+            .parse_and_render("{{ text | strip_html }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "\nA\nB\n", "list items should have no leading spaces");
+    }
+
+    #[test]
+    fn test_issue293_strip_html_ordered_list_no_indentation() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "text".into(),
+            LiquidValue::scalar("<ol>\n<li>First</li>\n<li>Second</li>\n</ol>\n"),
+        );
+        let out = eng
+            .parse_and_render("{{ text | strip_html }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "\nFirst\nSecond\n");
+    }
+
+    #[test]
+    fn test_issue293_strip_html_details_summary() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "text".into(),
+            LiquidValue::scalar("<details><summary>CW</summary><p>content</p></details>"),
+        );
+        let out = eng
+            .parse_and_render("{{ text | strip_html }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "CWcontent");
+    }
+
+    #[test]
+    fn test_issue293_strip_html_jsonify_no_trailing_newline() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("text".into(), LiquidValue::scalar("<p>Bio text.</p>\n"));
+        let out = eng
+            .parse_and_render("{{ text | strip_html | jsonify }}", &ctx)
+            .unwrap();
+        assert_eq!(
+            out, "\"Bio text.\"",
+            "strip_html | jsonify should not have \\n"
+        );
+    }
+
+    #[test]
+    fn test_issue293_strip_html_truncate_list() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "text".into(),
+            LiquidValue::scalar("<ul>\n<li>Alpha</li>\n<li>Beta</li>\n<li>Gamma</li>\n</ul>\n"),
+        );
+        let out = eng
+            .parse_and_render("{{ text | strip_html | truncate: 20 }}", &ctx)
+            .unwrap();
+        // After strip_html: "\nAlpha\nBeta\nGamma\n\n" -> strip one trailing \n -> "\nAlpha\nBeta\nGamma\n"
+        // truncate: 20 on "\nAlpha\nBeta\nGamma\n" (len=19) => no truncation needed
+        assert_eq!(out, "\nAlpha\nBeta\nGamma\n");
+    }
+
+    #[test]
+    fn test_issue293_strip_html_unicode_cjk() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "text".into(),
+            LiquidValue::scalar(
+                "<p>\u{6771}\u{4eac}\u{306e}<a href='#'>\u{30bf}\u{30ef}\u{30fc}</a></p>\n",
+            ),
+        );
+        let out = eng
+            .parse_and_render("{{ text | strip_html }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "\u{6771}\u{4eac}\u{306e}\u{30bf}\u{30ef}\u{30fc}");
+    }
+
+    #[test]
+    fn test_issue293_strip_html_jsonify_unicode() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "text".into(),
+            LiquidValue::scalar("<p>\u{00fc}ber <em>caf\u{00e9}</em></p>\n"),
+        );
+        let out = eng
+            .parse_and_render("{{ text | strip_html | jsonify }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "\"\u{00fc}ber caf\u{00e9}\"");
     }
 
     #[test]
