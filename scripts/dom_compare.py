@@ -158,6 +158,25 @@ def is_acceptable_date_modified_diff(diff: 'DiffResult') -> bool:
     return False
 
 
+def is_acceptable_build_time_diff(diff: 'DiffResult') -> bool:
+    """Check if a diff is a build-time-only datetime difference in meta tags.
+
+    When Jekyll and rustkyll are built seconds apart, meta tags with
+    datePublished/dateModified will differ only in HH:MM:SS.
+    """
+    if diff.diff_type != "attribute_differs":
+        return False
+    if "content=" not in diff.expected:
+        return False
+    # Extract content values
+    import re
+    j_m = re.search(r"content='([^']*)'", diff.expected)
+    r_m = re.search(r"content='([^']*)'", diff.actual)
+    if not j_m or not r_m:
+        return False
+    return _is_build_time_only_diff(j_m.group(1), r_m.group(1))
+
+
 def filter_acceptable_diffs(diffs: list) -> tuple:
     """Filter out known acceptable differences.
 
@@ -166,7 +185,7 @@ def filter_acceptable_diffs(diffs: list) -> tuple:
     remaining = []
     accepted = []
     for d in diffs:
-        if is_acceptable_sexagesimal_diff(d) or is_acceptable_date_modified_diff(d):
+        if is_acceptable_sexagesimal_diff(d) or is_acceptable_date_modified_diff(d) or is_acceptable_build_time_diff(d):
             accepted.append(d)
         else:
             remaining.append(d)
@@ -174,6 +193,28 @@ def filter_acceptable_diffs(diffs: list) -> tuple:
 
 
 IGNORED_JSONLD_FIELDS = {"dateModified"}
+
+
+def _is_build_time_only_diff(j_str: str, r_str: str) -> bool:
+    """Check if two datetime strings differ only in the time-of-day component.
+
+    Build-time fields like endDate/startDate use the current time when built,
+    so Jekyll and rustkyll will always differ by seconds. We consider it
+    acceptable if the date and timezone match but the time differs.
+
+    Examples that match:
+      '2026-03-21 07:24:03 +0100' vs '2026-03-21 07:24:38 +0100'
+      '2026-03-21T07:24:03+01:00' vs '2026-03-21T07:24:38+01:00'
+    """
+    import re
+    # Match datetime patterns: YYYY-MM-DD[T ]HH:MM:SS[timezone]
+    pattern = r'^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})\s*(.*)$'
+    j_m = re.match(pattern, j_str.strip())
+    r_m = re.match(pattern, r_str.strip())
+    if not j_m or not r_m:
+        return False
+    # Same date and timezone, different time = build-time diff
+    return j_m.group(1) == r_m.group(1) and j_m.group(3) == r_m.group(3)
 
 
 def compare_jsonld(jekyll_text: str, rustkyll_text: str, path: str) -> Optional[List[DiffResult]]:
@@ -229,8 +270,12 @@ def _compare_jsonld_values(j_val, r_val, path: str, diffs: list, depth: int = 0)
         j_str = json.dumps(j_val) if not isinstance(j_val, str) else j_val
         r_str = json.dumps(r_val) if not isinstance(r_val, str) else r_val
         if j_str != r_str:
-            diffs.append(DiffResult(path, "jsonld_value_differs",
-                                    str(j_str)[:200], str(r_str)[:200]))
+            # Skip build-time-only datetime diffs (same date+tz, different time)
+            if _is_build_time_only_diff(j_str, r_str):
+                pass
+            else:
+                diffs.append(DiffResult(path, "jsonld_value_differs",
+                                        str(j_str)[:200], str(r_str)[:200]))
 
 
 import json
