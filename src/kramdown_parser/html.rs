@@ -11,6 +11,7 @@ use crate::kramdown_parser::element::{Document, Element, ElementType};
 use crate::kramdown_parser::options::{EntityOutput, Options};
 use crate::kramdown_parser::parser::KramdownParser;
 use crate::kramdown_parser::span_parser::{self, SpanContext};
+use crate::syntax::highlight_code;
 
 /// Converts a kramdown Document AST into HTML output.
 pub struct HtmlConverter;
@@ -36,31 +37,44 @@ impl HtmlConverter {
         let mut output = String::new();
         convert_children(&doc.root.children, &mut output, options, 0, ctx);
 
-        // Render footnotes if any were referenced
-        let footnotes = render_footnotes(options, ctx);
+        // Render footnotes if any were referenced.
+        // Use ctx.options which may have been updated by {::options} extensions.
+        let effective_options = ctx.options.clone();
+        let footnotes = render_footnotes(&effective_options, ctx);
 
-        if !footnotes.is_empty() {
-            // Before appending footnotes, handle trailing blank like kramdown Ruby:
-            // If the document has trailing blank elements, they produce \n in output.
-            let has_trailing_blank = doc
-                .root
-                .children
-                .iter()
-                .rev()
-                .take_while(|e| {
-                    e.element_type == ElementType::Blank || e.element_type == ElementType::Eob
-                })
-                .any(|e| e.element_type == ElementType::Blank);
-            if has_trailing_blank && !output.ends_with("\n\n") {
-                output.push('\n');
+        // Check if the output has a footnote placement marker
+        let has_footnote_placeholder = output.contains("__FOOTNOTE_PLACEHOLDER__");
+
+        if has_footnote_placeholder {
+            // Replace the placeholder with footnote content
+            output = output.replacen("__FOOTNOTE_PLACEHOLDER__", &footnotes, 1);
+        } else {
+            if !footnotes.is_empty() {
+                // Before appending footnotes, handle trailing blank like kramdown Ruby:
+                // If the document has trailing blank/invisible elements at the end, add separator.
+                let has_trailing_blank = doc
+                    .root
+                    .children
+                    .iter()
+                    .rev()
+                    .take_while(|e| {
+                        e.element_type == ElementType::Blank
+                            || e.element_type == ElementType::Eob
+                            || (e.element_type == ElementType::BlockExtension
+                                && !is_visible_block(e))
+                    })
+                    .any(|e| e.element_type == ElementType::Blank);
+                if has_trailing_blank && !output.ends_with("\n\n") {
+                    output.push('\n');
+                }
+                // Trim excess trailing newlines (keep at most one blank line before footnotes)
+                while output.ends_with("\n\n\n") {
+                    output.pop();
+                }
             }
-            // Trim excess trailing newlines (keep at most one blank line before footnotes)
-            while output.ends_with("\n\n\n") {
-                output.pop();
-            }
+
+            output.push_str(&footnotes);
         }
-
-        output.push_str(&footnotes);
 
         // Ensure trailing newline (kramdown always outputs at least \n)
         if output.is_empty() || !output.ends_with('\n') {
@@ -415,7 +429,7 @@ fn convert_element(
             convert_header(elem, output, options, indent, ctx);
         }
         ElementType::CodeBlock => {
-            convert_code_block(elem, output, options, indent);
+            convert_code_block(elem, output, options, indent, ctx);
         }
         ElementType::Blockquote => {
             convert_blockquote(elem, output, options, indent, ctx);
@@ -442,7 +456,7 @@ fn convert_element(
             convert_math_block(elem, output, options, indent);
         }
         ElementType::BlockExtension => {
-            convert_block_extension(elem, output, indent);
+            convert_block_extension(elem, output, indent, options, ctx);
         }
         ElementType::Text => {
             if let Some(ref val) = elem.value {
@@ -480,6 +494,8 @@ fn convert_paragraph(
     output.push('>');
 
     let text = get_element_text(elem);
+    // Strip CDATA sections before processing: <![CDATA[content]]> -> escaped content
+    let text = strip_inline_cdata(&text);
     // If marked as raw_html (from html_to_native), don't markdown-process the text
     let is_raw_html = elem.options.get("raw_html").is_some_and(|v| v == "true");
     if is_raw_html {
@@ -548,29 +564,29 @@ fn convert_header(
 }
 
 /// Convert code block to HTML.
-fn convert_code_block(elem: &Element, output: &mut String, _options: &Options, indent: usize) {
+fn convert_code_block(
+    elem: &Element,
+    output: &mut String,
+    _options: &Options,
+    indent: usize,
+    ctx: &SpanContext,
+) {
     let content = elem.value.as_deref().unwrap_or("");
     let fence_language = elem.options.get("language");
 
     write_indent(output, indent);
 
-    // Determine code language and pre attributes
-    // Language from fence goes on <code> as class="language-X"
-    // IAL attributes generally go on <pre>, except:
-    // - If IAL has a class starting with "language-" and there's no fence language,
-    //   that class goes on <code> instead
-    let mut code_lang_class: Option<String> = fence_language.map(|l| format!("language-{l}"));
+    // Determine code language from fence, IAL class, or default_lang option
+    let mut code_lang: Option<String> = fence_language.cloned();
     let mut pre_attrs: Vec<(String, String)> = Vec::new();
 
     for (key, value) in &elem.attr {
         if key == "class" {
-            // Check if any class is a language-* class
             let classes: Vec<&str> = value.split_whitespace().collect();
             let mut pre_classes = Vec::new();
             for cls in &classes {
-                if cls.starts_with("language-") && code_lang_class.is_none() {
-                    // Move language-* class to <code> if no fence language
-                    code_lang_class = Some(cls.to_string());
+                if cls.starts_with("language-") && code_lang.is_none() {
+                    code_lang = Some(cls.strip_prefix("language-").unwrap_or(cls).to_string());
                 } else {
                     pre_classes.push(*cls);
                 }
@@ -583,21 +599,42 @@ fn convert_code_block(elem: &Element, output: &mut String, _options: &Options, i
         }
     }
 
-    // Write <pre> with attributes
+    // Fall back to default_lang from syntax_highlighter_opts
+    if code_lang.is_none() {
+        if let Some(ref default_lang) = ctx.options.syntax_highlighter_opts.default_lang {
+            code_lang = Some(default_lang.clone());
+        }
+    }
+
+    // Try syntax highlighting with Rouge-compatible output
+    let use_rouge = ctx.options.syntax_highlighter.as_deref() == Some("rouge");
+    if use_rouge {
+        if let Some(ref lang) = code_lang {
+            if let Some(highlighted) = highlight_code(lang, content) {
+                // Rouge-compatible output format
+                output.push_str(&format!(
+                    "<div class=\"language-{lang} highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>"
+                ));
+                output.push_str(&highlighted);
+                output.push_str("</code></pre>\n</div></div>\n");
+                return;
+            }
+        }
+    }
+
+    // Plain output (no highlighting)
     output.push_str("<pre");
     for (key, value) in &pre_attrs {
         output.push_str(&format!(" {key}=\"{value}\""));
     }
     output.push_str("><code");
 
-    // Language class on <code>
-    if let Some(ref lang_class) = code_lang_class {
-        output.push_str(&format!(" class=\"{lang_class}\""));
+    if let Some(ref lang) = code_lang {
+        output.push_str(&format!(" class=\"language-{lang}\""));
     }
 
     output.push('>');
 
-    // Escape HTML entities in code content
     let escaped = escape_html(content);
     output.push_str(&escaped);
 
@@ -650,6 +687,13 @@ fn convert_list(
             generate_toc(output, options, ctx);
         }
         // If auto_ids is false, suppress the list (no output)
+        return;
+    }
+
+    // Footnote placement marker: {: footnotes}
+    // Output a unique placeholder that will be replaced with footnote content later
+    if elem.options.get("footnotes").is_some_and(|v| v == "true") {
+        output.push_str("__FOOTNOTE_PLACEHOLDER__");
         return;
     }
 
@@ -939,26 +983,55 @@ fn write_indent(output: &mut String, indent: usize) {
 /// Process `markdown="span"` attributes inside raw HTML blocks.
 /// Finds tags with `markdown="span"`, removes the attribute, and processes
 /// the element's text content through span parsing (for abbreviations, etc.).
+/// Process markdown attributes in raw HTML blocks.
+/// Handles markdown="span", markdown="block", markdown="1", and markdown="0".
+/// Tags with these attributes have their content processed as markdown accordingly.
 fn process_markdown_span_in_raw_html(html: &str, ctx: &mut SpanContext) -> String {
-    const MARKER: &str = "markdown=\"span\"";
-
-    if !html.contains(MARKER) {
+    if !html.contains("markdown=") {
         return html.to_string();
     }
 
     let mut result = String::new();
     let mut remaining = html;
 
-    while let Some(md_pos) = remaining.find(MARKER) {
-        // Find the start of the opening tag containing markdown="span"
-        let tag_open = match remaining[..md_pos].rfind('<') {
+    // Match any markdown="..." attribute
+    while let Some(md_start) = remaining.find("markdown=\"") {
+        // Find the start of the opening tag containing this attribute
+        let tag_open = match remaining[..md_start].rfind('<') {
             Some(pos) => pos,
             None => {
-                result.push_str(&remaining[..md_pos + MARKER.len()]);
-                remaining = &remaining[md_pos + MARKER.len()..];
+                result.push_str(&remaining[..md_start + 10]);
+                remaining = &remaining[md_start + 10..];
                 continue;
             }
         };
+
+        // Extract the markdown attribute value
+        let after_eq = &remaining[md_start + 10..]; // after markdown="
+        let md_value_end = match after_eq.find('"') {
+            Some(pos) => pos,
+            None => {
+                result.push_str(&remaining[..md_start + 10]);
+                remaining = &remaining[md_start + 10..];
+                continue;
+            }
+        };
+        let md_value = &after_eq[..md_value_end];
+        let marker = format!("markdown=\"{}\"", md_value);
+
+        // If markdown="0", just strip the attribute and pass through
+        if md_value == "0" {
+            let full_marker_end = md_start + marker.len();
+            result.push_str(&remaining[..md_start]);
+            // Skip the markdown="0" attribute (and surrounding space)
+            let before_marker = &remaining[..md_start];
+            let trim_space = before_marker.ends_with(' ');
+            if trim_space && !result.is_empty() && result.ends_with(' ') {
+                // Already copied space, skip
+            }
+            remaining = &remaining[full_marker_end..];
+            continue;
+        }
 
         // Extract tag name
         let after_lt = &remaining[tag_open + 1..];
@@ -968,33 +1041,37 @@ fn process_markdown_span_in_raw_html(html: &str, ctx: &mut SpanContext) -> Strin
         let tag_name = &after_lt[..tag_name_end];
 
         if tag_name.is_empty() {
-            result.push_str(&remaining[..md_pos + MARKER.len()]);
-            remaining = &remaining[md_pos + MARKER.len()..];
+            result.push_str(&remaining[..md_start + marker.len()]);
+            remaining = &remaining[md_start + marker.len()..];
             continue;
         }
 
+        let tag_name_lc = tag_name.to_lowercase();
+
         // Find end of opening tag (the >)
-        let after_marker = &remaining[md_pos + MARKER.len()..];
-        let gt_pos = match after_marker.find('>') {
-            Some(pos) => md_pos + MARKER.len() + pos,
+        let after_full_marker = &remaining[md_start + marker.len()..];
+        let gt_pos = match after_full_marker.find('>') {
+            Some(pos) => md_start + marker.len() + pos,
             None => {
-                result.push_str(&remaining[..md_pos + MARKER.len()]);
-                remaining = &remaining[md_pos + MARKER.len()..];
+                result.push_str(&remaining[..md_start + marker.len()]);
+                remaining = &remaining[md_start + marker.len()..];
                 continue;
             }
         };
 
-        // Build clean opening tag (without markdown="span")
+        // Build clean opening tag (without markdown="...")
         let full_tag = &remaining[tag_open..=gt_pos];
         let clean_tag = full_tag
-            .replace(" markdown=\"span\"", "")
-            .replace("markdown=\"span\" ", "")
-            .replace("markdown=\"span\"", "");
+            .replace(&format!(" {}", marker), "")
+            .replace(&format!("{} ", marker), "")
+            .replace(&marker, "");
 
         // Find the closing tag
         let content_start = gt_pos + 1;
-        let close_tag = format!("</{tag_name}>");
-        let close_pos = match remaining[content_start..].find(&close_tag) {
+        let close_tag_lc = format!("</{}>", tag_name_lc);
+        // Find closing tag (case-insensitive for known HTML)
+        let after_content = &remaining[content_start..];
+        let close_pos = match find_close_tag_ci(after_content, &tag_name_lc) {
             Some(pos) => content_start + pos,
             None => {
                 result.push_str(&remaining[..=gt_pos]);
@@ -1004,21 +1081,127 @@ fn process_markdown_span_in_raw_html(html: &str, ctx: &mut SpanContext) -> Strin
         };
 
         let inner_content = &remaining[content_start..close_pos];
+        // Find actual close tag text (including >)
+        let close_tag_actual = &remaining[close_pos..];
+        let close_end = close_tag_actual
+            .find('>')
+            .map(|p| p + 1)
+            .unwrap_or(close_tag_lc.len());
 
-        // Process inner content through span parsing
-        let processed = span_parser::spans_to_html(inner_content, ctx);
+        // Determine parse mode based on markdown attribute value and tag content model
+        let is_span_content = is_span_content_model(&tag_name_lc);
+        let parse_as_block = match md_value {
+            "block" => true,
+            "span" => false,
+            "1" => !is_span_content,
+            _ => false,
+        };
 
-        // Output everything before the tag, the clean tag, processed content, and closing tag
+        // Output everything before the tag
         result.push_str(&remaining[..tag_open]);
-        result.push_str(&clean_tag);
-        result.push_str(&processed);
-        result.push_str(&close_tag);
 
-        remaining = &remaining[close_pos + close_tag.len()..];
+        // Calculate indentation of the opening tag
+        let tag_indent = {
+            let before = &remaining[..tag_open];
+            let nl = before.rfind('\n').map(|p| p + 1).unwrap_or(0);
+            let line_prefix = &before[nl..];
+            let sp = line_prefix.len() - line_prefix.trim_start().len();
+            " ".repeat(sp)
+        };
+
+        if parse_as_block {
+            // Block-level processing
+            let clean_tag_lc = clean_tag.to_lowercase();
+            result.push_str(&clean_tag_lc);
+            result.push('\n');
+            // Indentation depends on context:
+            // With parse_block_html, use deeper indent (tag+4 content, tag+2 close).
+            // With standalone markdown attr, use simpler indent (tag+2 content, tag close).
+            let (content_extra, close_extra) = if ctx.options.parse_block_html {
+                (4usize, 2usize)
+            } else {
+                (2, 0)
+            };
+            let inner_trimmed = inner_content.trim();
+            if !inner_trimmed.is_empty() {
+                let options = ctx.options.clone();
+                let inner_html = super::to_html_with_options(inner_trimmed, &options);
+                let child_indent_str = " ".repeat(tag_indent.len() + content_extra);
+                for line in inner_html.trim_end().lines() {
+                    result.push_str(&child_indent_str);
+                    result.push_str(line);
+                    result.push('\n');
+                }
+            }
+            let close_indent_str = " ".repeat(tag_indent.len() + close_extra);
+            result.push_str(&close_indent_str);
+            result.push_str(&close_tag_lc);
+        } else {
+            // Span-level processing
+            result.push_str(&clean_tag);
+            let processed = span_parser::spans_to_html(inner_content, ctx);
+            result.push_str(&processed);
+            result.push_str(&close_tag_lc);
+        }
+
+        remaining = &remaining[close_pos + close_end..];
     }
 
     result.push_str(remaining);
     result
+}
+
+/// Check if a tag has span-level content model (content parsed as inline).
+fn is_span_content_model(tag_lc: &str) -> bool {
+    matches!(
+        tag_lc,
+        "a" | "abbr"
+            | "acronym"
+            | "b"
+            | "bdo"
+            | "big"
+            | "button"
+            | "cite"
+            | "caption"
+            | "del"
+            | "dfn"
+            | "dt"
+            | "em"
+            | "h1"
+            | "h2"
+            | "h3"
+            | "h4"
+            | "h5"
+            | "h6"
+            | "i"
+            | "ins"
+            | "label"
+            | "legend"
+            | "optgroup"
+            | "p"
+            | "q"
+            | "rb"
+            | "rbc"
+            | "rp"
+            | "rt"
+            | "rtc"
+            | "ruby"
+            | "select"
+            | "small"
+            | "span"
+            | "strong"
+            | "sub"
+            | "sup"
+            | "th"
+            | "tt"
+    )
+}
+
+/// Find a closing tag case-insensitively. Returns position of `</tag>` in the string.
+fn find_close_tag_ci(s: &str, tag_lc: &str) -> Option<usize> {
+    let s_lower = s.to_lowercase();
+    let pattern = format!("</{}", tag_lc);
+    s_lower.find(&pattern)
 }
 
 /// Orphan closing tags (no matching opener) and non-HTML angle bracket content
@@ -1027,17 +1210,42 @@ fn escape_invalid_html_in_block(html: &str) -> String {
     let mut result = String::with_capacity(html.len());
     let lines: Vec<&str> = html.split('\n').collect();
 
-    // Track which tags are open to detect orphan closing tags
-    let mut open_tags: Vec<String> = Vec::new();
+    // Track which tags are open to detect orphan closing tags.
+    // Each entry is (match_name, is_known_html) where match_name is lowercased
+    // for known HTML elements and original case for unknown elements.
+    let mut open_tags: Vec<(String, bool)> = Vec::new();
     // Track if we're inside the outermost block tag (skip escaping there)
     let mut depth = 0;
     let mut _first_line = true;
     // Track if we're inside a multi-line HTML comment
     let mut in_comment = false;
+    // Track if we're inside a multi-line CDATA section
+    let mut in_cdata = false;
 
     for (li, line) in lines.iter().enumerate() {
         if li > 0 {
             result.push('\n');
+        }
+
+        // If we're in a multi-line CDATA section, output content until ]]>
+        if in_cdata {
+            if let Some(end_idx) = line.find("]]>") {
+                let inner = &line[..end_idx];
+                result.push_str(&inner.replace('<', "&lt;").replace('>', "&gt;"));
+                in_cdata = false;
+                // Process rest of line normally after ]]>
+                let rest = &line[end_idx + 3..];
+                if !rest.is_empty() {
+                    result.push_str(rest);
+                }
+                _first_line = false;
+                continue;
+            } else {
+                // Still in CDATA - output line as text with entity escaping
+                result.push_str(&line.replace('<', "&lt;").replace('>', "&gt;"));
+                _first_line = false;
+                continue;
+            }
         }
 
         // If we're in a multi-line comment, pass through until -->
@@ -1073,15 +1281,26 @@ fn escape_invalid_html_in_block(html: &str) -> String {
                     // Closing tag
                     if let Some((tag_name, end_pos)) = extract_tag_name_from_closing(&remaining) {
                         let tag_lc = tag_name.to_lowercase();
+                        let is_known = is_known_html_element_name(&tag_lc);
+                        // For known HTML elements, match case-insensitively (using lowercased name).
+                        // For unknown elements, match case-sensitively (using original name).
+                        let match_name = if is_known {
+                            tag_lc.clone()
+                        } else {
+                            tag_name.clone()
+                        };
                         // Check if this closing tag has a matching opener
-                        if depth <= 1 && !open_tags.iter().rev().any(|t| t == &tag_lc) {
+                        let has_match = open_tags.iter().rev().any(|(name, _)| *name == match_name);
+                        if depth <= 1 && !has_match {
                             // Orphan closing tag - escape it
                             result.push_str("&lt;");
                             i += 1;
                             continue;
                         }
                         // Valid closing tag
-                        if let Some(pos) = open_tags.iter().rposition(|t| t == &tag_lc) {
+                        if let Some(pos) =
+                            open_tags.iter().rposition(|(name, _)| *name == match_name)
+                        {
                             open_tags.truncate(pos);
                         }
                         depth -= 1;
@@ -1111,14 +1330,19 @@ fn escape_invalid_html_in_block(html: &str) -> String {
                     }
                     continue;
                 } else if remaining.starts_with("<![CDATA[") {
-                    // CDATA section - pass through until ]]>
-                    if let Some(end_idx) = remaining.find("]]>") {
-                        let cdata_end = end_idx + 3;
-                        result.push_str(&remaining[..cdata_end]);
-                        i += cdata_end;
+                    // CDATA section - strip the CDATA wrapper and output content as text.
+                    // Content inside CDATA has < and > escaped.
+                    let content_start = 9; // length of "<![CDATA["
+                    if let Some(end_idx) = remaining[content_start..].find("]]>") {
+                        let inner = &remaining[content_start..content_start + end_idx];
+                        result.push_str(&inner.replace('<', "&lt;").replace('>', "&gt;"));
+                        i += content_start + end_idx + 3;
                     } else {
-                        result.push_str(&remaining);
+                        // CDATA continues past this line - strip opening marker, rest is text
+                        let inner = &remaining[content_start..];
+                        result.push_str(&inner.replace('<', "&lt;").replace('>', "&gt;"));
                         i += remaining.len();
+                        in_cdata = true;
                     }
                     continue;
                 } else if remaining.starts_with("<!") || remaining.starts_with("<?") {
@@ -1132,8 +1356,12 @@ fn escape_invalid_html_in_block(html: &str) -> String {
                         extract_tag_info_from_opening(&remaining)
                     {
                         let tag_lc = tag_name.to_lowercase();
+                        let is_known = is_known_html_element_name(&tag_lc);
                         if !is_self_closing && !is_void_tag_name(&tag_lc) {
-                            open_tags.push(tag_lc);
+                            // For known HTML elements, store lowercased name.
+                            // For unknown elements, store original case for case-sensitive matching.
+                            let match_name = if is_known { tag_lc } else { tag_name.clone() };
+                            open_tags.push((match_name, is_known));
                             depth += 1;
                         }
                         // Pass through the tag
@@ -1159,6 +1387,15 @@ fn escape_invalid_html_in_block(html: &str) -> String {
         }
 
         _first_line = false;
+    }
+
+    // Add synthetic closing tags for any tags left open (auto-close).
+    // Use the stored match_name which preserves original case for unknown elements.
+    for (match_name, _is_known) in open_tags.iter().rev() {
+        result.push('\n');
+        result.push_str("</");
+        result.push_str(match_name);
+        result.push('>');
     }
 
     result
@@ -1217,6 +1454,36 @@ fn extract_tag_info_from_opening(s: &str) -> Option<(String, usize, bool)> {
     Some((tag_name, 1 + tag_len + gt_pos + 1, is_self_closing))
 }
 
+/// Check if a lowercased tag name is a known HTML element (block, span, or void).
+/// Used to determine case-sensitivity: known HTML elements match case-insensitively,
+/// unknown elements (like XML or custom tags) match case-sensitively.
+fn is_known_html_element_name(tag_lc: &str) -> bool {
+    // Combine all known HTML element categories
+    matches!(
+        tag_lc,
+        // Block elements
+        "address" | "article" | "aside" | "blockquote" | "body" | "caption" | "center"
+        | "col" | "colgroup" | "dd" | "details" | "dialog" | "dir" | "div" | "dl" | "dt"
+        | "fieldset" | "figcaption" | "figure" | "footer" | "form" | "frame" | "frameset"
+        | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "head" | "header" | "hgroup" | "hr"
+        | "html" | "iframe" | "legend" | "li" | "link" | "main" | "map" | "math" | "menu"
+        | "menuitem" | "meta" | "nav" | "noframes" | "noscript" | "ol" | "optgroup"
+        | "option" | "p" | "param" | "pre" | "section" | "source" | "summary" | "svg"
+        | "table" | "tbody" | "td" | "textarea" | "tfoot" | "th" | "thead" | "title"
+        | "tr" | "track" | "ul"
+        // Span/inline elements
+        | "a" | "abbr" | "acronym" | "b" | "bdi" | "bdo" | "big" | "button" | "cite"
+        | "code" | "del" | "dfn" | "em" | "font" | "i" | "ins" | "kbd" | "label" | "mark"
+        | "q" | "rb" | "rbc" | "rp" | "rt" | "rtc" | "ruby" | "s" | "samp" | "select"
+        | "small" | "span" | "strike" | "strong" | "sub" | "sup" | "time" | "tt" | "u"
+        | "var"
+        // Void elements
+        | "area" | "base" | "br" | "embed" | "img" | "input" | "wbr"
+        // Content model elements
+        | "script" | "style" | "applet"
+    )
+}
+
 /// Check if a tag name is a void (self-closing) HTML element.
 fn is_void_tag_name(tag: &str) -> bool {
     matches!(
@@ -1244,6 +1511,34 @@ fn escape_html(s: &str) -> String {
     s.replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
+}
+
+/// Strip inline CDATA sections from text.
+/// `<![CDATA[content]]>` -> escaped content (< and > become &lt; and &gt;).
+/// This follows kramdown behavior where CDATA in span-level content is stripped
+/// and the inner content is treated as text with HTML entities escaped.
+fn strip_inline_cdata(text: &str) -> String {
+    if !text.contains("<![CDATA[") {
+        return text.to_string();
+    }
+    let mut result = String::with_capacity(text.len());
+    let mut remaining = text;
+    while let Some(start) = remaining.find("<![CDATA[") {
+        result.push_str(&remaining[..start]);
+        let after_marker = &remaining[start + 9..];
+        if let Some(end) = after_marker.find("]]>") {
+            let inner = &after_marker[..end];
+            // Strip CDATA markers, preserve content as-is.
+            // The span parser will handle escaping of < and > in the content.
+            result.push_str(inner);
+            remaining = &after_marker[end + 3..];
+        } else {
+            result.push_str(after_marker);
+            remaining = "";
+        }
+    }
+    result.push_str(remaining);
+    result
 }
 
 /// Inject IAL attributes into the first HTML tag in a raw HTML string.
@@ -1305,6 +1600,7 @@ fn convert_html_block(
                 .options
                 .get("multiline_span")
                 .is_some_and(|v| v == "true");
+            let close_solo = elem.options.get("close_solo").is_some_and(|v| v == "true");
             write_indent(output, indent);
             output.push('<');
             output.push_str(tag);
@@ -1318,6 +1614,9 @@ fn convert_html_block(
                     output.push('\n');
                 } else {
                     output.push_str(&processed);
+                    if close_solo {
+                        output.push('\n');
+                    }
                 }
             }
             output.push_str("</");
@@ -1325,6 +1624,21 @@ fn convert_html_block(
             output.push_str(">\n");
         }
         _ => {
+            // If parse_block_html is enabled mid-document via {::options},
+            // re-process raw HTML blocks as block-parsed HTML.
+            let parse_mode_check = elem.options.get("parse_mode").map(|s| s.as_str());
+            // Only reprocess if parse_block_html was CHANGED mid-document (not initial)
+            let was_changed_mid_doc = ctx.options.parse_block_html && !options.parse_block_html;
+            if parse_mode_check.is_none() && was_changed_mid_doc {
+                if let Some(ref val) = elem.value {
+                    let opts = ctx.options.clone();
+                    let reprocessed = super::to_html_with_options(val.trim(), &opts);
+                    write_indent(output, indent);
+                    output.push_str(reprocessed.trim());
+                    output.push('\n');
+                    return;
+                }
+            }
             // Raw HTML: pass through, but inject IAL attributes into opening tag
             let elem_type = elem.options.get("type").map(|s| s.as_str());
             let skip_escape = matches!(elem_type, Some("comment") | Some("raw"));
@@ -1337,6 +1651,8 @@ fn convert_html_block(
                     };
                     // Process markdown="span" elements inside raw HTML
                     let html_str = process_markdown_span_in_raw_html(&html_str, ctx);
+                    // Indent the first line of raw HTML when nested (e.g., in footnotes)
+                    write_indent(output, indent);
                     if skip_escape {
                         output.push_str(&html_str);
                     } else {
@@ -1497,8 +1813,9 @@ fn convert_math_block(elem: &Element, output: &mut String, options: &Options, in
             output.push_str("\n$$</div>\n");
         } else {
             // Default: use MathJax-style delimiters
+            // MathJax \[...\] output is always at column 0 (no indent),
+            // matching kramdown Ruby behavior.
             if elem.attr.is_empty() {
-                write_indent(output, indent);
                 output.push_str("\\[");
                 output.push_str(&escaped);
                 output.push_str("\\]\n");
@@ -1518,7 +1835,13 @@ fn convert_math_block(elem: &Element, output: &mut String, options: &Options, in
 }
 
 /// Convert block extension to HTML.
-fn convert_block_extension(elem: &Element, output: &mut String, _indent: usize) {
+fn convert_block_extension(
+    elem: &Element,
+    output: &mut String,
+    _indent: usize,
+    _options: &Options,
+    ctx: &mut SpanContext,
+) {
     let ext_type = elem
         .options
         .get("ext_type")
@@ -1544,10 +1867,146 @@ fn convert_block_extension(elem: &Element, output: &mut String, _indent: usize) 
                 }
             }
         }
+        "options" => {
+            // Apply inline options changes
+            if let Some(opts_str) = elem.options.get("options_str") {
+                apply_inline_options(&opts_str.clone(), ctx);
+            }
+        }
         _ => {
-            // Empty/options - no output
+            // Empty - no output
         }
     }
+}
+
+/// Apply inline option changes from a {::options ...} extension.
+fn apply_inline_options(opts_str: &str, ctx: &mut SpanContext) {
+    let mut remaining = opts_str.trim();
+
+    while !remaining.is_empty() {
+        remaining = remaining.trim_start();
+        if remaining.is_empty() {
+            break;
+        }
+
+        let eq_pos = match remaining.find('=') {
+            Some(p) => p,
+            None => break,
+        };
+        let key = remaining[..eq_pos].trim();
+        remaining = &remaining[eq_pos + 1..];
+
+        let value = if remaining.starts_with('"') {
+            let rest = &remaining[1..];
+            let end = find_end_of_quoted_value(rest, '"');
+            let val = &rest[..end];
+            remaining = if end + 1 < rest.len() {
+                &rest[end + 1..]
+            } else {
+                ""
+            };
+            val.replace("\\}", "}").replace("\\\"", "\"")
+        } else if remaining.starts_with('\'') {
+            let rest = &remaining[1..];
+            let end = find_end_of_quoted_value(rest, '\'');
+            let val = &rest[..end];
+            remaining = if end + 1 < rest.len() {
+                &rest[end + 1..]
+            } else {
+                ""
+            };
+            val.replace("\\}", "}").replace("\\'", "'")
+        } else {
+            let end = remaining
+                .find(char::is_whitespace)
+                .unwrap_or(remaining.len());
+            let val = &remaining[..end];
+            remaining = &remaining[end..];
+            val.to_string()
+        };
+
+        apply_single_option(key, &value, ctx);
+    }
+}
+
+fn find_end_of_quoted_value(s: &str, quote: char) -> usize {
+    let chars: Vec<char> = s.chars().collect();
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i] == '\\' && i + 1 < chars.len() {
+            i += 2;
+            continue;
+        }
+        if chars[i] == quote {
+            return i;
+        }
+        i += 1;
+    }
+    s.len()
+}
+
+fn apply_single_option(key: &str, value: &str, ctx: &mut SpanContext) {
+    if key == "template" {
+        return;
+    }
+
+    match key {
+        "parse_block_html" => ctx.options.parse_block_html = parse_bool_val(value),
+        "parse_span_html" => ctx.options.parse_span_html = parse_bool_val(value),
+        "footnote_nr" => {
+            if let Ok(nr) = value.parse::<u32>() {
+                ctx.options.footnote_nr = nr;
+                ctx.footnote_counter = nr as usize;
+            }
+        }
+        "auto_ids" => ctx.options.auto_ids = parse_bool_val(value),
+        "auto_id_prefix" => ctx.options.auto_id_prefix = value.to_string(),
+        "syntax_highlighter" => {
+            ctx.options.syntax_highlighter = if value == "~" || value.is_empty() {
+                None
+            } else {
+                Some(value.to_string())
+            };
+        }
+        "syntax_highlighter_opts" => {
+            let inner = value.trim_start_matches('{').trim_end_matches('}');
+            for pair in inner.split(',') {
+                let pair = pair.trim();
+                if let Some(colon) = pair.find(':') {
+                    let k = pair[..colon].trim();
+                    let v = pair[colon + 1..].trim();
+                    match k {
+                        "default_lang" => {
+                            ctx.options.syntax_highlighter_opts.default_lang = Some(v.to_string())
+                        }
+                        "css" => {
+                            ctx.options.syntax_highlighter_opts.block_css = Some(v.to_string())
+                        }
+                        "wrap" => ctx.options.syntax_highlighter_opts.wrap = Some(v.to_string()),
+                        "guess_lang" => {
+                            ctx.options.syntax_highlighter_opts.guess_lang = Some(parse_bool_val(v))
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+        "entity_output" => {
+            ctx.options.entity_output = match value {
+                "as_char" => crate::kramdown_parser::options::EntityOutput::AsChar,
+                "as_input" => crate::kramdown_parser::options::EntityOutput::AsInput,
+                "symbolic" => crate::kramdown_parser::options::EntityOutput::Symbolic,
+                "numeric" => crate::kramdown_parser::options::EntityOutput::Numeric,
+                _ => ctx.options.entity_output.clone(),
+            };
+        }
+        "footnote_backlink_inline" => ctx.options.footnote_backlink_inline = parse_bool_val(value),
+        _ => {}
+    }
+}
+
+fn parse_bool_val(s: &str) -> bool {
+    matches!(s.to_lowercase().as_str(), "true" | "yes" | "1")
 }
 
 /// Render the footnotes section at the end of the document.

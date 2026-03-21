@@ -425,11 +425,16 @@ fn parse_ial(s: &str) -> Vec<(String, String)> {
 fn apply_attrs(element: &mut Element, attrs: &[(String, String)]) {
     for (key, value) in attrs {
         if key == "__ald_ref__" {
-            // Check for special references like "toc"
+            // Check for special references like "toc" and "footnotes"
             if value == "toc" {
                 element
                     .options
                     .insert("toc".to_string(), "true".to_string());
+            }
+            if value == "footnotes" {
+                element
+                    .options
+                    .insert("footnotes".to_string(), "true".to_string());
             }
             // Store auto_ids refs for definition list term ID generation
             if value == "auto_ids" || value.starts_with("auto_ids-") {
@@ -1196,11 +1201,13 @@ fn parse_paragraph_with_lazy(
             }
             // Table line or separator breaks a paragraph, unless previous line
             // has an unbalanced backtick (multi-line code span continuation)
+            // or accumulated lines have an unclosed <code> tag
             if is_table_line(line) || try_parse_separator_line(line).is_some() {
                 let prev_has_open_code_span = para_lines
                     .last()
                     .is_some_and(|l| has_unbalanced_backticks(l));
-                if !prev_has_open_code_span {
+                let has_open_code_tag = has_unclosed_code_tag(&para_lines);
+                if !prev_has_open_code_span && !has_open_code_tag {
                     break;
                 }
             }
@@ -1678,6 +1685,32 @@ fn has_unbalanced_backticks(line: &str) -> bool {
     }
 
     open_backtick
+}
+
+/// Check if accumulated paragraph lines have an unclosed `<code>` tag.
+/// This prevents table detection from breaking multi-line `<code>` spans.
+fn has_unclosed_code_tag(lines: &[&str]) -> bool {
+    let combined: String = lines.join("\n");
+    let lower = combined.to_lowercase();
+    let mut depth: i32 = 0;
+    let mut i = 0;
+    let bytes = lower.as_bytes();
+    while i < bytes.len() {
+        if bytes[i] == b'<' {
+            if lower[i..].starts_with("<code>") || lower[i..].starts_with("<code ") {
+                depth += 1;
+                i += 6;
+                continue;
+            }
+            if lower[i..].starts_with("</code>") {
+                depth -= 1;
+                i += 7;
+                continue;
+            }
+        }
+        i += 1;
+    }
+    depth > 0
 }
 
 /// Try to parse a table starting at `pos`. Returns the table Element and advances pos.
@@ -2319,7 +2352,9 @@ fn parse_list_with_lazy(
     );
 
     for raw_item in &raw_items {
-        let has_internal_blanks = raw_item.lines.iter().any(|l| l.is_empty());
+        // Only count blank lines at the item's own content level as making it loose.
+        // Blank lines within sub-items (indented content) don't make the parent loose.
+        let has_internal_blanks = has_top_level_blank(&raw_item.lines, raw_item.content_indent);
         let is_item_loose =
             raw_item.has_blank_after || raw_item.has_blank_before || has_internal_blanks;
 
@@ -2334,6 +2369,53 @@ fn parse_list_with_lazy(
     }
 
     list_elem
+}
+
+/// Check if there's a blank line at the top level of a list item's content.
+/// A blank line inside a sub-list or other deeply nested content doesn't count.
+/// Only blank lines between the item's own top-level paragraphs make it loose.
+fn has_top_level_blank(lines: &[String], _content_indent: usize) -> bool {
+    // Walk through lines. Once we hit a sub-list marker or other block element
+    // at the continuation indent level, all subsequent blank lines belong to
+    // that sub-structure, not to the parent item.
+    let mut saw_first_content = false;
+    let mut in_sub_structure = false;
+
+    for (idx, line) in lines.iter().enumerate() {
+        if idx == 0 {
+            saw_first_content = true;
+            // Check if the first line itself starts a sub-structure
+            let trimmed = line.trim();
+            if is_list_start(trimmed) || is_blockquote_line(trimmed) {
+                in_sub_structure = true;
+            }
+            continue;
+        }
+
+        if line.is_empty() {
+            // Blank line: only counts as looseness if we haven't entered a sub-structure
+            if saw_first_content && !in_sub_structure {
+                // Check if there's non-blank top-level content after this blank
+                let has_more_top_content = lines[idx + 1..]
+                    .iter()
+                    .any(|l| !l.is_empty() && !l.trim().is_empty());
+                if has_more_top_content {
+                    return true;
+                }
+            }
+            continue;
+        }
+
+        let trimmed = line.trim();
+        if !in_sub_structure {
+            // Check if this line starts a sub-structure
+            if is_list_start(trimmed) || is_blockquote_line(trimmed) {
+                in_sub_structure = true;
+            }
+        }
+    }
+
+    false
 }
 
 /// Build a ListItem element from raw content lines.
@@ -3221,6 +3303,10 @@ fn parse_html_block_element(
                 elem.options
                     .insert("multiline_span".to_string(), "true".to_string());
             }
+            if close_tag_solo && collected.len() > 1 {
+                elem.options
+                    .insert("close_solo".to_string(), "true".to_string());
+            }
             let inner_content = extract_inner_content(&collected, &tag_lc);
             elem.value = Some(inner_content);
             elem
@@ -3260,6 +3346,53 @@ fn extract_markdown_attr(tag_line: &str) -> Option<String> {
     }
 }
 
+/// Kramdown content model: span-level elements whose content is parsed as inline text.
+/// This differs from HTML_SPAN_TAGS which is used for determining block vs inline element status.
+const HTML_CONTENT_MODEL_SPAN: &[&str] = &[
+    "a", "abbr", "acronym", "b", "bdo", "big", "button", "cite", "caption", "del", "dfn", "dt",
+    "em", "h1", "h2", "h3", "h4", "h5", "h6", "i", "ins", "label", "legend", "optgroup", "p", "q",
+    "rb", "rbc", "rp", "rt", "rtc", "ruby", "select", "small", "span", "strong", "sub", "sup",
+    "th", "tt",
+];
+
+/// Kramdown content model: block-level elements whose content is parsed as block markdown.
+const HTML_CONTENT_MODEL_BLOCK: &[&str] = &[
+    "address",
+    "applet",
+    "article",
+    "aside",
+    "blockquote",
+    "body",
+    "dd",
+    "details",
+    "div",
+    "dl",
+    "fieldset",
+    "figure",
+    "figcaption",
+    "footer",
+    "form",
+    "header",
+    "hgroup",
+    "iframe",
+    "li",
+    "main",
+    "map",
+    "menu",
+    "nav",
+    "noscript",
+    "object",
+    "section",
+    "summary",
+    "td",
+];
+
+/// Kramdown content model: raw elements whose content is never parsed as markdown.
+/// Also: tags not in block/span lists default to raw (e.g., table, tbody, tr, ul, ol).
+const HTML_CONTENT_MODEL_RAW: &[&str] = &[
+    "script", "style", "math", "option", "textarea", "pre", "code", "kbd", "samp", "var",
+];
+
 /// Determine parse mode for HTML content.
 fn determine_parse_mode(
     tag_lc: &str,
@@ -3272,7 +3405,7 @@ fn determine_parse_mode(
             "block" => HtmlParseMode::Block,
             "span" => HtmlParseMode::Span,
             "1" => {
-                if HTML_SPAN_TAGS.contains(&tag_lc) {
+                if HTML_CONTENT_MODEL_SPAN.contains(&tag_lc) {
                     HtmlParseMode::Span
                 } else {
                     HtmlParseMode::Block
@@ -3282,13 +3415,17 @@ fn determine_parse_mode(
         };
     }
     if options.parse_block_html {
-        if is_html_raw_tag(tag_lc) {
+        if HTML_CONTENT_MODEL_RAW.contains(&tag_lc) {
             return HtmlParseMode::Raw;
         }
-        if HTML_SPAN_TAGS.contains(&tag_lc) {
+        if HTML_CONTENT_MODEL_SPAN.contains(&tag_lc) {
             return HtmlParseMode::Span;
         }
-        return HtmlParseMode::Block;
+        if HTML_CONTENT_MODEL_BLOCK.contains(&tag_lc) {
+            return HtmlParseMode::Block;
+        }
+        // Tags not in any content model list default to raw (e.g., table, tbody, tr, ul, ol)
+        return HtmlParseMode::Raw;
     }
     HtmlParseMode::Raw
 }
@@ -3598,9 +3735,14 @@ fn try_parse_block_extension(lines: &[&str], pos: &mut usize) -> Option<Element>
                 }
             }
             "options" => {
-                // Options extension - ignore for now (handled in options parsing)
+                // Options extension - store the options string for later processing
+                let attrs_str = inner.strip_prefix("options").unwrap_or("").trim();
                 *pos += 1;
-                let elem = Element::with_value(ElementType::BlockExtension, "");
+                let mut elem = Element::with_value(ElementType::BlockExtension, "");
+                elem.options
+                    .insert("ext_type".to_string(), "options".to_string());
+                elem.options
+                    .insert("options_str".to_string(), attrs_str.to_string());
                 return Some(elem);
             }
             _ => {
@@ -3693,9 +3835,14 @@ fn try_parse_block_extension(lines: &[&str], pos: &mut usize) -> Option<Element>
             Some(elem)
         }
         "options" => {
-            // Block options
+            // Block options with end tag
+            let attrs_str = inner.strip_prefix("options").unwrap_or("").trim();
             *pos += 1;
-            let elem = Element::with_value(ElementType::BlockExtension, "");
+            let mut elem = Element::with_value(ElementType::BlockExtension, "");
+            elem.options
+                .insert("ext_type".to_string(), "options".to_string());
+            elem.options
+                .insert("options_str".to_string(), attrs_str.to_string());
             Some(elem)
         }
         _ => {

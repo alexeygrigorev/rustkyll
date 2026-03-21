@@ -1874,7 +1874,10 @@ fn try_parse_html_span(
                     false,
                 );
             } else {
-                inner_html = rest[..cp].to_string();
+                // markdown="0": no markdown processing, but still handle nested
+                // HTML tags with markdown attributes. Also escape autolinks.
+                let raw_content = &rest[..cp];
+                inner_html = process_raw_html_content(raw_content, ctx);
             }
 
             let total_advance = gt + 1 + cp + close_tag_pattern.len();
@@ -1918,6 +1921,54 @@ fn try_parse_html_span(
     }
 
     None
+}
+
+/// Process content inside a markdown="0" HTML element.
+/// Does not apply markdown processing, but still handles nested HTML tags
+/// that have explicit markdown attributes. Also escapes autolinks.
+fn process_raw_html_content(content: &str, ctx: &mut SpanContext) -> String {
+    let mut result = String::new();
+    let chars: Vec<char> = content.chars().collect();
+    let len = chars.len();
+    let mut i = 0;
+
+    while i < len {
+        if chars[i] == '<' {
+            // In markdown="0" mode, autolinks should be escaped, not linkified.
+            // Check if this looks like an autolink before trying HTML tag parsing.
+            let rest: String = chars[i..len].iter().collect();
+            let is_autolink = rest.len() > 1
+                && rest[1..].starts_with(|c: char| c.is_ascii_alphabetic())
+                && (rest.contains("://") || rest.contains("mailto:"))
+                && rest.contains('>');
+
+            if !is_autolink {
+                // Try to parse as a valid HTML tag
+                if let Some((html_out, advance)) = try_parse_html_span(&chars, i, len, ctx) {
+                    result.push_str(&html_out);
+                    i += advance;
+                    continue;
+                }
+            }
+
+            // Not a valid HTML tag or an autolink - escape the angle bracket
+            result.push_str("&lt;");
+            i += 1;
+            // Find the matching > and escape it too
+            while i < len && chars[i] != '>' {
+                result.push(chars[i]);
+                i += 1;
+            }
+            if i < len && chars[i] == '>' {
+                result.push_str("&gt;");
+                i += 1;
+            }
+            continue;
+        }
+        result.push(chars[i]);
+        i += 1;
+    }
+    result
 }
 
 fn find_case_insensitive(haystack: &str, needle: &str) -> Option<usize> {
