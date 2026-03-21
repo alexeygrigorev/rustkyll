@@ -89,6 +89,26 @@ pub fn convert_html_to_native(children: &mut Vec<Element>, options: &Options) {
                 for (j, elem) in converted.drain(..).enumerate() {
                     children.insert(i + j, elem);
                 }
+                // Merge trailing paragraph into the last converted paragraph.
+                // When html_to_native converts `<p>content</p> trailing text`,
+                // the trailing text becomes a separate Paragraph that should be
+                // merged with the converted paragraph.
+                let last_converted_idx = i + count - 1;
+                if count > 0
+                    && children[last_converted_idx].element_type == ElementType::Paragraph
+                    && last_converted_idx + 1 < children.len()
+                    && children[last_converted_idx + 1].element_type == ElementType::Paragraph
+                {
+                    let next_para = children.remove(last_converted_idx + 1);
+                    let next_text = get_element_text_value(&next_para);
+                    if !next_text.is_empty() {
+                        let existing_text = get_element_text_value(&children[last_converted_idx]);
+                        let merged = format!("{} {}", existing_text.trim_end(), next_text);
+                        children[last_converted_idx].children.clear();
+                        let text_elem = Element::with_value(ElementType::Text, merged);
+                        children[last_converted_idx].children.push(text_elem);
+                    }
+                }
                 i += count;
                 continue;
             }
@@ -97,6 +117,17 @@ pub fn convert_html_to_native(children: &mut Vec<Element>, options: &Options) {
         convert_html_to_native(&mut children[i].children, options);
         i += 1;
     }
+}
+
+/// Get the text value from an element's children.
+fn get_element_text_value(elem: &Element) -> String {
+    let mut text = String::new();
+    for child in &elem.children {
+        if let Some(ref val) = child.value {
+            text.push_str(val);
+        }
+    }
+    text
 }
 
 /// Try to convert an HTML block string to native elements.

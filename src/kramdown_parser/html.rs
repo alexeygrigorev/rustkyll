@@ -629,6 +629,9 @@ fn convert_code_block(
 
     // Determine code language from fence, IAL class, or default_lang option
     // Strip ?params from fenced code block language (e.g., "php?start_inline=1" -> "php")
+    // Preserve params for special handling (e.g., start_inline for PHP)
+    let lang_params: Option<String> =
+        fence_language.and_then(|l| l.find('?').map(|pos| l[pos + 1..].to_string()));
     let mut code_lang: Option<String> =
         fence_language.map(|l| l.split('?').next().unwrap_or(l).to_string());
     let mut pre_attrs: Vec<(String, String)> = Vec::new();
@@ -663,12 +666,33 @@ fn convert_code_block(
     let use_rouge = ctx.options.syntax_highlighter.as_deref() == Some("rouge");
     if use_rouge {
         if let Some(ref lang) = code_lang {
-            if let Some(highlighted) = highlight_code(lang, content) {
+            // For PHP with start_inline=1, prepend <?php to enable syntect highlighting
+            // then strip the highlighted prefix from the output
+            let is_php_inline = lang == "php"
+                && lang_params
+                    .as_deref()
+                    .is_some_and(|p| p.contains("start_inline=1"));
+            let (highlight_content, strip_prefix) = if is_php_inline {
+                (format!("<?php\n{}", content), true)
+            } else {
+                (content.to_string(), false)
+            };
+
+            if let Some(highlighted) = highlight_code(lang, &highlight_content) {
                 // Rouge-compatible output format
                 output.push_str(&format!(
                     "<div class=\"language-{lang} highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>"
                 ));
-                output.push_str(&highlighted);
+                if strip_prefix {
+                    // Strip the highlighted <?php\n prefix from the output
+                    if let Some(newline_pos) = highlighted.find('\n') {
+                        output.push_str(&highlighted[newline_pos + 1..]);
+                    } else {
+                        output.push_str(&highlighted);
+                    }
+                } else {
+                    output.push_str(&highlighted);
+                }
                 output.push_str("</code></pre>\n</div></div>\n");
                 return;
             }
@@ -690,6 +714,11 @@ fn convert_code_block(
         }
     }
 
+    // Check for show-whitespaces class
+    let show_whitespaces = pre_attrs
+        .iter()
+        .any(|(k, v)| k == "class" && v.split_whitespace().any(|c| c == "show-whitespaces"));
+
     // Plain output (no highlighting)
     output.push_str("<pre");
     for (key, value) in &pre_attrs {
@@ -703,10 +732,53 @@ fn convert_code_block(
 
     output.push('>');
 
-    let escaped = escape_html(content);
-    output.push_str(&escaped);
+    if show_whitespaces {
+        render_whitespace_content(output, content);
+    } else {
+        let escaped = escape_html(content);
+        output.push_str(&escaped);
+    }
 
     output.push_str("</code></pre>\n");
+}
+
+/// Render code content with visible whitespace markers.
+/// When `{:.show-whitespaces}` IAL is applied to a code block, each whitespace
+/// character is wrapped in a span:
+/// - Tabs: `<span class="ws-tab">\t</span>`
+/// - Leading spaces: `<span class="ws-space-l">&#8901;</span>`
+/// - Trailing spaces: `<span class="ws-space-r">&#8901;</span>`
+/// - Other spaces: `<span class="ws-space">&#8901;</span>`
+fn render_whitespace_content(output: &mut String, content: &str) {
+    for line in content.split('\n') {
+        if line.is_empty() {
+            continue;
+        }
+
+        // Find leading and trailing whitespace boundaries
+        let leading_end = line.len() - line.trim_start().len();
+        let trailing_start = line.trim_end().len();
+
+        for (i, c) in line.chars().enumerate() {
+            match c {
+                '\t' => output.push_str("<span class=\"ws-tab\">\t</span>"),
+                ' ' => {
+                    if i < leading_end {
+                        output.push_str("<span class=\"ws-space-l\">&#8901;</span>");
+                    } else if i >= trailing_start {
+                        output.push_str("<span class=\"ws-space-r\">&#8901;</span>");
+                    } else {
+                        output.push_str("<span class=\"ws-space\">&#8901;</span>");
+                    }
+                }
+                '&' => output.push_str("&amp;"),
+                '<' => output.push_str("&lt;"),
+                '>' => output.push_str("&gt;"),
+                _ => output.push(c),
+            }
+        }
+        output.push('\n');
+    }
 }
 
 /// Convert blockquote to HTML.

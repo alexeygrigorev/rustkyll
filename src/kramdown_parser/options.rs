@@ -201,7 +201,13 @@ impl Options {
             match key.as_str() {
                 "auto_ids" => opts.auto_ids = Self::parse_bool(&val),
                 "auto_id_prefix" => opts.auto_id_prefix = val,
-                "auto_id_stripping" => opts.auto_id_stripping = Self::parse_bool(&val),
+                "auto_id_stripping" => {
+                    opts.auto_id_stripping = Self::parse_bool(&val);
+                    // auto_id_stripping implies auto_ids (matches kramdown Ruby default)
+                    if opts.auto_id_stripping {
+                        opts.auto_ids = true;
+                    }
+                }
                 "transliterated_header_ids" => {
                     opts.transliterated_header_ids = Self::parse_bool(&val)
                 }

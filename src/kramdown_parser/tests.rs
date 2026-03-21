@@ -771,11 +771,9 @@ conformance_test!(
     kramdown_block_03_paragraph_indented,
     "block/03_paragraph/indented"
 );
-// Deferred: requires span-level parsing (line breaks, autolinks)
-conformance_test_deferred!(
+conformance_test!(
     kramdown_block_03_paragraph_line_break_last_line,
-    "block/03_paragraph/line_break_last_line",
-    "requires span-level parsing"
+    "block/03_paragraph/line_break_last_line"
 );
 conformance_test!(
     kramdown_block_03_paragraph_no_newline_at_end,
@@ -785,21 +783,21 @@ conformance_test!(
     kramdown_block_03_paragraph_one_para,
     "block/03_paragraph/one_para"
 );
-// Deferred: requires span-level parsing (images, IAL on images, figure conversion)
+// Deferred: requires {:standalone} IAL on images to convert paragraphs to <figure> elements.
+// Root cause: span parser does not handle 'standalone' IAL attribute on images, and the
+// HTML converter lacks the paragraph-to-figure conversion logic. See issue 292.
 conformance_test_deferred!(
     kramdown_block_03_paragraph_standalone_image,
     "block/03_paragraph/standalone_image",
-    "requires span-level parsing"
+    "requires standalone image-to-figure conversion"
 );
 conformance_test!(
     kramdown_block_03_paragraph_two_para,
     "block/03_paragraph/two_para"
 );
-// Deferred: requires :html_to_native: true HTML parsing
-conformance_test_deferred!(
+conformance_test!(
     kramdown_block_03_paragraph_with_html_to_native,
-    "block/03_paragraph/with_html_to_native",
-    "requires html_to_native parsing"
+    "block/03_paragraph/with_html_to_native"
 );
 
 // block/04_header
@@ -823,29 +821,21 @@ conformance_test!(
     kramdown_block_04_header_setext_header,
     "block/04_header/setext_header"
 );
-// Deferred: requires :auto_ids: true plus :auto_id_prefix
-conformance_test_deferred!(
+conformance_test!(
     kramdown_block_04_header_with_auto_id_prefix,
-    "block/04_header/with_auto_id_prefix",
-    "requires auto_ids implementation"
+    "block/04_header/with_auto_id_prefix"
 );
-// Deferred: requires :auto_ids: true auto-generated IDs
-conformance_test_deferred!(
+conformance_test!(
     kramdown_block_04_header_with_auto_ids,
-    "block/04_header/with_auto_ids",
-    "requires auto_ids implementation"
+    "block/04_header/with_auto_ids"
 );
-// Deferred: requires :auto_id_stripping: true
-conformance_test_deferred!(
+conformance_test!(
     kramdown_block_04_header_with_auto_id_stripping,
-    "block/04_header/with_auto_id_stripping",
-    "requires auto_id_stripping implementation"
+    "block/04_header/with_auto_id_stripping"
 );
-// Deferred: requires :header_links: true
-conformance_test_deferred!(
+conformance_test!(
     kramdown_block_04_header_with_header_links,
-    "block/04_header/with_header_links",
-    "requires header_links implementation"
+    "block/04_header/with_header_links"
 );
 conformance_test!(
     kramdown_block_04_header_with_line_break,
@@ -887,23 +877,17 @@ conformance_test!(
     kramdown_block_06_codeblock_error,
     "block/06_codeblock/error"
 );
-// Deferred: requires syntax_highlighter_opts guess_lang support
-conformance_test_deferred!(
+conformance_test!(
     kramdown_block_06_codeblock_guess_lang_css_class,
-    "block/06_codeblock/guess_lang_css_class",
-    "requires syntax highlighter integration"
+    "block/06_codeblock/guess_lang_css_class"
 );
-// Deferred: requires syntax highlighting integration
-conformance_test_deferred!(
+conformance_test!(
     kramdown_block_06_codeblock_highlighting_opts,
-    "block/06_codeblock/highlighting-opts",
-    "requires syntax highlighter integration"
+    "block/06_codeblock/highlighting-opts"
 );
-// Deferred: requires syntax highlighting integration
-conformance_test_deferred!(
+conformance_test!(
     kramdown_block_06_codeblock_highlighting,
-    "block/06_codeblock/highlighting",
-    "requires syntax highlighter integration"
+    "block/06_codeblock/highlighting"
 );
 conformance_test!(kramdown_block_06_codeblock_lazy, "block/06_codeblock/lazy");
 conformance_test!(
@@ -922,27 +906,31 @@ conformance_test!(
     kramdown_block_06_codeblock_rouge_disabled,
     "block/06_codeblock/rouge/disabled"
 );
-// Deferred: requires rouge syntax highlighter
+// Deferred: requires Rouge-compatible syntax highlighting token classes (nv for PHP variables,
+// nc for class names, s2 for double-quoted strings without dl delimiter splitting).
+// Root cause: syntect's scope-to-CSS-class mapping differs from Rouge for PHP (nv vs n,
+// nc vs nb) and Ruby (s2 vs dl+s2+dl). Also needs custom-class wrapper div from
+// formatter options. See issue 293.
 conformance_test_deferred!(
     kramdown_block_06_codeblock_rouge_multiple,
     "block/06_codeblock/rouge/multiple",
-    "requires rouge syntax highlighter"
+    "requires Rouge-compatible token class mapping in syntax.rs"
 );
-// Deferred: requires rouge syntax highlighter
+// Deferred: PHP token class mismatch (nv vs n, nc vs nb) between syntect and Rouge.
+// Root cause: syntect maps PHP variables to scope 'variable.other' (-> 'n') but Rouge
+// uses 'nv'. Similarly, class names are 'nb' (builtin) vs Rouge 'nc'. See issue 293.
 conformance_test_deferred!(
     kramdown_block_06_codeblock_rouge_simple,
     "block/06_codeblock/rouge/simple",
-    "requires rouge syntax highlighter"
+    "requires Rouge-compatible PHP token class mapping in syntax.rs"
 );
 conformance_test!(
     kramdown_block_06_codeblock_tilde_syntax,
     "block/06_codeblock/tilde_syntax"
 );
-// Deferred: requires {:.show-whitespaces} IAL with special whitespace span rendering
-conformance_test_deferred!(
+conformance_test!(
     kramdown_block_06_codeblock_whitespace,
-    "block/06_codeblock/whitespace",
-    "requires show-whitespaces IAL support"
+    "block/06_codeblock/whitespace"
 );
 conformance_test!(
     kramdown_block_06_codeblock_with_blank_line,
@@ -1226,20 +1214,24 @@ conformance_test!(
     kramdown_block_14_table_empty_tag_in_cell,
     "block/14_table/empty_tag_in_cell"
 );
+// Deferred: link definition [5]: test is extracted during pre-pass, leaving |no|table|here|
+// as a standalone single-row table. But kramdown Ruby processes link defs during block parsing,
+// preserving the block context so |no|table|here| becomes a paragraph.
+// Root cause: architectural difference -- our pre-pass extraction vs kramdown Ruby's inline
+// block-level link definition handling. See issue 294.
 conformance_test_deferred!(
     kramdown_block_14_table_errors,
     "block/14_table/errors",
-    "requires link definition support ([5]: test)"
+    "requires inline block-level link definition handling (architectural)"
 );
 conformance_test!(kramdown_block_14_table_escaping, "block/14_table/escaping");
 conformance_test!(kramdown_block_14_table_footer, "block/14_table/footer");
 conformance_test!(kramdown_block_14_table_header, "block/14_table/header");
 conformance_test!(kramdown_block_14_table_no_table, "block/14_table/no_table");
 conformance_test!(kramdown_block_14_table_simple, "block/14_table/simple");
-conformance_test_deferred!(
+conformance_test!(
     kramdown_block_14_table_table_with_footnote,
-    "block/14_table/table_with_footnote",
-    "requires footnote support"
+    "block/14_table/table_with_footnote"
 );
 
 // block/15_math
@@ -1754,5 +1746,192 @@ fn test_image_alt_unicode_newline() {
     assert!(
         html.contains("alt=\"\u{041b}\u{0438}\u{0446}\u{0435}\u{043d}\u{0437}\u{0438}\u{044f} Creative Commons\""),
         "Expected Unicode alt with newline collapsed, got: {html}"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Issue 291: Auto-ID generation, header links, whitespace rendering
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_auto_id_basic_header() {
+    let mut opts = super::options::Options::default();
+    opts.auto_ids = true;
+    let input = "# This is a header\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("id=\"this-is-a-header\""),
+        "Expected auto-generated ID: {html}"
+    );
+}
+
+#[test]
+fn test_auto_id_numeric_only_becomes_section() {
+    let mut opts = super::options::Options::default();
+    opts.auto_ids = true;
+    let input = "# 23232\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("id=\"section\""),
+        "Numeric-only header should get id='section': {html}"
+    );
+}
+
+#[test]
+fn test_auto_id_duplicate_headers() {
+    let mut opts = super::options::Options::default();
+    opts.auto_ids = true;
+    let input = "# Hallo\n\n# Hallo\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("id=\"hallo\""),
+        "First header gets base ID: {html}"
+    );
+    assert!(
+        html.contains("id=\"hallo-1\""),
+        "Second header gets suffixed ID: {html}"
+    );
+}
+
+#[test]
+fn test_auto_id_with_prefix() {
+    let mut opts = super::options::Options::default();
+    opts.auto_ids = true;
+    opts.auto_id_prefix = "prefix_".to_string();
+    let input = "# Header\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("id=\"prefix_header\""),
+        "Expected prefix in auto-generated ID: {html}"
+    );
+}
+
+#[test]
+fn test_auto_id_transliterated_unicode() {
+    let mut opts = super::options::Options::default();
+    opts.auto_ids = true;
+    opts.transliterated_header_ids = true;
+    let input = "# Transliterated: \u{0110}\u{00e2}y-l\u{00e0}-v\u{00ed}-d\u{1ee5}\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("id=\"transliterated-day-la-vi-du\""),
+        "Expected transliterated Vietnamese ID: {html}"
+    );
+}
+
+#[test]
+fn test_auto_id_stripping_html_tags() {
+    let mut opts = super::options::Options::default();
+    opts.auto_ids = true;
+    opts.auto_id_stripping = true;
+    let input = "# <em class=\"none\">This is a header</em>\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("id=\"this-is-a-header\""),
+        "Expected ID with HTML tags stripped: {html}"
+    );
+}
+
+#[test]
+fn test_header_links_with_id() {
+    let mut opts = super::options::Options::default();
+    opts.header_links = true;
+    let input = "# Header {#my-id}\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("<a href=\"#my-id\"></a>"),
+        "Expected header link anchor: {html}"
+    );
+}
+
+#[test]
+fn test_header_links_empty_id_no_link() {
+    let mut opts = super::options::Options::default();
+    opts.header_links = true;
+    let input = "# Header\n{: id=\"\"}\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        !html.contains("<a href="),
+        "Empty ID should not produce a link: {html}"
+    );
+}
+
+#[test]
+fn test_guess_lang_rouge_wrapper_no_explicit_lang() {
+    let mut opts = super::options::Options::default();
+    opts.syntax_highlighter = Some("rouge".to_string());
+    opts.syntax_highlighter_opts.guess_lang = Some(true);
+    let input = "    code block\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("highlighter-rouge"),
+        "Expected highlighter-rouge wrapper with guess_lang: {html}"
+    );
+}
+
+#[test]
+fn test_whitespace_rendering_spaces_and_tabs() {
+    let input = "    x\ty  \n{:.show-whitespaces}\n";
+    let html = super::to_html(&input);
+    assert!(
+        html.contains("ws-tab"),
+        "Expected ws-tab class for tab: {html}"
+    );
+    assert!(
+        html.contains("ws-space-r"),
+        "Expected ws-space-r for trailing spaces: {html}"
+    );
+}
+
+#[test]
+fn test_html_to_native_paragraph_merge() {
+    let mut opts = super::options::Options::default();
+    opts.html_to_native = true;
+    let input = "<p><img src=\"test.png\" alt=\"\" /></p> trailing text\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("<img src=\"test.png\" alt=\"\" /> trailing text"),
+        "Expected merged paragraph: {html}"
+    );
+}
+
+#[test]
+fn test_auto_id_non_ascii_cyrillic() {
+    let mut opts = super::options::Options::default();
+    opts.auto_ids = true;
+    let input = "# \u{041f}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442} Hello\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("id=\"hello\""),
+        "Non-ASCII without transliteration should be stripped to ASCII: {html}"
+    );
+}
+
+#[test]
+fn test_auto_id_transliterated_cyrillic() {
+    let mut opts = super::options::Options::default();
+    opts.auto_ids = true;
+    opts.transliterated_header_ids = true;
+    let input = "# \u{041f}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("id=\"privet\""),
+        "Expected transliterated Cyrillic ID: {html}"
+    );
+}
+
+#[test]
+fn test_fenced_code_lang_param_stripping() {
+    let mut opts = super::options::Options::default();
+    opts.syntax_highlighter = Some("rouge".to_string());
+    let input = "~~~ ruby?version=3\nputs 'hello'\n~~~\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("language-ruby"),
+        "Expected language-ruby class with params stripped: {html}"
+    );
+    assert!(
+        !html.contains("language-ruby?"),
+        "Params should be stripped from class name: {html}"
     );
 }
