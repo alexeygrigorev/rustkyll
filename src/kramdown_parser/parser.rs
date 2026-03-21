@@ -431,7 +431,15 @@ fn apply_attrs(element: &mut Element, attrs: &[(String, String)]) {
                     .options
                     .insert("toc".to_string(), "true".to_string());
             }
-            // Also store "no_toc" class from ALD references
+            // Store auto_ids refs for definition list term ID generation
+            if value == "auto_ids" || value.starts_with("auto_ids-") {
+                // Append to ial_refs option (comma-separated list)
+                let refs = element.options.entry("ial_refs".to_string()).or_default();
+                if !refs.is_empty() {
+                    refs.push(',');
+                }
+                refs.push_str(value);
+            }
             continue;
         }
         if key == "class" {
@@ -483,6 +491,9 @@ fn resolve_ald_refs(attrs: &[(String, String)], alds: &AldMap) -> Vec<(String, S
     resolve_ald_refs_inner(attrs, alds, 0)
 }
 
+/// Resolve ALD references in an attribute list, matching kramdown Ruby behavior:
+/// First resolve all refs (recursively, depth-first), then append non-ref attrs.
+/// This ensures ALD-sourced attributes appear before inline IAL attributes.
 fn resolve_ald_refs_inner(
     attrs: &[(String, String)],
     alds: &AldMap,
@@ -492,19 +503,27 @@ fn resolve_ald_refs_inner(
         return attrs.to_vec();
     }
     let mut resolved = Vec::new();
+
+    // First: resolve all ALD refs (in order)
     for (key, value) in attrs {
         if key == "__ald_ref__" {
             if let Some(ald_attrs) = alds.get(value) {
                 let sub = resolve_ald_refs_inner(ald_attrs, alds, depth + 1);
                 resolved.extend(sub);
             } else {
-                // Keep unresolved refs so apply_attrs can handle special ones (e.g., "toc")
+                // Keep unresolved refs (e.g., "toc")
                 resolved.push((key.clone(), value.clone()));
             }
-        } else {
+        }
+    }
+
+    // Then: append non-ref attrs
+    for (key, value) in attrs {
+        if key != "__ald_ref__" {
             resolved.push((key.clone(), value.clone()));
         }
     }
+
     resolved
 }
 
@@ -2578,6 +2597,7 @@ const HTML_BLOCK_TAGS: &[&str] = &[
     "option",
     "p",
     "param",
+    "pre",
     "section",
     "source",
     "summary",
@@ -2648,9 +2668,9 @@ const HTML_RAW_TAGS: &[&str] = &["script", "style", "math", "svg"];
 
 /// HTML tags whose content is parsed as span-level markdown.
 const HTML_SPAN_TAGS: &[&str] = &[
-    "a", "abbr", "acronym", "address", "b", "big", "cite", "code", "del", "dfn", "em", "font", "i",
-    "ins", "kbd", "mark", "p", "pre", "q", "s", "samp", "small", "span", "strike", "strong", "sub",
-    "sup", "tt", "u", "var",
+    "a", "abbr", "acronym", "address", "b", "bdi", "bdo", "big", "button", "cite", "code", "del",
+    "dfn", "em", "font", "i", "ins", "kbd", "mark", "p", "pre", "q", "s", "samp", "small", "span",
+    "strike", "strong", "sub", "sup", "tt", "u", "var",
 ];
 
 /// Check if a tag is a void (self-closing) element.
@@ -2665,7 +2685,13 @@ fn is_html_raw_tag(tag: &str) -> bool {
 
 /// Parse HTML tag attributes from a string like `id='test' class="foo" disabled`.
 /// Returns normalized attributes as a list of (key, value) pairs.
+/// If `lowercase_names` is true, attribute names are lowercased (for known HTML elements).
 fn parse_html_tag_attrs(attr_str: &str) -> Vec<(String, String)> {
+    parse_html_tag_attrs_impl(attr_str, true)
+}
+
+/// Parse HTML tag attributes, optionally lowercasing attribute names.
+fn parse_html_tag_attrs_impl(attr_str: &str, lowercase_names: bool) -> Vec<(String, String)> {
     let mut attrs = Vec::new();
     let mut chars = attr_str.chars().peekable();
 
@@ -2690,6 +2716,13 @@ fn parse_html_tag_attrs(attr_str: &str) -> Vec<(String, String)> {
             chars.next();
             continue;
         }
+
+        // Lowercase attribute names for known HTML elements (HTML attrs are case-insensitive)
+        let name = if lowercase_names {
+            name.to_lowercase()
+        } else {
+            name
+        };
 
         // Skip whitespace
         while chars.peek().is_some_and(|c| c.is_whitespace()) {
@@ -3056,7 +3089,14 @@ fn parse_html_block_element(
     let parse_mode = determine_parse_mode(&tag_lc, &markdown_attr, options);
 
     // Collect the raw HTML block lines with nesting
-    let collected = collect_html_block_lines(lines, pos, &tag_lc);
+    // For known HTML elements, use case-insensitive matching.
+    // For unknown/XML elements, use case-sensitive matching with original tag name.
+    let is_known_html = is_html_block_tag(&tag_lc) || HTML_SPAN_TAGS.contains(&tag_lc.as_str());
+    let collected = if is_known_html {
+        collect_html_block_lines_impl(lines, pos, &tag_lc, true)
+    } else {
+        collect_html_block_lines_impl(lines, pos, tag_name, false)
+    };
 
     match parse_mode {
         HtmlParseMode::Raw => {
@@ -3190,18 +3230,28 @@ fn determine_parse_mode(
 
 /// Collect all lines belonging to an HTML block, tracking tag nesting.
 /// Returns the collected lines (including opening and closing tag lines).
-fn collect_html_block_lines(lines: &[&str], pos: &mut usize, tag_lc: &str) -> Vec<String> {
+/// When `case_insensitive` is true, tag matching ignores case (for known HTML elements).
+/// When false, matching is case-sensitive (for XML/unknown elements).
+fn collect_html_block_lines_impl(
+    lines: &[&str],
+    pos: &mut usize,
+    tag_match: &str,
+    case_insensitive: bool,
+) -> Vec<String> {
     let mut collected: Vec<String> = Vec::new();
     let mut nesting = 0i32;
-    let _close_pattern = format!("</{}", tag_lc);
 
     while *pos < lines.len() {
         let line = lines[*pos];
-        let line_lc = line.to_lowercase();
+        let search_line = if case_insensitive {
+            line.to_lowercase()
+        } else {
+            line.to_string()
+        };
 
         // Count opening tags (excluding self-closing)
-        let opens = count_open_tags_in_line(&line_lc, tag_lc);
-        let closes = count_close_tags_in_line(&line_lc, tag_lc);
+        let opens = count_open_tags_in_line(&search_line, tag_match);
+        let closes = count_close_tags_in_line(&search_line, tag_match);
 
         nesting += opens as i32 - closes as i32;
 
@@ -3602,6 +3652,13 @@ fn try_parse_math_block(lines: &[&str], pos: &mut usize) -> Option<Element> {
     let stripped = line.trim_start();
     let indent = line.len() - stripped.len();
     if indent >= 4 {
+        return None;
+    }
+
+    // Handle \$$...$$ pattern: backslash cancels block math but not inline math.
+    // The paragraph parser will handle it via span parsing where \$ becomes
+    // literal $ and $$...$$ becomes inline math.
+    if stripped.starts_with("\\$$") {
         return None;
     }
 

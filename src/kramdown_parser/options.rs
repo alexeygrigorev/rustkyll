@@ -109,7 +109,7 @@ impl Default for Options {
             footnote_link_text: String::new(),
             math_engine: Some("mathjax".to_string()),
             parse_block_html: false,
-            parse_span_html: false,
+            parse_span_html: true,
             html_to_native: false,
             smart_quotes: vec![
                 "lsquo".to_string(),

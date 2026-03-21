@@ -164,3 +164,38 @@ Inline HTML handling in the span parser needs fixes.
 - `toc_with_footnotes` depends on footnote support being correct (Issue 288). If 288 is not done yet, this test may need to be addressed after 288.
 - `options2` depends on footnote numbering, `options3` depends on syntax highlighting -- both require those features to be working.
 - The IAL ordering fix (HashMap to IndexMap) may touch many files but is a mechanical change.
+
+## Log
+
+### [SWE] 2026-03-21
+- Fixed 11 out of 15 targeted failing tests (0 regressions)
+- Baseline: 601 passed / 42 failed -> Now: 612 passed / 31 failed (+11 passing, -11 failing)
+
+**Tests fixed:**
+1. `kramdown_block_11_ial_simple` - Changed Attr from HashMap to IndexMap for insertion-order-preserving attributes; rewrote parse_ial for stricter bare-word handling; fixed ALD resolution to resolve refs before inline attrs (matching Ruby behavior); added HTML attribute value escaping
+2. `kramdown_block_11_ial_nested` - Fixed block-parsed HTML (markdown="1") to inject IAL attributes
+3. `kramdown_block_16_toc_toc_exclude` - Fixed by attribute ordering fix
+4. `kramdown_block_16_toc_toc_levels` - Fixed generate_header_id to match kramdown Ruby basic_generate_id (no dash collapsing, proper character filtering); added backslash escape processing for IDs; process TOC link text through span parser
+5. `kramdown_block_16_toc_toc_with_footnotes` - Fixed ID generation to use raw text (not stripping footnote refs); footnote marker chars like [^1] naturally handled by character filter
+6. `kramdown_block_16_toc_toc_with_links` - Fixed duplicate header ID assignment using sequential index instead of text-matching find()
+7. `kramdown_block_13_definition_list_auto_ids` - Store auto_ids ALD refs in element options; check ial_refs in dt converter for ID generation
+8. `kramdown_span_extension_options` - Parse {::options} inline extensions and apply to SpanContext; added parse_span_html/parse_block_html/footnote_nr handling
+9. `kramdown_span_math_normal` - Removed incorrect \$ before $$ special-case handling; added \$$ at start of text special case (matching kramdown block math cancellation behavior)
+10. `kramdown_span_05_html_button` - Added button, bdi, bdo to HTML_SPAN_TAGS constant; fixed parse_span_html default to true (matching kramdown Ruby)
+11. `kramdown_block_09_html_html_to_native_entity` - Bonus fix from attribute ordering
+
+**Tests NOT fixed (remaining):**
+- `kramdown_block_12_extension_options` (3 tests) - Requires mid-document block-level option changes (parse_block_html, footnote_nr, syntax_highlighter) threading through block parser
+- `kramdown_span_05_html_normal` - Table parser incorrectly matches | inside <code> tags; self-closing non-void tag expansion added but test has other issues
+- `kramdown_span_05_html_markdown_attr` - Nested markdown="1" processing in already-processed span HTML content
+
+**Key changes per file:**
+- `src/kramdown_parser/element.rs` - Changed Attr type from HashMap to IndexMap
+- `src/kramdown_parser/html.rs` - write_attrs uses insertion order; added escape_html_attr; rewrote generate_header_id to match Ruby; sequential header ID assignment; TOC text span processing; definition list auto_ids via ial_refs; block HTML IAL injection
+- `src/kramdown_parser/options.rs` - Changed parse_span_html default to true
+- `src/kramdown_parser/parser.rs` - ALD ref resolution: refs before inline attrs; store auto_ids refs in element options; added button/bdi/bdo to HTML_SPAN_TAGS
+- `src/kramdown_parser/span_parser.rs` - Rewrote parse_ial for stricter token validation; added apply_inline_options; fixed is_xml_tag detection (only colon-namespaced, not mixed-case HTML); non-void self-closing tag expansion; parse_span_html gate on content processing; toc_header_index field
+- `src/kramdown_parser/tests.rs` - Added load_test_options with shared options file fallback
+
+**Build:** `cargo build` clean, `cargo clippy -- -D warnings` clean, `cargo fmt` clean
+**Tests:** 2273 passed, 31 failed, 15 ignored (no regressions)

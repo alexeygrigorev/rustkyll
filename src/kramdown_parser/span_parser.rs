@@ -39,6 +39,8 @@ pub struct SpanContext {
     pub ald_defs: HashMap<String, Vec<(String, String)>>,
     /// TOC headers: (level, id, text, has_no_toc)
     pub toc_headers: Vec<(usize, String, String, bool)>,
+    /// Index into toc_headers for sequential header ID assignment during conversion
+    pub toc_header_index: usize,
     /// Options
     pub options: Options,
     /// Emphasis nesting stack: 1 = em, 2 = strong (prevents same-type nesting)
@@ -75,6 +77,7 @@ impl SpanContext {
             footnote_ref_counts: HashMap::new(),
             ald_defs: HashMap::new(),
             toc_headers: Vec::new(),
+            toc_header_index: 0,
             options: options.clone(),
             emphasis_stack: Vec::new(),
         }
@@ -480,6 +483,55 @@ fn is_block_ial(line: &str) -> bool {
         && !trimmed.starts_with("{:/")
 }
 
+/// Apply inline `{::options key="value" /}` to the span context.
+fn apply_inline_options(opts_str: &str, ctx: &mut SpanContext) {
+    // Parse key="value" or key='value' pairs from the options string
+    let mut chars = opts_str.chars().peekable();
+    while chars.peek().is_some() {
+        // Skip whitespace
+        while chars.peek().is_some_and(|c| c.is_whitespace()) {
+            chars.next();
+        }
+        if chars.peek().is_none() {
+            break;
+        }
+        // Read key
+        let mut key = String::new();
+        while let Some(&c) = chars.peek() {
+            if c == '=' || c.is_whitespace() {
+                break;
+            }
+            key.push(c);
+            chars.next();
+        }
+        if key.is_empty() {
+            chars.next();
+            continue;
+        }
+        if chars.peek() == Some(&'=') {
+            chars.next(); // consume '='
+            let value = parse_ial_quoted_value(&mut chars);
+            match key.as_str() {
+                "parse_span_html" => {
+                    ctx.options.parse_span_html = value == "true";
+                }
+                "parse_block_html" => {
+                    ctx.options.parse_block_html = value == "true";
+                }
+                "footnote_nr" => {
+                    if let Ok(nr) = value.parse::<u32>() {
+                        ctx.options.footnote_nr = nr;
+                        ctx.footnote_counter = nr as usize;
+                    }
+                }
+                _ => {
+                    // Other options are silently ignored at span level
+                }
+            }
+        }
+    }
+}
+
 /// Parse IAL attributes from a string like `{: #id .class key="value"}`.
 /// Also handles `{:.cls1#id.cls2}` (no spaces between attributes).
 pub fn parse_ial(s: &str) -> Vec<(String, String)> {
@@ -494,6 +546,7 @@ pub fn parse_ial(s: &str) -> Vec<(String, String)> {
 
     let mut chars = inner.chars().peekable();
     while chars.peek().is_some() {
+        // Skip whitespace
         while chars.peek().is_some_and(|c| c.is_whitespace()) {
             chars.next();
         }
@@ -501,116 +554,157 @@ pub fn parse_ial(s: &str) -> Vec<(String, String)> {
             break;
         }
 
-        match chars.peek() {
-            Some('#') => {
-                chars.next();
-                // ID: take until whitespace, '.', '#', or '}'
-                let mut id = String::new();
-                while let Some(&c) = chars.peek() {
-                    if c.is_whitespace() || c == '.' || c == '#' || c == '}' {
-                        break;
-                    }
-                    id.push(c);
+        let c = *chars.peek().unwrap();
+
+        if c == '#' || c == '.' {
+            // ID/class combo: read a sequence of (#id|.class)+ tokens
+            // kramdown allows #id.class.class2 as a single multi-token
+            parse_ial_id_or_class_multi(&mut chars, &mut attrs);
+        } else if c.is_alphanumeric() || c == '_' {
+            // Potential key=value or ALD reference
+            // Read the word: \w[\w-]*
+            let mut word = String::new();
+            while let Some(&ch) = chars.peek() {
+                if ch.is_alphanumeric() || ch == '_' || (ch == '-' && !word.is_empty()) {
+                    word.push(ch);
                     chars.next();
-                }
-                if !id.is_empty() {
-                    attrs.push(("id".to_string(), id));
-                }
-            }
-            Some('.') => {
-                chars.next();
-                // Class: take until whitespace, '.', '#', or '}'
-                let mut class = String::new();
-                while let Some(&c) = chars.peek() {
-                    if c.is_whitespace() || c == '.' || c == '#' || c == '}' {
-                        break;
-                    }
-                    class.push(c);
-                    chars.next();
-                }
-                if !class.is_empty() {
-                    attrs.push(("class".to_string(), class));
-                }
-            }
-            _ => {
-                // key="value" or key='value' or key=value or bare word (ignored)
-                let mut key = String::new();
-                while let Some(&c) = chars.peek() {
-                    if c == '=' || c.is_whitespace() || c == '.' || c == '#' || c == '}' {
-                        break;
-                    }
-                    key.push(c);
-                    chars.next();
-                }
-                if key.is_empty() {
-                    // Skip unknown character
-                    chars.next();
-                    continue;
-                }
-                // Check for = sign
-                if chars.peek() == Some(&'=') {
-                    chars.next(); // consume =
-                    let value = if chars.peek() == Some(&'"') {
-                        chars.next();
-                        // Read until unescaped closing "
-                        let mut v = String::new();
-                        while let Some(c) = chars.next() {
-                            if c == '\\' {
-                                if let Some(&next) = chars.peek() {
-                                    if next == '"' || next == '\\' {
-                                        v.push(next);
-                                        chars.next();
-                                        continue;
-                                    }
-                                }
-                                v.push('\\');
-                            } else if c == '"' {
-                                break;
-                            } else {
-                                v.push(c);
-                            }
-                        }
-                        v
-                    } else if chars.peek() == Some(&'\'') {
-                        chars.next();
-                        let mut v = String::new();
-                        while let Some(c) = chars.next() {
-                            if c == '\\' {
-                                if let Some(&next) = chars.peek() {
-                                    if next == '\'' || next == '\\' {
-                                        v.push(next);
-                                        chars.next();
-                                        continue;
-                                    }
-                                }
-                                v.push('\\');
-                            } else if c == '\'' {
-                                break;
-                            } else {
-                                v.push(c);
-                            }
-                        }
-                        v
-                    } else {
-                        let mut v = String::new();
-                        while let Some(&c) = chars.peek() {
-                            if c.is_whitespace() || c == '}' {
-                                break;
-                            }
-                            v.push(c);
-                            chars.next();
-                        }
-                        v
-                    };
-                    attrs.push((key.trim().to_string(), value));
                 } else {
-                    // Bare word: ALD reference
-                    attrs.push(("__ald_ref__".to_string(), key));
+                    break;
                 }
+            }
+
+            if chars.peek() == Some(&'=') {
+                // key=value pair
+                chars.next(); // consume =
+                let value = parse_ial_quoted_value(&mut chars);
+                if !word.is_empty() {
+                    attrs.push((word, value));
+                }
+            } else if chars.peek().is_none() || chars.peek().is_some_and(|c| c.is_whitespace()) {
+                // Bare word followed by whitespace or end: ALD reference
+                // Must be valid ID name: starts with word char
+                if !word.is_empty() {
+                    attrs.push(("__ald_ref__".to_string(), word));
+                }
+            } else {
+                // Word followed by non-whitespace non-= char (like ig.nored, as_is#this)
+                // Skip the rest of this token until whitespace
+                while chars.peek().is_some_and(|c| !c.is_whitespace()) {
+                    chars.next();
+                }
+            }
+        } else {
+            // Unknown character (like '-'): skip until whitespace
+            while chars.peek().is_some_and(|c| !c.is_whitespace()) {
+                chars.next();
             }
         }
     }
     attrs
+}
+
+/// Parse a sequence of #id and .class tokens (kramdown ID_OR_CLASS_MULTI).
+fn parse_ial_id_or_class_multi(
+    chars: &mut std::iter::Peekable<std::str::Chars>,
+    attrs: &mut Vec<(String, String)>,
+) {
+    // Collect the whole run of #id/.class tokens
+    let mut temp_attrs = Vec::new();
+    while let Some(&c) = chars.peek() {
+        if c == '#' {
+            chars.next();
+            // ID name: [A-Za-z][\w:-]*
+            let mut id = String::new();
+            while let Some(&ch) = chars.peek() {
+                if ch.is_alphanumeric() || ch == '_' || ch == '-' || ch == ':' {
+                    id.push(ch);
+                    chars.next();
+                } else {
+                    break;
+                }
+            }
+            if !id.is_empty() {
+                temp_attrs.push(("id".to_string(), id));
+            }
+        } else if c == '.' {
+            chars.next();
+            // Class name: [^\s.#]+
+            let mut class = String::new();
+            while let Some(&ch) = chars.peek() {
+                if ch.is_whitespace() || ch == '.' || ch == '#' || ch == '}' {
+                    break;
+                }
+                class.push(ch);
+                chars.next();
+            }
+            if !class.is_empty() {
+                temp_attrs.push(("class".to_string(), class));
+            }
+        } else {
+            break;
+        }
+    }
+    // The multi-token is valid only if followed by whitespace or end
+    if chars.peek().is_none() || chars.peek().is_some_and(|c| c.is_whitespace()) {
+        attrs.extend(temp_attrs);
+    }
+    // else: invalid token like `.foo bar` where bar starts immediately - skip
+    // (but this case shouldn't really happen since . and # delimit)
+}
+
+/// Parse a quoted or unquoted value after '=' in IAL.
+fn parse_ial_quoted_value(chars: &mut std::iter::Peekable<std::str::Chars>) -> String {
+    if chars.peek() == Some(&'"') {
+        chars.next();
+        let mut v = String::new();
+        while let Some(c) = chars.next() {
+            if c == '\\' {
+                if let Some(&next) = chars.peek() {
+                    if next == '"' || next == '}' || next == '\\' {
+                        v.push(next);
+                        chars.next();
+                        continue;
+                    }
+                }
+                v.push('\\');
+            } else if c == '"' {
+                break;
+            } else {
+                v.push(c);
+            }
+        }
+        v
+    } else if chars.peek() == Some(&'\'') {
+        chars.next();
+        let mut v = String::new();
+        while let Some(c) = chars.next() {
+            if c == '\\' {
+                if let Some(&next) = chars.peek() {
+                    if next == '\'' || next == '}' || next == '\\' {
+                        v.push(next);
+                        chars.next();
+                        continue;
+                    }
+                }
+                v.push('\\');
+            } else if c == '\'' {
+                break;
+            } else {
+                v.push(c);
+            }
+        }
+        v
+    } else {
+        let mut v = String::new();
+        while let Some(&c) = chars.peek() {
+            if c.is_whitespace() || c == '}' {
+                break;
+            }
+            v.push(c);
+            chars.next();
+        }
+        v
+    }
 }
 
 /// Merge an attribute into a Vec<(String, String)>, appending class values.
@@ -745,20 +839,14 @@ fn parse_spans(
                 // Don't consume here; fall through to is_escapable_char below
             }
             if is_escapable_char(next) {
-                // Special case: \$ before $$ - if \ is at start or after whitespace,
-                // the \ is literal text and $$ starts inline math (kramdown behavior).
-                // If \ is after non-whitespace, \$ is an escape producing literal $.
-                if next == '$' && i + 2 < end && chars[i + 2] == '$' {
-                    let prev_is_ws = i == start
-                        || (i > 0
-                            && (chars[i - 1] == ' '
-                                || chars[i - 1] == '\n'
-                                || chars[i - 1] == '\t'));
-                    if prev_is_ws {
-                        output.push('\\');
-                        i += 1;
-                        continue;
-                    }
+                // Special case: \$$ at start of span text.
+                // In kramdown, \$$ at the beginning of a block cancels block math
+                // but the \ is consumed and $$ starts inline math.
+                // So \$$5+5$$ → \(5+5\) (the backslash is dropped, $$ becomes math)
+                if next == '$' && i + 2 < end && chars[i + 2] == '$' && i == start {
+                    // Drop the backslash, let $$ be processed as inline math
+                    i += 1;
+                    continue;
                 }
                 output.push_str(&escape_html_char(next));
                 i += 2;
@@ -818,8 +906,10 @@ fn parse_spans(
             }
 
             if remaining.starts_with("{::options") {
-                // Skip options extensions inline
+                // Parse and apply inline options extension
                 if let Some(end_pos) = remaining.find("/}") {
+                    let opts_str = &remaining[10..end_pos].trim();
+                    apply_inline_options(opts_str, ctx);
                     i += end_pos + 2;
                     continue;
                 }
@@ -1623,8 +1713,13 @@ fn try_parse_html_span(
             .unwrap_or(inner.len());
         let tag_name_raw = &inner[..tag_name_end];
         let tag_name = tag_name_raw.to_lowercase();
-        let is_xml_tag =
-            tag_name_raw.contains(':') || tag_name_raw.chars().any(|c| c.is_uppercase());
+        // XML tags are: namespaced (contains ':') or unknown tags with mixed case.
+        // Known HTML tags like <sPAn> are treated as regular HTML and normalized.
+        let has_mixed_case = tag_name_raw.chars().any(|c| c.is_uppercase());
+        let is_known_html = is_valid_span_tag(&tag_name)
+            || is_valid_block_tag(&tag_name)
+            || is_void_element(&tag_name);
+        let is_xml_tag = tag_name_raw.contains(':') || (has_mixed_case && !is_known_html);
 
         if tag_name.is_empty() {
             return None;
@@ -1675,10 +1770,22 @@ fn try_parse_html_span(
             remove_attr_from_tag(&normalize_html_tag(tag_str), "markdown")
         };
 
-        if is_self_closing || is_void {
-            // Self-closing: <br />, <img ... />
+        if is_void {
+            // Void elements: <br />, <img ... /> - always self-closing
             let normalized = ensure_self_closing(&normalized, &tag_name);
             return Some((normalized, gt + 1));
+        }
+
+        if is_self_closing && !is_void {
+            // Non-void self-closing tags like <span ... /> are expanded to <tag></tag>
+            // Remove the trailing / from the normalized tag
+            let expanded = if let Some(slash_pos) = normalized.rfind('/') {
+                let before_slash = normalized[..slash_pos].trim_end();
+                format!("{}></{}>", before_slash, tag_name)
+            } else {
+                format!("{}</{}>", normalized, tag_name)
+            };
+            return Some((expanded, gt + 1));
         }
 
         // Raw content tags: <script>, <style> - content not parsed
@@ -1727,8 +1834,12 @@ fn try_parse_html_span(
             let should_process = match markdown_val.as_deref() {
                 Some("0") => false,
                 Some("1") | Some("span") | Some("block") => true,
-                None => is_markdown_processable_tag(&tag_name) || is_xml_tag,
-                _ => is_markdown_processable_tag(&tag_name),
+                None => {
+                    // When parse_span_html is false, don't process content
+                    ctx.options.parse_span_html
+                        && (is_markdown_processable_tag(&tag_name) || is_xml_tag)
+                }
+                _ => ctx.options.parse_span_html && is_markdown_processable_tag(&tag_name),
             };
 
             if should_process {

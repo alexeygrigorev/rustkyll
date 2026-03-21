@@ -96,7 +96,12 @@ fn collect_headers(children: &[Element], options: &Options, ctx: &mut SpanContex
                 .get("level")
                 .and_then(|l| l.parse::<usize>().ok())
                 .unwrap_or(1);
-            let text = get_element_text(child);
+            // For html_to_native headers, use raw_text for ID generation
+            let id_text = if let Some(raw_text) = child.options.get("raw_text") {
+                raw_text.clone()
+            } else {
+                get_element_text(child)
+            };
             let has_no_toc = child
                 .attr
                 .get("class")
@@ -106,7 +111,7 @@ fn collect_headers(children: &[Element], options: &Options, ctx: &mut SpanContex
             let id = if let Some(existing_id) = child.attr.get("id") {
                 existing_id.clone()
             } else {
-                let base_id = generate_header_id(&text, options);
+                let base_id = generate_header_id(&id_text, options);
                 let count = used_ids.entry(base_id.clone()).or_insert(0);
                 let final_id = if *count == 0 {
                     base_id.clone()
@@ -117,32 +122,57 @@ fn collect_headers(children: &[Element], options: &Options, ctx: &mut SpanContex
                 final_id
             };
 
-            ctx.toc_headers.push((level, id, text, has_no_toc));
+            ctx.toc_headers.push((level, id, id_text, has_no_toc));
         }
     }
 }
 
-/// Generate a header ID from text (slug).
-fn generate_header_id(text: &str, _options: &Options) -> String {
-    // Strip footnote references [^N] from text for ID generation
-    let clean = strip_footnote_refs_from_text(text);
-    // Strip link references
-    let clean = strip_link_refs_from_text(&clean);
-    clean
-        .to_lowercase()
+/// Generate a header ID from text (slug), matching kramdown Ruby `basic_generate_id`.
+/// The raw source text is used directly (not span-processed), matching kramdown Ruby behavior
+/// where `raw_text` is set from source during header creation.
+fn generate_header_id(text: &str, options: &Options) -> String {
+    // Process kramdown backslash escapes (e.g. \\\` -> \`)
+    let clean = process_kramdown_escapes(text);
+
+    // Match kramdown Ruby basic_generate_id:
+    // 1. Strip leading non-alpha chars
+    let stripped = clean.trim_start_matches(|c: char| !c.is_ascii_alphabetic());
+    // 2. Remove chars that are not [a-zA-Z0-9 -]
+    let filtered: String = stripped
         .chars()
-        .map(|c| {
-            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
-                c
+        .filter(|c| c.is_ascii_alphanumeric() || *c == ' ' || *c == '-')
+        .collect();
+    // 3. Convert spaces to hyphens
+    let result = filtered.replace(' ', "-");
+    // 4. Downcase
+    let result = result.to_lowercase();
+    // 5. Apply auto_id_prefix
+    format!("{}{}", options.auto_id_prefix, result)
+}
+
+/// Process kramdown backslash escapes in text (for ID generation).
+/// E.g. `\\` -> `\`, `\`` -> `` ` ``, etc.
+fn process_kramdown_escapes(text: &str) -> String {
+    let mut result = String::with_capacity(text.len());
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\\' {
+            if let Some(&next) = chars.peek() {
+                // Kramdown allows escaping these characters
+                if "\\`*_{}[]()#+-.!>~|\"'/$".contains(next) {
+                    result.push(next);
+                    chars.next();
+                } else {
+                    result.push(c);
+                }
             } else {
-                '-'
+                result.push(c);
             }
-        })
-        .collect::<String>()
-        .split('-')
-        .filter(|s| !s.is_empty())
-        .collect::<Vec<_>>()
-        .join("-")
+        } else {
+            result.push(c);
+        }
+    }
+    result
 }
 
 /// Strip footnote reference markers from header text.
@@ -194,15 +224,16 @@ fn strip_link_refs_from_text(text: &str) -> String {
 }
 
 /// Generate TOC HTML from collected headers.
-fn generate_toc(output: &mut String, options: &Options, ctx: &SpanContext) {
+fn generate_toc(output: &mut String, options: &Options, ctx: &mut SpanContext) {
     // Parse toc_levels
     let (min_level, max_level) = parse_toc_levels(&options.toc_levels);
 
-    // Filter headers for TOC
-    let headers: Vec<&(usize, String, String, bool)> = ctx
+    // Filter headers for TOC (clone to avoid borrow conflict with ctx)
+    let headers: Vec<(usize, String, String, bool)> = ctx
         .toc_headers
         .iter()
         .filter(|(level, _, _, no_toc)| !no_toc && *level >= min_level && *level <= max_level)
+        .cloned()
         .collect();
 
     if headers.is_empty() {
@@ -233,11 +264,13 @@ fn generate_toc(output: &mut String, options: &Options, ctx: &SpanContext) {
 
         let clean_text = strip_footnote_refs_from_text(text);
         let clean_text = strip_link_refs_from_text(&clean_text);
+        // Process through span parser for escapes, typography, etc.
+        let processed_text = span_parser::spans_to_html(&clean_text, ctx);
 
         output.push_str(&" ".repeat(indent));
         output.push_str(&format!(
             "<li><a href=\"#{}\" id=\"markdown-toc-{}\">{}</a>",
-            id, id, clean_text
+            id, id, processed_text
         ));
 
         if next_is_deeper {
@@ -433,8 +466,14 @@ fn convert_paragraph(
     output.push('>');
 
     let text = get_element_text(elem);
-    let processed = span_parser::spans_to_html(&text, ctx);
-    output.push_str(&processed);
+    // If marked as raw_html (from html_to_native), don't markdown-process the text
+    let is_raw_html = elem.options.get("raw_html").is_some_and(|v| v == "true");
+    if is_raw_html {
+        output.push_str(&text);
+    } else {
+        let processed = span_parser::spans_to_html(&text, ctx);
+        output.push_str(&processed);
+    }
 
     output.push_str("</p>\n");
 }
@@ -453,18 +492,29 @@ fn convert_header(
         .and_then(|l| l.parse::<usize>().ok())
         .unwrap_or(1);
 
+    let is_raw_html = elem.options.get("raw_html").is_some_and(|v| v == "true");
+
     // Build attributes, adding auto-ID if needed
     let mut attrs = elem.attr.clone();
-    if options.auto_ids && !attrs.contains_key("id") {
-        let text = get_element_text(elem);
-        // Find the matching header in toc_headers to get its ID
-        if let Some((_, id, _, _)) = ctx.toc_headers.iter().find(|(_, _, t, _)| *t == text) {
-            attrs.insert("id".to_string(), id.clone());
-        } else {
-            // Generate ID directly
-            let id = generate_header_id(&text, options);
-            attrs.insert("id".to_string(), id);
+    if options.auto_ids {
+        if !attrs.contains_key("id") {
+            // Use sequential index into toc_headers to get the pre-computed ID
+            // (handles duplicate headers correctly)
+            if let Some((_, id, _, _)) = ctx.toc_headers.get(ctx.toc_header_index) {
+                attrs.insert("id".to_string(), id.clone());
+            } else {
+                // Fallback: generate ID directly
+                let id_text = if let Some(raw_text) = elem.options.get("raw_text") {
+                    raw_text.clone()
+                } else {
+                    get_element_text(elem)
+                };
+                let id = generate_header_id(&id_text, options);
+                attrs.insert("id".to_string(), id);
+            }
         }
+        // Always advance index to stay in sync with collect_headers
+        ctx.toc_header_index += 1;
     }
 
     write_indent(output, indent);
@@ -473,8 +523,12 @@ fn convert_header(
     output.push('>');
 
     let text = get_element_text(elem);
-    let processed = span_parser::spans_to_html(&text, ctx);
-    output.push_str(&processed);
+    if is_raw_html {
+        output.push_str(&text);
+    } else {
+        let processed = span_parser::spans_to_html(&text, ctx);
+        output.push_str(&processed);
+    }
 
     output.push_str(&format!("</h{level}>\n"));
 }
@@ -774,21 +828,32 @@ fn convert_table(
             let cell_count = row.children.len();
             // Render actual cells
             for (ci, cell) in row.children.iter().enumerate() {
-                let tag = if is_head { "th" } else { "td" };
+                let cell_is_header = cell.options.get("is_header").is_some_and(|v| v == "true");
+                let tag = if is_head || cell_is_header {
+                    "th"
+                } else {
+                    "td"
+                };
                 let alignment = alignments.get(ci).copied().unwrap_or("default");
 
                 write_indent(output, indent + 6);
                 output.push('<');
                 output.push_str(tag);
-                if alignment != "default" && !alignment.is_empty() {
+                // If cell has its own attributes (from html_to_native), use those
+                if !cell.attr.is_empty() {
+                    write_attrs(&cell.attr, output);
+                } else if alignment != "default" && !alignment.is_empty() {
                     output.push_str(&format!(" style=\"text-align: {alignment}\""));
                 }
                 output.push('>');
 
-                // Write cell content with span processing
+                // Write cell content
+                let is_raw = cell.options.get("raw_html").is_some_and(|v| v == "true");
                 let text = get_element_text(cell);
                 if text.is_empty() {
                     output.push('\u{a0}');
+                } else if is_raw {
+                    output.push_str(&text);
                 } else {
                     let processed = span_parser::spans_to_html(&text, ctx);
                     output.push_str(&processed);
@@ -829,24 +894,23 @@ fn convert_table(
     output.push_str("</table>\n");
 }
 
-/// Write HTML attributes.
-fn write_attrs(attrs: &std::collections::HashMap<String, String>, output: &mut String) {
-    // Write id first, then class, then rest alphabetically
-    if let Some(id) = attrs.get("id") {
-        output.push_str(&format!(" id=\"{id}\""));
+/// Write HTML attributes in insertion order (matching kramdown Ruby behavior).
+fn write_attrs(attrs: &indexmap::IndexMap<String, String>, output: &mut String) {
+    for (key, value) in attrs {
+        if key == "id" && value.trim().is_empty() {
+            continue;
+        }
+        let escaped = escape_html_attr(value);
+        output.push_str(&format!(" {key}=\"{escaped}\""));
     }
-    if let Some(class) = attrs.get("class") {
-        output.push_str(&format!(" class=\"{class}\""));
-    }
-    let mut other_keys: Vec<&String> = attrs
-        .keys()
-        .filter(|k| *k != "id" && *k != "class")
-        .collect();
-    other_keys.sort();
-    for key in other_keys {
-        let value = &attrs[key];
-        output.push_str(&format!(" {key}=\"{value}\""));
-    }
+}
+
+/// Escape HTML attribute value: escape &, <, >, and ".
+fn escape_html_attr(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
 }
 
 /// Write indentation.
@@ -868,10 +932,32 @@ fn escape_invalid_html_in_block(html: &str) -> String {
     // Track if we're inside the outermost block tag (skip escaping there)
     let mut depth = 0;
     let mut _first_line = true;
+    // Track if we're inside a multi-line HTML comment
+    let mut in_comment = false;
 
     for (li, line) in lines.iter().enumerate() {
         if li > 0 {
             result.push('\n');
+        }
+
+        // If we're in a multi-line comment, pass through until -->
+        if in_comment {
+            if let Some(end_idx) = line.find("-->") {
+                let comment_end = end_idx + 3;
+                result.push_str(&line[..comment_end]);
+                in_comment = false;
+                // Process rest of line normally
+                let rest = &line[comment_end..];
+                if !rest.is_empty() {
+                    result.push_str(rest);
+                }
+                _first_line = false;
+                continue;
+            } else {
+                result.push_str(line);
+                _first_line = false;
+                continue;
+            }
         }
 
         // Process char by char to find and validate HTML tags
@@ -910,8 +996,33 @@ fn escape_invalid_html_in_block(html: &str) -> String {
                     result.push_str("&lt;");
                     i += 1;
                     continue;
+                } else if let Some(after_comment_start) = remaining.strip_prefix("<!--") {
+                    // HTML comment - pass through everything until -->
+                    if let Some(end_idx) = after_comment_start.find("-->") {
+                        let comment_end =
+                            (remaining.len() - after_comment_start.len()) + end_idx + 3;
+                        result.push_str(&remaining[..comment_end]);
+                        i += comment_end;
+                    } else {
+                        // Comment continues past this line
+                        result.push_str(&remaining);
+                        i += remaining.len();
+                        in_comment = true;
+                    }
+                    continue;
+                } else if remaining.starts_with("<![CDATA[") {
+                    // CDATA section - pass through until ]]>
+                    if let Some(end_idx) = remaining.find("]]>") {
+                        let cdata_end = end_idx + 3;
+                        result.push_str(&remaining[..cdata_end]);
+                        i += cdata_end;
+                    } else {
+                        result.push_str(&remaining);
+                        i += remaining.len();
+                    }
+                    continue;
                 } else if remaining.starts_with("<!") || remaining.starts_with("<?") {
-                    // Comment or PI - pass through
+                    // Other PI/declaration - pass through the < and continue
                     result.push(chars[i]);
                     i += 1;
                     continue;
@@ -1037,7 +1148,7 @@ fn escape_html(s: &str) -> String {
 
 /// Inject IAL attributes into the first HTML tag in a raw HTML string.
 /// E.g., inject class="cls" into `<div>` -> `<div class="cls">`
-fn inject_attrs_into_html(html: &str, attrs: &std::collections::HashMap<String, String>) -> String {
+fn inject_attrs_into_html(html: &str, attrs: &indexmap::IndexMap<String, String>) -> String {
     if attrs.is_empty() {
         return html.to_string();
     }
@@ -1071,11 +1182,13 @@ fn convert_html_block(
         Some("block") => {
             // Block-parsed HTML: output opening tag, then children, then closing tag
             let tag = elem.options.get("tag").map(|s| s.as_str()).unwrap_or("div");
-            let attrs = elem.options.get("attrs").map(|s| s.as_str()).unwrap_or("");
+            let orig_attrs = elem.options.get("attrs").map(|s| s.as_str()).unwrap_or("");
             write_indent(output, indent);
             output.push('<');
             output.push_str(tag);
-            output.push_str(attrs);
+            output.push_str(orig_attrs);
+            // Also inject IAL attributes
+            write_attrs(&elem.attr, output);
             output.push_str(">\n");
             convert_children(&elem.children, output, options, indent + 2, ctx);
             write_indent(output, indent);
@@ -1141,23 +1254,23 @@ fn convert_definition_list(
     indent: usize,
     ctx: &mut SpanContext,
 ) {
-    // Check for auto_ids directive in attributes
+    // Check for auto_ids directive in IAL refs
     let mut auto_ids_prefix: Option<String> = None;
-    let mut dl_attrs = elem.attr.clone();
-    // Look for auto_ids or auto_ids-prefix- style attributes
-    let auto_ids_keys: Vec<String> = dl_attrs
-        .keys()
-        .filter(|k| k.starts_with("auto_ids"))
-        .cloned()
-        .collect();
-    for key in &auto_ids_keys {
-        if key == "auto_ids" {
-            auto_ids_prefix = Some(String::new());
-        } else if key.starts_with("auto_ids-") && key.ends_with('-') {
-            let prefix = &key[9..key.len() - 1];
-            auto_ids_prefix = Some(format!("{prefix}-"));
+    let dl_attrs = elem.attr.clone();
+    // Look for auto_ids or auto_ids-prefix- style refs in ial_refs option
+    if let Some(refs_str) = elem.options.get("ial_refs") {
+        for ref_name in refs_str.split(',') {
+            if ref_name == "auto_ids" {
+                auto_ids_prefix = Some(String::new());
+            } else if let Some(rest) = ref_name.strip_prefix("auto_ids-") {
+                // auto_ids-prefix- -> prefix is everything between "auto_ids-" and trailing "-"
+                if let Some(prefix) = rest.strip_suffix('-') {
+                    auto_ids_prefix = Some(format!("{prefix}-"));
+                } else {
+                    auto_ids_prefix = Some(rest.to_string());
+                }
+            }
         }
-        dl_attrs.remove(key);
     }
 
     write_indent(output, indent);
@@ -1240,24 +1353,14 @@ fn convert_definition_list(
 
 /// Generate an ID for a definition term from its text.
 fn generate_term_id(text: &str, prefix: &str) -> String {
-    let cleaned = text
-        .to_lowercase()
+    // Match kramdown Ruby basic_generate_id:
+    let stripped = text.trim_start_matches(|c: char| !c.is_ascii_alphabetic());
+    let filtered: String = stripped
         .chars()
-        .map(|c| {
-            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
-                c
-            } else {
-                '-'
-            }
-        })
-        .collect::<String>();
-    // Remove leading/trailing hyphens and collapse multiple
-    let collapsed: String = cleaned
-        .split('-')
-        .filter(|s| !s.is_empty())
-        .collect::<Vec<_>>()
-        .join("-");
-    format!("{prefix}{collapsed}")
+        .filter(|c| c.is_ascii_alphanumeric() || *c == ' ' || *c == '-')
+        .collect();
+    let result = filtered.replace(' ', "-").to_lowercase();
+    format!("{prefix}{result}")
 }
 
 /// Convert math block to HTML.

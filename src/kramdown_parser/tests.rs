@@ -26,13 +26,30 @@ fn testcases_dir() -> PathBuf {
         .join("testcases")
 }
 
+/// Load options for a test, checking stem.options then parent dir shared options file.
+fn load_test_options(dir: &Path, stem: &str) -> Options {
+    let options_path = dir.join(format!("{stem}.options"));
+    if options_path.exists() {
+        return Options::from_file(&options_path)
+            .unwrap_or_else(|e| panic!("Failed to parse options {options_path:?}: {e}"));
+    }
+    let text_path = dir.join(format!("{stem}.text"));
+    if let Some(parent) = text_path.parent() {
+        let shared = parent.join("options");
+        if shared.exists() {
+            return Options::from_file(&shared)
+                .unwrap_or_else(|e| panic!("Failed to parse shared options {shared:?}: {e}"));
+        }
+    }
+    Options::default()
+}
+
 /// Run a single conformance test case: read .text, optionally read .options,
 /// parse through to_html, compare against .html expected output.
 fn run_conformance_test(stem: &str) -> bool {
     let dir = testcases_dir();
     let text_path = dir.join(format!("{stem}.text"));
     let html_path = dir.join(format!("{stem}.html"));
-    let options_path = dir.join(format!("{stem}.options"));
 
     assert!(
         text_path.exists(),
@@ -48,12 +65,7 @@ fn run_conformance_test(stem: &str) -> bool {
     let expected = std::fs::read_to_string(&html_path)
         .unwrap_or_else(|e| panic!("Failed to read {html_path:?}: {e}"));
 
-    let options = if options_path.exists() {
-        Options::from_file(&options_path)
-            .unwrap_or_else(|e| panic!("Failed to parse options {options_path:?}: {e}"))
-    } else {
-        Options::default()
-    };
+    let options = load_test_options(&dir, stem);
 
     let actual = to_html_with_options(&input, &options);
     actual == expected
@@ -64,7 +76,6 @@ fn assert_conformance(stem: &str) {
     let dir = testcases_dir();
     let text_path = dir.join(format!("{stem}.text"));
     let html_path = dir.join(format!("{stem}.html"));
-    let options_path = dir.join(format!("{stem}.options"));
 
     assert!(
         text_path.exists(),
@@ -80,12 +91,7 @@ fn assert_conformance(stem: &str) {
     let expected = std::fs::read_to_string(&html_path)
         .unwrap_or_else(|e| panic!("Failed to read {html_path:?}: {e}"));
 
-    let options = if options_path.exists() {
-        Options::from_file(&options_path)
-            .unwrap_or_else(|e| panic!("Failed to parse options {options_path:?}: {e}"))
-    } else {
-        Options::default()
-    };
+    let options = load_test_options(&dir, stem);
 
     let actual = to_html_with_options(&input, &options);
 

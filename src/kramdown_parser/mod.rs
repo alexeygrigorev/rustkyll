@@ -22,6 +22,7 @@
 pub mod element;
 pub mod entities;
 pub mod html;
+pub mod html_to_native;
 pub mod options;
 pub mod parser;
 pub mod span_parser;
@@ -46,7 +47,12 @@ pub fn to_html_with_options(input: &str, options: &Options) -> String {
 
     // Parse blocks from the cleaned text (definitions removed)
     // Pass ALDs extracted by extract_definitions so IAL can resolve ALD references
-    let doc: Document = KramdownParser::parse_with_alds(&cleaned, options, &mut span_ctx.ald_defs);
+    let mut doc: Document = KramdownParser::parse_with_alds(&cleaned, options, &mut span_ctx.ald_defs);
+
+    // Convert HTML blocks to native kramdown elements when html_to_native is enabled
+    if options.html_to_native {
+        html_to_native::convert_html_to_native(&mut doc.root.children, options);
+    }
 
     // Convert to HTML with span processing
     let mut html = HtmlConverter::convert_with_context(&doc, options, &mut span_ctx);

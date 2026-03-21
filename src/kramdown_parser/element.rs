@@ -7,11 +7,13 @@
 // Some test cases based on MDTest by Michel Fortin
 // Copyright (c) 2007 Michel Fortin <http://www.michelf.com/>
 
+use indexmap::IndexMap;
 use std::collections::HashMap;
 
 /// HTML attributes map (id, class, arbitrary key-value pairs).
 /// Supports IAL (inline attribute lists) from kramdown.
-pub type Attr = HashMap<String, String>;
+/// Uses IndexMap to preserve insertion order (matching kramdown Ruby behavior).
+pub type Attr = IndexMap<String, String>;
 
 /// All kramdown element types, covering block and span categories.
 /// Reference: kramdown 2.5.2 `element.rb`.
