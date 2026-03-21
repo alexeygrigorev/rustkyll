@@ -704,9 +704,13 @@ impl TemplateEngine {
             .filter(filters::math::Times)
             .filter(filters::math::Plus)
             .filter(filters::math::Minus)
-            // Jekyll-compatible map filter that flattens nested arrays (Issue 209)
+            // Jekyll-compatible map filter that preserves nested arrays (Issue 209/233)
             // Must come after with_stdlib() to override the default map filter
             .filter(filters::Map)
+            // Ruby Liquid InputIterator compat: uniq/compact/sort flatten nested arrays
+            // one level before processing, matching `map: "tags" | uniq | sort` pattern
+            .filter(filters::Uniq)
+            .filter(filters::Compact)
             // Ruby Liquid sample filter: random sampling from arrays (Issue 214)
             .filter(filters::Sample)
     }
@@ -4113,5 +4117,156 @@ title: "Test Book"
             content, original,
             "Include files should pass through without any modification"
         );
+    }
+
+    // ========================================================================
+    // Uniq/sort/compact must flatten nested arrays (Ruby InputIterator compat)
+    // ========================================================================
+
+    #[test]
+    fn test_uniq_flattens_nested_arrays_from_map() {
+        // In Jekyll: notes | map: "tags" | uniq | sort
+        // map returns array-of-arrays; uniq must flatten one level first,
+        // matching Ruby Liquid's InputIterator which calls .flatten on inputs.
+        let eng = engine();
+        let mut ctx = Object::new();
+
+        let items = LiquidValue::Array(vec![
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert(
+                    "tags".into(),
+                    LiquidValue::Array(vec![
+                        LiquidValue::scalar("Book"),
+                        LiquidValue::scalar("Mental health"),
+                    ]),
+                );
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert(
+                    "tags".into(),
+                    LiquidValue::Array(vec![
+                        LiquidValue::scalar("Life"),
+                        LiquidValue::scalar("Book"),
+                    ]),
+                );
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert("tags".into(), LiquidValue::Array(vec![]));
+                o
+            }),
+        ]);
+        ctx.insert("items".into(), items);
+
+        // map: "tags" -> [["Book","Mental health"],["Life","Book"],[]]
+        // uniq should flatten -> ["Book","Mental health","Life","Book"] -> dedup -> ["Book","Mental health","Life"]
+        // sort -> ["Book","Life","Mental health"]
+        let template = r#"{% assign tags = items | map: "tags" | uniq | sort %}{% for t in tags %}[{{ t }}]{% endfor %}"#;
+        let result = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(result, "[Book][Life][Mental health]");
+    }
+
+    #[test]
+    fn test_sort_flattens_nested_arrays() {
+        let eng = engine();
+        let mut ctx = Object::new();
+
+        let items = LiquidValue::Array(vec![
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert(
+                    "tags".into(),
+                    LiquidValue::Array(vec![
+                        LiquidValue::scalar("Zebra"),
+                        LiquidValue::scalar("Apple"),
+                    ]),
+                );
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert(
+                    "tags".into(),
+                    LiquidValue::Array(vec![LiquidValue::scalar("Mango")]),
+                );
+                o
+            }),
+        ]);
+        ctx.insert("items".into(), items);
+
+        // map: "tags" | sort should flatten then sort
+        let template = r#"{% assign tags = items | map: "tags" | sort %}{% for t in tags %}[{{ t }}]{% endfor %}"#;
+        let result = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(result, "[Apple][Mango][Zebra]");
+    }
+
+    #[test]
+    fn test_compact_flattens_nested_arrays() {
+        let eng = engine();
+        let mut ctx = Object::new();
+
+        let items = LiquidValue::Array(vec![
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert(
+                    "tags".into(),
+                    LiquidValue::Array(vec![LiquidValue::scalar("A"), LiquidValue::scalar("B")]),
+                );
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                // No tags key at all -> map returns Nil
+                o
+            }),
+        ]);
+        ctx.insert("items".into(), items);
+
+        // map: "tags" -> [["A","B"], nil]
+        // compact should flatten arrays and remove nils -> ["A","B"]
+        let template = r#"{% assign tags = items | map: "tags" | compact %}{% for t in tags %}[{{ t }}]{% endfor %}"#;
+        let result = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(result, "[A][B]");
+    }
+
+    #[test]
+    fn test_uniq_sort_unicode_tags() {
+        // Non-ASCII tag names must work correctly with flatten+uniq+sort
+        let eng = engine();
+        let mut ctx = Object::new();
+
+        let items = LiquidValue::Array(vec![
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert(
+                    "tags".into(),
+                    LiquidValue::Array(vec![
+                        LiquidValue::scalar("\u{53f0}\u{7063}"), // Taiwan in Chinese
+                        LiquidValue::scalar("Design"),
+                    ]),
+                );
+                o
+            }),
+            LiquidValue::Object({
+                let mut o = Object::new();
+                o.insert(
+                    "tags".into(),
+                    LiquidValue::Array(vec![
+                        LiquidValue::scalar("Design"),
+                        LiquidValue::scalar("\u{00c4}sthetik"), // Asthetik with umlaut
+                    ]),
+                );
+                o
+            }),
+        ]);
+        ctx.insert("items".into(), items);
+
+        let template = r#"{% assign tags = items | map: "tags" | uniq | sort %}{% for t in tags %}[{{ t }}]{% endfor %}"#;
+        let result = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(result, "[Design][\u{00c4}sthetik][\u{53f0}\u{7063}]");
     }
 }

@@ -8,6 +8,25 @@ use liquid_core::{
 };
 use liquid_core::{Value, ValueView};
 
+/// Flatten one level of nested arrays, matching Ruby Liquid's `InputIterator`
+/// behavior. When `map: "tags"` returns `[["A","B"],["C"]]`, downstream filters
+/// like `uniq`, `sort`, `compact` need to see `["A","B","C"]`.
+///
+/// Non-array elements are kept as-is. This only flattens one level deep.
+pub(crate) fn flatten_one_level(items: impl Iterator<Item = Value>) -> Vec<Value> {
+    let mut result = Vec::new();
+    for item in items {
+        if let Some(arr) = item.as_array() {
+            for sub in arr.values() {
+                result.push(sub.to_value());
+            }
+        } else {
+            result.push(item);
+        }
+    }
+    result
+}
+
 #[derive(Debug, FilterParameters)]
 struct SortArgs {
     #[parameter(description = "Optional property name to sort by.", arg_type = "str")]
@@ -99,7 +118,10 @@ impl Filter for SortFilter {
             .map(|arr| arr.values().collect())
             .unwrap_or_default();
 
-        let mut sorted: Vec<Value> = input.iter().map(|v| v.to_value()).collect();
+        // Flatten one level of nested arrays, matching Ruby Liquid's InputIterator
+        // behavior. This is needed for patterns like `map: "tags" | sort` where
+        // each element may be a sub-array of tag strings.
+        let mut sorted: Vec<Value> = flatten_one_level(input.iter().map(|v| v.to_value()));
 
         if let Some(property) = &args.property {
             let prop = property.to_kstr();

@@ -5,6 +5,7 @@
 
 mod absolute_url;
 pub(crate) mod cgi_escape;
+mod compact;
 mod date;
 mod date_to_long_string;
 mod date_to_rfc822;
@@ -22,8 +23,9 @@ mod number_of_words;
 pub(crate) mod passthrough;
 pub(crate) mod relative_url;
 mod sample;
-mod sort;
+pub(crate) mod sort;
 mod truncatewords;
+mod uniq;
 mod uri_escape;
 mod url_encode;
 mod where_exp;
@@ -32,6 +34,7 @@ mod xml_escape;
 
 pub use absolute_url::AbsoluteUrl;
 pub use cgi_escape::CgiEscape;
+pub use compact::Compact;
 pub use date::Date;
 pub use date_to_long_string::DateToLongString;
 pub use date_to_rfc822::DateToRfc822;
@@ -49,6 +52,7 @@ pub use relative_url::RelativeUrl;
 pub use sample::Sample;
 pub use sort::Sort;
 pub use truncatewords::Truncatewords;
+pub use uniq::Uniq;
 pub use uri_escape::UriEscape;
 pub use url_encode::UrlEncode;
 pub use where_exp::WhereExp;
