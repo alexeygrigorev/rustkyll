@@ -101,6 +101,22 @@ fn html_escape(s: &str) -> String {
         .replace('\'', "&#39;")
 }
 
+/// HTML-escape for meta content attributes, matching Jekyll's behavior.
+///
+/// Jekyll's SEO tag uses `| escape` which maps to Ruby's `CGI.escapeHTML`.
+/// This escapes `&`, `<`, `>`, and `"` but NOT `'` (single quotes).
+/// However, in practice Jekyll's meta description output does NOT escape
+/// double quotes either -- the description goes through `markdownify |
+/// strip_html | strip_newlines | truncate` without an explicit `escape`
+/// filter in the template. So quotes appear literally in the output.
+///
+/// We match Jekyll's actual output: only escape `&`, `<`, `>`.
+fn html_escape_content(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
 /// Get a nested value like "site.twitter.username" by traversing objects.
 fn get_nested_str(runtime: &dyn Runtime, parts: &[&str]) -> Option<String> {
     if parts.is_empty() {
@@ -321,11 +337,11 @@ impl Renderable for SeoRenderable {
             if !desc.is_empty() {
                 output.push_str(&format!(
                     "<meta name=\"description\" content=\"{}\" />\n",
-                    html_escape(desc)
+                    html_escape_content(desc)
                 ));
                 output.push_str(&format!(
                     "<meta property=\"og:description\" content=\"{}\" />\n",
-                    html_escape(desc)
+                    html_escape_content(desc)
                 ));
             }
         }
@@ -933,9 +949,11 @@ mod tests {
             None,
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
-        assert!(out.contains(
-            "<meta name=\"description\" content=\"Tom &amp; Jerry&#39;s &quot;show&quot;\" />"
-        ));
+        // Issue 301: meta description does NOT escape quotes (matching Jekyll)
+        // Only & is escaped. Quotes appear literally.
+        assert!(
+            out.contains("<meta name=\"description\" content=\"Tom &amp; Jerry's \"show\"\" />")
+        );
     }
 
     // ========================================================================
@@ -944,8 +962,8 @@ mod tests {
 
     #[test]
     fn test_issue216_meta_content_double_quotes_apostrophe() {
-        // Meta content attributes must use double quotes, with apostrophes
-        // escaped as &#39; -- NOT single-quoted attributes with raw smart quotes
+        // Meta content attributes use double quotes. Apostrophes are NOT escaped
+        // (matching Jekyll's actual behavior per Issue 301).
         let eng = engine();
         let ctx = make_context(
             None,
@@ -961,8 +979,8 @@ mod tests {
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
         assert!(
-            out.contains("content=\"Nathan doesn&#39;t write tests\""),
-            "Meta content should use double quotes with escaped apostrophe. Got: {}",
+            out.contains("content=\"Nathan doesn't write tests\""),
+            "Meta content should use double quotes with literal apostrophe. Got: {}",
             out
         );
         // Must NOT contain single-quoted attribute
@@ -991,8 +1009,8 @@ mod tests {
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
         assert!(
-            out.contains("B\u{00fc}scher&#39;s Buchladen \u{00f6}ffnet um 9 Uhr"),
-            "Unicode should pass through and apostrophe should be escaped. Got: {}",
+            out.contains("B\u{00fc}scher's Buchladen \u{00f6}ffnet um 9 Uhr"),
+            "Unicode should pass through and apostrophe should be literal. Got: {}",
             out
         );
         assert!(
@@ -3238,6 +3256,124 @@ mod tests {
             Some(field[1..1 + end].to_string())
         } else {
             None
+        }
+    }
+
+    // ========================================================================
+    // Issue 301: Meta description should NOT escape quotes (matching Jekyll)
+    // ========================================================================
+
+    #[test]
+    fn test_issue301_meta_description_no_quote_escaping() {
+        // Jekyll's SEO tag does NOT escape " or ' in meta description content.
+        // Only &, <, > should be escaped.
+        let eng = engine();
+        let ctx = make_context(
+            None,
+            None,
+            Some("A permissive license with an \"advertising clause\" that's useful"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        // Quotes should be literal, not &quot; or &#39;
+        assert!(
+            out.contains("\"advertising clause\""),
+            "Meta description should have literal double quotes, not &quot;. Got: {}",
+            out
+        );
+        assert!(
+            out.contains("that's useful"),
+            "Meta description should have literal apostrophe, not &#39;. Got: {}",
+            out
+        );
+        // Check only the meta tag lines (not JSON-LD which uses different escaping)
+        for line in out.lines() {
+            if line.contains("meta") && line.contains("description") {
+                assert!(
+                    !line.contains("&quot;"),
+                    "Meta description line should not contain &quot;: {}",
+                    line
+                );
+                assert!(
+                    !line.contains("&#39;"),
+                    "Meta description line should not contain &#39;: {}",
+                    line
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_issue301_meta_description_ampersand_still_escaped() {
+        // & should still be escaped in meta content
+        let eng = engine();
+        let ctx = make_context(
+            None,
+            None,
+            Some("Tom & Jerry's show"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("Tom &amp; Jerry's show"),
+            "& should be escaped but quotes should not. Got: {}",
+            out
+        );
+        // Check only meta lines for no &#39;
+        for line in out.lines() {
+            if line.contains("meta") && line.contains("description") {
+                assert!(
+                    !line.contains("&#39;"),
+                    "Meta description should not escape apostrophe: {}",
+                    line
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_issue301_meta_description_unicode_no_escape() {
+        // Non-ASCII characters with quotes should not be over-escaped
+        let eng = engine();
+        let ctx = make_context(
+            None,
+            None,
+            Some("L'universit\u{00e9} de \"Montr\u{00e9}al\" est bien"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        // Check only meta tag lines (JSON-LD uses different escaping rules)
+        for line in out.lines() {
+            if line.contains("meta") && line.contains("description") {
+                assert!(
+                    line.contains("L'universit\u{00e9}"),
+                    "Unicode and apostrophe should be literal in meta: {}",
+                    line
+                );
+                assert!(
+                    !line.contains("&#39;"),
+                    "Meta description should not contain &#39; for apostrophes: {}",
+                    line
+                );
+            }
         }
     }
 }

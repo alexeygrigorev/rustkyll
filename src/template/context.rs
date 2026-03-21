@@ -40,7 +40,23 @@ pub fn yaml_to_liquid(yaml: &serde_yaml::Value) -> LiquidValue {
             LiquidValue::Array(arr)
         }
         serde_yaml::Value::Mapping(map) => {
-            let obj = yaml_mapping_to_object(map);
+            let mut obj = yaml_mapping_to_object(map);
+            let key_order: Vec<LiquidValue> = map
+                .keys()
+                .filter_map(|k| {
+                    if let serde_yaml::Value::String(s) = k {
+                        Some(LiquidValue::scalar(s.clone()))
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            if !key_order.is_empty() {
+                obj.insert(
+                    crate::template::filters::jsonify::KEY_ORDER_FIELD.into(),
+                    LiquidValue::Array(key_order),
+                );
+            }
             LiquidValue::Object(obj)
         }
         serde_yaml::Value::Tagged(tagged) => {
@@ -920,5 +936,46 @@ title: Not a date
             )
             .unwrap();
         assert_eq!(output, "off");
+    }
+
+    #[test]
+    fn test_yaml_to_liquid_stores_key_order_301() {
+        use crate::template::filters::jsonify::KEY_ORDER_FIELD;
+        use liquid::ValueView;
+        let yaml_str =
+            "permissions:\n  - read\nconditions:\n  - notice\nlimitations:\n  - liability\n";
+        let yaml: serde_yaml::Value = serde_yaml::from_str(yaml_str).unwrap();
+        let liquid_val = yaml_to_liquid(&yaml);
+        if let LiquidValue::Object(obj) = &liquid_val {
+            let key_order = obj.get(KEY_ORDER_FIELD).expect("should have __key_order");
+            if let LiquidValue::Array(arr) = key_order {
+                let keys: Vec<String> = arr.iter().map(|v| v.to_kstr().to_string()).collect();
+                assert_eq!(keys, vec!["permissions", "conditions", "limitations"]);
+            } else {
+                panic!("__key_order should be an Array");
+            }
+        } else {
+            panic!("Expected Object");
+        }
+    }
+
+    #[test]
+    fn test_yaml_to_liquid_key_order_unicode_301() {
+        use crate::template::filters::jsonify::KEY_ORDER_FIELD;
+        use liquid::ValueView;
+        let yaml_str = "beschreibung: H\u{00e4}llo\ntitel: W\u{00f6}rld\n";
+        let yaml: serde_yaml::Value = serde_yaml::from_str(yaml_str).unwrap();
+        let liquid_val = yaml_to_liquid(&yaml);
+        if let LiquidValue::Object(obj) = &liquid_val {
+            let key_order = obj.get(KEY_ORDER_FIELD).expect("should have __key_order");
+            if let LiquidValue::Array(arr) = key_order {
+                let keys: Vec<String> = arr.iter().map(|v| v.to_kstr().to_string()).collect();
+                assert_eq!(keys, vec!["beschreibung", "titel"]);
+            } else {
+                panic!("__key_order should be an Array");
+            }
+        } else {
+            panic!("Expected Object");
+        }
     }
 }

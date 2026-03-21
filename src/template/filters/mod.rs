@@ -13,7 +13,7 @@ mod date_to_string;
 mod date_to_xmlschema;
 mod group_by;
 mod group_by_exp;
-mod jsonify;
+pub(crate) mod jsonify;
 mod map;
 mod markdownify;
 pub(crate) mod math;

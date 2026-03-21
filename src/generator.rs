@@ -253,6 +253,17 @@ pub fn build_site_context(
         );
     }
 
+    // source.branch: resolve from git HEAD when plugin is active or explicit github config
+    // This is needed by the github_edit_link tag to build edit URLs.
+    if !github.contains_key("source") && (has_plugin || has_explicit_github || is_github_pages) {
+        let branch = resolve_git_branch(site_dir);
+        if !branch.is_empty() {
+            let mut source = Object::new();
+            source.insert("branch".into(), LiquidValue::scalar(branch));
+            github.insert("source".into(), LiquidValue::Object(source));
+        }
+    }
+
     // url: site URL (used for absolute URLs in JSON-LD breadcrumbs)
     // When jekyll-github-metadata is active, derive from git remote (GitHub Pages URL).
     // Otherwise, use config.url. Explicit github.url in config always takes priority.
@@ -492,6 +503,25 @@ fn has_github_metadata_plugin(config: &SiteConfig) -> bool {
         }
     }
     false
+}
+
+/// Resolve the current git branch name for `site.github.source.branch`.
+///
+/// Returns the branch name (e.g., "main", "gh-pages") if the site directory
+/// is inside a git repository, or an empty string otherwise.
+fn resolve_git_branch(site_dir: Option<&Path>) -> String {
+    if let Some(dir) = site_dir {
+        if let Ok(output) = Command::new("git")
+            .args(["rev-parse", "--abbrev-ref", "HEAD"])
+            .current_dir(dir)
+            .output()
+        {
+            if output.status.success() {
+                return String::from_utf8_lossy(&output.stdout).trim().to_string();
+            }
+        }
+    }
+    String::new()
 }
 
 /// Resolve the git HEAD SHA for `site.github.build_revision`.
@@ -7435,5 +7465,82 @@ defaults:
         assert_eq!(obj.get("a"), Some(&LiquidValue::scalar("a_val")));
         assert_eq!(obj.get("m"), Some(&LiquidValue::scalar("m_val")));
         assert_eq!(obj.get("nonexistent"), None);
+    }
+
+    // ========================================================================
+    // Issue 301: site.github.source.branch population
+    // ========================================================================
+
+    #[test]
+    fn test_source_branch_populated_with_github_metadata_plugin() {
+        let mut extras = HashMap::new();
+        extras.insert(
+            "plugins".to_string(),
+            serde_yaml::Value::Sequence(vec![serde_yaml::Value::String(
+                "jekyll-github-metadata".to_string(),
+            )]),
+        );
+        let config = SiteConfig {
+            url: "https://example.com".to_string(),
+            name: "Test".to_string(),
+            title: "Test".to_string(),
+            extras,
+            ..Default::default()
+        };
+        let collections = HashMap::new();
+        let data = std::collections::BTreeMap::new();
+        let site_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let ctx = build_site_context(&config, &collections, &data, Some(site_dir), &[]);
+        let github = ctx.get("github").expect("should have github");
+        if let LiquidValue::Object(gh) = github {
+            let source = gh.get("source").expect("should have source");
+            if let LiquidValue::Object(src) = source {
+                let branch = src
+                    .get("branch")
+                    .expect("should have branch")
+                    .to_kstr()
+                    .to_string();
+                assert!(
+                    !branch.is_empty(),
+                    "source.branch should not be empty, got: {:?}",
+                    branch
+                );
+            } else {
+                panic!("source should be an Object");
+            }
+        } else {
+            panic!("github should be an Object");
+        }
+    }
+
+    #[test]
+    fn test_source_branch_not_populated_without_plugin() {
+        let config = SiteConfig {
+            url: "https://example.com".to_string(),
+            name: "Test".to_string(),
+            title: "Test".to_string(),
+            ..Default::default()
+        };
+        let collections = HashMap::new();
+        let data = std::collections::BTreeMap::new();
+        let ctx = build_site_context(
+            &config,
+            &collections,
+            &data,
+            Some(Path::new("/nonexistent")),
+            &[],
+        );
+        let github = ctx.get("github").expect("should have github");
+        if let LiquidValue::Object(gh) = github {
+            if let Some(LiquidValue::Object(src)) = gh.get("source") {
+                let branch = src.get("branch").map(|v| v.to_kstr().to_string());
+                assert!(
+                    branch.is_none() || branch.as_deref() == Some(""),
+                    "source.branch should not be set without plugin"
+                );
+            }
+        } else {
+            panic!("github should be an Object");
+        }
     }
 }
