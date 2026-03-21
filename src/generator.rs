@@ -633,8 +633,9 @@ fn collection_item_to_liquid_slim(
     // Since this function builds the cross-reference representation, we use html_content
     // (rendered HTML) to match Jekyll's behavior for templates like
     // `{{ guest.content }}` which output rendered HTML in the page body.
-    // We trim both ends to avoid trailing newlines that would appear in
-    // `strip_html | jsonify` output as unwanted `\n` characters.
+    // We trim leading whitespace only. Trailing newlines are preserved because
+    // Jekyll's strip_html does NOT strip them, and templates like
+    // `content | strip_html | jsonify` (podcast JSON-LD) expect the trailing \n.
     let escaped_content =
         crate::frontmatter::escape_quotes_in_text_nodes(item.html_content.trim_start());
     obj.insert(

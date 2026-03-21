@@ -10,10 +10,9 @@ use liquid_core::{Value, ValueView};
 /// 2. Remove `<style>...</style>` blocks (multiline)
 /// 3. Remove HTML comments `<!-- ... -->`
 /// 4. Remove all remaining HTML tags via `gsub(/<.*?>/m, '')`
-/// 5. Strip exactly one trailing `\n` if present
 ///
-/// Step 5 ensures that `<p>text</p>\n` becomes `text` (not `text\n`),
-/// which matches Jekyll output for DTC author descriptions.
+/// Trailing newlines are NOT stripped -- Jekyll's strip_html preserves them.
+/// Templates that need newline removal use `strip_newlines` separately.
 #[derive(Clone, ParseFilter, FilterReflection)]
 #[filter(
     name = "strip_html",
@@ -41,7 +40,12 @@ impl Filter for StripHtmlFilter {
 /// 2. Remove style blocks
 /// 3. Remove HTML comments
 /// 4. Remove all HTML tags
-/// 5. Strip exactly one trailing newline
+///
+/// Jekyll's strip_html does NOT strip trailing newlines. Templates that need
+/// newlines removed use `strip_newlines` as a separate filter step
+/// (e.g., `content | strip_html | strip_newlines`). Templates that use
+/// `content | strip_html | jsonify` (like podcast JSON-LD) expect the trailing
+/// newline to be preserved and encoded as `\n` in the JSON string.
 fn strip_html_jekyll(input: &str) -> String {
     use regex::Regex;
 
@@ -57,14 +61,7 @@ fn strip_html_jekyll(input: &str) -> String {
     let result = RE_SCRIPT.with(|re| re.replace_all(input, "").into_owned());
     let result = RE_STYLE.with(|re| re.replace_all(&result, "").into_owned());
     let result = RE_COMMENT.with(|re| re.replace_all(&result, "").into_owned());
-    let result = RE_TAGS.with(|re| re.replace_all(&result, "").into_owned());
-
-    // Strip exactly one trailing newline (matches Jekyll behavior for DTC)
-    if result.ends_with('\n') {
-        result[..result.len() - 1].to_string()
-    } else {
-        result
-    }
+    RE_TAGS.with(|re| re.replace_all(&result, "").into_owned())
 }
 
 #[cfg(test)]
@@ -78,16 +75,19 @@ mod tests {
     }
 
     #[test]
-    fn test_trailing_newline_stripped() {
+    fn test_trailing_newline_preserved() {
+        // Jekyll's strip_html does NOT strip trailing newlines.
+        // Podcast templates use `content | strip_html | jsonify` and expect
+        // the trailing newline to be encoded as \n in the JSON string.
         let result = liquid_core::call_filter!(StripHtml, "<p>Hello World</p>\n").unwrap();
-        assert_eq!(result.to_kstr(), "Hello World");
+        assert_eq!(result.to_kstr(), "Hello World\n");
     }
 
     #[test]
-    fn test_multiple_trailing_newlines_strips_one() {
-        // Only strip ONE trailing newline
+    fn test_multiple_trailing_newlines_preserved() {
+        // All trailing newlines are preserved (Jekyll doesn't strip any)
         let result = liquid_core::call_filter!(StripHtml, "<p>Hello</p>\n\n").unwrap();
-        assert_eq!(result.to_kstr(), "Hello\n");
+        assert_eq!(result.to_kstr(), "Hello\n\n");
     }
 
     #[test]
@@ -156,15 +156,16 @@ mod tests {
         let result =
             liquid_core::call_filter!(StripHtml, "<p>Привет <b>мир</b>! 你好世界 🌍</p>\n")
                 .unwrap();
-        assert_eq!(result.to_kstr(), "Привет мир! 你好世界 🌍");
+        assert_eq!(result.to_kstr(), "Привет мир! 你好世界 🌍\n");
     }
 
     #[test]
     fn test_author_description_pipeline() {
         // Simulates: content | strip_html (then strip_newlines would follow)
+        // The trailing newline is preserved by strip_html; strip_newlines removes it.
         let input = "<p>John is a developer at DataTalks.Club</p>\n";
         let result = liquid_core::call_filter!(StripHtml, input).unwrap();
-        assert_eq!(result.to_kstr(), "John is a developer at DataTalks.Club");
+        assert_eq!(result.to_kstr(), "John is a developer at DataTalks.Club\n");
     }
 
     #[test]

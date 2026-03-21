@@ -3298,8 +3298,8 @@ mod tests {
 
     #[test]
     fn test_issue268_tdd_trailing_newline_preservation() {
-        // After issue 293: strip_html strips one trailing \n (matching Jekyll behavior)
-        // Trailing newline diffs are filtered in dom_compare.py
+        // Issue 296: Jekyll's strip_html does NOT strip trailing newlines.
+        // The trailing \n from HTML survives through strip_html | jsonify.
         let engine = crate::template::TemplateEngine::new().unwrap();
         let mut ctx = liquid::Object::new();
         ctx.insert(
@@ -3310,8 +3310,8 @@ mod tests {
             .parse_and_render("{{ input | strip_html | jsonify }}", &ctx)
             .unwrap();
         assert_eq!(
-            output, "\"Short bio.\"",
-            "strip_html | jsonify should strip trailing newline, got: {}",
+            output, "\"Short bio.\\n\"",
+            "strip_html | jsonify should preserve trailing newline (matching Jekyll), got: {}",
             output
         );
     }
@@ -3458,10 +3458,13 @@ mod tests {
             .parse_and_render("{{ input | strip_html | jsonify }}", &ctx)
             .unwrap();
 
-        // After issue 293: strip_html strips one trailing \n
+        // Issue 296: Jekyll's strip_html does NOT remove trailing newlines.
+        // The trailing \n from rendered HTML survives through strip_html | jsonify
+        // and appears as \n in the JSON string. This matches Jekyll behavior for
+        // podcast templates that use `content | strip_html | jsonify`.
         assert!(
-            !output.contains("\\n"),
-            "strip_html | jsonify should NOT have trailing newline after issue 293, got: {}",
+            output.contains("\\n"),
+            "strip_html | jsonify should preserve trailing newline (matching Jekyll), got: {}",
             output
         );
     }

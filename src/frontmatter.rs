@@ -1660,6 +1660,35 @@ mod tests {
         assert!(html.contains("</h2>"));
     }
 
+    /// Issue 296: markdown_to_html should produce HTML that ends with a newline,
+    /// matching Jekyll/kramdown behavior where `<p>text</p>\n` has a trailing `\n`.
+    #[test]
+    fn test_issue296_markdown_html_ends_with_newline() {
+        let md = "Born in Argentina, passionate about mentoring.";
+        let html = markdown_to_html(md);
+        assert!(
+            html.ends_with('\n'),
+            "markdown_to_html should produce HTML ending with newline. Got: {:?}",
+            html
+        );
+    }
+
+    /// Issue 296: Two-paragraph markdown should produce HTML ending with `\n`,
+    /// matching what Jekyll/kramdown produces for guest bios.
+    #[test]
+    fn test_issue296_two_paragraph_html_ending() {
+        let md = "First paragraph.\n\nSecond paragraph.";
+        let html = markdown_to_html(md);
+        // Check what the exact ending looks like
+        let last_10 = &html[html.len().saturating_sub(30)..];
+        // The HTML should end with a newline after the last </p> tag
+        assert!(
+            html.ends_with('\n'),
+            "Two-paragraph HTML should end with newline. Last 30 chars: {:?}",
+            last_10
+        );
+    }
+
     #[test]
     fn test_md_bold_italic() {
         let html = markdown_to_html("This is **bold** and *italic* text.");

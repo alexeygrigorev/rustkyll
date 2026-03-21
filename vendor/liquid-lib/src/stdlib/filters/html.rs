@@ -235,6 +235,17 @@ mod tests {
         );
     }
 
+    /// Issue 296: strip_html must preserve trailing newlines (matching Jekyll).
+    #[test]
+    fn unit_strip_html_preserves_trailing_newline() {
+        let result = liquid_core::call_filter!(StripHtml, "<p>Hello</p>\n").unwrap();
+        assert_eq!(
+            result,
+            liquid_core::value!("Hello\n"),
+            "strip_html must preserve trailing newline"
+        );
+    }
+
     #[test]
     fn unit_newline_to_br() {
         assert_eq!(

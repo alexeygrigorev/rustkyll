@@ -1894,6 +1894,36 @@ mod tests {
         assert_eq!(out, "Hello World");
     }
 
+    /// Issue 296: Does Liquid's {{ }} output strip trailing newlines from scalar values?
+    #[test]
+    fn test_issue296_liquid_output_preserves_trailing_newline() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("text".into(), LiquidValue::scalar("Hello World\n"));
+        let out = eng.parse_and_render("{{ text }}", &ctx).unwrap();
+        assert_eq!(
+            out, "Hello World\n",
+            "Liquid {{ }} should preserve trailing newline in scalar value. Got: {:?}",
+            out
+        );
+    }
+
+    /// Issue 296: strip_html should preserve trailing newlines, matching Jekyll.
+    #[test]
+    fn test_issue296_strip_html_preserves_trailing_newline() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("text".into(), LiquidValue::scalar("<p>Hello World</p>\n"));
+        let out = eng
+            .parse_and_render("{{ text | strip_html }}", &ctx)
+            .unwrap();
+        assert_eq!(
+            out, "Hello World\n",
+            "strip_html should preserve trailing newline. Got: {:?}",
+            out
+        );
+    }
+
     #[test]
     fn test_default_filter() {
         let eng = engine();
@@ -3317,6 +3347,51 @@ title: "Test Book"
         assert_eq!(
             out, "\"Founded Company\"",
             "Markdown links should be stripped to plain text. Got: {:?}",
+            out
+        );
+    }
+
+    /// Issue 296: Podcast JSON-LD uses `content | strip_html | jsonify` (without
+    /// strip_newlines). Jekyll's strip_html does NOT remove trailing newlines, so
+    /// the trailing `\n` from rendered HTML (e.g. `<p>text</p>\n`) must survive
+    /// through the pipeline into the JSON string, producing `"text\n"`.
+    #[test]
+    fn test_issue296_podcast_description_preserves_trailing_newline() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        // Simulate guest.content = rendered HTML with trailing newline
+        ctx.insert(
+            "content".into(),
+            LiquidValue::scalar("<p>Born in Argentina, passionate about mentoring.</p>\n"),
+        );
+        // Podcast template uses strip_html | jsonify (no strip_newlines)
+        let template = r#"{{ content | strip_html | jsonify }}"#;
+        let out = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(
+            out, "\"Born in Argentina, passionate about mentoring.\\n\"",
+            "Podcast description should preserve trailing newline. Got: {:?}",
+            out
+        );
+    }
+
+    /// Issue 296: Multi-paragraph content should preserve all newlines including
+    /// the trailing one, matching Jekyll's `content | strip_html | jsonify`.
+    #[test]
+    fn test_issue296_multi_paragraph_description_trailing_newline() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "content".into(),
+            LiquidValue::scalar(
+                "<p>First paragraph about the guest.</p>\n\n<p>Second paragraph about mentoring.</p>\n",
+            ),
+        );
+        let template = r#"{{ content | strip_html | jsonify }}"#;
+        let out = eng.parse_and_render(template, &ctx).unwrap();
+        // The output should end with \n" (escaped newline then closing quote)
+        assert!(
+            out.ends_with("\\n\""),
+            "Multi-paragraph description should end with trailing newline in JSON. Got: {:?}",
             out
         );
     }
