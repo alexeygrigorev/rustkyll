@@ -43,7 +43,7 @@ pub struct LayoutEngine {
     compiled_layouts: HashMap<String, Template>,
     /// Template engine with includes registered as partials.
     engine: TemplateEngine,
-    /// Whether to add `language-plaintext highlighter-rouge` class to inline code.
+    /// Whether to add `highlighter-rouge` class to inline code.
     /// True for kramdown (default), false for CommonMark/CommonMarkGhPages.
     use_kramdown_code_classes: bool,
     /// Whether to convert soft line breaks to `<br>` elements.
@@ -98,7 +98,7 @@ impl LayoutEngine {
     ///
     /// When the site config has `markdown: CommonMarkGhPages` (or any non-kramdown
     /// processor), this should be set to `false` so inline `<code>` elements are
-    /// rendered without the `language-plaintext highlighter-rouge` class.
+    /// rendered without the `highlighter-rouge` class.
     pub fn set_kramdown_code_classes(&mut self, enabled: bool) {
         self.use_kramdown_code_classes = enabled;
     }
