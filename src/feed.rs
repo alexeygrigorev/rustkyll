@@ -342,6 +342,7 @@ mod tests {
             content: content.to_string(),
             html_content: format!("<p>{content}</p>"),
             excerpt: None,
+            excerpt_html: None,
             url: format!("/blog/{slug}.html"),
             date: Some(date.to_string()),
             collection_name: "posts".to_string(),

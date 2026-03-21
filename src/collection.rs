@@ -44,8 +44,13 @@ pub struct CollectionItem {
     /// Markdown body converted to HTML.
     pub html_content: String,
 
-    /// Content before `<!--more-->` separator, if present.
+    /// Content before `<!--more-->` separator, if present (raw markdown).
     pub excerpt: Option<String>,
+
+    /// Pre-rendered HTML version of the excerpt.
+    /// Computed once during collection loading to avoid redundant markdown_to_html
+    /// calls during page generation (which was a major performance bottleneck).
+    pub excerpt_html: Option<String>,
 
     /// Generated URL path (e.g. `/people/john-doe.html`).
     pub url: String,
@@ -725,12 +730,21 @@ fn process_collection_file(
         format!("/{}/{}", collection_name, stem)
     };
 
+    let excerpt_html = doc.excerpt.as_ref().and_then(|e| {
+        if e.is_empty() {
+            None
+        } else {
+            Some(crate::frontmatter::markdown_to_html(e))
+        }
+    });
+
     Some(Ok(CollectionItem {
         slug,
         front_matter: doc.front_matter,
         content: doc.content,
         html_content,
         excerpt: doc.excerpt,
+        excerpt_html,
         url,
         date,
         collection_name: collection_name.to_string(),
@@ -2516,6 +2530,7 @@ mod tests {
             content: String::new(),
             html_content: String::new(),
             excerpt: None,
+            excerpt_html: None,
             url: "/podcast/test-episode.html".to_string(),
             date: None,
             collection_name: "podcast".to_string(),
@@ -2549,6 +2564,7 @@ mod tests {
             content: String::new(),
             html_content: String::new(),
             excerpt: None,
+            excerpt_html: None,
             url: "/posts/my-post.html".to_string(),
             date: Some("2024-01-15".to_string()),
             collection_name: "posts".to_string(),
@@ -2584,6 +2600,7 @@ mod tests {
                 content: String::new(),
                 html_content: String::new(),
                 excerpt: None,
+                excerpt_html: None,
                 url: "/posts/has-date.html".to_string(),
                 date: Some("2023-06-01".to_string()),
                 collection_name: "posts".to_string(),
@@ -2596,6 +2613,7 @@ mod tests {
                 content: String::new(),
                 html_content: String::new(),
                 excerpt: None,
+                excerpt_html: None,
                 url: "/podcast/no-date.html".to_string(),
                 date: None,
                 collection_name: "podcast".to_string(),

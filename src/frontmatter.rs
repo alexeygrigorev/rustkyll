@@ -253,7 +253,11 @@ fn html_escape_for_code(s: &str) -> String {
 }
 
 /// Normalize extra whitespace between block HTML tags to match kramdown output.
-pub fn normalize_block_whitespace(html: &str) -> String {
+pub fn normalize_block_whitespace(html: &str) -> std::borrow::Cow<'_, str> {
+    // Short-circuit: only active when `>\n\n` appears (closing tag followed by 2+ newlines).
+    if !html.contains(">\n\n") {
+        return std::borrow::Cow::Borrowed(html);
+    }
     let mut result = String::with_capacity(html.len());
     let bytes = html.as_bytes();
     let len = bytes.len();
@@ -286,7 +290,7 @@ pub fn normalize_block_whitespace(html: &str) -> String {
             result.push_str(&html[ch_start..i]);
         }
     }
-    result
+    std::borrow::Cow::Owned(result)
 }
 
 /// Escape double quotes (`"`) to `&quot;` in HTML text nodes, matching kramdown behavior.
@@ -300,7 +304,11 @@ pub fn normalize_block_whitespace(html: &str) -> String {
 /// nodes). Quotes inside tag attributes (e.g., `href="..."`) are left unchanged.
 /// Quotes inside `<script>` and `<style>` blocks are also left unchanged, since
 /// those blocks contain code (e.g., JSON-LD) where `"` is required.
-pub fn escape_quotes_in_text_nodes(html: &str) -> String {
+pub fn escape_quotes_in_text_nodes(html: &str) -> std::borrow::Cow<'_, str> {
+    // Short-circuit: if no double-quote characters at all, nothing to escape.
+    if !html.contains('"') {
+        return std::borrow::Cow::Borrowed(html);
+    }
     let mut result = String::with_capacity(html.len());
     let mut in_tag = false;
     let mut in_script = false;
@@ -337,7 +345,7 @@ pub fn escape_quotes_in_text_nodes(html: &str) -> String {
             }
         }
     }
-    result
+    std::borrow::Cow::Owned(result)
 }
 
 /// Supports headings, paragraphs, links, images, bold/italic, blockquotes,

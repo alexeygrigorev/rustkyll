@@ -425,6 +425,7 @@ mod tests {
             content: format!("Content of {}", title),
             html_content: format!("<p>Content of {}</p>", title),
             excerpt: None,
+            excerpt_html: None,
             url: format!("/blog/{}.html", slug),
             source_path: format!("_posts/{}-{}.md", date, slug),
             date: Some(date.to_string()),

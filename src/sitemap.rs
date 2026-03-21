@@ -129,6 +129,7 @@ mod tests {
             content: String::new(),
             html_content: String::new(),
             excerpt: None,
+            excerpt_html: None,
             url: url.to_string(),
             date: None,
             collection_name: collection.to_string(),

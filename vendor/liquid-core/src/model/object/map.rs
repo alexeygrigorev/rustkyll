@@ -1,12 +1,13 @@
 //! Type representing a Liquid object, payload of the `Value::Object` variant
 
 use std::borrow::Borrow;
+use std::collections::btree_map;
+use std::collections::BTreeMap;
 use std::fmt::{self, Debug};
 use std::hash::Hash;
 use std::iter::FromIterator;
 use std::ops;
 
-use indexmap::map as index_map;
 use serde::{de, ser};
 
 use super::Value;
@@ -19,15 +20,15 @@ pub struct Object {
 
 type Key = crate::model::KString;
 
-type MapImpl<K, V> = indexmap::IndexMap<K, V>;
-type VacantEntryImpl<'a> = index_map::VacantEntry<'a, Key, Value>;
-type OccupiedEntryImpl<'a> = index_map::OccupiedEntry<'a, Key, Value>;
-type IterImpl<'a> = index_map::Iter<'a, Key, Value>;
-type IterMutImpl<'a> = index_map::IterMut<'a, Key, Value>;
-type IntoIterImpl = index_map::IntoIter<Key, Value>;
-type KeysImpl<'a> = index_map::Keys<'a, Key, Value>;
-type ValuesImpl<'a> = index_map::Values<'a, Key, Value>;
-type ValuesMutImpl<'a> = index_map::ValuesMut<'a, Key, Value>;
+type MapImpl<K, V> = BTreeMap<K, V>;
+type VacantEntryImpl<'a> = btree_map::VacantEntry<'a, Key, Value>;
+type OccupiedEntryImpl<'a> = btree_map::OccupiedEntry<'a, Key, Value>;
+type IterImpl<'a> = btree_map::Iter<'a, Key, Value>;
+type IterMutImpl<'a> = btree_map::IterMut<'a, Key, Value>;
+type IntoIterImpl = btree_map::IntoIter<Key, Value>;
+type KeysImpl<'a> = btree_map::Keys<'a, Key, Value>;
+type ValuesImpl<'a> = btree_map::Values<'a, Key, Value>;
+type ValuesMutImpl<'a> = btree_map::ValuesMut<'a, Key, Value>;
 
 impl Object {
     /// Makes a new empty Object.
@@ -105,7 +106,7 @@ impl Object {
         Key: Borrow<Q>,
         Q: Ord + Eq + Hash + ?Sized,
     {
-        self.map.shift_remove(key)
+        self.map.remove(key)
     }
 
     /// Gets the given key's corresponding entry in the map for in-place
@@ -114,7 +115,7 @@ impl Object {
     where
         S: Into<Key>,
     {
-        use indexmap::map::Entry as EntryImpl;
+        use std::collections::btree_map::Entry as EntryImpl;
         match self.map.entry(key.into()) {
             EntryImpl::Vacant(vacant) => Entry::Vacant(VacantEntry { vacant }),
             EntryImpl::Occupied(occupied) => Entry::Occupied(OccupiedEntry { occupied }),
@@ -597,7 +598,7 @@ impl<'a> OccupiedEntry<'a> {
     /// ```
     #[inline]
     pub fn remove(self) -> Value {
-        self.occupied.shift_remove()
+        self.occupied.remove()
     }
 }
 

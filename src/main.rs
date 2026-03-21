@@ -715,13 +715,12 @@ fn build_site(
 
     // 12. Re-render post html_content through Liquid+markdown so feed entries
     //     contain fully rendered HTML instead of raw Liquid tags.
+    // Re-render posts with Liquid tags in parallel for feed content.
     if let Some(posts) = collections.get_mut("posts") {
-        for item in posts.iter_mut() {
+        use rayon::prelude::*;
+        posts.par_iter_mut().for_each(|item| {
             // Only re-render if the raw content contains Liquid tags
             if item.content.contains("{{") || item.content.contains("{%") {
-                // Build a page front matter that matches what the generator provides:
-                // inject url and date so that Liquid templates (e.g. related-posts.html)
-                // can access page.url and page.date.
                 let mut page_fm = item.front_matter.clone();
                 page_fm
                     .entry("url".to_string())
@@ -745,13 +744,11 @@ fn build_site(
                             "Warning: failed to render Liquid in post '{}': {}",
                             item.source_path, e
                         );
-                        // On render failure, strip raw Liquid tags from
-                        // html_content so they don't leak into the feed.
                         item.html_content = strip_liquid_tags(&item.html_content);
                     }
                 }
             }
-        }
+        });
     }
 
     /// Strip raw Liquid tags from content so they don't leak into the feed.
