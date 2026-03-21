@@ -324,6 +324,50 @@ pub fn normalize_html_output(html: &str) -> String {
     }
 }
 
+/// Owned-string version of `normalize_html_output` that avoids allocating
+/// when nothing changes. Takes ownership of the input `String` and returns
+/// it unmodified on the fast path, avoiding the clone that the borrow-based
+/// version would incur. Used in the per-page rendering hot path.
+pub fn normalize_html_output_owned(html: String) -> String {
+    let needs_bool_attrs = html.contains("=\"\"");
+    let needs_br = html.contains("<br>");
+
+    // Fast path: nothing to normalize -- return the original String without allocating.
+    if !needs_bool_attrs && !needs_br {
+        return html;
+    }
+
+    let after_br = normalize_br_only(&html);
+
+    if needs_bool_attrs {
+        normalize_boolean_attributes(&after_br)
+    } else {
+        after_br
+    }
+}
+
+/// Owned-string version of `normalize_html_output` that avoids allocating
+/// when nothing changes. Takes ownership of the input `String` and returns
+/// it unmodified on the fast path, avoiding the clone that the borrow-based
+/// version would incur. Used in the per-page rendering hot path.
+pub fn normalize_html_output_owned(html: String) -> String {
+    let needs_bool_attrs = html.contains("=\"\"");
+    let needs_br = html.contains("<br>");
+
+    // Fast path: nothing to normalize -- return the original String without allocating.
+    if !needs_bool_attrs && !needs_br {
+        return html;
+    }
+
+    let after_br = normalize_br_only(&html);
+
+    if needs_bool_attrs {
+        normalize_boolean_attributes(&after_br)
+    } else {
+        after_br
+    }
+}
+
 // ============================================================================
 // Issue 275: Escape inner delimiters in mixed-delimiter emphasis
 // ============================================================================
@@ -10283,6 +10327,111 @@ by <a href="/people/author.html">Author Name</a>
             result.contains("\\[\\alpha \\approx y\\]"),
             "postprocess should convert display math with unicode LaTeX. Got:\n{}",
             result
+        );
+    }
+
+    // ========================================================================
+    // Issue 302: Typographic ellipsis conversion
+    // ========================================================================
+
+    #[test]
+    fn test_issue302_ellipsis_in_plain_text() {
+        // kramdown converts ... to Unicode ellipsis U+2026
+        let html = crate::frontmatter::markdown_to_html("Hello... world\n");
+        assert!(
+            html.contains("Hello\u{2026} world"),
+            "Three dots should be converted to Unicode ellipsis. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue302_ellipsis_inside_math() {
+        // kramdown converts ... to ellipsis even inside $...$
+        let html = crate::frontmatter::markdown_to_html("$A, B, C, ...$ in math\n");
+        assert!(
+            html.contains("\u{2026}"),
+            "Ellipsis inside math should be converted to Unicode ellipsis. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue302_ellipsis_not_in_inline_code() {
+        // Inline code should NOT have ... converted
+        let html = crate::frontmatter::markdown_to_html("Use `code...` here\n");
+        assert!(
+            html.contains("code..."),
+            "Ellipsis inside inline code should stay as three dots. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue302_four_dots_becomes_ellipsis_plus_dot() {
+        // Four dots: .... -> ellipsis + dot
+        let html = crate::frontmatter::markdown_to_html("A.... B\n");
+        assert!(
+            html.contains("\u{2026}."),
+            "Four dots should become ellipsis + dot. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue302_ellipsis_with_unicode_text() {
+        // Non-ASCII content with ellipsis
+        let html = crate::frontmatter::markdown_to_html(
+            "\u{041F}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}... \u{043C}\u{0438}\u{0440}\n",
+        );
+        assert!(
+            html.contains(
+                "\u{041F}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}\u{2026} \u{043C}\u{0438}\u{0440}"
+            ),
+            "Ellipsis should work with non-ASCII text. Got: {}",
+            html
+        );
+    }
+
+    // ========================================================================
+    // Issue 302: Curly brace escaping in math
+    // ========================================================================
+
+    #[test]
+    fn test_issue302_braces_not_escaped_in_inline_math() {
+        // Braces inside $...$ should NOT be escaped to \{ \}
+        let html = crate::frontmatter::markdown_to_html("$A = {x, y}$\n");
+        assert!(
+            !html.contains("\\{") && !html.contains("\\}"),
+            "Braces inside inline math should NOT be escaped. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("{x, y}"),
+            "Braces should be literal inside inline math. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue302_braces_not_escaped_in_display_math() {
+        // Braces inside $$...$$ should NOT be escaped
+        let html = crate::frontmatter::markdown_to_html("$$F = {x | x > 0}$$\n");
+        assert!(
+            !html.contains("\\{") && !html.contains("\\}"),
+            "Braces inside display math should NOT be escaped. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue302_braces_in_math_with_unicode() {
+        // Non-ASCII content with braces in math
+        let html = crate::frontmatter::markdown_to_html("$\\alpha \\in {1, 2, 3}$\n");
+        assert!(
+            !html.contains("\\{") && !html.contains("\\}"),
+            "Braces in math with unicode should NOT be escaped. Got: {}",
+            html
         );
     }
 }

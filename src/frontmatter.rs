@@ -524,7 +524,10 @@ pub fn markdown_to_html_with_options(
 
     let html_output = restore_liquid_quotes(&html_output);
     let html_output = restore_consecutive_single_quotes(&html_output);
-    let html_output = restore_math_content(&html_output, &math_saved);
+    // Issue 302: Apply ellipsis conversion in math content only when smart
+    // punctuation is enabled (kramdown mode).
+    let html_output =
+        restore_math_content_impl(&html_output, &math_saved, enable_smart_punctuation);
     let html_output = decode_pulldown_url_encoding(&html_output);
     // Issue 211: Fix smart quote directions to match kramdown
     let html_output = crate::kramdown::fix_smart_quote_directions(&html_output);
@@ -839,7 +842,16 @@ fn protect_math_content(input: &str) -> (String, Vec<String>) {
 }
 
 /// Issue 227: Restore protected math content from placeholders.
+///
+/// Issue 302: When smart punctuation is active (kramdown mode), also converts
+/// `...` to Unicode ellipsis U+2026 inside math content, matching kramdown
+/// behavior. Math content was protected from pulldown-cmark processing, so
+/// this typographic conversion must be applied during restoration.
 fn restore_math_content(html: &str, saved: &[String]) -> String {
+    restore_math_content_impl(html, saved, true)
+}
+
+fn restore_math_content_impl(html: &str, saved: &[String], apply_ellipsis: bool) -> String {
     if saved.is_empty() {
         return html.to_string();
     }
@@ -850,7 +862,12 @@ fn restore_math_content(html: &str, saved: &[String]) -> String {
             "{}{}{}",
             MATH_PLACEHOLDER_PREFIX, idx, MATH_PLACEHOLDER_SUFFIX
         );
-        result = result.replace(&placeholder, content);
+        let restored = if apply_ellipsis {
+            content.replace("...", "\u{2026}")
+        } else {
+            content.clone()
+        };
+        result = result.replace(&placeholder, &restored);
     }
     result
 }
