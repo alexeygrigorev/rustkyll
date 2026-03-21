@@ -2828,7 +2828,9 @@ fn parse_html_opening_tag(s: &str) -> Option<(String, String, bool, String)> {
 /// Normalize an HTML tag: parse attributes, convert quotes to double, etc.
 fn normalize_html_tag(tag_str: &str) -> String {
     if let Some((tag_name, attr_str, is_self_closing, _rest)) = parse_html_opening_tag(tag_str) {
-        let attrs = parse_html_tag_attrs(&attr_str);
+        // For XML-namespaced tags (containing ':'), preserve attribute name case
+        let is_xml = tag_name.contains(':');
+        let attrs = parse_html_tag_attrs_impl(&attr_str, !is_xml);
         let attrs_str = format_html_attrs(&attrs);
         if is_self_closing || is_html_void_tag(&tag_name) {
             format!("<{tag_name}{attrs_str} />")
@@ -3327,7 +3329,9 @@ fn normalize_html_line(line: &str) -> String {
     }
     // Try to parse as an opening tag for normalization
     if let Some((tag_name, attr_str, is_self_closing, rest)) = parse_html_opening_tag(trimmed) {
-        let attrs = parse_html_tag_attrs(&attr_str);
+        // For XML-namespaced tags (containing ':'), preserve attribute name case
+        let is_xml = tag_name.contains(':');
+        let attrs = parse_html_tag_attrs_impl(&attr_str, !is_xml);
         // Remove markdown attribute
         let filtered: Vec<_> = attrs
             .iter()

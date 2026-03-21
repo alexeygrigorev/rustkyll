@@ -336,6 +336,20 @@ fn convert_children(
             }
         }
 
+        // When the first visible block is preceded by invisible block extensions
+        // and blank lines, output the leading blank (kramdown preserves it).
+        if first && is_visible_block(child) && i > 0 {
+            let had_invisible_before = children[..i]
+                .iter()
+                .any(|e| e.element_type == ElementType::BlockExtension && !is_visible_block(e));
+            let had_blank_before = children[..i]
+                .iter()
+                .any(|e| e.element_type == ElementType::Blank);
+            if had_invisible_before && had_blank_before {
+                output.push('\n');
+            }
+        }
+
         convert_element(child, output, options, indent, ctx);
         if is_visible_block(child) {
             prev_was_block = true;
@@ -701,6 +715,7 @@ fn convert_list_item(
         // Simple item: inline content on same line as <li>
         // Process inline text through span parser
         let text = get_element_text_from_children(&elem.children);
+        let text = text.trim_end().to_string();
         if !text.is_empty() {
             let processed = span_parser::spans_to_html(&text, ctx);
             output.push_str(&processed);
@@ -921,6 +936,91 @@ fn write_indent(output: &mut String, indent: usize) {
 }
 
 /// Escape invalid HTML inside a block-level HTML element.
+/// Process `markdown="span"` attributes inside raw HTML blocks.
+/// Finds tags with `markdown="span"`, removes the attribute, and processes
+/// the element's text content through span parsing (for abbreviations, etc.).
+fn process_markdown_span_in_raw_html(html: &str, ctx: &mut SpanContext) -> String {
+    const MARKER: &str = "markdown=\"span\"";
+
+    if !html.contains(MARKER) {
+        return html.to_string();
+    }
+
+    let mut result = String::new();
+    let mut remaining = html;
+
+    while let Some(md_pos) = remaining.find(MARKER) {
+        // Find the start of the opening tag containing markdown="span"
+        let tag_open = match remaining[..md_pos].rfind('<') {
+            Some(pos) => pos,
+            None => {
+                result.push_str(&remaining[..md_pos + MARKER.len()]);
+                remaining = &remaining[md_pos + MARKER.len()..];
+                continue;
+            }
+        };
+
+        // Extract tag name
+        let after_lt = &remaining[tag_open + 1..];
+        let tag_name_end = after_lt
+            .find(|c: char| c.is_whitespace() || c == '>' || c == '/')
+            .unwrap_or(after_lt.len());
+        let tag_name = &after_lt[..tag_name_end];
+
+        if tag_name.is_empty() {
+            result.push_str(&remaining[..md_pos + MARKER.len()]);
+            remaining = &remaining[md_pos + MARKER.len()..];
+            continue;
+        }
+
+        // Find end of opening tag (the >)
+        let after_marker = &remaining[md_pos + MARKER.len()..];
+        let gt_pos = match after_marker.find('>') {
+            Some(pos) => md_pos + MARKER.len() + pos,
+            None => {
+                result.push_str(&remaining[..md_pos + MARKER.len()]);
+                remaining = &remaining[md_pos + MARKER.len()..];
+                continue;
+            }
+        };
+
+        // Build clean opening tag (without markdown="span")
+        let full_tag = &remaining[tag_open..=gt_pos];
+        let clean_tag = full_tag
+            .replace(" markdown=\"span\"", "")
+            .replace("markdown=\"span\" ", "")
+            .replace("markdown=\"span\"", "");
+
+        // Find the closing tag
+        let content_start = gt_pos + 1;
+        let close_tag = format!("</{tag_name}>");
+        let close_pos = match remaining[content_start..].find(&close_tag) {
+            Some(pos) => content_start + pos,
+            None => {
+                result.push_str(&remaining[..=gt_pos]);
+                remaining = &remaining[gt_pos + 1..];
+                continue;
+            }
+        };
+
+        let inner_content = &remaining[content_start..close_pos];
+
+        // Process inner content through span parsing
+        let processed = span_parser::spans_to_html(inner_content, ctx);
+
+        // Output everything before the tag, the clean tag, processed content, and closing tag
+        result.push_str(&remaining[..tag_open]);
+        result.push_str(&clean_tag);
+        result.push_str(&processed);
+        result.push_str(&close_tag);
+
+        remaining = &remaining[close_pos + close_tag.len()..];
+    }
+
+    result.push_str(remaining);
+    result
+}
+
 /// Orphan closing tags (no matching opener) and non-HTML angle bracket content
 /// get their `<` and `>` escaped to `&lt;` and `&gt;`.
 fn escape_invalid_html_in_block(html: &str) -> String {
@@ -1225,6 +1325,8 @@ fn convert_html_block(
                     } else {
                         val.clone()
                     };
+                    // Process markdown="span" elements inside raw HTML
+                    let html_str = process_markdown_span_in_raw_html(&html_str, ctx);
                     if skip_escape {
                         output.push_str(&html_str);
                     } else {
@@ -1477,15 +1579,14 @@ fn render_footnotes(options: &Options, ctx: &mut SpanContext) -> String {
 
         let fn_content_html = render_footnote_content(&content, options, ctx);
 
-        // In kramdown, if the first child of <li> is NOT a transparent paragraph,
-        // there's a blank line after <li>. A "transparent" paragraph is one that wraps
-        // the entire content without explicit block structure.
-        // We detect this by checking: is the content empty, does it start with a blank line,
-        // does it contain multiple blocks, or does it start with a non-paragraph?
-        let is_multi_block = content.contains("\n\n");
+        // In kramdown Ruby, a blank line is added after <li> when the first child
+        // is NOT a transparent paragraph. We detect this by checking:
+        // - content is empty (blank footnote)
+        // - content starts with a blank line (explicit block separation)
+        // - the rendered HTML does NOT start with a <p> tag (e.g., code block, list, etc.)
         let starts_with_blank = content.starts_with('\n');
         let is_non_para = !fn_content_html.trim_start().starts_with("<p");
-        if content.is_empty() || starts_with_blank || is_multi_block || is_non_para {
+        if content.is_empty() || starts_with_blank || is_non_para {
             output.push('\n');
         }
 
@@ -1535,6 +1636,11 @@ fn render_footnote_content(content: &str, options: &Options, ctx: &mut SpanConte
 
     // Parse through block parser
     let doc = KramdownParser::parse(&input, options);
+
+    // Pre-collect headers for auto-ID generation in footnote content
+    if options.auto_ids {
+        collect_headers(&doc.root.children, options, ctx);
+    }
 
     // Convert to HTML with span processing (reuse the same context for footnote refs)
     let mut html_output = String::new();
@@ -1672,21 +1778,16 @@ fn insert_backlink_inline(content: &str, backlink_html: &str) -> String {
     if let Some(pos) = best_pos {
         let mut result = String::new();
         result.push_str(&content[..pos]);
-        // For inline mode, add space before backlink
-        result.push(' ');
-        result.push_str(
-            backlink_html
-                .trim_start_matches('\u{a0}')
-                .trim_start_matches("&nbsp;")
-                .trim_start_matches("&#160;"),
-        );
+        // For inline mode, keep the nbsp from backlink_html (it already has the nbsp prefix)
+        result.push_str(backlink_html);
         result.push_str(&content[pos..]);
         return result;
     }
 
-    // No p/header found - append a new paragraph with the backlink
+    // No p/header found - append a new paragraph with the backlink (strip leading nbsp)
+    let trimmed_bl = strip_leading_nbsp(backlink_html);
     let mut result = content.to_string();
-    result.push_str(&format!("      <p>{backlink_html}</p>\n"));
+    result.push_str(&format!("      <p>{trimmed_bl}</p>\n"));
     result
 }
 

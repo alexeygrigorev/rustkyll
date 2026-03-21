@@ -47,7 +47,8 @@ pub fn to_html_with_options(input: &str, options: &Options) -> String {
 
     // Parse blocks from the cleaned text (definitions removed)
     // Pass ALDs extracted by extract_definitions so IAL can resolve ALD references
-    let mut doc: Document = KramdownParser::parse_with_alds(&cleaned, options, &mut span_ctx.ald_defs);
+    let mut doc: Document =
+        KramdownParser::parse_with_alds(&cleaned, options, &mut span_ctx.ald_defs);
 
     // Convert HTML blocks to native kramdown elements when html_to_native is enabled
     if options.html_to_native {
@@ -56,6 +57,12 @@ pub fn to_html_with_options(input: &str, options: &Options) -> String {
 
     // Convert to HTML with span processing
     let mut html = HtmlConverter::convert_with_context(&doc, options, &mut span_ctx);
+
+    // When html_to_native is enabled, convert inline HTML tags in the final output:
+    // <b> -> <strong>, <i> -> <em>, and strip tags inside <code> spans.
+    if options.html_to_native {
+        html = html_to_native::convert_inline_html_tags(&html);
+    }
 
     // When definitions were extracted from the start of the document, the cleaned text
     // starts with blank lines. In kramdown, blank elements produce "\n" in output.

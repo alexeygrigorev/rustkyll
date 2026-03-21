@@ -27,6 +27,8 @@ pub struct SpanContext {
     pub link_defs: HashMap<String, LinkDef>,
     /// Abbreviations: abbreviation -> full text
     pub abbreviations: HashMap<String, String>,
+    /// Abbreviation IAL attributes: abbreviation -> list of (key, value) pairs
+    pub abbreviation_attrs: HashMap<String, Vec<(String, String)>>,
     /// Footnote definitions: name -> content
     pub footnote_defs: HashMap<String, String>,
     /// Footnote counter for numbering
@@ -71,6 +73,7 @@ impl SpanContext {
         Self {
             link_defs,
             abbreviations: HashMap::new(),
+            abbreviation_attrs: HashMap::new(),
             footnote_defs: HashMap::new(),
             footnote_counter: options.footnote_nr as usize,
             footnote_order: Vec::new(),
@@ -194,13 +197,24 @@ pub fn extract_definitions(text: &str, ctx: &mut SpanContext) -> String {
                     if !abbr.is_empty() {
                         ctx.abbreviations.insert(abbr.to_string(), full.to_string());
                         i += 1;
-                        at_block_boundary = true;
-                        // Flush any pending IAL lines (they don't apply to abbreviation defs)
-                        for &ial_line_idx in &pending_ial_lines {
-                            output_lines.push(lines[ial_line_idx]);
+                        // Collect IAL attrs: pending (before) + following (after)
+                        let mut abbr_attrs: Vec<(String, String)> = Vec::new();
+                        for (k, v) in pending_ial_attrs.drain(..) {
+                            merge_attr_vec(&mut abbr_attrs, k, v);
                         }
                         pending_ial_lines.clear();
-                        pending_ial_attrs.clear();
+                        // Collect IAL lines after the abbreviation definition
+                        while i < lines.len() && is_block_ial(lines[i]) {
+                            let ial_attrs = parse_ial(lines[i].trim());
+                            for (k, v) in ial_attrs {
+                                merge_attr_vec(&mut abbr_attrs, k, v);
+                            }
+                            i += 1;
+                        }
+                        if !abbr_attrs.is_empty() {
+                            ctx.abbreviation_attrs.insert(abbr.to_string(), abbr_attrs);
+                        }
+                        at_block_boundary = true;
                         continue;
                     }
                 }
@@ -751,7 +765,7 @@ pub fn spans_to_html(text: &str, ctx: &mut SpanContext) -> String {
 
     // Apply abbreviations
     if !ctx.abbreviations.is_empty() {
-        result = apply_abbreviations(&result, &ctx.abbreviations);
+        result = apply_abbreviations(&result, &ctx.abbreviations, &ctx.abbreviation_attrs);
     }
 
     result
@@ -3871,7 +3885,11 @@ pub fn encode_backlink_text(text: &str) -> String {
 
 /// Apply abbreviations to HTML output, replacing whole-word occurrences
 /// but not inside HTML tags.
-fn apply_abbreviations(html: &str, abbreviations: &HashMap<String, String>) -> String {
+fn apply_abbreviations(
+    html: &str,
+    abbreviations: &HashMap<String, String>,
+    abbreviation_attrs: &HashMap<String, Vec<(String, String)>>,
+) -> String {
     if abbreviations.is_empty() {
         return html.to_string();
     }
@@ -3883,11 +3901,29 @@ fn apply_abbreviations(html: &str, abbreviations: &HashMap<String, String>) -> S
     abbrs.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
 
     for (abbr, full) in abbrs {
+        // Build attribute string from IAL attrs
+        let extra_attrs = if let Some(attrs) = abbreviation_attrs.get(abbr.as_str()) {
+            let mut attr_str = String::new();
+            for (k, v) in attrs {
+                if k == "__ald_ref__" {
+                    continue;
+                }
+                attr_str.push(' ');
+                attr_str.push_str(k);
+                attr_str.push_str("=\"");
+                attr_str.push_str(&escape_html_attr(v));
+                attr_str.push('"');
+            }
+            attr_str
+        } else {
+            String::new()
+        };
+
         let replacement = if full.is_empty() {
-            format!("<abbr>{abbr}</abbr>")
+            format!("<abbr{extra_attrs}>{abbr}</abbr>")
         } else {
             let escaped_full = escape_html_attr(full);
-            format!("<abbr title=\"{escaped_full}\">{abbr}</abbr>")
+            format!("<abbr{extra_attrs} title=\"{escaped_full}\">{abbr}</abbr>")
         };
         result = replace_outside_tags(&result, abbr, &replacement);
     }
@@ -3895,11 +3931,57 @@ fn apply_abbreviations(html: &str, abbreviations: &HashMap<String, String>) -> S
     result
 }
 
-/// Replace text outside of HTML tags (not inside <...> or attributes)
+/// Check if a character is whitespace for abbreviation matching purposes.
+/// Matches both standard whitespace and Unicode space separators (like \u{a0}).
+fn is_abbr_whitespace(c: char) -> bool {
+    c.is_whitespace() || c == '\u{a0}'
+}
+
+/// Try to match abbreviation at position i in chars, with flexible whitespace matching.
+/// Returns the length of the match if successful, or None.
+/// Spaces in the search string match any sequence of whitespace/nbsp characters.
+fn try_match_abbr(chars: &[char], i: usize, search_chars: &[char]) -> Option<usize> {
+    let mut ci = i;
+    let mut si = 0;
+
+    while si < search_chars.len() {
+        if ci >= chars.len() {
+            return None;
+        }
+        if search_chars[si] == ' ' {
+            // Search has a space: match one or more whitespace chars in the text
+            if !is_abbr_whitespace(chars[ci]) {
+                return None;
+            }
+            // Consume all whitespace in the search
+            while si < search_chars.len() && search_chars[si] == ' ' {
+                si += 1;
+            }
+            // Consume one or more whitespace in the text
+            ci += 1;
+            while ci < chars.len() && is_abbr_whitespace(chars[ci]) {
+                ci += 1;
+            }
+        } else {
+            if chars[ci] != search_chars[si] {
+                return None;
+            }
+            ci += 1;
+            si += 1;
+        }
+    }
+
+    Some(ci - i)
+}
+
+/// Replace text outside of HTML tags (not inside <...> or attributes).
+/// For abbreviations containing spaces, matches any whitespace sequence (including
+/// newlines and nbsp) and preserves the original matched text in the replacement.
 fn replace_outside_tags(html: &str, search: &str, replacement: &str) -> String {
     let mut result = String::new();
     let chars: Vec<char> = html.chars().collect();
     let search_chars: Vec<char> = search.chars().collect();
+    let has_space = search.contains(' ');
     let mut i = 0;
 
     while i < chars.len() {
@@ -3918,19 +4000,37 @@ fn replace_outside_tags(html: &str, search: &str, replacement: &str) -> String {
             continue;
         }
 
-        // Check for word match
-        if i + search_chars.len() <= chars.len() {
+        // Try to match abbreviation at this position
+        let match_len = if has_space {
+            try_match_abbr(&chars, i, &search_chars)
+        } else if i + search_chars.len() <= chars.len() {
             let candidate: String = chars[i..i + search_chars.len()].iter().collect();
             if candidate == *search {
-                // Check word boundaries
-                let before_ok = i == 0 || !chars[i - 1].is_alphanumeric();
-                let after_ok = i + search_chars.len() >= chars.len()
-                    || !chars[i + search_chars.len()].is_alphanumeric();
-                if before_ok && after_ok {
+                Some(search_chars.len())
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        if let Some(mlen) = match_len {
+            // Check word boundaries
+            let before_ok = i == 0 || !chars[i - 1].is_alphanumeric();
+            let after_ok = i + mlen >= chars.len() || !chars[i + mlen].is_alphanumeric();
+            if before_ok && after_ok {
+                if has_space {
+                    // For multi-word abbreviations, preserve the actual matched text
+                    // The replacement has the format <abbr ...>SEARCH</abbr>
+                    // We need to replace SEARCH with the actual matched text
+                    let matched: String = chars[i..i + mlen].iter().collect();
+                    let actual_replacement = replacement.replace(search, &matched);
+                    result.push_str(&actual_replacement);
+                } else {
                     result.push_str(replacement);
-                    i += search_chars.len();
-                    continue;
                 }
+                i += mlen;
+                continue;
             }
         }
 
