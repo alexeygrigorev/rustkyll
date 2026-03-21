@@ -734,7 +734,23 @@ fn process_collection_file(
         if e.is_empty() {
             None
         } else {
-            Some(crate::frontmatter::markdown_to_html(e))
+            // If the excerpt contains Liquid tags (e.g. {% highlight %}),
+            // process them through the Liquid engine first, then markdown.
+            // This ensures syntax-highlighted code blocks render properly
+            // in post excerpts on index/listing pages (issue 300).
+            let processed = if e.contains("{%") || e.contains("{{") {
+                if let Ok(engine) = crate::template::TemplateEngine::new() {
+                    let ctx = liquid::Object::new();
+                    engine
+                        .parse_and_render(e, &ctx)
+                        .unwrap_or_else(|_| e.clone())
+                } else {
+                    e.clone()
+                }
+            } else {
+                e.clone()
+            };
+            Some(crate::frontmatter::markdown_to_html(&processed))
         }
     });
 
@@ -3061,6 +3077,161 @@ mod tests {
         assert!(
             root_readme.is_none(),
             "Root-level README.md should be excluded from pages"
+        );
+    }
+
+    #[test]
+    fn test_collection_item_source_path_includes_collection_dir_prefix() {
+        // page.path for collection items must include the collection directory
+        // prefix (e.g., "_licenses/mit.txt"), matching Jekyll's behavior.
+        // This is needed for github_edit_link to generate correct URLs.
+        let dir = tempfile::tempdir().unwrap();
+        let licenses_dir = dir.path().join("_licenses");
+        std::fs::create_dir(&licenses_dir).unwrap();
+        std::fs::write(
+            licenses_dir.join("mit.txt"),
+            "---\ntitle: MIT License\npermalink: /licenses/mit/\n---\nMIT License text",
+        )
+        .unwrap();
+
+        let config = SiteConfig::default();
+        let (items, errors) = load_collection("licenses", dir.path(), &config).unwrap();
+        assert!(errors.is_empty(), "Unexpected errors: {:?}", errors);
+        assert_eq!(items.len(), 1);
+
+        let item = &items[0];
+        assert_eq!(
+            item.source_path, "_licenses/mit.txt",
+            "source_path should include _licenses/ prefix, got: {}",
+            item.source_path
+        );
+    }
+
+    #[test]
+    fn test_collection_item_source_path_unicode_filename() {
+        let dir = tempfile::tempdir().unwrap();
+        let coll_dir = dir.path().join("_docs");
+        std::fs::create_dir(&coll_dir).unwrap();
+        std::fs::write(
+            coll_dir.join("\u{00fc}ber.md"),
+            "---\ntitle: \u{00dc}ber Uns\n---\nContent",
+        )
+        .unwrap();
+
+        let config = SiteConfig::default();
+        let (items, errors) = load_collection("docs", dir.path(), &config).unwrap();
+        assert!(errors.is_empty(), "Unexpected errors: {:?}", errors);
+        assert_eq!(items.len(), 1);
+
+        let item = &items[0];
+        assert_eq!(
+            item.source_path, "_docs/\u{00fc}ber.md",
+            "source_path should include collection prefix and preserve Unicode, got: {}",
+            item.source_path
+        );
+    }
+
+    // ── Issue 300: Excerpt with {% highlight %} Liquid tags ──
+
+    #[test]
+    fn test_excerpt_highlight_tag_rendered_in_excerpt_html() {
+        // A post whose first paragraph contains {% highlight js %}...{% endhighlight %}
+        // should have the highlight tag rendered in excerpt_html, not literal text.
+        let dir = tempfile::tempdir().unwrap();
+        let posts_dir = dir.path().join("_posts");
+        std::fs::create_dir_all(&posts_dir).unwrap();
+        std::fs::write(
+            posts_dir.join("2020-04-02-example.md"),
+            "---\ntitle: Example\n---\n{% highlight js %}var x = 1;{% endhighlight %}\n\nMore content here.\n",
+        ).unwrap();
+
+        let config = SiteConfig::default();
+        let (items, errors) = load_collection("posts", dir.path(), &config).unwrap();
+        assert!(errors.is_empty(), "Unexpected errors: {:?}", errors);
+        assert_eq!(items.len(), 1);
+
+        let item = &items[0];
+        let excerpt_html = item
+            .excerpt_html
+            .as_ref()
+            .expect("excerpt_html should exist");
+        assert!(
+            excerpt_html.contains("<figure class=\"highlight\">"),
+            "Excerpt should contain rendered highlight tag, not literal text. Got: {}",
+            excerpt_html
+        );
+        assert!(
+            !excerpt_html.contains("{% highlight"),
+            "Excerpt should NOT contain literal {{% highlight %}} text. Got: {}",
+            excerpt_html
+        );
+    }
+
+    #[test]
+    fn test_excerpt_highlight_beyond_cutoff_not_partial() {
+        // When the highlight block is in the second paragraph (beyond excerpt cutoff),
+        // the excerpt should not contain a partial/broken highlight tag.
+        let dir = tempfile::tempdir().unwrap();
+        let posts_dir = dir.path().join("_posts");
+        std::fs::create_dir_all(&posts_dir).unwrap();
+        std::fs::write(
+            posts_dir.join("2020-04-02-example.md"),
+            "---\ntitle: Example\n---\nFirst paragraph text.\n\n{% highlight js %}var x = 1;{% endhighlight %}\n",
+        ).unwrap();
+
+        let config = SiteConfig::default();
+        let (items, errors) = load_collection("posts", dir.path(), &config).unwrap();
+        assert!(errors.is_empty(), "Unexpected errors: {:?}", errors);
+        assert_eq!(items.len(), 1);
+
+        let item = &items[0];
+        let excerpt_html = item
+            .excerpt_html
+            .as_ref()
+            .expect("excerpt_html should exist");
+        // The excerpt is only the first paragraph, so it should not contain highlight content
+        assert!(
+            !excerpt_html.contains("{% highlight"),
+            "Excerpt beyond cutoff should not contain partial highlight. Got: {}",
+            excerpt_html
+        );
+        assert!(
+            excerpt_html.contains("First paragraph text"),
+            "Excerpt should contain first paragraph. Got: {}",
+            excerpt_html
+        );
+    }
+
+    #[test]
+    fn test_excerpt_highlight_unicode_content() {
+        // Non-ASCII: highlight block with Unicode variable names
+        let dir = tempfile::tempdir().unwrap();
+        let posts_dir = dir.path().join("_posts");
+        std::fs::create_dir_all(&posts_dir).unwrap();
+        std::fs::write(
+            posts_dir.join("2020-04-02-unicode.md"),
+            "---\ntitle: Unicode\n---\n{% highlight python %}x = \"\u{4f60}\u{597d}\"{% endhighlight %}\n\nMore.\n",
+        ).unwrap();
+
+        let config = SiteConfig::default();
+        let (items, errors) = load_collection("posts", dir.path(), &config).unwrap();
+        assert!(errors.is_empty(), "Unexpected errors: {:?}", errors);
+        assert_eq!(items.len(), 1);
+
+        let item = &items[0];
+        let excerpt_html = item
+            .excerpt_html
+            .as_ref()
+            .expect("excerpt_html should exist");
+        assert!(
+            excerpt_html.contains("<figure class=\"highlight\">"),
+            "Unicode highlight excerpt should render. Got: {}",
+            excerpt_html
+        );
+        assert!(
+            excerpt_html.contains("\u{4f60}\u{597d}"),
+            "Unicode content should be preserved in excerpt. Got: {}",
+            excerpt_html
         );
     }
 }

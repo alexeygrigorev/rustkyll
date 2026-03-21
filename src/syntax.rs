@@ -91,6 +91,14 @@ fn build_scope_map() -> Vec<ScopeMapping> {
         ("source.js variable.other", "nx"),
         ("source.js variable.function", "nf"),
         ("source.js meta.property.object", "nx"),
+        // JavaScript: `new` is handled via post-processing (keyword.operator
+        // scope covers both `new` and `=`, so we can't override at scope level).
+        // JavaScript: Rouge maps class/constructor names (e.g. Function, Date)
+        // to `nc` (name.class). Syntect uses support.class -> `nb`.
+        ("source.js support.class", "nc"),
+        // JavaScript: Rouge maps integer literals to `mi` (number.integer).
+        // Syntect uses constant.numeric (general) for JS numbers -> `m`.
+        ("source.js constant.numeric", "mi"),
         // SQL: Rouge treats aggregate/builtin functions (COUNT, SUM, etc.) as keywords (k),
         // not builtins (nb). Override the generic support.function -> nb mapping.
         ("source.sql support.function", "k"),
@@ -397,6 +405,16 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
     // + `p` (>). Merge them to match Rouge output.
     if is_xml_like_language(lang) {
         html = postprocess_xml_tag_tokens(&html);
+    }
+
+    // JavaScript post-processing: Rouge classifies `new` as `k` (keyword).
+    // Syntect scopes it as keyword.operator (same as `=`), so we can't
+    // distinguish via scope rules. Fix with a targeted string replacement.
+    if lang == "javascript" || lang == "js" {
+        html = html.replace(
+            "<span class=\"o\">new</span>",
+            "<span class=\"k\">new</span>",
+        );
     }
 
     // JS/Ruby post-processing: Rouge splits quoted strings into
@@ -2481,6 +2499,56 @@ mod tests {
         assert!(
             html.contains("<span class=\"k\">new</span>"),
             "PHP 'new' should be k (keyword): {html}"
+        );
+    }
+
+    // ── Issue 300: JS/Java token class fixes ──
+
+    #[test]
+    fn test_js_new_keyword_is_k() {
+        // Rouge classifies `new` as `k` (keyword), not `o` (operator)
+        let html = highlight_code(
+            "js",
+            "var x = new Function(\"a\", \"b\", \"return a + b\");\n",
+        )
+        .unwrap();
+        assert!(
+            html.contains("<span class=\"k\">new</span>"),
+            "JS 'new' should be k (keyword), not o (operator): {html}"
+        );
+    }
+
+    #[test]
+    fn test_js_class_name_after_new_is_nc() {
+        // Rouge classifies class names after `new` as `nc` (name.class), not `nb` (name.builtin)
+        let html = highlight_code(
+            "js",
+            "var x = new Function(\"a\", \"b\", \"return a + b\");\n",
+        )
+        .unwrap();
+        assert!(
+            html.contains("<span class=\"nc\">Function</span>"),
+            "JS class name 'Function' after new should be nc (name.class), not nb: {html}"
+        );
+    }
+
+    #[test]
+    fn test_js_integer_literal_is_mi() {
+        // Rouge classifies integer literals as `mi` (number.integer), not `m` (number)
+        let html = highlight_code("js", "var x = 42;\n").unwrap();
+        assert!(
+            html.contains("<span class=\"mi\">42</span>"),
+            "JS integer literal 42 should be mi (number.integer), not m: {html}"
+        );
+    }
+
+    #[test]
+    fn test_js_new_keyword_unicode_context() {
+        // Non-ASCII: ensure new keyword handling works with Unicode nearby
+        let html = highlight_code("js", "var caf\u{00e9} = new Date();\n").unwrap();
+        assert!(
+            html.contains("<span class=\"k\">new</span>"),
+            "JS 'new' should be k even with Unicode variable nearby: {html}"
         );
     }
 }

@@ -347,6 +347,9 @@ impl Renderable for SeoRenderable {
         }
 
         // 7. Canonical URL + og:url (together)
+        // Jekyll strips trailing `index.html` from canonical URLs:
+        //   /index.html -> /
+        //   /about/index.html -> /about/
         let canonical_url = match (&site_url, &page_url) {
             (Some(base), Some(path)) => {
                 let base = base.trim_end_matches('/');
@@ -354,6 +357,14 @@ impl Renderable for SeoRenderable {
                     path.clone()
                 } else {
                     format!("/{}", path)
+                };
+                // Strip trailing index.html (Jekyll behavior)
+                let path = if path == "/index.html" {
+                    "/".to_string()
+                } else if let Some(prefix) = path.strip_suffix("index.html") {
+                    prefix.to_string()
+                } else {
+                    path
                 };
                 Some(format!("{}{}", base, path))
             }
@@ -2455,6 +2466,85 @@ mod tests {
         assert!(
             !out.contains("href=\"https://example.com//\""),
             "Must not have double slashes"
+        );
+    }
+
+    // ── Issue 300: Canonical URL should strip trailing index.html ──
+
+    #[test]
+    fn test_canonical_url_strips_index_html_for_homepage() {
+        // Homepage canonical should be "/" not "/index.html"
+        let eng = engine();
+        let ctx = make_context(
+            Some("Home"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/index.html"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("href=\"https://example.com/\""),
+            "Homepage canonical should strip index.html to '/'. Got: {}",
+            out
+        );
+        assert!(
+            !out.contains("href=\"https://example.com/index.html\""),
+            "Should not contain /index.html in canonical URL. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_canonical_url_strips_index_html_for_subdir() {
+        // /about/index.html -> /about/
+        let eng = engine();
+        let ctx = make_context(
+            Some("About"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/about/index.html"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("href=\"https://example.com/about/\""),
+            "Subdir canonical should strip index.html to '/about/'. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_canonical_url_preserves_non_index_html() {
+        // /posts/my-post.html should NOT be stripped
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Post"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/posts/my-post.html"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("href=\"https://example.com/posts/my-post.html\""),
+            "Non-index .html should be preserved. Got: {}",
+            out
         );
     }
 
