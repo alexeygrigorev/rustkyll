@@ -783,13 +783,9 @@ conformance_test!(
     kramdown_block_03_paragraph_one_para,
     "block/03_paragraph/one_para"
 );
-// Deferred: requires {:standalone} IAL on images to convert paragraphs to <figure> elements.
-// Root cause: span parser does not handle 'standalone' IAL attribute on images, and the
-// HTML converter lacks the paragraph-to-figure conversion logic. See issue 292.
-conformance_test_deferred!(
+conformance_test!(
     kramdown_block_03_paragraph_standalone_image,
-    "block/03_paragraph/standalone_image",
-    "requires standalone image-to-figure conversion"
+    "block/03_paragraph/standalone_image"
 );
 conformance_test!(
     kramdown_block_03_paragraph_two_para,
@@ -1928,5 +1924,69 @@ fn test_fenced_code_lang_param_stripping() {
     assert!(
         !html.contains("language-ruby?"),
         "Params should be stripped from class name: {html}"
+    );
+}
+
+#[test]
+fn test_standalone_image_unicode_alt() {
+    let input = "![Foto des Schlosses Neuschwanstein](schloss.jpg){: .gallery standalone}\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<figure"),
+        "Expected <figure> for standalone image: {html}"
+    );
+    assert!(
+        html.contains("<figcaption>Foto des Schlosses Neuschwanstein</figcaption>"),
+        "Expected Unicode alt text in figcaption: {html}"
+    );
+    assert!(
+        html.contains("class=\"gallery\""),
+        "Expected class on figure: {html}"
+    );
+    assert!(
+        !html.contains("standalone"),
+        "standalone attribute should be consumed, not rendered: {html}"
+    );
+}
+
+#[test]
+fn test_standalone_image_with_block_ial_unicode() {
+    let input =
+        "![Bild mit Umlauten: \u{00e4}\u{00f6}\u{00fc}](foto.jpg){:#img-id standalone}\n{:#fig-id .beschreibung}\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<figure"),
+        "Expected <figure> for standalone image with block IAL: {html}"
+    );
+    assert!(
+        html.contains("id=\"fig-id\""),
+        "Expected block IAL id on figure: {html}"
+    );
+    assert!(
+        html.contains("class=\"beschreibung\""),
+        "Expected block IAL class on figure: {html}"
+    );
+    assert!(
+        html.contains("id=\"img-id\""),
+        "Expected inline IAL id on img: {html}"
+    );
+    assert!(
+        html.contains("<figcaption>Bild mit Umlauten: \u{00e4}\u{00f6}\u{00fc}</figcaption>"),
+        "Expected Unicode figcaption: {html}"
+    );
+}
+
+#[test]
+fn test_non_standalone_image_stays_paragraph() {
+    // Image without standalone IAL should remain a paragraph
+    let input = "![alt text](image.jpg){:#id .class}\n";
+    let html = super::to_html(input);
+    assert!(
+        !html.contains("<figure"),
+        "Image without standalone should not become figure: {html}"
+    );
+    assert!(
+        html.contains("<p>"),
+        "Image without standalone should be in a paragraph: {html}"
     );
 }

@@ -525,16 +525,25 @@ fn convert_paragraph(
     indent: usize,
     ctx: &mut SpanContext,
 ) {
+    let text = get_element_text(elem);
+
+    // Check for standalone image: a paragraph containing only an image with {: standalone} IAL
+    let is_raw_html = elem.options.get("raw_html").is_some_and(|v| v == "true");
+    if !is_raw_html {
+        if let Some(img_info) = span_parser::try_parse_standalone_image(&text) {
+            convert_standalone_image_figure(elem, &img_info, output, indent);
+            return;
+        }
+    }
+
     write_indent(output, indent);
     output.push_str("<p");
     write_attrs(&elem.attr, output);
     output.push('>');
 
-    let text = get_element_text(elem);
     // Strip CDATA sections before processing: <![CDATA[content]]> -> escaped content
     let text = strip_inline_cdata(&text);
     // If marked as raw_html (from html_to_native), don't markdown-process the text
-    let is_raw_html = elem.options.get("raw_html").is_some_and(|v| v == "true");
     if is_raw_html {
         output.push_str(&text);
     } else {
@@ -543,6 +552,109 @@ fn convert_paragraph(
     }
 
     output.push_str("</p>\n");
+}
+
+/// Convert a standalone image paragraph to a `<figure>` element.
+fn convert_standalone_image_figure(
+    elem: &Element,
+    img_info: &span_parser::StandaloneImageInfo,
+    output: &mut String,
+    indent: usize,
+) {
+    let has_block_attrs = !elem.attr.is_empty();
+
+    // Determine figure and img attributes
+    // If block IAL exists: block IAL -> figure, inline IAL -> img
+    // If no block IAL: inline id/class -> figure, remaining inline -> img
+    let mut figure_attrs: Vec<(String, String)> = Vec::new();
+    let mut img_attrs: Vec<(String, String)> = Vec::new();
+
+    if has_block_attrs {
+        // Block IAL goes to figure
+        for (k, v) in &elem.attr {
+            figure_attrs.push((k.clone(), v.clone()));
+        }
+        // All inline IAL goes to img
+        for (k, v) in &img_info.inline_attrs {
+            img_attrs.push((k.clone(), v.clone()));
+        }
+    } else {
+        // No block IAL: split inline attrs -- id/class to figure, rest to img
+        for (k, v) in &img_info.inline_attrs {
+            match k.as_str() {
+                "id" | "class" => figure_attrs.push((k.clone(), v.clone())),
+                _ => img_attrs.push((k.clone(), v.clone())),
+            }
+        }
+    }
+
+    // Write <figure> with figure attrs
+    write_indent(output, indent);
+    output.push_str("<figure");
+    if has_block_attrs {
+        // Block IAL: preserve insertion order
+        write_attr_pairs_ordered(&figure_attrs, output);
+    } else {
+        // Inline IAL on figure: class-first kramdown ordering
+        write_attr_pairs_class_first(&figure_attrs, output);
+    }
+    output.push_str(">\n");
+
+    // Write <img> with img attrs (always insertion order)
+    write_indent(output, indent + 2);
+    let src_escaped = escape_html_attr(&img_info.src);
+    let alt_escaped = escape_html_attr(&img_info.alt);
+    output.push_str(&format!("<img src=\"{src_escaped}\" alt=\"{alt_escaped}\""));
+    if let Some(ref title) = img_info.title {
+        let title_escaped = escape_html_attr(title);
+        output.push_str(&format!(" title=\"{title_escaped}\""));
+    }
+    write_attr_pairs_ordered(&img_attrs, output);
+    output.push_str(" />\n");
+
+    // Write <figcaption>
+    write_indent(output, indent + 2);
+    output.push_str("<figcaption>");
+    output.push_str(&img_info.alt);
+    output.push_str("</figcaption>\n");
+
+    // Close </figure>
+    write_indent(output, indent);
+    output.push_str("</figure>\n");
+}
+
+/// Write HTML attributes preserving insertion order.
+fn write_attr_pairs_ordered(attrs: &[(String, String)], output: &mut String) {
+    for (k, v) in attrs {
+        let escaped = escape_html_attr(v);
+        output.push_str(&format!(" {k}=\"{escaped}\""));
+    }
+}
+
+/// Write HTML attributes with class first, then id, then others (kramdown span-level default).
+fn write_attr_pairs_class_first(attrs: &[(String, String)], output: &mut String) {
+    let mut id: Option<&str> = None;
+    let mut classes: Vec<&str> = Vec::new();
+    let mut others: Vec<(&str, &str)> = Vec::new();
+
+    for (k, v) in attrs {
+        match k.as_str() {
+            "id" => id = Some(v.as_str()),
+            "class" => classes.push(v.as_str()),
+            _ => others.push((k.as_str(), v.as_str())),
+        }
+    }
+
+    if !classes.is_empty() {
+        output.push_str(&format!(" class=\"{}\"", classes.join(" ")));
+    }
+    if let Some(id_val) = id {
+        output.push_str(&format!(" id=\"{id_val}\""));
+    }
+    for (k, v) in others {
+        let escaped = escape_html_attr(v);
+        output.push_str(&format!(" {k}=\"{escaped}\""));
+    }
 }
 
 /// Convert header to HTML.

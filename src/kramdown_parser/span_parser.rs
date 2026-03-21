@@ -779,6 +779,190 @@ pub fn spans_to_html(text: &str, ctx: &mut SpanContext) -> String {
     result
 }
 
+/// Information about a standalone image detected in a paragraph.
+pub struct StandaloneImageInfo {
+    /// The `src` attribute value.
+    pub src: String,
+    /// The `alt` attribute value (used for figcaption).
+    pub alt: String,
+    /// Optional `title` attribute value.
+    pub title: Option<String>,
+    /// Inline IAL attributes (from the span-level IAL on the image), excluding `standalone`.
+    pub inline_attrs: Vec<(String, String)>,
+}
+
+/// Check if paragraph text is solely a standalone image (an image with the `standalone` IAL
+/// attribute, with no other content). Returns structured data for figure rendering.
+pub fn try_parse_standalone_image(text: &str) -> Option<StandaloneImageInfo> {
+    let trimmed = text.trim();
+    if !trimmed.starts_with("![") {
+        return None;
+    }
+
+    let chars: Vec<char> = trimmed.chars().collect();
+    let end = chars.len();
+
+    // Try to parse the image at position 0
+    // We need to extract src, alt, title from the image
+    let (src, alt, title, img_end) = try_extract_image_parts(&chars, 0, end)?;
+
+    // After the image, expect an IAL with `standalone`
+    let mut pos = img_end;
+    let mut all_attrs: Vec<(String, String)> = Vec::new();
+
+    // Consume IAL(s) after the image
+    while pos < end {
+        if let Some((attrs, ial_len)) = try_parse_span_ial(&chars, pos, end) {
+            all_attrs.extend(attrs);
+            pos += ial_len;
+        } else {
+            break;
+        }
+    }
+
+    // Must be at end of text (nothing else in the paragraph)
+    if pos != end {
+        return None;
+    }
+
+    // Check for `standalone` attribute (stored as __ald_ref__ = "standalone")
+    let has_standalone = all_attrs
+        .iter()
+        .any(|(k, v)| k == "__ald_ref__" && v == "standalone");
+
+    if !has_standalone {
+        return None;
+    }
+
+    // Filter out the standalone reference from inline attrs
+    let inline_attrs: Vec<(String, String)> = all_attrs
+        .into_iter()
+        .filter(|(k, v)| !(k == "__ald_ref__" && v == "standalone"))
+        // Convert __ald_ref__ entries to actual ALD lookups if needed (skip for now)
+        .filter(|(k, _)| k != "__ald_ref__")
+        .collect();
+
+    Some(StandaloneImageInfo {
+        src,
+        alt,
+        title,
+        inline_attrs,
+    })
+}
+
+/// Extract image parts (src, alt, title) without producing HTML.
+/// Returns (src, alt, title, chars_consumed).
+fn try_extract_image_parts(
+    chars: &[char],
+    start: usize,
+    end: usize,
+) -> Option<(String, String, Option<String>, usize)> {
+    if start + 1 >= end || chars[start] != '!' || chars[start + 1] != '[' {
+        return None;
+    }
+
+    // Find closing ]
+    let text_start = start + 2;
+    let mut bracket_depth = 1;
+    let mut i = text_start;
+    while i < end && bracket_depth > 0 {
+        if chars[i] == '\\' && i + 1 < end {
+            i += 2;
+            continue;
+        }
+        if chars[i] == '[' {
+            bracket_depth += 1;
+        } else if chars[i] == ']' {
+            bracket_depth -= 1;
+        }
+        i += 1;
+    }
+    if bracket_depth != 0 {
+        return None;
+    }
+
+    let text_end = i - 1;
+    let alt_text: String = chars[text_start..text_end].iter().collect();
+    let alt_text = alt_text
+        .replace("\\|", "|")
+        .replace("\\[", "[")
+        .replace("\\]", "]");
+    let alt_text = alt_text.replace(['\n', '\t'], " ");
+    let after_bracket = i;
+
+    if after_bracket < end && chars[after_bracket] == '(' {
+        // Inline image: ![alt](url "title")
+        let mut j = after_bracket + 1;
+        while j < end && (chars[j] == ' ' || chars[j] == '\n') {
+            j += 1;
+        }
+        if j >= end {
+            return None;
+        }
+        if chars[j] == ')' {
+            return Some((String::new(), alt_text, None, j + 1));
+        }
+
+        // Parse URL
+        let url_start = j;
+        let mut paren_depth = 0;
+        while j < end {
+            if chars[j] == '(' {
+                paren_depth += 1;
+                j += 1;
+            } else if chars[j] == ')' {
+                if paren_depth > 0 {
+                    paren_depth -= 1;
+                    j += 1;
+                } else {
+                    break;
+                }
+            } else if chars[j] == ' ' || chars[j] == '\t' {
+                break;
+            } else {
+                j += 1;
+            }
+        }
+        let url: String = chars[url_start..j].iter().collect();
+
+        // Skip whitespace
+        while j < end && (chars[j] == ' ' || chars[j] == '\t') {
+            j += 1;
+        }
+
+        // Title
+        let title = if j < end && (chars[j] == '"' || chars[j] == '\'') {
+            let quote = chars[j];
+            j += 1;
+            let ts = j;
+            while j < end && chars[j] != quote {
+                j += 1;
+            }
+            if j >= end {
+                return None;
+            }
+            let t: String = chars[ts..j].iter().collect();
+            j += 1;
+            Some(t)
+        } else {
+            None
+        };
+
+        // Skip whitespace
+        while j < end && (chars[j] == ' ' || chars[j] == '\t') {
+            j += 1;
+        }
+
+        if j >= end || chars[j] != ')' {
+            return None;
+        }
+
+        return Some((url, alt_text, title, j + 1));
+    }
+
+    None
+}
+
 /// Remove line breaks between CJK characters.
 fn remove_cjk_line_breaks(text: &str) -> String {
     let chars: Vec<char> = text.chars().collect();
