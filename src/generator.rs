@@ -446,9 +446,11 @@ fn extract_nwo_from_remote(remote_url: &str) -> Option<(String, String)> {
 fn nwo_to_pages_url(owner: &str, repo: &str) -> String {
     let expected_site_repo = format!("{}.github.io", owner.to_lowercase());
     if repo.to_lowercase() == expected_site_repo {
-        format!("https://{}.github.io/", owner.to_lowercase())
+        format!("https://{}.github.io", owner.to_lowercase())
     } else {
-        format!("https://{}.github.io/{}/", owner.to_lowercase(), repo)
+        // No trailing slash -- templates that need one add it explicitly
+        // (e.g., breadcrumb JSON-LD: `{{ site.github.url }}/`)
+        format!("https://{}.github.io/{}", owner.to_lowercase(), repo)
     }
 }
 
@@ -1445,6 +1447,13 @@ pub fn generate_collection_pages_cached_with_progress(
         normalize_fm_to_array(&mut page_fm, "tags");
 
         page_fm.insert("url".into(), serde_yaml::Value::String(item.url.clone()));
+
+        // page.path -- relative source path including collection directory prefix
+        // (e.g., "_licenses/mit.txt"). Needed by github_edit_link tag to build
+        // correct edit URLs for collection documents.
+        page_fm
+            .entry("path".into())
+            .or_insert_with(|| serde_yaml::Value::String(item.source_path.clone()));
 
         // Inject collection name so templates can use {{ page.collection }}
         // (e.g., for body class: `col-{{ page.collection }}` -> `col-pages`)
@@ -2515,20 +2524,32 @@ mod tests {
     #[test]
     fn test_nwo_to_pages_url_standard_repo() {
         let url = nwo_to_pages_url("github", "choosealicense.com");
-        assert_eq!(url, "https://github.github.io/choosealicense.com/");
+        assert_eq!(url, "https://github.github.io/choosealicense.com");
     }
 
     #[test]
     fn test_nwo_to_pages_url_org_site() {
         // When repo name matches {OWNER}.github.io, no repo suffix
         let url = nwo_to_pages_url("DataTalksClub", "datatalksclub.github.io");
-        assert_eq!(url, "https://datatalksclub.github.io/");
+        assert_eq!(url, "https://datatalksclub.github.io");
     }
 
     #[test]
     fn test_nwo_to_pages_url_regular_user_repo() {
         let url = nwo_to_pages_url("alexeygrigorev", "mlbookcamp-page");
-        assert_eq!(url, "https://alexeygrigorev.github.io/mlbookcamp-page/");
+        assert_eq!(url, "https://alexeygrigorev.github.io/mlbookcamp-page");
+    }
+
+    #[test]
+    fn test_nwo_to_pages_url_no_trailing_slash_prevents_double_slash() {
+        // site.github.url must NOT have trailing slash, so templates like
+        // {{ site.github.url }}{{ page.url }} don't produce double slashes
+        let url = nwo_to_pages_url("github", "choosealicense.com");
+        assert!(
+            !url.ends_with('/'),
+            "site.github.url should not end with slash to prevent double-slash in templates. Got: {}",
+            url
+        );
     }
 
     // ========================================================================

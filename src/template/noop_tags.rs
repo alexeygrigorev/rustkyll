@@ -305,6 +305,42 @@ mod tests {
     }
 
     #[test]
+    fn test_github_edit_link_collection_item_path() {
+        // Collection items (e.g., _licenses/mit.txt) need page.path set
+        // to the full relative path including the collection directory prefix
+        let eng = engine();
+
+        let mut source = Object::new();
+        source.insert("branch".into(), Value::scalar("gh-pages"));
+
+        let mut github = Object::new();
+        github.insert(
+            "repository_url".into(),
+            Value::scalar("https://github.com/github/choosealicense.com"),
+        );
+        github.insert("source".into(), Value::Object(source));
+
+        let mut site = Object::new();
+        site.insert("github".into(), Value::Object(github));
+
+        let mut page = Object::new();
+        page.insert("path".into(), Value::scalar("_licenses/mit.txt"));
+
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), Value::Object(site));
+        ctx.insert("page".into(), Value::Object(page));
+
+        let out = eng
+            .parse_and_render(r#"{% github_edit_link "Improve this page" %}"#, &ctx)
+            .unwrap();
+        assert_eq!(
+            out,
+            r#"<a href="https://github.com/github/choosealicense.com/edit/gh-pages/_licenses/mit.txt">Improve this page</a>"#,
+            "github_edit_link should produce correct URL for collection item"
+        );
+    }
+
+    #[test]
     fn test_feed_meta_in_layout_context() {
         // feed_meta now emits a link tag, so it should appear in the output
         let eng = engine();

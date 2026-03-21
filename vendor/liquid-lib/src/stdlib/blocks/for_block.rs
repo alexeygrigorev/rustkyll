@@ -574,19 +574,66 @@ impl Range<'_> {
     }
 }
 
+/// The metadata key used by `yaml_to_liquid` to store YAML insertion order.
+/// Must match `crate::template::filters::jsonify::KEY_ORDER_FIELD` in the main crate.
+const KEY_ORDER_FIELD: &str = "__key_order";
+
 fn get_array(array: &dyn ValueView) -> Result<Vec<ValueCow<'_>>> {
     if let Some(x) = array.as_array() {
         Ok(x.values().map(ValueCow::Borrowed).collect())
     } else if let Some(x) = array.as_object() {
-        let x = x
-            .iter()
-            .map(|(k, v)| {
-                let k = k.into_owned();
-                let arr = vec![Value::scalar(k), v.to_value()];
-                Value::Array(arr).into()
+        // Check for __key_order metadata to iterate in YAML insertion order
+        let key_order: Option<Vec<String>> = x.get(KEY_ORDER_FIELD).and_then(|v| {
+            v.as_array().map(|arr| {
+                arr.values()
+                    .map(|item| item.to_kstr().to_string())
+                    .collect()
             })
-            .collect();
-        Ok(x)
+        });
+
+        let items: Vec<ValueCow<'_>> = if let Some(ordered_keys) = key_order {
+            let mut seen = std::collections::HashSet::new();
+            let mut result = Vec::new();
+
+            // Iterate in __key_order, skipping __key_order itself
+            for key in &ordered_keys {
+                if key == KEY_ORDER_FIELD {
+                    continue;
+                }
+                seen.insert(key.clone());
+                if let Some(v) = x.get(key.as_str()) {
+                    let arr = vec![Value::scalar(key.clone()), v.to_value()];
+                    result.push(Value::Array(arr).into());
+                }
+            }
+
+            // Append any remaining keys not in __key_order (sorted for determinism),
+            // skipping __key_order itself
+            let mut remaining: Vec<String> = x
+                .keys()
+                .map(|k| k.to_string())
+                .filter(|k| k != KEY_ORDER_FIELD && !seen.contains(k))
+                .collect();
+            remaining.sort();
+            for key in &remaining {
+                if let Some(v) = x.get(key.as_str()) {
+                    let arr = vec![Value::scalar(key.clone()), v.to_value()];
+                    result.push(Value::Array(arr).into());
+                }
+            }
+
+            result
+        } else {
+            // No __key_order -- use default iteration order (BTreeMap = alphabetical)
+            x.iter()
+                .map(|(k, v)| {
+                    let k = k.into_owned();
+                    let arr = vec![Value::scalar(k), v.to_value()];
+                    Value::Array(arr).into()
+                })
+                .collect()
+        };
+        Ok(items)
     } else if array.is_state() || array.is_nil() {
         Ok(vec![])
     } else if array.as_scalar().is_some() {
@@ -1204,5 +1251,83 @@ mod test {
         );
         let output = template.render(&runtime).unwrap();
         assert_eq!(output, "[a][b]");
+    }
+
+    #[test]
+    fn for_loop_over_object_hides_key_order() {
+        // __key_order metadata must NOT appear as a visible iteration item
+        let text = "{% for pair in obj %}[{{ pair[0] }}]{% endfor %}";
+        let template = parser::parse(text, &options()).map(Template::new).unwrap();
+
+        let mut obj = Object::new();
+        obj.insert("a".into(), Value::scalar(1i64));
+        obj.insert("b".into(), Value::scalar(2i64));
+        obj.insert("c".into(), Value::scalar(3i64));
+        obj.insert(
+            "__key_order".into(),
+            Value::Array(vec![
+                Value::scalar("a"),
+                Value::scalar("b"),
+                Value::scalar("c"),
+            ]),
+        );
+
+        let runtime = RuntimeBuilder::new().build();
+        runtime.set_global("obj".into(), Value::Object(obj));
+        let output = template.render(&runtime).unwrap();
+        assert!(
+            !output.contains("__key_order"),
+            "__key_order should not appear in for loop output. Got: {}",
+            output
+        );
+        assert_eq!(output, "[a][b][c]");
+    }
+
+    #[test]
+    fn for_loop_over_object_respects_insertion_order() {
+        // YAML insertion order: z, a, m -- NOT alphabetical
+        let text = "{% for pair in obj %}{{ pair[0] }},{% endfor %}";
+        let template = parser::parse(text, &options()).map(Template::new).unwrap();
+
+        let mut obj = Object::new();
+        obj.insert("z".into(), Value::scalar(1i64));
+        obj.insert("a".into(), Value::scalar(2i64));
+        obj.insert("m".into(), Value::scalar(3i64));
+        obj.insert(
+            "__key_order".into(),
+            Value::Array(vec![
+                Value::scalar("z"),
+                Value::scalar("a"),
+                Value::scalar("m"),
+            ]),
+        );
+
+        let runtime = RuntimeBuilder::new().build();
+        runtime.set_global("obj".into(), Value::Object(obj));
+        let output = template.render(&runtime).unwrap();
+        assert_eq!(
+            output, "z,a,m,",
+            "For loop should iterate in YAML insertion order (z, a, m), not alphabetical"
+        );
+    }
+
+    #[test]
+    fn for_loop_over_object_with_unicode_key_order() {
+        let text = "{% for pair in obj %}{{ pair[0] }},{% endfor %}";
+        let template = parser::parse(text, &options()).map(Template::new).unwrap();
+
+        let mut obj = Object::new();
+        obj.insert("beschreibung".into(), Value::scalar("H\u{00e4}llo"));
+        obj.insert("titel".into(), Value::scalar("W\u{00f6}rld"));
+        obj.insert(
+            "__key_order".into(),
+            Value::Array(vec![Value::scalar("beschreibung"), Value::scalar("titel")]),
+        );
+
+        let runtime = RuntimeBuilder::new().build();
+        runtime.set_global("obj".into(), Value::Object(obj));
+        let output = template.render(&runtime).unwrap();
+        assert_eq!(output, "beschreibung,titel,");
+        assert!(!output.contains("__key_order"));
     }
 }
