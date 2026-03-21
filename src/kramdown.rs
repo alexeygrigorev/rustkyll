@@ -300,7 +300,7 @@ pub fn postprocess_for_filter(html: &str) -> String {
 /// - D2, D12: Boolean HTML attribute normalization (`required=""` -> `required`)
 ///
 /// Note: inline code classes are NOT applied here. Jekyll only adds
-/// `highlighter-rouge` to `<code>` tags during markdown
+/// `language-plaintext highlighter-rouge` to `<code>` tags during markdown
 /// rendering (handled by `frontmatter::add_inline_code_class_to_events()`),
 /// not to `<code>` tags from Liquid templates or raw HTML in the source.
 ///
@@ -2758,7 +2758,7 @@ fn get_unique_id(used: &mut HashMap<String, usize>, base: &str) -> String {
 ///
 /// Fenced code blocks without a language tag are wrapped as:
 /// ```html
-/// <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>...</code></pre></div></div>
+/// <div class="highlighter-rouge language-plaintext"><div class="highlight"><pre class="highlight"><code>...</code></pre></div></div>
 /// ```
 ///
 /// Fenced code blocks WITH a language class (e.g., `<pre><code class="language-python">`)
@@ -2821,11 +2821,11 @@ fn wrap_fenced_code_blocks(html: &str) -> String {
             if let Some(close_pos) = after_open_tag.find("</code></pre>") {
                 let code_content = &after_open_tag[..close_pos];
                 // Write the kramdown wrapper
-                // Jekyll only adds language-XXX when a language IS specified.
-                // No-language blocks get just "highlighter-rouge".
+                // Kramdown 2.5.1 adds "language-plaintext" to the wrapper div
+                // for no-language fenced code blocks.
                 if lang == "plaintext" {
                     result.push_str(
-                        "<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>",
+                        "<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\"><pre class=\"highlight\"><code>",
                     );
                 } else {
                     result.push_str(&format!(
@@ -5366,7 +5366,7 @@ mod tests {
         let html = "<pre><code>plain code\n</code></pre>\n";
         let result = postprocess(html);
         assert!(
-            result.contains("<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain code\n</code></pre>"),
+            result.contains("<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain code\n</code></pre>"),
             "Bare fenced code should be wrapped in kramdown divs. Got: {}",
             result
         );
@@ -5385,7 +5385,7 @@ mod tests {
         let result = postprocess(html);
         // The wrapping produces the kramdown div structure; block spacing adds newlines between closing tags
         assert!(
-            result.contains("<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain code\n</code></pre>"),
+            result.contains("<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain code\n</code></pre>"),
             "Simple fenced code wrapping failed. Got: {}",
             result
         );
@@ -5401,7 +5401,7 @@ mod tests {
             result
         );
         assert!(
-            result.contains("<div class=\"highlighter-rouge\">"),
+            result.contains("<div class=\"highlighter-rouge language-plaintext\">"),
             "Should have outer wrapper div. Got: {}",
             result
         );
@@ -5443,7 +5443,9 @@ mod tests {
     fn test_fenced_code_wrapping_multiple_bare_blocks() {
         let html = "<pre><code>block 1\n</code></pre>\n<pre><code>block 2\n</code></pre>\n";
         let result = postprocess(html);
-        let count = result.matches("<div class=\"highlighter-rouge\">").count();
+        let count = result
+            .matches("<div class=\"highlighter-rouge language-plaintext\">")
+            .count();
         assert_eq!(
             count, 2,
             "Both bare blocks should be wrapped. Got: {}",
@@ -5455,7 +5457,9 @@ mod tests {
     fn test_fenced_code_wrapping_mixed_bare_and_language() {
         let html = "<pre><code>bare code\n</code></pre>\n<pre><code class=\"language-python\">print('hi')\n</code></pre>\n";
         let result = postprocess(html);
-        let plaintext_count = result.matches("<div class=\"highlighter-rouge\">").count();
+        let plaintext_count = result
+            .matches("<div class=\"highlighter-rouge language-plaintext\">")
+            .count();
         assert_eq!(
             plaintext_count, 1,
             "Only bare block should get plaintext wrapper. Got: {}",
@@ -5480,7 +5484,9 @@ mod tests {
             result
         );
         assert!(
-            !result.contains("<div class=\"highlighter-rouge\"><div class=\"highlight\">"),
+            !result.contains(
+                "<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\">"
+            ),
             "Inline code should NOT be wrapped in divs. Got: {}",
             result
         );
@@ -5498,7 +5504,7 @@ mod tests {
         );
         // Fenced code gets div wrapper
         assert!(
-            result.contains("<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>bare code\n</code></pre>"),
+            result.contains("<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\"><pre class=\"highlight\"><code>bare code\n</code></pre>"),
             "Fenced code should get div wrapper. Got: {}",
             result
         );
@@ -5523,12 +5529,14 @@ mod tests {
         );
         // Fenced without language: wrapped
         assert!(
-            result.contains("<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain\n</code></pre>"),
+            result.contains("<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain\n</code></pre>"),
             "Bare fenced code should be wrapped. Got: {}",
             result
         );
         // Should NOT wrap the language-tagged block
-        let wrapper_count = result.matches("<div class=\"highlighter-rouge\">").count();
+        let wrapper_count = result
+            .matches("<div class=\"highlighter-rouge language-plaintext\">")
+            .count();
         assert_eq!(
             wrapper_count, 1,
             "Only one block should be wrapped. Got: {}",
@@ -5542,29 +5550,30 @@ mod tests {
 
     #[test]
     fn test_no_language_wrapper_div_class() {
-        // No-language fenced code blocks get just "highlighter-rouge" (no language-plaintext).
+        // Issue 246: Kramdown 2.5.1 adds language-plaintext to the wrapper div
+        // for no-language fenced code blocks.
         let html = "<pre><code>some code\n</code></pre>\n";
         let result = postprocess(html);
         assert!(
-            result.contains("<div class=\"highlighter-rouge\"><div class=\"highlight\">"),
-            "Wrapper div should have only highlighter-rouge class. Got: {}",
+            result.contains(
+                "<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\">"
+            ),
+            "Wrapper div should have highlighter-rouge language-plaintext class. Got: {}",
             result
         );
     }
 
     #[test]
-    fn test_no_language_wrapper_div_no_language_plaintext() {
-        // No-language fenced code blocks should NOT have language-plaintext.
+    fn test_no_language_wrapper_div_has_language_plaintext() {
+        // Issue 246: Kramdown 2.5.1 adds language-plaintext to the wrapper div
+        // for fenced code blocks without a language specifier.
         let html = "<pre><code>some code\n</code></pre>\n";
         let result = postprocess(html);
         assert!(
-            result.contains("<div class=\"highlighter-rouge\"><div class=\"highlight\">"),
-            "Wrapper div should have only highlighter-rouge class. Got: {}",
-            result
-        );
-        assert!(
-            !result.contains("language-plaintext"),
-            "No-language code block should NOT have language-plaintext. Got: {}",
+            result.contains(
+                "<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\">"
+            ),
+            "Wrapper div should have highlighter-rouge language-plaintext class. Got: {}",
             result
         );
     }
@@ -5620,30 +5629,6 @@ mod tests {
         assert!(
             result.contains("</code></pre></div></div>"),
             "Should have proper closing tags. Got: {}",
-            result
-        );
-    }
-
-    // ======================================================================
-    // Fix: no-language code blocks should NOT have language-plaintext class
-    // Jekyll only adds language-XXX when a language IS specified.
-    // ======================================================================
-
-    #[test]
-    fn test_no_language_fenced_code_no_language_plaintext_class() {
-        // Jekyll outputs just "highlighter-rouge" for code blocks without a language.
-        // It does NOT add "language-plaintext".
-        let html = "<pre><code>some code\n</code></pre>\n";
-        let result = postprocess(html);
-        assert!(
-            !result.contains("language-plaintext"),
-            "No-language code block should NOT have language-plaintext class. \
-             Jekyll outputs just 'highlighter-rouge'. Got: {}",
-            result
-        );
-        assert!(
-            result.contains("<div class=\"highlighter-rouge\"><div class=\"highlight\">"),
-            "No-language code block should have only highlighter-rouge class. Got: {}",
             result
         );
     }
@@ -7577,7 +7562,7 @@ by <a href="/people/author.html">Author Name</a>
 
     // Category 3: books.html inline code class
     // Inline <code> tags outside <pre> blocks must get the
-    // `highlighter-rouge` class to match kramdown output.
+    // `language-plaintext highlighter-rouge` class to match kramdown output.
     #[test]
     fn test_issue168_inline_code_no_class_in_postprocess() {
         // Inline code classes are now added during markdown rendering, not
@@ -7658,7 +7643,7 @@ by <a href="/people/author.html">Author Name</a>
 
     // ========================================================================
     // Regression: normalize_html_output must NOT add inline code classes.
-    // Jekyll only adds highlighter-rouge to <code> from
+    // Jekyll only adds language-plaintext highlighter-rouge to <code> from
     // markdown rendering (postprocess/postprocess_for_filter), not from
     // Liquid template output. Adding it in normalize_html_output caused
     // 67 DTC files to gain spurious diffs.

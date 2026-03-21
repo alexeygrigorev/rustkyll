@@ -162,7 +162,7 @@ pub fn parse_document(input: &str) -> Result<Document, ParseError> {
 /// Convert a markdown string to HTML.
 ///
 /// Transform pulldown-cmark events so that inline `Code` spans are emitted
-/// with `class="highlighter-rouge"`, matching kramdown behavior.
+/// with `class="language-plaintext highlighter-rouge"`, matching kramdown behavior.
 ///
 /// Raw HTML `<code>` tags (passed through as `Html`/`InlineHtml` events) are
 /// left untouched -- Jekyll/kramdown only adds the class to markdown-rendered
@@ -177,7 +177,7 @@ fn add_inline_code_class_to_events<'a>(
 /// Implementation of inline code class transformation with configurable behavior.
 ///
 /// When `add_code_classes` is true (kramdown mode), inline `Code` spans get
-/// `class="highlighter-rouge"`. When false (CommonMark mode),
+/// `class="language-plaintext highlighter-rouge"`. When false (CommonMark mode),
 /// inline code is left as bare `<code>` elements.
 ///
 /// When `hardbreaks` is true (CommonMarkGhPages HARDBREAKS option), every
@@ -195,7 +195,9 @@ fn add_inline_code_class_to_events_impl<'a>(
                 // Emit raw HTML instead of the Code event so that push_html
                 // produces <code class="...">text</code> rather than bare <code>.
                 let escaped = html_escape_for_code(&text);
-                let html = format!("<code class=\"highlighter-rouge\">{escaped}</code>");
+                let html = format!(
+                    "<code class=\"language-plaintext highlighter-rouge\">{escaped}</code>"
+                );
                 events.push(Event::InlineHtml(html.into()));
             }
             Event::SoftBreak if hardbreaks => {
@@ -350,7 +352,7 @@ pub fn markdown_to_html(markdown: &str) -> String {
 /// and hard breaks behavior.
 ///
 /// When `add_code_classes` is true (kramdown mode, the default), inline backtick
-/// code gets `class="highlighter-rouge"`. When false (CommonMark
+/// code gets `class="language-plaintext highlighter-rouge"`. When false (CommonMark
 /// mode), inline code is rendered as bare `<code>` elements.
 ///
 /// When `enable_smart_punctuation` is true (kramdown mode), straight quotes are
@@ -2214,11 +2216,13 @@ Some text after.
 
     #[test]
     fn test_issue176_backtick_code_gets_class() {
-        // Markdown backtick inline code should get highlighter-rouge class
+        // Markdown backtick inline code should get language-plaintext class
         let html = markdown_to_html("Use `pip install` to install.\n");
         assert!(
-            html.contains("<code class=\"highlighter-rouge\">pip install</code>"),
-            "Backtick inline code should get highlighter-rouge class. Got: {}",
+            html.contains(
+                "<code class=\"language-plaintext highlighter-rouge\">pip install</code>"
+            ),
+            "Backtick inline code should get language-plaintext class. Got: {}",
             html
         );
     }
@@ -2230,12 +2234,12 @@ Some text after.
             markdown_to_html("You start in a directory named <code>working</code>. Keep going.\n");
         assert!(
             html.contains("<code>working</code>"),
-            "Raw HTML <code> should NOT get highlighter-rouge class. Got: {}",
+            "Raw HTML <code> should NOT get language-plaintext class. Got: {}",
             html
         );
         assert!(
-            !html.contains("highlighter-rouge\">working</code>"),
-            "Raw HTML <code> must NOT have highlighter-rouge class. Got: {}",
+            !html.contains("language-plaintext highlighter-rouge\">working</code>"),
+            "Raw HTML <code> must NOT have language-plaintext class. Got: {}",
             html
         );
     }
@@ -2247,7 +2251,7 @@ Some text after.
         let html = markdown_to_html(input);
         // Backtick code gets class
         assert!(
-            html.contains("<code class=\"highlighter-rouge\">pip</code>"),
+            html.contains("<code class=\"language-plaintext highlighter-rouge\">pip</code>"),
             "Backtick code should have class. Got: {}",
             html
         );
@@ -2264,7 +2268,7 @@ Some text after.
         // markdownify filter should also add classes to backtick code
         let html = markdown_to_html_for_filter("Use `code` here\n");
         assert!(
-            html.contains("<code class=\"highlighter-rouge\">code</code>"),
+            html.contains("<code class=\"language-plaintext highlighter-rouge\">code</code>"),
             "markdownify backtick code should have class. Got: {}",
             html
         );
@@ -2288,7 +2292,7 @@ Some text after.
     #[test]
     fn test_issue216_commonmark_no_inline_code_class() {
         // When markdown processor is CommonMark (not kramdown), backtick inline
-        // code should NOT get highlighter-rouge class
+        // code should NOT get language-plaintext highlighter-rouge class
         let html =
             markdown_to_html_with_options("Use `pip install` to set up.\n", false, true, false);
         assert!(
@@ -2309,8 +2313,10 @@ Some text after.
         let html =
             markdown_to_html_with_options("Use `pip install` to set up.\n", true, true, false);
         assert!(
-            html.contains("<code class=\"highlighter-rouge\">pip install</code>"),
-            "Kramdown mode should add highlighter-rouge class. Got: {}",
+            html.contains(
+                "<code class=\"language-plaintext highlighter-rouge\">pip install</code>"
+            ),
+            "Kramdown mode should add language-plaintext class. Got: {}",
             html
         );
     }
@@ -2336,29 +2342,6 @@ Some text after.
         assert!(
             html.contains("language-python"),
             "Fenced code blocks should keep language class even in CommonMark mode. Got: {}",
-            html
-        );
-    }
-
-    // ========================================================================
-    // Fix: inline code should NOT have language-plaintext class
-    // Jekyll only uses "highlighter-rouge" for inline code, not "highlighter-rouge"
-    // ========================================================================
-
-    #[test]
-    fn test_inline_code_no_language_plaintext_class() {
-        // Jekyll outputs just class="highlighter-rouge" for inline code,
-        // NOT "highlighter-rouge".
-        let html = markdown_to_html("Use `pip install` to install.\n");
-        assert!(
-            !html.contains("language-plaintext"),
-            "Inline code should NOT have language-plaintext class. \
-             Jekyll uses just 'highlighter-rouge'. Got: {}",
-            html
-        );
-        assert!(
-            html.contains("<code class=\"highlighter-rouge\">pip install</code>"),
-            "Inline code should have only highlighter-rouge class. Got: {}",
             html
         );
     }

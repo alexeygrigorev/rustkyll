@@ -51,12 +51,12 @@ mod tests {
 
     #[test]
     fn test_inline_code() {
-        // Jekyll adds class="highlighter-rouge" to inline code (no language-plaintext)
+        // Jekyll adds class="language-plaintext highlighter-rouge" to inline code
         let result = liquid_core::call_filter!(Markdownify, "`code`").unwrap();
         let s = result.to_kstr().to_string();
         assert!(
-            s.contains("<code class=\"highlighter-rouge\">code</code>"),
-            "Inline code should have highlighter-rouge class. got: {s}"
+            s.contains("<code class=\"language-plaintext highlighter-rouge\">code</code>"),
+            "Inline code should have language-plaintext highlighter-rouge class. got: {s}"
         );
     }
 
