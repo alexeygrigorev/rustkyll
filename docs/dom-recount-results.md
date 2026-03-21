@@ -1,6 +1,6 @@
 # DOM Comparison Results
 
-Generated: 2026-03-20 22:45 UTC
+Generated: 2026-03-21 01:49 UTC
 
 rustkyll version: rustkyll 0.2.3
 
@@ -27,21 +27,21 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
 
 | Site | DOM Match | File Match | Liquid Leaks |
 |------|-----------|------------|-------------|
-| academicpages | 1/17 (6%) | 17/45 | 0 |
-| alexeygrigorev/aihero | 0/2 (0%) | 2/2 | 0 |
+| academicpages | 1/17 (6%) | 18/45 | 0 |
+| alexeygrigorev/aihero | 0/2 (0%) | 3/2 | 0 |
 | alexeygrigorev/alexeygrigorev.github.io | 8/8 (100%) | 8/8 | 0 |
 | alexeygrigorev/data-science-interviews | 0/0 (N/A%) | 0/6 | 0 |
 | alexeygrigorev/kids-horror-stories-ru | 1344/1344 (100%) | 1344/1345 | 0 |
-| alexeygrigorev/little-book-of-metals-ru | 38/43 (88%) | 43/48 | 0 |
+| alexeygrigorev/little-book-of-metals-ru | 38/48 (79%) | 48/48 | 0 |
 | alexeygrigorev/mlbookcamp-page | 6/15 (40%) | 15/15 | 0 |
 | alexeygrigorev/mlwiki.org | 236/639 (37%) | 640/639 | 0 |
-| alexeygrigorev/snippets | 8/25 (32%) | 25/25 | 0 |
+| alexeygrigorev/snippets | 5/25 (20%) | 25/25 | 0 |
 | architect-theme | 1/2 (50%) | 2/2 | 0 |
 | beautiful-jekyll | 0/5 (0%) | 6/6 | 3 |
 | bitcoin-org | BOTH_FAIL | - | - |
 | cayman-theme | 1/2 (50%) | 2/2 | 0 |
 | chirpy | 0/13 (0%) | 17/17 | 1 |
-| choosealicense.com | 17/72 (24%) | 72/72 | 0 |
+| choosealicense.com | 17/72 (24%) | 73/72 | 0 |
 | DataTalksClub/courses | 5/5 (100%) | 5/5 | 0 |
 | DataTalksClub/datatalksclub.github.io | 543/787 (69%) | 787/787 | 1 |
 | DataTalksClub/docs | 56/57 (98%) | 57/57 | 0 |
@@ -71,17 +71,17 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
 | muan-blog | 1786/2218 (81%) | 2219/2218 | 0 |
 | opensource-guide | 23/388 (6%) | 390/388 | 0 |
 | primer-theme | 0/2 (0%) | 2/2 | 0 |
-| programming-historian | JEKYLL_FAIL | 653 pages (rustkyll-only) | 218 |
+| programming-historian | JEKYLL_FAIL | 656 pages (rustkyll-only) | 218 |
 | slate-theme | 1/2 (50%) | 2/2 | 0 |
 | so-simple-theme | 0/11 (0%) | 11/66 | 1 |
 | time-machine-theme | 0/2 (0%) | 2/2 | 0 |
-| uswds-site | JEKYLL_FAIL | 764 pages (rustkyll-only) | 228 |
+| uswds-site | JEKYLL_FAIL | 765 pages (rustkyll-only) | 228 |
 | wtf-html-css | JEKYLL_FAIL | 1 pages (rustkyll-only) | 0 |
 
 ## Summary
 
 - Sites compared: 40
-- Total DOM matches: 7911 / 9818
+- Total DOM matches: 7908 / 9823
 
 ## Diff Categories by Site
 
@@ -114,7 +114,9 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
 ### alexeygrigorev/little-book-of-metals-ru
 
 ```
-      5 missing_element
+     35 extra_element
+     10 tag_name_differs
+      5 text_differs
 ```
 
 ### midnight-theme
@@ -136,7 +138,7 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
 ### DataTalksClub/datatalksclub.github.io
 
 ```
-    604 jsonld_value_differs
+    471 jsonld_value_differs
     328 missing_element
     192 expected_element_got_text
      67 text_differs
@@ -255,13 +257,13 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
 ### muan-blog
 
 ```
-    837 attribute_differs
+    835 attribute_differs
     352 extra_attribute
-     41 text_differs
-     26 missing_element
+     39 text_differs
+     28 missing_element
      19 tag_name_differs
+     16 missing_text
      15 extra_element
-     14 missing_text
      10 expected_text_got_element
      10 expected_element_got_text
       4 extra_text
@@ -303,8 +305,8 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
 
 ```
     381 tag_name_differs
-    156 text_differs
-    107 attribute_differs
+    174 text_differs
+    104 attribute_differs
      90 missing_attribute
      63 extra_element
      19 missing_element
@@ -339,8 +341,9 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
 ### alexeygrigorev/snippets
 
 ```
-     61 extra_element
-     34 tag_name_differs
+     65 extra_element
+     38 tag_name_differs
+      5 text_differs
 ```
 
 ### government-github
@@ -358,13 +361,11 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
 ### academicpages
 
 ```
-     89 attribute_differs
-     22 tag_name_differs
+     90 attribute_differs
+     24 tag_name_differs
      12 text_differs
-      6 extra_element
-      2 missing_element
+      8 extra_element
       2 missing_attribute
-      1 missing_text
 ```
 
 ### choosealicense.com

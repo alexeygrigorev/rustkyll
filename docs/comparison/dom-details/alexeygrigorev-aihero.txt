@@ -1,6 +1,7 @@
 Jekyll directory:   /home/alexey/git/rustkyl/websites/alexeygrigorev/aihero/_site_jekyll_cached
 Rustkyll directory: /home/alexey/git/rustkyl/websites/alexeygrigorev/aihero/_site_rustkyll_recount
 Common HTML files:  2
+Only in rustkyll:   1
 
 DIFF certificate.html (90 differences)
   head > meta: attribute_differs - expected: "content='Jekyll v4.3.4'", actual: "content='Jekyll v4.4.1'"

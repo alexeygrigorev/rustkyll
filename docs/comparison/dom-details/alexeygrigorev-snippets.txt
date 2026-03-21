@@ -2,6 +2,12 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/alexeygrigorev/snippets/_s
 Rustkyll directory: /home/alexey/git/rustkyl/websites/alexeygrigorev/snippets/_site_rustkyll_recount
 Common HTML files:  25
 
+DIFF index.html (5 differences)
+  body > div > main > div > div > div > p: text_differs - expected: 'Code snippets for AI', actual: 'This category contains practical examples and reusable snippets for AI and machine learning tasks.'
+  body > div > main > div > div > div > p: text_differs - expected: 'Code snippets for Python', actual: 'This category contains practical examples and reusable snippets written in Python.'
+  body > div > main > div > div > div > p: text_differs - expected: 'Code snippets for WebDev', actual: 'This category contains practical examples and reusable snippets for web development.'
+  body > div > main > div > div > div > p: text_differs - expected: 'Code snippets for Data', actual: 'This category contains practical examples and reusable snippets for data analysis and manipulation.'
+  body > div > main > div > div > div > p: text_differs - expected: 'Code snippets for DevOps', actual: 'This category contains practical examples and reusable snippets for DevOps and infrastructure tasks.'
 DIFF snippets/ai/llm-api-cost-tracker.html (6 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   child[2]: tag_name_differs - expected: 'body', actual: 'div'
@@ -100,6 +106,11 @@ DIFF snippets/python/async_map_tqdm.html (6 differences)
   div: extra_element - expected: '(none)', actual: '<div>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF snippets/python/index.html (4 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
 DIFF snippets/python/threaded_map_tqdm.html (7 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   child[2]: tag_name_differs - expected: 'body', actual: 'div'
@@ -115,5 +126,10 @@ DIFF snippets/tools/uv-path-dependencies.html (6 differences)
   div: extra_element - expected: '(none)', actual: '<div>'
   p: extra_element - expected: '(none)', actual: '<p>'
   div: extra_element - expected: '(none)', actual: '<div>'
+DIFF snippets/webdev/index.html (4 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
 
-Summary: 8 files matched, 17 files with differences, 96 total differences
+Summary: 5 files matched, 20 files with differences, 109 total differences
