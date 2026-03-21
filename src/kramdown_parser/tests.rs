@@ -2131,3 +2131,190 @@ fn test_bold_italic_alternating() {
     let strong_count = html.matches("<strong>").count();
     assert_eq!(strong_count, 2, "Expected 2 <strong> elements: {html}");
 }
+
+// ==========================================================================
+// Issue 304: Math content fixes -- brace escaping, pipe/table, underscore
+// ==========================================================================
+
+// Bug A: Backslash-escaped braces inside math must be unescaped
+
+#[test]
+fn test_math_brace_escape_inline() {
+    // $A = \{x, y\}$ -- single dollar is literal text, \{ should become {
+    let input = "$A = \\{x, y\\}$\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("$A = {x, y}$"),
+        "Braces inside $...$ should be unescaped: got {html}"
+    );
+}
+
+#[test]
+fn test_math_brace_escape_display() {
+    // $$F = \{x \mid x > 0\}$$ -- display math, \{ should become {
+    let input = "$$F = \\{x \\mid x > 0\\}$$\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("{x") && html.contains("0}"),
+        "Braces inside $$...$$ should be unescaped: got {html}"
+    );
+}
+
+#[test]
+fn test_math_brace_escape_outside_math() {
+    // \{escaped\} outside math should also produce {escaped}
+    let input = "\\{escaped\\}\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("{escaped}"),
+        "Braces outside math should be unescaped: got {html}"
+    );
+}
+
+#[test]
+fn test_math_brace_escape_unicode() {
+    // Non-ASCII: $\alpha \in \{1, 2, 3\}$ with Greek letter
+    let input = "$\\alpha \\in \\{1, 2, 3\\}$\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("{1, 2, 3}"),
+        "Braces with Unicode content should be unescaped: got {html}"
+    );
+}
+
+// Bug B: Pipe inside math must NOT trigger table parsing
+
+#[test]
+fn test_math_pipe_no_table() {
+    let input = "$x | y$\n";
+    let html = super::to_html(input);
+    assert!(
+        !html.contains("<table"),
+        "Pipe inside $...$ must not create a table: got {html}"
+    );
+}
+
+#[test]
+fn test_math_pipe_in_list() {
+    let input = "- $F = {x | x > 0}$\n";
+    let html = super::to_html(input);
+    assert!(
+        !html.contains("<table"),
+        "Pipe inside $...$ in list must not create a table: got {html}"
+    );
+}
+
+#[test]
+fn test_math_pipe_multiple() {
+    let input = "$x \\ | | \\ y$\n";
+    let html = super::to_html(input);
+    assert!(
+        !html.contains("<table"),
+        "Multiple pipes inside $...$ must not create a table: got {html}"
+    );
+}
+
+#[test]
+fn test_table_still_works_outside_math() {
+    let input = "| A | B |\n|---|---|\n| 1 | 2 |\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<table"),
+        "Normal table syntax must still produce tables: got {html}"
+    );
+}
+
+// Bug C: Underscore inside math must NOT trigger emphasis
+
+#[test]
+fn test_math_underscore_no_emphasis() {
+    let input = "$\\underbrace{x}_\\text{label}$\n";
+    let html = super::to_html(input);
+    assert!(
+        !html.contains("<em>"),
+        "Underscore inside $...$ must not create emphasis: got {html}"
+    );
+}
+
+#[test]
+fn test_math_subscript_no_emphasis() {
+    let input = "$a_{ij}$\n";
+    let html = super::to_html(input);
+    assert!(
+        !html.contains("<em>"),
+        "Subscript notation inside $...$ must not create emphasis: got {html}"
+    );
+}
+
+#[test]
+fn test_emphasis_outside_math_still_works() {
+    let input = "_italic_ and $a_b$\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<em>italic</em>"),
+        "Emphasis outside math must still work: got {html}"
+    );
+    assert!(
+        !html.contains("<em>b</em>"),
+        "Underscore inside $...$ must not create emphasis on b: got {html}"
+    );
+}
+
+#[test]
+fn test_math_underscore_unicode_no_emphasis() {
+    // $\hat{\beta}_0$ with Unicode (hat, beta)
+    let input = "$\\hat{\\beta}_0$\n";
+    let html = super::to_html(input);
+    assert!(
+        !html.contains("<em>"),
+        "Underscore in math with Unicode must not create emphasis: got {html}"
+    );
+}
+
+#[test]
+fn test_math_underscore_text_pattern() {
+    // Real mlwiki pattern: $H_0: \mu_\text{OF} = \mu_\text{IF}$
+    // Two _\text{...} patterns could pair up as emphasis markers
+    let input = "$H_0: \\mu_\\text{OF} = \\mu_\\text{IF}$\n";
+    let html = super::to_html(input);
+    assert!(
+        !html.contains("<em>"),
+        "Bug C: _\\text pattern in math must not create emphasis: got {html}"
+    );
+}
+
+#[test]
+fn test_math_underscore_emphasis_bug_c() {
+    // The actual failing pattern: }_\text triggers emphasis
+    // When \{ is unescaped, $\underbrace{[x P y]}_\text{(1)}$ becomes
+    // $\underbrace{[x P y]}_\text{(1)}$ with bare { and }
+    // The }_ triggers emphasis on the text between _ markers
+    let input = "$\\underbrace{[x P y]}_{\\text{(1)}}$\n";
+    let html = super::to_html(input);
+    assert!(
+        !html.contains("<em>"),
+        "Bug C: underscore in math must not trigger emphasis: got {html}"
+    );
+}
+
+#[test]
+fn test_math_double_dollar_underscore() {
+    // In $$...$$ math, underscore must not trigger emphasis
+    let input = "$$a_{ij}$$\n";
+    let html = super::to_html(input);
+    assert!(
+        !html.contains("<em>"),
+        "Underscore in $$...$$ must not trigger emphasis: got {html}"
+    );
+}
+
+#[test]
+fn test_math_pipe_preceded_by_text() {
+    // Text before and after math with pipe on same line
+    let input = "Consider $x | y$ in context\n";
+    let html = super::to_html(input);
+    assert!(
+        !html.contains("<table"),
+        "Pipe inside $...$ with surrounding text must not create a table: got {html}"
+    );
+}

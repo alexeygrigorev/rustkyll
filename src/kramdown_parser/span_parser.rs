@@ -1132,13 +1132,14 @@ fn parse_spans(
             }
             // Check that the $$ is not preceded by a backslash that was already consumed
             if let Some((math_content, advance)) = try_parse_inline_math(chars, i, end) {
+                let unescaped = unescape_kramdown_in_math(&math_content);
                 if let Some(ref _engine) = ctx.options.math_engine {
                     output.push_str("\\(");
-                    output.push_str(&escape_html_str(&math_content));
+                    output.push_str(&escape_html_str(&unescaped));
                     output.push_str("\\)");
                 } else {
                     output.push_str("<span class=\"kdmath\">$");
-                    output.push_str(&escape_html_str(&math_content));
+                    output.push_str(&escape_html_str(&unescaped));
                     output.push_str("$</span>");
                 }
                 i += advance;
@@ -1788,6 +1789,26 @@ fn try_parse_span_ial(
     }
 
     Some((attrs, i + 1 - start))
+}
+
+/// Unescape kramdown backslash escapes for braces inside math content.
+/// In kramdown, `\{` becomes `{` and `\}` becomes `}` even inside math delimiters.
+/// Other backslash sequences (like `\\` for line break or `\text` for LaTeX commands)
+/// are left as-is, matching Jekyll's kramdown behavior.
+pub fn unescape_kramdown_in_math(content: &str) -> String {
+    let chars: Vec<char> = content.chars().collect();
+    let mut result = String::with_capacity(content.len());
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i] == '\\' && i + 1 < chars.len() && (chars[i + 1] == '{' || chars[i + 1] == '}') {
+            result.push(chars[i + 1]);
+            i += 2;
+        } else {
+            result.push(chars[i]);
+            i += 1;
+        }
+    }
+    result
 }
 
 /// Try to parse inline math: $$...$$

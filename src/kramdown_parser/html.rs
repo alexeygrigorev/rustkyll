@@ -2058,7 +2058,8 @@ fn generate_term_id(text: &str, prefix: &str) -> String {
 /// Convert math block to HTML.
 fn convert_math_block(elem: &Element, output: &mut String, options: &Options, indent: usize) {
     if let Some(ref content) = elem.value {
-        let escaped = escape_html(content);
+        let unescaped = span_parser::unescape_kramdown_in_math(content);
+        let escaped = escape_html(&unescaped);
 
         // Check if math engine is disabled (None = disabled via `~`)
         let no_engine = options.math_engine.is_none();

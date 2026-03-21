@@ -1545,6 +1545,7 @@ fn split_table_cells(line: &str) -> Vec<String> {
 /// A line with only escaped pipes is NOT a table row.
 /// Balanced backtick code spans protect pipes from being cell separators.
 /// Unbalanced backticks are treated as literal characters.
+/// Pipes inside math delimiters ($...$ or $$...$$) do NOT count as cell separators.
 fn is_table_line(line: &str) -> bool {
     let trimmed = line.trim();
     if trimmed.is_empty() {
@@ -1556,7 +1557,10 @@ fn is_table_line(line: &str) -> bool {
         return false;
     }
 
-    // A line starting with `|` is a table line
+    // A line starting with `|` is a table line -- but only if not inside math
+    // We need to check: if the line starts with `|` but the pipe is inside math, skip it
+    // However, `|` at position 0 cannot be inside math (math starts with `$`),
+    // so this fast path is still valid.
     if trimmed.starts_with('|') {
         return true;
     }
@@ -1568,7 +1572,7 @@ fn is_table_line(line: &str) -> bool {
         return has_unescaped_pipe_ignoring_backticks(trimmed);
     }
 
-    // Check with code span and <code> tag awareness
+    // Check with code span, <code> tag, and math delimiter awareness
     let chars: Vec<char> = trimmed.chars().collect();
     let mut i = 0;
     let mut in_backtick = false;
@@ -1630,6 +1634,14 @@ fn is_table_line(line: &str) -> bool {
             }
         }
 
+        // Skip content inside math delimiters: $...$ and $$...$$
+        if chars[i] == '$' {
+            if let Some(advance) = skip_inline_math_in_line(&chars, i) {
+                i += advance;
+                continue;
+            }
+        }
+
         match chars[i] {
             '\\' if i + 1 < chars.len() && chars[i + 1] == '|' => {
                 i += 2;
@@ -1655,10 +1667,18 @@ fn is_table_line(line: &str) -> bool {
 
 /// Check if a line has an unescaped pipe, ignoring backticks entirely.
 /// Used when backticks are unbalanced (so they're literal text, not code spans).
+/// Also skips pipes inside math delimiters ($...$ and $$...$$).
 fn has_unescaped_pipe_ignoring_backticks(line: &str) -> bool {
     let chars: Vec<char> = line.chars().collect();
     let mut i = 0;
     while i < chars.len() {
+        // Skip content inside math delimiters
+        if chars[i] == '$' {
+            if let Some(advance) = skip_inline_math_in_line(&chars, i) {
+                i += advance;
+                continue;
+            }
+        }
         match chars[i] {
             '\\' if i + 1 < chars.len() && chars[i + 1] == '|' => {
                 i += 2;
@@ -1670,6 +1690,61 @@ fn has_unescaped_pipe_ignoring_backticks(line: &str) -> bool {
         }
     }
     false
+}
+
+/// Skip over inline math content in a line: $...$ or $$...$$.
+/// Returns Some(advance) if we found matching math delimiters, None otherwise.
+/// The advance count includes the opening and closing delimiters.
+fn skip_inline_math_in_line(chars: &[char], start: usize) -> Option<usize> {
+    if start >= chars.len() || chars[start] != '$' {
+        return None;
+    }
+
+    // Check for escaped dollar: \$ -- the backslash would be at start-1
+    if start > 0 && chars[start - 1] == '\\' {
+        return None;
+    }
+
+    // Determine if this is $$ or $
+    let double = start + 1 < chars.len() && chars[start + 1] == '$';
+    let delim_len = if double { 2 } else { 1 };
+    let content_start = start + delim_len;
+
+    if content_start >= chars.len() {
+        return None;
+    }
+
+    // Find the closing delimiter
+    let mut i = content_start;
+    while i < chars.len() {
+        // Skip escaped characters
+        if chars[i] == '\\' && i + 1 < chars.len() {
+            i += 2;
+            continue;
+        }
+        if double {
+            if chars[i] == '$' && i + 1 < chars.len() && chars[i + 1] == '$' {
+                let content_len = i - content_start;
+                if content_len > 0 {
+                    return Some(i + 2 - start);
+                }
+            }
+        } else if chars[i] == '$' {
+            // For single $, make sure this isn't actually $$
+            if i + 1 < chars.len() && chars[i + 1] == '$' {
+                // This is $$ not $, skip
+                i += 1;
+            } else {
+                let content_len = i - content_start;
+                if content_len > 0 {
+                    return Some(i + 1 - start);
+                }
+            }
+        }
+        i += 1;
+    }
+
+    None
 }
 
 /// Check if a line could start a multi-line code span across table rows.
