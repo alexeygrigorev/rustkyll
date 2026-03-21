@@ -1297,10 +1297,14 @@ fn convert_html_block(
             output.push_str(">\n");
         }
         Some("span") => {
-            // Span-parsed HTML: opening tag inline with content, closing tag after content
-            // kramdown outputs: <tag>content</tag> (no extra newlines around content)
+            // Span-parsed HTML: content is parsed as spans while preserving
+            // the original whitespace structure (leading/trailing newlines).
             let tag = elem.options.get("tag").map(|s| s.as_str()).unwrap_or("p");
             let attrs = elem.options.get("attrs").map(|s| s.as_str()).unwrap_or("");
+            let multiline = elem
+                .options
+                .get("multiline_span")
+                .is_some_and(|v| v == "true");
             write_indent(output, indent);
             output.push('<');
             output.push_str(tag);
@@ -1308,7 +1312,13 @@ fn convert_html_block(
             output.push('>');
             if let Some(ref val) = elem.value {
                 let processed = span_parser::spans_to_html(val.trim(), ctx);
-                output.push_str(&processed);
+                if multiline {
+                    output.push('\n');
+                    output.push_str(&processed);
+                    output.push('\n');
+                } else {
+                    output.push_str(&processed);
+                }
             }
             output.push_str("</");
             output.push_str(tag);

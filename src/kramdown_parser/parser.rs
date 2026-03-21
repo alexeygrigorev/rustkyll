@@ -1535,13 +1535,29 @@ fn is_table_line(line: &str) -> bool {
         return has_unescaped_pipe_ignoring_backticks(trimmed);
     }
 
-    // Check with code span awareness (balanced backticks)
+    // Check with code span and <code> tag awareness
     let chars: Vec<char> = trimmed.chars().collect();
     let mut i = 0;
     let mut in_backtick = false;
     let mut backtick_count = 0;
+    let mut in_html_code = false;
 
     while i < chars.len() {
+        // Skip content inside <code>...</code> tags
+        if in_html_code {
+            // Look for </code>
+            if chars[i] == '<' && i + 6 < chars.len() {
+                let rest: String = chars[i..].iter().take(7).collect();
+                if rest == "</code>" {
+                    i += 7;
+                    in_html_code = false;
+                    continue;
+                }
+            }
+            i += 1;
+            continue;
+        }
+
         if in_backtick {
             let mut bt = 0;
             while i < chars.len() && chars[i] == '`' {
@@ -1556,6 +1572,29 @@ fn is_table_line(line: &str) -> bool {
                 i += 1;
             }
             continue;
+        }
+
+        // Check for <code> tag (case-insensitive)
+        if chars[i] == '<' && i + 5 < chars.len() {
+            let rest: String = chars[i..].iter().take(6).collect();
+            if rest.eq_ignore_ascii_case("<code>") {
+                i += 6;
+                in_html_code = true;
+                continue;
+            }
+            // Also handle <code with attributes like <code class="...">
+            let rest_long: String = chars[i..].iter().take(6).collect();
+            if rest_long.eq_ignore_ascii_case("<code ") {
+                // Skip to the closing >
+                while i < chars.len() && chars[i] != '>' {
+                    i += 1;
+                }
+                if i < chars.len() {
+                    i += 1; // skip >
+                }
+                in_html_code = true;
+                continue;
+            }
         }
 
         match chars[i] {
@@ -3158,6 +3197,30 @@ fn parse_html_block_element(
                 elem.options
                     .insert("attrs".to_string(), format_html_attrs(&filtered));
             }
+            // Check if opening tag is on its own line and closing tag is on its own line.
+            // This determines whether to output newlines around the content.
+            let open_tag_solo = collected
+                .first()
+                .map(|l| {
+                    if let Some(gt_pos) = l.find('>') {
+                        l[gt_pos + 1..].trim().is_empty()
+                    } else {
+                        false
+                    }
+                })
+                .unwrap_or(false);
+            let close_tag_solo = collected
+                .last()
+                .map(|l| {
+                    l.trim()
+                        .to_lowercase()
+                        .starts_with(&format!("</{}", tag_lc))
+                })
+                .unwrap_or(false);
+            if open_tag_solo && close_tag_solo && collected.len() > 2 {
+                elem.options
+                    .insert("multiline_span".to_string(), "true".to_string());
+            }
             let inner_content = extract_inner_content(&collected, &tag_lc);
             elem.value = Some(inner_content);
             elem
@@ -3377,8 +3440,6 @@ fn extract_inner_content(collected: &[String], tag_lc: &str) -> String {
     }
 
     // Remove closing tag from last line
-    let _close_tag = format!("</{}>", tag_lc);
-    let _close_tag_upper = format!("</{}>", tag_lc.to_uppercase());
     if let Some(last) = lines.last_mut() {
         let last_lc = last.to_lowercase();
         if let Some(idx) = last_lc.rfind(&format!("</{}", tag_lc)) {

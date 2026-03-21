@@ -26,6 +26,12 @@ struct ScopeMapping {
 fn build_scope_map() -> Vec<ScopeMapping> {
     let rules: &[(&str, &str)] = &[
         // ── Language-specific overrides (checked first) ──
+        // Ruby: Rouge classifies built-in constants (Class, String, etc.) as `no` (name constant).
+        // Syntect scopes these as support.class.ruby -> nb. Override for Ruby.
+        ("source.ruby support.class", "no"),
+        // Ruby: Rouge classifies special methods (new, initialize, etc.) as `nf` (function name).
+        // Syntect scopes these as keyword.other.special-method.ruby -> k. Override for Ruby.
+        ("source.ruby keyword.other.special-method", "nf"),
         // JSON: Rouge renders string delimiters (quotes) as part of the string token.
         // Syntect emits punctuation.definition.string.{begin,end} as separate scopes.
         // Map them to `s2` (same as string.quoted.double) so they merge with the
@@ -374,6 +380,13 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
     // Syntect emits the whole quoted string as a single s1/s2 span.
     if is_dl_split_language(lang) {
         html = postprocess_string_delimiter_split(&html);
+    }
+
+    // Ruby post-processing: wrap bare identifiers in <span class="n">
+    // Syntect assigns only `source.ruby` to bare identifiers, so they get no span.
+    // Rouge classifies them as `n` (Name).
+    if lang == "ruby" || lang == "rb" {
+        html = postprocess_ruby_bare_identifiers(&html);
     }
 
     Some(html)
@@ -935,6 +948,59 @@ fn postprocess_xml_tag_tokens(html: &str) -> String {
 /// JSON, Python, and most other languages do NOT.
 fn is_dl_split_language(lang: &str) -> bool {
     matches!(lang, "javascript" | "js" | "ruby" | "rb")
+}
+
+/// Post-process Ruby highlighted HTML to wrap bare identifiers in `<span class="n">`.
+///
+/// Syntect assigns only `source.ruby` to bare identifiers like local variables,
+/// so they get no span. Rouge classifies them as `n` (Name).
+/// This function finds bare word-character sequences outside of span tags and
+/// wraps them in `<span class="n">`.
+fn postprocess_ruby_bare_identifiers(html: &str) -> String {
+    let mut result = String::with_capacity(html.len() + html.len() / 4);
+    let mut remaining = html;
+
+    while !remaining.is_empty() {
+        if remaining.starts_with("<span ") {
+            // Inside a span tag - copy the entire span
+            if let Some(end) = remaining.find("</span>") {
+                let span_end = end + "</span>".len();
+                result.push_str(&remaining[..span_end]);
+                remaining = &remaining[span_end..];
+            } else {
+                result.push_str(remaining);
+                break;
+            }
+        } else {
+            // Bare text - find the next span or end
+            let text_end = remaining.find("<span ").unwrap_or(remaining.len());
+            let bare_text = &remaining[..text_end];
+            remaining = &remaining[text_end..];
+
+            // Wrap word-character sequences (identifiers) in <span class="n">
+            let mut chars = bare_text.chars().peekable();
+            while chars.peek().is_some() {
+                let c = *chars.peek().unwrap_or(&' ');
+                if c.is_alphanumeric() || c == '_' {
+                    // Collect the identifier
+                    let mut ident = String::new();
+                    while chars
+                        .peek()
+                        .is_some_and(|ch| ch.is_alphanumeric() || *ch == '_')
+                    {
+                        ident.push(chars.next().unwrap_or(' '));
+                    }
+                    result.push_str("<span class=\"n\">");
+                    result.push_str(&ident);
+                    result.push_str("</span>");
+                } else {
+                    result.push(chars.next().unwrap_or(' '));
+                }
+            }
+        }
+    }
+
+    result
 }
 
 /// Post-process highlighted HTML to split quoted string spans into
@@ -2133,6 +2199,23 @@ mod tests {
             "YAML quoted string should match Rouge pattern.\nExpected to contain: {}\nActual: {}",
             expected,
             html
+        );
+    }
+
+    #[test]
+    fn test_ruby_class_new() {
+        let html = highlight_code("ruby", "x = Class.new\n").unwrap();
+        assert!(
+            html.contains("<span class=\"n\">x</span>"),
+            "Ruby variable x should be n: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"no\">Class</span>"),
+            "Ruby constant Class should be no: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nf\">new</span>"),
+            "Ruby method new should be nf: {html}"
         );
     }
 }

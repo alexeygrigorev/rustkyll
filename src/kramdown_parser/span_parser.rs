@@ -291,6 +291,14 @@ pub fn extract_definitions(text: &str, ctx: &mut SpanContext) -> String {
                 }
                 pending_ial_lines.clear();
                 pending_ial_attrs.clear();
+                // Insert an EOB marker so the block parser ends any
+                // currently-open list/blockquote. Without this, two
+                // lists separated by a footnote definition would merge
+                // into one after the definition is extracted.
+                // Only insert when there's more content following (not at end of doc).
+                if i < lines.len() {
+                    output_lines.push("^");
+                }
                 continue;
             }
         }
