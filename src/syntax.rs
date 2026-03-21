@@ -32,6 +32,24 @@ fn build_scope_map() -> Vec<ScopeMapping> {
         // Ruby: Rouge classifies special methods (new, initialize, etc.) as `nf` (function name).
         // Syntect scopes these as keyword.other.special-method.ruby -> k. Override for Ruby.
         ("source.ruby keyword.other.special-method", "nf"),
+        // Ruby: block parameter delimiters (|...|) are `o` (operator) in Rouge.
+        ("source.ruby punctuation.definition.parameters", "o"),
+        // Ruby: string interpolation markers (#{...}) are `si` in Rouge.
+        ("source.ruby punctuation.section.embedded", "si"),
+        // Ruby: bare identifiers inside string interpolation (#{...}) are `n` (Name).
+        // Without this rule, they match `string.quoted.double` -> `s2` since the
+        // scope stack still contains the enclosing string scope.
+        ("source.ruby.embedded.source", "n"),
+        // Ruby: string quote delimiters should match their enclosing string type so
+        // they merge during accumulate_and_emit. Double-quoted -> s2, single-quoted -> s1.
+        (
+            "source.ruby string.quoted.double punctuation.definition.string",
+            "s2",
+        ),
+        (
+            "source.ruby string.quoted.single punctuation.definition.string",
+            "s1",
+        ),
         // JSON: Rouge renders string delimiters (quotes) as part of the string token.
         // Syntect emits punctuation.definition.string.{begin,end} as separate scopes.
         // Map them to `s2` (same as string.quoted.double) so they merge with the
@@ -387,6 +405,24 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
     // Rouge classifies them as `n` (Name).
     if lang == "ruby" || lang == "rb" {
         html = postprocess_ruby_bare_identifiers(&html);
+        // Rouge classifies `::` as `o` (operator). Syntect uses the same
+        // punctuation.accessor scope for both `.` and `::`, so override via post-processing.
+        html = html.replace("<span class=\"p\">::</span>", "<span class=\"o\">::</span>");
+        // Rouge classifies identifiers after `.` as `nf` (method calls).
+        html = html.replace(
+            "<span class=\"p\">.</span><span class=\"n\">",
+            "<span class=\"p\">.</span><span class=\"nf\">",
+        );
+        // Rouge classifies special-method keywords (gem, require) as `n` when
+        // used as arguments after `(` or `,`.
+        html = html.replace(
+            "<span class=\"p\">(</span><span class=\"nf\">",
+            "<span class=\"p\">(</span><span class=\"n\">",
+        );
+        html = html.replace(
+            "<span class=\"p\">,</span> <span class=\"nf\">",
+            "<span class=\"p\">,</span> <span class=\"n\">",
+        );
     }
 
     Some(html)
@@ -2216,6 +2252,187 @@ mod tests {
         assert!(
             html.contains("<span class=\"nf\">new</span>"),
             "Ruby method new should be nf: {html}"
+        );
+    }
+
+    // ── Issue 290: Ruby token mapping fixes for theme sites ──
+
+    #[test]
+    fn test_ruby_double_colon_is_o() {
+        let html = highlight_code("ruby", "GitHubPages::Dependencies\n").unwrap();
+        assert!(
+            html.contains("<span class=\"o\">::</span>"),
+            "Ruby :: should be o (operator), not p: {html}"
+        );
+    }
+
+    #[test]
+    fn test_ruby_method_after_dot_is_nf() {
+        let html = highlight_code("ruby", "obj.gems.each do\nend\n").unwrap();
+        assert!(
+            html.contains("<span class=\"nf\">gems</span>"),
+            "Ruby method after . should be nf: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nf\">each</span>"),
+            "Ruby method after . should be nf: {html}"
+        );
+    }
+
+    #[test]
+    fn test_ruby_block_pipe_is_o() {
+        let html = highlight_code("ruby", "items.each do |item|\nend\n").unwrap();
+        assert!(
+            html.contains("<span class=\"o\">|</span>"),
+            "Ruby block | should be o (operator): {html}"
+        );
+    }
+
+    #[test]
+    fn test_ruby_string_interpolation_si() {
+        let code = "x = \"hello \x23{name}\"\n";
+        let html = highlight_code("ruby", code).unwrap();
+        assert!(
+            html.contains("<span class=\"si\">"),
+            "Ruby string interpolation should contain si spans: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"s2\">"),
+            "Ruby interpolated string should use s2: {html}"
+        );
+    }
+
+    #[test]
+    fn test_ruby_gem_as_param_is_n() {
+        let code = "s.add_dependency(gem, \"test\")\n";
+        let html = highlight_code("ruby", code).unwrap();
+        assert!(
+            html.contains("<span class=\"n\">gem</span>"),
+            "Ruby 'gem' as argument should be n: {html}"
+        );
+    }
+
+    #[test]
+    fn test_ruby_theme_site_code_block_full() {
+        let code = concat!(
+            "# Ruby code with syntax highlighting\n",
+            "GitHubPages::Dependencies.gems.each do |gem, version|\n",
+            "  s.add_dependency(gem, \"= #",
+            "{version}\")\n",
+            "end\n"
+        );
+        let html = highlight_code("ruby", code).unwrap();
+        assert!(
+            html.contains("<span class=\"c1\"># Ruby code with syntax highlighting"),
+            "Ruby comment should be c1: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"no\">GitHubPages</span>"),
+            "Ruby constant should be no: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"no\">Dependencies</span>"),
+            "Ruby constant should be no: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"o\">::</span>"),
+            "Ruby :: should be o: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nf\">gems</span>"),
+            "Ruby method gems should be nf: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nf\">each</span>"),
+            "Ruby method each should be nf: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nf\">add_dependency</span>"),
+            "Ruby method add_dependency should be nf: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"o\">|</span>"),
+            "Ruby | should be o: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"n\">gem</span>"),
+            "Ruby gem should be n (not nf): {html}"
+        );
+        assert!(
+            html.contains("<span class=\"n\">version</span>"),
+            "Ruby version should be n: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"si\">"),
+            "Ruby should have si (string interpolation) spans: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"k\">end</span>"),
+            "Ruby end should be k: {html}"
+        );
+    }
+
+    #[test]
+    fn test_ruby_non_ascii_string_290() {
+        // Non-ASCII / Unicode content
+        let code =
+            "puts \"\u{041f}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442} \u{043c}\u{0438}\u{0440}\"\n";
+        let html = highlight_code("ruby", code).unwrap();
+        assert!(
+            html.contains("\u{041f}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}"),
+            "Ruby should preserve non-ASCII characters: {html}"
+        );
+        assert!(
+            html.contains("<span class=\""),
+            "Ruby non-ASCII code should produce spans: {html}"
+        );
+    }
+
+    // ── Issue 290: JavaScript token mapping verification ──
+
+    #[test]
+    fn test_js_var_function_are_kd_290() {
+        let html = highlight_code("js", "var x = function() {}\n").unwrap();
+        assert!(
+            html.contains("<span class=\"kd\">var</span>"),
+            "JS var should be kd: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"kd\">function</span>"),
+            "JS function should be kd: {html}"
+        );
+    }
+
+    #[test]
+    fn test_js_let_const_are_kd_290() {
+        let html = highlight_code("js", "let y = 5;\nconst z = \"hello\";\n").unwrap();
+        assert!(
+            html.contains("<span class=\"kd\">let</span>"),
+            "JS let should be kd: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"kd\">const</span>"),
+            "JS const should be kd: {html}"
+        );
+    }
+
+    // ── Issue 290: Python token mapping verification ──
+
+    #[test]
+    fn test_python_in_is_ow_290() {
+        let html = highlight_code("python", "x in [1, 2]\n").unwrap();
+        assert!(
+            html.contains("<span class=\"ow\">in</span>"),
+            "Python 'in' should be ow (operator.word): {html}"
+        );
+    }
+
+    #[test]
+    fn test_python_class_name_is_nc_290() {
+        let html = highlight_code("python", "class MyClass:\n    pass\n").unwrap();
+        assert!(
+            html.contains("<span class=\"nc\">MyClass</span>"),
+            "Python class name should be nc: {html}"
         );
     }
 }

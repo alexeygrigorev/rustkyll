@@ -153,3 +153,39 @@ The engineer must:
 - The existing `src/syntax.rs` already has 2221 lines of mapping logic. This issue adds targeted fixes, not a rewrite.
 - The 10 theme sites all use the exact same Ruby code example, so fixing one fixes all 10.
 - Some diffs on non-theme sites (muan-blog, DTC) are NOT syntax highlighting -- they are quote escaping, meta tag, or other issues. Do not conflate them.
+
+## Log
+
+### [SWE] 2026-03-21
+
+**TDD cycle:**
+1. Wrote 13 failing tests (8 Ruby, 2 JS, 2 Python, 1 non-ASCII)
+2. Ran tests: 6 Ruby tests FAIL as expected (JS/Python already correct)
+3. Implemented fixes in src/syntax.rs:
+   - Added scope mappings: `source.ruby punctuation.definition.parameters` -> `o`, `source.ruby punctuation.section.embedded` -> `si`, `source.ruby.embedded.source` -> `n`, `source.ruby string.quoted.double punctuation.definition.string` -> `s2`, `source.ruby string.quoted.single punctuation.definition.string` -> `s1`
+   - Added Ruby post-processing: `::` from `p` to `o`, identifiers after `.` from `n` to `nf`, special-method keywords (gem/require) as args from `nf` to `n`
+4. Ran tests: all 97 syntax unit tests PASS, all 19 integration syntax tests PASS
+
+**DOM comparison results:**
+- architect-theme: 2/2 (was 1/2)
+- cayman-theme: 2/2 (was 1/2)
+- dinky-theme: 0/2 diffs are href attributes, NOT syntax (was 0/2)
+- hacker-theme: 0/2 diffs are href attributes, NOT syntax (was 0/2)
+- leap-day-theme: 0/2 diffs are href attributes, NOT syntax (was 0/2)
+- merlot-theme: 0/2 diffs are href attributes, NOT syntax (was 0/2)
+- midnight-theme: 0/2 diffs are href attributes, NOT syntax (was 0/2)
+- primer-theme: 0/2 diffs are text/element diffs, NOT syntax (was 0/2)
+- slate-theme: 2/2 (was 1/2)
+- time-machine-theme: 0/2 diffs are href attributes, NOT syntax (was 0/2)
+
+All syntax highlighting class diffs on the Ruby code blocks are now ZERO across all 10 theme sites. The remaining diffs are all template/layout issues (href attributes, text content) not related to syntax highlighting.
+
+**Build/lint:**
+- `cargo build --release`: OK
+- `cargo clippy -- -D warnings`: OK for syntax.rs (pre-existing span_parser.rs error unrelated)
+- `cargo fmt --check`: OK for syntax.rs
+- 97 syntax unit tests pass, 19 integration syntax tests pass, no regressions
+
+**Files modified:**
+- src/syntax.rs (scope mappings + post-processing + 13 new tests)
+- docs/tracker/290-rouge-compatible-syntax-highlighting.in-progress.md (this file)
