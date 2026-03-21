@@ -51,6 +51,14 @@ pub fn to_html_with_options(input: &str, options: &Options) -> String {
     // Convert to HTML with span processing
     let mut html = HtmlConverter::convert_with_context(&doc, options, &mut span_ctx);
 
+    // When definitions were extracted from the start of the document, the cleaned text
+    // starts with blank lines. In kramdown, blank elements produce "\n" in output.
+    // The block parser creates Blank elements but the converter skips them.
+    // We need to preserve leading blank lines that result from definition extraction.
+    if cleaned.starts_with('\n') && !input.starts_with('\n') && !html.starts_with('\n') {
+        html.insert(0, '\n');
+    }
+
     // Kramdown preserves trailing blank lines: if the cleaned text (after def extraction)
     // ended with a blank line AND there are no footnotes (which consume trailing blanks),
     // ensure the output also ends with \n\n.

@@ -37,6 +37,8 @@ pub struct SyntaxHighlighterOpts {
     pub line_numbers: Option<String>,
     /// Whether to guess the language
     pub guess_lang: Option<bool>,
+    /// Whether span-level syntax highlighting is disabled
+    pub span_disable: bool,
 }
 
 /// A link definition: (url, optional title).
@@ -324,6 +326,7 @@ impl Options {
                     };
                 }
                 "guess_lang" => opts.guess_lang = Some(Self::parse_bool(&val)),
+                "disable" => opts.span_disable = Self::parse_bool(&val),
                 "block" | "span" => {
                     // These are sub-section headers, ignore the key itself
                 }

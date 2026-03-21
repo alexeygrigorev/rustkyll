@@ -18,6 +18,7 @@
 
 use crate::kramdown_parser::entities;
 use crate::kramdown_parser::options::{EntityOutput, Options};
+use crate::syntax::highlight_code;
 use std::collections::HashMap;
 
 /// Context for span parsing, carrying link definitions and abbreviations.
@@ -40,13 +41,16 @@ pub struct SpanContext {
     pub toc_headers: Vec<(usize, String, String, bool)>,
     /// Options
     pub options: Options,
+    /// Emphasis nesting stack: 1 = em, 2 = strong (prevents same-type nesting)
+    pub emphasis_stack: Vec<u8>,
 }
 
 /// A link definition with optional IAL attributes
 pub struct LinkDef {
     pub url: String,
     pub title: Option<String>,
-    pub attrs: HashMap<String, String>,
+    /// Attributes in insertion order (key, value pairs)
+    pub attrs: Vec<(String, String)>,
 }
 
 impl SpanContext {
@@ -58,7 +62,7 @@ impl SpanContext {
                 LinkDef {
                     url: url.clone(),
                     title: title.clone(),
-                    attrs: HashMap::new(),
+                    attrs: Vec::new(),
                 },
             );
         }
@@ -72,6 +76,7 @@ impl SpanContext {
             ald_defs: HashMap::new(),
             toc_headers: Vec::new(),
             options: options.clone(),
+            emphasis_stack: Vec::new(),
         }
     }
 }
@@ -82,6 +87,14 @@ pub fn extract_definitions(text: &str, ctx: &mut SpanContext) -> String {
     let mut output_lines: Vec<&str> = Vec::new();
     let lines: Vec<&str> = text.lines().collect();
     let mut i = 0;
+    // Track whether we're at a block boundary (link defs/footnotes/abbrevs/IALs
+    // can only appear at block boundaries, not in paragraph continuations)
+    let mut at_block_boundary = true;
+
+    // Collect IAL lines that appear before a link def (they apply to the next link def)
+    let mut pending_ial_attrs: Vec<(String, String)> = Vec::new();
+    // Track line indices of pending IAL lines (so we can output them if no link def follows)
+    let mut pending_ial_lines: Vec<usize> = Vec::new();
 
     while i < lines.len() {
         let line = lines[i];
@@ -91,7 +104,7 @@ pub fn extract_definitions(text: &str, ctx: &mut SpanContext) -> String {
         // Can have 0-3 spaces of indent
         // Note: IDs starting with ^ are footnotes, not link defs
         let indent = line.len() - trimmed.len();
-        if indent <= 3 {
+        if indent <= 3 && at_block_boundary {
             if let Some(rest) = trimmed.strip_prefix('[') {
                 if let Some(close_bracket) = rest.find("]:") {
                     let id = &rest[..close_bracket];
@@ -105,20 +118,17 @@ pub fn extract_definitions(text: &str, ctx: &mut SpanContext) -> String {
                         if let Some(link_def) =
                             parse_link_definition(id, after_colon, &lines, &mut i)
                         {
-                            // Check for IAL on the next line(s)
-                            let mut attrs = HashMap::new();
+                            // Start with any IAL attrs that preceded this link def
+                            let mut attrs: Vec<(String, String)> = Vec::new();
+                            for (k, v) in pending_ial_attrs.drain(..) {
+                                merge_attr_vec(&mut attrs, k, v);
+                            }
+                            pending_ial_lines.clear();
+                            // Check for IAL on the next line(s) after the link def
                             while i < lines.len() && is_block_ial(lines[i]) {
                                 let ial_attrs = parse_ial(lines[i].trim());
                                 for (k, v) in ial_attrs {
-                                    if k == "class" {
-                                        let entry = attrs.entry(k).or_insert_with(String::new);
-                                        if !entry.is_empty() {
-                                            entry.push(' ');
-                                        }
-                                        entry.push_str(&v);
-                                    } else {
-                                        attrs.insert(k, v);
-                                    }
+                                    merge_attr_vec(&mut attrs, k, v);
                                 }
                                 i += 1;
                             }
@@ -128,9 +138,8 @@ pub fn extract_definitions(text: &str, ctx: &mut SpanContext) -> String {
                                 title: link_def.1,
                                 attrs,
                             };
-                            // Check for IAL before the link def
-                            // (already handled by looking ahead)
-                            ctx.link_defs.entry(key).or_insert(def);
+                            // Last definition wins (kramdown overwrites duplicate link IDs)
+                            ctx.link_defs.insert(key, def);
                             continue;
                         }
                     }
@@ -153,21 +162,44 @@ pub fn extract_definitions(text: &str, ctx: &mut SpanContext) -> String {
                         let entry = ctx.ald_defs.entry(name.to_string()).or_default();
                         entry.extend(attrs);
                         i += 1;
+                        at_block_boundary = true;
                         continue;
                     }
                 }
             }
+
+            // Block IAL (not ALD): {: .class #id key="value"}
+            // Could be applied to the next link definition.
+            // We tentatively store it; if no link def follows, we output it normally.
+            if is_block_ial(trimmed) {
+                let ial_attrs = parse_ial(trimmed);
+                pending_ial_attrs.extend(ial_attrs);
+                pending_ial_lines.push(i);
+                i += 1;
+                // IAL keeps us at a block boundary
+                continue;
+            }
         }
 
         // Abbreviation definition: *[ABBR]: Full text
-        if let Some(rest) = trimmed.strip_prefix("*[") {
-            if let Some(close) = rest.find("]:") {
-                let abbr = &rest[..close];
-                let full = rest[close + 2..].trim();
-                if !abbr.is_empty() {
-                    ctx.abbreviations.insert(abbr.to_string(), full.to_string());
-                    i += 1;
-                    continue;
+        // Only at 0-3 spaces indent (4+ is a code block)
+        if indent <= 3 {
+            if let Some(rest) = trimmed.strip_prefix("*[") {
+                if let Some(close) = rest.find("]:") {
+                    let abbr = &rest[..close];
+                    let full = rest[close + 2..].trim();
+                    if !abbr.is_empty() {
+                        ctx.abbreviations.insert(abbr.to_string(), full.to_string());
+                        i += 1;
+                        at_block_boundary = true;
+                        // Flush any pending IAL lines (they don't apply to abbreviation defs)
+                        for &ial_line_idx in &pending_ial_lines {
+                            output_lines.push(lines[ial_line_idx]);
+                        }
+                        pending_ial_lines.clear();
+                        pending_ial_attrs.clear();
+                        continue;
+                    }
                 }
             }
         }
@@ -230,12 +262,38 @@ pub fn extract_definitions(text: &str, ctx: &mut SpanContext) -> String {
 
                 ctx.footnote_defs
                     .insert(name.to_string(), content.trim_end().to_string());
+                // Consume any IAL lines after the footnote definition
+                // (they apply to the footnote, not to the next block element)
+                while i < lines.len() && is_block_ial(lines[i]) {
+                    i += 1;
+                }
+                at_block_boundary = true;
+                // Flush any pending IAL lines (they don't apply to footnote defs)
+                for &ial_line_idx in &pending_ial_lines {
+                    output_lines.push(lines[ial_line_idx]);
+                }
+                pending_ial_lines.clear();
+                pending_ial_attrs.clear();
                 continue;
             }
         }
 
+        // Not a definition line: flush any pending IAL lines to output
+        // (they weren't consumed by a link def, so they belong in the output)
+        for &ial_line_idx in &pending_ial_lines {
+            output_lines.push(lines[ial_line_idx]);
+        }
+        pending_ial_lines.clear();
+        pending_ial_attrs.clear();
+        // Track block boundary status
+        at_block_boundary = trimmed.is_empty();
         output_lines.push(line);
         i += 1;
+    }
+
+    // Flush any remaining pending IAL lines
+    for &ial_line_idx in &pending_ial_lines {
+        output_lines.push(lines[ial_line_idx]);
     }
 
     // Reconstruct text, preserving trailing blank lines
@@ -273,56 +331,123 @@ fn parse_link_definition(
     }
 
     // URL can be in angle brackets
-    let (url, rest) = if after_colon.starts_with('<') {
+    if after_colon.starts_with('<') {
         if let Some(close) = after_colon[1..].find('>') {
-            let url = &after_colon[1..=close];
+            let url = after_colon[1..=close].to_string();
             let rest = after_colon[close + 2..].trim_start();
-            (url.to_string(), rest.to_string())
-        } else {
-            *pos += 1;
-            return None;
+            let title = if rest.is_empty() {
+                check_next_line_title(lines, pos)
+            } else {
+                extract_title(rest)
+            };
+            *pos += if title.is_some() && rest.is_empty() {
+                2
+            } else {
+                1
+            };
+            return Some((url, title));
         }
-    } else {
-        // URL is everything up to first whitespace or end of line
-        let parts: Vec<&str> = after_colon.splitn(2, [' ', '\t']).collect();
-        let url = parts[0].to_string();
-        let rest = parts
-            .get(1)
-            .map(|s| s.trim().to_string())
-            .unwrap_or_default();
-        (url, rest)
-    };
+        *pos += 1;
+        return None;
+    }
+
+    // Try to split URL and title on the same line.
+    // Kramdown: URL is non-greedy, title is quoted string at end.
+    // First try: entire after_colon is URL (no inline title), check next line
+    // Then try: split at last whitespace before a quote to separate URL and title
+
+    // Check if there's a quoted title at the end of the line
+    let trimmed_end = after_colon.trim_end();
+    let mut url = trimmed_end.to_string();
+    let mut title: Option<String> = None;
+
+    // Try to find a title at the end: look for ' "title"' or " 'title'"
+    if let Some(inline_title) = extract_inline_url_title(trimmed_end) {
+        url = inline_title.0;
+        title = Some(inline_title.1);
+    }
 
     if url.is_empty() {
         *pos += 1;
         return None;
     }
 
-    // Parse title from rest or continuation line
-    let title = if rest.is_empty() {
-        // Check next line for title
+    // Kramdown rejects link defs where the URL part contains whitespace followed by a quote
+    // (this prevents mismatched quote titles from being treated as URLs)
+    if title.is_none() && url_has_space_then_quote(&url) {
+        // Don't advance pos; this is not a valid link definition
+        return None;
+    }
+
+    // If no inline title, check next line for title
+    if title.is_none() {
         if *pos + 1 < lines.len() {
             let next_trimmed = lines[*pos + 1].trim();
             if let Some(t) = extract_title(next_trimmed) {
+                title = Some(t);
                 *pos += 2;
-                Some(t)
-            } else {
-                *pos += 1;
-                None
+                return Some((url, title));
             }
-        } else {
-            *pos += 1;
-            None
         }
-    } else if let Some(t) = extract_title(&rest) {
-        *pos += 1;
-        Some(t)
-    } else {
-        *pos += 1;
-        None
-    };
+    }
 
+    *pos += 1;
     Some((url, title))
+}
+
+/// Try to extract URL and title from the same line.
+/// Returns (url, title) if a quoted title is found at the end.
+fn extract_inline_url_title(s: &str) -> Option<(String, String)> {
+    // Look for patterns like: url "title" or url 'title'
+    // The title must be at the end of the string
+    for quote in ['"', '\''] {
+        if s.ends_with(quote) {
+            // Find the matching opening quote preceded by whitespace
+            let without_end = &s[..s.len() - 1];
+            // Search backwards for whitespace + opening quote
+            for (i, ch) in without_end.char_indices().rev() {
+                if ch == quote {
+                    // Check that before the quote is whitespace (or tab)
+                    if i > 0 {
+                        let before = without_end.as_bytes()[i - 1];
+                        if before == b' ' || before == b'\t' {
+                            let url = s[..i - 1].trim_end().to_string();
+                            let title = s[i + 1..s.len() - 1].to_string();
+                            if !url.is_empty() {
+                                return Some((url, title));
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Check if the next line contains a title.
+fn check_next_line_title(lines: &[&str], pos: &usize) -> Option<String> {
+    if *pos + 1 < lines.len() {
+        let next_trimmed = lines[*pos + 1].trim();
+        extract_title(next_trimmed)
+    } else {
+        None
+    }
+}
+
+/// Check if a URL string contains whitespace followed by a quote character.
+/// Kramdown rejects such URLs as invalid link definitions.
+fn url_has_space_then_quote(url: &str) -> bool {
+    let bytes = url.as_bytes();
+    for i in 0..bytes.len().saturating_sub(1) {
+        if (bytes[i] == b' ' || bytes[i] == b'\t')
+            && (bytes[i + 1] == b'"' || bytes[i + 1] == b'\'')
+        {
+            return true;
+        }
+    }
+    false
 }
 
 fn extract_title(s: &str) -> Option<String> {
@@ -486,6 +611,35 @@ pub fn parse_ial(s: &str) -> Vec<(String, String)> {
         }
     }
     attrs
+}
+
+/// Merge an attribute into a Vec<(String, String)>, appending class values.
+fn merge_attr_vec(attrs: &mut Vec<(String, String)>, key: String, value: String) {
+    if key == "class" {
+        // Merge class values: find existing class entry or create new one
+        if let Some(entry) = attrs.iter_mut().find(|(k, _)| k == "class") {
+            if !entry.1.is_empty() {
+                entry.1.push(' ');
+            }
+            entry.1.push_str(&value);
+        } else {
+            attrs.push((key, value));
+        }
+    } else if key == "id" {
+        // ID replaces existing
+        if let Some(entry) = attrs.iter_mut().find(|(k, _)| k == "id") {
+            entry.1 = value;
+        } else {
+            attrs.push((key, value));
+        }
+    } else {
+        // Other attributes: replace existing or add new
+        if let Some(entry) = attrs.iter_mut().find(|(k, _)| *k == key) {
+            entry.1 = value;
+        } else {
+            attrs.push((key, value));
+        }
+    }
 }
 
 /// Convert inline text to HTML, processing all span elements.
@@ -699,34 +853,83 @@ fn parse_spans(
         // Backtick code span
         if chars[i] == '`' {
             if let Some((content, advance)) = try_parse_code_span(chars, i, end) {
-                let highlighter_class = if ctx.options.syntax_highlighter.is_some()
-                    && ctx.options.syntax_highlighter_opts.guess_lang == Some(true)
-                {
-                    " class=\"highlighter-rouge\""
-                } else {
-                    ""
-                };
-                output.push_str(&format!("<code{highlighter_class}>"));
-                output.push_str(&escape_html_str(&content));
-                output.push_str("</code>");
-                // Check for IAL(s) after code span
+                // Check for IAL(s) after code span before building the tag
                 let mut after = i + advance;
                 let mut all_ial_attrs: Vec<(String, String)> = Vec::new();
                 while let Some((ial_attrs, ial_len)) = try_parse_span_ial(chars, after, end) {
                     all_ial_attrs.extend(ial_attrs);
                     after += ial_len;
                 }
-                if !all_ial_attrs.is_empty() {
-                    // Find the last <code tag in output and merge attributes
-                    if let Some(pos) = output.rfind("<code") {
-                        let tag_end = output[pos..].find('>').unwrap_or(0) + pos;
-                        let existing_tag = &output[pos..=tag_end];
-                        let new_tag = merge_code_tag_attrs(existing_tag, &all_ial_attrs);
-                        let rest = output[tag_end + 1..].to_string();
-                        output.truncate(pos);
-                        output.push_str(&new_tag);
-                        output.push_str(&rest);
+
+                // Extract language from IAL class (e.g., "language-ruby" -> "ruby")
+                let lang = all_ial_attrs.iter().find_map(|(k, v)| {
+                    if k == "class" {
+                        v.strip_prefix("language-").map(|l| l.to_string())
+                    } else {
+                        None
                     }
+                });
+
+                // Try syntax highlighting if a language is detected and span highlighting
+                // is not disabled
+                let span_disabled = ctx.options.syntax_highlighter_opts.span_disable;
+                let highlighted_content = if span_disabled {
+                    None
+                } else {
+                    lang.as_deref().and_then(|lang_name| {
+                        highlight_code(lang_name, &content)
+                            .map(|h| h.trim_end_matches('\n').to_string())
+                    })
+                };
+
+                // Build class list
+                let mut classes = Vec::new();
+
+                // Add base highlighter-rouge class if syntax_highlighter + guess_lang
+                if ctx.options.syntax_highlighter.is_some()
+                    && ctx.options.syntax_highlighter_opts.guess_lang == Some(true)
+                {
+                    classes.push("highlighter-rouge".to_string());
+                }
+
+                // Add IAL classes
+                for (k, v) in &all_ial_attrs {
+                    if k == "class" {
+                        classes.push(v.clone());
+                    }
+                }
+
+                // If we have highlighting, ensure highlighter-rouge is in the class list
+                if highlighted_content.is_some() {
+                    if !classes.iter().any(|c| c == "highlighter-rouge") {
+                        classes.push("highlighter-rouge".to_string());
+                    }
+                }
+
+                // Build attributes string
+                let mut attrs_str = String::new();
+                if !classes.is_empty() {
+                    attrs_str.push_str(&format!(" class=\"{}\"", classes.join(" ")));
+                }
+                // Add non-class IAL attrs (id and others)
+                if let Some((_, id_val)) = all_ial_attrs.iter().find(|(k, _)| k == "id") {
+                    attrs_str.push_str(&format!(" id=\"{id_val}\""));
+                }
+                for (k, v) in &all_ial_attrs {
+                    if k != "class" && k != "id" {
+                        attrs_str.push_str(&format!(" {k}=\"{v}\""));
+                    }
+                }
+
+                output.push_str(&format!("<code{attrs_str}>"));
+                if let Some(ref highlighted) = highlighted_content {
+                    output.push_str(highlighted);
+                } else {
+                    output.push_str(&escape_html_str(&content));
+                }
+                output.push_str("</code>");
+
+                if !all_ial_attrs.is_empty() {
                     i = after;
                 } else {
                     i += advance;
@@ -1066,6 +1269,7 @@ fn escape_autolink_url(s: &str) -> String {
 }
 
 /// Merge IAL attributes into an existing <code ...> tag string.
+#[allow(dead_code)]
 fn merge_code_tag_attrs(existing_tag: &str, new_attrs: &[(String, String)]) -> String {
     // Extract existing class from tag like <code class="highlighter-rouge">
     let mut classes = Vec::new();
@@ -2008,7 +2212,17 @@ fn remove_attr_from_tag(tag: &str, attr_name: &str) -> String {
     result
 }
 
-/// Try to parse emphasis/strong.
+/// Try to parse emphasis/strong following the kramdown algorithm.
+///
+/// Kramdown matches 1 or 2 markers at a time (never 3+).
+/// `***` is handled by matching `*` then recursively finding `**` inside.
+///
+/// Key rules:
+/// - Same emphasis type cannot nest (e.g., can't have `<em>` inside `<em>`)
+/// - For `**`, if no closing `**` found and not inside `:em`, fallback to `*`
+/// - Closing delimiter must not be preceded by whitespace
+/// - For `:em`, closing `*` must not be followed by `**` (without `***`)
+/// - For `_`, closing must not be followed by alphanumeric
 fn try_parse_emphasis(
     chars: &[char],
     start: usize,
@@ -2018,322 +2232,442 @@ fn try_parse_emphasis(
 ) -> Option<(String, usize)> {
     let marker = chars[start];
 
-    // Count consecutive markers
-    let mut marker_count = 0;
-    let mut i = start;
-    while i < end && chars[i] == marker {
-        marker_count += 1;
-        i += 1;
+    // Count consecutive markers (kramdown only uses 1 or 2 at a time)
+    let mut total_markers = 0;
+    {
+        let mut j = start;
+        while j < end && chars[j] == marker {
+            total_markers += 1;
+            j += 1;
+        }
     }
-
-    if marker_count == 0 {
+    if total_markers == 0 {
         return None;
     }
 
-    // Opening delimiter rules for kramdown:
-    // For * markers: must not be followed by a space/newline (left-flanking)
-    // For _ markers: must not be followed by a space/newline, AND
-    //               must not be preceded by an alphanumeric char (word boundary rule)
-    if i >= end || chars[i] == ' ' || chars[i] == '\n' || chars[i] == '\t' {
-        return None; // Not left-flanking
+    // Determine: 1 marker = em, 2 markers = strong
+    let use_count = std::cmp::min(total_markers, 2);
+    let element: u8 = if use_count == 2 { 2 } else { 1 }; // 1=em, 2=strong
+    let content_start = start + use_count;
+
+    // Opening delimiter rules:
+    // Must not be followed by whitespace
+    if content_start >= end
+        || chars[content_start] == ' '
+        || chars[content_start] == '\n'
+        || chars[content_start] == '\t'
+    {
+        return None;
     }
 
-    // For underscore: check word-boundary rule
-    if marker == '_' {
-        // _ can't open emphasis if preceded by alphanumeric (intra-word)
-        if start > 0 && (chars[start - 1].is_alphanumeric() || chars[start - 1] == '_') {
+    // For underscore: check word-boundary rule.
+    // Kramdown: /[[:alpha:]]-?[[:alpha:]]*_*\z/ on pre_match
+    // Meaning: the text before ends with alpha (optionally hyphen+alpha) followed by
+    // zero or more underscores. So "word_" blocks, but just "_" or "__" doesn't.
+    if marker == '_' && start > 0 {
+        // Skip past any trailing underscores before start
+        let mut j = start;
+        while j > 0 && chars[j - 1] == '_' {
+            j -= 1;
+        }
+        // Now check if there's an alphabetic char (the kramdown regex core)
+        if j > 0 && chars[j - 1].is_alphabetic() {
             return None;
         }
     }
 
-    // For * marker: space before means not emphasis (e.g., "lonely * here")
-    if marker == '*' {
-        if start > 0 && chars[start - 1] == ' ' && marker_count <= 2 {
-            // Check if this could still open emphasis
-            // "* text*" - space before single * with space after is not emphasis
-            // But "*text*" is emphasis
-            // The rule: opening * must not have space after
-            // We already checked that. But "lonely * here*" where space is before * is not emphasis
-            // Actually in kramdown, `* here*` IS not emphasis when preceded by space and followed by space
-            // Let's check: if preceded by space AND the marker_count is exactly what we have, it's a literal
-            if chars[i] != ' ' {
-                // Could still be valid: preceded by space but no space after
-                // Let's try to find closing
-            } else {
-                return None;
-            }
-        }
+    // Stack check: can't nest same element type
+    // If tree already contains this element type, or stack has it, output as literal
+    if ctx.emphasis_stack.contains(&element) {
+        return None;
     }
 
-    // Try to find closing delimiter(s)
-    // For ***: try strong+em (*) then em+strong (**), etc.
-    if marker_count >= 3 {
-        // Try: ***text*** -> <strong><em>text</em></strong>
-        if let Some((inner, close_len, advance)) = find_emphasis_close(chars, i, end, marker, 3) {
-            if close_len >= 3 {
-                let mut inner_html = String::new();
-                parse_spans(chars, i, i + inner, ctx, &mut inner_html, in_link);
-                return Some((
-                    format!("<strong><em>{inner_html}</em></strong>"),
-                    advance + marker_count,
-                ));
-            }
+    // For * marker with space before: kramdown doesn't open emphasis
+    // "lonely * here*" -> the * preceded by space doesn't open
+    if marker == '*' && start > 0 && chars[start - 1] == ' ' {
+        // Check if followed by space too - definitely not emphasis
+        if chars[content_start] == ' ' {
+            return None;
         }
-        // Try: ***text* text** -> <strong><em>text</em> text</strong>
-        // Parse as em inside strong
-        if let Some(result) =
-            try_combined_emphasis(chars, start, end, marker, marker_count, ctx, in_link)
+        // Preceded by space but not followed by space: still could be emphasis
+        // But kramdown only opens if it can find a valid close
+    }
+
+    // Save footnote state before trying emphasis (we may need to restore if emphasis fails)
+    let saved_footnote_counter = ctx.footnote_counter;
+    let saved_footnote_order = ctx.footnote_order.clone();
+    let saved_footnote_ref_counts = ctx.footnote_ref_counts.clone();
+
+    // Try to parse spans until we find a matching close delimiter
+    let sub_parse_result = parse_spans_until_emphasis_close(
+        chars,
+        content_start,
+        end,
+        marker,
+        use_count,
+        element,
+        ctx,
+        in_link,
+    );
+
+    if let Some((inner_html, close_pos)) = sub_parse_result {
+        // Successfully found closing delimiter
+        let tag = if element == 2 { "strong" } else { "em" };
+        let html = format!("<{tag}>{inner_html}</{tag}>");
+        let advance = close_pos - start;
+        return Some((html, advance));
+    }
+
+    // Emphasis failed - restore footnote state to avoid double-counting
+    ctx.footnote_counter = saved_footnote_counter;
+    ctx.footnote_order = saved_footnote_order;
+    ctx.footnote_ref_counts = saved_footnote_ref_counts;
+
+    // If strong failed and we're not inside em, try fallback to single marker (em)
+    if element == 2 && !ctx.emphasis_stack.contains(&1) {
+        // Save state again for the fallback attempt
+        let saved_footnote_counter2 = ctx.footnote_counter;
+        let saved_footnote_order2 = ctx.footnote_order.clone();
+        let saved_footnote_ref_counts2 = ctx.footnote_ref_counts.clone();
+
+        // Revert: only consume 1 marker, try em
+        let content_start_1 = start + 1;
+        if content_start_1 < end
+            && chars[content_start_1] != ' '
+            && chars[content_start_1] != '\n'
+            && chars[content_start_1] != '\t'
         {
-            return Some(result);
+            let fallback_result = parse_spans_until_emphasis_close(
+                chars,
+                content_start_1,
+                end,
+                marker,
+                1,
+                1, // em
+                ctx,
+                in_link,
+            );
+            if let Some((inner_html, close_pos)) = fallback_result {
+                let html = format!("<em>{inner_html}</em>");
+                let advance = close_pos - start;
+                return Some((html, advance));
+            }
         }
-    }
 
-    if marker_count >= 2 {
-        // Try: **text** -> <strong>text</strong>
-        if let Some((inner_end, advance)) = find_closing_delimiter(chars, i, end, marker, 2) {
-            let mut inner_html = String::new();
-            parse_spans(chars, i, inner_end, ctx, &mut inner_html, in_link);
-            return Some((format!("<strong>{inner_html}</strong>"), advance + 2));
-        }
-    }
-
-    if marker_count >= 1 {
-        // Try: *text* -> <em>text</em>
-        if let Some((inner_end, advance)) = find_closing_delimiter(chars, i, end, marker, 1) {
-            let mut inner_html = String::new();
-            parse_spans(chars, i, inner_end, ctx, &mut inner_html, in_link);
-            return Some((format!("<em>{inner_html}</em>"), advance + 1));
-        }
+        // Fallback also failed - restore state
+        ctx.footnote_counter = saved_footnote_counter2;
+        ctx.footnote_order = saved_footnote_order2;
+        ctx.footnote_ref_counts = saved_footnote_ref_counts2;
     }
 
     None
 }
 
-/// Find a closing delimiter for emphasis.
-fn find_closing_delimiter(
+/// Parse spans until a matching emphasis close delimiter is found.
+///
+/// This implements kramdown's recursive span parsing with stop condition.
+/// Returns Some((inner_html, position_after_close_delimiter)) on success.
+#[allow(clippy::too_many_arguments)]
+fn parse_spans_until_emphasis_close(
     chars: &[char],
     start: usize,
     end: usize,
     marker: char,
-    count: usize,
-) -> Option<(usize, usize)> {
-    let mut i = start;
-    let _depth_stack: Vec<(usize, usize)> = Vec::new(); // (position, marker_count)
-
-    while i < end {
-        if chars[i] == '\\' && i + 1 < end {
-            i += 2; // skip escaped char
-            continue;
-        }
-
-        if chars[i] == '`' {
-            // Skip code spans
-            let mut bt = 0;
-            while i < end && chars[i] == '`' {
-                bt += 1;
-                i += 1;
-            }
-            // Find closing backticks
-            let mut found = false;
-            while i < end {
-                if chars[i] == '`' {
-                    let mut close_bt = 0;
-                    while i < end && chars[i] == '`' {
-                        close_bt += 1;
-                        i += 1;
-                    }
-                    if close_bt == bt {
-                        found = true;
-                        break;
-                    }
-                } else {
-                    i += 1;
-                }
-            }
-            if !found {
-                // Unclosed code span, just continue
-            }
-            continue;
-        }
-
-        if chars[i] == '[' {
-            // Skip link/image contents
-            let mut bracket_depth = 1;
-            i += 1;
-            while i < end && bracket_depth > 0 {
-                if chars[i] == '\\' && i + 1 < end {
-                    i += 2;
-                    continue;
-                }
-                if chars[i] == '[' {
-                    bracket_depth += 1;
-                } else if chars[i] == ']' {
-                    bracket_depth -= 1;
-                }
-                i += 1;
-            }
-            continue;
-        }
-
-        if chars[i] == marker {
-            let delim_start = i;
-            let mut delim_count = 0;
-            while i < end && chars[i] == marker {
-                delim_count += 1;
-                i += 1;
-            }
-
-            // Check if this is a valid closing delimiter
-            // Must be preceded by non-space (right-flanking)
-            if delim_start > start
-                && chars[delim_start - 1] != ' '
-                && chars[delim_start - 1] != '\n'
-            {
-                // For underscore: must not be followed by alphanumeric
-                if marker == '_' && i < end && (chars[i].is_alphanumeric() || chars[i] == '_') {
-                    continue;
-                }
-
-                if delim_count >= count {
-                    return Some((delim_start, delim_start - start + count));
-                }
-            }
-            continue;
-        }
-
-        i += 1;
-    }
-    None
-}
-
-/// Find emphasis close returning (inner_length, close_marker_count, total_advance)
-fn find_emphasis_close(
-    chars: &[char],
-    start: usize,
-    end: usize,
-    marker: char,
-    count: usize,
-) -> Option<(usize, usize, usize)> {
-    let mut i = start;
-
-    while i < end {
-        if chars[i] == '\\' && i + 1 < end {
-            i += 2;
-            continue;
-        }
-
-        if chars[i] == '`' {
-            // Skip code span
-            let mut bt = 0;
-            while i < end && chars[i] == '`' {
-                bt += 1;
-                i += 1;
-            }
-            while i < end {
-                if chars[i] == '`' {
-                    let mut close_bt = 0;
-                    while i < end && chars[i] == '`' {
-                        close_bt += 1;
-                        i += 1;
-                    }
-                    if close_bt == bt {
-                        break;
-                    }
-                } else {
-                    i += 1;
-                }
-            }
-            continue;
-        }
-
-        if chars[i] == marker {
-            let delim_start = i;
-            let mut delim_count = 0;
-            while i < end && chars[i] == marker {
-                delim_count += 1;
-                i += 1;
-            }
-
-            // Right-flanking check
-            if delim_start > start
-                && chars[delim_start - 1] != ' '
-                && chars[delim_start - 1] != '\n'
-            {
-                if marker == '_' && i < end && (chars[i].is_alphanumeric() || chars[i] == '_') {
-                    continue;
-                }
-                if delim_count >= count {
-                    return Some((delim_start - start, delim_count, i - start));
-                }
-            }
-            continue;
-        }
-
-        i += 1;
-    }
-    None
-}
-
-/// Try combined emphasis like ***text* text** or ***text** text*
-fn try_combined_emphasis(
-    chars: &[char],
-    start: usize,
-    end: usize,
-    marker: char,
-    marker_count: usize,
+    close_count: usize,
+    element: u8, // 1=em, 2=strong
     ctx: &mut SpanContext,
     in_link: bool,
 ) -> Option<(String, usize)> {
-    let content_start = start + marker_count;
+    // We parse character by character, similar to parse_spans, but also check for
+    // the closing delimiter at each position where we see the marker char.
+    let mut output = String::new();
+    let mut i = start;
+    let mut has_content = false; // Must have non-empty children
 
-    // Strategy: try to find inner delimiters
-    // ***text* rest** -> <strong><em>text</em> rest</strong>
-    // ***text** rest* -> <em><strong>text</strong> rest</em>
+    // Push our element type onto the emphasis stack
+    ctx.emphasis_stack.push(element);
 
-    // Try: strong wrapping em (***...* ...** -> <strong><em>...</em> ...</strong>)
-    if let Some((inner_end, advance2)) =
-        find_closing_delimiter(chars, content_start, end, marker, 2)
-    {
-        // Found ** closing - this means <strong>...</strong>
-        // Now the content between start+3 and inner_end might contain * delimiters
-        let mut inner_html = String::new();
-        parse_spans(
-            chars,
-            content_start,
-            inner_end,
-            ctx,
-            &mut inner_html,
-            in_link,
-        );
-        return Some(
-            (
-                format!("<strong><em>{inner_html}</em></strong>"),
-                advance2 + marker_count,
-            )
-                .into(),
-        );
-    }
+    let result = loop {
+        if i >= end {
+            break None; // Reached end without finding close
+        }
 
-    // Try: em wrapping strong (***...** ...* -> <em><strong>...</strong> ...</em>)
-    if let Some((inner_end, advance1)) =
-        find_closing_delimiter(chars, content_start, end, marker, 1)
-    {
-        let mut inner_html = String::new();
-        parse_spans(
-            chars,
-            content_start,
-            inner_end,
-            ctx,
-            &mut inner_html,
-            in_link,
-        );
-        return Some((
-            format!("<em><strong>{inner_html}</strong></em>"),
-            advance1 + marker_count,
-        ));
-    }
+        // Check for closing delimiter before processing other spans
+        if chars[i] == marker {
+            let delim_start = i;
+            let mut delim_count = 0;
+            let mut j = i;
+            while j < end && chars[j] == marker {
+                delim_count += 1;
+                j += 1;
+            }
 
-    None
+            // Check closing conditions (kramdown's stop_re check):
+            // 1. Must be preceded by non-whitespace (right-flanking)
+            let preceded_by_nonspace = delim_start > start
+                && chars[delim_start - 1] != ' '
+                && chars[delim_start - 1] != '\n'
+                && chars[delim_start - 1] != '\t';
+
+            // 2. For :em, must not be followed by double delimiter without triple
+            //    i.e., `*` closing em must not be at `***` (followed by **)
+            //    but `*` at `*` or `****` is OK
+            // For :em, the closing delimiter must not be at a position where
+            // there are exactly 2 consecutive markers (which would be a strong
+            // delimiter). Kramdown checks: !@src.match?(/\*\*(?!\*)/)
+            // This means: if there are exactly 2 markers here, em can't close.
+            // If 1 or 3+, em CAN close.
+            let em_double_check = if element == 1 { delim_count != 2 } else { true };
+
+            // 3. For _ type, closing delimiter must not be followed by alphanumeric.
+            // Kramdown: !@src.match?(/_{close_count}[[:alnum:]]/)
+            let underscore_check = if marker == '_' {
+                let after_close = delim_start + close_count;
+                !(after_close < end && chars[after_close].is_alphanumeric())
+            } else {
+                true
+            };
+
+            // 4. Must have content (non-empty children)
+            let content_check = has_content;
+
+            if preceded_by_nonspace
+                && em_double_check
+                && underscore_check
+                && content_check
+                && delim_count >= close_count
+            {
+                // Valid close found! Consume close_count markers.
+                let close_end = delim_start + close_count;
+                break Some((output, close_end));
+            }
+
+            // Not a valid close - treat as content and try to parse as emphasis opener
+            // or fall through to regular span parsing
+        }
+
+        // Regular span parsing (mirror of parse_spans logic)
+        // Backslash escape
+        if chars[i] == '\\' && i + 1 < end {
+            let next = chars[i + 1];
+            if next == '\\' {
+                if i + 2 < end && chars[i + 2] == '\n' {
+                    output.push_str("<br />\n");
+                    i += 3;
+                    has_content = true;
+                    continue;
+                } else if i + 2 >= end {
+                    output.push('\\');
+                    i += 2;
+                    has_content = true;
+                    continue;
+                }
+            }
+            if is_escapable_char(next) {
+                output.push_str(&escape_html_char(next));
+                i += 2;
+                has_content = true;
+                continue;
+            }
+        }
+
+        // Backtick code span
+        if chars[i] == '`' {
+            if let Some((content, advance)) = try_parse_code_span(chars, i, end) {
+                output.push_str("<code>");
+                output.push_str(&escape_html_str(&content));
+                output.push_str("</code>");
+                i += advance;
+                has_content = true;
+                continue;
+            }
+            output.push('`');
+            i += 1;
+            has_content = true;
+            continue;
+        }
+
+        // Link
+        if chars[i] == '[' && !in_link {
+            if let Some((html, advance)) = try_parse_link(chars, i, end, ctx) {
+                output.push_str(&html);
+                i += advance;
+                has_content = true;
+                continue;
+            }
+        }
+
+        // Image
+        if chars[i] == '!' && i + 1 < end && chars[i + 1] == '[' {
+            if let Some((html, advance)) = try_parse_image(chars, i, end, ctx) {
+                output.push_str(&html);
+                i += advance;
+                has_content = true;
+                continue;
+            }
+        }
+
+        // Nested emphasis (recursive)
+        if (chars[i] == '*' || chars[i] == '_') && i < end {
+            if let Some((html, advance)) = try_parse_emphasis(chars, i, end, ctx, in_link) {
+                output.push_str(&html);
+                i += advance;
+                has_content = true;
+                continue;
+            }
+            // Emphasis failed - output markers as literal text.
+            // Kramdown's EMPHASIS_START matches 1 or 2 markers; on failure,
+            // all matched markers are added as literal text.
+            let emph_marker = chars[i];
+            let mut mc = 0;
+            let mut j = i;
+            while j < end && chars[j] == emph_marker && mc < 2 {
+                mc += 1;
+                j += 1;
+            }
+            for _ in 0..mc {
+                output.push(emph_marker);
+            }
+            i += mc;
+            has_content = true;
+            continue;
+        }
+
+        // HTML comment
+        if chars[i] == '<'
+            && i + 3 < end
+            && chars[i + 1] == '!'
+            && chars[i + 2] == '-'
+            && chars[i + 3] == '-'
+        {
+            let remaining: String = chars[i..end].iter().collect();
+            if let Some(close) = remaining.find("-->") {
+                let comment = &remaining[..close + 3];
+                output.push_str(comment);
+                i += close + 3;
+                has_content = true;
+                continue;
+            }
+        }
+
+        // Autolinks
+        if chars[i] == '<' {
+            if let Some((link_html, advance)) = try_parse_autolink(chars, i, end, ctx) {
+                output.push_str(&link_html);
+                i += advance;
+                has_content = true;
+                continue;
+            }
+        }
+
+        // HTML span elements
+        if chars[i] == '<' {
+            if let Some((html, advance)) = try_parse_html_span(chars, i, end, ctx) {
+                output.push_str(&html);
+                i += advance;
+                has_content = true;
+                continue;
+            }
+        }
+
+        // Smart quotes and typography
+        if chars[i] == '"' || chars[i] == '\'' {
+            if let Some((html, advance)) = try_parse_smart_quote(chars, i, end, ctx) {
+                output.push_str(&html);
+                i += advance;
+                has_content = true;
+                continue;
+            }
+        }
+
+        // Guillemets
+        if chars[i] == '<' && i + 1 < end && chars[i + 1] == '<' {
+            let (html, advance) = parse_guillemet_open(chars, i, end, ctx);
+            output.push_str(&html);
+            i += advance;
+            has_content = true;
+            continue;
+        }
+        if chars[i] == '>' && i + 1 < end && chars[i + 1] == '>' {
+            let (html, advance) = parse_guillemet_close(chars, i, end, ctx);
+            output.push_str(&html);
+            i += advance;
+            has_content = true;
+            continue;
+        }
+
+        // Em-dash and en-dash
+        if chars[i] == '-' && i + 1 < end && chars[i + 1] == '-' {
+            if i + 2 < end && chars[i + 2] == '-' {
+                output.push_str(&entity_str("mdash", ctx));
+                i += 3;
+                has_content = true;
+                continue;
+            }
+            output.push_str(&entity_str("ndash", ctx));
+            i += 2;
+            has_content = true;
+            continue;
+        }
+
+        // Ellipsis
+        if chars[i] == '.' && i + 2 < end && chars[i + 1] == '.' && chars[i + 2] == '.' {
+            output.push_str(&entity_str("hellip", ctx));
+            i += 3;
+            has_content = true;
+            continue;
+        }
+
+        // Entity references
+        if chars[i] == '&' {
+            if let Some((entity_html, advance)) = try_parse_entity(chars, i, end, ctx) {
+                output.push_str(&entity_html);
+                i += advance;
+                has_content = true;
+                continue;
+            }
+        }
+
+        // Footnote references
+        if chars[i] == '[' && i + 1 < end && chars[i + 1] == '^' {
+            if let Some((html, advance)) = try_parse_footnote_ref(chars, i, end, ctx) {
+                output.push_str(&html);
+                i += advance;
+                has_content = true;
+                continue;
+            }
+        }
+
+        // HTML entities
+        if chars[i] == '&' {
+            output.push_str("&amp;");
+            i += 1;
+            has_content = true;
+            continue;
+        }
+        if chars[i] == '<' {
+            output.push_str("&lt;");
+            i += 1;
+            has_content = true;
+            continue;
+        }
+        if chars[i] == '>' {
+            output.push_str("&gt;");
+            i += 1;
+            has_content = true;
+            continue;
+        }
+
+        // Regular character
+        output.push(chars[i]);
+        i += 1;
+        has_content = true;
+    };
+
+    // Pop our element type from the emphasis stack
+    ctx.emphasis_stack.pop();
+
+    result
 }
 
 /// Try to parse a link: [text](url) or [text][ref] or [ref]
@@ -2523,24 +2857,13 @@ fn try_parse_link(
     None
 }
 
-fn format_link_def_attrs(attrs: &HashMap<String, String>) -> String {
+fn format_link_def_attrs(attrs: &[(String, String)]) -> String {
     if attrs.is_empty() {
         return String::new();
     }
     let mut result = String::new();
-    // Order: id, class, then rest alphabetically
-    if let Some(id) = attrs.get("id") {
-        result.push_str(&format!(" id=\"{id}\""));
-    }
-    if let Some(class) = attrs.get("class") {
-        result.push_str(&format!(" class=\"{class}\""));
-    }
-    let mut others: Vec<(&String, &String)> = attrs
-        .iter()
-        .filter(|(k, _)| k.as_str() != "id" && k.as_str() != "class")
-        .collect();
-    others.sort_by_key(|(k, _)| k.as_str());
-    for (k, v) in others {
+    // Output attributes in insertion order (matching kramdown Ruby behavior)
+    for (k, v) in attrs {
         result.push_str(&format!(" {k}=\"{v}\""));
     }
     result
@@ -2978,25 +3301,93 @@ fn try_parse_smart_quote(
     }
 
     if quote_char == '\'' {
-        // Special case: contractions and possessives
+        // Special case: contractions, possessives, and closing after other close chars
+        // Kramdown SQ_CLOSE: anything that's not space/escape/bracket/paren
         if start > 0 {
             let prev = chars[start - 1];
-            if prev.is_alphanumeric() || prev == '>' || prev == ')' {
-                return Some((entity_str(rsquo, ctx), 1));
+            // Special case: "'word" or '"word" patterns -> opening quote combo
+            // In kramdown: '"(?=\w) -> lsquo, ldquo; "'(?=\w) -> rsquo, lsquo
+            if (prev == '"' || prev == '\'')
+                && start + 1 < end
+                && chars[start + 1].is_alphanumeric()
+            {
+                // Don't treat as closing; fall through to opening logic below
+            } else {
+                let is_close_context = prev.is_alphanumeric()
+                    || prev == '>'
+                    || prev == ')'
+                    || prev == ']'
+                    || prev == '"'
+                    || prev == '\''
+                    || prev == '.'
+                    || prev == '!'
+                    || prev == '?'
+                    || prev == ','
+                    || prev == ';'
+                    || prev == ':'
+                    || prev == '-'
+                    || prev == '}'
+                    || prev == '\u{2019}' // rsquo
+                    || prev == '\u{201D}'; // rdquo
+                if is_close_context {
+                    return Some((entity_str(rsquo, ctx), 1));
+                }
+            }
+        }
+
+        // Special case: decade abbreviation ('80s, '90s, etc.)
+        if start + 3 < end
+            && chars[start + 1].is_ascii_digit()
+            && chars[start + 2].is_ascii_digit()
+            && chars[start + 3] == 's'
+        {
+            return Some((entity_str(rsquo, ctx), 1));
+        }
+
+        // Rule 1: quote before emphasis markers (_*) followed by non-space -> opening
+        if start + 1 < end && (chars[start + 1] == '_' || chars[start + 1] == '*') {
+            // Check there's a non-space char after the markers
+            let mut j = start + 1;
+            while j < end && (chars[j] == '_' || chars[j] == '*') {
+                j += 1;
+            }
+            if j < end && !chars[j].is_whitespace() {
+                return Some((entity_str(lsquo, ctx), 1));
             }
         }
 
         let is_opening = is_opening_quote(chars, start, end);
         if is_opening {
-            let has_closing = has_matching_single_close(chars, start + 1, end);
-            if has_closing {
-                return Some((entity_str(lsquo, ctx), 1));
-            } else {
-                return Some((entity_str(rsquo, ctx), 1));
+            // Check if followed by word character or quote+word (kramdown opening rules)
+            if start + 1 < end {
+                let next = chars[start + 1];
+                if next.is_alphanumeric()
+                    || next == '"'
+                    || next == '\''
+                    || next == '`'
+                    || next == '*'
+                    || next == '_'
+                    || next == '!'
+                    || next == '.'
+                {
+                    return Some((entity_str(lsquo, ctx), 1));
+                }
             }
-        } else {
+            // Otherwise it's an unmatched opening - use rsquo for safety
             return Some((entity_str(rsquo, ctx), 1));
         }
+
+        // Before space, end of string, or 's' word boundary -> rsquo
+        if start + 1 >= end
+            || chars[start + 1].is_whitespace()
+            || (chars[start + 1] == 's'
+                && (start + 2 >= end || !chars[start + 2].is_alphanumeric()))
+        {
+            return Some((entity_str(rsquo, ctx), 1));
+        }
+
+        // Remaining single quotes are opening (kramdown fallback rule)
+        return Some((entity_str(lsquo, ctx), 1));
     }
 
     None
@@ -3057,6 +3448,7 @@ fn is_opening_quote(chars: &[char], pos: usize, end: usize) -> bool {
     })
 }
 
+#[allow(dead_code)]
 fn has_matching_single_close(chars: &[char], start: usize, end: usize) -> bool {
     let mut i = start;
     while i < end {

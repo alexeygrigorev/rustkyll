@@ -8,7 +8,7 @@
 // Copyright (c) 2007 Michel Fortin <http://www.michelf.com/>
 
 use crate::kramdown_parser::element::{Document, Element, ElementType};
-use crate::kramdown_parser::options::Options;
+use crate::kramdown_parser::options::{EntityOutput, Options};
 use crate::kramdown_parser::parser::KramdownParser;
 use crate::kramdown_parser::span_parser::{self, SpanContext};
 
@@ -38,6 +38,28 @@ impl HtmlConverter {
 
         // Render footnotes if any were referenced
         let footnotes = render_footnotes(options, ctx);
+
+        if !footnotes.is_empty() {
+            // Before appending footnotes, handle trailing blank like kramdown Ruby:
+            // If the document has trailing blank elements, they produce \n in output.
+            let has_trailing_blank = doc
+                .root
+                .children
+                .iter()
+                .rev()
+                .take_while(|e| {
+                    e.element_type == ElementType::Blank || e.element_type == ElementType::Eob
+                })
+                .any(|e| e.element_type == ElementType::Blank);
+            if has_trailing_blank && !output.ends_with("\n\n") {
+                output.push('\n');
+            }
+            // Trim excess trailing newlines (keep at most one blank line before footnotes)
+            while output.ends_with("\n\n\n") {
+                output.pop();
+            }
+        }
+
         output.push_str(&footnotes);
 
         // Ensure trailing newline (kramdown always outputs at least \n)
@@ -1325,10 +1347,10 @@ fn render_footnotes(options: &Options, ctx: &mut SpanContext) -> String {
     let start_nr = options.footnote_nr as usize;
     if start_nr != 1 {
         output.push_str(&format!(
-            "\n<div class=\"footnotes\" role=\"doc-endnotes\">\n  <ol start=\"{start_nr}\">\n"
+            "<div class=\"footnotes\" role=\"doc-endnotes\">\n  <ol start=\"{start_nr}\">\n"
         ));
     } else {
-        output.push_str("\n<div class=\"footnotes\" role=\"doc-endnotes\">\n  <ol>\n");
+        output.push_str("<div class=\"footnotes\" role=\"doc-endnotes\">\n  <ol>\n");
     }
 
     let backlink_text = span_parser::encode_backlink_text(&options.footnote_backlink);
@@ -1352,11 +1374,23 @@ fn render_footnotes(options: &Options, ctx: &mut SpanContext) -> String {
 
         let fn_content_html = render_footnote_content(&content, options, ctx);
 
+        // In kramdown, if the first child of <li> is NOT a transparent paragraph,
+        // there's a blank line after <li>. A "transparent" paragraph is one that wraps
+        // the entire content without explicit block structure.
+        // We detect this by checking: is the content empty, does it start with a blank line,
+        // does it contain multiple blocks, or does it start with a non-paragraph?
+        let is_multi_block = content.contains("\n\n");
+        let starts_with_blank = content.starts_with('\n');
+        let is_non_para = !fn_content_html.trim_start().starts_with("<p");
+        if content.is_empty() || starts_with_blank || is_multi_block || is_non_para {
+            output.push('\n');
+        }
+
         if backlink_empty {
             output.push_str(&fn_content_html);
         } else {
             let ref_count = ctx.footnote_ref_counts.get(&name).copied().unwrap_or(1);
-            let nbsp = "\u{a0}";
+            let nbsp = entity_to_str('\u{a0}', "nbsp", &ctx.options);
             let mut bl = format!(
                 "{nbsp}<a href=\"#{fnref_id}\" class=\"reversefootnote\" role=\"doc-backlink\">{backlink_text}</a>"
             );
@@ -1367,7 +1401,11 @@ fn render_footnotes(options: &Options, ctx: &mut SpanContext) -> String {
                 ));
             }
 
-            let inserted = insert_backlink_into_content(&fn_content_html, &bl);
+            let inserted = insert_backlink_into_content(
+                &fn_content_html,
+                &bl,
+                options.footnote_backlink_inline,
+            );
             output.push_str(&inserted);
         }
 
@@ -1407,21 +1445,154 @@ fn render_footnote_content(content: &str, options: &Options, ctx: &mut SpanConte
     html_output
 }
 
-/// Insert backlink HTML into the last paragraph (or last block element) of footnote content.
-/// If the content ends with a <p>...</p>, insert the backlink before the closing </p>.
-/// If it ends with another block element, append a new <p> with just the backlink.
-fn insert_backlink_into_content(content: &str, backlink_html: &str) -> String {
-    // Find the last </p> in the content
-    if let Some(last_p_close) = content.rfind("</p>\n") {
+/// Insert backlink HTML into the last paragraph of footnote content.
+/// In kramdown, the backlink goes into the last top-level `<p>` element.
+/// If the last top-level element is not a `<p>`, a new `<p>` is appended.
+/// If `backlink_inline` is true, traverse into nested elements to find deepest last p/header.
+fn insert_backlink_into_content(
+    content: &str,
+    backlink_html: &str,
+    backlink_inline: bool,
+) -> String {
+    if backlink_inline {
+        return insert_backlink_inline(content, backlink_html);
+    }
+
+    // Find the last top-level </p> (not nested inside other elements)
+    if let Some(pos) = find_last_top_level_p_close(content) {
         let mut result = String::new();
-        result.push_str(&content[..last_p_close]);
+        result.push_str(&content[..pos]);
         result.push_str(backlink_html);
-        result.push_str(&content[last_p_close..]);
+        result.push_str(&content[pos..]);
         return result;
     }
 
-    // No paragraph found - append a new paragraph with the backlink
+    // No top-level paragraph found - append a new paragraph with the backlink.
+    // Strip leading nbsp from backlink since it's in its own paragraph (no space needed).
+    let trimmed_bl = strip_leading_nbsp(backlink_html);
+    let mut result = content.to_string();
+    result.push_str(&format!("      <p>{trimmed_bl}</p>\n"));
+    result
+}
+
+/// Strip a leading non-breaking space character or entity from the string.
+fn strip_leading_nbsp(s: &str) -> &str {
+    if let Some(rest) = s.strip_prefix('\u{a0}') {
+        return rest;
+    }
+    if let Some(rest) = s.strip_prefix("&nbsp;") {
+        return rest;
+    }
+    if let Some(rest) = s.strip_prefix("&#160;") {
+        return rest;
+    }
+    s
+}
+
+/// Check if the content ends with a top-level `</p>` and return its position.
+/// Only returns a position if the LAST top-level block element is a `<p>`.
+/// This matches kramdown's behavior: backlink goes in the last `<p>` only if
+/// the last child is a paragraph.
+fn find_last_top_level_p_close(content: &str) -> Option<usize> {
+    let trimmed = content.trim_end_matches('\n');
+    // Check if the content ends with </p>
+    if !trimmed.ends_with("</p>") {
+        return None;
+    }
+    // Find the position of this last </p>
+    let p_close_pos = trimmed.rfind("</p>")?;
+    // Verify it's at top level by scanning depth up to this position
+    let mut depth: usize = 0;
+    let bytes = content.as_bytes();
+    let mut i = 0;
+    while i < p_close_pos {
+        if bytes[i] == b'<' {
+            if i + 1 < bytes.len() && bytes[i + 1] == b'/' {
+                let tag_start = i + 2;
+                let tag_end = content[tag_start..]
+                    .find('>')
+                    .map(|p| tag_start + p)
+                    .unwrap_or(bytes.len());
+                let tag_name = content[tag_start..tag_end].trim().to_lowercase();
+                if is_nesting_block_tag(&tag_name) {
+                    depth = depth.saturating_sub(1);
+                }
+            } else {
+                let tag_start = i + 1;
+                let tag_end = content[tag_start..]
+                    .find(|c: char| c.is_whitespace() || c == '>' || c == '/')
+                    .map(|p| tag_start + p)
+                    .unwrap_or(bytes.len());
+                let tag_name = content[tag_start..tag_end].to_lowercase();
+                if is_nesting_block_tag(&tag_name) {
+                    depth += 1;
+                }
+            }
+        }
+        i += 1;
+    }
+    if depth == 0 {
+        Some(p_close_pos)
+    } else {
+        None
+    }
+}
+
+/// Check if a tag name is a block element that creates nesting depth.
+fn is_nesting_block_tag(tag: &str) -> bool {
+    matches!(
+        tag,
+        "blockquote" | "div" | "ul" | "ol" | "table" | "li" | "dd" | "dl" | "details" | "section"
+    )
+}
+
+/// Insert backlink into the deepest last p/header element (for footnote_backlink_inline mode).
+fn insert_backlink_inline(content: &str, backlink_html: &str) -> String {
+    // For inline mode, find the deepest last paragraph or header element
+    // Try </p> first, then </h1> through </h6>
+    let close_tags = [
+        "</p>\n", "</h1>\n", "</h2>\n", "</h3>\n", "</h4>\n", "</h5>\n", "</h6>\n",
+    ];
+
+    // Find the last occurrence of any of these closing tags
+    let mut best_pos = None;
+    for tag in &close_tags {
+        if let Some(pos) = content.rfind(tag) {
+            match best_pos {
+                None => best_pos = Some(pos),
+                Some(bp) if pos > bp => best_pos = Some(pos),
+                _ => {}
+            }
+        }
+    }
+
+    if let Some(pos) = best_pos {
+        let mut result = String::new();
+        result.push_str(&content[..pos]);
+        // For inline mode, add space before backlink
+        result.push(' ');
+        result.push_str(
+            backlink_html
+                .trim_start_matches('\u{a0}')
+                .trim_start_matches("&nbsp;")
+                .trim_start_matches("&#160;"),
+        );
+        result.push_str(&content[pos..]);
+        return result;
+    }
+
+    // No p/header found - append a new paragraph with the backlink
     let mut result = content.to_string();
     result.push_str(&format!("      <p>{backlink_html}</p>\n"));
     result
+}
+
+/// Convert a character to its HTML entity string, respecting entity_output option.
+fn entity_to_str(ch: char, name: &str, options: &Options) -> String {
+    match options.entity_output {
+        EntityOutput::AsChar => ch.to_string(),
+        EntityOutput::Symbolic => format!("&{name};"),
+        EntityOutput::Numeric => format!("&#{};", ch as u32),
+        EntityOutput::AsInput => format!("&{name};"),
+    }
 }
