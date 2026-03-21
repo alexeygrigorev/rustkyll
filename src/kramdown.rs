@@ -97,7 +97,6 @@ fn convert_math_delimiters(html: &str) -> String {
 /// Convert display math blocks: `<p>$$...$$</p>` to `\[...\]` (bare text node).
 ///
 /// Handles both single-line and multi-line display math blocks.
-#[allow(dead_code)]
 fn convert_display_math_blocks(html: &str) -> String {
     let mut result = String::with_capacity(html.len());
     let mut remaining = html;
@@ -259,11 +258,10 @@ pub fn postprocess(html: &str) -> String {
     // Jekyll/kramdown behavior where raw HTML tags with multi-line attributes
     // are normalized to single-line output.
     let html = normalize_newlines_in_html_tags(&html);
-    // Issue 276: Math delimiter conversion is disabled by default.
-    // Jekyll/kramdown's default math_engine (mathjax) does NOT convert $...$
-    // to \(...\) unless explicitly configured. Most sites (including DTC) keep
-    // $...$ as literal text. Enable only when site config sets math_engine.
-    // let html = convert_math_delimiters(&html);
+    // Issue 276: Convert display math blocks <p>$$...$$</p> to \[...\] bare
+    // text nodes, matching Jekyll/kramdown behavior for MathJax rendering.
+    // Only display math is converted; inline $...$ is preserved as-is.
+    let html = convert_display_math_blocks(&html);
     // D2, D12: Normalize boolean attributes in the markdown output early
     // (during collection loading). This ensures that the final
     // normalize_html_output() call after layout wrapping finds nothing to change
@@ -10201,6 +10199,89 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             result.contains("<p>text <!-- inline comment --> more</p>"),
             "Inline comment should not be wrapped separately. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue276_postprocess_converts_display_math() {
+        // Display math <p>$$...$$</p> should be converted to \[...\] by the postprocess pipeline
+        let input = "<p>$$x + y$$</p>\n";
+        let result = postprocess(input);
+        assert!(
+            result.contains("\\[x + y\\]"),
+            "postprocess should convert display math <p>$$...$$</p> to \\[...\\]. Got:\n{}",
+            result
+        );
+        assert!(
+            !result.contains("<p>$$"),
+            "postprocess should not leave <p>$$. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue276_postprocess_converts_real_formula() {
+        let input = "<p>$$Attention(Q,K,V) = softmax(\\frac{QK^T}{\\sqrt{d_k}})V$$</p>\n";
+        let result = postprocess(input);
+        assert!(
+            result.contains("\\[Attention(Q,K,V)"),
+            "postprocess should convert real formula display math. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue276_postprocess_converts_multiline_display_math() {
+        let input = "<p>$$\nalpha + beta\n$$</p>\n";
+        let result = postprocess(input);
+        assert!(
+            result.contains("\\["),
+            "postprocess should convert multiline display math. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue276_postprocess_preserves_inline_math() {
+        let input = "<p>where $\\alpha$ is a factor</p>\n";
+        let result = postprocess(input);
+        assert!(
+            result.contains("$\\alpha$"),
+            "postprocess should NOT convert inline $...$ math. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue276_postprocess_preserves_code_block_dollars() {
+        let input = "<pre><code>$$x$$</code></pre>\n";
+        let result = postprocess(input);
+        assert!(
+            result.contains("$$x$$"),
+            "postprocess should NOT convert $$ inside code blocks. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue276_postprocess_preserves_lone_dollar() {
+        let input = "<p>It costs $100</p>\n";
+        let result = postprocess(input);
+        assert!(
+            result.contains("$100"),
+            "postprocess should NOT convert lone $ signs. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue276_postprocess_unicode_latex() {
+        let input = "<p>$$\\alpha \\approx y$$</p>\n";
+        let result = postprocess(input);
+        assert!(
+            result.contains("\\[\\alpha \\approx y\\]"),
+            "postprocess should convert display math with unicode LaTeX. Got:\n{}",
             result
         );
     }
