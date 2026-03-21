@@ -818,7 +818,8 @@ pub fn build_render_context(
     // always escapes " in HTML text content, which is critical because templates
     // like {{ page.content | strip_html | truncate: 240 }} place the result in
     // HTML attributes where unescaped " would break parsing.
-    let content_escaped = crate::frontmatter::escape_quotes_in_text_nodes(content);
+    let content_normalized = crate::frontmatter::normalize_block_whitespace(content);
+    let content_escaped = crate::frontmatter::escape_quotes_in_text_nodes(&content_normalized);
     page.insert(
         "content".into(),
         LiquidValue::scalar(content_escaped.clone()),
@@ -858,7 +859,8 @@ pub fn build_render_context_page_only(content: &str, page_front_matter: &FrontMa
     // Jekyll makes the rendered HTML available as page.content in layout context.
     // This is needed for templates that use {{ page.content | strip_html }} for
     // meta descriptions. Escape " to &quot; in text nodes to match kramdown.
-    let content_escaped = crate::frontmatter::escape_quotes_in_text_nodes(content);
+    let content_normalized = crate::frontmatter::normalize_block_whitespace(content);
+    let content_escaped = crate::frontmatter::escape_quotes_in_text_nodes(&content_normalized);
     page.insert(
         "content".into(),
         LiquidValue::scalar(content_escaped.clone()),

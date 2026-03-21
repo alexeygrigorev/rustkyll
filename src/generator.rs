@@ -585,6 +585,10 @@ fn collection_item_to_liquid_slim(
         "collection".into(),
         LiquidValue::scalar(item.collection_name.clone()),
     );
+    // Jekyll exposes document.path as the relative source file path
+    if !item.front_matter.contains_key("path") {
+        obj.insert("path".into(), LiquidValue::scalar(item.source_path.clone()));
+    }
 
     // Expand bare YYYY-MM-DD dates to include time component,
     // matching Jekyll's behavior where Ruby YAML parses dates as Time objects.
@@ -601,8 +605,8 @@ fn collection_item_to_liquid_slim(
     // `{{ guest.content }}` which output rendered HTML in the page body.
     // We trim both ends to avoid trailing newlines that would appear in
     // `strip_html | jsonify` output as unwanted `\n` characters.
-    let escaped_content =
-        crate::frontmatter::escape_quotes_in_text_nodes(item.html_content.trim_start());
+    let normalized = crate::frontmatter::normalize_block_whitespace(item.html_content.trim_start());
+    let escaped_content = crate::frontmatter::escape_quotes_in_text_nodes(&normalized);
     obj.insert("content".into(), LiquidValue::scalar(escaped_content));
 
     // Also store rendered HTML as `output` for any templates that need it.
@@ -693,7 +697,8 @@ fn page_to_liquid(page: &Page) -> LiquidValue {
     obj.insert("url".into(), LiquidValue::scalar(page.url.clone()));
     obj.insert("slug".into(), LiquidValue::scalar(page.slug.clone()));
     // Escape " to &quot; in text nodes to match kramdown behavior.
-    let escaped_content = crate::frontmatter::escape_quotes_in_text_nodes(&page.html_content);
+    let normalized = crate::frontmatter::normalize_block_whitespace(&page.html_content);
+    let escaped_content = crate::frontmatter::escape_quotes_in_text_nodes(&normalized);
     obj.insert("content".into(), LiquidValue::scalar(escaped_content));
 
     // page.name -- the source filename (e.g. "index.md"), matching Jekyll's behavior
