@@ -594,16 +594,13 @@ fn collection_item_to_liquid_slim(
         obj.insert("date".into(), LiquidValue::scalar(expanded));
     }
 
-    // Issue 217: Use raw markdown for the content field. Jekyll's `document.content`
-    // actually returns rendered HTML, but using raw markdown here produces better DOM
-    // matches because `| strip_html | jsonify` pipelines (used for JSON-LD descriptions
-    // on 209+ blog pages) are a no-op on raw markdown, matching Jekyll's output.
-    // The tradeoff: 174 podcast display pages show bare text instead of <p>-wrapped HTML
-    // from `{{ guest.content }}`, but this is fewer regressions than using HTML content
-    // (which breaks 209+ JSON-LD description matches through strip_html differences).
+    // Jekyll's `document.content` returns rendered HTML. Use html_content to match.
+    // This is needed for templates that use `{{ guest.content | strip_html | jsonify }}`
+    // in JSON-LD descriptions: raw `&` must become `&amp;` through HTML rendering,
+    // and trailing `\n` from `<p>` wrapping must be preserved after strip_html.
     obj.insert(
         "content".into(),
-        LiquidValue::scalar(item.content.trim_start().to_string()),
+        LiquidValue::scalar(item.html_content.trim_start().to_string()),
     );
 
     // Also store rendered HTML as `output` for any templates that need it.
@@ -5066,10 +5063,10 @@ defaults:
             .map(|(_, v)| v.to_kstr().to_string())
             .unwrap();
 
-        // Content should use rendered HTML (html_content)
+        // Content should be rendered HTML (html_content), matching Jekyll behavior
         assert_eq!(
-            content_val, "Test Person is a developer.",
-            "Collection item content should use raw markdown, got: {:?}",
+            content_val, "<p>Test Person is a developer.</p>\n",
+            "Collection item content should use rendered HTML, got: {:?}",
             content_val
         );
     }
@@ -5107,16 +5104,16 @@ defaults:
             .map(|(_, v)| v.to_kstr().to_string())
             .unwrap();
 
-        // Raw markdown preserves markdown links
+        // Rendered HTML: markdown links become <a> tags
         assert!(
-            content_val.contains("[Accents Welcome](https://accentswelcome.com)"),
-            "Content should preserve raw markdown links, got: {:?}",
+            content_val.contains("<a href=\"https://accentswelcome.com\">Accents Welcome</a>"),
+            "Content should render markdown links as HTML <a> tags, got: {:?}",
             content_val
         );
-        // No HTML wrapping (raw markdown)
+        // HTML wrapping (rendered HTML)
         assert!(
-            !content_val.starts_with("<p>"),
-            "Content should be raw markdown (no HTML), got: {:?}",
+            content_val.starts_with("<p>"),
+            "Content should be rendered HTML (starts with <p>), got: {:?}",
             content_val
         );
     }
@@ -5155,8 +5152,8 @@ defaults:
             .unwrap();
 
         assert_eq!(
-            content_val, "Alexey Grigorev is the founder of DataTalks.Club",
-            "Content should be raw markdown, got: {:?}",
+            content_val, "<p>Alexey Grigorev is the founder of DataTalks.Club</p>\n",
+            "Content should be rendered HTML with <p> wrapping, got: {:?}",
             content_val
         );
     }
@@ -5205,24 +5202,24 @@ defaults:
             "Content should preserve unicode c-cedilla, got: {:?}",
             content_val
         );
-        // Markdown links preserved as raw markdown
+        // Markdown links rendered as HTML <a> tags
         assert!(
-            content_val.contains("[Discours](https://example.com/discours)"),
-            "Content should preserve raw markdown links, got: {:?}",
+            content_val.contains("<a href=\"https://example.com/discours\">Discours</a>"),
+            "Content should render markdown links as HTML, got: {:?}",
             content_val
         );
-        // No HTML wrapping (raw markdown)
+        // HTML wrapping
         assert!(
-            !content_val.starts_with("<p>"),
-            "Content should be raw markdown (no HTML), got: {:?}",
+            content_val.starts_with("<p>"),
+            "Content should be rendered HTML (starts with <p>), got: {:?}",
             content_val
         );
     }
 
     #[test]
     fn test_collection_item_slim_has_output_field() {
-        // The `output` field provides rendered HTML for templates needing HTML display,
-        // while `content` remains raw markdown for JSON-LD pipelines.
+        // The `output` field also provides rendered HTML, mirroring `content` but
+        // with different trimming (trim_end vs trim_start).
         let item = CollectionItem {
             slug: "testperson".to_string(),
             url: "/people/testperson.html".to_string(),
@@ -5251,6 +5248,50 @@ defaults:
         assert!(
             output_val.unwrap().contains("<p>Test bio.</p>"),
             "Output field should contain rendered HTML"
+        );
+    }
+
+    #[test]
+    fn test_collection_item_content_html_encodes_ampersand() {
+        // JSON-LD descriptions use `guest.content | strip_html | jsonify`.
+        // Jekyll's document.content is rendered HTML, so `&` becomes `&amp;`.
+        // After strip_html, `&amp;` is preserved. After jsonify, it stays `&amp;`.
+        // Rustkyll must match: content field must be rendered HTML so that
+        // ampersands are HTML-encoded.
+        let item = CollectionItem {
+            slug: "andradaolteanu".to_string(),
+            url: "/people/andradaolteanu.html".to_string(),
+            date: None,
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("Andrada Olteanu".to_string()),
+                );
+                fm
+            },
+            content: "Ambassador for Z by HP & NVIDIA.".to_string(),
+            html_content: "<p>Ambassador for Z by HP &amp; NVIDIA.</p>\n".to_string(),
+            excerpt: None,
+            collection_name: "people".to_string(),
+            source_path: "_people/andradaolteanu.md".to_string(),
+            id: "/people/andradaolteanu".to_string(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item, None);
+        let content_val = liquid_val
+            .as_object()
+            .unwrap()
+            .iter()
+            .find(|(k, _)| k.as_str() == "content")
+            .map(|(_, v)| v.to_kstr().to_string())
+            .unwrap();
+
+        // Content must be rendered HTML so `&` is encoded as `&amp;`
+        assert!(
+            content_val.contains("&amp;"),
+            "Collection item content should use rendered HTML with &amp; entity, got: {:?}",
+            content_val
         );
     }
 
@@ -5286,15 +5327,15 @@ defaults:
             .unwrap();
 
         assert_eq!(
-            content_val, "Alexey Grigorev is the founder of DataTalks.Club",
-            "Content should be raw markdown (leading newline trimmed), got: {:?}",
+            content_val, "<p>Alexey Grigorev is the founder of DataTalks.Club</p>\n",
+            "Content should be rendered HTML (html_content used directly), got: {:?}",
             content_val
         );
     }
 
     #[test]
     fn test_slim_content_multi_paragraph_html() {
-        // Issue 266: Multi-paragraph content returns multi-paragraph HTML.
+        // Multi-paragraph content returns multi-paragraph rendered HTML.
         let item = CollectionItem {
             slug: "testperson".to_string(),
             url: "/people/testperson.html".to_string(),
@@ -5318,8 +5359,8 @@ defaults:
             .unwrap();
 
         assert_eq!(
-            content_val, "First paragraph.\n\nSecond paragraph.",
-            "Content should be raw markdown with paragraph breaks, got: {:?}",
+            content_val, "<p>First paragraph.</p>\n<p>Second paragraph.</p>\n",
+            "Content should be rendered HTML with paragraph tags, got: {:?}",
             content_val
         );
     }
