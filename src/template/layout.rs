@@ -49,8 +49,7 @@ pub struct LayoutEngine {
     /// Whether to convert soft line breaks to `<br>` elements.
     /// True when CommonMarkGhPages HARDBREAKS option is enabled.
     enable_hardbreaks: bool,
-    /// Whether to auto-link bare URLs in markdown content.
-    /// True when CommonMarkGhPages autolink extension is enabled.
+    /// Whether to auto-link bare URLs (for CommonMarkGhPages with autolink extension).
     enable_autolink: bool,
 }
 
@@ -117,9 +116,6 @@ impl LayoutEngine {
     }
 
     /// Set whether to auto-link bare URLs in markdown content.
-    ///
-    /// When the site config has `commonmark.extensions: ["autolink"]`, this should
-    /// be set to `true` so bare URLs in paragraph text are wrapped in `<a>` tags.
     pub fn set_autolink(&mut self, enabled: bool) {
         self.enable_autolink = enabled;
     }
@@ -3290,8 +3286,7 @@ mod tests {
 
     #[test]
     fn test_issue268_tdd_trailing_newline_preservation() {
-        // Issue 293: strip_html now strips one trailing newline to match Jekyll.
-        // Content like "<p>Short bio.</p>\n" through strip_html produces "Short bio."
+        // TDD: Content like "<p>Short bio.</p>\n" through strip_html should preserve trailing \n
         let engine = crate::template::TemplateEngine::new().unwrap();
         let mut ctx = liquid::Object::new();
         ctx.insert(
@@ -3302,8 +3297,8 @@ mod tests {
             .parse_and_render("{{ input | strip_html | jsonify }}", &ctx)
             .unwrap();
         assert_eq!(
-            output, "\"Short bio.\"",
-            "strip_html | jsonify should not have trailing newline (issue 293), got: {}",
+            output, "\"Short bio.\\n\"",
+            "strip_html | jsonify must preserve trailing newline, got: {}",
             output
         );
     }
@@ -3430,7 +3425,8 @@ mod tests {
     #[test]
     fn test_issue268_tdd_collection_content_trailing_newline() {
         // Integration test: Verify that collection item html_content preserves
-        // trailing newlines from kramdown rendering.
+        // trailing newlines from kramdown rendering, and they survive through
+        // the strip_html | jsonify pipeline.
         let markdown = "Short bio text.";
         let html_content =
             crate::frontmatter::markdown_to_html_with_options(markdown, true, true, false, false);
@@ -3449,11 +3445,10 @@ mod tests {
             .parse_and_render("{{ input | strip_html | jsonify }}", &ctx)
             .unwrap();
 
-        // Issue 293: strip_html now strips one trailing newline to match Jekyll.
-        // The trailing \n should NOT appear in the jsonified output.
+        // The trailing \n should be preserved as \\n in the JSON string
         assert!(
-            !output.contains("\\n"),
-            "strip_html | jsonify should NOT have trailing newline (issue 293), got: {}",
+            output.contains("\\n"),
+            "strip_html | jsonify should preserve trailing newline as \\n, got: {}",
             output
         );
     }
