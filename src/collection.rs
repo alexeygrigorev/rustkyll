@@ -916,9 +916,19 @@ fn load_pages_recursive(
         // Jekyll only processes files that have YAML front matter (starting with ---)
         // This applies to all file types including .md files.
         // Exception: README.md files are processed even without front matter
-        // (matching Jekyll's jekyll-readme-index plugin behavior).
-        if !has_front_matter(&raw) && !is_readme {
-            continue;
+        // if config defaults target that path (matching Jekyll's behavior when
+        // README.md is explicitly configured via defaults in _config.yml).
+        if !has_front_matter(&raw) {
+            if is_readme {
+                let rel = path.strip_prefix(site_dir).unwrap_or(&path);
+                let rel_str = rel.to_string_lossy();
+                let defaults = config.defaults_for_page(&rel_str);
+                if defaults.is_empty() {
+                    continue;
+                }
+            } else {
+                continue;
+            }
         }
 
         let doc = if has_front_matter(&raw) {
@@ -2875,6 +2885,7 @@ mod tests {
         // Jekyll (via jekyll-readme-index) includes README.md files as pages,
         // converting them to index.html in their directory. Templates like
         // the metals-ru book rely on finding README.md pages in site.pages.
+        // README.md without front matter is only included if config defaults target it.
         let dir = tempfile::TempDir::new().unwrap();
         let sub = dir.path().join("subdir");
         fs::create_dir(&sub).unwrap();
@@ -2882,6 +2893,18 @@ mod tests {
 
         let config = SiteConfig {
             permalink: "pretty".to_string(),
+            defaults: vec![crate::config::DefaultConfig {
+                scope: crate::config::DefaultScope {
+                    path: "subdir/README.md".to_string(),
+                    type_name: String::new(),
+                },
+                values: crate::config::DefaultValues {
+                    values: std::collections::HashMap::from([(
+                        "layout".to_string(),
+                        serde_yaml::Value::String("default".to_string()),
+                    )]),
+                },
+            }],
             ..Default::default()
         };
 
@@ -2910,8 +2933,8 @@ mod tests {
 
     #[test]
     fn test_load_pages_readme_without_front_matter() {
-        // README.md files often have no YAML front matter.
-        // Jekyll still processes them as pages. rustkyll should too.
+        // README.md files without front matter are included only if
+        // config defaults target that path (matching Jekyll behavior).
         let dir = tempfile::TempDir::new().unwrap();
         let sub = dir.path().join("часть_1");
         fs::create_dir(&sub).unwrap();
@@ -2923,6 +2946,18 @@ mod tests {
 
         let config = SiteConfig {
             permalink: "pretty".to_string(),
+            defaults: vec![crate::config::DefaultConfig {
+                scope: crate::config::DefaultScope {
+                    path: "часть_1/README.md".to_string(),
+                    type_name: String::new(),
+                },
+                values: crate::config::DefaultValues {
+                    values: std::collections::HashMap::from([(
+                        "layout".to_string(),
+                        serde_yaml::Value::String("part".to_string()),
+                    )]),
+                },
+            }],
             ..Default::default()
         };
 
