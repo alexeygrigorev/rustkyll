@@ -177,6 +177,22 @@ def is_acceptable_build_time_diff(diff: 'DiffResult') -> bool:
     return _is_build_time_only_diff(j_m.group(1), r_m.group(1))
 
 
+def is_acceptable_trailing_newline_diff(diff: 'DiffResult') -> bool:
+    """Check if an attribute diff is only a trailing newline difference.
+
+    Jekyll's strip_html sometimes preserves a trailing \\n while rustkyll strips it
+    (or vice versa). These diffs are cosmetic and should be filtered.
+    """
+    if diff.diff_type != 'attribute_differs':
+        return False
+    expected = diff.expected or ''
+    actual = diff.actual or ''
+    # Try both directions: expected has trailing \n that actual doesn't, or vice versa
+    if expected.rstrip('\n') == actual.rstrip('\n') and expected != actual:
+        return True
+    return False
+
+
 def filter_acceptable_diffs(diffs: list) -> tuple:
     """Filter out known acceptable differences.
 
@@ -185,7 +201,7 @@ def filter_acceptable_diffs(diffs: list) -> tuple:
     remaining = []
     accepted = []
     for d in diffs:
-        if is_acceptable_sexagesimal_diff(d) or is_acceptable_date_modified_diff(d) or is_acceptable_build_time_diff(d):
+        if is_acceptable_sexagesimal_diff(d) or is_acceptable_date_modified_diff(d) or is_acceptable_build_time_diff(d) or is_acceptable_trailing_newline_diff(d):
             accepted.append(d)
         else:
             remaining.append(d)

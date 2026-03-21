@@ -161,6 +161,16 @@ impl LayoutEngine {
         self.engine.uses_prev_next()
     }
 
+    /// Check if any layout or include references `site.related_posts`.
+    pub fn uses_related_posts(&self) -> bool {
+        for layout in self.layouts.values() {
+            if layout.source.contains("related_posts") {
+                return true;
+            }
+        }
+        self.engine.uses_related_posts()
+    }
+
     /// Render page content wrapped in a layout.
     ///
     /// # Arguments
@@ -832,9 +842,10 @@ pub fn build_render_context(
     // HTML attributes where unescaped " would break parsing.
     let content_normalized = crate::frontmatter::normalize_block_whitespace(content);
     let content_escaped = crate::frontmatter::escape_quotes_in_text_nodes(&content_normalized);
+    let content_escaped_str = content_escaped.into_owned();
     page.insert(
         "content".into(),
-        LiquidValue::scalar(content_escaped.clone()),
+        LiquidValue::scalar(content_escaped_str.clone()),
     );
     ctx.insert("page".into(), LiquidValue::Object(page));
 
@@ -842,7 +853,7 @@ pub fn build_render_context(
     ctx.insert("site".into(), LiquidValue::Object(site_context.clone()));
 
     // Insert content (the body HTML used by {{ content }} in layouts)
-    ctx.insert("content".into(), LiquidValue::scalar(content_escaped));
+    ctx.insert("content".into(), LiquidValue::scalar(content_escaped_str));
 
     ctx
 }
@@ -873,13 +884,14 @@ pub fn build_render_context_page_only(content: &str, page_front_matter: &FrontMa
     // meta descriptions. Escape " to &quot; in text nodes to match kramdown.
     let content_normalized = crate::frontmatter::normalize_block_whitespace(content);
     let content_escaped = crate::frontmatter::escape_quotes_in_text_nodes(&content_normalized);
+    let content_escaped_str = content_escaped.into_owned();
     page.insert(
         "content".into(),
-        LiquidValue::scalar(content_escaped.clone()),
+        LiquidValue::scalar(content_escaped_str.clone()),
     );
     ctx.insert("page".into(), LiquidValue::Object(page));
 
-    ctx.insert("content".into(), LiquidValue::scalar(content_escaped));
+    ctx.insert("content".into(), LiquidValue::scalar(content_escaped_str));
 
     ctx
 }
@@ -3286,7 +3298,8 @@ mod tests {
 
     #[test]
     fn test_issue268_tdd_trailing_newline_preservation() {
-        // TDD: Content like "<p>Short bio.</p>\n" through strip_html should preserve trailing \n
+        // After issue 293: strip_html strips one trailing \n (matching Jekyll behavior)
+        // Trailing newline diffs are filtered in dom_compare.py
         let engine = crate::template::TemplateEngine::new().unwrap();
         let mut ctx = liquid::Object::new();
         ctx.insert(
@@ -3297,8 +3310,8 @@ mod tests {
             .parse_and_render("{{ input | strip_html | jsonify }}", &ctx)
             .unwrap();
         assert_eq!(
-            output, "\"Short bio.\\n\"",
-            "strip_html | jsonify must preserve trailing newline, got: {}",
+            output, "\"Short bio.\"",
+            "strip_html | jsonify should strip trailing newline, got: {}",
             output
         );
     }
@@ -3445,10 +3458,10 @@ mod tests {
             .parse_and_render("{{ input | strip_html | jsonify }}", &ctx)
             .unwrap();
 
-        // The trailing \n should be preserved as \\n in the JSON string
+        // After issue 293: strip_html strips one trailing \n
         assert!(
-            output.contains("\\n"),
-            "strip_html | jsonify should preserve trailing newline as \\n, got: {}",
+            !output.contains("\\n"),
+            "strip_html | jsonify should NOT have trailing newline after issue 293, got: {}",
             output
         );
     }

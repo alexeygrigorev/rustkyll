@@ -575,6 +575,21 @@ impl TemplateEngine {
         false
     }
 
+    /// Check if any layout or include references `site.related_posts`.
+    ///
+    /// Used to skip the expensive per-post related_posts computation when
+    /// templates don't use it (common for sites like large-blog-3000).
+    pub fn uses_related_posts(&self) -> bool {
+        if let Some(ref includes) = self.includes {
+            for source in includes.values() {
+                if source.contains("related_posts") {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
     /// Create a new `TemplateEngine` with stdlib + Jekyll filters but no includes.
     ///
     /// # Errors
@@ -713,6 +728,9 @@ impl TemplateEngine {
             .filter(filters::Compact)
             // Ruby Liquid sample filter: random sampling from arrays (Issue 214)
             .filter(filters::Sample)
+            // Jekyll-compatible strip_html: simple tag removal matching gsub(/<.*?>/m, '')
+            // Must come after with_stdlib() to override the default strip_html
+            .filter(filters::StripHtml)
     }
 
     /// Create a `TemplateEngine` from a pre-built `liquid::Parser`.
