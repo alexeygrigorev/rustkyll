@@ -83,6 +83,23 @@ pub fn to_html_with_options(input: &str, options: &Options) -> String {
         html.push('\n');
     }
 
+    // Raw HTML block tags (script, style) at the end of input with a trailing newline
+    // produce an extra blank in kramdown (the trailing \n becomes a blank element in the AST).
+    // If the output ends with a raw HTML closing tag followed by \n, add the extra \n.
+    if cleaned.ends_with('\n')
+        && !cleaned.ends_with("\n\n")
+        && html.ends_with('\n')
+        && !html.ends_with("\n\n")
+    {
+        let trimmed_html = html.trim_end();
+        if trimmed_html.ends_with("</script>")
+            || trimmed_html.ends_with("</style>")
+            || trimmed_html.ends_with("</math>")
+        {
+            html.push('\n');
+        }
+    }
+
     html
 }
 

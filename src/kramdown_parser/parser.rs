@@ -801,15 +801,10 @@ fn parse_indented_code_block(
             // Lazy continuation: line without 4-space indent continues code block
             // In kramdown, a non-indented line after a code block continues it
             // (see lazy test case: `    This is some\ncode`)
-            // But only if there's no blank line between
-            // Actually, check: is next line indented?
-            // Looking at the lazy test: the non-indented line is part of the code
-            // Let's append it with a space before it (joining with previous)
-            // Actually from the test case output:
-            //   Input: "    This is some\ncode"
-            //   Output: "This is some code\n"
-            // So the lazy continuation line is appended to the previous line with a space.
-            if !code_lines.is_empty() {
+            // But only if there's no blank line between.
+            // However, lines that start HTML block elements should NOT be lazily
+            // continued into the code block.
+            if !code_lines.is_empty() && !is_html_block_start(line) {
                 // Join with previous line
                 if let Some(last) = code_lines.last_mut() {
                     last.push(' ');
@@ -1033,8 +1028,39 @@ fn parse_blocks_with_lazy(
 
         // HTML block (must be before fenced code)
         if let Some(mut html_block) = try_parse_html_block(lines, pos, options) {
+            // If the HTML block has trailing content after the closing tag
+            // (e.g., "</div> test" or "</div> <div>"), re-parse it as blocks.
+            let trailing = html_block.options.remove("html_trailing");
             apply_pending!(&mut html_block);
             children.push(html_block);
+            if let Some(trailing_text) = trailing {
+                // Re-combine trailing content with remaining lines and parse together.
+                // This handles cases like "</div> <div>\nhallo\n</div>" where the
+                // trailing "<div>" needs the subsequent lines.
+                let remaining_lines: Vec<&str> = lines[*pos..].to_vec();
+                let mut combined = trailing_text.clone();
+                for rl in &remaining_lines {
+                    combined.push('\n');
+                    combined.push_str(rl);
+                }
+                let combined_lines: Vec<&str> = combined.lines().collect();
+                let mut combined_pos = 0;
+                parse_blocks(
+                    &combined_lines,
+                    &mut combined_pos,
+                    has_trailing_newline,
+                    children,
+                    options,
+                    _indent_level,
+                    alds,
+                );
+                // Advance pos by however many of the original remaining lines were consumed.
+                // combined_pos counts lines in combined, but the first line is the trailing
+                // text itself (which is not in the original lines array).
+                let trailing_line_count = trailing_text.lines().count();
+                let original_consumed = combined_pos.saturating_sub(trailing_line_count);
+                *pos += original_consumed;
+            }
             continue;
         }
 
@@ -2775,6 +2801,11 @@ fn is_html_block_start(line: &str) -> bool {
     if HTML_SPAN_TAGS.contains(&tag_lc.as_str()) && !is_html_block_tag(&tag_lc) {
         return false;
     }
+    // In kramdown, `script` and `textarea` belong to both span and block categories.
+    // They don't interrupt paragraphs (kramdown adds them to LAZY_END_HTML_SPAN_ELEMENTS).
+    if tag_lc == "script" || tag_lc == "textarea" {
+        return false;
+    }
     true
 }
 
@@ -3055,7 +3086,12 @@ fn try_parse_html_block(lines: &[&str], pos: &mut usize, options: &Options) -> O
     }
 
     // Parse the HTML block with proper tag matching and normalization
-    Some(parse_html_block_element(lines, pos, &tag_name, options))
+    let result = parse_html_block_element(lines, pos, &tag_name, options);
+    let mut elem = result.element;
+    if let Some(trailing) = result.trailing {
+        elem.options.insert("html_trailing".to_string(), trailing);
+    }
+    Some(elem)
 }
 
 /// Result of parsing an HTML comment: the comment element and optional trailing text.
@@ -3178,12 +3214,19 @@ fn parse_html_block_content(lines: &[&str], pos: &mut usize) -> Element {
 
 /// Parse an HTML block element with proper tag matching, attribute normalization,
 /// and optional markdown parsing inside.
+/// Result of parsing an HTML block element.
+struct HtmlBlockResult {
+    element: Element,
+    /// Trailing content after the closing tag that should be re-parsed.
+    trailing: Option<String>,
+}
+
 fn parse_html_block_element(
     lines: &[&str],
     pos: &mut usize,
     tag_name: &str,
     options: &Options,
-) -> Element {
+) -> HtmlBlockResult {
     let tag_lc = tag_name.to_lowercase();
 
     // Check for void elements (self-closing)
@@ -3192,17 +3235,28 @@ fn parse_html_block_element(
         let trimmed = line.trim();
         let normalized = normalize_html_tag(trimmed);
         *pos += 1;
-        return Element::with_value(ElementType::HtmlBlock, normalized);
+        return HtmlBlockResult {
+            element: Element::with_value(ElementType::HtmlBlock, normalized),
+            trailing: None,
+        };
     }
 
     // For raw tags (script, style), collect everything until the closing tag
     if is_html_raw_tag(&tag_lc) {
-        return parse_html_raw_block(lines, pos, &tag_lc);
+        let mut elem = parse_html_raw_block(lines, pos, &tag_lc);
+        let trailing = elem.options.remove("html_trailing");
+        return HtmlBlockResult {
+            element: elem,
+            trailing,
+        };
     }
 
     // For textarea, collect content including blank lines until closing tag
     if tag_lc == "textarea" {
-        return parse_html_textarea_block(lines, pos);
+        return HtmlBlockResult {
+            element: parse_html_textarea_block(lines, pos),
+            trailing: None,
+        };
     }
 
     // Determine markdown parsing mode from markdown attr and options
@@ -3214,14 +3268,19 @@ fn parse_html_block_element(
     // Collect the raw HTML block lines with nesting
     // For known HTML elements, use case-insensitive matching.
     // For unknown/XML elements, use case-sensitive matching with original tag name.
+    // When the content will be parsed as block markdown, skip tag counting on
+    // lines indented 4+ spaces (they'll become code blocks where tags are literal).
+    let skip_code_indented = parse_mode == HtmlParseMode::Block;
     let is_known_html = is_html_block_tag(&tag_lc) || HTML_SPAN_TAGS.contains(&tag_lc.as_str());
-    let collected = if is_known_html {
-        collect_html_block_lines_impl(lines, pos, &tag_lc, true)
+    let collect_result = if is_known_html {
+        collect_html_block_lines_impl(lines, pos, &tag_lc, true, skip_code_indented)
     } else {
-        collect_html_block_lines_impl(lines, pos, tag_name, false)
+        collect_html_block_lines_impl(lines, pos, tag_name, false, skip_code_indented)
     };
+    let collected = &collect_result.lines;
+    let trailing = collect_result.trailing;
 
-    match parse_mode {
+    let element = match parse_mode {
         HtmlParseMode::Raw => {
             // Pass through with attribute normalization on the opening tag only
             let mut output = String::new();
@@ -3252,7 +3311,7 @@ fn parse_html_block_element(
                     .insert("attrs".to_string(), format_html_attrs(&filtered));
             }
             // Extract inner content (skip first opening tag line and last closing tag line)
-            let inner_content = extract_inner_content(&collected, &tag_lc);
+            let inner_content = extract_inner_content(collected, &tag_lc);
             let inner_lines: Vec<&str> = inner_content.lines().collect();
             let mut inner_pos = 0;
             let options_copy = options.clone();
@@ -3307,11 +3366,26 @@ fn parse_html_block_element(
                 elem.options
                     .insert("close_solo".to_string(), "true".to_string());
             }
-            let inner_content = extract_inner_content(&collected, &tag_lc);
+            let mut inner_content = extract_inner_content(collected, &tag_lc);
+            // When the opening tag is on its own line, the content starts with
+            // a newline in kramdown (preserving the whitespace structure).
+            if open_tag_solo && collected.len() > 1 && !inner_content.starts_with('\n') {
+                inner_content.insert(0, '\n');
+            }
+            // When there's no closing tag (auto-closed), add trailing newline
+            let has_close_tag = collected
+                .last()
+                .map(|l| l.to_lowercase().contains(&format!("</{}", tag_lc)))
+                .unwrap_or(false);
+            if !has_close_tag && !inner_content.ends_with('\n') {
+                inner_content.push('\n');
+            }
             elem.value = Some(inner_content);
             elem
         }
-    }
+    };
+
+    HtmlBlockResult { element, trailing }
 }
 
 /// HTML parsing mode for content inside HTML blocks.
@@ -3430,6 +3504,14 @@ fn determine_parse_mode(
     HtmlParseMode::Raw
 }
 
+/// Result of collecting HTML block lines.
+struct CollectedHtmlBlock {
+    /// The collected lines (including opening and closing tag lines).
+    lines: Vec<String>,
+    /// Any trailing content on the closing tag line that should be re-parsed.
+    trailing: Option<String>,
+}
+
 /// Collect all lines belonging to an HTML block, tracking tag nesting.
 /// Returns the collected lines (including opening and closing tag lines).
 /// When `case_insensitive` is true, tag matching ignores case (for known HTML elements).
@@ -3439,12 +3521,28 @@ fn collect_html_block_lines_impl(
     pos: &mut usize,
     tag_match: &str,
     case_insensitive: bool,
-) -> Vec<String> {
+    skip_code_indented: bool,
+) -> CollectedHtmlBlock {
     let mut collected: Vec<String> = Vec::new();
     let mut nesting = 0i32;
+    let mut trailing: Option<String> = None;
 
     while *pos < lines.len() {
         let line = lines[*pos];
+
+        // When parsing block-level content, lines indented 4+ spaces will become
+        // code blocks where HTML tags are literal text. Don't count tags on those
+        // lines (but always count on the first line, which is the opening tag).
+        let is_code_indent =
+            skip_code_indented && !collected.is_empty() && line.starts_with("    ");
+
+        if is_code_indent {
+            // Skip tag counting for code-indented lines
+            collected.push(line.to_string());
+            *pos += 1;
+            continue;
+        }
+
         let search_line = if case_insensitive {
             line.to_lowercase()
         } else {
@@ -3454,6 +3552,32 @@ fn collect_html_block_lines_impl(
         // Count opening tags (excluding self-closing)
         let opens = count_open_tags_in_line(&search_line, tag_match);
         let closes = count_close_tags_in_line(&search_line, tag_match);
+
+        // Process tags left-to-right to detect when nesting first reaches 0.
+        // This handles cases like "</div> <div>" where the closing tag ends one
+        // block and the opening tag starts a new one on the same line, as well
+        // as "<p>text</p>more text</p>" where the first close ends the block.
+        let close_pattern = format!("</{}", tag_match);
+        if closes > 0 && (nesting > 0 || opens > 0) && search_line.contains(&close_pattern) {
+            // Use the actual nesting level as starting point.
+            // For the first line where nesting is 0, find_nesting_zero_split
+            // will process tags left-to-right: open(+1) ... close(-1).
+            // When nesting first reaches 0, that's where we split.
+            let effective_nesting = nesting;
+            // Find the position where the closing tag that brings nesting to 0 ends
+            if let Some(split_pos) =
+                find_nesting_zero_split(&search_line, tag_match, effective_nesting)
+            {
+                let rest = line[split_pos..].trim();
+                if !rest.is_empty() {
+                    // Only include up to the end of the closing tag
+                    collected.push(line[..split_pos].to_string());
+                    trailing = Some(rest.to_string());
+                    *pos += 1;
+                    break;
+                }
+            }
+        }
 
         nesting += opens as i32 - closes as i32;
 
@@ -3465,8 +3589,84 @@ fn collect_html_block_lines_impl(
         }
     }
 
-    // If we never found a closing tag, just return what we collected
-    collected
+    CollectedHtmlBlock {
+        lines: collected,
+        trailing,
+    }
+}
+
+/// Find the position in a line where nesting first reaches 0, processing tags left-to-right.
+/// Returns the byte offset right after the closing tag that brings nesting to 0,
+/// or None if nesting never reaches 0 on this line.
+fn find_nesting_zero_split(
+    search_line: &str,
+    tag_match: &str,
+    initial_nesting: i32,
+) -> Option<usize> {
+    let open_pattern = format!("<{}", tag_match);
+    let close_pattern = format!("</{}", tag_match);
+    let mut nesting = initial_nesting;
+
+    // Collect all tag positions with their type
+    let mut events: Vec<(usize, bool, usize)> = Vec::new(); // (start_pos, is_close, end_pos)
+
+    // Find all opening tags
+    let mut search_from = 0;
+    while let Some(idx) = search_line[search_from..].find(&open_pattern) {
+        let abs_idx = search_from + idx;
+        // Check it's not a closing tag
+        if abs_idx > 0 && search_line.as_bytes().get(abs_idx.wrapping_sub(1)) == Some(&b'/') {
+            search_from = abs_idx + open_pattern.len();
+            continue;
+        }
+        let after = &search_line[abs_idx + open_pattern.len()..];
+        // Check for self-closing
+        let is_self_closing = if let Some(gt_pos) = after.find('>') {
+            after[..gt_pos].trim_end().ends_with('/')
+        } else {
+            false
+        };
+        if !is_self_closing {
+            let end = if let Some(gt_pos) = after.find('>') {
+                abs_idx + open_pattern.len() + gt_pos + 1
+            } else {
+                abs_idx + open_pattern.len()
+            };
+            events.push((abs_idx, false, end));
+        }
+        search_from = abs_idx + open_pattern.len();
+    }
+
+    // Find all closing tags
+    search_from = 0;
+    while let Some(idx) = search_line[search_from..].find(&close_pattern) {
+        let abs_idx = search_from + idx;
+        let after = &search_line[abs_idx + close_pattern.len()..];
+        let end = if let Some(gt_pos) = after.find('>') {
+            abs_idx + close_pattern.len() + gt_pos + 1
+        } else {
+            abs_idx + close_pattern.len()
+        };
+        events.push((abs_idx, true, end));
+        search_from = abs_idx + close_pattern.len();
+    }
+
+    // Sort by position
+    events.sort_by_key(|e| e.0);
+
+    // Process in order
+    for (_, is_close, end_pos) in events {
+        if is_close {
+            nesting -= 1;
+        } else {
+            nesting += 1;
+        }
+        if nesting <= 0 {
+            return Some(end_pos);
+        }
+    }
+
+    None
 }
 
 /// Count opening tags for a given tag name in a line (case-insensitive).
@@ -3648,25 +3848,39 @@ fn count_closing_tags(s_lc: &str, tag_lc: &str) -> usize {
 /// Parse an HTML block with a "raw" tag (script, style) that preserves content literally.
 fn parse_html_raw_block(lines: &[&str], pos: &mut usize, tag_lc: &str) -> Element {
     let close_pattern = format!("</{}>", tag_lc);
-    let close_pattern_upper = format!("</{}>", tag_lc.to_uppercase());
     let mut content = String::new();
+    let mut trailing_text: Option<String> = None;
 
     while *pos < lines.len() {
         let line = lines[*pos];
         if !content.is_empty() {
             content.push('\n');
         }
-        content.push_str(line);
-        *pos += 1;
 
         let line_lc = line.to_lowercase();
-        if line_lc.contains(&close_pattern) || line.contains(&close_pattern_upper) {
+        if let Some(close_idx) = line_lc.find(&close_pattern) {
+            // Find end of closing tag
+            let end_of_close = close_idx + close_pattern.len();
+            // Include only up to end of closing tag
+            content.push_str(&line[..end_of_close]);
+            // Check for trailing content
+            let rest = line[end_of_close..].trim();
+            if !rest.is_empty() {
+                trailing_text = Some(rest.to_string());
+            }
+            *pos += 1;
             break;
         }
+
+        content.push_str(line);
+        *pos += 1;
     }
 
     let mut elem = Element::with_value(ElementType::HtmlBlock, content);
     elem.options.insert("type".to_string(), "raw".to_string());
+    if let Some(trailing) = trailing_text {
+        elem.options.insert("html_trailing".to_string(), trailing);
+    }
     elem
 }
 

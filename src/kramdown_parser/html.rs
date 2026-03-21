@@ -1584,12 +1584,19 @@ fn convert_html_block(
             output.push_str(orig_attrs);
             // Also inject IAL attributes
             write_attrs(&elem.attr, output);
-            output.push_str(">\n");
-            convert_children(&elem.children, output, options, indent + 2, ctx);
-            write_indent(output, indent);
-            output.push_str("</");
-            output.push_str(tag);
-            output.push_str(">\n");
+            if elem.children.is_empty() {
+                // Empty block element: output as single self-closing line
+                output.push_str("></");
+                output.push_str(tag);
+                output.push_str(">\n");
+            } else {
+                output.push_str(">\n");
+                convert_children(&elem.children, output, options, indent + 2, ctx);
+                write_indent(output, indent);
+                output.push_str("</");
+                output.push_str(tag);
+                output.push_str(">\n");
+            }
         }
         Some("span") => {
             // Span-parsed HTML: content is parsed as spans while preserving
@@ -1607,11 +1614,16 @@ fn convert_html_block(
             output.push_str(attrs);
             output.push('>');
             if let Some(ref val) = elem.value {
+                // Preserve leading/trailing newlines from the value
+                let has_leading_nl = val.starts_with('\n');
+                let has_trailing_nl = val.ends_with('\n');
                 let processed = span_parser::spans_to_html(val.trim(), ctx);
-                if multiline {
+                if multiline || has_leading_nl {
                     output.push('\n');
                     output.push_str(&processed);
-                    output.push('\n');
+                    if has_trailing_nl || multiline {
+                        output.push('\n');
+                    }
                 } else {
                     output.push_str(&processed);
                     if close_solo {
