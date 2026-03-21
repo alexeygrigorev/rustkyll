@@ -87,6 +87,11 @@ pub(crate) fn resolve_site_tz(name: &str) -> Option<chrono_tz::Tz> {
 pub(crate) fn get_site_timezone(runtime: &dyn liquid_core::Runtime) -> Option<chrono_tz::Tz> {
     use liquid_core::model::ScalarCow;
     use liquid_core::ValueView;
+
+    // Read from site.timezone in the Liquid context.
+    // The system timezone fallback is applied at context build time
+    // (in build_site_context), so by the time we get here, site.timezone
+    // should already contain the system timezone if no explicit one was set.
     let tz_str = runtime
         .try_get(&[ScalarCow::new("site"), ScalarCow::new("timezone")])
         .map(|v| v.to_kstr().to_string())?;
@@ -102,7 +107,7 @@ pub(crate) fn get_site_timezone(runtime: &dyn liquid_core::Runtime) -> Option<ch
 /// OS-specific sources (e.g., /etc/timezone on Linux, registry on Windows).
 /// Returns `None` if the system timezone cannot be determined or is not a
 /// valid IANA timezone.
-pub(crate) fn get_system_timezone() -> Option<String> {
+pub fn get_system_timezone() -> Option<String> {
     iana_time_zone::get_timezone().ok()
 }
 

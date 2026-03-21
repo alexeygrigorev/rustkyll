@@ -542,4 +542,34 @@ transcript:
         let mapping = value.as_mapping().unwrap();
         assert_eq!(mapping.get("time").unwrap().as_str(), Some("1:05:30"));
     }
+
+    #[test]
+    fn test_datetime_with_timezone_offset_preserved() {
+        // Dates with timezone offsets must stay as strings with the original offset
+        let yaml = "date: 2025-11-07 00:00:00 +0100";
+        let value = parse_yaml_lenient(yaml).unwrap();
+        let mapping = value.as_mapping().unwrap();
+        let date_val = mapping.get("date").unwrap();
+        assert_eq!(
+            date_val.as_str().unwrap(),
+            "2025-11-07 00:00:00 +0100",
+            "datetime with timezone offset must be preserved as-is"
+        );
+    }
+
+    #[test]
+    fn test_datetime_with_timezone_offset_unicode_key() {
+        // Non-ASCII content alongside date fields with timezone offsets
+        let yaml = "date: 2025-11-07 00:00:00 +0200\ntitle: \u{00dc}bersicht";
+        let value = parse_yaml_lenient(yaml).unwrap();
+        let mapping = value.as_mapping().unwrap();
+        assert_eq!(
+            mapping.get("date").unwrap().as_str().unwrap(),
+            "2025-11-07 00:00:00 +0200"
+        );
+        assert_eq!(
+            mapping.get("title").unwrap().as_str().unwrap(),
+            "\u{00dc}bersicht"
+        );
+    }
 }

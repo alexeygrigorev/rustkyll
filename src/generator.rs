@@ -60,12 +60,26 @@ fn compile_scss(scss_source: &str) -> Result<String, String> {
 /// Extract the site timezone from the config's extras map.
 ///
 /// Returns `Some(Tz)` if the config has a valid `timezone` key, `None` otherwise.
+/// Get the site timezone from config, falling back to the system timezone.
+///
+/// Jekyll uses the `timezone` config key if set, otherwise falls back to the
+/// build machine's local timezone. This function replicates that behavior.
+/// When neither the config nor the system provides a timezone, returns `None`
+/// (which downstream functions treat as UTC).
 fn get_config_timezone(config: &SiteConfig) -> Option<chrono_tz::Tz> {
-    config
+    // 1. Try the explicit `timezone` config key
+    if let Some(tz) = config
         .extras
         .get("timezone")
         .and_then(|v| v.as_str())
         .and_then(|s| s.parse::<chrono_tz::Tz>().ok())
+    {
+        return Some(tz);
+    }
+
+    // 2. Fall back to system timezone (matching Jekyll's default behavior)
+    crate::template::filters::get_system_timezone()
+        .and_then(|name| name.parse::<chrono_tz::Tz>().ok())
 }
 
 /// Result of generating pages for a collection.
@@ -572,8 +586,9 @@ fn collection_item_to_liquid_slim(
         LiquidValue::scalar(item.collection_name.clone()),
     );
 
-    // Issue 267: Expand bare YYYY-MM-DD dates to include time component,
+    // Expand bare YYYY-MM-DD dates to include time component,
     // matching Jekyll's behavior where Ruby YAML parses dates as Time objects.
+    // Jekyll uses the site timezone (or system timezone) for the offset.
     if let Some(ref date) = item.date {
         let expanded = crate::template::context::expand_date_only_string_with_tz(date, site_tz);
         obj.insert("date".into(), LiquidValue::scalar(expanded));
@@ -6787,7 +6802,8 @@ defaults:
 
     #[test]
     fn test_slim_bare_date_expanded_no_tz() {
-        // Bug 1: bare YYYY-MM-DD dates must be expanded to include time component
+        // Bare YYYY-MM-DD dates must be expanded to include time component.
+        // Without a site timezone, UTC (+0000) is used.
         let item = CollectionItem {
             slug: "ep1".to_string(),
             url: "/podcast/ep1.html".to_string(),
@@ -6895,6 +6911,98 @@ defaults:
         assert!(
             date_entry.is_none(),
             "No date field should be present when item.date is None"
+        );
+    }
+
+    #[test]
+    fn test_slim_bare_date_unicode_title_preserved() {
+        // Verify that date handling works correctly alongside non-ASCII content
+        let mut fm = HashMap::new();
+        fm.insert(
+            "title".to_string(),
+            serde_yaml::Value::String(
+                "Buchrezension \u{00fc}ber K\u{00fc}nstliche Intelligenz".to_string(),
+            ),
+        );
+        let item = CollectionItem {
+            slug: "ep-unicode".to_string(),
+            url: "/podcast/ep-unicode.html".to_string(),
+            date: Some("2025-11-07".to_string()),
+            front_matter: fm,
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            collection_name: "podcast".to_string(),
+            source_path: "_podcast/ep-unicode.md".to_string(),
+            id: "/podcast/ep-unicode".to_string(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item, None);
+        let obj = liquid_val.as_object().unwrap();
+        let date_val = obj
+            .iter()
+            .find(|(k, _)| k.as_str() == "date")
+            .map(|(_, v)| v.to_kstr().to_string())
+            .unwrap();
+        assert_eq!(
+            date_val, "2025-11-07 00:00:00 +0000",
+            "Bare date should be expanded in site-level collection items"
+        );
+        let title_val = obj
+            .iter()
+            .find(|(k, _)| k.as_str() == "title")
+            .map(|(_, v)| v.to_kstr().to_string())
+            .unwrap();
+        assert_eq!(
+            title_val, "Buchrezension \u{00fc}ber K\u{00fc}nstliche Intelligenz",
+            "Unicode title should be preserved"
+        );
+    }
+
+    // ========================================================================
+    // get_config_timezone: system timezone fallback
+    // ========================================================================
+
+    #[test]
+    fn test_get_config_timezone_explicit_config() {
+        // When timezone is explicitly configured, it should be used
+        let mut config = SiteConfig::default();
+        config.extras.insert(
+            "timezone".to_string(),
+            serde_yaml::Value::String("Europe/Berlin".to_string()),
+        );
+        let tz = get_config_timezone(&config);
+        assert!(tz.is_some(), "Should return timezone from config");
+        assert_eq!(tz.unwrap().name(), "Europe/Berlin");
+    }
+
+    #[test]
+    fn test_get_config_timezone_no_config_falls_back_to_system() {
+        // When no timezone is configured, should fall back to system timezone.
+        let config = SiteConfig::default();
+        let tz = get_config_timezone(&config);
+        // On a system with a valid timezone, this should be Some.
+        if let Some(tz) = tz {
+            assert!(
+                !tz.name().is_empty(),
+                "System timezone should have a non-empty name"
+            );
+        }
+    }
+
+    #[test]
+    fn test_get_config_timezone_explicit_overrides_system() {
+        // Explicit timezone should take precedence over system timezone
+        let mut config = SiteConfig::default();
+        config.extras.insert(
+            "timezone".to_string(),
+            serde_yaml::Value::String("Pacific/Auckland".to_string()),
+        );
+        let tz = get_config_timezone(&config);
+        assert_eq!(
+            tz.unwrap().name(),
+            "Pacific/Auckland",
+            "Explicit timezone should override system timezone"
         );
     }
 
