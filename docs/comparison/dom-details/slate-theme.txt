@@ -2,17 +2,5 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/slate-theme/_site_jekyll_c
 Rustkyll directory: /home/alexey/git/rustkyl/websites/slate-theme/_site_rustkyll_recount
 Common HTML files:  2
 
-DIFF index.html (19 differences)
-  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
-  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='n'"
-  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='n'"
-  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
-  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
-  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='n'"
-  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nf'"
-  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='s2'", actual: "class='dl'"
-  body > div > section > div > div > pre > code > span: text_differs - expected: '"=', actual: '"'
-  body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='si'", actual: "class='s2'"
-  ... and 9 more differences
 
-Summary: 1 files matched, 1 files with differences, 19 total differences
+Summary: 2 files matched, 0 files with differences, 0 total differences

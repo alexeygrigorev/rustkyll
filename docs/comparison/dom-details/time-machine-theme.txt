@@ -5,17 +5,8 @@ Common HTML files:  2
 DIFF another-page.html (2 differences)
   body > div > div > div > div > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/time-machine'"
   body > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/time-machine'"
-DIFF index.html (21 differences)
+DIFF index.html (2 differences)
   body > div > div > div > div > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/time-machine'"
-  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
-  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='n'"
-  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='n'"
-  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
-  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
-  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='n'"
-  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nf'"
-  body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='s2'", actual: "class='dl'"
-  body > div > div > div > article > div > div > pre > code > span: text_differs - expected: '"=', actual: '"'
-  ... and 11 more differences
+  body > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/time-machine'"
 
-Summary: 0 files matched, 2 files with differences, 23 total differences
+Summary: 0 files matched, 2 files with differences, 4 total differences

@@ -2,13 +2,5 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/mojombo-blog/_site_jekyll_
 Rustkyll directory: /home/alexey/git/rustkyl/websites/mojombo-blog/_site_rustkyll_recount
 Common HTML files:  17
 
-DIFF 2008/10/18/how-i-turned-down-300k.html (5 differences)
-  body > div > div > p: text_differs - expected: '2008 is a leap year. That means that three hundred and sixty six days ago, almost to the minute, I was sitting alone in a booth at Zeke’s Sports Bar and Grill on 3rd Street in San Francisco. I wouldn’t normally hang out at a sports bar, let alone a sports bar in SOMA, but back then Thursday was “I Can Has Ruby” night. I guess back then “I can has', actual: '2008 is a leap year. That means that three hundred and sixty six days ago, almost to the minute, I was sitting alone in a booth at Zeke’s Sports Bar and Grill on 3rd Street in San Francisco. I wouldn’t normally hang out at a sports bar, let alone a sports bar in SOMA, but back then Thursday was “I Can Has Ruby” night. I guess back then “I can has _______” was also a reasonable moniker to attach to pretty much anything. ICHR was a semi-private meeting of like minded Ruby Hackers that generally and willingly devolved into late night drinking sessions. Normally these nights would fade away like my hangover the next morning, but this night was different. This was the night that'
-  body > div > div > p > child[1]: tag_name_differs - expected: 'strong', actual: 'a'
-  body > div > div > p: text_differs - expected: '_” was also a reasonable moniker to attach to pretty much anything. ICHR was a semi-private meeting of like minded Ruby Hackers that generally and willingly devolved into late night drinking sessions. Normally these nights would fade away like my hangover the next morning, but this night was different. This was the night that', actual: 'was born.'
-  body > div > div > p > a: missing_element - expected: '<a>', actual: '(none)'
-  body > div > div > p: missing_text - expected: 'was born.', actual: '(none)'
-DIFF 2009/05/19/the-git-parable.html (1 differences)
-  body > div > div > p > a > img: attribute_differs - expected: "alt='Creative Commons License'", actual: "alt='Creative\\nCommons License'"
 
-Summary: 15 files matched, 2 files with differences, 6 total differences
+Summary: 17 files matched, 0 files with differences, 0 total differences

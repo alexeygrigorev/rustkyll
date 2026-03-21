@@ -55,7 +55,7 @@ DIFF docs/customization/index.html (320 differences)
   head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
   head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "viewbox='0 0 16 16'", actual: 'viewbox=\'"0\''
   ... and 310 more differences
-DIFF docs/index-test/index.html (532 differences)
+DIFF docs/index-test/index.html (513 differences)
   head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
   head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
   head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
@@ -66,7 +66,7 @@ DIFF docs/index-test/index.html (532 differences)
   head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
   head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
   head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "viewbox='0 0 16 16'", actual: 'viewbox=\'"0\''
-  ... and 522 more differences
+  ... and 503 more differences
 DIFF docs/layout/layout/index.html (71 differences)
   head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
   head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
@@ -544,4 +544,4 @@ DIFF index.html (76 differences)
   head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "viewbox='0 0 16 16'", actual: 'viewbox=\'"0\''
   ... and 66 more differences
 
-Summary: 0 files matched, 47 files with differences, 4691 total differences
+Summary: 0 files matched, 47 files with differences, 4672 total differences

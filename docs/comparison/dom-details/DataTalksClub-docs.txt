@@ -2,10 +2,5 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/DataTalksClub/docs/_site_j
 Rustkyll directory: /home/alexey/git/rustkyl/websites/DataTalksClub/docs/_site_rustkyll_recount
 Common HTML files:  57
 
-DIFF general/guidelines/promotion/index.html (4 differences)
-  head > meta > meta > meta > link > body > div > div > div > main > ul > li: text_differs - expected: '“We’re conducting a survey to better understand how people use', actual: '“We’re conducting a survey to better understand how people use ____.”'
-  head > meta > meta > meta > link > body > div > div > div > main > ul > li > child[1]: tag_name_differs - expected: 'em', actual: 'li'
-  head > meta > meta > meta > link > body > div > div > div > main > ul > li: missing_text - expected: '.”', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > ul > li > li: missing_element - expected: '<li>', actual: '(none)'
 
-Summary: 56 files matched, 1 files with differences, 4 total differences
+Summary: 57 files matched, 0 files with differences, 0 total differences

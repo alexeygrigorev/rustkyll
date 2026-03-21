@@ -700,7 +700,7 @@ DIFF docs/permalinks/index.html (162 differences)
   head > link: extra_attribute - expected: '(none)', actual: "title='Recent commits to Jekyll’s master branch'"
   head > link: attribute_differs - expected: "type='font/woff2'", actual: "type='application/atom+xml'"
   ... and 152 more differences
-DIFF docs/plugins/commands/index.html (146 differences)
+DIFF docs/plugins/commands/index.html (150 differences)
   head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='https://jekyllrb.com/feed/release.xml'"
   head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Jekyll • Simple, blog-aware, static sites | release'"
   head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/feed/release.xml'"
@@ -711,7 +711,7 @@ DIFF docs/plugins/commands/index.html (146 differences)
   head > link: attribute_differs - expected: "rel='preload'", actual: "rel='alternate'"
   head > link: extra_attribute - expected: '(none)', actual: "title='Recent commits to Jekyll’s master branch'"
   head > link: attribute_differs - expected: "type='font/woff2'", actual: "type='application/atom+xml'"
-  ... and 136 more differences
+  ... and 140 more differences
 DIFF docs/plugins/converters/index.html (65 differences)
   head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='https://jekyllrb.com/feed/release.xml'"
   head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Jekyll • Simple, blog-aware, static sites | release'"
@@ -724,7 +724,7 @@ DIFF docs/plugins/converters/index.html (65 differences)
   head > link: extra_attribute - expected: '(none)', actual: "title='Recent commits to Jekyll’s master branch'"
   head > link: attribute_differs - expected: "type='font/woff2'", actual: "type='application/atom+xml'"
   ... and 55 more differences
-DIFF docs/plugins/filters/index.html (64 differences)
+DIFF docs/plugins/filters/index.html (62 differences)
   head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='https://jekyllrb.com/feed/release.xml'"
   head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Jekyll • Simple, blog-aware, static sites | release'"
   head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/feed/release.xml'"
@@ -735,8 +735,8 @@ DIFF docs/plugins/filters/index.html (64 differences)
   head > link: attribute_differs - expected: "rel='preload'", actual: "rel='alternate'"
   head > link: extra_attribute - expected: '(none)', actual: "title='Recent commits to Jekyll’s master branch'"
   head > link: attribute_differs - expected: "type='font/woff2'", actual: "type='application/atom+xml'"
-  ... and 54 more differences
-DIFF docs/plugins/generators/index.html (412 differences)
+  ... and 52 more differences
+DIFF docs/plugins/generators/index.html (417 differences)
   head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='https://jekyllrb.com/feed/release.xml'"
   head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Jekyll • Simple, blog-aware, static sites | release'"
   head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/feed/release.xml'"
@@ -747,8 +747,8 @@ DIFF docs/plugins/generators/index.html (412 differences)
   head > link: attribute_differs - expected: "rel='preload'", actual: "rel='alternate'"
   head > link: extra_attribute - expected: '(none)', actual: "title='Recent commits to Jekyll’s master branch'"
   head > link: attribute_differs - expected: "type='font/woff2'", actual: "type='application/atom+xml'"
-  ... and 402 more differences
-DIFF docs/plugins/hooks/index.html (266 differences)
+  ... and 407 more differences
+DIFF docs/plugins/hooks/index.html (248 differences)
   head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='https://jekyllrb.com/feed/release.xml'"
   head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Jekyll • Simple, blog-aware, static sites | release'"
   head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/feed/release.xml'"
@@ -759,7 +759,7 @@ DIFF docs/plugins/hooks/index.html (266 differences)
   head > link: attribute_differs - expected: "rel='preload'", actual: "rel='alternate'"
   head > link: extra_attribute - expected: '(none)', actual: "title='Recent commits to Jekyll’s master branch'"
   head > link: attribute_differs - expected: "type='font/woff2'", actual: "type='application/atom+xml'"
-  ... and 256 more differences
+  ... and 238 more differences
 DIFF docs/plugins/index.html (26 differences)
   head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='https://jekyllrb.com/feed/release.xml'"
   head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Jekyll • Simple, blog-aware, static sites | release'"
@@ -784,7 +784,7 @@ DIFF docs/plugins/installation/index.html (166 differences)
   head > link: extra_attribute - expected: '(none)', actual: "title='Recent commits to Jekyll’s master branch'"
   head > link: attribute_differs - expected: "type='font/woff2'", actual: "type='application/atom+xml'"
   ... and 156 more differences
-DIFF docs/plugins/tags/index.html (204 differences)
+DIFF docs/plugins/tags/index.html (223 differences)
   head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='https://jekyllrb.com/feed/release.xml'"
   head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Jekyll • Simple, blog-aware, static sites | release'"
   head > link: attribute_differs - expected: "href='https://github.com/jekyll/jekyll/commits/master.atom'", actual: "href='/feed/release.xml'"
@@ -795,7 +795,7 @@ DIFF docs/plugins/tags/index.html (204 differences)
   head > link: attribute_differs - expected: "rel='preload'", actual: "rel='alternate'"
   head > link: extra_attribute - expected: '(none)', actual: "title='Recent commits to Jekyll’s master branch'"
   head > link: attribute_differs - expected: "type='font/woff2'", actual: "type='application/atom+xml'"
-  ... and 194 more differences
+  ... and 213 more differences
 DIFF docs/plugins/your-first-plugin/index.html (50 differences)
   head > link: attribute_differs - expected: "href='/feed/release.xml'", actual: "href='https://jekyllrb.com/feed/release.xml'"
   head > link: attribute_differs - expected: "title='Jekyll releases posts'", actual: "title='Jekyll • Simple, blog-aware, static sites | release'"
@@ -1330,4 +1330,4 @@ DIFF tutorials/video-walkthroughs/index.html (28 differences)
   head > link: attribute_differs - expected: "type='font/woff2'", actual: "type='application/atom+xml'"
   ... and 18 more differences
 
-Summary: 14 files matched, 111 files with differences, 15246 total differences
+Summary: 14 files matched, 111 files with differences, 15254 total differences

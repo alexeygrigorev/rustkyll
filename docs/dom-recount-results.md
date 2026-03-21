@@ -1,6 +1,6 @@
 # DOM Comparison Results
 
-Generated: 2026-03-21 10:56 UTC
+Generated: 2026-03-21 12:01 UTC
 
 rustkyll version: rustkyll 0.2.3
 
@@ -34,17 +34,17 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
 | alexeygrigorev/kids-horror-stories-ru | 1344/1344 (100%) | 1344/1345 | 0 |
 | alexeygrigorev/little-book-of-metals-ru | 38/48 (79%) | 48/48 | 0 |
 | alexeygrigorev/mlbookcamp-page | 6/15 (40%) | 15/15 | 0 |
-| alexeygrigorev/mlwiki.org | 236/639 (37%) | 640/639 | 0 |
+| alexeygrigorev/mlwiki.org | 0/639 (0%) | 645/639 | 0 |
 | alexeygrigorev/snippets | 8/25 (32%) | 25/25 | 0 |
-| architect-theme | 1/2 (50%) | 2/2 | 0 |
+| architect-theme | 2/2 (100%) | 2/2 | 0 |
 | beautiful-jekyll | 0/5 (0%) | 6/6 | 3 |
 | bitcoin-org | BOTH_FAIL | - | - |
-| cayman-theme | 1/2 (50%) | 2/2 | 0 |
+| cayman-theme | 2/2 (100%) | 2/2 | 0 |
 | chirpy | 0/13 (0%) | 17/17 | 1 |
 | choosealicense.com | 17/72 (24%) | 72/72 | 0 |
 | DataTalksClub/courses | 5/5 (100%) | 5/5 | 0 |
-| DataTalksClub/datatalksclub.github.io | 657/790 (83%) | 790/790 | 1 |
-| DataTalksClub/docs | 56/57 (98%) | 57/57 | 0 |
+| DataTalksClub/datatalksclub.github.io | 634/790 (80%) | 790/790 | 1 |
+| DataTalksClub/docs | 57/57 (100%) | 57/57 | 0 |
 | dinky-theme | 0/2 (0%) | 2/2 | 0 |
 | documentation-theme-jekyll | 1/100 (1%) | 100/100 | 25 |
 | edition-template | JEKYLL_FAIL | 13 pages (rustkyll-only) | 0 |
@@ -67,12 +67,12 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
 | midnight-theme | 0/2 (0%) | 2/2 | 0 |
 | minima | JEKYLL_FAIL | 9 pages (rustkyll-only) | 1 |
 | minimal-mistakes | 0/0 (N/A%) | 1/1 | 0 |
-| mojombo-blog | 15/17 (88%) | 17/17 | 0 |
-| muan-blog | 1786/2218 (81%) | 2219/2218 | 0 |
+| mojombo-blog | 17/17 (100%) | 17/17 | 0 |
+| muan-blog | 2108/2218 (95%) | 2219/2218 | 0 |
 | opensource-guide | 23/388 (6%) | 390/388 | 0 |
 | primer-theme | 0/2 (0%) | 2/2 | 0 |
 | programming-historian | JEKYLL_FAIL | 656 pages (rustkyll-only) | 218 |
-| slate-theme | 1/2 (50%) | 2/2 | 0 |
+| slate-theme | 2/2 (100%) | 2/2 | 0 |
 | so-simple-theme | 0/11 (0%) | 11/66 | 1 |
 | time-machine-theme | 0/2 (0%) | 2/2 | 0 |
 | uswds-site | JEKYLL_FAIL | 765 pages (rustkyll-only) | 228 |
@@ -81,31 +81,22 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
 ## Summary
 
 - Sites compared: 40
-- Total DOM matches: 8026 / 9826
+- Total DOM matches: 8095 / 9826
 
 ## Diff Categories by Site
-
-### slate-theme
-
-```
-      9 attribute_differs
-      1 text_differs
-```
 
 ### hacker-theme
 
 ```
-     10 attribute_differs
-      1 text_differs
+      2 attribute_differs
 ```
 
 ### primer-theme
 
 ```
-      9 attribute_differs
       2 text_differs
-      1 missing_text
-      1 missing_element
+      2 missing_text
+      2 missing_element
 ```
 
 ### alexeygrigorev/little-book-of-metals-ru
@@ -119,24 +110,16 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
 ### midnight-theme
 
 ```
-     10 attribute_differs
-      1 text_differs
-```
-
-### cayman-theme
-
-```
-      9 attribute_differs
-      1 text_differs
+      2 attribute_differs
 ```
 
 ### DataTalksClub/datatalksclub.github.io
 
 ```
-     91 jsonld_value_differs
+    135 jsonld_value_differs
      83 missing_element
      67 text_differs
-     43 attribute_differs
+     44 attribute_differs
      39 extra_element
      37 tag_name_differs
      26 missing_text
@@ -144,15 +127,6 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
      15 expected_element_got_text
       9 expected_text_got_element
       8 missing_attribute
-```
-
-### DataTalksClub/docs
-
-```
-      1 text_differs
-      1 tag_name_differs
-      1 missing_text
-      1 missing_element
 ```
 
 ### just-the-docs
@@ -182,29 +156,22 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
 ### alexeygrigorev/mlwiki.org
 
 ```
-   1052 text_differs
-   1017 tag_name_differs
-    509 missing_element
-    231 missing_text
-    160 attribute_differs
-    107 expected_element_got_text
-     66 extra_element
-     48 extra_text
-     31 expected_text_got_element
+   3833 extra_element
+   1278 tag_name_differs
+   1278 attribute_differs
+      1 text_differs
 ```
 
 ### leap-day-theme
 
 ```
-     10 attribute_differs
-      1 text_differs
+      2 attribute_differs
 ```
 
 ### merlot-theme
 
 ```
-     10 attribute_differs
-      1 text_differs
+      2 attribute_differs
 ```
 
 ### alexeygrigorev/mlbookcamp-page
@@ -231,8 +198,7 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
 ### dinky-theme
 
 ```
-     10 attribute_differs
-      1 text_differs
+      2 attribute_differs
 ```
 
 ### jekyll-vitepress-theme
@@ -249,16 +215,17 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
 ### muan-blog
 
 ```
-    839 attribute_differs
-    352 extra_attribute
-     38 text_differs
-     26 missing_element
-     19 tag_name_differs
-     15 extra_element
-     14 missing_text
-     10 expected_text_got_element
-     10 expected_element_got_text
+    167 attribute_differs
+     41 text_differs
+     30 missing_element
+     21 tag_name_differs
+     16 extra_element
+     15 missing_text
+     14 expected_element_got_text
+     11 expected_text_got_element
+      8 missing_attribute
       4 extra_text
+      4 extra_attribute
 ```
 
 ### lanyon
@@ -308,13 +275,6 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
       3 expected_text_got_element
 ```
 
-### architect-theme
-
-```
-      9 attribute_differs
-      1 text_differs
-```
-
 ### opensource-guide
 
 ```
@@ -351,42 +311,29 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
 ### academicpages
 
 ```
-     89 attribute_differs
+     90 attribute_differs
      23 tag_name_differs
      12 text_differs
-      7 extra_element
+      6 extra_element
       2 missing_attribute
-      1 missing_text
       1 missing_element
-      1 expected_element_got_text
 ```
 
 ### choosealicense.com
 
 ```
     207 jsonld_value_differs
-    118 attribute_differs
+    116 attribute_differs
      55 missing_element
-     46 text_differs
-      5 missing_attribute
+     45 text_differs
+      3 missing_attribute
       3 extra_attribute
-```
-
-### mojombo-blog
-
-```
-      2 text_differs
-      1 tag_name_differs
-      1 missing_text
-      1 missing_element
-      1 attribute_differs
 ```
 
 ### time-machine-theme
 
 ```
-     11 attribute_differs
-      1 text_differs
+      4 attribute_differs
 ```
 
 ### jekyll-docs/docs
