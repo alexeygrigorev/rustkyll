@@ -12,6 +12,7 @@ use crate::kramdown_parser::options::{EntityOutput, Options};
 use crate::kramdown_parser::parser::KramdownParser;
 use crate::kramdown_parser::span_parser::{self, SpanContext};
 use crate::syntax::highlight_code;
+use deunicode::deunicode;
 
 /// Converts a kramdown Document AST into HTML output.
 pub struct HtmlConverter;
@@ -145,8 +146,22 @@ fn collect_headers(children: &[Element], options: &Options, ctx: &mut SpanContex
 /// The raw source text is used directly (not span-processed), matching kramdown Ruby behavior
 /// where `raw_text` is set from source during header creation.
 fn generate_header_id(text: &str, options: &Options) -> String {
+    // If auto_id_stripping is enabled, strip HTML tags before generating ID
+    let text = if options.auto_id_stripping {
+        strip_html_tags(text)
+    } else {
+        text.to_string()
+    };
+
     // Process kramdown backslash escapes (e.g. \\\` -> \`)
-    let clean = process_kramdown_escapes(text);
+    let clean = process_kramdown_escapes(&text);
+
+    // Transliterate non-ASCII characters if transliterated_header_ids is enabled
+    let clean = if options.transliterated_header_ids {
+        deunicode(&clean)
+    } else {
+        clean
+    };
 
     // Match kramdown Ruby basic_generate_id:
     // 1. Strip leading non-alpha chars
@@ -160,8 +175,30 @@ fn generate_header_id(text: &str, options: &Options) -> String {
     let result = filtered.replace(' ', "-");
     // 4. Downcase
     let result = result.to_lowercase();
-    // 5. Apply auto_id_prefix
+    // 5. If result is empty (e.g., numeric-only headers), use "section"
+    let result = if result.is_empty() {
+        "section".to_string()
+    } else {
+        result
+    };
+    // 6. Apply auto_id_prefix
     format!("{}{}", options.auto_id_prefix, result)
+}
+
+/// Strip HTML tags from text, returning only the text content.
+fn strip_html_tags(text: &str) -> String {
+    let mut result = String::with_capacity(text.len());
+    let mut in_tag = false;
+    for c in text.chars() {
+        if c == '<' {
+            in_tag = true;
+        } else if c == '>' {
+            in_tag = false;
+        } else if !in_tag {
+            result.push(c);
+        }
+    }
+    result
 }
 
 /// Process kramdown backslash escapes in text (for ID generation).
@@ -547,10 +584,24 @@ fn convert_header(
         ctx.toc_header_index += 1;
     }
 
+    // Remove empty id="" attribute (kramdown: empty id means no id)
+    if attrs.get("id").is_some_and(|id| id.is_empty()) {
+        attrs.shift_remove("id");
+    }
+
     write_indent(output, indent);
     output.push_str(&format!("<h{level}"));
     write_attrs(&attrs, output);
     output.push('>');
+
+    // Add header link anchor if header_links is enabled and header has a non-empty ID
+    if options.header_links {
+        if let Some(id) = attrs.get("id") {
+            if !id.is_empty() {
+                output.push_str(&format!("<a href=\"#{id}\"></a>"));
+            }
+        }
+    }
 
     let text = get_element_text(elem);
     if is_raw_html {
@@ -577,7 +628,9 @@ fn convert_code_block(
     write_indent(output, indent);
 
     // Determine code language from fence, IAL class, or default_lang option
-    let mut code_lang: Option<String> = fence_language.cloned();
+    // Strip ?params from fenced code block language (e.g., "php?start_inline=1" -> "php")
+    let mut code_lang: Option<String> =
+        fence_language.map(|l| l.split('?').next().unwrap_or(l).to_string());
     let mut pre_attrs: Vec<(String, String)> = Vec::new();
 
     for (key, value) in &elem.attr {
@@ -619,6 +672,21 @@ fn convert_code_block(
                 output.push_str("</code></pre>\n</div></div>\n");
                 return;
             }
+        }
+        // When guess_lang is true and no specific language, still use rouge wrapper
+        if code_lang.is_none()
+            && ctx
+                .options
+                .syntax_highlighter_opts
+                .guess_lang
+                .unwrap_or(false)
+        {
+            output
+                .push_str("<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>");
+            let escaped = escape_html(content);
+            output.push_str(&escaped);
+            output.push_str("</code></pre>\n</div></div>\n");
+            return;
         }
     }
 

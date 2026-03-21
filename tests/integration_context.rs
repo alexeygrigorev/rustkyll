@@ -52,14 +52,14 @@ fn test_site_context_github_url_nil_without_plugin() {
     let ctx = generator::build_site_context(&CONFIG, &colls, &data, Some(&site_dir()), &[]);
 
     // DTC _config.yml does NOT list jekyll-github-metadata plugin and does NOT
-    // have an explicit `github:` key, so repository_url should NOT be populated.
-    // This matches Jekyll local build behavior (the plugin is only auto-injected
-    // on GitHub Pages).
+    // have an explicit `github:` key, BUT the source directory ends with
+    // .github.io, so it is auto-detected as a GitHub Pages site and
+    // repository_url IS populated (matching GitHub Pages auto-inject behavior).
     let github = ctx.get("github").expect("site should have github");
     if let LiquidValue::Object(github_obj) = github {
         assert!(
-            github_obj.get("repository_url").is_none(),
-            "repository_url should not be populated without plugin or explicit github config"
+            github_obj.get("repository_url").is_some(),
+            "repository_url should be populated for .github.io sites (auto-detected as GitHub Pages)"
         );
     } else {
         panic!("Expected github to be an object");
