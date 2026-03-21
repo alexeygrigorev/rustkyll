@@ -1,6 +1,6 @@
 # DOM Comparison Results
 
-Generated: 2026-03-21 10:26 UTC
+Generated: 2026-03-21 10:56 UTC
 
 rustkyll version: rustkyll 0.2.3
 
@@ -354,10 +354,11 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
      89 attribute_differs
      23 tag_name_differs
      12 text_differs
-      8 extra_element
+      7 extra_element
       2 missing_attribute
       1 missing_text
       1 missing_element
+      1 expected_element_got_text
 ```
 
 ### choosealicense.com

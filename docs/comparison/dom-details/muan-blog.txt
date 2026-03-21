@@ -1580,18 +1580,18 @@ DIFF notes/2026-03-08-aa.html (2 differences)
 DIFF notes/2026-03-09-aa.html (2 differences)
   head > meta: attribute_differs - expected: "content='\\nI’m officially done with takes on AI beginning “Ethical concerns aside…”.\\n…\\nWhat you mean is “I don’t want to apologise for my greed and selfishness.”\\nSay that first.\\n\\nFrom @janl@narrativ.es\\n'", actual: "content='\\nI’m officially done with takes on AI beginning “Ethical concerns aside…”.\\n…\\nWhat you mean is “I don’t want to apologise for my greed and selfishness.”\\n\\nSay that first.\\n\\n\\n\\nFrom @janl@narrativ.es\\n'"
   head > meta: attribute_differs - expected: "content='\\nI’m officially done with takes on AI beginning “Ethical concerns aside…”.\\n…\\nWhat you mean is “I don’t want to apologise for my greed and selfishness.”\\nSay that first.\\n\\nFrom @janl@narrativ.es\\n'", actual: "content='\\nI’m officially done with takes on AI beginning “Ethical concerns aside…”.\\n…\\nWhat you mean is “I don’t want to apologise for my greed and selfishness.”\\n\\nSay that first.\\n\\n\\n\\nFrom @janl@narrativ.es\\n'"
-DIFF pages/blogroll.html (94 differences)
-  body > main > article > h2: attribute_differs - expected: "id='a-hrefhttpsmanuelmorealecommanuel-morealea-code-classsmolencode'", actual: "id='brian-j-brennan-en'"
-  body > main > article > h2 > a: attribute_differs - expected: "href='https://manuelmoreale.com'", actual: "href='https://bjb.dev/'"
-  body > main > article > h2 > a: text_differs - expected: 'Manuel Moreale', actual: 'Brian J Brennan'
-  body > main > article > p: text_differs - expected: 'Freqently updated blog with lots of quality posts.', actual: 'Short posts, a variety of topics, very approachable.'
-  body > main > article > h2: attribute_differs - expected: "id='a-hrefhttpskatydecorahcomkaty-decoraha-code-classsmolencode'", actual: "id='alice-boxhalls-website-en'"
-  body > main > article > h2 > a: attribute_differs - expected: "href='https://katydecorah.com/'", actual: "href='https://alice.boxhall.au'"
-  body > main > article > h2 > a: text_differs - expected: 'Katy DeCorah', actual: 'Alice Boxhall’s website'
-  body > main > article > p: text_differs - expected: 'Book logs, notes, not strictly technical content.', actual: 'Web standards, web accessibility.'
-  body > main > article > h2: attribute_differs - expected: "id='a-hrefhttpsrobbisrobb-bhnkea-code-classsmolencode'", actual: "id='原田梨沙-en-jp-jp'"
-  body > main > article > h2 > a: attribute_differs - expected: "href='https://robb.is'", actual: "href='https://risacan.net'"
-  ... and 84 more differences
+DIFF pages/blogroll.html (99 differences)
+  body > main > article > h2: attribute_differs - expected: "id='a-hrefhttpsmanuelmorealecommanuel-morealea-code-classsmolencode'", actual: "id='alice-boxhalls-website-en'"
+  body > main > article > h2 > a: attribute_differs - expected: "href='https://manuelmoreale.com'", actual: "href='https://alice.boxhall.au'"
+  body > main > article > h2 > a: text_differs - expected: 'Manuel Moreale', actual: 'Alice Boxhall’s website'
+  body > main > article > p: text_differs - expected: 'Freqently updated blog with lots of quality posts.', actual: 'Web standards, web accessibility.'
+  body > main > article > h2: attribute_differs - expected: "id='a-hrefhttpskatydecorahcomkaty-decoraha-code-classsmolencode'", actual: "id='zach-holman-en'"
+  body > main > article > h2 > a: attribute_differs - expected: "href='https://katydecorah.com/'", actual: "href='https://zachholman.com/'"
+  body > main > article > h2 > a: text_differs - expected: 'Katy DeCorah', actual: 'Zach Holman'
+  body > main > article > p: text_differs - expected: 'Book logs, notes, not strictly technical content.', actual: 'Early GitHubber now investor with occassional posts around tech subjects.'
+  body > main > article > h2: attribute_differs - expected: "id='a-hrefhttpsrobbisrobb-bhnkea-code-classsmolencode'", actual: "id='monica-dinculescu-en'"
+  body > main > article > h2 > a: attribute_differs - expected: "href='https://robb.is'", actual: "href='https://meowni.ca/'"
+  ... and 89 more differences
 DIFF pages/endorsements.html (3 differences)
   body > main > article > h2: attribute_differs - expected: "id='by-a-hrefhttpsinfrequentlyorgalex-russella-currently-microsoft-w3c-tag-previously-google'", actual: "id='by-alex-russell-currently-microsoft-w3c-tag-previously-google'"
   body > main > article > h2: attribute_differs - expected: "id='by-a-hrefhttpwwwsinabahramcomsina-bahrama-amp-a-hrefhttpsbskyappprofilejscholesbskysocialjames-scholesa-from-a-hrefhttpswwwpacbzprime-access-consulting-inca'", actual: "id='by-sina-bahram--james-scholes-from-prime-access-consulting-inc'"
@@ -1829,4 +1829,4 @@ DIFF stories/a5a92c4e-b9f7-4a4e-0aa6-de66ee175200.html (1 differences)
 DIFF stories/e65999fb-8a4f-45cc-89d0-386ee7283200.html (1 differences)
   head > meta: attribute_differs - expected: "content='![Spotify Wrapped 2024, My Top SongsVIEWS by Noga Erez, Reo Cragun, ROUSSOCome Back Home by Noga ErezCAN I? By DeemaM...'", actual: "content='![Spotify Wrapped 2024, My Top Songs  VIEWS by Noga Erez, Reo Cragun, ROUSSO  Come Back Home by Noga Erez  CAN I? By ...'"
 
-Summary: 1786 files matched, 432 files with differences, 2772 total differences (1 acceptable diffs filtered out)
+Summary: 1786 files matched, 432 files with differences, 2777 total differences (1 acceptable diffs filtered out)
