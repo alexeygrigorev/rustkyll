@@ -668,12 +668,11 @@ DIFF mydoc_yaml_tutorial.html (428 differences)
 DIFF myupdate.html (2 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 21, 2026'
-DIFF news.html (7 differences)
+DIFF news.html (6 differences)
   head > link: attribute_differs - expected: "title='documentation-theme-jekyll'", actual: "title=''"
   body > nav > div > div > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
   body > div > div > div > div > ul > li > ul > li: missing_attribute - expected: "class='active'", actual: '(none)'
-  body > div > div > div > div > div > div > div > p: text_differs - expected: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry’s standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries...', actual: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries..."
-  body > div > div > div > div > div > div > div > p: text_differs - expected: 'Theme updates: Permalinks Kramdown URL specified in config file removed PDF output removed some of the alternative layouts added blog feature sidebars configurable per page', actual: 'Theme updates: - Permalinks - Kramdown - URL specified in config file - removed PDF output - removed some of the alternative layouts - added blog feature - sidebars configurable per page {% include links.html %}'
+  body > div > div > div > div > div > div > div > p: text_differs - expected: 'Theme updates: Permalinks Kramdown URL specified in config file removed PDF output removed some of the alternative layouts added blog feature sidebars configurable per page', actual: 'Theme updates: Permalinks Kramdown URL specified in config file removed PDF output removed some of the alternative layouts added blog feature sidebars configurable per page {% include links.html %}'
   body > div > div > div > div > div > div > div > p: text_differs - expected: 'This is just a test post from the previous year.', actual: 'This is just a test post from the previous year. {% include links.html %}'
   body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 21, 2026'
 DIFF news_archive.html (7 differences)
@@ -1040,4 +1039,4 @@ DIFF tocpage.html/index.html (3 differences)
   body: missing_element - expected: '<body>', actual: '(none)'
   script: missing_element - expected: '<script>', actual: '(none)'
 
-Summary: 1 files matched, 97 files with differences, 5111 total differences
+Summary: 1 files matched, 97 files with differences, 5110 total differences

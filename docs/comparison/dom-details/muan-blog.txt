@@ -4,18 +4,18 @@ Rustkyll directory: /home/alexey/git/rustkyl/websites/muan-blog/_site_rustkyll_r
 Common HTML files:  2218
 Only in rustkyll:   1
 
-DIFF notes.html (289 differences)
+DIFF notes.html (224 differences)
   body > main > ul > li > div > a: attribute_differs - expected: "href='https://github.com/muan/site/edit/main/_notes/2026-03-12-cc.md'", actual: "href='https://github.com/muan/site/edit/main/'"
   body > main > ul > li > div > a: attribute_differs - expected: "href='https://github.com/muan/site/edit/main/_notes/2026-03-12-aa.md'", actual: "href='https://github.com/muan/site/edit/main/'"
   body > main > ul > li > div > a: attribute_differs - expected: "href='https://github.com/muan/site/edit/main/_notes/2026-03-09-cc.md'", actual: "href='https://github.com/muan/site/edit/main/'"
-  body > main > ul > li > div > blockquote > p: text_differs - expected: 'I’m officially done with takes on AI beginning “Ethical concerns aside…”.', actual: 'I’m officially done with takes on AI beginning “Ethical concerns aside…”. … What you mean is “I don’t want to apologise for my greed and selfishness.”'
-  body > main > ul > li > div > blockquote > p > br: missing_element - expected: '<br>', actual: '(none)'
-  body > main > ul > li > div > blockquote > p: missing_text - expected: '…', actual: '(none)'
-  body > main > ul > li > div > blockquote > p > br: missing_element - expected: '<br>', actual: '(none)'
-  body > main > ul > li > div > blockquote > p: missing_text - expected: 'What you mean is “I don’t want to apologise for my greed and selfishness.”', actual: '(none)'
   body > main > ul > li > div > a: attribute_differs - expected: "href='https://github.com/muan/site/edit/main/_notes/2026-03-09-aa.md'", actual: "href='https://github.com/muan/site/edit/main/'"
   body > main > ul > li > div > a: attribute_differs - expected: "href='https://github.com/muan/site/edit/main/_notes/2026-03-08-aa.md'", actual: "href='https://github.com/muan/site/edit/main/'"
-  ... and 279 more differences
+  body > main > ul > li > div > a: attribute_differs - expected: "href='https://github.com/muan/site/edit/main/_notes/2026-02-27-aa.md'", actual: "href='https://github.com/muan/site/edit/main/'"
+  body > main > ul > li > div > a: attribute_differs - expected: "href='https://github.com/muan/site/edit/main/_notes/2026-02-24-aa.md'", actual: "href='https://github.com/muan/site/edit/main/'"
+  body > main > ul > li > div > a: attribute_differs - expected: "href='https://github.com/muan/site/edit/main/_notes/2026-02-20-aa.md'", actual: "href='https://github.com/muan/site/edit/main/'"
+  body > main > ul > li > div > a: attribute_differs - expected: "href='https://github.com/muan/site/edit/main/_notes/2026-02-19-aa.md'", actual: "href='https://github.com/muan/site/edit/main/'"
+  body > main > ul > li > div > a: attribute_differs - expected: "href='https://github.com/muan/site/edit/main/_notes/2026-02-17-aa.md'", actual: "href='https://github.com/muan/site/edit/main/'"
+  ... and 214 more differences
 DIFF notes/2018-06-04-aa.html (12 differences)
   head > meta: extra_attribute - expected: '(none)', actual: '"=\'\''
   head > meta: extra_attribute - expected: '(none)', actual: "a=''"
@@ -1580,18 +1580,18 @@ DIFF notes/2026-03-08-aa.html (2 differences)
 DIFF notes/2026-03-09-aa.html (2 differences)
   head > meta: attribute_differs - expected: "content='\\nI’m officially done with takes on AI beginning “Ethical concerns aside…”.\\n…\\nWhat you mean is “I don’t want to apologise for my greed and selfishness.”\\nSay that first.\\n\\nFrom @janl@narrativ.es\\n'", actual: "content='\\nI’m officially done with takes on AI beginning “Ethical concerns aside…”.\\n…\\nWhat you mean is “I don’t want to apologise for my greed and selfishness.”\\n\\nSay that first.\\n\\n\\n\\nFrom @janl@narrativ.es\\n'"
   head > meta: attribute_differs - expected: "content='\\nI’m officially done with takes on AI beginning “Ethical concerns aside…”.\\n…\\nWhat you mean is “I don’t want to apologise for my greed and selfishness.”\\nSay that first.\\n\\nFrom @janl@narrativ.es\\n'", actual: "content='\\nI’m officially done with takes on AI beginning “Ethical concerns aside…”.\\n…\\nWhat you mean is “I don’t want to apologise for my greed and selfishness.”\\n\\nSay that first.\\n\\n\\n\\nFrom @janl@narrativ.es\\n'"
-DIFF pages/blogroll.html (92 differences)
-  body > main > article > h2: attribute_differs - expected: "id='a-hrefhttpsmanuelmorealecommanuel-morealea-code-classsmolencode'", actual: "id='monica-dinculescu-en'"
-  body > main > article > h2 > a: attribute_differs - expected: "href='https://manuelmoreale.com'", actual: "href='https://meowni.ca/'"
-  body > main > article > h2 > a: text_differs - expected: 'Manuel Moreale', actual: 'Monica Dinculescu'
-  body > main > article > p: text_differs - expected: 'Freqently updated blog with lots of quality posts.', actual: 'Emoji connoisseur, amazing engineer with many skills. Book logs and art works too.'
-  body > main > article > h2: attribute_differs - expected: "id='a-hrefhttpskatydecorahcomkaty-decoraha-code-classsmolencode'", actual: "id='manuel-moreale-en'"
-  body > main > article > h2 > a: attribute_differs - expected: "href='https://katydecorah.com/'", actual: "href='https://manuelmoreale.com'"
-  body > main > article > h2 > a: text_differs - expected: 'Katy DeCorah', actual: 'Manuel Moreale'
-  body > main > article > p: text_differs - expected: 'Book logs, notes, not strictly technical content.', actual: 'Freqently updated blog with lots of quality posts.'
-  body > main > article > h2: attribute_differs - expected: "id='a-hrefhttpsrobbisrobb-bhnkea-code-classsmolencode'", actual: "id='zach-holman-en'"
-  body > main > article > h2 > a: attribute_differs - expected: "href='https://robb.is'", actual: "href='https://zachholman.com/'"
-  ... and 82 more differences
+DIFF pages/blogroll.html (94 differences)
+  body > main > article > h2: attribute_differs - expected: "id='a-hrefhttpsmanuelmorealecommanuel-morealea-code-classsmolencode'", actual: "id='brian-j-brennan-en'"
+  body > main > article > h2 > a: attribute_differs - expected: "href='https://manuelmoreale.com'", actual: "href='https://bjb.dev/'"
+  body > main > article > h2 > a: text_differs - expected: 'Manuel Moreale', actual: 'Brian J Brennan'
+  body > main > article > p: text_differs - expected: 'Freqently updated blog with lots of quality posts.', actual: 'Short posts, a variety of topics, very approachable.'
+  body > main > article > h2: attribute_differs - expected: "id='a-hrefhttpskatydecorahcomkaty-decoraha-code-classsmolencode'", actual: "id='alice-boxhalls-website-en'"
+  body > main > article > h2 > a: attribute_differs - expected: "href='https://katydecorah.com/'", actual: "href='https://alice.boxhall.au'"
+  body > main > article > h2 > a: text_differs - expected: 'Katy DeCorah', actual: 'Alice Boxhall’s website'
+  body > main > article > p: text_differs - expected: 'Book logs, notes, not strictly technical content.', actual: 'Web standards, web accessibility.'
+  body > main > article > h2: attribute_differs - expected: "id='a-hrefhttpsrobbisrobb-bhnkea-code-classsmolencode'", actual: "id='原田梨沙-en-jp-jp'"
+  body > main > article > h2 > a: attribute_differs - expected: "href='https://robb.is'", actual: "href='https://risacan.net'"
+  ... and 84 more differences
 DIFF pages/endorsements.html (3 differences)
   body > main > article > h2: attribute_differs - expected: "id='by-a-hrefhttpsinfrequentlyorgalex-russella-currently-microsoft-w3c-tag-previously-google'", actual: "id='by-alex-russell-currently-microsoft-w3c-tag-previously-google'"
   body > main > article > h2: attribute_differs - expected: "id='by-a-hrefhttpwwwsinabahramcomsina-bahrama-amp-a-hrefhttpsbskyappprofilejscholesbskysocialjames-scholesa-from-a-hrefhttpswwwpacbzprime-access-consulting-inca'", actual: "id='by-sina-bahram--james-scholes-from-prime-access-consulting-inc'"
@@ -1741,10 +1741,9 @@ DIFF posts/mission-focused.html (3 differences)
   head > meta: attribute_differs - expected: "content='\\n\\nGood Night! Formosa! by Fire EX.\\n\\nLast night, one of the people in my US Overwatch squad asked when I will move back to China while we were queuing for a game. I refuted, saying “well, I am from Taiwan”. Two other people in the group b...'", actual: "content='\\n\\n\\nGood Night! Formosa! by Fire EX.\\n\\n\\nLast night, one of the people in my US Overwatch squad asked when I will move back to China while we were queuing for a game. I refuted, saying “well, I am from Taiwan”. Two other people in the group...'"
   head > meta: attribute_differs - expected: "content='\\n\\nGood Night! Formosa! by Fire EX.\\n\\nLast night, one of the people in my US Overwatch squad asked when I will move back to China while we were queuing for a game. I refuted, saying “well, I am from Taiwan”. Two other people in the group b...'", actual: "content='\\n\\n\\nGood Night! Formosa! by Fire EX.\\n\\n\\nLast night, one of the people in my US Overwatch squad asked when I will move back to China while we were queuing for a game. I refuted, saying “well, I am from Taiwan”. Two other people in the group...'"
   body > main > article > child[1]: tag_name_differs - expected: 'iframe', actual: 'p'
-DIFF posts/noise.html (6 differences)
+DIFF posts/noise.html (5 differences)
   head > meta: attribute_differs - expected: 'content="I live next to a huge mall in London. Last night as I was walking through the mall to the grocery store on the other side, I couldn\'t help but noticed the terrible music that was blasting through the speakers and into my ears.\\nNaturally ..."', actual: 'content="I live next to a huge mall in London. Last night as I was walking through the mall to the grocery store on the other side, I couldn\'t help but noticed the terrible music that was blasting through the speakers and into my ears.\\n\\nNaturally..."'
   head > meta: attribute_differs - expected: 'content="I live next to a huge mall in London. Last night as I was walking through the mall to the grocery store on the other side, I couldn\'t help but noticed the terrible music that was blasting through the speakers and into my ears.\\nNaturally ..."', actual: 'content="I live next to a huge mall in London. Last night as I was walking through the mall to the grocery store on the other side, I couldn\'t help but noticed the terrible music that was blasting through the speakers and into my ears.\\n\\nNaturally..."'
-  head > meta: attribute_differs - expected: "content='2013-05-21T11:02:39+08:00'", actual: "content='2013-05-21T03:02:39+08:00'"
   body > header > time: attribute_differs - expected: "datetime='2013-05-21T11:02:39+08:00'", actual: "datetime='2013-05-21T03:02:39+08:00'"
   body > main > article > child[31]: tag_name_differs - expected: 'iframe', actual: 'p'
   body > main > article > br: missing_element - expected: '<br>', actual: '(none)'
@@ -1791,7 +1790,9 @@ DIFF posts/try-harder.html (2 differences)
   head > meta: attribute_differs - expected: "content='Content warning: on depression.\\n\\nNo, I really can’t.\\nIn the last few years I have learned that the way to keep myself away from suicidal ideation is through resource management.\\nMy insomnia persists. Last night I slept in two 2-hour chun...'", actual: "content='Content warning: on depression.\\n\\n\\nNo, I really can’t.\\n\\nIn the last few years I have learned that the way to keep myself away from suicidal ideation is through resource management.\\n\\nMy insomnia persists. Last night I slept in two 2-hour c...'"
 DIFF posts/update.html (2 differences)
   head > meta: attribute_differs - expected: 'content="Hi again.\\nI am sitting in an apartment in Berlin right now thinking about e-mailing my therapist. But instead of doing that, I thought I\'d read back on what I have written in the past on this website.\\nI guess it is time for an update.\\nI ..."', actual: 'content="Hi again.\\n\\nI am sitting in an apartment in Berlin right now thinking about e-mailing my therapist. But instead of doing that, I thought I\'d read back on what I have written in the past on this website.\\n\\nI guess it is time for an update.\\n..."'
-  head > meta: attribute_differs - expected: 'content="Hi again.\\nI am sitting in an apartment in Berlin right now thinking about e-mailing my therapist. But instead of doing that, I thought I\'d read back on what I have written in the past on this website.\\nI guess it is time for an update.\\nI ..."', actual: 'content="Hi again.\\n\\nI am sitting in an apartment in Berlin right now thinking about e-mailing my therapist. But instead of doing that, I thought I\'d read back on what I have written in the past on this website.\\n\\nI guess it is time for an update.\\n..."'  Progress: 1500/2218 files compared...
+  head > meta: attribute_differs - expected: 'content="Hi again.\\nI am sitting in an apartment in Berlin right now thinking about e-mailing my therapist. But instead of doing that, I thought I\'d read back on what I have written in the past on this website.\\nI guess it is time for an update.\\nI ..."', actual: 'content="Hi again.\\n\\nI am sitting in an apartment in Berlin right now thinking about e-mailing my therapist. But instead of doing that, I thought I\'d read back on what I have written in the past on this website.\\n\\nI guess it is time for an update.\\n..."'
+DIFF posts/we-dont-have-to-be-friends.html (2 differences)
+  head > meta: attribute_differs - expected: "content='Sometime last year, at the height of my mental health crisis, I had a text exchange with a close friend. We have been friends for almost ten years at that point.\\nIn that exchange, I asked a question that offended them. They called me ins...'", actual: "content='Sometime last year, at the height of my mental health crisis, I had a text exchange with a close friend. We have been friends for almost ten years at that point.\\n\\nIn that exchange, I asked a question that offended them. They called me in...'"  Progress: 1500/2218 files compared...
   Progress: 1600/2218 files compared...
   Progress: 1700/2218 files compared...
   Progress: 1800/2218 files compared...
@@ -1800,8 +1801,6 @@ DIFF posts/update.html (2 differences)
   Progress: 2100/2218 files compared...
   Progress: 2200/2218 files compared...
 
-DIFF posts/we-dont-have-to-be-friends.html (2 differences)
-  head > meta: attribute_differs - expected: "content='Sometime last year, at the height of my mental health crisis, I had a text exchange with a close friend. We have been friends for almost ten years at that point.\\nIn that exchange, I asked a question that offended them. They called me ins...'", actual: "content='Sometime last year, at the height of my mental health crisis, I had a text exchange with a close friend. We have been friends for almost ten years at that point.\\n\\nIn that exchange, I asked a question that offended them. They called me in...'"
   head > meta: attribute_differs - expected: "content='Sometime last year, at the height of my mental health crisis, I had a text exchange with a close friend. We have been friends for almost ten years at that point.\\nIn that exchange, I asked a question that offended them. They called me ins...'", actual: "content='Sometime last year, at the height of my mental health crisis, I had a text exchange with a close friend. We have been friends for almost ten years at that point.\\n\\nIn that exchange, I asked a question that offended them. They called me in...'"
 DIFF posts/why-not-today.html (60 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "a=''"
@@ -1830,4 +1829,4 @@ DIFF stories/a5a92c4e-b9f7-4a4e-0aa6-de66ee175200.html (1 differences)
 DIFF stories/e65999fb-8a4f-45cc-89d0-386ee7283200.html (1 differences)
   head > meta: attribute_differs - expected: "content='![Spotify Wrapped 2024, My Top SongsVIEWS by Noga Erez, Reo Cragun, ROUSSOCome Back Home by Noga ErezCAN I? By DeemaM...'", actual: "content='![Spotify Wrapped 2024, My Top Songs  VIEWS by Noga Erez, Reo Cragun, ROUSSO  Come Back Home by Noga Erez  CAN I? By ...'"
 
-Summary: 1786 files matched, 432 files with differences, 2836 total differences
+Summary: 1786 files matched, 432 files with differences, 2772 total differences (1 acceptable diffs filtered out)

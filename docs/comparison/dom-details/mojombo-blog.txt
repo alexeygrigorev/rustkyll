@@ -10,14 +10,5 @@ DIFF 2008/10/18/how-i-turned-down-300k.html (5 differences)
   body > div > div > p: missing_text - expected: 'was born.', actual: '(none)'
 DIFF 2009/05/19/the-git-parable.html (1 differences)
   body > div > div > p > a > img: attribute_differs - expected: "alt='Creative Commons License'", actual: "alt='Creative\\nCommons License'"
-DIFF 2010/05/11/tomdoc-reasonable-ruby-documentation.html (8 differences)
-  body > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'text'
-  body > div > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='o'"
-  body > div > div > div > div > pre > code > span: text_differs - expected: 'text', actual: '*'
-  body > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'count'
-  body > div > div > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='k'"
-  body > div > div > div > div > pre > code > span: text_differs - expected: '*', actual: 'end'
-  body > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
-  body > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
 
-Summary: 14 files matched, 3 files with differences, 14 total differences
+Summary: 15 files matched, 2 files with differences, 6 total differences
