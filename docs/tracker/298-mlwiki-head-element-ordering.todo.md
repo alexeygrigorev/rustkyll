@@ -2,7 +2,7 @@
 
 ## Problem
 
-mlwiki.org matches 0/639 (was 236/639 before, regressed). Main diff category is head element ordering — extra link/script elements, attribute ordering in `<head>`. mlwiki.org is a standard Jekyll site.
+mlwiki.org matches 0/639 (was 236/639 before, regressed). Main diff category is head element ordering — extra link/script elements, attribute ordering in `<head>`. mlwiki.org is a standard Jekyll site. Goal: match Jekyll output exactly.
 
 ## Acceptance Criteria
 
