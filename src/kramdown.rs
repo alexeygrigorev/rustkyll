@@ -1562,6 +1562,12 @@ pub fn convert_kramdown_pipe_tables(content: &str) -> String {
                 for cell in split_kramdown_table_cells(row_text) {
                     result.push_str("<td>");
                     let cell_text = apply_typographic_symbols(cell.trim());
+                    // HTML-escape < and > in cell content to match kramdown.
+                    // Kramdown escapes these in pipe table cells since they're
+                    // treated as raw text, not HTML.
+                    // Note: we don't escape & because cell text may already
+                    // contain HTML entities like &amp; from YAML sources.
+                    let cell_text = cell_text.replace('<', "&lt;").replace('>', "&gt;");
                     result.push_str(&cell_text);
                     result.push_str("</td>\n");
                 }
@@ -10254,6 +10260,21 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             !html.contains("..."),
             "Literal ... should not remain in pipe table cell. Got: {html}"
+        );
+    }
+
+    /// Issue 325: Pipe table cell content with < and > gets HTML-escaped
+    #[test]
+    fn test_325_pipe_table_html_escapes_angle_brackets() {
+        let input = "intro<br />\nemail me at <mailto:a@b.com | a@b.com>\n";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("&lt;mailto:"),
+            "< in pipe table cell should be escaped to &lt;. Got: {html}"
+        );
+        assert!(
+            html.contains("&gt;"),
+            "> in pipe table cell should be escaped to &gt;. Got: {html}"
         );
     }
 

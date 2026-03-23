@@ -603,6 +603,12 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     // Issue 308: Prevent fenced code blocks after <br />\n from newline_to_br.
     let markdown = escape_fenced_code_after_br(markdown);
 
+    // Issue 325: Preprocess dash sequences to match kramdown's greedy behavior.
+    // Kramdown processes dashes as ---=em-dash first, then --=en-dash on remainder.
+    // pulldown-cmark handles ---- as two en-dashes (--+--), but kramdown handles
+    // it as em-dash + hyphen (---+-).
+    let markdown = preprocess_kramdown_dashes(&markdown);
+
     // Protect pre-existing curly quotes from fix_smart_quote_directions
     let markdown = protect_preexisting_curly_quotes(&markdown);
 
@@ -963,6 +969,13 @@ fn protect_math_content(input: &str) -> (String, Vec<MathEntry>) {
                             j += 2;
                             continue;
                         }
+                        // Issue 325: Closing $ followed by a digit is likely
+                        // a currency amount (e.g., "...$" in "$2.19 ... $16.6"),
+                        // not a math delimiter. Skip it.
+                        if j + 1 < len && bytes[j + 1].is_ascii_digit() {
+                            j += 1;
+                            continue;
+                        }
                         let content = &input[content_start..j];
                         let idx = saved.len();
                         saved.push(MathEntry {
@@ -1149,9 +1162,17 @@ fn decode_url_for_jekyll_compat(url: &str) -> String {
             let lo = hex_val(bytes[i + 2]);
             if let (Some(h), Some(l)) = (hi, lo) {
                 let byte_val = (h << 4) | l;
-                // Only decode ] (0x5D) which pulldown-cmark encodes.
+                // Decode ] (0x5D) which pulldown-cmark encodes.
                 if byte_val == b']' {
                     decoded.push(byte_val);
+                    i += 3;
+                    continue;
+                }
+                // Decode > (0x3E) to &gt; to match kramdown's HTML escaping.
+                // pulldown-cmark URL-encodes > as %3E, but kramdown HTML-escapes
+                // it as &gt; in href attributes.
+                if byte_val == b'>' {
+                    decoded.extend_from_slice(b"&gt;");
                     i += 3;
                     continue;
                 }
@@ -1485,6 +1506,122 @@ fn autolink_find_html_a_tags(line: &str, regions: &mut Vec<(usize, usize)>) {
 /// (before the next paragraph break), so the inline code span is properly formed.
 /// When there's no matching close, we backslash-escape the backticks so they
 /// become literal text (matching kramdown's behavior).
+/// Issue 325: Preprocess dash sequences to match kramdown's greedy behavior.
+///
+/// Kramdown converts dashes by greedily matching the longest pattern first:
+/// `---` -> em-dash (U+2014), then `--` -> en-dash (U+2013) on the remainder.
+/// pulldown-cmark handles `----` as two en-dashes (`--` + `--`), but kramdown
+/// handles it as em-dash + hyphen (`---` + `-`).
+///
+/// This function preprocesses the text to convert dash sequences to the
+/// Unicode characters that kramdown would produce, so pulldown-cmark's
+/// smart punctuation doesn't re-interpret them.
+fn preprocess_kramdown_dashes(markdown: &str) -> String {
+    if !markdown.contains("--") {
+        return markdown.to_string();
+    }
+    let mut result = String::with_capacity(markdown.len());
+    let chars: Vec<char> = markdown.chars().collect();
+    let len = chars.len();
+    let mut i = 0;
+    let mut in_code = false;
+    let mut code_delim_len = 0usize;
+    let mut in_url = false;
+    let mut url_paren_depth = 0i32;
+
+    while i < len {
+        // Track code spans: skip content inside backtick delimiters
+        if chars[i] == '`' && !in_code && !in_url {
+            let start = i;
+            while i < len && chars[i] == '`' {
+                i += 1;
+            }
+            code_delim_len = i - start;
+            in_code = true;
+            for _ in 0..code_delim_len {
+                result.push('`');
+            }
+            continue;
+        }
+        if in_code {
+            if chars[i] == '`' {
+                let start = i;
+                while i < len && chars[i] == '`' {
+                    i += 1;
+                }
+                let count = i - start;
+                if count == code_delim_len {
+                    in_code = false;
+                }
+                for _ in 0..count {
+                    result.push('`');
+                }
+                continue;
+            }
+            result.push(chars[i]);
+            i += 1;
+            continue;
+        }
+
+        // Track markdown link URLs: ]( starts URL, ) ends it
+        if !in_url && chars[i] == ']' && i + 1 < len && chars[i + 1] == '(' {
+            in_url = true;
+            url_paren_depth = 1;
+            result.push(']');
+            result.push('(');
+            i += 2;
+            continue;
+        }
+        if in_url {
+            if chars[i] == '(' {
+                url_paren_depth += 1;
+            } else if chars[i] == ')' {
+                url_paren_depth -= 1;
+                if url_paren_depth <= 0 {
+                    in_url = false;
+                }
+            }
+            result.push(chars[i]);
+            i += 1;
+            continue;
+        }
+
+        if chars[i] == '-' {
+            // Count consecutive dashes
+            let start = i;
+            while i < len && chars[i] == '-' {
+                i += 1;
+            }
+            let count = i - start;
+            if count >= 2 {
+                // Apply kramdown's greedy algorithm: --- first, then -- on remainder.
+                // This pre-converts dashes to Unicode typographic characters so
+                // pulldown-cmark's smart punctuation doesn't re-interpret them
+                // differently (e.g., pulldown-cmark only converts --- at word
+                // boundaries, but kramdown converts all --- unconditionally).
+                let mut remaining = count;
+                while remaining >= 3 {
+                    result.push('\u{2014}'); // em-dash
+                    remaining -= 3;
+                }
+                while remaining >= 2 {
+                    result.push('\u{2013}'); // en-dash
+                    remaining -= 2;
+                }
+                for _ in 0..remaining {
+                    result.push('-');
+                }
+            } else {
+                result.push('-');
+            }
+        } else {
+            result.push(chars[i]);
+            i += 1;
+        }
+    }
+    result
+}
+
 fn escape_fenced_code_after_br(markdown: &str) -> String {
     // Quick check: if no <br />\n followed by backticks or tildes, return early
     if !markdown.contains("<br />\n```") && !markdown.contains("<br />\n~~~") {
@@ -3459,6 +3596,140 @@ More text.
         assert!(
             html.contains("%E2%86%92"),
             "Arrow percent-encoding should be preserved. Got: {html}"
+        );
+    }
+
+    /// Issue 325: pulldown-cmark encodes > as %3E in URLs, but kramdown
+    /// HTML-escapes it as &gt; in href attributes. Decode %3E to &gt;.
+    #[test]
+    fn test_325_greater_than_decoded_to_html_entity_in_url() {
+        let html =
+            decode_pulldown_url_encoding(r#"<a href="https://example.com/path/%3E">link</a>"#);
+        assert!(
+            html.contains("path/&gt;"),
+            "> in URL should be decoded from %3E to &gt;. Got: {html}"
+        );
+        assert!(
+            !html.contains("%3E"),
+            "%3E should not remain in URL. Got: {html}"
+        );
+    }
+
+    /// Issue 325: Real-world case from DTC book page with > in URL
+    #[test]
+    fn test_325_greater_than_in_oreilly_url() {
+        let input = r#"<a href="https://learning.oreilly.com/library/view/mastering-python-for/9781098100872/%3E">Rosalind.info</a>"#;
+        let html = decode_pulldown_url_encoding(input);
+        assert!(
+            html.contains("9781098100872/&gt;"),
+            "Real-world URL > should become &gt;. Got: {html}"
+        );
+    }
+
+    /// Issue 325: preprocess_kramdown_dashes only converts 4+ dash sequences
+    /// where pulldown-cmark and kramdown disagree.
+    #[test]
+    fn test_325_preprocess_kramdown_dashes() {
+        // --- -> em-dash (kramdown converts all --- unconditionally)
+        assert_eq!(preprocess_kramdown_dashes("a---b"), "a\u{2014}b");
+        // -- -> en-dash
+        assert_eq!(preprocess_kramdown_dashes("a--b"), "a\u{2013}b");
+        // ---- -> em-dash + hyphen (kramdown greedy: --- first, then -)
+        assert_eq!(preprocess_kramdown_dashes("a----b"), "a\u{2014}-b");
+        // ----- -> em-dash + en-dash
+        assert_eq!(preprocess_kramdown_dashes("a-----b"), "a\u{2014}\u{2013}b");
+        // ------ -> two em-dashes
+        assert_eq!(preprocess_kramdown_dashes("a------b"), "a\u{2014}\u{2014}b");
+        // No dashes: passthrough
+        assert_eq!(preprocess_kramdown_dashes("hello world"), "hello world");
+        // Single dash: unchanged
+        assert_eq!(preprocess_kramdown_dashes("a-b"), "a-b");
+        // Dashes inside code spans: preserved
+        assert_eq!(
+            preprocess_kramdown_dashes("text `--flag` more"),
+            "text `--flag` more"
+        );
+        // Dashes inside markdown link URLs: preserved
+        assert_eq!(
+            preprocess_kramdown_dashes("[link](https://example.com/a--b)"),
+            "[link](https://example.com/a--b)"
+        );
+        // Dashes in link text: converted (text is visible content)
+        assert_eq!(
+            preprocess_kramdown_dashes("[text---here](url)"),
+            "[text\u{2014}here](url)"
+        );
+        // Unicode content preserved
+        assert_eq!(
+            preprocess_kramdown_dashes("caf\u{00e9}---th\u{00e9}"),
+            "caf\u{00e9}\u{2014}th\u{00e9}"
+        );
+    }
+
+    /// Issue 325: Bold text with $ inside should produce separate strong elements
+    #[test]
+    fn test_325_bold_text_with_dollar_sign() {
+        let input = "**US $2.19 billion in 2024** and **US $16.6 billion by 2030**";
+        let html = markdown_to_html(input);
+        eprintln!("=== bold $ ===\n{}", html);
+        let strong_count = html.matches("<strong>").count();
+        assert!(
+            strong_count >= 2,
+            "Should have 2 separate <strong> elements. Got {strong_count} in: {html}"
+        );
+    }
+
+    /// Issue 325: Full markdownify pipeline with ---- produces em-dash + hyphen
+    #[test]
+    fn test_325_markdownify_four_dashes() {
+        let html = markdown_to_html_for_filter("question----text");
+        assert!(
+            html.contains("\u{2014}-"),
+            "---- should become em-dash + hyphen. Got: {html}"
+        );
+    }
+
+    /// Issue 325: Triple dashes --- should become em-dash in markdownify
+    #[test]
+    fn test_325_markdownify_triple_dashes_em_dash() {
+        let html = markdown_to_html_for_filter("caught up--- in my experience");
+        eprintln!("=== triple dash result ===\n{:?}", html);
+        assert!(
+            html.contains("\u{2014}"),
+            "--- should become em-dash in markdownify. Got: {html}"
+        );
+    }
+
+    /// Issue 325: Triple dashes after <br /> -- does br interfere?
+    #[test]
+    fn test_325_markdownify_triple_dashes_after_br() {
+        let html = markdown_to_html_for_filter(
+            "some text<br />\ncaught up--- in my experience--- more text",
+        );
+        eprintln!("=== triple dash after br ===\n{:?}", html);
+        let em_count = html.matches('\u{2014}').count();
+        assert!(
+            em_count >= 2,
+            "Both --- should become em-dash. Got {em_count} em-dashes in: {html}"
+        );
+    }
+
+    /// Issue 325: Multiple --- in long text with straight quotes (real DTC case from YAML)
+    #[test]
+    fn test_325_markdownify_multiple_triple_dashes_long_text() {
+        // Exact text from books/20241118 archive entry (straight quotes as from YAML parsing)
+        let input = r#"Daniel Kleine Often times companies undertake data strategy projects (one in the book) that entail "capturing 100% of enterprise data"--- the example in the book is a monumental failure where the project was cancelled after 3 years and $300M spent as the data was doubling every year or so and the company never caught up--- in my experience not all data is equal in value potential--- I faced this situation in a Director Data &amp; Analytics role--- we did the opposite-- we first identified a project that high potential business value--- Customer Journey &amp; Customer Lifetime Value--- we focused data capture on this project only--- the result was an increase in $10M in annual revenue--- net-net, data strategy should be driven by use cases with highest potential efforts---"#;
+        let html = markdown_to_html_for_filter(input);
+        eprintln!("=== long text dashes ===\n{}", html);
+        let em_count = html.matches('\u{2014}').count();
+        let literal_triple = html.matches("---").count();
+        assert_eq!(
+            literal_triple, 0,
+            "No literal --- should remain. Got {literal_triple} occurrences in: {html}"
+        );
+        assert!(
+            em_count >= 9,
+            "All --- should become em-dash. Got {em_count} em-dashes in: {html}"
         );
     }
 

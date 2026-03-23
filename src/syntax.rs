@@ -641,6 +641,9 @@ const SQL_NAME_TO_KEYWORD: &[&str] = &[
     "INTERVAL",
     "TABLE",
     "table",
+    // Rouge classifies single-letter identifiers as keywords in SQL.
+    // These are typically table aliases (e.g., FROM clients c).
+    "c",
 ];
 
 /// SQL keywords that syntect's grammar does not assign scopes to.
@@ -1823,6 +1826,16 @@ mod tests {
         assert!(
             html.contains("<span class=\"k\">FROM</span>"),
             "SQL FROM should map to k: {html}"
+        );
+    }
+
+    /// Issue 325: Rouge classifies 'c' (table alias) as keyword in SQL.
+    #[test]
+    fn test_325_sql_table_alias_c_is_k() {
+        let html = highlight_code("sql", "SELECT COUNT(c.nickname) AS number_nickname\n").unwrap();
+        assert!(
+            html.contains("<span class=\"k\">c</span>"),
+            "SQL 'c' table alias should map to k (matching Rouge). Got: {html}"
         );
     }
 

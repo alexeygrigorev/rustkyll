@@ -158,3 +158,57 @@ grep 'SELECT' /tmp/dtc_325/blog/do-you-know-golden-rules.html | head -5
 # JSONLD -- description field must not have trailing newline
 grep -o '"description":"[^"]*"' /tmp/dtc_325/blog/*.html | head -5
 ```
+
+## Log
+
+### [SWE] 2026-03-23
+
+**Starting state:** 745/790 (94%)
+
+**Fixes implemented (TDD for each):**
+
+1. **URL `>` encoding fix (books/20210426)** -- `%3E` decoded to `&gt;` in `decode_url_for_jekyll_compat` to match kramdown's HTML escaping
+   - Test: `test_325_greater_than_decoded_to_html_entity_in_url`, `test_325_greater_than_in_oreilly_url`
+
+2. **Ellipsis in pipe table cells (books/20220627)** -- Added `apply_typographic_symbols` to convert `...` to `...` (U+2026) in pipe table cell content
+   - Test: `test_325_pipe_table_typographic_symbols`, `test_325_apply_typographic_symbols`
+
+3. **Dash preprocessing (books/20241118 + others)** -- Preprocess 2+ dash sequences to match kramdown's greedy algorithm (--- = em-dash, -- = en-dash) before pulldown-cmark. Handles code spans and markdown link URLs correctly.
+   - Test: `test_325_preprocess_kramdown_dashes`, `test_325_markdownify_four_dashes`, `test_325_markdownify_triple_dashes_em_dash`, `test_325_markdownify_triple_dashes_after_br`, `test_325_markdownify_multiple_triple_dashes_long_text`
+
+4. **HTML escaping in pipe table cells (books/20221010)** -- Escape `<` and `>` to `&lt;`/`&gt;` in pipe table cell content
+   - Test: `test_325_pipe_table_html_escapes_angle_brackets`
+
+5. **SQL table alias classification (blog/important-sql-fact)** -- Added `c` to SQL_NAME_TO_KEYWORD list to match Rouge's classification
+   - Test: `test_325_sql_table_alias_c_is_k`
+
+6. **Math protection: currency $ fix (blog/mlops-zoomcamp + 1 more)** -- Skip closing `$` followed by digit in `protect_math_content` to prevent `$2.19 billion...$16.6 billion` from being matched as inline math
+   - Test: `test_325_bold_text_with_dollar_sign`
+
+7. **Compilation fixes** -- Fixed missing `sort_by` field in test `CollectionConfig` initializers (pre-existing build errors in `src/collection.rs` and `src/config.rs`)
+
+**Final state:** 751/790 (95%) -- 6 pages flipped (from 745 to 751)
+
+**Pages fixed:**
+- books/20210426-tiny-python-projects.html (URL encoding)
+- books/20220627-designing-machine-learning-systems.html (ellipsis in pipe table)
+- books/20241118-why-data-science-projects-fail.html (dash conversion)
+- books/20221010-managing-machine-learning-projects.html (HTML escaping in pipe table)
+- blog/mlops-zoomcamp.html (math protection)
+- blog/how-do-data-professionals-use-data-engineering-tools-and-practices.html (math protection)
+
+**Remaining 39 diffs (not fixed):**
+- 7 JSONLD author description pages (requires render-order emulation; too risky)
+- ~20 book comment list continuation pages (Category A: <br/> before lists; broad fix caused 65+ regressions)
+- 1 alt attribute newline page (pulldown-cmark normalizes newlines in inline HTML attributes)
+- 1 smart quote direction page
+- 3 events/index/people pages (time-dependent data)
+- 7 syntax highlighting pages (Python/Shell/YAML; complex token mapping)
+
+**Build:** 2647 lib tests pass, 0 fail. Clippy clean. Fmt clean.
+**Files modified:** src/frontmatter.rs, src/kramdown.rs, src/syntax.rs, src/collection.rs, src/config.rs, src/generator.rs
+
+**Known limitations:**
+- Category A (book comment list continuation after <br/>) requires deep changes to markdownify pipeline; too risky for this issue
+- JSONLD author description requires emulating Jekyll's render ordering (raw vs rendered content); high regression risk
+- Some remaining diffs need site-specific investigation
