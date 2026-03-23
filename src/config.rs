@@ -1555,7 +1555,7 @@ commonmark:
     #[test]
     fn test_issue223_real_muan_blog_config() {
         let config_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("websites/muan-blog/_config.yml");
+            .join("tests/fixtures/muan-blog/_config.yml");
         assert!(
             config_path.exists(),
             "Required test fixture not found: {}",
@@ -1641,7 +1641,7 @@ markdown: CommonMarkGhPages
     #[test]
     fn test_issue294_real_muan_blog_autolink() {
         let config_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("websites/muan-blog/_config.yml");
+            .join("tests/fixtures/muan-blog/_config.yml");
         assert!(
             config_path.exists(),
             "Required test fixture not found: {}",

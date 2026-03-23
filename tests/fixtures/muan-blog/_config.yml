@@ -1,0 +1,8 @@
+title: Mu-An Chiou
+url: https://muan.co
+permalink: /posts/:title
+timezone: Asia/Taipei
+markdown: CommonMarkGhPages
+commonmark:
+  options: ["UNSAFE", "HARDBREAKS"]
+  extensions: ["strikethrough", "autolink", "table"]
