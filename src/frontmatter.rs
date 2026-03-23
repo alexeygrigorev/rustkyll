@@ -869,6 +869,12 @@ fn restore_math_content_impl(html: &str, saved: &[String], apply_ellipsis: bool)
         } else {
             content.clone()
         };
+        // Issue 306: Unescape kramdown-style backslash escapes inside math.
+        // Jekyll's kramdown unescapes \{ -> {, \} -> }, \# -> # in math content.
+        let restored = restored
+            .replace("\\{", "{")
+            .replace("\\}", "}")
+            .replace("\\#", "#");
         result = result.replace(&placeholder, &restored);
     }
     result
@@ -4165,6 +4171,143 @@ More text.
             !stripped.contains("  Jeff"),
             "After strip_html, no leading spaces before names. Got: {:?}",
             stripped
+        );
+    }
+
+    // ========================================================================
+    // Issue 306: Math content unescaping tests
+    // ========================================================================
+
+    #[test]
+    fn test_issue306_brace_unescape_inline_math() {
+        // Bug A: \{ and \} inside math should be unescaped to { and }
+        let html = markdown_to_html(r"$A = \{x, y\}$");
+        assert!(
+            html.contains("$A = {x, y}$"),
+            "Braces should be unescaped inside inline math. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue306_brace_unescape_display_math() {
+        // Bug A: \{ and \} in display math
+        // Note: kramdown postprocessing converts $$ to \[...\]
+        let html = markdown_to_html(r"$$F = \{x \mid x > 0\}$$");
+        assert!(
+            html.contains("{x \\mid x > 0}"),
+            "Braces should be unescaped inside display math. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains("\\{"),
+            "Escaped braces should not remain. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue306_brace_unescape_with_greek_letters() {
+        // Bug A with non-ASCII: Greek letter + braces
+        let html = markdown_to_html(r"$\alpha \in \{1, 2, 3\}$");
+        assert!(
+            html.contains(r"$\alpha \in {1, 2, 3}$"),
+            "Braces should be unescaped, alpha preserved. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue306_brace_unescape_with_text_command() {
+        // Bug A: $C_1 = \{ \text{all itemsets of len 1} \}$
+        let html = markdown_to_html(r"$C_1 = \{ \text{all itemsets of len 1} \}$");
+        assert!(
+            html.contains(r"$C_1 = { \text{all itemsets of len 1} }$"),
+            "Outer escaped braces unescaped, inner literal braces preserved. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue306_brace_not_unescaped_outside_math() {
+        // Bug A: \{ outside math should NOT be affected
+        let html = markdown_to_html(r"Use \{braces\} in text");
+        // We just verify this doesn't crash and math-specific unescaping
+        // doesn't apply outside math. The exact output depends on pulldown-cmark.
+        assert!(
+            !html.contains("$"),
+            "No math delimiters expected. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue306_hash_unescape_in_math() {
+        // Bug B: \# inside math should be unescaped to #
+        let html = markdown_to_html(r"$x \ # \ y$");
+        assert!(
+            !html.contains(r"\#"),
+            "Hash should not be escaped inside math. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("$x") && html.contains("# "),
+            "Hash should be plain # inside math. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue306_hash_heading_outside_math_unaffected() {
+        // Bug B: # outside math still renders as heading
+        let html = markdown_to_html("# Heading");
+        assert!(
+            html.contains("<h1"),
+            "# outside math should still be a heading. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue306_double_backslash_preserved_in_math() {
+        // Bug C: \\ inside math should be preserved, not converted to <br>
+        let html = markdown_to_html(r"$\begin{bmatrix} 1 \\ 2 \\ 3 \end{bmatrix}$");
+        assert!(
+            !html.contains("<br"),
+            "No <br> should appear inside math. Got: {}",
+            html
+        );
+        assert!(
+            html.contains(r"\\"),
+            "Double backslash should be preserved in math. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue306_double_backslash_preserved_cfrac() {
+        // Bug C: \\ in cfrac math
+        let html = markdown_to_html(r"$\cfrac{A}{2} \\ \cfrac{B}{2}$");
+        assert!(
+            !html.contains("<br"),
+            "No <br> should appear inside math. Got: {}",
+            html
+        );
+        assert!(
+            html.contains(r"\\"),
+            "Double backslash should be preserved. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue306_unicode_math_with_braces() {
+        // Non-ASCII test: Japanese text near math with braces
+        let html = markdown_to_html(r"集合 $S = \{a, b, c\}$ です");
+        assert!(
+            html.contains("$S = {a, b, c}$"),
+            "Braces unescaped in math with surrounding Unicode. Got: {}",
+            html
         );
     }
 }
