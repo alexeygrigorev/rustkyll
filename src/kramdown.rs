@@ -768,14 +768,19 @@ pub fn process_markdown_attribute(content: &str) -> String {
 
         // Render inner content as markdown
         let trimmed_inner = inner_content.trim();
-        let rendered_inner = if trimmed_inner.is_empty() {
+        // Issue 322: Pre-process to join <img> lines with following text so
+        // pulldown-cmark treats them as inline content (paragraph) rather than
+        // HTML blocks.
+        let preprocessed_inner = preprocess_inline_html_for_markdown(trimmed_inner);
+        let preprocessed_ref = preprocessed_inner.trim();
+        let rendered_inner = if preprocessed_ref.is_empty() {
             String::new()
         } else {
             let mut options = Options::empty();
             options.insert(Options::ENABLE_TABLES);
             options.insert(Options::ENABLE_STRIKETHROUGH);
             options.insert(Options::ENABLE_SMART_PUNCTUATION);
-            let parser = Parser::new_ext(trimmed_inner, options);
+            let parser = Parser::new_ext(preprocessed_ref, options);
             let mut html_output = String::new();
             cmark_html::push_html(&mut html_output, parser);
             // Trim trailing newline
@@ -823,6 +828,72 @@ pub fn process_markdown_attribute(content: &str) -> String {
         }
 
         remaining = &after_open[close_pos + close_tag.len()..];
+    }
+
+    result
+}
+
+/// Pre-process inner content of `markdown="1"` blocks before sending to
+/// pulldown-cmark. Joins `<img ...>` lines with following text lines so that
+/// pulldown-cmark treats them as inline content (wrapped in `<p>`) rather than
+/// as HTML blocks (CommonMark type 6).
+///
+/// Without this, `<img` at the start of a line triggers HTML block mode in
+/// pulldown-cmark, which suppresses `<p>` wrapping. Kramdown treats `<img>` as
+/// inline inside `markdown="1"` blocks, so the text gets `<p>` wrapped.
+fn preprocess_inline_html_for_markdown(content: &str) -> String {
+    let lines: Vec<&str> = content.lines().collect();
+    let mut result = String::with_capacity(content.len());
+    let mut i = 0;
+
+    while i < lines.len() {
+        let trimmed = lines[i].trim();
+        // Check if this line is an <img ...> tag (self-closing or not)
+        if trimmed.starts_with("<img ") || trimmed.starts_with("<img>") {
+            // Join this <img> line with subsequent non-blank, non-block-HTML text
+            // lines using space, so pulldown-cmark sees them as inline content
+            // within a paragraph. In CommonMark, `<img` at line start triggers
+            // HTML block type 6 unless text follows on the same line after `>`.
+            result.push_str(trimmed);
+            i += 1;
+            while i < lines.len() {
+                let next_trimmed = lines[i].trim();
+                if next_trimmed.is_empty() {
+                    break;
+                }
+                // Stop if we hit a block-level HTML open tag (not inline elements)
+                if next_trimmed.starts_with('<')
+                    && !next_trimmed.starts_with("<img")
+                    && !next_trimmed.starts_with("<a ")
+                    && !next_trimmed.starts_with("<a>")
+                    && !next_trimmed.starts_with("<em")
+                    && !next_trimmed.starts_with("<strong")
+                    && !next_trimmed.starts_with("<code")
+                    && !next_trimmed.starts_with("<br")
+                {
+                    break;
+                }
+                // Join all subsequent lines (including additional <img> lines)
+                // with space so the first <img> has text after `>` on the
+                // same line, preventing HTML block mode in pulldown-cmark
+                result.push(' ');
+                result.push_str(next_trimmed);
+                i += 1;
+            }
+            // Add blank line after the img+text block to separate from any
+            // following block-level HTML (like <p markdown="1">)
+            result.push('\n');
+            result.push('\n');
+        } else {
+            result.push_str(lines[i]);
+            result.push('\n');
+            i += 1;
+        }
+    }
+
+    // Remove trailing newline if original didn't have one
+    if !content.ends_with('\n') && result.ends_with('\n') {
+        result.pop();
     }
 
     result
@@ -9260,6 +9331,135 @@ by <a href="/people/author.html">Author Name</a>
         let html = "这是中文</aside>";
         let result = find_markdown_close_tag(html, "aside", "</aside>");
         assert_eq!(result, Some("这是中文".len()));
+    }
+
+    // ========================================================================
+    // Issue 322: markdown="1" block content paragraph wrapping for <img> + text
+    // ========================================================================
+
+    #[test]
+    fn test_process_markdown_attr_img_plus_text_wrapped_in_p() {
+        // <img> followed by text inside markdown="1" block should be wrapped in <p>
+        let input = "<aside markdown=\"1\" class=\"pquote\">\n  <img src=\"test.jpg\" class=\"avatar\" alt=\"avatar\">\n  Some text about open source.\n</aside>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            result.contains("<p><img"),
+            "img + text should be wrapped in <p>. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("Some text about open source.</p>"),
+            "Text after img should be inside the same <p>. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("class=\"pquote\""),
+            "class should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_process_markdown_attr_img_text_with_nested_p_markdown() {
+        // Full aside pattern from opensource-guide
+        let input = "<aside markdown=\"1\" class=\"pquote\">\n  <img src=\"https://avatars.githubusercontent.com/lord?s=180\" class=\"pquote-avatar\" alt=\"avatar\">\n  I fumbled it. I didn't put in the effort.\n  <p markdown=\"1\" class=\"pquote-credit\">\n  -- @lord, [\"Tips\"](https://lord.io/blog)\n  </p>\n</aside>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            result.contains("<p><img"),
+            "img + text should be wrapped in <p>. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<p class=\"pquote-credit\">"),
+            "Nested p with class should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_process_markdown_attr_multiple_img_plus_text() {
+        // Multiple <img> elements followed by text
+        let input = "<div markdown=\"1\">\n  <img src=\"a.jpg\" alt=\"a\">\n  <img src=\"b.jpg\" alt=\"b\">\n  Text after images.\n</div>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            result.contains("<p>"),
+            "Images and text should be wrapped in <p>. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("Text after images.</p>"),
+            "Text should be inside <p>. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_process_markdown_attr_img_text_unicode() {
+        // Unicode content (French with accents) inside markdown="1" with <img>
+        let input = "<aside markdown=\"1\" class=\"pquote\">\n  <img src=\"avatar.jpg\" alt=\"avatar\">\n  Contribuer au logiciel libre, c'est important.\n  <p markdown=\"1\" class=\"credit\">\n  -- @utilisateur, [\"Guide du debutant\"](https://example.com)\n  </p>\n</aside>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            result.contains("<p><img"),
+            "img + text should be wrapped in <p>. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("Contribuer au logiciel libre"),
+            "French text should be preserved. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("c\u{2019}est important.</p>")
+                || result.contains("c'est important.</p>"),
+            "Accented text should be inside <p>. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_process_markdown_attr_img_text_cjk() {
+        // CJK content inside markdown="1" with <img>
+        let input = "<aside markdown=\"1\">\n  <img src=\"avatar.jpg\" alt=\"\u{30a2}\u{30d0}\u{30bf}\u{30fc}\">\n  \u{30aa}\u{30fc}\u{30d7}\u{30f3}\u{30bd}\u{30fc}\u{30b9}\u{3078}\u{306e}\u{8ca2}\u{732e}\u{3002}\n</aside>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            result.contains("<p><img"),
+            "img + CJK text should be wrapped in <p>. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("\u{30aa}\u{30fc}\u{30d7}\u{30f3}\u{30bd}\u{30fc}\u{30b9}"),
+            "Japanese text should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_process_markdown_attr_div_text_only_no_regression() {
+        // div with only text (no img) should still work - no regression
+        let input = "<div markdown=\"1\">\nSome text.\n</div>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            result.contains("<p>Some text.</p>"),
+            "Text-only div should still wrap in <p>. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_process_markdown_attr_div_heading_paragraph_no_regression() {
+        // div with heading and paragraph - no regression
+        let input = "<div markdown=\"1\">\n## Title\n\nParagraph text.\n</div>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            result.contains("<h2"),
+            "Heading should be rendered. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<p>Paragraph text.</p>"),
+            "Paragraph should be wrapped in <p>. Got: {}",
+            result
+        );
     }
 
     // ========================================================================
