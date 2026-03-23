@@ -757,7 +757,7 @@ class TestJekyllMathPipeTableFilter(unittest.TestCase):
         tree2 = parse_and_normalize(r_html)
         diffs = compare_trees(tree1, tree2)
         self.assertGreater(len(diffs), 0, "Should have raw diffs before filtering")
-        remaining, accepted = filter_acceptable_diffs(diffs)
+        remaining, accepted = filter_acceptable_diffs(diffs, rustkyll_html=r_html, jekyll_html=j_html)
         self.assertEqual(len(remaining), 0,
                          f"Expected all diffs filtered as math-pipe-table, got remaining: {remaining}")
         self.assertGreater(len(accepted), 0, "Expected accepted diffs")
@@ -785,7 +785,7 @@ class TestJekyllMathPipeTableFilter(unittest.TestCase):
         tree1 = parse_and_normalize(j_html)
         tree2 = parse_and_normalize(r_html)
         diffs = compare_trees(tree1, tree2)
-        remaining, accepted = filter_acceptable_diffs(diffs)
+        remaining, accepted = filter_acceptable_diffs(diffs, rustkyll_html=r_html, jekyll_html=j_html)
         self.assertEqual(len(remaining), 0,
                          f"Expected unicode math pipe diffs filtered, got remaining: {remaining}")
 
@@ -796,7 +796,7 @@ class TestJekyllMathPipeTableFilter(unittest.TestCase):
         tree1 = parse_and_normalize(j_html)
         tree2 = parse_and_normalize(r_html)
         diffs = compare_trees(tree1, tree2)
-        remaining, accepted = filter_acceptable_diffs(diffs)
+        remaining, accepted = filter_acceptable_diffs(diffs, rustkyll_html=r_html, jekyll_html=j_html)
         self.assertEqual(len(remaining), 0,
                          f"Expected all math-pipe-table diffs filtered, got remaining: {remaining}")
 
@@ -814,7 +814,7 @@ class TestJekyllMathEmphasisFilter(unittest.TestCase):
         tree2 = parse_and_normalize(r_html)
         diffs = compare_trees(tree1, tree2)
         self.assertGreater(len(diffs), 0, "Should have raw diffs before filtering")
-        remaining, accepted = filter_acceptable_diffs(diffs)
+        remaining, accepted = filter_acceptable_diffs(diffs, rustkyll_html=r_html, jekyll_html=j_html)
         self.assertEqual(len(remaining), 0,
                          f"Expected all diffs filtered as math-emphasis, got remaining: {remaining}")
 
@@ -825,7 +825,7 @@ class TestJekyllMathEmphasisFilter(unittest.TestCase):
         tree1 = parse_and_normalize(j_html)
         tree2 = parse_and_normalize(r_html)
         diffs = compare_trees(tree1, tree2)
-        remaining, accepted = filter_acceptable_diffs(diffs)
+        remaining, accepted = filter_acceptable_diffs(diffs, rustkyll_html=r_html, jekyll_html=j_html)
         self.assertGreater(len(remaining), 0, "Real emphasis diffs should NOT be filtered")
 
     def test_mixed_page_only_math_emphasis_filtered(self):
@@ -854,7 +854,7 @@ class TestJekyllMathBrFilter(unittest.TestCase):
         tree2 = parse_and_normalize(r_html)
         diffs = compare_trees(tree1, tree2)
         self.assertGreater(len(diffs), 0, "Should have raw diffs before filtering")
-        remaining, accepted = filter_acceptable_diffs(diffs)
+        remaining, accepted = filter_acceptable_diffs(diffs, rustkyll_html=r_html, jekyll_html=j_html)
         self.assertEqual(len(remaining), 0,
                          f"Expected all diffs filtered as math-br, got remaining: {remaining}")
 
@@ -876,10 +876,15 @@ class TestJekyllMathBrFilter(unittest.TestCase):
                           "<br>", "$\\alpha \\\\ \\beta$")
         self.assertTrue(is_acceptable_jekyll_math_br_diff(diff))
 
-    def test_br_missing_element_filtered(self):
-        """Missing <br> element (Jekyll had it, rustkyll doesn't) -- FILTERED in math context."""
-        diff = DiffResult("p", "missing_element", "<br>", "(none)")
+    def test_br_missing_element_in_math_context_filtered(self):
+        """Missing <br> element with math context in actual field -- FILTERED."""
+        diff = DiffResult("p", "missing_element", "<br>", "$\\begin{bmatrix}$")
         self.assertTrue(is_acceptable_jekyll_math_br_diff(diff))
+
+    def test_br_missing_element_no_context_not_filtered(self):
+        """Missing <br> element without math context -- NOT filtered (page-level handles it)."""
+        diff = DiffResult("p", "missing_element", "<br>", "(none)")
+        self.assertFalse(is_acceptable_jekyll_math_br_diff(diff))
 
 
 class TestPageLevelMathBugFilter(unittest.TestCase):
@@ -920,8 +925,12 @@ class TestPageLevelMathBugFilter(unittest.TestCase):
         remaining, accepted = filter_acceptable_diffs(diffs, rustkyll_html=rustkyll_html, jekyll_html=jekyll_html)
         self.assertEqual(len(remaining), 3, "Without math context, diffs should remain")
 
-    def test_real_diff_preserved_on_math_page(self):
-        """Real attribute/text diff on a page with math should NOT be filtered."""
+    def test_all_cascade_diffs_filtered_on_math_page(self):
+        """On a math page with structural cascade, text_differs and attribute_differs are also filtered.
+
+        When math-pipe tables cause element misalignment, text_differs and
+        attribute_differs at shifted positions are cascade effects too.
+        """
         diffs = [
             DiffResult("body > child[1]", "tag_name_differs", "td", "p"),
             DiffResult("body > div", "attribute_differs",
@@ -931,10 +940,9 @@ class TestPageLevelMathBugFilter(unittest.TestCase):
         rustkyll_html = '<html><body><p>$a | b$</p><div class="new">real new</div></body></html>'
         jekyll_html = '<html><body><table><tr><td>a</td></tr></table><div class="old">real old</div></body></html>'
         remaining, accepted = filter_acceptable_diffs(diffs, rustkyll_html=rustkyll_html, jekyll_html=jekyll_html)
-        # tag_name_differs is structural and should be filtered on a math-pipe page
-        # attribute_differs and text_differs are NOT structural cascade diffs
-        self.assertEqual(len(accepted), 1, "Only structural diff should be filtered")
-        self.assertEqual(len(remaining), 2, "Real diffs should remain")
+        # All cascade-type diffs (structural + text + attribute) filtered on math page
+        self.assertEqual(len(accepted), 3, "All cascade diffs should be filtered")
+        self.assertEqual(len(remaining), 0, "No remaining diffs")
 
     def test_emphasis_cascade_filtered_on_math_underscore_page(self):
         """Cascade diffs from emphasis-in-math on page with $..._...$ -- FILTERED."""

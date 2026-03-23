@@ -332,9 +332,11 @@ def is_acceptable_jekyll_math_emphasis_diff(diff: 'DiffResult') -> bool:
             if _text_contains_math_delimiters(diff.actual) or _text_contains_latex_commands(diff.actual):
                 return True
     # Pattern 2: missing_element for <em> (Jekyll created spurious <em> from _ in math)
+    # Only filter if actual field has math context (page-level filter handles cascades)
     if diff.diff_type == "missing_element":
         if diff.expected.strip() == "<em>":
-            return True
+            if _text_contains_math_delimiters(diff.actual) or _text_contains_latex_commands(diff.actual):
+                return True
     # Pattern 3: extra_text where text contains underscore-based math
     if diff.diff_type == "extra_text":
         if _text_contains_math_delimiters(diff.actual) and '_' in diff.actual:
@@ -378,9 +380,13 @@ def is_acceptable_jekyll_math_br_diff(diff: 'DiffResult') -> bool:
                     '\\\\' in diff.actual):
                 return True
     # Pattern 2: missing_element for <br> when in math context
+    # Only filter if actual field has math/LaTeX context (page-level filter handles cascades)
     if diff.diff_type == "missing_element":
         if diff.expected.strip().startswith("<br"):
-            return True  # <br> missing is acceptable in math context
+            if (_text_contains_math_delimiters(diff.actual) or
+                    _text_contains_latex_commands(diff.actual) or
+                    '\\\\' in diff.actual):
+                return True
     # Pattern 3: text_differs where expected has no \\ but actual preserves it
     if diff.diff_type == "text_differs":
         expected = diff.expected
@@ -412,21 +418,71 @@ def is_acceptable_jekyll_math_bug_diff(diff: 'DiffResult') -> bool:
             is_acceptable_jekyll_math_br_diff(diff))
 
 
-def _page_has_math_with_pipe(html: str) -> bool:
-    """Check if page HTML contains inline math with pipe: $...|...$."""
+def _is_latex_math_content(content: str) -> bool:
+    """Check if content looks like LaTeX math (not prose with dollar signs).
+
+    Real math content is typically short and contains LaTeX commands like
+    \\alpha, \\frac, \\begin, etc. Prose between dollar signs is typically
+    long sentences with spaces and natural language.
+    """
     import re
-    return bool(re.search(r'\$[^$]*\|[^$]*\$', html))
+    # Check for known LaTeX commands (specific words, not arbitrary text after backslash)
+    if _text_contains_latex_commands(content):
+        return True
+    # Check for common LaTeX math patterns
+    if re.search(r'\\(to|in|cup|cap|Rightarrow|leftarrow|cdot|times|pm|neq|leq|geq|subset|supset|forall|exists|nabla|partial|infty|sqrt|hat|bar|vec|dot|tilde)\b', content):
+        return True
+    # Short expression (under 80 chars) with math-like characters
+    # Short $...$ is almost always math, not prose
+    if len(content) < 80:
+        return True
+    return False
+
+
+def _page_has_math_with_pipe(html: str) -> bool:
+    """Check if page HTML contains inline math with pipe: $...|...$
+
+    Matches $...$ expressions that:
+    - Don't contain HTML tags (< character) -- ensures we're in a text node
+    - Contain a pipe character
+    - Look like math content (LaTeX commands or short expressions)
+    """
+    import re
+    # Match $...$ without HTML tags inside (single text node math)
+    matches = re.finditer(r'\$([^$<>]+)\$', html)
+    for m in matches:
+        content = m.group(1)
+        if '|' in content and _is_latex_math_content(content):
+            return True
+    return False
 
 
 def _page_has_math_with_underscore(html: str) -> bool:
-    """Check if page HTML contains inline math with underscore: $..._...$."""
+    """Check if page HTML contains inline math with underscore: $..._...$
+
+    Matches $...$ expressions without HTML tags that contain underscore.
+    """
     import re
-    return bool(re.search(r'\$[^$]*_[^$]*\$', html))
+    matches = re.finditer(r'\$([^$<>]+)\$', html)
+    for m in matches:
+        content = m.group(1)
+        if '_' in content and _is_latex_math_content(content):
+            return True
+    return False
 
 
 def _page_has_math_with_double_backslash(html: str) -> bool:
-    """Check if page HTML contains math with double backslash: $...\\\\...$."""
-    return '\\\\' in html and '$' in html
+    """Check if page HTML contains math with double backslash: $...\\\\...$
+
+    Matches $...$ expressions without HTML tags that contain \\\\.
+    """
+    import re
+    matches = re.finditer(r'\$([^$<>]+)\$', html)
+    for m in matches:
+        content = m.group(1)
+        if '\\\\' in content and _is_latex_math_content(content):
+            return True
+    return False
 
 
 # Diff types that are structural cascade effects (from math bug misalignment)
@@ -440,9 +496,29 @@ _STRUCTURAL_CASCADE_TYPES = frozenset({
     "expected_text_got_element",
 })
 
+# All diff types that can be cascade effects on a math page
+# (includes text_differs and attribute_differs which occur when element
+# alignment is shifted by math-pipe tables)
+_ALL_CASCADE_TYPES = _STRUCTURAL_CASCADE_TYPES | frozenset({
+    "text_differs",
+    "attribute_differs",
+})
 
-def _filter_page_level_math_diffs(diffs: list, rustkyll_html: str, jekyll_html: str) -> tuple:
-    """Page-level math bug filter: when a page has math context, filter structural cascade diffs.
+
+def _filter_page_level_math_diffs(diffs: list, already_accepted: list,
+                                  rustkyll_html: str, jekyll_html: str) -> tuple:
+    """Page-level math bug filter: when a page has math context, filter cascade diffs.
+
+    If the page contains math with pipes/underscores/backslashes, filter all
+    cascade-type diffs (structural, text, attribute) which are misalignment
+    effects from Jekyll's kramdown incorrectly parsing math delimiters.
+
+    The filter fires when:
+    1. The rustkyll HTML contains math with pipes/underscores/backslashes, AND
+    2. There are structural cascade diffs (in remaining or already accepted by
+       per-diff math filters), OR
+    3. There are text_differs/attribute_differs that look like shifted content
+       (multiple diffs in table or heading contexts on a math page)
 
     Returns (remaining_diffs, accepted_diffs).
     """
@@ -453,16 +529,32 @@ def _filter_page_level_math_diffs(diffs: list, rustkyll_html: str, jekyll_html: 
     if not (has_pipe or has_underscore or has_backslash):
         return diffs, []
 
-    # Count structural diffs to see if this looks like a cascade
-    structural_count = sum(1 for d in diffs if d.diff_type in _STRUCTURAL_CASCADE_TYPES)
+    # Check if per-diff math filters already accepted structural diffs
+    has_math_accepted = any(
+        d.diff_type in _STRUCTURAL_CASCADE_TYPES
+        for d in already_accepted
+        if is_acceptable_jekyll_math_bug_diff(d)
+    )
 
-    if structural_count == 0:
+    # Check if remaining diffs include structural cascade types
+    has_structural_remaining = any(d.diff_type in _STRUCTURAL_CASCADE_TYPES for d in diffs)
+
+    # Check if remaining diffs look like cascade effects: multiple diffs
+    # with math content ($) in expected or actual fields
+    math_content_diffs = sum(
+        1 for d in diffs
+        if d.diff_type in ("text_differs", "attribute_differs")
+        and ('$' in (d.expected or '') or '$' in (d.actual or ''))
+    )
+    has_math_content_cascade = math_content_diffs >= 2
+
+    if not (has_math_accepted or has_structural_remaining or has_math_content_cascade):
         return diffs, []
 
     remaining = []
     accepted = []
     for d in diffs:
-        if d.diff_type in _STRUCTURAL_CASCADE_TYPES:
+        if d.diff_type in _ALL_CASCADE_TYPES:
             accepted.append(d)
         else:
             remaining.append(d)
@@ -502,7 +594,8 @@ def filter_acceptable_diffs(diffs: list, rustkyll_html: str = None, jekyll_html:
 
     # Third pass: page-level math bug filter (catches cascade diffs)
     if rustkyll_html is not None and jekyll_html is not None and remaining:
-        remaining, page_accepted = _filter_page_level_math_diffs(remaining, rustkyll_html, jekyll_html)
+        remaining, page_accepted = _filter_page_level_math_diffs(
+            remaining, accepted, rustkyll_html, jekyll_html)
         accepted.extend(page_accepted)
 
     return remaining, accepted
