@@ -4789,4 +4789,31 @@ More text.
             html
         );
     }
+
+    #[test]
+    fn test_code_span_underscore_not_escaped() {
+        let md = "Store outputs like `is_car` (0/1) and `p_car` (e.g., 0.7).";
+        let html = markdown_to_html_with_options(md, true, true, false, false);
+        assert!(
+            html.contains(">is_car<"),
+            "Expected unescaped underscore in code span, got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_code_span_underscore_with_emphasis_context() {
+        let md = "**Willem:** Store outputs like `is_car` (0/1) and `p_car` (e.g., 0.7). What you *don't* usually do is store the **output** back.";
+        let html = markdown_to_html_with_options(md, true, true, false, false);
+        assert!(
+            html.contains(">is_car<"),
+            "Expected unescaped underscore in code span, got: {}",
+            html
+        );
+        assert!(
+            !html.contains(r"is\_car"),
+            "Found escaped underscore in code span: {}",
+            html
+        );
+    }
 }

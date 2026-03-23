@@ -378,11 +378,9 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
             "<span class=\"nb\">input</span>",
         );
 
-        // Rouge splits Python quoted strings into sh (delimiter) + s (content) + sh.
-        html = postprocess_python_string_delimiter_split(&html);
-
-        // Rouge classifies method calls (after `.` + `(`) as `nf`.
-        html = postprocess_python_method_calls(&html);
+        // Note: Python string delimiter split (sh+s+sh) and method call
+        // reclassification (n->nf) are disabled because the DTC site's Rouge
+        // version keeps strings as single 's' spans and methods as 'n'.
 
         // Rouge classifies `not`, `in` as `ow` (Operator.Word).
         html = html.replace(
@@ -414,6 +412,7 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
     // some keywords like IS/IN/NOT). Post-process to wrap them.
     if lang == "sql" {
         html = postprocess_sql_highlighting(&html);
+        html = reclassify_sql_name_to_keyword(&html);
     }
 
     // XML/HTML post-processing: Rouge treats `<tagname>` as a single `nt`
@@ -626,6 +625,24 @@ fn merge_python_dotted_modules(html: &str) -> String {
     result
 }
 
+/// SQL tokens that syntect scopes as names (`n`) but Rouge classifies as keywords (`k`).
+const SQL_NAME_TO_KEYWORD: &[&str] = &[
+    "OR",
+    "AND",
+    "MONTH",
+    "YEAR",
+    "DAY",
+    "HOUR",
+    "MINUTE",
+    "SECOND",
+    "DATE",
+    "TIME",
+    "TIMESTAMP",
+    "INTERVAL",
+    "TABLE",
+    "table",
+];
+
 /// SQL keywords that syntect's grammar does not assign scopes to.
 /// Rouge treats these as keywords (class `k`).
 const SQL_EXTRA_KEYWORDS: &[&str] = &[
@@ -797,6 +814,43 @@ fn postprocess_java_punctuation_to_operator(html: &str) -> String {
     result
 }
 
+/// Reclassify SQL tokens that syntect scopes as names (`n`) but Rouge treats as keywords (`k`).
+fn reclassify_sql_name_to_keyword(html: &str) -> String {
+    use std::collections::HashSet;
+    use std::sync::OnceLock;
+    static KW_SET: OnceLock<HashSet<&'static str>> = OnceLock::new();
+    let keywords = KW_SET.get_or_init(|| SQL_NAME_TO_KEYWORD.iter().copied().collect());
+
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+    let prefix = "<span class=\"n\">";
+    let suffix = "</span>";
+
+    while !remaining.is_empty() {
+        if let Some(pos) = remaining.find(prefix) {
+            result.push_str(&remaining[..pos]);
+            remaining = &remaining[pos + prefix.len()..];
+            if let Some(end) = remaining.find(suffix) {
+                let token = &remaining[..end];
+                if keywords.contains(token) {
+                    result.push_str("<span class=\"k\">");
+                } else {
+                    result.push_str(prefix);
+                }
+                result.push_str(token);
+                result.push_str(suffix);
+                remaining = &remaining[end + suffix.len()..];
+            } else {
+                result.push_str(prefix);
+            }
+        } else {
+            result.push_str(remaining);
+            break;
+        }
+    }
+    result
+}
+
 /// Post-process Java: Rouge classifies `@Annotation` as `nd` (Name.Decorator).
 fn postprocess_java_annotations(html: &str) -> String {
     let pattern = "<span class=\"o\">@</span><span class=\"n\">";
@@ -824,107 +878,9 @@ fn postprocess_java_annotations(html: &str) -> String {
     result
 }
 
-fn is_simple_python_string(content: &str) -> bool {
-    let bytes = content.as_bytes();
-    if bytes.len() < 2 {
-        return false;
-    }
-    let first = bytes[0];
-    let last = bytes[bytes.len() - 1];
-    if !((first == b'\'' && last == b'\'') || (first == b'"' && last == b'"')) {
-        return false;
-    }
-    if bytes.len() >= 6
-        && ((first == b'"' && bytes[1] == b'"' && bytes[2] == b'"')
-            || (first == b'\'' && bytes[1] == b'\'' && bytes[2] == b'\''))
-    {
-        return false;
-    }
-    if content.contains('\n') {
-        return false;
-    }
-    true
-}
-
-/// Post-process Python: split quoted strings into sh + s + sh delimiters.
-fn postprocess_python_string_delimiter_split(html: &str) -> String {
-    let s_open = "<span class=\"s\">";
-    let span_close = "</span>";
-    let mut result = String::with_capacity(html.len() + html.len() / 8);
-    let mut remaining = html;
-    while !remaining.is_empty() {
-        if let Some(pos) = remaining.find(s_open) {
-            result.push_str(&remaining[..pos]);
-            let after_open = &remaining[pos + s_open.len()..];
-            if let Some(close_pos) = after_open.find(span_close) {
-                let content = &after_open[..close_pos];
-                let after_span = &after_open[close_pos + span_close.len()..];
-                if is_simple_python_string(content) {
-                    let bytes = content.as_bytes();
-                    let quote = if bytes[0] == b'\'' { "'" } else { "\"" };
-                    let inner = &content[1..content.len() - 1];
-                    result.push_str("<span class=\"sh\">");
-                    result.push_str(quote);
-                    result.push_str("</span>");
-                    if !inner.is_empty() {
-                        result.push_str("<span class=\"s\">");
-                        result.push_str(inner);
-                        result.push_str("</span>");
-                    }
-                    result.push_str("<span class=\"sh\">");
-                    result.push_str(quote);
-                    result.push_str("</span>");
-                    remaining = after_span;
-                    continue;
-                }
-                result.push_str(s_open);
-                result.push_str(content);
-                result.push_str(span_close);
-                remaining = after_span;
-            } else {
-                result.push_str(s_open);
-                result.push_str(after_open);
-                break;
-            }
-        } else {
-            result.push_str(remaining);
-            break;
-        }
-    }
-    result
-}
-
-/// Post-process Python: method calls (after `.` + `(`) become `nf`.
-fn postprocess_python_method_calls(html: &str) -> String {
-    let dot_span = "<span class=\"p\">.</span><span class=\"n\">";
-    let mut result = String::with_capacity(html.len());
-    let mut remaining = html;
-    while !remaining.is_empty() {
-        if let Some(pos) = remaining.find(dot_span) {
-            result.push_str(&remaining[..pos]);
-            let after = &remaining[pos + dot_span.len()..];
-            if let Some(close) = after.find("</span>") {
-                let name = &after[..close];
-                let after_name = &after[close + 7..];
-                if after_name.starts_with("<span class=\"p\">(</span>") {
-                    result.push_str("<span class=\"p\">.</span><span class=\"nf\">");
-                } else {
-                    result.push_str("<span class=\"p\">.</span><span class=\"n\">");
-                }
-                result.push_str(name);
-                result.push_str("</span>");
-                remaining = after_name;
-            } else {
-                result.push_str(dot_span);
-                remaining = after;
-            }
-        } else {
-            result.push_str(remaining);
-            break;
-        }
-    }
-    result
-}
+// Note: postprocess_python_string_delimiter_split and postprocess_python_method_calls
+// were removed because the DTC site's Rouge version (3.x) keeps Python strings as
+// single 's' spans and method names as 'n' (not 'nf').
 
 /// Post-process Bash highlighted HTML to wrap `install` as a builtin (`nb`).
 fn postprocess_bash_install(html: &str) -> String {
@@ -1824,10 +1780,10 @@ mod tests {
             !html.contains("&quot;"),
             "quotes should not be html-escaped: {html}"
         );
-        // Rouge splits Python strings: sh (delimiter) + s (content) + sh (delimiter)
+        // Python strings should be a single span with class "s"
         assert!(
-            html.contains("<span class=\"sh\">\"</span><span class=\"s\">hello</span><span class=\"sh\">\"</span>"),
-            "quotes should be split as sh delimiters: {html}"
+            html.contains("<span class=\"s\">"),
+            "Python string should contain s class: {html}"
         );
     }
 
@@ -2052,10 +2008,10 @@ mod tests {
             html.contains("<span class=\"o\">==</span>"),
             "Python == should be o: {html}"
         );
-        // Rouge splits Python strings: sh (delimiter) + s (content) + sh
+        // Python strings should be a single s span
         assert!(
-            html.contains("<span class=\"sh\">'</span><span class=\"s\">Lisboa</span><span class=\"sh\">'</span>"),
-            "Python single-quoted string should be delimiter-split: {html}"
+            html.contains("<span class=\"s\">'Lisboa'</span>"),
+            "Python single-quoted string should be single s span: {html}"
         );
     }
 
@@ -2142,6 +2098,25 @@ mod tests {
         assert!(
             html.contains("<span class=\"o\">-</span>"),
             "SQL minus operator should be o: {html}"
+        );
+        // MONTH and table should be reclassified from 'n' to 'k' to match Rouge
+        assert!(
+            html.contains("<span class=\"k\">MONTH</span>"),
+            "SQL MONTH should be keyword class k: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"k\">table</span>"),
+            "SQL table should be keyword class k: {html}"
+        );
+    }
+
+    #[test]
+    fn test_sql_or_classified_as_keyword() {
+        let code = "SELECT * FROM t WHERE a = 1 OR b = 2\n";
+        let html = highlight_code("sql", code).unwrap();
+        assert!(
+            html.contains("<span class=\"k\">OR</span>"),
+            "SQL OR should be keyword class k: {html}"
         );
     }
 
@@ -2434,10 +2409,10 @@ mod tests {
             html.contains("class=\"s\""),
             "Python string should still be s: {html}"
         );
-        // Rouge splits Python strings: sh (delimiter) + s (content) + sh (delimiter)
+        // Python strings should be a single s span
         assert!(
-            html.contains("<span class=\"sh\">\"</span><span class=\"s\">hello</span><span class=\"sh\">\"</span>"),
-            "Python string should be delimiter-split: {html}"
+            html.contains("<span class=\"s\">\"hello\"</span>"),
+            "Python string should be single s span: {html}"
         );
     }
 

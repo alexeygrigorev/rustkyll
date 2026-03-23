@@ -564,12 +564,48 @@ pub fn escape_mixed_delimiter_emphasis(markdown: &str) -> String {
                     for _ in 0..outer_count {
                         result.push(outer_delim);
                     }
-                    // Write the content with inner delimiters escaped
-                    for j in after_outer..span.content_end {
+                    // Write the content with inner delimiters escaped,
+                    // but skip code spans (don't escape inside backticks)
+                    let mut j = after_outer;
+                    while j < span.content_end {
+                        if chars[j] == '`' {
+                            let bt_start = j;
+                            let mut bt_count = 0;
+                            while j < span.content_end && chars[j] == '`' {
+                                bt_count += 1;
+                                j += 1;
+                            }
+                            let mut found_close = false;
+                            let scan_start = j;
+                            while j < span.content_end {
+                                if chars[j] == '`' {
+                                    let mut close_bt = 0;
+                                    while j < span.content_end && chars[j] == '`' {
+                                        close_bt += 1;
+                                        j += 1;
+                                    }
+                                    if close_bt == bt_count {
+                                        found_close = true;
+                                        break;
+                                    }
+                                } else {
+                                    j += 1;
+                                }
+                            }
+                            let end = if found_close { j } else { scan_start };
+                            for ch in &chars[bt_start..end] {
+                                result.push(*ch);
+                            }
+                            if !found_close {
+                                j = scan_start;
+                            }
+                            continue;
+                        }
                         if chars[j] == inner_delim && !is_escaped(&chars, j) {
                             result.push('\\');
                         }
                         result.push(chars[j]);
+                        j += 1;
                     }
                     // Write the closing outer delimiters
                     for _ in 0..outer_count {
@@ -643,6 +679,36 @@ fn find_mixed_emphasis_span(
 
     // Scan forward to find the matching closing outer delimiter(s)
     while i < len {
+        // Skip code spans (backticks) -- inner delimiters inside code spans
+        // must not count as emphasis delimiters
+        if chars[i] == '`' {
+            let mut bt_count = 0;
+            while i < len && chars[i] == '`' {
+                bt_count += 1;
+                i += 1;
+            }
+            let mut found_close = false;
+            while i < len {
+                if chars[i] == '`' {
+                    let mut close_bt = 0;
+                    while i < len && chars[i] == '`' {
+                        close_bt += 1;
+                        i += 1;
+                    }
+                    if close_bt == bt_count {
+                        found_close = true;
+                        break;
+                    }
+                } else {
+                    i += 1;
+                }
+            }
+            if !found_close {
+                return None;
+            }
+            continue;
+        }
+
         // Skip escaped characters
         if chars[i] == '\\' && i + 1 < len {
             i += 2;
