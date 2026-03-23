@@ -731,6 +731,8 @@ impl TemplateEngine {
             // Jekyll-compatible strip_html: simple tag removal matching gsub(/<.*?>/m, '')
             // Must come after with_stdlib() to override the default strip_html
             .filter(filters::StripHtml)
+            // Jekyll URL filter: strip trailing /index.html from URLs
+            .filter(filters::StripIndex)
     }
 
     /// Create a `TemplateEngine` from a pre-built `liquid::Parser`.
