@@ -2318,3 +2318,65 @@ fn test_math_pipe_preceded_by_text() {
         "Pipe inside $...$ with surrounding text must not create a table: got {html}"
     );
 }
+
+// === Issue 320: Nested markdown="1" tests ===
+
+#[test]
+fn test_issue320_nested_p_markdown_in_aside() {
+    let input = "<aside markdown=\"1\" class=\"pquote\">\n  Some text here\n  <p markdown=\"1\" class=\"pquote-credit\">\n    -- @user, [\"Article Title\"](http://example.com)\n  </p>\n</aside>\n";
+    let html = crate::frontmatter::markdown_to_html(input);
+    assert!(
+        !html.contains("markdown=\"1\""),
+        "markdown=\"1\" should be stripped from output. Got: {html}"
+    );
+    assert!(
+        html.contains("<a href=\"http://example.com\">"),
+        "Link inside <p markdown=\"1\"> should be rendered. Got: {html}"
+    );
+    assert!(
+        html.contains("pquote-credit"),
+        "class attribute should be preserved on <p>. Got: {html}"
+    );
+}
+
+#[test]
+fn test_issue320_nested_p_markdown_bold() {
+    let input = "<div markdown=\"1\">\n<p markdown=\"1\">**bold** text</p>\n</div>\n";
+    let html = crate::frontmatter::markdown_to_html(input);
+    assert!(
+        !html.contains("markdown=\"1\""),
+        "markdown=\"1\" should be stripped. Got: {html}"
+    );
+    assert!(
+        html.contains("<strong>bold</strong>"),
+        "Bold inside <p markdown=\"1\"> should be rendered. Got: {html}"
+    );
+}
+
+#[test]
+fn test_issue320_standalone_p_markdown() {
+    let input = "<p markdown=\"1\">text [link](http://example.com)</p>\n";
+    let html = crate::frontmatter::markdown_to_html(input);
+    assert!(
+        !html.contains("markdown=\"1\""),
+        "markdown=\"1\" should be stripped. Got: {html}"
+    );
+    assert!(
+        html.contains("<a href=\"http://example.com\">link</a>"),
+        "Link should be rendered. Got: {html}"
+    );
+}
+
+#[test]
+fn test_issue320_p_markdown_preserves_class() {
+    let input = "<aside markdown=\"1\"><p markdown=\"1\" class=\"credit\">-- @user</p></aside>\n";
+    let html = crate::frontmatter::markdown_to_html(input);
+    assert!(
+        !html.contains("markdown=\"1\""),
+        "markdown=\"1\" should be stripped. Got: {html}"
+    );
+    assert!(
+        html.contains("class=\"credit\""),
+        "class attribute should be preserved. Got: {html}"
+    );
+}

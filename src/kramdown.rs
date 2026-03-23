@@ -56,6 +56,7 @@ pub fn mark_existing_html_headings(content: &str) -> String {
 /// Called after kramdown postprocessing to clean up the markers.
 pub fn remove_heading_markers(html: &str) -> String {
     html.replace(" data-raw-html", "")
+        .replace(" data-md1-heading", "")
 }
 
 /// Issue 276: Convert LaTeX math delimiters to match Jekyll/kramdown output.
@@ -784,6 +785,23 @@ pub fn process_markdown_attribute(content: &str) -> String {
             html_output
         };
 
+        // Issue 320: Recursively process any nested markdown="1" attributes
+        // that survived the pulldown-cmark rendering (e.g., <p markdown="1">
+        // inside a <div markdown="1"> block).
+        let rendered_inner = if rendered_inner.contains("markdown=\"1\"")
+            || rendered_inner.contains("markdown='1'")
+        {
+            process_markdown_attribute(&rendered_inner)
+        } else {
+            rendered_inner
+        };
+
+        // Issue 320: Mark headings generated inside markdown="1" blocks
+        // so that add_heading_ids uses basic_generate_id (ASCII-only) instead
+        // of GFM slugify. This matches kramdown's behavior where content inside
+        // markdown="1" is re-parsed by the base parser.
+        let rendered_inner = mark_md1_headings_in_html(&rendered_inner);
+
         let is_inline_container = tag_name == "p" || tag_name == "span";
 
         // Copy everything before the tag
@@ -805,6 +823,47 @@ pub fn process_markdown_attribute(content: &str) -> String {
         }
 
         remaining = &after_open[close_pos + close_tag.len()..];
+    }
+
+    result
+}
+
+/// Mark simple `<hN>` headings in HTML with `data-md1-heading` so that
+/// `add_heading_ids` uses `basic_generate_id` (ASCII-only) instead of GFM slugify.
+///
+/// This is applied to HTML rendered inside `markdown="1"` blocks to match
+/// kramdown's behavior where the base parser (not GFM) generates heading IDs.
+fn mark_md1_headings_in_html(html: &str) -> String {
+    let mut result = String::with_capacity(html.len() + 64);
+    let mut remaining = html;
+
+    while !remaining.is_empty() {
+        if let Some(pos) = remaining.find("<h") {
+            result.push_str(&remaining[..pos]);
+            let after = &remaining[pos..];
+
+            // Check if it's <hN> (h1-h6 with just >)
+            if after.len() >= 4 {
+                let level = after.as_bytes()[2];
+                if level.is_ascii_digit()
+                    && (1..=6).contains(&(level - b'0'))
+                    && after.as_bytes()[3] == b'>'
+                {
+                    // Simple <hN> tag -- add marker
+                    result.push_str(&after[..3]);
+                    result.push_str(" data-md1-heading>");
+                    remaining = &after[4..];
+                    continue;
+                }
+            }
+
+            // Not a simple heading tag, copy the <h and continue
+            result.push_str(&after[..2]);
+            remaining = &after[2..];
+        } else {
+            result.push_str(remaining);
+            break;
+        }
     }
 
     result
@@ -2673,6 +2732,9 @@ fn add_heading_ids(html: &str) -> String {
                     // Issue 228: Check for explicit {#custom-id} syntax
                     let (clean_inner, explicit_id) = extract_explicit_heading_id(inner_html);
 
+                    // Issue 320: Detect headings from markdown="1" blocks
+                    let is_md1_heading = tag.contains("data-md1-heading");
+
                     let id = if let Some(eid) = explicit_id {
                         // Use explicit ID, still track for uniqueness
                         let _ = get_unique_id(&mut used_ids, &eid);
@@ -2681,7 +2743,14 @@ fn add_heading_ids(html: &str) -> String {
                         // Extract text content (strip HTML tags, decode entities)
                         let text = strip_html_tags(&clean_inner);
                         let text = decode_html_entities(&text);
-                        let slug = slugify(&text);
+                        // Issue 320: Use basic_generate_id for headings inside
+                        // markdown="1" blocks (strips non-ASCII, falls back to
+                        // "section") to match kramdown's base parser behavior.
+                        let slug = if is_md1_heading {
+                            basic_generate_id(&text)
+                        } else {
+                            slugify(&text)
+                        };
 
                         // Handle duplicates
                         get_unique_id(&mut used_ids, &slug)
@@ -2691,10 +2760,17 @@ fn add_heading_ids(html: &str) -> String {
                     // (simple <hN> tags with no existing attributes).
                     // Raw HTML headings passed through will already have
                     // attributes like class="...", so we skip those.
+                    // Issue 320: data-md1-heading tags are treated as simple tags.
                     let is_simple_tag = tag == format!("<h{}>", level_char as char);
-                    if !is_simple_tag {
+                    let is_md1_tag = tag == format!("<h{} data-md1-heading>", level_char as char);
+                    if !is_simple_tag && !is_md1_tag {
                         // Has existing attributes or id -- leave as-is
                         result.push_str(&after[..close_pos + close_tag.len()]);
+                    } else if is_md1_tag {
+                        // Issue 320: Strip data-md1-heading marker and add ID
+                        result.push_str(&format!("<h{} id=\"{}\">", level_char as char, id));
+                        result.push_str(&clean_inner);
+                        result.push_str(&close_tag);
                     } else if clean_inner != inner_html {
                         // Issue 228: {#id} was stripped -- use cleaned inner HTML
                         result.push_str(&format!("<h{} id=\"{}\">", level_char as char, id));
@@ -2874,6 +2950,47 @@ fn slugify(text: &str) -> String {
     slug = slug.replace([' ', '\t'], "-");
 
     // Step 4: Fall back to "section" if empty
+    if slug.is_empty() {
+        "section".to_string()
+    } else {
+        slug
+    }
+}
+
+/// Kramdown's `basic_generate_id` algorithm for headings inside `markdown="1"` blocks.
+///
+/// Unlike the GFM algorithm (`slugify`), this strips ALL non-ASCII characters.
+/// Matches kramdown's Ruby implementation in converter/base.rb:
+/// ```ruby
+/// def basic_generate_id(str)
+///   gen_id = str.gsub(/^[^a-zA-Z]+/, '')   # strip leading non-alpha
+///   gen_id.tr!('^a-zA-Z0-9 -', '')          # keep only ASCII alphanum, space, hyphen
+///   gen_id.tr!(' ', '-')                     # replace spaces with hyphens
+///   gen_id.downcase!                         # downcase
+///   gen_id
+/// end
+/// ```
+///
+/// The "section" fallback for empty results is included here (matching `generate_id`).
+fn basic_generate_id(text: &str) -> String {
+    // Step 1: Strip leading non-ASCII-alpha characters
+    let text = text.trim_start_matches(|c: char| !c.is_ascii_alphabetic());
+
+    // Step 2: Keep only ASCII alphanumeric, space, and hyphen
+    let mut slug = String::with_capacity(text.len());
+    for ch in text.chars() {
+        if ch.is_ascii_alphanumeric() || ch == ' ' || ch == '-' {
+            slug.push(ch);
+        }
+    }
+
+    // Step 3: Replace spaces with hyphens
+    slug = slug.replace(' ', "-");
+
+    // Step 4: Downcase
+    slug = slug.to_lowercase();
+
+    // Step 5: Fall back to "section" if empty
     if slug.is_empty() {
         "section".to_string()
     } else {
@@ -10703,6 +10820,114 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             !html.contains("\u{2026}"),
             "Display math with Unicode Greek letters should NOT have Unicode ellipsis. Got: {}",
+            html
+        );
+    }
+
+    // === Issue 320: basic_generate_id and heading IDs in markdown="1" blocks ===
+
+    #[test]
+    fn test_issue320_basic_generate_id_ascii() {
+        assert_eq!(basic_generate_id("My Heading"), "my-heading");
+    }
+
+    #[test]
+    fn test_issue320_basic_generate_id_arabic() {
+        // All non-ASCII chars stripped -> fallback to "section"
+        assert_eq!(
+            basic_generate_id("\u{0645}\u{0627} \u{0645}\u{0639}\u{0646}\u{0649}"),
+            "section"
+        );
+    }
+
+    #[test]
+    fn test_issue320_basic_generate_id_chinese() {
+        assert_eq!(
+            basic_generate_id("\u{4f60}\u{597d}\u{4e16}\u{754c}"),
+            "section"
+        );
+    }
+
+    #[test]
+    fn test_issue320_basic_generate_id_cyrillic() {
+        assert_eq!(
+            basic_generate_id("\u{041f}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}"),
+            "section"
+        );
+    }
+
+    #[test]
+    fn test_issue320_basic_generate_id_mixed() {
+        let result = basic_generate_id("Code of Conduct \u{0645}\u{062f}\u{0648}\u{0646}\u{0629}");
+        assert_eq!(result, "code-of-conduct-");
+    }
+
+    #[test]
+    fn test_issue320_basic_generate_id_special_chars() {
+        assert_eq!(basic_generate_id("Hello & World <>"), "hello--world-");
+    }
+
+    #[test]
+    fn test_issue320_basic_generate_id_duplicate_handling() {
+        let mut used = HashMap::new();
+        let slug1 = basic_generate_id("\u{0645}\u{0627}");
+        let id1 = get_unique_id(&mut used, &slug1);
+        assert_eq!(id1, "section");
+        let slug2 = basic_generate_id("\u{0623}\u{0646}");
+        let id2 = get_unique_id(&mut used, &slug2);
+        assert_eq!(id2, "section-1");
+    }
+
+    #[test]
+    fn test_issue320_heading_ids_in_md1_block_arabic() {
+        // Arabic heading inside markdown="1" should get id="section"
+        let input = "<div markdown=\"1\" dir=\"rtl\">\n\n## \u{0645}\u{0627} \u{0645}\u{0639}\u{0646}\u{0649}\n\n</div>\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("id=\"section\""),
+            "Arabic heading in markdown=\"1\" block should get id=\"section\". Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue320_heading_ids_outside_md1_block_preserves_unicode() {
+        // Normal Cyrillic heading should still use GFM (preserve Unicode)
+        let input = "## \u{041f}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("id=\"\u{043f}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}\""),
+            "Normal Cyrillic heading should preserve Unicode in ID. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue320_heading_ids_in_md1_block_latin() {
+        // Latin heading inside markdown="1" should get proper slug
+        let input = "<div markdown=\"1\">\n\n## My Heading\n\n</div>\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("id=\"my-heading\""),
+            "Latin heading in markdown=\"1\" should get id=\"my-heading\". Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue320_heading_ids_in_md1_block_two_arabic() {
+        // Two Arabic headings -> "section", "section-1"
+        let input =
+            "<div markdown=\"1\">\n\n## \u{0645}\u{0627}\n\n## \u{0623}\u{0646}\n\n</div>\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("id=\"section\""),
+            "First Arabic heading should get id=\"section\". Got: {}",
+            html
+        );
+        assert!(
+            html.contains("id=\"section-1\""),
+            "Second Arabic heading should get id=\"section-1\". Got: {}",
             html
         );
     }

@@ -1378,6 +1378,9 @@ fn process_markdown_span_in_raw_html(html: &str, ctx: &mut SpanContext) -> Strin
             if !inner_trimmed.is_empty() {
                 let options = ctx.options.clone();
                 let inner_html = super::to_html_with_options(inner_trimmed, &options);
+                // Mark headings from markdown="1" blocks so that postprocess
+                // uses basic_generate_id (ASCII-only) instead of GFM slugify.
+                let inner_html = mark_md1_headings(&inner_html);
                 let child_indent_str = " ".repeat(tag_indent.len() + content_extra);
                 for line in inner_html.trim_end().lines() {
                     result.push_str(&child_indent_str);
@@ -1447,6 +1450,49 @@ fn is_span_content_model(tag_lc: &str) -> bool {
             | "th"
             | "tt"
     )
+}
+
+/// Mark headings in HTML output from `markdown="1"` blocks with `data-md1-heading`.
+///
+/// This marker tells `add_heading_ids` in postprocessing to use kramdown's
+/// `basic_generate_id` (ASCII-only) algorithm instead of the GFM Unicode-preserving
+/// algorithm. Simple `<hN>` tags get the marker; tags with existing attributes are
+/// left unchanged (they already skip auto-ID generation).
+fn mark_md1_headings(html: &str) -> String {
+    let mut result = String::with_capacity(html.len() + 64);
+    let mut remaining = html;
+
+    while !remaining.is_empty() {
+        // Look for <hN> pattern (simple heading tags)
+        if let Some(pos) = remaining.find("<h") {
+            result.push_str(&remaining[..pos]);
+            let after = &remaining[pos..];
+
+            // Check if it's <hN> (h1-h6 with just >)
+            if after.len() >= 4 {
+                let level = after.as_bytes()[2];
+                if level.is_ascii_digit()
+                    && (1..=6).contains(&(level - b'0'))
+                    && after.as_bytes()[3] == b'>'
+                {
+                    // Simple <hN> tag -- add marker
+                    result.push_str(&after[..3]);
+                    result.push_str(" data-md1-heading>");
+                    remaining = &after[4..];
+                    continue;
+                }
+            }
+
+            // Not a simple heading tag, copy the <h and continue
+            result.push_str(&after[..2]);
+            remaining = &after[2..];
+        } else {
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    result
 }
 
 /// Find a closing tag case-insensitively. Returns position of `</tag>` in the string.
