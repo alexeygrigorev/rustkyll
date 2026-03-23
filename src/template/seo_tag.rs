@@ -373,8 +373,23 @@ impl Renderable for SeoRenderable {
             _ => None,
         };
 
-        if site_url.is_some() {
-            if let Some(ref url) = canonical_url {
+        // Output canonical URL. When site_url is set, use the full absolute URL.
+        // When site_url is empty/missing, fall back to just the page path (relative URL),
+        // matching jekyll-seo-tag behavior which always outputs canonical/og:url.
+        {
+            let canonical = if let Some(ref url) = canonical_url {
+                Some(url.clone())
+            } else {
+                // No site_url: use page_url directly as relative canonical
+                page_url.as_ref().map(|p| {
+                    if p.starts_with('/') {
+                        p.clone()
+                    } else {
+                        format!("/{}", p)
+                    }
+                })
+            };
+            if let Some(ref url) = canonical {
                 output.push_str(&format!(
                     "<link rel=\"canonical\" href=\"{}\" />\n",
                     html_escape(url)

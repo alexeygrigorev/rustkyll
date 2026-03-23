@@ -26,6 +26,11 @@ pub struct CollectionConfig {
     /// Permalink pattern for items in this collection.
     #[serde(default)]
     pub permalink: String,
+
+    /// Front matter field to sort collection items by.
+    /// Matches Jekyll's `sort_by` collection option.
+    #[serde(default)]
+    pub sort_by: Option<String>,
 }
 
 /// Scope section of a default configuration entry.
@@ -122,6 +127,12 @@ pub struct SiteConfig {
     #[serde(default)]
     pub exclude: Vec<String>,
 
+    /// List of files/directories to force-include even if they would normally
+    /// be skipped (e.g., directories starting with `_` or `.`).
+    /// Matches Jekyll's `include:` configuration key.
+    #[serde(default)]
+    pub include: Vec<String>,
+
     /// Map of collection name to collection configuration.
     #[serde(default)]
     pub collections: HashMap<String, CollectionConfig>,
@@ -163,6 +174,7 @@ impl Default for SiteConfig {
             repository: None,
             permalink: default_permalink(),
             exclude: vec![],
+            include: vec![],
             collections: HashMap::new(),
             defaults: vec![],
             extras: HashMap::new(),
@@ -628,6 +640,7 @@ title: "Test"
             CollectionConfig {
                 output: true,
                 permalink: "/:title.html".to_string(),
+                sort_by: None,
             },
         );
 

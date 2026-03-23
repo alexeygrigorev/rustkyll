@@ -278,6 +278,28 @@ pub fn build_site_context(
 
     site.insert("github".into(), LiquidValue::Object(github));
 
+    // When jekyll-github-metadata is active and site.title is empty,
+    // Jekyll infers the title from the repository name (the part after the slash).
+    // This matches the behavior of github-pages gem which populates site.title.
+    // We also check for github-pages in the Gemfile (group: :jekyll_plugins)
+    // which auto-activates the plugin without it being in the _config.yml plugins list.
+    let has_github_pages_gem = site_dir
+        .map(|d| {
+            let gemfile = d.join("Gemfile");
+            gemfile.exists()
+                && std::fs::read_to_string(&gemfile)
+                    .map(|c| c.contains("github-pages"))
+                    .unwrap_or(false)
+        })
+        .unwrap_or(false);
+    if config.title.is_empty() && (has_plugin || is_github_pages || has_github_pages_gem) {
+        if let Some(ref repo) = config.repository {
+            if let Some((_owner, name)) = repo.split_once('/') {
+                site.insert("title".into(), LiquidValue::scalar(name.to_string()));
+            }
+        }
+    }
+
     // site.data -- data tree
     let mut data_obj = Object::new();
     for (key, value) in data {

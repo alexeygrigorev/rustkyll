@@ -422,6 +422,26 @@ fn has_commonmark_hardbreaks(config: &SiteConfig) -> bool {
     config.has_commonmark_hardbreaks()
 }
 
+/// Extract a float from a serde_yaml::Value for numeric sorting.
+fn yaml_value_to_f64(val: &serde_yaml::Value) -> Option<f64> {
+    match val {
+        serde_yaml::Value::Number(n) => n.as_f64(),
+        serde_yaml::Value::String(s) => s.parse::<f64>().ok(),
+        _ => None,
+    }
+}
+
+/// Convert a serde_yaml::Value to a string for comparison.
+fn yaml_value_to_string(val: &serde_yaml::Value) -> String {
+    match val {
+        serde_yaml::Value::String(s) => s.clone(),
+        serde_yaml::Value::Number(n) => n.to_string(),
+        serde_yaml::Value::Bool(b) => b.to_string(),
+        serde_yaml::Value::Null => String::new(),
+        _ => format!("{:?}", val),
+    }
+}
+
 /// Load all items from a collection directory.
 ///
 /// For posts (`collection_name == "posts"`), the global permalink pattern from
@@ -456,10 +476,19 @@ pub fn load_collection(
             .map(|s| s.to_string())
             .unwrap_or_else(|| config.permalink.clone())
     } else {
+        // Check collection config first, then defaults, then fallback
         config
             .collection(collection_name)
             .map(|c| c.permalink.clone())
             .filter(|p| !p.is_empty())
+            .or_else(|| {
+                // Check defaults for this collection type
+                let defaults = config.defaults_for(collection_name, "");
+                defaults
+                    .get("permalink")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+            })
             .unwrap_or_else(|| "/:collection/:path".to_string())
     };
 
@@ -509,18 +538,53 @@ pub fn load_collection(
         }
     }
 
-    // Sort collection items by date ascending (oldest first), with slug as
-    // tiebreaker. This matches Jekyll's behavior where all collection documents
-    // (not just posts) are sorted by date. Without this sort, file path ordering
-    // produces incorrect results for filenames with mixed-length numeric prefixes
-    // (e.g. 099 sorts before 1000 but 1000 sorts before 100 in string order).
-    items.sort_by(|a, b| {
-        let date_a = a.date.as_deref().unwrap_or("");
-        let date_b = b.date.as_deref().unwrap_or("");
-        date_a
-            .cmp(date_b)
-            .then_with(|| a.source_path.cmp(&b.source_path))
-    });
+    // Check if this collection has a custom sort_by field configured.
+    let sort_by_field = config
+        .collection(collection_name)
+        .and_then(|c| c.sort_by.as_deref())
+        .map(|s| s.to_string());
+
+    if let Some(ref field) = sort_by_field {
+        // Sort by the specified front matter field. Items without the field
+        // sort to the end, matching Jekyll's behavior for sort_by.
+        items.sort_by(|a, b| {
+            let val_a = a.front_matter.get(field);
+            let val_b = b.front_matter.get(field);
+            match (val_a, val_b) {
+                (Some(va), Some(vb)) => {
+                    // Try numeric comparison first, then string
+                    let num_a = yaml_value_to_f64(va);
+                    let num_b = yaml_value_to_f64(vb);
+                    match (num_a, num_b) {
+                        (Some(na), Some(nb)) => {
+                            na.partial_cmp(&nb).unwrap_or(std::cmp::Ordering::Equal)
+                        }
+                        _ => {
+                            let sa = yaml_value_to_string(va);
+                            let sb = yaml_value_to_string(vb);
+                            sa.cmp(&sb)
+                        }
+                    }
+                }
+                (Some(_), None) => std::cmp::Ordering::Less,
+                (None, Some(_)) => std::cmp::Ordering::Greater,
+                (None, None) => a.source_path.cmp(&b.source_path),
+            }
+        });
+    } else {
+        // Default sort: by date ascending (oldest first), with source_path as
+        // tiebreaker. This matches Jekyll's behavior where all collection documents
+        // (not just posts) are sorted by date. Without this sort, file path ordering
+        // produces incorrect results for filenames with mixed-length numeric prefixes
+        // (e.g. 099 sorts before 1000 but 1000 sorts before 100 in string order).
+        items.sort_by(|a, b| {
+            let date_a = a.date.as_deref().unwrap_or("");
+            let date_b = b.date.as_deref().unwrap_or("");
+            date_a
+                .cmp(date_b)
+                .then_with(|| a.source_path.cmp(&b.source_path))
+        });
+    }
 
     Ok((items, errors))
 }
@@ -665,12 +729,19 @@ fn process_collection_file(
         .unwrap_or(source_path.strip_suffix(ext).unwrap_or(&source_path))
         .to_string();
 
-    // Use front matter `permalink` if present, otherwise use the pattern
+    // Use front matter `permalink` if present, otherwise use the pattern.
+    // Ensure permalink always starts with `/` to match Jekyll's behavior.
     let url = doc
         .front_matter
         .get("permalink")
         .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
+        .map(|s| {
+            if s.starts_with('/') {
+                s.to_string()
+            } else {
+                format!("/{}", s)
+            }
+        })
         .unwrap_or_else(|| {
             let ctx = PermalinkContext {
                 collection: collection_name.to_string(),
@@ -833,6 +904,15 @@ pub fn load_pages(
 
 /// Check if a directory name should be skipped during page discovery.
 fn should_skip_directory(name: &str, config: &SiteConfig) -> bool {
+    // Check include list first -- force-included directories are never skipped.
+    // This matches Jekyll's behavior where `include:` overrides the default
+    // underscore/dot directory exclusion.
+    for included in &config.include {
+        let included_name = included.trim_end_matches('/');
+        if name == included_name {
+            return false;
+        }
+    }
     // Skip hidden directories and underscore-prefixed directories
     if name.starts_with('_') || name.starts_with('.') {
         return true;
@@ -1001,12 +1081,20 @@ fn load_pages_recursive(
 
         let stem = name.strip_suffix(ext).unwrap_or(&name);
 
-        // Use front matter `permalink` if present, otherwise derive from relative path
+        // Use front matter `permalink` if present, otherwise derive from relative path.
+        // Ensure permalink always starts with `/` to match Jekyll's behavior
+        // where `page.url` always has a leading slash.
         let url = doc
             .front_matter
             .get("permalink")
             .and_then(|v| v.as_str())
-            .map(|s| s.to_string())
+            .map(|s| {
+                if s.starts_with('/') {
+                    s.to_string()
+                } else {
+                    format!("/{}", s)
+                }
+            })
             .unwrap_or_else(|| {
                 if is_markdown {
                     let rel_stem = rel_path.strip_suffix(".md").unwrap_or(&rel_path);
@@ -2215,6 +2303,7 @@ mod tests {
                     crate::config::CollectionConfig {
                         output: true,
                         permalink: "/:collection/:title/".to_string(),
+                        sort_by: None,
                     },
                 );
                 m
@@ -3233,5 +3322,205 @@ mod tests {
             "Unicode content should be preserved in excerpt. Got: {}",
             excerpt_html
         );
+    }
+
+    // ========================================================================
+    // Issue 326: include config for underscore directories
+    // ========================================================================
+
+    #[test]
+    fn test_include_config_allows_underscore_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("top.md"), "---\ntitle: Top\n---\nTop").unwrap();
+        let pages_dir = dir.path().join("_pages");
+        std::fs::create_dir(&pages_dir).unwrap();
+        std::fs::write(
+            pages_dir.join("about.md"),
+            "---\ntitle: About\npermalink: /about/\n---\nAbout page",
+        )
+        .unwrap();
+
+        // Without include: _pages should be skipped
+        let config = SiteConfig::default();
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert!(
+            !pages.iter().any(|p| p.slug == "about"),
+            "_pages should be skipped without include config"
+        );
+
+        // With include: [_pages], the directory should be processed
+        let mut config_with_include = SiteConfig::default();
+        config_with_include.include = vec!["_pages".to_string()];
+        let (pages, _) = load_pages(dir.path(), &config_with_include).unwrap();
+        assert!(
+            pages.iter().any(|p| p.slug == "about"),
+            "_pages should be included when listed in config.include"
+        );
+    }
+
+    #[test]
+    fn test_include_config_with_unicode_directory_name() {
+        let dir = tempfile::tempdir().unwrap();
+        let pages_dir = dir.path().join("_\u{043f}\u{0430}\u{0433}\u{0435}"); // _паге in Cyrillic
+        std::fs::create_dir(&pages_dir).unwrap();
+        std::fs::write(
+            pages_dir.join("test.md"),
+            "---\ntitle: \u{0422}\u{0435}\u{0441}\u{0442}\n---\nContent",
+        )
+        .unwrap();
+
+        let mut config = SiteConfig::default();
+        config.include = vec!["_\u{043f}\u{0430}\u{0433}\u{0435}".to_string()];
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert!(
+            pages.iter().any(|p| p.slug == "test"),
+            "Unicode underscore directory should be included"
+        );
+    }
+
+    // ========================================================================
+    // Issue 326: collection sort_by
+    // ========================================================================
+
+    #[test]
+    fn test_collection_sort_by_numeric_field() {
+        let dir = tempfile::tempdir().unwrap();
+        let tabs_dir = dir.path().join("_tabs");
+        std::fs::create_dir(&tabs_dir).unwrap();
+        std::fs::write(
+            tabs_dir.join("about.md"),
+            "---\ntitle: About\norder: 4\n---\nAbout",
+        )
+        .unwrap();
+        std::fs::write(
+            tabs_dir.join("categories.md"),
+            "---\ntitle: Categories\norder: 1\n---\nCategories",
+        )
+        .unwrap();
+        std::fs::write(
+            tabs_dir.join("tags.md"),
+            "---\ntitle: Tags\norder: 2\n---\nTags",
+        )
+        .unwrap();
+
+        let mut config = SiteConfig::default();
+        config.collections.insert(
+            "tabs".to_string(),
+            crate::config::CollectionConfig {
+                output: true,
+                permalink: "/:title/".to_string(),
+                sort_by: Some("order".to_string()),
+            },
+        );
+
+        let (items, _) = load_collection("tabs", dir.path(), &config).unwrap();
+        assert_eq!(items.len(), 3);
+        // Should be sorted by order: 1, 2, 4
+        assert_eq!(items[0].slug, "categories");
+        assert_eq!(items[1].slug, "tags");
+        assert_eq!(items[2].slug, "about");
+    }
+
+    // ========================================================================
+    // Issue 326: permalink leading slash normalization
+    // ========================================================================
+
+    #[test]
+    fn test_page_permalink_without_leading_slash_gets_normalized() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("test.md"),
+            "---\ntitle: Test\npermalink: test.html\n---\nContent",
+        )
+        .unwrap();
+
+        let config = SiteConfig::default();
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        let page = pages.iter().find(|p| p.slug == "test").unwrap();
+        assert!(
+            page.url.starts_with('/'),
+            "Page URL should start with /. Got: {}",
+            page.url
+        );
+        assert_eq!(page.url, "/test.html");
+    }
+
+    #[test]
+    fn test_collection_permalink_without_leading_slash_gets_normalized() {
+        let dir = tempfile::tempdir().unwrap();
+        let coll_dir = dir.path().join("_docs");
+        std::fs::create_dir(&coll_dir).unwrap();
+        std::fs::write(
+            coll_dir.join("intro.md"),
+            "---\ntitle: Intro\npermalink: intro.html\n---\nIntro",
+        )
+        .unwrap();
+
+        let mut config = SiteConfig::default();
+        config.collections.insert(
+            "docs".to_string(),
+            crate::config::CollectionConfig {
+                output: true,
+                permalink: String::new(),
+                sort_by: None,
+            },
+        );
+
+        let (items, _) = load_collection("docs", dir.path(), &config).unwrap();
+        assert_eq!(items.len(), 1);
+        assert!(
+            items[0].url.starts_with('/'),
+            "Collection item URL should start with /. Got: {}",
+            items[0].url
+        );
+        assert_eq!(items[0].url, "/intro.html");
+    }
+
+    // ========================================================================
+    // Issue 326: collection permalink from defaults
+    // ========================================================================
+
+    #[test]
+    fn test_collection_permalink_from_defaults() {
+        let dir = tempfile::tempdir().unwrap();
+        let tabs_dir = dir.path().join("_tabs");
+        std::fs::create_dir(&tabs_dir).unwrap();
+        std::fs::write(
+            tabs_dir.join("about.md"),
+            "---\ntitle: About\n---\nAbout content",
+        )
+        .unwrap();
+
+        let mut config = SiteConfig::default();
+        config.collections.insert(
+            "tabs".to_string(),
+            crate::config::CollectionConfig {
+                output: true,
+                permalink: String::new(), // no permalink in collection config
+                sort_by: None,
+            },
+        );
+        // Set permalink in defaults for tabs type
+        config.defaults.push(crate::config::DefaultConfig {
+            scope: crate::config::DefaultScope {
+                path: String::new(),
+                type_name: "tabs".to_string(),
+            },
+            values: crate::config::DefaultValues {
+                values: {
+                    let mut m = std::collections::HashMap::new();
+                    m.insert(
+                        "permalink".to_string(),
+                        serde_yaml::Value::String("/:title/".to_string()),
+                    );
+                    m
+                },
+            },
+        });
+
+        let (items, _) = load_collection("tabs", dir.path(), &config).unwrap();
+        assert_eq!(items.len(), 1);
+        // Should use /:title/ pattern from defaults, not /:collection/:path
+        assert_eq!(items[0].url, "/about/");
     }
 }

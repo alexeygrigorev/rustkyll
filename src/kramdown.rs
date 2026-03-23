@@ -1561,7 +1561,8 @@ pub fn convert_kramdown_pipe_tables(content: &str) -> String {
                 result.push_str("<tr>\n");
                 for cell in split_kramdown_table_cells(row_text) {
                     result.push_str("<td>");
-                    result.push_str(cell.trim());
+                    let cell_text = apply_typographic_symbols(cell.trim());
+                    result.push_str(&cell_text);
                     result.push_str("</td>\n");
                 }
                 result.push_str("</tr>\n");
@@ -1870,6 +1871,20 @@ fn extract_line_prefix_and_content(line: &str) -> (String, &str) {
         }
     }
     (indent.to_string(), trimmed)
+}
+
+/// Apply kramdown typographic symbol substitutions to text.
+/// Converts:
+/// - `...` -> `…` (U+2026 horizontal ellipsis)
+/// - `---` -> `—` (U+2014 em-dash)
+/// - `--` -> `–` (U+2013 en-dash)
+///
+/// Order matters: `---` must be replaced before `--`.
+fn apply_typographic_symbols(text: &str) -> String {
+    // Replace in order: longest patterns first
+    let result = text.replace("---", "\u{2014}");
+    let result = result.replace("--", "\u{2013}");
+    result.replace("...", "\u{2026}")
 }
 
 fn split_kramdown_table_cells(row: &str) -> Vec<&str> {
@@ -10222,6 +10237,41 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             html.contains("<table>") || html.contains("<th>") || html.contains("<td>"),
             "Normal pipe table should still work. Got: {html}"
+        );
+    }
+
+    /// Issue 325: Kramdown pipe table cells should have typographic symbol
+    /// substitutions applied (ellipsis, em-dash, en-dash).
+    #[test]
+    fn test_325_pipe_table_typographic_symbols() {
+        // Ellipsis in pipe table cell
+        let input = "intro<br />\nNLP | CV | Time series | ...) text\n";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("\u{2026}"),
+            "Ellipsis ... should become \u{2026} in pipe table cell. Got: {html}"
+        );
+        assert!(
+            !html.contains("..."),
+            "Literal ... should not remain in pipe table cell. Got: {html}"
+        );
+    }
+
+    /// Issue 325: apply_typographic_symbols unit test
+    #[test]
+    fn test_325_apply_typographic_symbols() {
+        assert_eq!(
+            apply_typographic_symbols("hello...world"),
+            "hello\u{2026}world"
+        );
+        assert_eq!(apply_typographic_symbols("a---b"), "a\u{2014}b");
+        assert_eq!(apply_typographic_symbols("a--b"), "a\u{2013}b");
+        // em-dash then hyphen: ---- -> em-dash + hyphen
+        assert_eq!(apply_typographic_symbols("a----b"), "a\u{2014}-b");
+        // Unicode content preserved
+        assert_eq!(
+            apply_typographic_symbols("caf\u{00e9}...th\u{00e9}"),
+            "caf\u{00e9}\u{2026}th\u{00e9}"
         );
     }
 

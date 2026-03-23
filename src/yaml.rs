@@ -151,8 +151,41 @@ impl LenientYamlLoader {
                     } else {
                         let mut newkey = Yaml::BadValue;
                         mem::swap(&mut newkey, cur_key);
-                        // Silently overwrite on duplicate key (last-value-wins).
-                        h.insert(newkey, node.0);
+                        // YAML 1.1 merge key: when key is "<<", merge the
+                        // value's mapping entries into the current mapping.
+                        // Keys already present are NOT overwritten (first wins
+                        // for merge, matching Ruby/Jekyll behavior).
+                        if newkey == Yaml::String("<<".to_string()) {
+                            match node.0 {
+                                Yaml::Hash(ref merge_hash) => {
+                                    for (k, v) in merge_hash {
+                                        // Only insert if key doesn't already exist
+                                        if !h.contains_key(k) {
+                                            h.insert(k.clone(), v.clone());
+                                        }
+                                    }
+                                }
+                                Yaml::Array(ref arr) => {
+                                    // Merge multiple mappings in order
+                                    for item in arr {
+                                        if let Yaml::Hash(ref merge_hash) = item {
+                                            for (k, v) in merge_hash {
+                                                if !h.contains_key(k) {
+                                                    h.insert(k.clone(), v.clone());
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                _ => {
+                                    // Non-mapping value for << key: just insert normally
+                                    h.insert(newkey, node.0);
+                                }
+                            }
+                        } else {
+                            // Silently overwrite on duplicate key (last-value-wins).
+                            h.insert(newkey, node.0);
+                        }
                     }
                 }
                 _ => unreachable!(),
@@ -220,7 +253,14 @@ fn yaml_to_serde(yaml: &Yaml) -> serde_yaml::Value {
     match yaml {
         Yaml::Real(s) => {
             if let Ok(f) = s.parse::<f64>() {
-                serde_yaml::Value::Number(serde_yaml::Number::from(f))
+                // If the float is a whole number (like 6.0) and the original
+                // string contains a decimal point, preserve as string to match
+                // Jekyll/Ruby behavior where 6.0 renders as "6.0", not "6".
+                if f.fract() == 0.0 && s.contains('.') {
+                    serde_yaml::Value::String(s.clone())
+                } else {
+                    serde_yaml::Value::Number(serde_yaml::Number::from(f))
+                }
             } else {
                 serde_yaml::Value::String(s.clone())
             }
@@ -571,5 +611,96 @@ transcript:
             mapping.get("title").unwrap().as_str().unwrap(),
             "\u{00dc}bersicht"
         );
+    }
+
+    // ========================================================================
+    // YAML merge key (<<) support
+    // ========================================================================
+
+    #[test]
+    fn test_yaml_merge_key_basic() {
+        let yaml = "defaults: &DEF\n  color: red\n  size: 10\nitem:\n  <<: *DEF\n  name: widget\n";
+        let value = parse_yaml_lenient(yaml).unwrap();
+        let mapping = value.as_mapping().unwrap();
+        let item = mapping.get("item").unwrap().as_mapping().unwrap();
+        // Merged keys from anchor
+        assert_eq!(item.get("color").and_then(|v| v.as_str()), Some("red"));
+        assert_eq!(item.get("size").and_then(|v| v.as_u64()), Some(10));
+        // Own key
+        assert_eq!(item.get("name").and_then(|v| v.as_str()), Some("widget"));
+    }
+
+    #[test]
+    fn test_yaml_merge_key_own_values_override() {
+        let yaml = "base: &BASE\n  mode: debug\n  level: 1\nchild:\n  <<: *BASE\n  mode: release\n";
+        let value = parse_yaml_lenient(yaml).unwrap();
+        let mapping = value.as_mapping().unwrap();
+        let child = mapping.get("child").unwrap().as_mapping().unwrap();
+        // Own value overrides merged value
+        assert_eq!(child.get("mode").and_then(|v| v.as_str()), Some("release"));
+        // Merged value preserved
+        assert_eq!(child.get("level").and_then(|v| v.as_u64()), Some(1));
+    }
+
+    #[test]
+    fn test_yaml_merge_key_multiple_anchors() {
+        let yaml = "a: &A\n  x: 1\nb: &B\n  y: 2\nc:\n  <<: [*A, *B]\n  z: 3\n";
+        let value = parse_yaml_lenient(yaml).unwrap();
+        let mapping = value.as_mapping().unwrap();
+        let c = mapping.get("c").unwrap().as_mapping().unwrap();
+        assert_eq!(c.get("x").and_then(|v| v.as_u64()), Some(1));
+        assert_eq!(c.get("y").and_then(|v| v.as_u64()), Some(2));
+        assert_eq!(c.get("z").and_then(|v| v.as_u64()), Some(3));
+    }
+
+    #[test]
+    fn test_yaml_merge_key_unicode_values() {
+        // Merge keys with non-ASCII content (Cyrillic, CJK)
+        let yaml = "defaults: &DEF\n  greeting: \"\u{041f}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}\"\n  lang: \"\u{4e2d}\u{6587}\"\nitem:\n  <<: *DEF\n  name: test\n";
+        let value = parse_yaml_lenient(yaml).unwrap();
+        let mapping = value.as_mapping().unwrap();
+        let item = mapping.get("item").unwrap().as_mapping().unwrap();
+        assert_eq!(
+            item.get("greeting").and_then(|v| v.as_str()),
+            Some("\u{041f}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}")
+        );
+        assert_eq!(
+            item.get("lang").and_then(|v| v.as_str()),
+            Some("\u{4e2d}\u{6587}")
+        );
+    }
+
+    // ========================================================================
+    // Float preservation (6.0 stays "6.0", not "6")
+    // ========================================================================
+
+    #[test]
+    fn test_yaml_whole_float_preserved_as_string() {
+        let yaml = "version: 6.0\n";
+        let value = parse_yaml_lenient(yaml).unwrap();
+        let mapping = value.as_mapping().unwrap();
+        // 6.0 should be preserved as string "6.0" (not collapsed to integer 6)
+        let version = mapping.get("version").unwrap();
+        assert_eq!(version.as_str(), Some("6.0"));
+    }
+
+    #[test]
+    fn test_yaml_fractional_float_stays_number() {
+        let yaml = "ratio: 1.5\n";
+        let value = parse_yaml_lenient(yaml).unwrap();
+        let mapping = value.as_mapping().unwrap();
+        let ratio = mapping.get("ratio").unwrap();
+        // 1.5 has a fractional part, stays as number
+        assert!(ratio.is_number(), "1.5 should be a number, got {:?}", ratio);
+        assert!((ratio.as_f64().unwrap() - 1.5).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_yaml_integer_stays_integer() {
+        let yaml = "count: 42\n";
+        let value = parse_yaml_lenient(yaml).unwrap();
+        let mapping = value.as_mapping().unwrap();
+        let count = mapping.get("count").unwrap();
+        assert_eq!(count.as_u64(), Some(42));
     }
 }

@@ -786,6 +786,11 @@ impl TemplateEngine {
         // `EXPR and EXPR contains "STR"` so the `and` short-circuits on nil.
         // (Issue 171)
         let preprocessed = preprocess_nil_contains(&preprocessed);
+        // Pre-process `== false` comparisons to add nil guards.
+        // The Liquid crate treats `nil == false` as true, but Ruby Liquid
+        // treats it as false. We rewrite `VAR == false` to
+        // `VAR == false and VAR != nil` so nil doesn't match false.
+        let preprocessed = preprocess_nil_eq_false(&preprocessed);
         let template_str = &preprocessed;
         loop {
             let parser_guard = self
@@ -1215,6 +1220,29 @@ fn preprocess_nil_contains(template: &str) -> String {
 
     result.push_str(remaining);
     result
+}
+
+/// Pre-process `== false` / `!= false` comparisons to work around the Liquid
+/// crate treating `nil == false` as true (Ruby Liquid returns false).
+///
+/// Rewrites `VAR == false` to `VAR == false and VAR != nil` so that undefined
+/// variables (nil) don't match the literal `false`.
+/// Also rewrites `VAR != false` to `VAR != false or VAR == nil` so that nil
+/// is correctly treated as "not false" (distinct from false).
+fn preprocess_nil_eq_false(template: &str) -> String {
+    use regex::Regex;
+    use std::sync::LazyLock;
+
+    // Match patterns like: VARIABLE == false or VARIABLE != false
+    // VARIABLE is a dotted name like page.toc, site.show_edit, etc.
+    static EQ_FALSE_RE: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"\b([\w][\w.]*)\s*==\s*false\b").unwrap());
+    static NEQ_FALSE_RE: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"\b([\w][\w.]*)\s*!=\s*false\b").unwrap());
+
+    let result = EQ_FALSE_RE.replace_all(template, "$1 == false and $1 != nil");
+    let result = NEQ_FALSE_RE.replace_all(&result, "$1 != false or $1 == nil");
+    result.into_owned()
 }
 
 /// Rewrite a condition to add nil guards around `contains`.
@@ -3150,6 +3178,75 @@ title: "Test Book"
             output.contains("page.path and page.path contains"),
             "Should add nil guard, got: {}",
             output
+        );
+    }
+
+    // ========================================================================
+    // Issue 326: nil == false preprocessing
+    // ========================================================================
+
+    #[test]
+    fn test_preprocess_nil_eq_false_basic() {
+        let input = r#"{% unless page.toc == false %}TOC{% endunless %}"#;
+        let output = preprocess_nil_eq_false(input);
+        assert!(
+            output.contains("page.toc == false and page.toc != nil"),
+            "Should add nil guard for == false. Got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_nil_eq_false_neq() {
+        let input = r#"{% if page.comments != false %}COMMENTS{% endif %}"#;
+        let output = preprocess_nil_eq_false(input);
+        assert!(
+            output.contains("page.comments != false or page.comments == nil"),
+            "Should add nil guard for != false. Got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_nil_eq_false_render_undefined_variable() {
+        // When page.toc is undefined (nil), {% unless page.toc == false %} should render
+        let eng = engine();
+        let mut ctx = Object::new();
+        let page = Object::new(); // no toc field
+        ctx.insert("page".into(), Value::Object(page));
+
+        let output = eng
+            .parse_and_render(
+                "{% unless page.toc == false %}TOC_PRESENT{% endunless %}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(
+            output.trim(),
+            "TOC_PRESENT",
+            "nil should not equal false, so unless block should render"
+        );
+    }
+
+    #[test]
+    fn test_nil_eq_false_render_true_variable() {
+        // When page.toc is explicitly true, {% unless page.toc == false %} should render
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        page.insert("toc".into(), Value::scalar(true));
+        ctx.insert("page".into(), Value::Object(page));
+
+        let output = eng
+            .parse_and_render(
+                "{% unless page.toc == false %}TOC_PRESENT{% endunless %}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(
+            output.trim(),
+            "TOC_PRESENT",
+            "true != false, so unless block should render"
         );
     }
 
