@@ -281,6 +281,97 @@ def _text_contains_latex_commands(text: str) -> bool:
     return False
 
 
+def is_acceptable_jekyll_version_diff(diff: 'DiffResult') -> bool:
+    """Check if a diff is a Jekyll generator version string difference.
+
+    Filters diffs where both expected and actual are meta tag content attributes
+    containing 'Jekyll v' followed by a semver-like version number. This happens
+    when the cached Jekyll site was built with a different Jekyll version than
+    the one rustkyll reports.
+    """
+    if diff.diff_type != "attribute_differs":
+        return False
+    import re
+    # Both sides must contain content='Jekyll vX.Y.Z'
+    pattern = r"content='Jekyll v\d+\.\d+(\.\d+)?'"
+    if re.search(pattern, diff.expected) and re.search(pattern, diff.actual):
+        return True
+    return False
+
+
+def is_acceptable_github_pages_url_diff(diff: 'DiffResult') -> bool:
+    """Check if a diff is a GitHub Pages URL pattern difference.
+
+    GitHub Pages infrastructure uses https://github.com/pages/{owner}/{repo}/
+    while local/standard builds use https://{owner}.github.io/{repo}/.
+    These represent the same logical site URL in different environments.
+
+    Only filters jsonld_value_differs and attribute_differs diff types.
+    """
+    if diff.diff_type not in ("jsonld_value_differs", "attribute_differs"):
+        return False
+    return _is_github_pages_url_pair(diff.expected, diff.actual)
+
+
+def _is_github_pages_url_pair(text_a: str, text_b: str) -> bool:
+    """Check if two strings contain URLs that differ only by GitHub Pages pattern.
+
+    Matches:
+      https://github.com/pages/{owner}/{repo}{suffix}
+    vs:
+      https://{owner}.github.io/{repo}{suffix}
+
+    where {suffix} is the same on both sides. Also handles the pattern
+    appearing inside attribute value strings like href='...'.
+    """
+    import re
+
+    # Extract URLs from attribute value strings (e.g. "href='https://...'")
+    def extract_url(text):
+        m = re.search(r"(?:href|content|src)='([^']*)'", text)
+        if m:
+            return m.group(1)
+        # Also try double quotes
+        m = re.search(r'(?:href|content|src)="([^"]*)"', text)
+        if m:
+            return m.group(1)
+        # Return as-is (may already be a bare URL)
+        return text
+
+    url_a = extract_url(text_a)
+    url_b = extract_url(text_b)
+
+    # Try both directions
+    return (_match_github_pages_urls(url_a, url_b) or
+            _match_github_pages_urls(url_b, url_a))
+
+
+def _match_github_pages_urls(pages_url: str, io_url: str) -> bool:
+    """Check if pages_url is github.com/pages/{owner}/{repo}{suffix}
+    and io_url is {owner}.github.io/{repo}{suffix}."""
+    import re
+    # Match github.com/pages/{owner}/{repo}{optional_suffix}
+    pages_match = re.match(
+        r'https?://github\.com/pages/([^/]+)/([^/]+)(.*)',
+        pages_url
+    )
+    if not pages_match:
+        return False
+
+    owner = pages_match.group(1)
+    repo = pages_match.group(2)
+    suffix = pages_match.group(3)
+
+    # Build expected github.io URL
+    expected_io = f"https://{owner}.github.io/{repo}{suffix}"
+
+    # Also try http://
+    if io_url == expected_io:
+        return True
+    expected_io_http = f"http://{owner}.github.io/{repo}{suffix}"
+    return io_url == expected_io_http
+
+
 def is_acceptable_jekyll_math_pipe_table_diff(diff: 'DiffResult') -> bool:
     """Filter: Jekyll's kramdown creates <table> from | inside math.
 
@@ -578,7 +669,9 @@ def filter_acceptable_diffs(diffs: list, rustkyll_html: str = None, jekyll_html:
         if (is_acceptable_sexagesimal_diff(d) or
                 is_acceptable_date_modified_diff(d) or
                 is_acceptable_build_time_diff(d) or
-                is_acceptable_trailing_newline_diff(d)):
+                is_acceptable_trailing_newline_diff(d) or
+                is_acceptable_jekyll_version_diff(d) or
+                is_acceptable_github_pages_url_diff(d)):
             accepted.append(d)
         else:
             remaining.append(d)

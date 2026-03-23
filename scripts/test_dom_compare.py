@@ -23,6 +23,8 @@ from dom_compare import (
     is_acceptable_jekyll_math_emphasis_diff,
     is_acceptable_jekyll_math_br_diff,
     is_acceptable_jekyll_math_bug_diff,
+    is_acceptable_jekyll_version_diff,
+    is_acceptable_github_pages_url_diff,
     is_acceptable_sexagesimal_diff,
     is_acceptable_trailing_newline_diff,
     normalize_text,
@@ -1292,6 +1294,250 @@ class TestEmbeddedSexagesimalJsonLDFiltering(unittest.TestCase):
         diffs = compare_jsonld(jekyll_json, rustkyll_json, "script > jsonld")
         self.assertIsNotNone(diffs)
         self.assertGreater(len(diffs), 0, "Mixed diffs should not be fully filtered")
+
+
+class TestJekyllVersionFilter(unittest.TestCase):
+    """Tests for is_acceptable_jekyll_version_diff()."""
+
+    def test_jekyll_version_diff_filtered(self):
+        """Different Jekyll versions in meta generator tag should be filtered."""
+        diff = DiffResult(
+            "html > head > meta",
+            "attribute_differs",
+            "content='Jekyll v3.10.0'",
+            "content='Jekyll v4.4.1'"
+        )
+        self.assertTrue(is_acceptable_jekyll_version_diff(diff))
+
+    def test_jekyll_v2_vs_v4_filtered(self):
+        """Older Jekyll versions should also be filtered."""
+        diff = DiffResult(
+            "html > head > meta",
+            "attribute_differs",
+            "content='Jekyll v2.5.3'",
+            "content='Jekyll v4.4.1'"
+        )
+        self.assertTrue(is_acceptable_jekyll_version_diff(diff))
+
+    def test_different_generator_not_filtered(self):
+        """Jekyll vs Rustkyll (different generator name) should NOT be filtered."""
+        diff = DiffResult(
+            "html > head > meta",
+            "attribute_differs",
+            "content='Jekyll v3.10.0'",
+            "content='Rustkyll v1.0'"
+        )
+        self.assertFalse(is_acceptable_jekyll_version_diff(diff))
+
+    def test_non_jekyll_content_not_filtered(self):
+        """Non-Jekyll content in meta tag should NOT be filtered."""
+        diff = DiffResult(
+            "html > head > meta",
+            "attribute_differs",
+            "content='Some text'",
+            "content='Other text'"
+        )
+        self.assertFalse(is_acceptable_jekyll_version_diff(diff))
+
+    def test_non_attribute_differs_not_filtered(self):
+        """text_differs diff type with Jekyll version should NOT be filtered."""
+        diff = DiffResult(
+            "html > head > meta",
+            "text_differs",
+            "Jekyll v3.10.0",
+            "Jekyll v4.4.1"
+        )
+        self.assertFalse(is_acceptable_jekyll_version_diff(diff))
+
+    def test_jsonld_type_not_filtered(self):
+        """jsonld_value_differs with Jekyll version should NOT be filtered."""
+        diff = DiffResult(
+            "html > head > script > jsonld",
+            "jsonld_value_differs",
+            "Jekyll v3.10.0",
+            "Jekyll v4.4.1"
+        )
+        self.assertFalse(is_acceptable_jekyll_version_diff(diff))
+
+
+class TestGitHubPagesUrlFilter(unittest.TestCase):
+    """Tests for is_acceptable_github_pages_url_diff()."""
+
+    def test_jsonld_root_url_filtered(self):
+        """GitHub Pages root URL diff in JSON-LD should be filtered."""
+        diff = DiffResult(
+            "html > head > script > jsonld.@id",
+            "jsonld_value_differs",
+            "https://github.com/pages/github/choosealicense.com/",
+            "https://github.github.io/choosealicense.com/"
+        )
+        self.assertTrue(is_acceptable_github_pages_url_diff(diff))
+
+    def test_jsonld_subpath_url_filtered(self):
+        """GitHub Pages subpath URL diff in JSON-LD should be filtered."""
+        diff = DiffResult(
+            "html > head > script > jsonld.@id",
+            "jsonld_value_differs",
+            "https://github.com/pages/github/choosealicense.com/about/",
+            "https://github.github.io/choosealicense.com/about/"
+        )
+        self.assertTrue(is_acceptable_github_pages_url_diff(diff))
+
+    def test_attribute_url_filtered(self):
+        """GitHub Pages URL diff in attribute should be filtered."""
+        diff = DiffResult(
+            "html > head > link",
+            "attribute_differs",
+            "href='https://github.com/pages/myorg/myrepo/'",
+            "href='https://myorg.github.io/myrepo/'"
+        )
+        self.assertTrue(is_acceptable_github_pages_url_diff(diff))
+
+    def test_reversed_direction_filtered(self):
+        """Filter should work when expected=github.io and actual=github.com/pages."""
+        diff = DiffResult(
+            "html > head > script > jsonld.@id",
+            "jsonld_value_differs",
+            "https://github.github.io/choosealicense.com/",
+            "https://github.com/pages/github/choosealicense.com/"
+        )
+        self.assertTrue(is_acceptable_github_pages_url_diff(diff))
+
+    def test_different_domains_not_filtered(self):
+        """Two completely different domains should NOT be filtered."""
+        diff = DiffResult(
+            "html > head > script > jsonld.@id",
+            "jsonld_value_differs",
+            "https://example.com/about/",
+            "https://other.com/about/"
+        )
+        self.assertFalse(is_acceptable_github_pages_url_diff(diff))
+
+    def test_same_domain_different_paths_not_filtered(self):
+        """Same domain but different paths (not GitHub Pages pattern) NOT filtered."""
+        diff = DiffResult(
+            "html > head > script > jsonld.@id",
+            "jsonld_value_differs",
+            "https://example.com/path1/",
+            "https://example.com/path2/"
+        )
+        self.assertFalse(is_acceptable_github_pages_url_diff(diff))
+
+    def test_unicode_path_segment_filtered(self):
+        """GitHub Pages URL with Unicode path segment should be filtered."""
+        diff = DiffResult(
+            "html > head > script > jsonld.@id",
+            "jsonld_value_differs",
+            "https://github.com/pages/myorg/myrepo/caf\u00e9/",
+            "https://myorg.github.io/myrepo/caf\u00e9/"
+        )
+        self.assertTrue(is_acceptable_github_pages_url_diff(diff))
+
+    def test_licenses_subpath_filtered(self):
+        """Licenses subpath without trailing slash should be filtered."""
+        diff = DiffResult(
+            "html > head > script > jsonld.@id",
+            "jsonld_value_differs",
+            "https://github.com/pages/github/choosealicense.com/licenses",
+            "https://github.github.io/choosealicense.com/licenses"
+        )
+        self.assertTrue(is_acceptable_github_pages_url_diff(diff))
+
+    def test_text_differs_not_filtered(self):
+        """text_differs type should NOT be filtered (only attribute/jsonld)."""
+        diff = DiffResult(
+            "html > body > p",
+            "text_differs",
+            "https://github.com/pages/github/choosealicense.com/",
+            "https://github.github.io/choosealicense.com/"
+        )
+        self.assertFalse(is_acceptable_github_pages_url_diff(diff))
+
+
+class TestBuildTimestampFilterEnhancement(unittest.TestCase):
+    """Tests for build timestamp filter covering ISO 8601 with timezone offsets."""
+
+    def test_iso8601_with_plus_offset_filtered(self):
+        """ISO 8601 timestamp with +01:00 timezone offset should be filtered."""
+        self.assertTrue(_is_build_time_only_diff(
+            "2026-03-21T07:24:03+01:00",
+            "2026-03-23T09:47:32+01:00"
+        ))
+
+    def test_iso8601_with_z_timezone_filtered(self):
+        """ISO 8601 timestamp with Z timezone should be filtered."""
+        self.assertTrue(_is_build_time_only_diff(
+            "2026-03-21T07:24:03Z",
+            "2026-03-23T09:47:32Z"
+        ))
+
+    def test_existing_space_format_still_works(self):
+        """Existing space-separated format should still be filtered."""
+        self.assertTrue(_is_build_time_only_diff(
+            "2026-03-21 07:24:03 +0100",
+            "2026-03-23 09:47:32 +0100"
+        ))
+
+    def test_different_month_not_filtered(self):
+        """Different months should NOT be filtered."""
+        self.assertFalse(_is_build_time_only_diff(
+            "2026-02-21T07:24:03+01:00",
+            "2026-03-23T09:47:32+01:00"
+        ))
+
+    def test_different_year_not_filtered(self):
+        """Different years should NOT be filtered."""
+        self.assertFalse(_is_build_time_only_diff(
+            "2025-03-21T07:24:03+01:00",
+            "2026-03-21T09:47:32+01:00"
+        ))
+
+    def test_different_tz_not_filtered(self):
+        """Different timezones should NOT be filtered."""
+        self.assertFalse(_is_build_time_only_diff(
+            "2026-03-21T07:24:03+01:00",
+            "2026-03-21T09:47:32+02:00"
+        ))
+
+
+class TestFilterIntegrationWithNewFilters(unittest.TestCase):
+    """Test that new filters are integrated into filter_acceptable_diffs()."""
+
+    def test_jekyll_version_diff_accepted_by_pipeline(self):
+        """Jekyll version diff should be accepted by filter_acceptable_diffs."""
+        diffs = [DiffResult(
+            "html > head > meta",
+            "attribute_differs",
+            "content='Jekyll v3.10.0'",
+            "content='Jekyll v4.4.1'"
+        )]
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertEqual(len(remaining), 0)
+        self.assertEqual(len(accepted), 1)
+
+    def test_github_pages_url_diff_accepted_by_pipeline(self):
+        """GitHub Pages URL diff should be accepted by filter_acceptable_diffs."""
+        diffs = [DiffResult(
+            "html > head > script > jsonld.@id",
+            "jsonld_value_differs",
+            "https://github.com/pages/github/choosealicense.com/",
+            "https://github.github.io/choosealicense.com/"
+        )]
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertEqual(len(remaining), 0)
+        self.assertEqual(len(accepted), 1)
+
+    def test_real_diffs_not_affected(self):
+        """Real diffs should NOT be filtered by the new filters."""
+        diffs = [DiffResult(
+            "html > body > div",
+            "attribute_differs",
+            "class='foo'",
+            "class='bar'"
+        )]
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertEqual(len(remaining), 1)
+        self.assertEqual(len(accepted), 0)
 
 
 if __name__ == "__main__":
