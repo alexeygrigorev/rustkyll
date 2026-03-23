@@ -417,6 +417,12 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
         );
     }
 
+    // Java post-processing: Rouge classifies class/type names after `new` as
+    // `nc` (name.class). Syntect uses support.class -> `nb`. Fix via post-processing.
+    if lang == "java" {
+        html = postprocess_java_new_class_names(&html);
+    }
+
     // JS/Ruby post-processing: Rouge splits quoted strings into
     // dl (delimiter) + s1/s2 (content) + dl (delimiter).
     // Syntect emits the whole quoted string as a single s1/s2 span.
@@ -734,6 +740,17 @@ const SQL_EXTRA_KEYWORDS: &[&str] = &[
     "SAFE",
     "UNSAFE",
 ];
+
+/// Post-process Java highlighted HTML: Rouge classifies class/type names
+/// after `new` as `nc` (name.class). Syntect maps them to `nb` (support.class).
+/// Replace `<span class="k">new</span> <span class="nb">X</span>` with
+/// `<span class="k">new</span> <span class="nc">X</span>`.
+fn postprocess_java_new_class_names(html: &str) -> String {
+    html.replace(
+        "<span class=\"k\">new</span> <span class=\"nb\">",
+        "<span class=\"k\">new</span> <span class=\"nc\">",
+    )
+}
 
 /// Post-process Bash highlighted HTML to wrap `install` as a builtin (`nb`).
 fn postprocess_bash_install(html: &str) -> String {
@@ -2549,6 +2566,168 @@ mod tests {
         assert!(
             html.contains("<span class=\"k\">new</span>"),
             "JS 'new' should be k even with Unicode variable nearby: {html}"
+        );
+    }
+
+    // ── Issue 310: Python rouge token mapping ──
+
+    #[test]
+    fn test_issue310_python_len_is_nb() {
+        let html = highlight_code("python", "x = len(items)\n").unwrap();
+        assert!(
+            html.contains("<span class=\"nb\">len</span>"),
+            "Python 'len' should be nb (name.builtin): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue310_python_range_is_nb() {
+        let html = highlight_code("python", "x = range(10)\n").unwrap();
+        assert!(
+            html.contains("<span class=\"nb\">range</span>"),
+            "Python 'range' should be nb (name.builtin): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue310_python_class_keyword_is_k() {
+        let html = highlight_code("python", "class MyClass:\n    pass\n").unwrap();
+        assert!(
+            html.contains("<span class=\"k\">class</span>"),
+            "Python 'class' should be k (keyword): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue310_python_def_keyword_is_k() {
+        let html = highlight_code("python", "def func():\n    pass\n").unwrap();
+        assert!(
+            html.contains("<span class=\"k\">def</span>"),
+            "Python 'def' should be k (keyword): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue310_python_unicode_string() {
+        // Non-ASCII: ensure Python highlighting works with CJK content
+        let html = highlight_code("python", "print(\"\u{4e16}\u{754c}\")\n").unwrap();
+        assert!(
+            html.contains("<span class=\"k\">print</span>"),
+            "Python 'print' should be k (keyword) even with CJK string: {html}"
+        );
+    }
+
+    // ── Issue 310: SQL rouge token mapping ──
+
+    #[test]
+    fn test_issue310_sql_select_from_where_are_k() {
+        let html = highlight_code("sql", "SELECT name FROM users WHERE id = 1\n").unwrap();
+        assert!(
+            html.contains("<span class=\"k\">SELECT</span>"),
+            "SQL SELECT should be k (keyword): {html}"
+        );
+        assert!(
+            html.contains("<span class=\"k\">FROM</span>"),
+            "SQL FROM should be k (keyword): {html}"
+        );
+        assert!(
+            html.contains("<span class=\"k\">WHERE</span>"),
+            "SQL WHERE should be k (keyword): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue310_sql_join_is_k() {
+        let html = highlight_code("sql", "SELECT a FROM t1 JOIN t2 ON t1.id = t2.id\n").unwrap();
+        assert!(
+            html.contains("<span class=\"k\">JOIN</span>"),
+            "SQL JOIN should be k (keyword): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue310_sql_group_by_order_by_are_k() {
+        let html = highlight_code(
+            "sql",
+            "SELECT name FROM users GROUP BY name ORDER BY name\n",
+        )
+        .unwrap();
+        assert!(
+            html.contains("<span class=\"k\">GROUP</span>"),
+            "SQL GROUP should be k (keyword): {html}"
+        );
+        assert!(
+            html.contains("<span class=\"k\">ORDER</span>"),
+            "SQL ORDER should be k (keyword): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue310_sql_unicode_string_literal() {
+        // Non-ASCII: SQL with Unicode string literal
+        let html = highlight_code("sql", "SELECT * FROM t WHERE name = 'caf\u{00e9}'\n").unwrap();
+        assert!(
+            html.contains("<span class=\"k\">SELECT</span>"),
+            "SQL SELECT should be k even with Unicode string: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"k\">WHERE</span>"),
+            "SQL WHERE should be k even with Unicode string: {html}"
+        );
+    }
+
+    // ── Issue 310: Java rouge token mapping ──
+
+    #[test]
+    fn test_issue310_java_new_keyword_is_k() {
+        let html = highlight_code("java", "ArrayList list = new ArrayList();\n").unwrap();
+        assert!(
+            html.contains("<span class=\"k\">new</span>"),
+            "Java 'new' should be k (keyword), not o (operator): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue310_java_class_name_after_new_is_nc() {
+        let html = highlight_code("java", "ArrayList list = new ArrayList();\n").unwrap();
+        // The ArrayList after new should be nc (name.class)
+        // Check that there's at least one nc for ArrayList
+        assert!(
+            html.contains("<span class=\"nc\">ArrayList</span>"),
+            "Java class name 'ArrayList' should be nc (name.class): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue310_java_integer_literal_is_mi() {
+        let html = highlight_code("java", "int x = 42;\n").unwrap();
+        assert!(
+            html.contains("<span class=\"mi\">42</span>"),
+            "Java integer literal 42 should be mi: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue310_java_public_class_keywords() {
+        let html = highlight_code("java", "public class Main {\n}\n").unwrap();
+        assert!(
+            html.contains("<span class=\"k\"") || html.contains("<span class=\"kd\">public</span>"),
+            "Java 'public' should be k or kd (keyword): {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nc\">Main</span>"),
+            "Java class name 'Main' should be nc (name.class): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue310_java_unicode_string() {
+        // Non-ASCII: Java with Unicode string
+        let html = highlight_code("java", "String s = \"\u{00e9}t\u{00e9}\";\n").unwrap();
+        // Just verify it doesn't crash and produces reasonable output
+        assert!(
+            html.contains("<span class="),
+            "Java with Unicode string should produce highlighted output: {html}"
         );
     }
 }

@@ -10524,4 +10524,86 @@ by <a href="/people/author.html">Author Name</a>
             html
         );
     }
+
+    // ========================================================================
+    // Issue 310: Display math ellipsis preservation
+    // ========================================================================
+
+    #[test]
+    fn test_issue310_display_math_ellipsis_preserved() {
+        // Display math ($$...$$) should NOT have ... converted to Unicode ellipsis
+        let html = crate::frontmatter::markdown_to_html("$$A + ... + Z$$\n");
+        assert!(
+            html.contains("A + ... + Z"),
+            "Display math should preserve three ASCII dots, not convert to ellipsis. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains("A + \u{2026} + Z"),
+            "Display math should NOT contain Unicode ellipsis. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue310_inline_math_ellipsis_still_converts() {
+        // Inline math ($...$) should still convert ... to Unicode ellipsis (issue 302)
+        let html = crate::frontmatter::markdown_to_html("$A, B, C, ...$\n");
+        assert!(
+            html.contains("\u{2026}"),
+            "Inline math should still convert ... to Unicode ellipsis. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue310_regular_text_ellipsis_still_converts() {
+        // Regular text should still convert ... to Unicode ellipsis
+        let html = crate::frontmatter::markdown_to_html("Hello... world\n");
+        assert!(
+            html.contains("Hello\u{2026} world"),
+            "Regular text should still convert ... to Unicode ellipsis. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue310_display_math_sum_ellipsis_preserved() {
+        // Another display math pattern
+        let html = crate::frontmatter::markdown_to_html("$$\\sum_{i=1}^{...} x_i$$\n");
+        assert!(
+            !html.contains("\u{2026}"),
+            "Display math sum with ... should NOT have Unicode ellipsis. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue310_mixed_inline_and_display_math() {
+        // Mixed: inline math should have ellipsis, display math should not
+        let html = crate::frontmatter::markdown_to_html("$a, ..., z$ and $$A + ... + Z$$\n");
+        // The inline part should have ellipsis
+        assert!(
+            html.contains("a, \u{2026}, z"),
+            "Inline math should have Unicode ellipsis. Got: {}",
+            html
+        );
+        // The display part should NOT have ellipsis
+        assert!(
+            html.contains("A + ... + Z"),
+            "Display math should preserve three ASCII dots. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue310_display_math_unicode_content_ellipsis_preserved() {
+        // Non-ASCII/Unicode content in display math with ellipsis
+        let html = crate::frontmatter::markdown_to_html("$$\\alpha + ... + \\omega$$\n");
+        assert!(
+            !html.contains("\u{2026}"),
+            "Display math with Unicode Greek letters should NOT have Unicode ellipsis. Got: {}",
+            html
+        );
+    }
 }

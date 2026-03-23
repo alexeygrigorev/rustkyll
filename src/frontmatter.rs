@@ -761,13 +761,19 @@ fn restore_preexisting_curly_quotes(input: &str) -> String {
 /// kramdown passes \, through literally inside math blocks.
 /// This replaces math block contents with placeholders before markdown processing,
 /// then restores them after HTML generation.
-fn protect_math_content(input: &str) -> (String, Vec<String>) {
+/// A saved math entry: the content and whether it was inline ($...$) or display ($$...$$).
+struct MathEntry {
+    content: String,
+    is_inline: bool,
+}
+
+fn protect_math_content(input: &str) -> (String, Vec<MathEntry>) {
     if !input.contains('$') {
         return (input.to_string(), Vec::new());
     }
 
     let mut result = String::with_capacity(input.len());
-    let mut saved: Vec<String> = Vec::new();
+    let mut saved: Vec<MathEntry> = Vec::new();
     let bytes = input.as_bytes();
     let len = bytes.len();
     let mut i = 0;
@@ -790,7 +796,10 @@ fn protect_math_content(input: &str) -> (String, Vec<String>) {
                         // Found closing $$
                         let content = &input[content_start..j];
                         let idx = saved.len();
-                        saved.push(content.to_string());
+                        saved.push(MathEntry {
+                            content: content.to_string(),
+                            is_inline: false,
+                        });
                         result.push_str(delimiter);
                         result.push_str(MATH_PLACEHOLDER_PREFIX);
                         result.push_str(&idx.to_string());
@@ -815,7 +824,10 @@ fn protect_math_content(input: &str) -> (String, Vec<String>) {
                         }
                         let content = &input[content_start..j];
                         let idx = saved.len();
-                        saved.push(content.to_string());
+                        saved.push(MathEntry {
+                            content: content.to_string(),
+                            is_inline: true,
+                        });
                         result.push_str(delimiter);
                         result.push_str(MATH_PLACEHOLDER_PREFIX);
                         result.push_str(&idx.to_string());
@@ -852,25 +864,28 @@ fn protect_math_content(input: &str) -> (String, Vec<String>) {
 /// `...` to Unicode ellipsis U+2026 inside math content, matching kramdown
 /// behavior. Math content was protected from pulldown-cmark processing, so
 /// this typographic conversion must be applied during restoration.
-fn restore_math_content(html: &str, saved: &[String]) -> String {
+fn restore_math_content(html: &str, saved: &[MathEntry]) -> String {
     restore_math_content_impl(html, saved, true)
 }
 
-fn restore_math_content_impl(html: &str, saved: &[String], apply_ellipsis: bool) -> String {
+fn restore_math_content_impl(html: &str, saved: &[MathEntry], apply_ellipsis: bool) -> String {
     if saved.is_empty() {
         return html.to_string();
     }
 
     let mut result = html.to_string();
-    for (idx, content) in saved.iter().enumerate() {
+    for (idx, entry) in saved.iter().enumerate() {
         let placeholder = format!(
             "{}{}{}",
             MATH_PLACEHOLDER_PREFIX, idx, MATH_PLACEHOLDER_SUFFIX
         );
-        let restored = if apply_ellipsis {
-            content.replace("...", "\u{2026}")
+        // Issue 310: Only apply ellipsis conversion for inline math ($...$).
+        // Display math ($$...$$) should preserve ... as three ASCII dots,
+        // matching Jekyll/kramdown behavior.
+        let restored = if apply_ellipsis && entry.is_inline {
+            entry.content.replace("...", "\u{2026}")
         } else {
-            content.clone()
+            entry.content.clone()
         };
         // Issue 306: Unescape kramdown-style backslash escapes inside math.
         // Jekyll's kramdown unescapes \{ -> {, \} -> }, \# -> # in math content.
