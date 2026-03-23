@@ -3112,6 +3112,7 @@ mod tests {
             crate::template::Layout {
                 source: "{{ page.title }} {{ content }}".to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -3157,6 +3158,7 @@ mod tests {
             crate::template::Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -3210,6 +3212,7 @@ mod tests {
             crate::template::Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -3250,6 +3253,7 @@ mod tests {
             crate::template::Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -3310,6 +3314,7 @@ mod tests {
             crate::template::Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -3360,6 +3365,7 @@ mod tests {
             crate::template::Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -3411,6 +3417,7 @@ mod tests {
             crate::template::Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -3459,6 +3466,7 @@ mod tests {
             crate::template::Layout {
                 source: "{{ page.title }} | {{ content }}".to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -3498,6 +3506,7 @@ DONE
             crate::template::Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -3541,6 +3550,7 @@ DONE
             crate::template::Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -3582,6 +3592,7 @@ DONE
             crate::template::Layout {
                 source: "{{ page.title }}".to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -3693,6 +3704,7 @@ DONE
             crate::template::Layout {
                 source: "<h1>{{ page.title }}</h1>{{ content }}".to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -4067,6 +4079,7 @@ defaults:
             crate::template::Layout {
                 source: "Comments: {{ page.comments }}".to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -4140,6 +4153,7 @@ defaults:
             crate::template::Layout {
                 source: "Comments: {{ page.comments }}".to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -5501,6 +5515,7 @@ defaults:
                 source: "<body class=\"col-{{ page.collection }}\">{{ content }}</body>"
                     .to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -5566,6 +5581,7 @@ defaults:
                 source: "<body class=\"col-{{ page.collection }}\">{{ content }}</body>"
                     .to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -5631,6 +5647,7 @@ defaults:
                 source: "<body class=\"col-{{ page.collection }}\">{{ content }}</body>"
                     .to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -5702,6 +5719,7 @@ defaults:
             crate::template::Layout {
                 source: "collection={{ page.collection }}".to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -5803,6 +5821,7 @@ defaults:
                 source: "<body class=\"col-{{ page.collection }}\">{{ content }}</body>"
                     .to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -5872,6 +5891,7 @@ defaults:
             crate::template::Layout {
                 source: "<html><head><title>{{ page.title }}</title></head><body>{{ content }}</body></html>".to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -5974,6 +5994,7 @@ defaults:
             crate::template::Layout {
                 source: "<html><body>{{ content }}</body></html>".to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         layouts.insert(
@@ -5981,6 +6002,7 @@ defaults:
             crate::template::Layout {
                 source: "<article>{{ content }}</article>".to_string(),
                 parent_layout: Some("default".to_string()),
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -6072,6 +6094,7 @@ defaults:
             crate::template::Layout {
                 source: "<html><head><title>{{ page.title }}</title></head><body>{{ content }}</body></html>".to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -6189,6 +6212,7 @@ defaults:
                 )
                 .to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -6263,6 +6287,7 @@ defaults:
             crate::template::Layout {
                 source: "<html><body>{{ content }}</body></html>".to_string(),
                 parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
             },
         );
         layouts.insert(
@@ -6270,6 +6295,7 @@ defaults:
             crate::template::Layout {
                 source: "<main>{{ content }}</main>".to_string(),
                 parent_layout: Some("default".to_string()),
+                front_matter: std::collections::HashMap::new(),
             },
         );
         layouts.insert(
@@ -6277,6 +6303,7 @@ defaults:
             crate::template::Layout {
                 source: "<article>{{ content }}</article>".to_string(),
                 parent_layout: Some("page".to_string()),
+                front_matter: std::collections::HashMap::new(),
             },
         );
         let includes = HashMap::new();

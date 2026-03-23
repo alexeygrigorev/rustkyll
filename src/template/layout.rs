@@ -30,6 +30,9 @@ pub struct Layout {
     pub source: String,
     /// The name of the parent layout, if this layout chains to another.
     pub parent_layout: Option<String>,
+    /// All front matter keys from the layout file (excluding the `layout` key).
+    /// Jekyll exposes these as `layout.<key>` in templates.
+    pub front_matter: HashMap<String, serde_yaml::Value>,
 }
 
 /// Engine for loading and rendering layouts with includes.
@@ -197,7 +200,12 @@ impl LayoutEngine {
             .get(layout_name)
             .ok_or_else(|| TemplateError::LayoutNotFound(layout_name.to_string()))?;
 
-        let ctx = build_render_context(content, page_front_matter, site_context);
+        let mut ctx = build_render_context(content, page_front_matter, site_context);
+        // Jekyll exposes layout front matter as layout.* in templates
+        ctx.insert(
+            "layout".into(),
+            LiquidValue::Object(build_layout_object(&layout.front_matter)),
+        );
 
         // Use pre-compiled template if available, otherwise parse on the fly
         let result = if let Some(compiled) = self.compiled_layouts.get(layout_name) {
@@ -276,7 +284,11 @@ impl LayoutEngine {
             .get(layout_name)
             .ok_or_else(|| TemplateError::LayoutNotFound(layout_name.to_string()))?;
 
-        let ctx = build_render_context_page_only(content, page_front_matter);
+        let mut ctx = build_render_context_page_only(content, page_front_matter);
+        ctx.insert(
+            "layout".into(),
+            LiquidValue::Object(build_layout_object(&layout.front_matter)),
+        );
 
         let result = if let Some(compiled) = self.compiled_layouts.get(layout_name) {
             self.engine
@@ -306,7 +318,11 @@ impl LayoutEngine {
             .layouts
             .get(layout_name)
             .ok_or_else(|| TemplateError::LayoutNotFound(layout_name.to_string()))?;
-        let ctx = build_render_context_page_only(content, page_front_matter);
+        let mut ctx = build_render_context_page_only(content, page_front_matter);
+        ctx.insert(
+            "layout".into(),
+            LiquidValue::Object(build_layout_object(&layout.front_matter)),
+        );
         let result = if let Some(compiled) = self.compiled_layouts.get(layout_name) {
             self.engine
                 .render_with_site_overrides(compiled, &ctx, cached_site, site_overrides)?
@@ -432,6 +448,10 @@ impl LayoutEngine {
 
         let mut ctx = build_render_context_page_only(content, page_front_matter);
         ctx.insert("paginator".into(), paginator.clone());
+        ctx.insert(
+            "layout".into(),
+            LiquidValue::Object(build_layout_object(&layout.front_matter)),
+        );
 
         let result = if let Some(compiled) = self.compiled_layouts.get(layout_name) {
             self.engine
@@ -474,6 +494,10 @@ impl LayoutEngine {
             .ok_or_else(|| TemplateError::LayoutNotFound(layout_name.to_string()))?;
 
         let mut ctx = build_render_context_page_only(content, page_front_matter);
+        ctx.insert(
+            "layout".into(),
+            LiquidValue::Object(build_layout_object(&layout.front_matter)),
+        );
 
         // Inject extra fields into the page object
         if let Some(LiquidValue::Object(mut page_obj)) = ctx.remove("page") {
@@ -742,8 +766,8 @@ fn load_layouts_recursive(
 
         let source = fs::read_to_string(&path)?;
 
-        // Check for front matter in layout (for layout chaining)
-        let (parent_layout, clean_source) = extract_layout_front_matter(&source);
+        // Check for front matter in layout (for layout chaining and layout.* variables)
+        let (parent_layout, front_matter, clean_source) = extract_layout_front_matter(&source);
 
         // Pre-normalize void elements and boolean attributes in layout sources.
         // This way, the rendered output doesn't contain `/>` or `=""` from the
@@ -755,6 +779,7 @@ fn load_layouts_recursive(
             Layout {
                 source: clean_source,
                 parent_layout,
+                front_matter,
             },
         );
     }
@@ -763,11 +788,15 @@ fn load_layouts_recursive(
 }
 
 /// Extract front matter from a layout file, returning the parent layout name
-/// (if any) and the content without front matter.
-fn extract_layout_front_matter(source: &str) -> (Option<String>, String) {
+/// (if any), all front matter keys (excluding `layout`), and the content
+/// without front matter. Jekyll exposes all layout front matter keys as
+/// `layout.<key>` in templates.
+fn extract_layout_front_matter(
+    source: &str,
+) -> (Option<String>, HashMap<String, serde_yaml::Value>, String) {
     let trimmed = source.trim_start_matches('\u{feff}');
     if !trimmed.starts_with("---") {
-        return (None, source.to_string());
+        return (None, HashMap::new(), source.to_string());
     }
 
     let after_opening = &trimmed[3..];
@@ -776,7 +805,7 @@ fn extract_layout_front_matter(source: &str) -> (Option<String>, String) {
     } else if let Some(stripped) = after_opening.strip_prefix("\r\n") {
         stripped
     } else {
-        return (None, source.to_string());
+        return (None, HashMap::new(), source.to_string());
     };
 
     for (i, line) in rest.lines().enumerate() {
@@ -791,20 +820,42 @@ fn extract_layout_front_matter(source: &str) -> (Option<String>, String) {
                 ""
             };
 
-            // Parse the YAML to find a `layout` key
-            let parent_layout =
-                serde_yaml::from_str::<HashMap<String, serde_yaml::Value>>(yaml_str)
-                    .ok()
-                    .and_then(|fm| {
-                        fm.get("layout")
-                            .and_then(|v| v.as_str().map(|s| s.to_string()))
-                    });
+            // Parse the YAML front matter
+            let mut parent_layout = None;
+            let mut front_matter = HashMap::new();
 
-            return (parent_layout, body.to_string());
+            if let Ok(fm) = serde_yaml::from_str::<HashMap<String, serde_yaml::Value>>(yaml_str) {
+                for (key, value) in fm {
+                    if key == "layout" {
+                        parent_layout = value.as_str().map(|s| s.to_string());
+                    } else {
+                        front_matter.insert(key, value);
+                    }
+                }
+            }
+
+            return (parent_layout, front_matter, body.to_string());
         }
     }
 
-    (None, source.to_string())
+    (None, HashMap::new(), source.to_string())
+}
+
+/// Build a Liquid Object from a layout's front matter for use as the `layout`
+/// variable in template context. Jekyll exposes all layout front matter keys
+/// (except `layout` itself) as `layout.<key>`.
+fn build_layout_object(front_matter: &HashMap<String, serde_yaml::Value>) -> Object {
+    let mut layout_obj = Object::new();
+    for (key, value) in front_matter {
+        let liquid_val = yaml_to_liquid(value);
+        let liquid_val = if matches!(liquid_val, LiquidValue::Array(_)) {
+            normalize_arrays(liquid_val)
+        } else {
+            liquid_val
+        };
+        layout_obj.insert(key.clone().into(), liquid_val);
+    }
+    layout_obj
 }
 
 /// Build the rendering context for a layout or page.
@@ -1181,6 +1232,7 @@ mod tests {
             Layout {
                 source: "<html><body>{{ content }}</body></html>".to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -1200,6 +1252,7 @@ mod tests {
             Layout {
                 source: "<h1>{{ page.title }}</h1>{{ content }}".to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -1224,6 +1277,7 @@ mod tests {
             Layout {
                 source: "{{ site.name }} | {{ content }}".to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -1257,6 +1311,7 @@ mod tests {
             Layout {
                 source: "<html><body>Static only</body></html>".to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -1277,6 +1332,7 @@ mod tests {
             Layout {
                 source: "<div>{{ content }}</div>".to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -1296,6 +1352,7 @@ mod tests {
             Layout {
                 source: "Title: {{ page.title }}, Desc: {{ page.missing_field }}".to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -1315,6 +1372,7 @@ mod tests {
             Layout {
                 source: "[INNER:{{ content }}]".to_string(),
                 parent_layout: Some("outer".to_string()),
+                front_matter: HashMap::new(),
             },
         );
         layouts.insert(
@@ -1322,6 +1380,7 @@ mod tests {
             Layout {
                 source: "[OUTER:{{ content }}]".to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -1346,6 +1405,7 @@ mod tests {
                 source: "{% include header.html %}{{ content }}{% include footer.html %}"
                     .to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let mut includes = HashMap::new();
@@ -1743,6 +1803,7 @@ mod tests {
             Layout {
                 source: "<title>{{ page.title }}</title><body>{{ content }}</body>".to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -2348,6 +2409,7 @@ mod tests {
             Layout {
                 source: podcast_layout_source.to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -2446,6 +2508,7 @@ mod tests {
             Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -2486,6 +2549,7 @@ mod tests {
             Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -2519,6 +2583,7 @@ mod tests {
             Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -2557,6 +2622,7 @@ mod tests {
             Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -2593,6 +2659,7 @@ mod tests {
             Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -2653,6 +2720,7 @@ mod tests {
             Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -2713,6 +2781,7 @@ mod tests {
             Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -2762,6 +2831,7 @@ mod tests {
             Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -2813,6 +2883,7 @@ mod tests {
             Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -2868,6 +2939,7 @@ mod tests {
             Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -2912,6 +2984,7 @@ mod tests {
             Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -2952,6 +3025,7 @@ mod tests {
             Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -3110,6 +3184,7 @@ mod tests {
             Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -3163,6 +3238,7 @@ mod tests {
             Layout {
                 source: layout_source.to_string(),
                 parent_layout: None,
+                front_matter: HashMap::new(),
             },
         );
         let includes = HashMap::new();
@@ -3466,6 +3542,276 @@ mod tests {
             output.contains("\\n"),
             "strip_html | jsonify should preserve trailing newline (matching Jekyll), got: {}",
             output
+        );
+    }
+
+    // ========================================================================
+    // Issue 319: Layout front matter as layout.* template variables
+    // ========================================================================
+
+    #[test]
+    fn test_extract_layout_front_matter_css_array() {
+        let source = "---\nlayout: default\ncommon-css:\n  - \"/a.css\"\n  - \"/b.css\"\n---\n<html>body</html>";
+        let (parent, fm, _body) = extract_layout_front_matter(source);
+        assert_eq!(parent, Some("default".to_string()));
+        let css = fm.get("common-css").expect("common-css should be present");
+        assert!(css.is_sequence(), "common-css should be an array");
+        let seq = css.as_sequence().unwrap();
+        assert_eq!(seq.len(), 2);
+        assert_eq!(seq[0].as_str().unwrap(), "/a.css");
+        assert_eq!(seq[1].as_str().unwrap(), "/b.css");
+        // The `layout` key itself should NOT be in the front_matter map
+        assert!(
+            !fm.contains_key("layout"),
+            "layout key should be excluded from front_matter"
+        );
+    }
+
+    #[test]
+    fn test_extract_layout_front_matter_ext_css_objects() {
+        let source = "---\ncommon-ext-css:\n  - href: \"https://cdn.example.com/bootstrap.min.css\"\n    sri: \"sha384-abc\"\n---\n<html></html>";
+        let (_parent, fm, _body) = extract_layout_front_matter(source);
+        let ext_css = fm
+            .get("common-ext-css")
+            .expect("common-ext-css should be present");
+        let seq = ext_css.as_sequence().unwrap();
+        assert_eq!(seq.len(), 1);
+        let obj = seq[0].as_mapping().unwrap();
+        assert_eq!(
+            obj.get(serde_yaml::Value::String("href".to_string()))
+                .unwrap()
+                .as_str()
+                .unwrap(),
+            "https://cdn.example.com/bootstrap.min.css"
+        );
+        assert_eq!(
+            obj.get(serde_yaml::Value::String("sri".to_string()))
+                .unwrap()
+                .as_str()
+                .unwrap(),
+            "sha384-abc"
+        );
+    }
+
+    #[test]
+    fn test_extract_layout_front_matter_boolean() {
+        let source = "---\nnav_enabled: false\n---\n<html></html>";
+        let (_parent, fm, _body) = extract_layout_front_matter(source);
+        let val = fm
+            .get("nav_enabled")
+            .expect("nav_enabled should be present");
+        assert_eq!(val.as_bool().unwrap(), false);
+    }
+
+    #[test]
+    fn test_extract_layout_front_matter_string() {
+        let source = "---\ncategory: \"What's new\"\n---\n<html></html>";
+        let (_parent, fm, _body) = extract_layout_front_matter(source);
+        let val = fm.get("category").expect("category should be present");
+        assert_eq!(val.as_str().unwrap(), "What's new");
+    }
+
+    #[test]
+    fn test_extract_layout_front_matter_none() {
+        let source = "<html>no front matter</html>";
+        let (parent, fm, _body) = extract_layout_front_matter(source);
+        assert!(parent.is_none());
+        assert!(fm.is_empty());
+    }
+
+    #[test]
+    fn test_extract_layout_front_matter_only_layout_key() {
+        let source = "---\nlayout: default\n---\n<html></html>";
+        let (parent, fm, _body) = extract_layout_front_matter(source);
+        assert_eq!(parent, Some("default".to_string()));
+        assert!(
+            fm.is_empty(),
+            "Only layout key means empty front_matter map"
+        );
+    }
+
+    #[test]
+    fn test_extract_layout_front_matter_unicode() {
+        let source =
+            "---\ntitle: \"Biblioth\u{00e8}que\"\nauthor: \"\u{6587}\u{5b57}\"\n---\n<html></html>";
+        let (_parent, fm, _body) = extract_layout_front_matter(source);
+        assert_eq!(
+            fm.get("title").unwrap().as_str().unwrap(),
+            "Biblioth\u{00e8}que"
+        );
+        assert_eq!(
+            fm.get("author").unwrap().as_str().unwrap(),
+            "\u{6587}\u{5b57}"
+        );
+    }
+
+    #[test]
+    fn test_layout_variable_in_template_context_css_array() {
+        // Layout with common-css array, template renders {{ layout.common-css | size }}
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "base".to_string(),
+            Layout {
+                source: "{{ layout.common-css | size }}|{{ content }}".to_string(),
+                parent_layout: None,
+                front_matter: {
+                    let mut fm = HashMap::new();
+                    fm.insert(
+                        "common-css".to_string(),
+                        serde_yaml::Value::Sequence(vec![
+                            serde_yaml::Value::String("/a.css".to_string()),
+                            serde_yaml::Value::String("/b.css".to_string()),
+                        ]),
+                    );
+                    fm
+                },
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+        let fm = FrontMatter::new();
+        let site = Object::new();
+        let result = engine.render("base", "hello", &fm, &site).unwrap();
+        assert!(
+            result.contains("2|"),
+            "Expected layout.common-css size=2, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_layout_variable_iterate_css_array() {
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "base".to_string(),
+            Layout {
+                source: "{% for css in layout.common-css %}{{ css }};{% endfor %}".to_string(),
+                parent_layout: None,
+                front_matter: {
+                    let mut fm = HashMap::new();
+                    fm.insert(
+                        "common-css".to_string(),
+                        serde_yaml::Value::Sequence(vec![
+                            serde_yaml::Value::String("/a.css".to_string()),
+                            serde_yaml::Value::String("/b.css".to_string()),
+                        ]),
+                    );
+                    fm
+                },
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+        let fm = FrontMatter::new();
+        let site = Object::new();
+        let result = engine.render("base", "hello", &fm, &site).unwrap();
+        assert!(
+            result.contains("/a.css;"),
+            "Expected /a.css in output, got: {}",
+            result
+        );
+        assert!(
+            result.contains("/b.css;"),
+            "Expected /b.css in output, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_layout_variable_boolean_false() {
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "base".to_string(),
+            Layout {
+                source: "nav={{ layout.nav_enabled }}".to_string(),
+                parent_layout: None,
+                front_matter: {
+                    let mut fm = HashMap::new();
+                    fm.insert("nav_enabled".to_string(), serde_yaml::Value::Bool(false));
+                    fm
+                },
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+        let fm = FrontMatter::new();
+        let site = Object::new();
+        let result = engine.render("base", "", &fm, &site).unwrap();
+        assert!(
+            result.contains("nav=false"),
+            "Expected nav=false, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_layout_variable_nonexistent_key() {
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "base".to_string(),
+            Layout {
+                source: "val=[{{ layout.nonexistent }}]".to_string(),
+                parent_layout: None,
+                front_matter: HashMap::new(),
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+        let fm = FrontMatter::new();
+        let site = Object::new();
+        let result = engine.render("base", "", &fm, &site).unwrap();
+        assert!(
+            result.contains("val=[]"),
+            "Expected empty for nonexistent key, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_layout_chaining_front_matter() {
+        // Inner layout "post" has author_profile: true, chains to "base"
+        // Base layout "base" has nav_enabled: false
+        // When rendering through "post", layout.author_profile should be true at post level,
+        // and layout.nav_enabled should be false at base level
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "post".to_string(),
+            Layout {
+                source: "post:author={{ layout.author_profile }}|{{ content }}".to_string(),
+                parent_layout: Some("base".to_string()),
+                front_matter: {
+                    let mut fm = HashMap::new();
+                    fm.insert("author_profile".to_string(), serde_yaml::Value::Bool(true));
+                    fm
+                },
+            },
+        );
+        layouts.insert(
+            "base".to_string(),
+            Layout {
+                source: "base:nav={{ layout.nav_enabled }}|{{ content }}".to_string(),
+                parent_layout: None,
+                front_matter: {
+                    let mut fm = HashMap::new();
+                    fm.insert("nav_enabled".to_string(), serde_yaml::Value::Bool(false));
+                    fm
+                },
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+        let fm = FrontMatter::new();
+        let site = Object::new();
+        let result = engine.render("post", "body", &fm, &site).unwrap();
+        assert!(
+            result.contains("post:author=true"),
+            "Post layout should see author_profile=true, got: {}",
+            result
+        );
+        assert!(
+            result.contains("base:nav=false"),
+            "Base layout should see nav_enabled=false, got: {}",
+            result
         );
     }
 }
