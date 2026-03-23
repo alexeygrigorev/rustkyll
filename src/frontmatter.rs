@@ -1,6 +1,27 @@
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use pulldown_cmark::{html, Event, Options, Parser};
+
+/// Global flag controlling whether the `markdownify` filter should indent list
+/// items. Set to `true` for kramdown sites (default), `false` for CommonMark
+/// sites (e.g., CommonMarkGhPages).
+///
+/// This is set once from `main.rs` before rendering begins. The markdownify
+/// filter reads it via `get_markdownify_indent_lists()`.
+static MARKDOWNIFY_INDENT_LISTS: AtomicBool = AtomicBool::new(true);
+
+/// Set whether the `markdownify` filter should indent list items.
+///
+/// Call this from `main.rs` with `false` for CommonMarkGhPages sites.
+pub fn set_markdownify_indent_lists(indent: bool) {
+    MARKDOWNIFY_INDENT_LISTS.store(indent, Ordering::Relaxed);
+}
+
+/// Get whether the `markdownify` filter should indent list items.
+pub fn get_markdownify_indent_lists() -> bool {
+    MARKDOWNIFY_INDENT_LISTS.load(Ordering::Relaxed)
+}
 
 /// Errors that can occur when parsing a document.
 #[derive(Debug, thiserror::Error)]
@@ -608,7 +629,10 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     // Restore pre-existing curly quotes after direction fix
     let html_output = restore_preexisting_curly_quotes(&html_output);
 
-    crate::kramdown::postprocess_for_filter(&html_output)
+    // Issue 314: Use the global indent_lists flag so CommonMark sites
+    // produce unindented <li> elements in the markdownify filter path too.
+    let indent_lists = get_markdownify_indent_lists();
+    crate::kramdown::postprocess_for_filter_with_options(&html_output, indent_lists)
 }
 
 /// Escape parenthesis-style ordered list markers to prevent pulldown-cmark
@@ -893,7 +917,56 @@ fn restore_math_content_impl(html: &str, saved: &[MathEntry], apply_ellipsis: bo
             .replace("\\{", "{")
             .replace("\\}", "}")
             .replace("\\#", "#");
+        // Issue 313: Apply smart quote conversion to restored math content.
+        // Jekyll's kramdown applies smart punctuation inside math delimiters too,
+        // converting ' to U+2019 (right single quote) and " to curly double quotes.
+        // Since math content was protected from pulldown-cmark's smart punctuation,
+        // we apply the conversion here during restoration.
+        let restored = if apply_ellipsis {
+            apply_smart_quotes_in_math(&restored)
+        } else {
+            restored
+        };
         result = result.replace(&placeholder, &restored);
+    }
+    result
+}
+
+/// Issue 313: Apply smart quote conversion to math content during restoration.
+///
+/// Jekyll's kramdown applies smart punctuation (SQ_RULES) to all text including
+/// content inside math delimiters. Since we protected math content from pulldown-cmark's
+/// smart punctuation pass, we need to apply the conversion here.
+///
+/// Converts:
+/// - `'` (straight single quote) -> U+2019 (right single quotation mark)
+/// - `"` (straight double quote) -> U+201C/U+201D (left/right double quotation mark)
+///
+/// kramdown's behavior: all apostrophes/primes in math become U+2019.
+/// For double quotes, the first becomes U+201C (left) and the second U+201D (right).
+fn apply_smart_quotes_in_math(content: &str) -> String {
+    if !content.contains('\'') && !content.contains('"') {
+        return content.to_string();
+    }
+    let mut result = String::with_capacity(content.len());
+    let mut expecting_close_double = false;
+    for ch in content.chars() {
+        match ch {
+            '\'' => {
+                // kramdown converts all single quotes in math to right single quote
+                result.push('\u{2019}');
+            }
+            '"' => {
+                if expecting_close_double {
+                    result.push('\u{201D}'); // right double quote (closing)
+                    expecting_close_double = false;
+                } else {
+                    result.push('\u{201C}'); // left double quote (opening)
+                    expecting_close_double = true;
+                }
+            }
+            _ => result.push(ch),
+        }
     }
     result
 }
@@ -4414,6 +4487,140 @@ More text.
         assert!(
             html.contains("$S = {a, b, c}$"),
             "Braces unescaped in math with surrounding Unicode. Got: {}",
+            html
+        );
+    }
+
+    // ---- Issue 313: Smart quotes MUST be applied inside math (matching Jekyll/kramdown) ----
+    // Jekyll's kramdown applies smart quote conversion everywhere including inside
+    // math delimiters. To match Jekyll's DOM output, rustkyll must also convert
+    // straight quotes to curly quotes inside $...$ and $$...$$.
+
+    #[test]
+    fn test_issue313_inline_math_curly_apostrophe() {
+        // Prime notation: $B'(x)$ -- Jekyll converts to curly right single quote
+        let html = markdown_to_html("so $B'(x) = B(x) + m$\n");
+        assert!(
+            html.contains("$B\u{2019}(x)"),
+            "Inline math apostrophe should be converted to curly U+2019 to match Jekyll. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue313_display_math_curly_apostrophe() {
+        // Derivative notation in display math -- Jekyll also converts
+        let html = markdown_to_html(
+            "$$f'(x) = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}$$\n",
+        );
+        assert!(
+            html.contains("f\u{2019}(x)"),
+            "Display math apostrophe should be curly U+2019 to match Jekyll. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue313_smart_quotes_still_work_outside_math() {
+        // Regular text should still get smart quotes
+        let html = markdown_to_html("He said \"hello\"\n");
+        assert!(
+            html.contains('\u{201C}') || html.contains('\u{201D}'),
+            "Regular text should still get smart (curly) double quotes. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue313_mixed_math_and_text_quotes() {
+        // Both text and math apostrophes should be curly to match Jekyll
+        let html = markdown_to_html("It's a $x'$ derivative\n");
+        assert!(
+            html.contains("It\u{2019}s"),
+            "Text apostrophe should be curly. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("$x\u{2019}$"),
+            "Math apostrophe should also be curly to match Jekyll. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue313_greek_math_with_prime() {
+        // Non-ASCII/Unicode test: Greek letters + prime in math
+        let html = markdown_to_html("$\\alpha' \\in S$\n");
+        assert!(
+            html.contains("\\alpha\u{2019}"),
+            "Greek math with prime should have curly apostrophe to match Jekyll. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue313_inline_math_double_quotes() {
+        // Double quotes inside math -- Jekyll converts them to curly too
+        let html = markdown_to_html("text $\"a\"$ more\n");
+        // The double quotes may be converted to curly or HTML-escaped;
+        // the key is they match Jekyll behavior
+        assert!(
+            html.contains("$\u{201C}a\u{201D}$")
+                || html.contains("$&quot;a&quot;$")
+                || html.contains("$\"a\"$"),
+            "Math double quotes should match Jekyll behavior. Got: {}",
+            html
+        );
+    }
+
+    // ---- Issue 313: URL Cyrillic in fragments must match Jekyll ----
+    // Jekyll preserves raw Cyrillic in URL #fragments. Rustkyll percent-encodes them.
+
+    #[test]
+    fn test_issue313_url_cyrillic_fragment_not_encoded() {
+        // Jekyll: href='Combinations#Свойства_сочетаний' (raw Cyrillic)
+        // Rustkyll: href='Combinations#%D0%A1%D0%B2%D0%BE%D0%B9...' (percent-encoded)
+        let html = markdown_to_html(
+            "[Link](Combinations#\u{0421}\u{0432}\u{043E}\u{0439}\u{0441}\u{0442}\u{0432}\u{0430})\n",
+        );
+        assert!(
+            html.contains("\u{0421}\u{0432}\u{043E}\u{0439}\u{0441}\u{0442}\u{0432}\u{0430}"),
+            "Cyrillic in URL fragment should NOT be percent-encoded to match Jekyll. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue313_url_parentheses_not_encoded() {
+        // Link with parentheses in URL -- should stay as literal ()
+        let html = markdown_to_html(
+            "[Link](/index.php/Algorithms_(Part_1))\n",
+        );
+        assert!(
+            html.contains("href=\"/index.php/Algorithms_(Part_1)\""),
+            "Parentheses in URLs must NOT be percent-encoded. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue313_url_hash_fragment_preserved() {
+        // Hash fragments must be preserved, not encoded
+        let html = markdown_to_html("[Link](/page#section)\n");
+        assert!(
+            html.contains("href=\"/page#section\""),
+            "Hash fragment must be preserved. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue313_url_cjk_fragment() {
+        // Non-ASCII/Unicode test: CJK characters in URL fragments
+        let html = markdown_to_html("[Link](/page#\u{4e2d}\u{6587})\n");
+        assert!(
+            html.contains("#\u{4e2d}\u{6587}"),
+            "CJK in URL fragment should not be percent-encoded. Got: {}",
             html
         );
     }
