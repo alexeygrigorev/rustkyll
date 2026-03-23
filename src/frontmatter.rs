@@ -810,8 +810,11 @@ fn restore_preexisting_curly_quotes(input: &str) -> String {
 ///
 /// Pre-existing percent-encoded sequences (`%XX`) in the source are left unchanged
 /// because they're already ASCII and pulldown-cmark passes them through.
-const URL_NON_ASCII_PREFIX: &str = "\x01U";
-const URL_NON_ASCII_SUFFIX: &str = "U\x01";
+// Issue 323: Use URL-safe alphanumeric placeholders instead of \x01 control characters.
+// pulldown-cmark rejects links whose URL contains control characters, causing
+// links with non-ASCII fragments to appear as raw markdown text.
+const URL_NON_ASCII_PREFIX: &str = "XNONASCII";
+const URL_NON_ASCII_SUFFIX: &str = "XENDNA";
 
 fn protect_non_ascii_in_link_urls(input: &str) -> (String, Vec<String>) {
     // Quick check: if no non-ASCII characters, nothing to do
@@ -4709,6 +4712,80 @@ More text.
         assert!(
             html.contains("#\u{4e2d}\u{6587}"),
             "CJK in URL fragment should not be percent-encoded. Got: {}",
+            html
+        );
+    }
+
+    // Issue 323: Unicode URL fragments in inline links must render as <a> elements
+    #[test]
+    fn test_issue323_cyrillic_fragment_relative_path() {
+        // Exact pattern from the bug: relative path with long Cyrillic fragment
+        let input = "[\u{0441}\u{043f}\u{043e}\u{0434}\u{0435}\u{043b}\u{044f}\u{0442}](../building-community/#\u{0441}\u{043f}\u{043e}\u{0434}\u{0435}\u{043b}\u{0435}\u{0442}\u{0435}-\u{0441}\u{043e}\u{0431}\u{0441}\u{0442}\u{0432}\u{0435}\u{043d}\u{043e}\u{0441}\u{0442}\u{0442}\u{0430})\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("<a href=\"../building-community/#\u{0441}\u{043f}\u{043e}\u{0434}\u{0435}\u{043b}\u{0435}\u{0442}\u{0435}-\u{0441}\u{043e}\u{0431}\u{0441}\u{0442}\u{0432}\u{0435}\u{043d}\u{043e}\u{0441}\u{0442}\u{0442}\u{0430}\">"),
+            "Cyrillic fragment with relative path should render as <a>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue323_cyrillic_fragment_only() {
+        let input =
+            "[text](#\u{0441}\u{043f}\u{043e}\u{0434}\u{0435}\u{043b}\u{0435}\u{0442}\u{0435})\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("<a href=\"#\u{0441}\u{043f}\u{043e}\u{0434}\u{0435}\u{043b}\u{0435}\u{0442}\u{0435}\">text</a>"),
+            "Cyrillic-only fragment should render as <a>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue323_cjk_fragment_relative_path() {
+        let input = "[text](../page/#\u{65e5}\u{672c}\u{8a9e})\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("<a href=\"../page/#\u{65e5}\u{672c}\u{8a9e}\">text</a>"),
+            "CJK fragment with relative path should render as <a>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue323_arabic_fragment() {
+        let input = "[text](../page/#\u{0627}\u{0644}\u{0639}\u{0631}\u{0628}\u{064a}\u{0629})\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("<a href=\"../page/#\u{0627}\u{0644}\u{0639}\u{0631}\u{0628}\u{064a}\u{0629}\">text</a>"),
+            "Arabic fragment should render as <a>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue323_mixed_ascii_and_unicode_same_paragraph() {
+        let input = "[ascii](url#ascii) and [unicode](url#\u{043a}\u{0438}\u{0440}\u{0438}\u{043b}\u{043b}\u{0438}\u{0446}\u{0430})\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("href=\"url#ascii\""),
+            "ASCII link should render. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("href=\"url#\u{043a}\u{0438}\u{0440}\u{0438}\u{043b}\u{043b}\u{0438}\u{0446}\u{0430}\""),
+            "Unicode link should render alongside ASCII. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue323_chinese_fragment_with_hyphens() {
+        let input = "[text](../page/#\u{4e2d}\u{6587}-\u{6807}\u{9898})\n";
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("<a href=\"../page/#\u{4e2d}\u{6587}-\u{6807}\u{9898}\">text</a>"),
+            "Chinese fragment with hyphens should render as <a>. Got: {}",
             html
         );
     }

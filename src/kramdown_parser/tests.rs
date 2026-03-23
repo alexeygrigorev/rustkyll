@@ -2380,3 +2380,114 @@ fn test_issue320_p_markdown_preserves_class() {
         "class attribute should be preserved. Got: {html}"
     );
 }
+
+// Issue 323: Unicode URL fragments in inline links
+#[test]
+fn test_issue323_inline_link_cyrillic_fragment() {
+    let input = "[text](../page/#кириллица)\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<a href=\"../page/#кириллица\">text</a>"),
+        "Cyrillic fragment link should render as <a>. Got: {html}"
+    );
+}
+
+#[test]
+fn test_issue323_inline_link_cyrillic_fragment_only() {
+    let input = "[text](#споделете-собствеността)\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<a href=\"#споделете-собствеността\">text</a>"),
+        "Cyrillic-only fragment link should render as <a>. Got: {html}"
+    );
+}
+
+#[test]
+fn test_issue323_inline_link_cjk_fragment() {
+    let input = "[text](../page/#日本語)\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<a href=\"../page/#日本語\">text</a>"),
+        "CJK fragment link should render as <a>. Got: {html}"
+    );
+}
+
+#[test]
+fn test_issue323_inline_link_arabic_fragment() {
+    let input = "[text](../page/#العربية)\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<a href=\"../page/#العربية\">text</a>"),
+        "Arabic fragment link should render as <a>. Got: {html}"
+    );
+}
+
+#[test]
+fn test_issue323_inline_link_chinese_fragment() {
+    let input = "[text](../page/#中文标题)\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<a href=\"../page/#中文标题\">text</a>"),
+        "Chinese fragment link should render as <a>. Got: {html}"
+    );
+}
+
+#[test]
+fn test_issue323_mixed_ascii_and_unicode_links_same_paragraph() {
+    let input = "[ascii](url#ascii) and [unicode](url#кириллица)\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<a href=\"url#ascii\">ascii</a>"),
+        "ASCII link should still work. Got: {html}"
+    );
+    assert!(
+        html.contains("<a href=\"url#кириллица\">unicode</a>"),
+        "Unicode link should work alongside ASCII. Got: {html}"
+    );
+}
+
+#[test]
+fn test_issue323_inline_link_bold_text_unicode_url() {
+    let input = "[**bold text**](../page/#юникод)\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<a href=\"../page/#юникод\">"),
+        "Link with bold text and Unicode URL should render. Got: {html}"
+    );
+    assert!(
+        html.contains("<strong>bold text</strong>"),
+        "Bold text inside link should render. Got: {html}"
+    );
+}
+
+#[test]
+fn test_issue323_regression_ascii_inline_link() {
+    let input = "[text](../page/#ascii-anchor)\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<a href=\"../page/#ascii-anchor\">text</a>"),
+        "ASCII anchor should still work. Got: {html}"
+    );
+}
+
+#[test]
+fn test_issue323_regression_external_link() {
+    let input = "[text](https://example.com)\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<a href=\"https://example.com\">text</a>"),
+        "External link should still work. Got: {html}"
+    );
+}
+
+#[test]
+fn test_issue323_long_cyrillic_path_and_fragment() {
+    let input = "[споделят собствеността върху проекта](../building-community/#споделете-собствеността-върху-вашия-проект)\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains(
+            "<a href=\"../building-community/#споделете-собствеността-върху-вашия-проект\">"
+        ),
+        "Long Cyrillic link should render as <a>. Got: {html}"
+    );
+}
