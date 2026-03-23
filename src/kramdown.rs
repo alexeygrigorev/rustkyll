@@ -302,6 +302,9 @@ pub fn postprocess_for_filter(html: &str) -> String {
     // Note: inline code classes are now added during markdown rendering
     // (in frontmatter::add_inline_code_class_to_events) rather than here.
     let html = remove_ol_start_attribute(&html);
+    // Issue 307: Remove extra <p> wrapping that pulldown-cmark adds when
+    // <br /> from newline_to_br precedes a list block.
+    let html = unwrap_br_paragraphs_before_lists(&html);
     let html = add_block_spacing(&html);
     let html = indent_list_items(&html);
     let html = normalize_bare_void_elements(&html);
@@ -3367,6 +3370,81 @@ fn wrap_standalone_comments_in_paragraphs(html: &str) -> String {
     }
 
     result.join("\n")
+}
+
+// ============================================================================
+// 4b. Issue 307: Unwrap <p> around text ending with <br /> before lists
+// ============================================================================
+
+/// Remove extra `<p>` wrapping that pulldown-cmark adds when `<br />` from
+/// `newline_to_br` precedes a list block (`<ol>` or `<ul>`).
+///
+/// pulldown-cmark sees `text<br />\n1. First` and wraps the text in a `<p>`
+/// paragraph. Jekyll/kramdown keeps the text as a sibling of the list without
+/// `<p>` wrapping. This function detects `<p>...<br /></p>\n...<ol/ul>` and
+/// removes the `<p>...</p>` wrapper, leaving just `...<br />\n<ol/ul>`.
+fn unwrap_br_paragraphs_before_lists(html: &str) -> String {
+    // Only process if the input contains <br /> (from newline_to_br)
+    if !html.contains("<br />") {
+        return html.to_string();
+    }
+
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+
+    while !remaining.is_empty() {
+        // Look for <p> tags
+        if let Some(p_start) = remaining.find("<p>") {
+            // Copy everything before this <p>
+            result.push_str(&remaining[..p_start]);
+            let after_p_open = &remaining[p_start + 3..]; // skip "<p>"
+
+            // Find the matching </p>
+            if let Some(p_end) = after_p_open.find("</p>") {
+                let p_content = &after_p_open[..p_end];
+
+                // Check if the paragraph content ends with <br />
+                if p_content.trim_end().ends_with("<br />") {
+                    let after_close = &after_p_open[p_end + 4..]; // skip "</p>"
+
+                    // Check if what follows (after optional whitespace/newlines)
+                    // is a list tag
+                    let trimmed_after = after_close.trim_start_matches(|c: char| {
+                        c == '\n' || c == '\r' || c == ' ' || c == '\t'
+                    });
+                    if trimmed_after.starts_with("<ol>")
+                        || trimmed_after.starts_with("<ol ")
+                        || trimmed_after.starts_with("<ul>")
+                        || trimmed_after.starts_with("<ul ")
+                    {
+                        // Unwrap: emit the content without <p>...</p>, then \n before list
+                        result.push_str(p_content);
+                        result.push('\n');
+                        remaining = trimmed_after;
+                        continue;
+                    }
+                }
+
+                // Not our pattern -- emit the <p> tag and content normally
+                result.push_str("<p>");
+                result.push_str(p_content);
+                // Continue scanning from after the p_content (don't skip </p>
+                // so we don't miss nested patterns)
+                remaining = after_p_open;
+                continue;
+            }
+
+            // No matching </p> found -- emit <p> and continue
+            result.push_str("<p>");
+            remaining = after_p_open;
+        } else {
+            // No more <p> tags
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    result
 }
 
 // ============================================================================
