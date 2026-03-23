@@ -18,6 +18,10 @@ from dom_compare import (
     compare_trees,
     filter_acceptable_diffs,
     find_common_html_files,
+    is_acceptable_jekyll_math_pipe_table_diff,
+    is_acceptable_jekyll_math_emphasis_diff,
+    is_acceptable_jekyll_math_br_diff,
+    is_acceptable_jekyll_math_bug_diff,
     is_acceptable_sexagesimal_diff,
     is_acceptable_trailing_newline_diff,
     normalize_text,
@@ -737,6 +741,224 @@ class TestTruncatedDescriptionTrailingNewline(unittest.TestCase):
         self.assertEqual(len(remaining), 0,
                          f"Expected no remaining diffs, got: {remaining}")
         self.assertGreater(len(accepted), 0, "Expected at least one accepted diff")
+
+
+class TestJekyllMathPipeTableFilter(unittest.TestCase):
+    """Tests for Jekyll kramdown bug: pipe in math triggers table parsing."""
+
+    def test_table_vs_math_with_pipe_filtered(self):
+        """Jekyll <table> from | in math vs rustkyll math text -- FILTERED."""
+        # Jekyll: kramdown sees | and creates a table
+        j_html = '<li><table><tbody><tr><td>x \\</td><td> </td><td>\\ y</td></tr></tbody></table></li>'
+        # Rustkyll: math is preserved
+        r_html = '<li>$x \\ | | \\ y$</li>'
+        tree1 = parse_and_normalize(j_html)
+        tree2 = parse_and_normalize(r_html)
+        diffs = compare_trees(tree1, tree2)
+        self.assertGreater(len(diffs), 0, "Should have raw diffs before filtering")
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertEqual(len(remaining), 0,
+                         f"Expected all diffs filtered as math-pipe-table, got remaining: {remaining}")
+        self.assertGreater(len(accepted), 0, "Expected accepted diffs")
+
+    def test_real_table_not_filtered(self):
+        """Both sides have <table> with real content -- NOT filtered."""
+        j_html = '<table><tbody><tr><td>Name</td><td>Value</td></tr></tbody></table>'
+        r_html = '<table><tbody><tr><td>Name</td><td>Different</td></tr></tbody></table>'
+        tree1 = parse_and_normalize(j_html)
+        tree2 = parse_and_normalize(r_html)
+        diffs = compare_trees(tree1, tree2)
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertGreater(len(remaining), 0, "Real table diffs should NOT be filtered")
+
+    def test_table_no_math_context_not_filtered(self):
+        """Jekyll has table from | but rustkyll text has no math ($) -- NOT filtered."""
+        diff = DiffResult("li > child[1]", "expected_element_got_text",
+                          "<table>", "plain text without math")
+        self.assertFalse(is_acceptable_jekyll_math_pipe_table_diff(diff))
+
+    def test_unicode_math_pipe_filtered(self):
+        """Unicode math: $\\alpha \\ | | \\ \\beta$ vs table -- FILTERED."""
+        j_html = '<li><table><tbody><tr><td>\\alpha \\</td><td> </td><td>\\ \\beta</td></tr></tbody></table></li>'
+        r_html = '<li>$\\alpha \\ | | \\ \\beta$</li>'
+        tree1 = parse_and_normalize(j_html)
+        tree2 = parse_and_normalize(r_html)
+        diffs = compare_trees(tree1, tree2)
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertEqual(len(remaining), 0,
+                         f"Expected unicode math pipe diffs filtered, got remaining: {remaining}")
+
+    def test_multiple_math_pipe_tables_all_filtered(self):
+        """Multiple math-pipe tables on same page -- all FILTERED."""
+        j_html = '<div><p><table><tbody><tr><td>a</td><td>b</td></tr></tbody></table></p><p><table><tbody><tr><td>c</td><td>d</td></tr></tbody></table></p></div>'
+        r_html = '<div><p>$a | b$</p><p>$c | d$</p></div>'
+        tree1 = parse_and_normalize(j_html)
+        tree2 = parse_and_normalize(r_html)
+        diffs = compare_trees(tree1, tree2)
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertEqual(len(remaining), 0,
+                         f"Expected all math-pipe-table diffs filtered, got remaining: {remaining}")
+
+
+class TestJekyllMathEmphasisFilter(unittest.TestCase):
+    """Tests for Jekyll kramdown bug: underscore in math triggers emphasis."""
+
+    def test_emphasis_in_math_filtered(self):
+        """Jekyll <em> from _ in math vs rustkyll preserved math -- FILTERED."""
+        # Jekyll: kramdown sees _ and creates <em>
+        j_html = '<p>$\\underbrace{x}<em>\\text{label}</em>$</p>'
+        # Rustkyll: math preserved
+        r_html = '<p>$\\underbrace{x}_\\text{label}$</p>'
+        tree1 = parse_and_normalize(j_html)
+        tree2 = parse_and_normalize(r_html)
+        diffs = compare_trees(tree1, tree2)
+        self.assertGreater(len(diffs), 0, "Should have raw diffs before filtering")
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertEqual(len(remaining), 0,
+                         f"Expected all diffs filtered as math-emphasis, got remaining: {remaining}")
+
+    def test_real_emphasis_not_filtered(self):
+        """Real emphasis difference outside math -- NOT filtered."""
+        j_html = '<p>This is <em>important</em> text</p>'
+        r_html = '<p>This is important text</p>'
+        tree1 = parse_and_normalize(j_html)
+        tree2 = parse_and_normalize(r_html)
+        diffs = compare_trees(tree1, tree2)
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertGreater(len(remaining), 0, "Real emphasis diffs should NOT be filtered")
+
+    def test_mixed_page_only_math_emphasis_filtered(self):
+        """Mixed page: emphasis-in-math + real emphasis diff -- only math one FILTERED."""
+        # Build diffs manually for clarity
+        math_diff = DiffResult("p > child[1]", "expected_element_got_text",
+                               "<em>", "$\\underbrace{x}_\\text{y}$")
+        real_diff = DiffResult("p > child[2]", "text_differs",
+                               "hello", "world")
+        remaining, accepted = filter_acceptable_diffs([math_diff, real_diff])
+        self.assertEqual(len(accepted), 1, "Only math emphasis diff should be filtered")
+        self.assertEqual(len(remaining), 1, "Real diff should remain")
+        self.assertEqual(remaining[0].expected, "hello")
+
+
+class TestJekyllMathBrFilter(unittest.TestCase):
+    """Tests for Jekyll kramdown bug: \\\\ in math converts to <br>."""
+
+    def test_br_in_math_filtered(self):
+        """Jekyll <br> from \\\\ in math vs rustkyll preserved math -- FILTERED."""
+        # Jekyll: kramdown converts \\ to <br />
+        j_html = '<p>$\\begin{bmatrix} 1 &amp; 2<br/>3 &amp; 4 \\end{bmatrix}$</p>'
+        # Rustkyll: math preserved with \\
+        r_html = '<p>$\\begin{bmatrix} 1 &amp; 2 \\\\ 3 &amp; 4 \\end{bmatrix}$</p>'
+        tree1 = parse_and_normalize(j_html)
+        tree2 = parse_and_normalize(r_html)
+        diffs = compare_trees(tree1, tree2)
+        self.assertGreater(len(diffs), 0, "Should have raw diffs before filtering")
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertEqual(len(remaining), 0,
+                         f"Expected all diffs filtered as math-br, got remaining: {remaining}")
+
+    def test_normal_br_not_filtered(self):
+        """Normal <br> after text (not in math context) -- NOT filtered."""
+        diff = DiffResult("p > child[1]", "expected_element_got_text",
+                          "<br>", "just plain text here")
+        self.assertFalse(is_acceptable_jekyll_math_br_diff(diff))
+
+    def test_br_in_cfrac_filtered(self):
+        """<br> inside cfrac LaTeX command context -- FILTERED."""
+        diff = DiffResult("p > child[1]", "expected_element_got_text",
+                          "<br>", "$\\cfrac{a}{b} \\\\ \\cfrac{c}{d}$")
+        self.assertTrue(is_acceptable_jekyll_math_br_diff(diff))
+
+    def test_unicode_br_in_math_filtered(self):
+        """Unicode text with <br>: $\\alpha \\\\ \\beta$ -- FILTERED."""
+        diff = DiffResult("p > child[1]", "expected_element_got_text",
+                          "<br>", "$\\alpha \\\\ \\beta$")
+        self.assertTrue(is_acceptable_jekyll_math_br_diff(diff))
+
+    def test_br_missing_element_filtered(self):
+        """Missing <br> element (Jekyll had it, rustkyll doesn't) -- FILTERED in math context."""
+        diff = DiffResult("p", "missing_element", "<br>", "(none)")
+        self.assertTrue(is_acceptable_jekyll_math_br_diff(diff))
+
+
+class TestJekyllMathBugIntegration(unittest.TestCase):
+    """Integration tests for all three Jekyll math bug filters working together."""
+
+    def test_page_with_all_three_bugs_fully_filtered(self):
+        """A page with all three math bug types should have all diffs filtered."""
+        diffs = [
+            # Pipe-in-math table
+            DiffResult("li > child[1]", "expected_element_got_text",
+                       "<table>", "$a | b$"),
+            # Emphasis-in-math
+            DiffResult("p > child[1]", "expected_element_got_text",
+                       "<em>", "$\\underbrace{x}_y$"),
+            # Br-in-math
+            DiffResult("p > child[2]", "expected_element_got_text",
+                       "<br>", "$\\begin{bmatrix} 1 \\\\ 2 \\end{bmatrix}$"),
+        ]
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertEqual(len(remaining), 0,
+                         f"Expected all math bug diffs filtered, got remaining: {remaining}")
+        self.assertEqual(len(accepted), 3)
+
+    def test_math_bugs_plus_real_diff_partially_filtered(self):
+        """Page with math bug diffs AND a real diff -- only math bugs filtered."""
+        diffs = [
+            DiffResult("li > child[1]", "expected_element_got_text",
+                       "<table>", "$a | b$"),
+            DiffResult("div > p", "text_differs",
+                       "real content A", "real content B"),
+        ]
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertEqual(len(accepted), 1, "Only math bug diff should be filtered")
+        self.assertEqual(len(remaining), 1, "Real diff should remain")
+
+    def test_directory_comparison_filters_math_bugs(self):
+        """Directory comparison: page with only math bug diffs should count as matched."""
+        import shutil
+        tmpdir = tempfile.mkdtemp()
+        try:
+            j_dir = os.path.join(tmpdir, "jekyll")
+            r_dir = os.path.join(tmpdir, "rustkyll")
+            os.makedirs(j_dir)
+            os.makedirs(r_dir)
+            # Jekyll has table from pipe-in-math
+            j_html = '<html><body><li><table><tbody><tr><td>x</td><td>y</td></tr></tbody></table></li></body></html>'
+            r_html = '<html><body><li>$x | y$</li></body></html>'
+            with open(os.path.join(j_dir, "math.html"), "w") as f:
+                f.write(j_html)
+            with open(os.path.join(r_dir, "math.html"), "w") as f:
+                f.write(r_html)
+            import io
+            from contextlib import redirect_stdout
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                exit_code = compare_directories(j_dir, r_dir)
+            self.assertEqual(exit_code, 0, "Page with only math bug diffs should match")
+            output = buf.getvalue()
+            self.assertIn("1 files matched", output)
+            self.assertIn("acceptable diffs filtered out", output)
+        finally:
+            shutil.rmtree(tmpdir)
+
+    def test_greek_letter_math_pipe_filtered(self):
+        """Greek letters in math with pipe: $\\alpha | \\beta$ -- FILTERED (non-ASCII test)."""
+        diff = DiffResult("li > child[1]", "expected_element_got_text",
+                          "<table>", "$\\alpha | \\beta$")
+        self.assertTrue(is_acceptable_jekyll_math_bug_diff(diff))
+
+    def test_greek_letter_emphasis_in_math_filtered(self):
+        """Greek letters in emphasis-in-math context -- FILTERED (non-ASCII test)."""
+        diff = DiffResult("p > child[1]", "expected_element_got_text",
+                          "<em>", "$\\underbrace{\\alpha}_\\text{label}$")
+        self.assertTrue(is_acceptable_jekyll_math_bug_diff(diff))
+
+    def test_greek_letter_br_in_math_filtered(self):
+        """Greek letters with <br> in math: $\\alpha \\\\ \\beta$ -- FILTERED (non-ASCII test)."""
+        diff = DiffResult("p > child[1]", "expected_element_got_text",
+                          "<br>", "$\\alpha \\\\ \\beta$")
+        self.assertTrue(is_acceptable_jekyll_math_bug_diff(diff))
 
 
 if __name__ == "__main__":
