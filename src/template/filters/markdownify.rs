@@ -447,6 +447,119 @@ mod tests {
         );
     }
 
+    // === Issue 308: Diagnostic tests to understand current behavior ===
+
+    #[test]
+    fn test_issue308_smart_quote_after_br() {
+        // After newline_to_br: writing<br />\n" Successfully replicated...
+        // The opening " should become U+201C (left double quote), not U+201D (right)
+        let input = "writing<br />\n\u{0022} Successfully replicated 10TB/day\u{0022}";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        eprintln!("=== 308 smart quote after br ===\n{:?}", html);
+        // The opening quote after <br />\n should be U+201C (left/opening)
+        assert!(
+            html.contains("\u{201C} Successfully"),
+            "Opening quote after <br /> should be U+201C (left). Got: {html}"
+        );
+        // The closing quote should be U+201D (right/closing)
+        assert!(
+            html.contains("10TB/day\u{201D}"),
+            "Closing quote should be U+201D (right). Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue308_backtick_escape() {
+        // Test that backslash-escaped backticks produce literal backticks
+        let input = "text \\`\\`\\` more text";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        eprintln!("=== 308 backtick escape ===\n{}", html);
+        assert!(
+            html.contains("```"),
+            "Escaped backticks should produce literal ```"
+        );
+        assert!(!html.contains("<code"), "Should not create code element");
+    }
+
+    #[test]
+    fn test_issue308_backticks_with_headings_between() {
+        // When triple backticks have heading markers between them (from newline_to_br),
+        // kramdown treats them as literal text + headings, not inline code.
+        // The ### after <br />\n becomes headings in kramdown.
+        let input =
+            "template:<br />\n```### System: Expert<br />\n### User:<br />\n{}```<br />\nmore text";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        eprintln!("=== 308 backticks with headings ===\n{}", html);
+        // Should NOT create inline <code> because headings break the code span
+        // The backticks should be literal text
+        assert!(
+            !html.contains("<code"),
+            "Backticks with headings should be literal text, not code. Got: {html}"
+        );
+        assert!(
+            html.contains("```"),
+            "Should contain literal backticks. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue308_sedat_reply_no_fenced_code_block() {
+        // Real DTC comment from street-coder book (Sedat Kapanoglu reply), after newline_to_br
+        // The raw text has ```float computeAverage... which after newline_to_br becomes
+        // <br />\n```float... -- pulldown-cmark incorrectly treats this as a fenced code block
+        let input = "the function can look like this:<br />\n```float computeAverage(string filename, string columnName) {<br />\n  var csv = readCsv(filename);<br />\n}```<br />\nThis tells what the function does";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        eprintln!("=== 308 Sedat reply ===\n{}", html);
+        // Jekyll/kramdown treats this as inline text with <br /> tags, NOT a code block
+        assert!(
+            !html.contains("<pre>"),
+            "Should not create <pre> code block. Got: {html}"
+        );
+        assert!(
+            html.contains("<br />"),
+            "Should preserve <br />. Got: {html}"
+        );
+        // All the text should be in paragraph(s), not in <pre><code>
+        assert!(
+            html.contains("This tells what the function does"),
+            "Should have trailing text in paragraph. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue308_br_then_indented_text_stays_paragraph() {
+        // After newline_to_br, indented lines become <br />\n  indented...
+        // Pulldown-cmark treats 4-space-indented lines as code blocks
+        // But in the newline_to_br | markdownify pipeline, they should stay as paragraphs
+        let input = "intro text<br />\n  indented line<br />\n  another indented line";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        eprintln!("=== 308 indented text ===\n{}", html);
+        assert!(
+            !html.contains("<pre>"),
+            "Should not create indented code block. Got: {html}"
+        );
+        assert!(
+            html.contains("<br />"),
+            "Should preserve <br />. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue308_unicode_smart_quote_after_br() {
+        // Unicode content with smart quotes after <br />\n
+        let input = "Universit\u{00e9} Technologique<br />\n\u{0022}R\u{00e9}sum\u{00e9}\u{0022}";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        // Opening quote should be U+201C (left), closing should be U+201D (right)
+        assert!(
+            html.contains("\u{201C}R\u{00e9}sum\u{00e9}\u{201D}"),
+            "Unicode: Smart quotes around accented text should have correct direction. Got: {html}"
+        );
+        assert!(
+            html.contains("Universit\u{00e9}"),
+            "Unicode: Should preserve accented characters. Got: {html}"
+        );
+    }
+
     /// Unicode content: br handling with non-ASCII text
     #[test]
     fn test_issue273_unicode_br_handling() {

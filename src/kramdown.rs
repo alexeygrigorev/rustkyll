@@ -4260,7 +4260,104 @@ pub fn fix_smart_quote_directions(html: &str) -> String {
         }
     }
 
-    result.into_iter().collect()
+    let output: String = result.into_iter().collect();
+
+    // Issue 308: Fix smart quote direction after <br />\n.
+    // When newline_to_br produces <br />\n before a quote, the quote is at the
+    // start of a new visual line. If the general direction logic produced a
+    // right/closing quote but the quote is followed by (optional whitespace +)
+    // a word character, it should be left/opening instead.
+    fix_quotes_after_br(&output)
+}
+
+/// Issue 308: Fix quote direction for quotes that appear right after `<br />\n`.
+///
+/// The pattern `<br />\n"<space>word` should produce an opening (left) quote,
+/// matching kramdown's behavior where `<br />` acts as a line break and the
+/// quote starts new text. The general direction logic incorrectly produces a
+/// closing (right) quote because it sees `prev=\n` + `next=space` and triggers
+/// Rule 8 (quote + space → closing).
+fn fix_quotes_after_br(html: &str) -> String {
+    // Quick check: if no <br /> followed by quotes, skip
+    if !html.contains("<br />") {
+        return html.to_string();
+    }
+
+    let mut result = html.to_string();
+
+    // Find all occurrences of <br />\n followed by a smart quote
+    // We need to work with char indices because smart quotes are multi-byte
+    let chars: Vec<char> = result.chars().collect();
+    let mut replacements = Vec::new();
+
+    for (ci, &ch) in chars.iter().enumerate() {
+        // Look for right (closing) quotes that should be left (opening)
+        if ch != '\u{201D}' && ch != '\u{2019}' {
+            continue;
+        }
+
+        // Check if preceded by <br />\n (possibly with spaces between \n and quote)
+        let mut pi = ci;
+        // Skip whitespace before the quote
+        while pi > 0 {
+            let prev = chars[pi - 1];
+            if prev == ' ' || prev == '\t' {
+                pi -= 1;
+            } else {
+                break;
+            }
+        }
+        // Check for \n
+        if pi == 0 || chars[pi - 1] != '\n' {
+            continue;
+        }
+        pi -= 1;
+        // Check for <br /> or <br> before the \n
+        // Look for > then scan back for <br
+        if pi == 0 || chars[pi - 1] != '>' {
+            continue;
+        }
+        // Scan back to find the tag start
+        let tag_end = pi - 1;
+        let mut ti = tag_end;
+        while ti > 0 {
+            ti -= 1;
+            if chars[ti] == '<' {
+                break;
+            }
+        }
+        let tag: String = chars[ti..=tag_end].iter().collect();
+        if !tag.starts_with("<br") {
+            continue;
+        }
+
+        // This quote is right after <br />\n. Check if followed by word char
+        // (possibly after whitespace)
+        let mut ni = ci + 1;
+        while ni < chars.len() && chars[ni].is_whitespace() {
+            ni += 1;
+        }
+        if ni < chars.len() && (chars[ni].is_alphanumeric() || chars[ni] == '_') {
+            // This should be an opening quote
+            let opening = if ch == '\u{201D}' {
+                '\u{201C}'
+            } else {
+                '\u{2018}'
+            };
+            replacements.push((ci, opening));
+        }
+    }
+
+    // Apply replacements (from end to start to preserve indices)
+    if !replacements.is_empty() {
+        let mut chars = result.chars().collect::<Vec<_>>();
+        for (idx, replacement) in replacements.iter().rev() {
+            chars[*idx] = *replacement;
+        }
+        result = chars.into_iter().collect();
+    }
+
+    result
 }
 
 /// Get the previous text character, skipping over HTML tags.

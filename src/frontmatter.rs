@@ -567,8 +567,11 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     options.insert(Options::ENABLE_STRIKETHROUGH);
     options.insert(Options::ENABLE_SMART_PUNCTUATION);
 
+    // Issue 308: Prevent fenced code blocks after <br />\n from newline_to_br.
+    let markdown = escape_fenced_code_after_br(markdown);
+
     // Protect pre-existing curly quotes from fix_smart_quote_directions
-    let markdown = protect_preexisting_curly_quotes(markdown);
+    let markdown = protect_preexisting_curly_quotes(&markdown);
 
     let markdown = escape_paren_list_markers(&markdown);
     // Issue 227: Protect math content from backslash-escape processing
@@ -1280,6 +1283,95 @@ fn autolink_find_html_a_tags(line: &str, regions: &mut Vec<(usize, usize)>) {
             break;
         }
     }
+}
+
+/// Issue 308: Prevent fenced code block markers after `<br />\n` from newline_to_br.
+///
+/// In the `newline_to_br | markdownify` pipeline, ALL newlines are replaced with
+/// `<br />\n`. This means triple backticks that were inline code delimiters in
+/// the original text now appear at column 0 after a newline, causing pulldown-cmark
+/// to treat them as fenced code blocks instead of inline code.
+///
+/// kramdown treats `<br />` as inline HTML that keeps text in the same paragraph,
+/// so triple backticks after `<br />` are either inline code (if paired) or literal
+/// text (if part of a broken structure like headings in between).
+///
+/// Strategy: Remove the newline between `<br />` and the triple backticks so
+/// pulldown-cmark sees them as mid-line inline code delimiters. We only do this
+/// when a matching closing triple-backtick delimiter exists in the remaining text
+/// (before the next paragraph break), so the inline code span is properly formed.
+/// When there's no matching close, we backslash-escape the backticks so they
+/// become literal text (matching kramdown's behavior).
+fn escape_fenced_code_after_br(markdown: &str) -> String {
+    // Quick check: if no <br />\n followed by backticks or tildes, return early
+    if !markdown.contains("<br />\n```") && !markdown.contains("<br />\n~~~") {
+        return markdown.to_string();
+    }
+
+    let mut result = String::with_capacity(markdown.len() + 64);
+    let mut remaining = markdown;
+
+    while !remaining.is_empty() {
+        // Look for <br />\n followed by ``` or ~~~
+        let backtick_pos = remaining.find("<br />\n```");
+        let tilde_pos = remaining.find("<br />\n~~~");
+
+        let fence_pos = match (backtick_pos, tilde_pos) {
+            (Some(a), Some(b)) => Some(a.min(b)),
+            (Some(a), None) => Some(a),
+            (None, Some(b)) => Some(b),
+            (None, None) => None,
+        };
+
+        if let Some(pos) = fence_pos {
+            let prefix_end = pos + "<br />\n".len();
+            let fence_char = remaining.as_bytes()[prefix_end] as char;
+            let fence_str: String = std::iter::repeat_n(fence_char, 3).collect();
+            let after_fence = &remaining[prefix_end + 3..];
+
+            // Check if there's a matching closing triple-backtick/tilde delimiter
+            // and the content between them is suitable for inline code (no block-level
+            // markdown structures like headings).
+            let closing_pos = after_fence.find(&fence_str);
+            let is_inline_code = closing_pos.is_some_and(|cp| {
+                let between = &after_fence[..cp];
+                // If the content between backticks contains heading markers
+                // (e.g., `### ` after a newline or `<br />\n`), kramdown
+                // processes them as block-level elements which break the inline
+                // code span. In that case, the backticks should be literal text,
+                // not inline code delimiters.
+                !between.contains("\n### ")
+                    && !between.contains("\n## ")
+                    && !between.contains("\n# ")
+                    && !between.contains("<br />\n### ")
+                    && !between.contains("<br />\n## ")
+                    && !between.contains("<br />\n# ")
+            });
+
+            if is_inline_code {
+                // Paired backticks with inline content: remove the newline so
+                // pulldown-cmark treats them as inline code delimiters
+                result.push_str(&remaining[..pos]);
+                result.push_str("<br /> ");
+                result.push_str(&fence_str);
+                remaining = after_fence;
+            } else {
+                // Unpaired or contains block-level content: backslash-escape to
+                // produce literal text (matching kramdown's behavior)
+                result.push_str(&remaining[..prefix_end]);
+                for c in fence_str.chars() {
+                    result.push('\\');
+                    result.push(c);
+                }
+                remaining = after_fence;
+            }
+        } else {
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    result
 }
 
 fn escape_paren_list_markers(markdown: &str) -> String {
