@@ -197,6 +197,7 @@ impl Renderable for SeoRenderable {
         let site_lang = get_nested_str(runtime, &["site", "lang"]);
         let site_locale = get_nested_str(runtime, &["site", "locale"]);
         let twitter_username = get_nested_str(runtime, &["site", "twitter", "username"]);
+        let facebook_publisher = get_nested_str(runtime, &["site", "facebook", "publisher"]);
         let page_author = get_nested_str(runtime, &["page", "author"]);
         let site_author = get_nested_str(runtime, &["site", "author"]);
         let site_logo = get_nested_str(runtime, &["site", "logo"]);
@@ -413,6 +414,13 @@ impl Renderable for SeoRenderable {
                 "<meta property=\"article:published_time\" content=\"{}\" />\n",
                 html_escape(&formatted_date)
             ));
+            // 10c. article:publisher (only for articles when site.facebook.publisher is set)
+            if let Some(ref publisher) = facebook_publisher {
+                output.push_str(&format!(
+                    "<meta property=\"article:publisher\" content=\"{}\" />\n",
+                    html_escape(publisher)
+                ));
+            }
         } else {
             output.push_str("<meta property=\"og:type\" content=\"website\" />\n");
         }
@@ -3465,5 +3473,109 @@ mod tests {
                 );
             }
         }
+    }
+
+    // ========================================================================
+    // Issue 326: article:publisher meta tag
+    // ========================================================================
+
+    #[test]
+    fn test_article_publisher_meta_tag_present() {
+        // When site.facebook.publisher is set and page is an article (has date),
+        // the article:publisher meta tag should be output
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("Test Post"),
+            Some("Test Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/post/"),
+            None,
+            Some("2024-01-15"),
+            None,
+            None,
+        );
+        // Add site.facebook.publisher
+        if let Some(Value::Object(ref mut site)) = ctx.get_mut("site") {
+            let mut facebook = Object::new();
+            facebook.insert(
+                "publisher".into(),
+                Value::scalar("https://www.facebook.com/GitHub/"),
+            );
+            site.insert("facebook".into(), Value::Object(facebook));
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("article:publisher"),
+            "Should contain article:publisher meta tag. Got:\n{}",
+            out
+        );
+        assert!(
+            out.contains("https://www.facebook.com/GitHub/"),
+            "Should contain the publisher URL. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_article_publisher_meta_tag_absent_without_config() {
+        // Without site.facebook.publisher, no article:publisher tag
+        let eng = engine();
+        let ctx = make_context(
+            Some("Test Post"),
+            Some("Test Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/post/"),
+            None,
+            Some("2024-01-15"),
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            !out.contains("article:publisher"),
+            "Should NOT contain article:publisher without config. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_article_publisher_meta_tag_unicode_url() {
+        // Publisher URL with non-ASCII characters
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("Beitrag"),
+            Some("Meine Seite"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/beitrag/"),
+            None,
+            Some("2024-01-15"),
+            None,
+            None,
+        );
+        if let Some(Value::Object(ref mut site)) = ctx.get_mut("site") {
+            let mut facebook = Object::new();
+            facebook.insert(
+                "publisher".into(),
+                Value::scalar("https://www.facebook.com/M\u{00fc}nchen/"),
+            );
+            site.insert("facebook".into(), Value::Object(facebook));
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("article:publisher"),
+            "Should contain article:publisher. Got:\n{}",
+            out
+        );
+        assert!(
+            out.contains("M\u{00fc}nchen"),
+            "Publisher URL should contain unicode. Got:\n{}",
+            out
+        );
     }
 }

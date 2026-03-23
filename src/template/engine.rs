@@ -229,6 +229,14 @@ impl ObjectView for LenientValue {
         if let Some(child) = self.children.get(index) {
             return Some(child as &dyn ValueView);
         }
+        // For "size", "first", and "last" on objects/arrays: return None when
+        // there is no actual key with that name, so that augmented_get in
+        // liquid-core's find.rs can compute the correct built-in value
+        // (e.g., obj.size() returns key count). Without this, the lenient nil
+        // fallback would shadow the built-in .size property.
+        if matches!(index, "size" | "first" | "last") {
+            return None;
+        }
         // Fall back to positional (integer) indexing on objects.
         // Jekyll allows `hash[0]` to return the first [key, value] pair.
         // Positional children are lazily built only when integer indexing is used.
@@ -4363,5 +4371,90 @@ title: "Test Book"
         let template = r#"{% assign tags = items | map: "tags" | uniq | sort %}{% for t in tags %}[{{ t }}]{% endfor %}"#;
         let result = eng.parse_and_render(template, &ctx).unwrap();
         assert_eq!(result, "[Design][\u{00c4}sthetik][\u{53f0}\u{7063}]");
+    }
+
+    // ========================================================================
+    // Issue 326: .size on data mappings (LenientValue objects)
+    // ========================================================================
+
+    #[test]
+    fn test_size_on_nested_object_via_lenient_render() {
+        // site.data.locales is an Object with 3 keys; .size should return 3
+        let eng = engine();
+
+        let mut locales = Object::new();
+        locales.insert("en".into(), LiquidValue::scalar("English"));
+        locales.insert("es".into(), LiquidValue::scalar("Espa\u{00f1}ol"));
+        locales.insert("fr".into(), LiquidValue::scalar("Fran\u{00e7}ais"));
+
+        let mut data = Object::new();
+        data.insert("locales".into(), LiquidValue::Object(locales));
+
+        let mut site = Object::new();
+        site.insert("data".into(), LiquidValue::Object(data));
+
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+
+        let output = eng
+            .parse_and_render("{{ site.data.locales.size }}", &ctx)
+            .unwrap();
+        assert_eq!(output, "3", "Expected .size on Object to return key count");
+    }
+
+    #[test]
+    fn test_size_on_nested_object_in_condition() {
+        // {% if site.data.locales.size > 1 %} should evaluate to true
+        let eng = engine();
+
+        let mut locales = Object::new();
+        locales.insert("en".into(), LiquidValue::scalar("English"));
+        locales.insert("de".into(), LiquidValue::scalar("Deutsch"));
+        locales.insert("ja".into(), LiquidValue::scalar("\u{65e5}\u{672c}\u{8a9e}"));
+
+        let mut data = Object::new();
+        data.insert("locales".into(), LiquidValue::Object(locales));
+
+        let mut site = Object::new();
+        site.insert("data".into(), LiquidValue::Object(data));
+
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+
+        let output = eng
+            .parse_and_render(
+                "{% if site.data.locales.size > 1 %}yes{% else %}no{% endif %}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(
+            output, "yes",
+            "Condition on .size > 1 should be true for 3-key Object"
+        );
+    }
+
+    #[test]
+    fn test_size_on_object_with_unicode_keys() {
+        // Nested Object with non-ASCII keys; .size should still work
+        let eng = engine();
+
+        let mut mapping = Object::new();
+        mapping.insert("caf\u{00e9}".into(), LiquidValue::scalar(1));
+        mapping.insert("\u{00fc}ber".into(), LiquidValue::scalar(2));
+        mapping.insert("\u{4f60}\u{597d}".into(), LiquidValue::scalar(3));
+
+        let mut data = Object::new();
+        data.insert("items".into(), LiquidValue::Object(mapping));
+
+        let mut site = Object::new();
+        site.insert("data".into(), LiquidValue::Object(data));
+
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+
+        let output = eng
+            .parse_and_render("{{ site.data.items.size }}", &ctx)
+            .unwrap();
+        assert_eq!(output, "3");
     }
 }
