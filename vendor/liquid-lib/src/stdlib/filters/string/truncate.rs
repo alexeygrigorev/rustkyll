@@ -351,4 +351,101 @@ mod tests {
         let expected = format!("{}...", expected_prefix);
         assert_eq!(result, liquid_core::value!(expected.as_str()));
     }
+
+    // --- Issue 314: Truncation boundary edge cases ---
+
+    #[test]
+    fn unit_truncate_240_cjk_chars_no_truncation() {
+        // Exactly 240 CJK characters should NOT be truncated
+        let input: String = std::iter::repeat('\u{4E16}').take(240).collect();
+        assert_eq!(input.chars().count(), 240);
+        let result = liquid_core::call_filter!(Truncate, input.as_str(), 240_i64).unwrap();
+        assert_eq!(
+            result,
+            liquid_core::value!(input.as_str()),
+            "Exactly 240 CJK chars should not be truncated"
+        );
+    }
+
+    #[test]
+    fn unit_truncate_240_chars_ending_with_newline_no_truncation() {
+        // 239 chars + \n = 240 total. Should NOT be truncated.
+        let input: String = "a".repeat(239) + "\n";
+        assert_eq!(input.chars().count(), 240);
+        let result = liquid_core::call_filter!(Truncate, input.as_str(), 240_i64).unwrap();
+        assert_eq!(
+            result,
+            liquid_core::value!(input.as_str()),
+            "240 chars ending with \\n should not be truncated"
+        );
+    }
+
+    #[test]
+    fn unit_truncate_241_chars_ending_with_newline() {
+        // 240 chars + \n = 241 total. Should truncate to 237 + "..."
+        let input: String = "a".repeat(240) + "\n";
+        assert_eq!(input.chars().count(), 241);
+        let result = liquid_core::call_filter!(Truncate, input.as_str(), 240_i64).unwrap();
+        let expected = format!("{}...", "a".repeat(237));
+        assert_eq!(
+            result,
+            liquid_core::value!(expected.as_str()),
+            "241 chars ending with \\n should be truncated"
+        );
+    }
+
+    #[test]
+    fn unit_truncate_238_chars_plus_two_newlines_no_truncation() {
+        // 238 chars + \n\n = 240 total. Should NOT be truncated.
+        let input: String = "a".repeat(238) + "\n\n";
+        assert_eq!(input.chars().count(), 240);
+        let result = liquid_core::call_filter!(Truncate, input.as_str(), 240_i64).unwrap();
+        assert_eq!(
+            result,
+            liquid_core::value!(input.as_str()),
+            "238 chars + \\n\\n (240 total) should not be truncated"
+        );
+    }
+
+    #[test]
+    fn unit_truncate_239_chars_plus_two_newlines() {
+        // 239 chars + \n\n = 241 total. Should truncate to 237 + "..."
+        let input: String = "a".repeat(239) + "\n\n";
+        assert_eq!(input.chars().count(), 241);
+        let result = liquid_core::call_filter!(Truncate, input.as_str(), 240_i64).unwrap();
+        let expected = format!("{}...", "a".repeat(237));
+        assert_eq!(
+            result,
+            liquid_core::value!(expected.as_str()),
+            "239 chars + \\n\\n (241 total) should be truncated"
+        );
+    }
+
+    #[test]
+    fn unit_truncate_cjk_pipeline_under_240() {
+        // CJK content (80+ characters) -- well under 240, should not truncate
+        let cjk: String = std::iter::repeat('\u{4E16}').take(100).collect();
+        assert!(cjk.chars().count() < 240);
+        let result = liquid_core::call_filter!(Truncate, cjk.as_str(), 240_i64).unwrap();
+        assert_eq!(
+            result,
+            liquid_core::value!(cjk.as_str()),
+            "CJK content under 240 chars should not be truncated"
+        );
+    }
+
+    #[test]
+    fn unit_truncate_cjk_over_240() {
+        // 241 CJK characters should truncate to 237 CJK + "..."
+        let input: String = std::iter::repeat('\u{4E16}').take(241).collect();
+        assert_eq!(input.chars().count(), 241);
+        let result = liquid_core::call_filter!(Truncate, input.as_str(), 240_i64).unwrap();
+        let expected_prefix: String = std::iter::repeat('\u{4E16}').take(237).collect();
+        let expected = format!("{}...", expected_prefix);
+        assert_eq!(
+            result,
+            liquid_core::value!(expected.as_str()),
+            "241 CJK chars should truncate to 237 + ..."
+        );
+    }
 }

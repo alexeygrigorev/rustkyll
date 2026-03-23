@@ -617,4 +617,52 @@ mod tests {
             "Regression: Lists still work. Got: {html}"
         );
     }
+
+    // --- Issue 314: markdownify list indentation for CommonMark sites ---
+
+    /// Test both CommonMark (no indent) and kramdown (indent) modes in a single
+    /// test to avoid race conditions from the global AtomicBool in parallel tests.
+    /// Also tests CJK content with emoji.
+    #[test]
+    fn test_issue314_markdownify_list_indent_modes() {
+        // --- CommonMark mode: no indentation ---
+        crate::frontmatter::set_markdownify_indent_lists(false);
+
+        let input = "- Item 1\n- Item 2\n";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            !html.contains("  <li>"),
+            "CommonMark markdownify should NOT indent <li>. Got: {:?}",
+            html
+        );
+        assert!(
+            html.contains("<li>"),
+            "Should still contain <li>. Got: {:?}",
+            html
+        );
+
+        // CJK + emoji content in CommonMark mode
+        let input_cjk = "- \u{4F60}\u{597D}\u{4E16}\u{754C}\n- \u{1F600} Emoji item\n";
+        let html_cjk = crate::frontmatter::markdown_to_html_for_filter(input_cjk);
+        assert!(
+            !html_cjk.contains("  <li>"),
+            "CommonMark markdownify with CJK should NOT indent <li>. Got: {:?}",
+            html_cjk
+        );
+        assert!(
+            html_cjk.contains("\u{4F60}\u{597D}"),
+            "Should preserve CJK characters. Got: {:?}",
+            html_cjk
+        );
+
+        // --- Kramdown mode: with indentation ---
+        crate::frontmatter::set_markdownify_indent_lists(true);
+
+        let html_kramdown = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html_kramdown.contains("  <li>"),
+            "Kramdown markdownify should indent <li>. Got: {:?}",
+            html_kramdown
+        );
+    }
 }

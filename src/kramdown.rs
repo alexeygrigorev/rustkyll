@@ -298,12 +298,25 @@ pub fn postprocess_with_options(html: &str, indent_lists: bool) -> String {
 /// Inline code classes are added during markdown rendering
 /// (see `frontmatter::add_inline_code_class_to_events`).
 pub fn postprocess_for_filter(html: &str) -> String {
+    postprocess_for_filter_with_options(html, true)
+}
+
+/// Lighter postprocessing for the `markdownify` filter, with options.
+///
+/// When `indent_lists` is true (kramdown mode), list items are indented.
+/// When false (CommonMarkGhPages), list items are NOT indented, matching
+/// how `postprocess_with_options` works for page body content.
+pub fn postprocess_for_filter_with_options(html: &str, indent_lists: bool) -> String {
     let html = apply_inline_attributes(html);
     // Note: inline code classes are now added during markdown rendering
     // (in frontmatter::add_inline_code_class_to_events) rather than here.
     let html = remove_ol_start_attribute(&html);
     let html = add_block_spacing(&html);
-    let html = indent_list_items(&html);
+    let html = if indent_lists {
+        indent_list_items(&html)
+    } else {
+        html
+    };
     let html = normalize_bare_void_elements(&html);
     normalize_boolean_attributes(&html)
 }

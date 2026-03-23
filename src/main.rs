@@ -468,6 +468,10 @@ fn build_site(
         .unwrap_or(true); // kramdown is Jekyll's default
     layout_engine.set_kramdown_code_classes(is_kramdown);
 
+    // Issue 314: Set markdownify filter list indentation mode.
+    // CommonMark sites should NOT indent <li> elements in the markdownify path.
+    rustkyll::frontmatter::set_markdownify_indent_lists(is_kramdown);
+
     // Issue 223: Enable HARDBREAKS if the site config has commonmark.options: ["HARDBREAKS"]
     layout_engine.set_hardbreaks(config.has_commonmark_hardbreaks());
 
