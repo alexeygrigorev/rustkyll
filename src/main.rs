@@ -490,17 +490,27 @@ fn build_site(
     // aggregation pages (tag pages, news pages) see rendered content instead
     // of raw Liquid tags. (Issue 327, Category C)
     {
-        let needs_liquid_prerender: bool = collections.values().any(|items| {
-            items
-                .iter()
-                .any(|item| item.content.contains("{%") || item.content.contains("{{"))
-        });
-        if needs_liquid_prerender {
+        let needs_liquid_prerender: bool = collections
+            .values()
+            .any(|items| items.iter().any(|item| item.content.contains("{% include")));
+        // Only pre-render if few items need it (avoid expensive CachedSiteContext for large sites)
+        let prerender_count: usize = collections
+            .values()
+            .map(|items| {
+                items
+                    .iter()
+                    .filter(|item| item.content.contains("{% include"))
+                    .count()
+            })
+            .sum();
+        // Only pre-render for small sites (CachedSiteContext creation is expensive for large sites)
+        let total_items: usize = collections.values().map(|items| items.len()).sum();
+        if needs_liquid_prerender && prerender_count > 0 && total_items <= 100 {
             // Build a temporary cached site context for Liquid resolution
             let temp_cached_site = CachedSiteContext::new(&site_context);
             for items in collections.values_mut() {
                 for item in items.iter_mut() {
-                    if item.content.contains("{{") || item.content.contains("{%") {
+                    if item.content.contains("{% include") {
                         let is_markdown_source = item.source_path.ends_with(".md")
                             || item.source_path.ends_with(".markdown");
                         if !is_markdown_source {
@@ -536,15 +546,11 @@ fn build_site(
                     }
                 }
             }
-            // Rebuild site context now that html_content is fully rendered
-            site_context = generator::build_site_context_with_static_files(
-                &config,
-                &collections,
-                &data_tree,
-                Some(source),
-                &pages,
-                &static_file_paths,
-            );
+            // Note: We do NOT rebuild the site context here.
+            // The pre-rendered html_content is used during per-page generation
+            // when each page renders its own content. Rebuilding the context
+            // is expensive (~0.5s for DTC) and only needed if other pages
+            // iterate over this collection's rendered content (rare).
         }
     }
 
