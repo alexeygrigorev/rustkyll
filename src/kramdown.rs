@@ -3368,11 +3368,30 @@ fn wrap_standalone_comments_in_paragraphs(html: &str) -> String {
             }
         };
 
-        if prev_is_blank_or_start && next_is_blank_or_end {
-            // This is a standalone comment -- wrap it in <p>
+        // Issue 316: kramdown treats indented HTML comments (1-3 leading
+        // spaces) as inline/paragraph content and wraps them in <p>, but
+        // only when they appear among other comments (from Liquid include
+        // output). Comments inside HTML block elements (e.g., inside <div>
+        // or <form>) should NOT be wrapped even if indented.
+        let leading_spaces = lines[i].len() - lines[i].trim_start().len();
+        let is_indented_among_comments = (1..=3).contains(&leading_spaces) && {
+            // Check that at least one neighbor is also a comment line
+            let prev_is_comment = i > 0 && {
+                let p = lines[i - 1].trim();
+                p.starts_with("<!--") && p.ends_with("-->")
+            };
+            let next_is_comment = i + 1 < len && {
+                let n = lines[i + 1].trim();
+                n.starts_with("<!--") && n.ends_with("-->")
+            };
+            prev_is_comment || next_is_comment
+        };
+
+        if (prev_is_blank_or_start && next_is_blank_or_end) || is_indented_among_comments {
+            // This is a standalone comment or indented comment -- wrap it in <p>
             result.push(format!("<p>{}</p>", trimmed));
         } else {
-            // Adjacent to non-blank content -- leave as-is (issue 144)
+            // Adjacent to non-blank content and at column 0 -- leave as-is (issue 144)
             result.push(lines[i].to_string());
         }
 
@@ -9728,6 +9747,74 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             !result.contains("<p><!-- Load accordion JavaScript --></p>"),
             "Comment before script should not be wrapped. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_316_indented_comment_among_adjacent_comments_wrapped() {
+        // Issue 316: When Liquid include output produces HTML comments on
+        // consecutive lines (no blank lines between them), indented comments
+        // should still be wrapped in <p> to match kramdown behavior.
+        // kramdown treats indented HTML comments as inline/paragraph content.
+        let input = "</div>\n<!-- Related Posts Section -->\n<!-- Get related posts -->\n  <!-- Use manually specified posts -->\n<!-- Limit to max_related posts -->\n<div class=\"related-posts-section\">";
+        let result = wrap_standalone_comments_in_paragraphs(input);
+        assert!(
+            result.contains("<p><!-- Use manually specified posts --></p>"),
+            "Indented comment among adjacent comments should be wrapped in <p>. Got: {}",
+            result
+        );
+        // Non-indented comments should NOT be wrapped
+        assert!(
+            !result.contains("<p><!-- Related Posts Section --></p>"),
+            "Non-indented comment should NOT be wrapped. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("<p><!-- Get related posts --></p>"),
+            "Non-indented comment should NOT be wrapped. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("<p><!-- Limit to max_related posts --></p>"),
+            "Non-indented comment should NOT be wrapped. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_316_indented_comment_unicode_content() {
+        // Issue 316: Indented HTML comment with non-ASCII/Unicode content
+        let input = "<!-- Verwandte Beitrage -->\n  <!-- Manuell angegebene Beitrage verwenden -->\n<!-- Beitrage begrenzen -->\n<div class=\"related\">";
+        let result = wrap_standalone_comments_in_paragraphs(input);
+        assert!(
+            result.contains("<p><!-- Manuell angegebene Beitrage verwenden --></p>"),
+            "Indented Unicode comment should be wrapped. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_316_indented_comment_between_html_elements_not_wrapped() {
+        // Issue 316: Indented comment inside an HTML block (between div/input
+        // elements, like in subscribe-main.html) should NOT be wrapped.
+        let input = "   </div>\n   <!-- real people should not fill this in -->\n   <div style=\"position: absolute;\">";
+        let result = wrap_standalone_comments_in_paragraphs(input);
+        assert!(
+            !result.contains("<p><!-- real people"),
+            "Indented comment between HTML elements should NOT be wrapped. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_316_non_indented_adjacent_comments_not_wrapped() {
+        // Adjacent non-indented comments should NOT be wrapped
+        let input = "</div>\n<!-- Comment A -->\n<!-- Comment B -->\n<!-- Comment C -->\n<div class=\"content\">";
+        let result = wrap_standalone_comments_in_paragraphs(input);
+        assert!(
+            !result.contains("<p><!--"),
+            "Non-indented adjacent comments should NOT be wrapped. Got: {}",
             result
         );
     }
