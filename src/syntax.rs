@@ -377,6 +377,22 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
             "<span class=\"n\">input</span>",
             "<span class=\"nb\">input</span>",
         );
+
+        // Rouge splits Python quoted strings into sh (delimiter) + s (content) + sh.
+        html = postprocess_python_string_delimiter_split(&html);
+
+        // Rouge classifies method calls (after `.` + `(`) as `nf`.
+        html = postprocess_python_method_calls(&html);
+
+        // Rouge classifies `not`, `in` as `ow` (Operator.Word).
+        html = html.replace(
+            "<span class=\"k\">not</span>",
+            "<span class=\"ow\">not</span>",
+        );
+        html = html.replace(
+            "<span class=\"k\">in</span>",
+            "<span class=\"ow\">in</span>",
+        );
     }
 
     // YAML post-processing: syntect classifies `on` as constant.language (kc)
@@ -404,6 +420,7 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
     // (name.tag) token, while syntect splits it into `p` (<) + `na` (tagname)
     // + `p` (>). Merge them to match Rouge output.
     if is_xml_like_language(lang) {
+        html = postprocess_xml_processing_instructions(&html);
         html = postprocess_xml_tag_tokens(&html);
     }
 
@@ -417,10 +434,19 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
         );
     }
 
-    // Java post-processing: Rouge classifies class/type names after `new` as
-    // `nc` (name.class). Syntect uses support.class -> `nb`. Fix via post-processing.
+    // Java post-processing
     if lang == "java" {
         html = postprocess_java_new_class_names(&html);
+        html = postprocess_java_punctuation_to_operator(&html);
+        html = postprocess_java_annotations(&html);
+        html = html.replace(
+            "<span class=\"kt\">class</span>",
+            "<span class=\"kd\">class</span>",
+        );
+        html = html.replace(
+            "<span class=\"kt\">interface</span>",
+            "<span class=\"kd\">interface</span>",
+        );
     }
 
     // JS/Ruby post-processing: Rouge splits quoted strings into
@@ -752,6 +778,154 @@ fn postprocess_java_new_class_names(html: &str) -> String {
     )
 }
 
+/// Post-process Java: Rouge classifies `{`, `}`, `(`, `)`, `;`, `<`, `>` as `o`.
+fn postprocess_java_punctuation_to_operator(html: &str) -> String {
+    let mut result = html.to_string();
+    for ch in &["{", "}", "(", ")", ";"] {
+        let from = format!("<span class=\"p\">{ch}</span>");
+        let to = format!("<span class=\"o\">{ch}</span>");
+        result = result.replace(&from, &to);
+    }
+    result = result.replace(
+        "<span class=\"p\">&lt;</span>",
+        "<span class=\"o\">&lt;</span>",
+    );
+    result = result.replace(
+        "<span class=\"p\">&gt;</span>",
+        "<span class=\"o\">&gt;</span>",
+    );
+    result
+}
+
+/// Post-process Java: Rouge classifies `@Annotation` as `nd` (Name.Decorator).
+fn postprocess_java_annotations(html: &str) -> String {
+    let pattern = "<span class=\"o\">@</span><span class=\"n\">";
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+    while !remaining.is_empty() {
+        if let Some(pos) = remaining.find(pattern) {
+            result.push_str(&remaining[..pos]);
+            let after = &remaining[pos + pattern.len()..];
+            if let Some(close) = after.find("</span>") {
+                let name = &after[..close];
+                result.push_str("<span class=\"nd\">@");
+                result.push_str(name);
+                result.push_str("</span>");
+                remaining = &after[close + 7..];
+            } else {
+                result.push_str(pattern);
+                remaining = after;
+            }
+        } else {
+            result.push_str(remaining);
+            break;
+        }
+    }
+    result
+}
+
+fn is_simple_python_string(content: &str) -> bool {
+    let bytes = content.as_bytes();
+    if bytes.len() < 2 {
+        return false;
+    }
+    let first = bytes[0];
+    let last = bytes[bytes.len() - 1];
+    if !((first == b'\'' && last == b'\'') || (first == b'"' && last == b'"')) {
+        return false;
+    }
+    if bytes.len() >= 6
+        && ((first == b'"' && bytes[1] == b'"' && bytes[2] == b'"')
+            || (first == b'\'' && bytes[1] == b'\'' && bytes[2] == b'\''))
+    {
+        return false;
+    }
+    if content.contains('\n') {
+        return false;
+    }
+    true
+}
+
+/// Post-process Python: split quoted strings into sh + s + sh delimiters.
+fn postprocess_python_string_delimiter_split(html: &str) -> String {
+    let s_open = "<span class=\"s\">";
+    let span_close = "</span>";
+    let mut result = String::with_capacity(html.len() + html.len() / 8);
+    let mut remaining = html;
+    while !remaining.is_empty() {
+        if let Some(pos) = remaining.find(s_open) {
+            result.push_str(&remaining[..pos]);
+            let after_open = &remaining[pos + s_open.len()..];
+            if let Some(close_pos) = after_open.find(span_close) {
+                let content = &after_open[..close_pos];
+                let after_span = &after_open[close_pos + span_close.len()..];
+                if is_simple_python_string(content) {
+                    let bytes = content.as_bytes();
+                    let quote = if bytes[0] == b'\'' { "'" } else { "\"" };
+                    let inner = &content[1..content.len() - 1];
+                    result.push_str("<span class=\"sh\">");
+                    result.push_str(quote);
+                    result.push_str("</span>");
+                    if !inner.is_empty() {
+                        result.push_str("<span class=\"s\">");
+                        result.push_str(inner);
+                        result.push_str("</span>");
+                    }
+                    result.push_str("<span class=\"sh\">");
+                    result.push_str(quote);
+                    result.push_str("</span>");
+                    remaining = after_span;
+                    continue;
+                }
+                result.push_str(s_open);
+                result.push_str(content);
+                result.push_str(span_close);
+                remaining = after_span;
+            } else {
+                result.push_str(s_open);
+                result.push_str(after_open);
+                break;
+            }
+        } else {
+            result.push_str(remaining);
+            break;
+        }
+    }
+    result
+}
+
+/// Post-process Python: method calls (after `.` + `(`) become `nf`.
+fn postprocess_python_method_calls(html: &str) -> String {
+    let dot_span = "<span class=\"p\">.</span><span class=\"n\">";
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+    while !remaining.is_empty() {
+        if let Some(pos) = remaining.find(dot_span) {
+            result.push_str(&remaining[..pos]);
+            let after = &remaining[pos + dot_span.len()..];
+            if let Some(close) = after.find("</span>") {
+                let name = &after[..close];
+                let after_name = &after[close + 7..];
+                if after_name.starts_with("<span class=\"p\">(</span>") {
+                    result.push_str("<span class=\"p\">.</span><span class=\"nf\">");
+                } else {
+                    result.push_str("<span class=\"p\">.</span><span class=\"n\">");
+                }
+                result.push_str(name);
+                result.push_str("</span>");
+                remaining = after_name;
+            } else {
+                result.push_str(dot_span);
+                remaining = after;
+            }
+        } else {
+            result.push_str(remaining);
+            break;
+        }
+    }
+    result
+}
+
 /// Post-process Bash highlighted HTML to wrap `install` as a builtin (`nb`).
 fn postprocess_bash_install(html: &str) -> String {
     html.replace(" install ", " <span class=\"nb\">install </span>")
@@ -902,6 +1076,51 @@ fn is_xml_like_language(lang: &str) -> bool {
         lang,
         "xml" | "html" | "htm" | "xhtml" | "svg" | "xsd" | "xslt" | "rss" | "opml"
     )
+}
+
+/// Merge XML processing instructions (`<?...?>`) into a single `cp` span.
+fn postprocess_xml_processing_instructions(html: &str) -> String {
+    let pi_open = "<span class=\"p\">&lt;?</span>";
+    let pi_close = "<span class=\"p\">?&gt;</span>";
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+    while !remaining.is_empty() {
+        if let Some(open_pos) = remaining.find(pi_open) {
+            result.push_str(&remaining[..open_pos]);
+            let after_open = &remaining[open_pos + pi_open.len()..];
+            if let Some(close_pos) = after_open.find(pi_close) {
+                let inner_html = &after_open[..close_pos];
+                let mut inner_text = String::new();
+                let mut inner_rem = inner_html;
+                while !inner_rem.is_empty() {
+                    if inner_rem.starts_with("<span ") {
+                        if let Some(gt) = inner_rem.find('>') {
+                            inner_rem = &inner_rem[gt + 1..];
+                        } else {
+                            break;
+                        }
+                    } else if inner_rem.starts_with("</span>") {
+                        inner_rem = &inner_rem[7..];
+                    } else {
+                        let next_tag = inner_rem.find('<').unwrap_or(inner_rem.len());
+                        inner_text.push_str(&inner_rem[..next_tag]);
+                        inner_rem = &inner_rem[next_tag..];
+                    }
+                }
+                result.push_str("<span class=\"cp\">&lt;?");
+                result.push_str(&inner_text);
+                result.push_str("?&gt;</span>");
+                remaining = &after_open[close_pos + pi_close.len()..];
+            } else {
+                result.push_str(pi_open);
+                remaining = after_open;
+            }
+        } else {
+            result.push_str(remaining);
+            break;
+        }
+    }
+    result
 }
 
 /// Post-process XML/HTML highlighted output to merge tag punctuation with tag names,
@@ -1605,9 +1824,10 @@ mod tests {
             !html.contains("&quot;"),
             "quotes should not be html-escaped: {html}"
         );
+        // Rouge splits Python strings: sh (delimiter) + s (content) + sh (delimiter)
         assert!(
-            html.contains("\"hello\""),
-            "quotes should be literal: {html}"
+            html.contains("<span class=\"sh\">\"</span><span class=\"s\">hello</span><span class=\"sh\">\"</span>"),
+            "quotes should be split as sh delimiters: {html}"
         );
     }
 
@@ -1832,9 +2052,10 @@ mod tests {
             html.contains("<span class=\"o\">==</span>"),
             "Python == should be o: {html}"
         );
+        // Rouge splits Python strings: sh (delimiter) + s (content) + sh
         assert!(
-            html.contains("<span class=\"s\">'Lisboa'</span>"),
-            "Python single-quoted string should be s: {html}"
+            html.contains("<span class=\"sh\">'</span><span class=\"s\">Lisboa</span><span class=\"sh\">'</span>"),
+            "Python single-quoted string should be delimiter-split: {html}"
         );
     }
 
@@ -2208,15 +2429,15 @@ mod tests {
         // Ensure Python string highlighting is not affected by JSON-specific logic
         let code = "x = \"hello\"\n";
         let html = highlight_code("python", code).unwrap();
-        // Python strings should still use class "s" (not s2)
+        // Python strings should still use class "s" for content (not s2)
         assert!(
             html.contains("class=\"s\""),
             "Python string should still be s: {html}"
         );
-        // Python strings should contain the full quoted value
+        // Rouge splits Python strings: sh (delimiter) + s (content) + sh (delimiter)
         assert!(
-            html.contains("\"hello\""),
-            "Python string should contain quotes: {html}"
+            html.contains("<span class=\"sh\">\"</span><span class=\"s\">hello</span><span class=\"sh\">\"</span>"),
+            "Python string should be delimiter-split: {html}"
         );
     }
 
