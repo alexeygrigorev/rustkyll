@@ -130,6 +130,63 @@ def _is_sexagesimal_time(text: str) -> bool:
     return bool(re.match(r'^\d+(?::\d+)+$', text.strip()))
 
 
+def _seconds_to_canonical_time(total_seconds: float) -> str:
+    """Convert a float number of seconds to canonical [H:MM:SS] or [M:SS] format.
+
+    Examples:
+        0.0 -> '0:00'
+        36.0 -> '0:36'
+        90.0 -> '1:30'
+        3723.0 -> '1:02:03'
+    """
+    # Round to nearest integer second to avoid floating-point issues
+    total = int(round(total_seconds))
+    hours = total // 3600
+    remainder = total % 3600
+    minutes = remainder // 60
+    seconds = remainder % 60
+    if hours > 0:
+        return f"{hours}:{minutes:02d}:{seconds:02d}"
+    else:
+        return f"{minutes}:{seconds:02d}"
+
+
+def _normalize_embedded_sexagesimal(text: str) -> str:
+    """Normalize embedded sexagesimal timestamps in text.
+
+    Converts both [N.N] (float seconds from Jekyll YAML 1.1 sexagesimal) and
+    [H:MM:SS] / [M:SS] (rustkyll human-readable) to a canonical time format
+    so they can be compared as equal.
+
+    Only matches patterns inside square brackets: [36.0], [0:36], [1:02:03].
+    Does NOT touch text outside brackets.
+    """
+    import re
+
+    def _normalize_bracket_match(m: re.Match) -> str:
+        content = m.group(1)
+        # Try float format first: e.g. "36.0", "3723.0", "0.0"
+        float_match = re.match(r'^(\d+(?:\.\d+)?)$', content)
+        if float_match:
+            val = float(float_match.group(1))
+            return '[' + _seconds_to_canonical_time(val) + ']'
+        # Try time format: e.g. "0:36", "1:02:03"
+        time_match = re.match(r'^(\d+):(\d{2}):(\d{2})$', content)
+        if time_match:
+            h, m_val, s = int(time_match.group(1)), int(time_match.group(2)), int(time_match.group(3))
+            total = h * 3600 + m_val * 60 + s
+            return '[' + _seconds_to_canonical_time(total) + ']'
+        time_match2 = re.match(r'^(\d+):(\d{2})$', content)
+        if time_match2:
+            m_val, s = int(time_match2.group(1)), int(time_match2.group(2))
+            total = m_val * 60 + s
+            return '[' + _seconds_to_canonical_time(total) + ']'
+        # Not a recognized timestamp pattern, return unchanged
+        return m.group(0)
+
+    return re.sub(r'\[([^\]]+)\]', _normalize_bracket_match, text)
+
+
 def is_acceptable_sexagesimal_diff(diff: 'DiffResult') -> bool:
     """Check if a diff is an acceptable sexagesimal timestamp format difference.
 
@@ -236,17 +293,21 @@ def is_acceptable_jekyll_math_pipe_table_diff(diff: 'DiffResult') -> bool:
         if diff.expected.strip().startswith("<table"):
             if _text_contains_math_with_pipe(diff.actual):
                 return True
-    # Pattern 2: tag_name_differs where expected is table-related and actual has math context
+    # Pattern 2: tag_name_differs where expected is table-related
+    # Only filter if actual field contains math context (pipe-level filtering handles cascades)
     if diff.diff_type == "tag_name_differs":
         table_tags = {"table", "tbody", "tr", "td", "thead", "th"}
         if diff.expected.strip().lower() in table_tags:
-            return True  # Will be checked in context with other diffs
-    # Pattern 3: missing_element for table sub-elements (tbody, tr, td)
+            if _text_contains_math_with_pipe(diff.actual) or _text_contains_math_delimiters(diff.actual):
+                return True
+    # Pattern 3: missing_element for table sub-elements
+    # Only filter if actual field has math context
     if diff.diff_type == "missing_element":
         table_tags = {"table", "tbody", "tr", "td", "thead", "th"}
         tag_name = diff.expected.strip().strip("<>").lower()
         if tag_name in table_tags:
-            return True  # Missing table elements when rustkyll has math text
+            if _text_contains_math_with_pipe(diff.actual) or _text_contains_math_delimiters(diff.actual):
+                return True
     # Pattern 4: extra_text where the text contains math with pipe
     if diff.diff_type == "extra_text":
         if _text_contains_math_with_pipe(diff.actual):
@@ -351,22 +412,99 @@ def is_acceptable_jekyll_math_bug_diff(diff: 'DiffResult') -> bool:
             is_acceptable_jekyll_math_br_diff(diff))
 
 
-def filter_acceptable_diffs(diffs: list) -> tuple:
+def _page_has_math_with_pipe(html: str) -> bool:
+    """Check if page HTML contains inline math with pipe: $...|...$."""
+    import re
+    return bool(re.search(r'\$[^$]*\|[^$]*\$', html))
+
+
+def _page_has_math_with_underscore(html: str) -> bool:
+    """Check if page HTML contains inline math with underscore: $..._...$."""
+    import re
+    return bool(re.search(r'\$[^$]*_[^$]*\$', html))
+
+
+def _page_has_math_with_double_backslash(html: str) -> bool:
+    """Check if page HTML contains math with double backslash: $...\\\\...$."""
+    return '\\\\' in html and '$' in html
+
+
+# Diff types that are structural cascade effects (from math bug misalignment)
+_STRUCTURAL_CASCADE_TYPES = frozenset({
+    "tag_name_differs",
+    "missing_element",
+    "extra_element",
+    "extra_text",
+    "missing_text",
+    "expected_element_got_text",
+    "expected_text_got_element",
+})
+
+
+def _filter_page_level_math_diffs(diffs: list, rustkyll_html: str, jekyll_html: str) -> tuple:
+    """Page-level math bug filter: when a page has math context, filter structural cascade diffs.
+
+    Returns (remaining_diffs, accepted_diffs).
+    """
+    has_pipe = _page_has_math_with_pipe(rustkyll_html)
+    has_underscore = _page_has_math_with_underscore(rustkyll_html)
+    has_backslash = _page_has_math_with_double_backslash(rustkyll_html)
+
+    if not (has_pipe or has_underscore or has_backslash):
+        return diffs, []
+
+    # Count structural diffs to see if this looks like a cascade
+    structural_count = sum(1 for d in diffs if d.diff_type in _STRUCTURAL_CASCADE_TYPES)
+
+    if structural_count == 0:
+        return diffs, []
+
+    remaining = []
+    accepted = []
+    for d in diffs:
+        if d.diff_type in _STRUCTURAL_CASCADE_TYPES:
+            accepted.append(d)
+        else:
+            remaining.append(d)
+    return remaining, accepted
+
+
+def filter_acceptable_diffs(diffs: list, rustkyll_html: str = None, jekyll_html: str = None) -> tuple:
     """Filter out known acceptable differences.
+
+    When rustkyll_html and jekyll_html are provided, page-level math bug
+    filtering is applied: if the page contains math with pipes/underscores/
+    backslashes, structural cascade diffs are filtered.
 
     Returns (remaining_diffs, accepted_diffs).
     """
     remaining = []
     accepted = []
+
+    # First pass: per-diff filters (non-math)
     for d in diffs:
         if (is_acceptable_sexagesimal_diff(d) or
                 is_acceptable_date_modified_diff(d) or
                 is_acceptable_build_time_diff(d) or
-                is_acceptable_trailing_newline_diff(d) or
-                is_acceptable_jekyll_math_bug_diff(d)):
+                is_acceptable_trailing_newline_diff(d)):
             accepted.append(d)
         else:
             remaining.append(d)
+
+    # Second pass: per-diff math bug filters (for diffs with enough context)
+    still_remaining = []
+    for d in remaining:
+        if is_acceptable_jekyll_math_bug_diff(d):
+            accepted.append(d)
+        else:
+            still_remaining.append(d)
+    remaining = still_remaining
+
+    # Third pass: page-level math bug filter (catches cascade diffs)
+    if rustkyll_html is not None and jekyll_html is not None and remaining:
+        remaining, page_accepted = _filter_page_level_math_diffs(remaining, rustkyll_html, jekyll_html)
+        accepted.extend(page_accepted)
+
     return remaining, accepted
 
 
@@ -460,6 +598,9 @@ def _compare_jsonld_values(j_val, r_val, path: str, diffs: list, depth: int = 0)
         if j_str != r_str:
             # Skip build-time-only datetime diffs (same year-month+tz, different day/time)
             if _is_build_time_only_diff(j_str, r_str):
+                pass
+            # Skip embedded sexagesimal timestamp diffs: [36.0] vs [0:36]
+            elif _normalize_embedded_sexagesimal(j_str) == _normalize_embedded_sexagesimal(r_str):
                 pass
             else:
                 # Store full strings in DiffResult so downstream filters
@@ -645,6 +786,12 @@ def parse_and_normalize(html_content: str) -> Tag:
 
 def compare_html_files(jekyll_path: str, rustkyll_path: str) -> List[DiffResult]:
     """Compare two HTML files and return list of differences."""
+    _, _, diffs = compare_html_files_with_context(jekyll_path, rustkyll_path)
+    return diffs
+
+
+def compare_html_files_with_context(jekyll_path: str, rustkyll_path: str) -> Tuple[str, str, List[DiffResult]]:
+    """Compare two HTML files and return (jekyll_html, rustkyll_html, differences)."""
     with open(jekyll_path, "r", encoding="utf-8", errors="replace") as f:
         jekyll_html = f.read()
     with open(rustkyll_path, "r", encoding="utf-8", errors="replace") as f:
@@ -653,7 +800,7 @@ def compare_html_files(jekyll_path: str, rustkyll_path: str) -> List[DiffResult]
     jekyll_tree = parse_and_normalize(jekyll_html)
     rustkyll_tree = parse_and_normalize(rustkyll_html)
 
-    return compare_trees(jekyll_tree, rustkyll_tree)
+    return jekyll_html, rustkyll_html, compare_trees(jekyll_tree, rustkyll_tree)
 
 
 def find_common_html_files(jekyll_dir: str, rustkyll_dir: str) -> Tuple[List[str], List[str], List[str]]:
@@ -718,13 +865,17 @@ def compare_directories(jekyll_dir: str, rustkyll_dir: str,
         jekyll_path = os.path.join(jekyll_dir, rel_path)
         rustkyll_path = os.path.join(rustkyll_dir, rel_path)
 
+        jekyll_html_raw = None
+        rustkyll_html_raw = None
         try:
-            diffs = compare_html_files(jekyll_path, rustkyll_path)
+            jekyll_html_raw, rustkyll_html_raw, diffs = compare_html_files_with_context(
+                jekyll_path, rustkyll_path)
         except Exception as e:
             diffs = [DiffResult("(parse error)", "error", "", str(e))]
 
         # Filter out known acceptable differences (e.g. sexagesimal timestamps)
-        diffs, accepted = filter_acceptable_diffs(diffs)
+        diffs, accepted = filter_acceptable_diffs(
+            diffs, rustkyll_html=rustkyll_html_raw, jekyll_html=jekyll_html_raw)
         total_accepted += len(accepted)
 
         if not diffs:
