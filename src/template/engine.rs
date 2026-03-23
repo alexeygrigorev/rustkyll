@@ -813,6 +813,11 @@ impl TemplateEngine {
         // treats it as false. We rewrite `VAR == false` to
         // `VAR == false and VAR != nil` so nil doesn't match false.
         let preprocessed = preprocess_nil_eq_false(&preprocessed);
+        // Pre-process `{{var}}` inside `{% %}` tags. Some themes use
+        // `{% if {{include.url}} %}` which is non-standard but tolerated by
+        // Jekyll. We strip the inner `{{` / `}}` so the Liquid parser sees
+        // a plain variable reference.
+        let preprocessed = preprocess_nested_braces(&preprocessed);
         let template_str = &preprocessed;
         loop {
             let parser_guard = self
@@ -1265,6 +1270,57 @@ fn preprocess_nil_eq_false(template: &str) -> String {
     let result = EQ_FALSE_RE.replace_all(template, "$1 == false and $1 != nil");
     let result = NEQ_FALSE_RE.replace_all(&result, "$1 != false or $1 == nil");
     result.into_owned()
+}
+
+/// Pre-process `{{var}}` inside `{% %}` tags to strip the inner braces.
+///
+/// Some Jekyll themes (e.g., documentation-theme-jekyll) use the non-standard
+/// pattern `{% if {{include.url}} %}` where `{{}}` appears inside a `{% %}`
+/// tag. Standard Liquid rejects this. We rewrite it to `{% if include.url %}`
+/// so the parser can handle it.
+///
+/// Only `{{` and `}}` that appear between `{%` and `%}` are affected;
+/// `{{}}` in the body/output sections are left untouched.
+fn preprocess_nested_braces(template: &str) -> String {
+    // Fast path: if there's no `{{` at all, nothing to do.
+    if !template.contains("{{") {
+        return template.to_string();
+    }
+
+    let mut result = String::with_capacity(template.len());
+    let mut remaining = template;
+
+    while !remaining.is_empty() {
+        // Find the next {% tag
+        if let Some(tag_start) = remaining.find("{%") {
+            // Find the matching %}
+            let after_open = &remaining[tag_start + 2..];
+            if let Some(tag_end_rel) = after_open.find("%}") {
+                // We have a {% ... %} tag
+                let tag_content = &after_open[..tag_end_rel];
+
+                // Copy everything before the tag
+                result.push_str(&remaining[..tag_start]);
+
+                // Strip {{ and }} from inside the tag content
+                let cleaned = tag_content.replace("{{", "").replace("}}", "");
+                result.push_str("{%");
+                result.push_str(&cleaned);
+                result.push_str("%}");
+
+                remaining = &after_open[tag_end_rel + 2..];
+            } else {
+                // No matching %}, copy everything
+                result.push_str(remaining);
+                break;
+            }
+        } else {
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    result
 }
 
 /// Rewrite a condition to add nil guards around `contains`.
@@ -3273,6 +3329,100 @@ title: "Test Book"
     }
 
     // ========================================================================
+    // Issue 327: Nested braces {% if {{var}} %} preprocessing
+    // ========================================================================
+
+    #[test]
+    fn test_preprocess_nested_braces_in_if() {
+        let input = r#"{% if {{include.url}} %}<a href="{{include.url}}">link</a>{% endif %}"#;
+        let output = preprocess_nested_braces(input);
+        assert!(
+            output.contains("{% if include.url %}"),
+            "Nested {{}} inside tag should be unwrapped. Got: {}",
+            output
+        );
+        // The {{include.url}} in the body (outside {% %}) should remain
+        assert!(
+            output.contains("<a href=\"{{include.url}}\">"),
+            "Variable references outside tags should remain. Got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_nested_braces_preserves_body() {
+        // Only {{}} inside {% %} tags should be affected; body {{}} stays
+        let input = r#"{% if {{include.show}} %}{{include.content}}{% endif %}"#;
+        let output = preprocess_nested_braces(input);
+        assert!(
+            output.contains("{% if include.show %}"),
+            "Nested braces in tag should be unwrapped. Got: {}",
+            output
+        );
+        assert!(
+            output.contains("{{include.content}}"),
+            "Body variable references should be preserved. Got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_nested_braces_unless() {
+        let input = r#"{% unless {{include.hide}} %}visible{% endunless %}"#;
+        let output = preprocess_nested_braces(input);
+        assert!(
+            output.contains("{% unless include.hide %}"),
+            "Should work with unless tag too. Got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_nested_braces_no_change_when_absent() {
+        let input = r#"{% if include.url %}link{% endif %}"#;
+        let output = preprocess_nested_braces(input);
+        assert_eq!(
+            input, output,
+            "Should not modify templates without nested braces"
+        );
+    }
+
+    #[test]
+    fn test_nested_braces_end_to_end_render() {
+        // End-to-end: template with nested braces should parse and render
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut include_obj = Object::new();
+        include_obj.insert("url".into(), Value::scalar("http://example.com"));
+        ctx.insert("include".into(), Value::Object(include_obj));
+
+        let template = r#"{% if {{include.url}} %}<a href="{{include.url}}">link</a>{% endif %}"#;
+        let result = eng.parse_and_render(template, &ctx).unwrap();
+        assert!(
+            result.contains("<a href=\"http://example.com\">link</a>"),
+            "Should render the link. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_nested_braces_end_to_end_falsy() {
+        // When the variable is not set, the if block should not render
+        let eng = engine();
+        let mut ctx = Object::new();
+        let include_obj = Object::new(); // no url field
+        ctx.insert("include".into(), Value::Object(include_obj));
+
+        let template = r#"{% if {{include.url}} %}<a>link</a>{% endif %}"#;
+        let result = eng.parse_and_render(template, &ctx).unwrap();
+        assert!(
+            !result.contains("<a>link</a>"),
+            "Should not render when variable is missing. Got: {}",
+            result
+        );
+    }
+
+    // ========================================================================
     // url_encode and cgi_escape filters (Issue 178)
     // ========================================================================
 
@@ -4575,5 +4725,140 @@ title: "Test Book"
             .parse_and_render("{{ site.data.items.size }}", &ctx)
             .unwrap();
         assert_eq!(output, "3");
+    }
+
+    // ========================================================================
+    // Sort filter on Object/Mapping -- hreflang pattern (issue 326)
+    // ========================================================================
+
+    #[test]
+    fn test_sort_object_in_template_produces_key_value_pairs() {
+        // Simulates: {% assign sorted = site.data.locales | sort %}
+        //            {% for locale in sorted %}{{ locale[0] }},{% endfor %}
+        let eng = engine();
+
+        let mut locales = Object::new();
+        locales.insert("es".into(), LiquidValue::scalar("Spanish"));
+        locales.insert("ar".into(), LiquidValue::scalar("Arabic"));
+        locales.insert("en".into(), LiquidValue::scalar("English"));
+
+        let mut data = Object::new();
+        data.insert("locales".into(), LiquidValue::Object(locales));
+        let mut site = Object::new();
+        site.insert("data".into(), LiquidValue::Object(data));
+
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+
+        let template = r#"{% assign sorted = site.data.locales | sort %}{% for locale in sorted %}{{ locale[0] }},{% endfor %}"#;
+        let output = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(output, "ar,en,es,");
+    }
+
+    #[test]
+    fn test_untranslated_absent_not_equal_true() {
+        // When `untranslated` is absent from page, `page.untranslated != true`
+        // must evaluate to true (nil != true is true in Jekyll).
+        let eng = engine();
+
+        let page = Object::new(); // no untranslated key
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+
+        let template = r#"{% if page.untranslated != true %}yes{% else %}no{% endif %}"#;
+        let output = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(output, "yes");
+    }
+
+    #[test]
+    fn test_untranslated_true_equals_true() {
+        // When `untranslated: true`, `page.untranslated != true` must be false.
+        let eng = engine();
+
+        let mut page = Object::new();
+        page.insert("untranslated".into(), LiquidValue::scalar(true));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+
+        let template = r#"{% if page.untranslated != true %}yes{% else %}no{% endif %}"#;
+        let output = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(output, "no");
+    }
+
+    #[test]
+    fn test_hreflang_end_to_end_pattern() {
+        // End-to-end test matching opensource-guide's head.html hreflang logic.
+        let eng = engine();
+
+        let mut locales = Object::new();
+        locales.insert("en".into(), LiquidValue::scalar("English"));
+        locales.insert("hu".into(), LiquidValue::scalar("Hungarian"));
+        locales.insert("ar".into(), LiquidValue::scalar("Arabic"));
+
+        let mut data = Object::new();
+        data.insert("locales".into(), LiquidValue::Object(locales));
+        let mut site = Object::new();
+        site.insert("data".into(), LiquidValue::Object(data));
+
+        let mut page = Object::new();
+        page.insert("lang".into(), LiquidValue::scalar("hu"));
+        page.insert("url".into(), LiquidValue::scalar("/hu/"));
+
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+        ctx.insert("page".into(), LiquidValue::Object(page));
+
+        let template = r#"{% if page.lang and page.untranslated != true and site.data.locales.size > 1 %}{% assign locales = site.data.locales | sort %}{% for locale in locales %}{% assign lang = locale[0] %}<link hreflang="{{ lang }}">
+{% endfor %}{% endif %}"#;
+
+        let output = eng.parse_and_render(template, &ctx).unwrap();
+        assert!(
+            output.contains(r#"<link hreflang="ar">"#),
+            "Should contain ar hreflang, got: {output}"
+        );
+        assert!(
+            output.contains(r#"<link hreflang="en">"#),
+            "Should contain en hreflang, got: {output}"
+        );
+        assert!(
+            output.contains(r#"<link hreflang="hu">"#),
+            "Should contain hu hreflang, got: {output}"
+        );
+        // 3 locales = 3 hreflang links
+        let count = output.matches("<link hreflang=").count();
+        assert_eq!(count, 3, "Expected 3 hreflang links, got {count}: {output}");
+    }
+
+    #[test]
+    fn test_sort_object_unicode_in_template() {
+        // Template-level test with non-ASCII locale values.
+        let eng = engine();
+
+        let mut locales = Object::new();
+        let mut ar_obj = Object::new();
+        ar_obj.insert(
+            "name".into(),
+            LiquidValue::scalar("\u{0627}\u{0644}\u{0639}\u{0631}\u{0628}\u{064A}\u{0629}"),
+        ); // العربية
+        locales.insert("ar".into(), LiquidValue::Object(ar_obj));
+
+        let mut zh_obj = Object::new();
+        zh_obj.insert(
+            "name".into(),
+            LiquidValue::scalar("\u{7B80}\u{4F53}\u{4E2D}\u{6587}"),
+        ); // 简体中文
+        locales.insert("zh-hans".into(), LiquidValue::Object(zh_obj));
+
+        let mut data = Object::new();
+        data.insert("locales".into(), LiquidValue::Object(locales));
+        let mut site = Object::new();
+        site.insert("data".into(), LiquidValue::Object(data));
+
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+
+        let template = r#"{% assign sorted = site.data.locales | sort %}{% for locale in sorted %}{{ locale[0] }}:{{ locale[1].name }},{% endfor %}"#;
+        let output = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(output, "ar:\u{0627}\u{0644}\u{0639}\u{0631}\u{0628}\u{064A}\u{0629},zh-hans:\u{7B80}\u{4F53}\u{4E2D}\u{6587},");
     }
 }

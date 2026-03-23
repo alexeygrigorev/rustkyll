@@ -113,6 +113,27 @@ impl Filter for SortFilter {
     fn evaluate(&self, input: &dyn ValueView, runtime: &dyn Runtime) -> Result<Value> {
         let args = self.args.evaluate(runtime)?;
 
+        // Jekyll's `sort` on a Hash/Mapping returns an array of [key, value] pairs,
+        // sorted by key. This matches Ruby's `Hash#sort` behavior.
+        if let Some(obj) = input.as_object() {
+            if args.property.is_none() {
+                let mut pairs: Vec<Value> = obj
+                    .iter()
+                    .map(|(k, v)| Value::Array(vec![Value::scalar(k.to_string()), v.to_value()]))
+                    .collect();
+                // Sort by key (first element of each pair)
+                pairs.sort_by(|a, b| {
+                    let a_key = a.as_array().and_then(|arr| arr.get(0));
+                    let b_key = b.as_array().and_then(|arr| arr.get(0));
+                    match (a_key, b_key) {
+                        (Some(ak), Some(bk)) => nil_safe_compare(ak, bk),
+                        _ => cmp::Ordering::Equal,
+                    }
+                });
+                return Ok(Value::Array(pairs));
+            }
+        }
+
         let input: Vec<_> = input
             .as_array()
             .map(|arr| arr.values().collect())
@@ -359,5 +380,240 @@ mod tests {
         let vals: Vec<_> = arr.values().map(|v| v.to_kstr().to_string()).collect();
         // Numeric: 3 < 9 < 23 (not string: "23" < "3" < "9")
         assert_eq!(vals, vec!["3", "9", "23"]);
+    }
+
+    #[test]
+    fn test_sort_object_returns_key_value_pairs() {
+        // Jekyll: `hash | sort` returns [[key, value], ...] sorted by key.
+        let mut obj = liquid::Object::new();
+        obj.insert("es".to_owned().into(), Value::scalar("Spanish"));
+        obj.insert("ar".to_owned().into(), Value::scalar("Arabic"));
+        obj.insert("en".to_owned().into(), Value::scalar("English"));
+        let input = Value::Object(obj);
+
+        let result = liquid_core::call_filter!(Sort, input).unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.size(), 3);
+
+        // Each element is a [key, value] array, sorted alphabetically by key.
+        let pairs: Vec<(String, String)> = arr
+            .values()
+            .map(|v| {
+                let pair = v.as_array().unwrap();
+                let key = pair.get(0).unwrap().to_kstr().to_string();
+                let val = pair.get(1).unwrap().to_kstr().to_string();
+                (key, val)
+            })
+            .collect();
+        assert_eq!(
+            pairs,
+            vec![
+                ("ar".to_string(), "Arabic".to_string()),
+                ("en".to_string(), "English".to_string()),
+                ("es".to_string(), "Spanish".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_sort_object_index_access_returns_key() {
+        // After sorting, `sorted[0][0]` should be the first key alphabetically.
+        let mut obj = liquid::Object::new();
+        obj.insert("es".to_owned().into(), Value::scalar("Spanish"));
+        obj.insert("ar".to_owned().into(), Value::scalar("Arabic"));
+        obj.insert("en".to_owned().into(), Value::scalar("English"));
+        let input = Value::Object(obj);
+
+        let result = liquid_core::call_filter!(Sort, input).unwrap();
+        let arr = result.as_array().unwrap();
+
+        // First pair should be "ar" (alphabetically first)
+        let first_pair = arr.get(0).unwrap();
+        let first_key = first_pair.as_array().unwrap().get(0).unwrap();
+        assert_eq!(first_key.to_kstr().as_str(), "ar");
+    }
+
+    #[test]
+    fn test_sort_object_with_28_locale_keys() {
+        // Simulates the opensource-guide _data/locales/ with 28 locale keys.
+        let locale_keys = vec![
+            "ar", "bg", "bn", "de", "el", "en", "es", "fa", "fr", "he", "hi", "hu", "id", "it",
+            "ja", "ko", "mr", "nl", "pl", "pt-br", "ro", "ru", "sw", "th", "tr", "uk", "zh-hans",
+            "zh-hant",
+        ];
+        let mut obj = liquid::Object::new();
+        for key in &locale_keys {
+            let mut inner = liquid::Object::new();
+            inner.insert(
+                "name".to_owned().into(),
+                Value::scalar(format!("Locale {key}")),
+            );
+            obj.insert(key.to_string().into(), Value::Object(inner));
+        }
+        let input = Value::Object(obj);
+
+        let result = liquid_core::call_filter!(Sort, input).unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.size(), 28);
+
+        // Verify the keys are alphabetically sorted
+        let keys: Vec<String> = arr
+            .values()
+            .map(|v| v.as_array().unwrap().get(0).unwrap().to_kstr().to_string())
+            .collect();
+        let mut expected = locale_keys
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>();
+        expected.sort();
+        assert_eq!(keys, expected);
+    }
+
+    #[test]
+    fn test_sort_object_unicode_values() {
+        // Test with non-ASCII locale names (Arabic, Chinese, Hindi).
+        let mut obj = liquid::Object::new();
+        let mut ar_obj = liquid::Object::new();
+        ar_obj.insert("name".to_owned().into(), Value::scalar("العربية"));
+        obj.insert("ar".to_owned().into(), Value::Object(ar_obj));
+
+        let mut zh_obj = liquid::Object::new();
+        zh_obj.insert("name".to_owned().into(), Value::scalar("简体中文"));
+        obj.insert("zh-hans".to_owned().into(), Value::Object(zh_obj));
+
+        let mut hi_obj = liquid::Object::new();
+        hi_obj.insert("name".to_owned().into(), Value::scalar("हिन्दी"));
+        obj.insert("hi".to_owned().into(), Value::Object(hi_obj));
+
+        let input = Value::Object(obj);
+        let result = liquid_core::call_filter!(Sort, input).unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.size(), 3);
+
+        // Sorted by key: ar, hi, zh-hans
+        let keys: Vec<String> = arr
+            .values()
+            .map(|v| v.as_array().unwrap().get(0).unwrap().to_kstr().to_string())
+            .collect();
+        assert_eq!(keys, vec!["ar", "hi", "zh-hans"]);
+
+        // Verify unicode values are preserved
+        let first_value = arr
+            .get(0)
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .get(1)
+            .unwrap()
+            .to_value();
+        let ar_name = first_value
+            .as_object()
+            .unwrap()
+            .get("name")
+            .unwrap()
+            .to_kstr()
+            .to_string();
+        assert_eq!(ar_name, "العربية");
+    }
+
+    #[test]
+    fn test_sort_object_empty() {
+        let obj = liquid::Object::new();
+        let input = Value::Object(obj);
+        let result = liquid_core::call_filter!(Sort, input).unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.size(), 0);
+    }
+
+    #[test]
+    fn test_sort_object_single_key() {
+        let mut obj = liquid::Object::new();
+        obj.insert("only".to_owned().into(), Value::scalar("value"));
+        let input = Value::Object(obj);
+        let result = liquid_core::call_filter!(Sort, input).unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.size(), 1);
+
+        let pair = arr.get(0).unwrap().as_array().unwrap();
+        assert_eq!(pair.get(0).unwrap().to_kstr().as_str(), "only");
+        assert_eq!(pair.get(1).unwrap().to_kstr().as_str(), "value");
+    }
+
+    #[test]
+    fn test_sort_object_with_nested_objects() {
+        // Values can be complex objects, not just scalars.
+        let mut obj = liquid::Object::new();
+        let mut nested = liquid::Object::new();
+        nested.insert("x".to_owned().into(), Value::scalar(42));
+        obj.insert("beta".to_owned().into(), Value::Object(nested));
+        obj.insert("alpha".to_owned().into(), Value::scalar("simple"));
+        let input = Value::Object(obj);
+
+        let result = liquid_core::call_filter!(Sort, input).unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.size(), 2);
+
+        // First pair: alpha
+        let first_key = arr
+            .get(0)
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .get(0)
+            .unwrap()
+            .to_kstr()
+            .to_string();
+        assert_eq!(first_key, "alpha");
+
+        // Second pair: beta (with nested object preserved)
+        let second_val = arr
+            .get(1)
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .get(1)
+            .unwrap()
+            .to_value();
+        let x = second_val.as_object().unwrap().get("x").unwrap();
+        assert_eq!(x.to_kstr().as_str(), "42");
+    }
+
+    #[test]
+    fn test_sort_object_size_preserved() {
+        // .size on the sorted result should match the original object key count.
+        let mut obj = liquid::Object::new();
+        for i in 0..5 {
+            obj.insert(format!("key{i}").into(), Value::scalar(i));
+        }
+        let input = Value::Object(obj);
+        let result = liquid_core::call_filter!(Sort, input).unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.size(), 5);
+    }
+
+    #[test]
+    fn test_sort_object_unicode_keys() {
+        // Keys themselves can contain non-ASCII characters.
+        let mut obj = liquid::Object::new();
+        obj.insert("日本語".to_owned().into(), Value::scalar("Japanese"));
+        obj.insert("中文".to_owned().into(), Value::scalar("Chinese"));
+        obj.insert("한국어".to_owned().into(), Value::scalar("Korean"));
+        let input = Value::Object(obj);
+
+        let result = liquid_core::call_filter!(Sort, input).unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.size(), 3);
+
+        // Keys sorted by Unicode codepoint order
+        let keys: Vec<String> = arr
+            .values()
+            .map(|v| v.as_array().unwrap().get(0).unwrap().to_kstr().to_string())
+            .collect();
+        let mut expected = vec!["日本語", "中文", "한국어"]
+            .into_iter()
+            .map(String::from)
+            .collect::<Vec<_>>();
+        expected.sort();
+        assert_eq!(keys, expected);
     }
 }
