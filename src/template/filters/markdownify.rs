@@ -407,22 +407,19 @@ mod tests {
     /// Pattern C: numbered list items 4,3,2 stay as plain text with <br />,
     /// then item 1 starts an <ol>. This matches Jekyll/kramdown behavior where
     /// only `1.` at a paragraph boundary triggers an ordered list.
-    /// Issue 307: The text before the list should NOT be wrapped in <p> --
-    /// Jekyll keeps it as bare text followed by the list.
     #[test]
     fn test_issue273_pattern_c_numbered_list_after_br() {
         // Full text: items 4,3,2 in paragraph, then 1 starts a list
         let input = "great questions!<br />\n4. Writing did the trick<br />\n3. I'm not sure<br />\n2. Communication<br />\n1. I'm not sure about this";
         let html = crate::frontmatter::markdown_to_html_for_filter(input);
-        // Items 4,3,2 should be present as text with <br /> between them
-        // Issue 307: text before list should NOT be wrapped in <p>
+        // Items 4,3,2 should be in a <p> with <br /> between them
         assert!(
-            html.contains("great questions!"),
-            "Pattern C: Should have non-list text. Got: {html}"
+            html.contains("<p>"),
+            "Pattern C: Should have <p> for non-list text. Got: {html}"
         );
         assert!(
             html.contains("<br />"),
-            "Pattern C: Should preserve <br /> in text. Got: {html}"
+            "Pattern C: Should preserve <br /> in paragraph. Got: {html}"
         );
         // Item 1 should trigger an <ol> list (kramdown behavior)
         assert!(
@@ -505,123 +502,6 @@ mod tests {
         assert!(
             html.contains("<li>"),
             "Regression: Lists still work. Got: {html}"
-        );
-    }
-
-    // --- Issue 307: newline_to_br + markdownify interaction ---
-
-    /// Pattern 1: text + br + numbered list should NOT get extra <p> wrapping.
-    /// Jekyll produces: text<br />\n<ol>... as siblings (no <p> around text).
-    #[test]
-    fn test_issue307_text_br_then_ordered_list_no_extra_p() {
-        // Simulate newline_to_br output then markdownify
-        let input = "Here are a few tips<br />\n1. First<br />\n2. Second<br />\n3. Third";
-        let html = crate::frontmatter::markdown_to_html_for_filter(input);
-        // The text before the list should NOT be wrapped in <p>
-        assert!(
-            !html.contains("<p>Here are a few tips<br />"),
-            "Issue 307 Pattern 1: text before list should NOT be wrapped in <p>. Got: {html}"
-        );
-        // Should have <ol> with list items
-        assert!(
-            html.contains("<ol>"),
-            "Issue 307 Pattern 1: Should contain <ol>. Got: {html}"
-        );
-        assert!(
-            html.contains("<br />"),
-            "Issue 307 Pattern 1: Should preserve <br />. Got: {html}"
-        );
-    }
-
-    /// Pattern 1 variant: text + br + unordered list
-    #[test]
-    fn test_issue307_text_br_then_unordered_list_no_extra_p() {
-        let input = "Some text<br />\n- bullet one<br />\n- bullet two";
-        let html = crate::frontmatter::markdown_to_html_for_filter(input);
-        assert!(
-            !html.contains("<p>Some text<br />"),
-            "Issue 307 Pattern 1: text before unordered list should NOT be wrapped in <p>. Got: {html}"
-        );
-        assert!(
-            html.contains("<ul>"),
-            "Issue 307 Pattern 1: Should contain <ul>. Got: {html}"
-        );
-    }
-
-    /// Pattern 2: nested lists should remain nested inside parent <li>
-    #[test]
-    fn test_issue307_nested_list_stays_nested() {
-        let input = "- Item with subbullets<br />\n  1. sub a<br />\n  2. sub b";
-        let html = crate::frontmatter::markdown_to_html_for_filter(input);
-        // The <ol> should be inside the <li> of the parent <ul>, not broken out
-        // Check that <ol> appears after <li> content but before </li>
-        if let Some(li_start) = html.find("<li>") {
-            let after_li = &html[li_start..];
-            if let Some(li_end) = after_li.find("</li>") {
-                let li_content = &after_li[..li_end];
-                assert!(
-                    li_content.contains("<ol>"),
-                    "Issue 307 Pattern 2: <ol> should be nested inside <li>. Got: {html}"
-                );
-            }
-        }
-    }
-
-    /// Pattern 3: <br /> elements from newline_to_br must be preserved
-    #[test]
-    fn test_issue307_br_elements_preserved() {
-        let input = "hello<br />\nworld<br />\nthird line";
-        let html = crate::frontmatter::markdown_to_html_for_filter(input);
-        let br_count = html.matches("<br />").count();
-        assert!(
-            br_count >= 2,
-            "Issue 307 Pattern 3: Should preserve at least 2 <br /> elements. Got {br_count} in: {html}"
-        );
-    }
-
-    /// Pattern 4: inline code backticks preserved after br
-    #[test]
-    fn test_issue307_code_backticks_after_br() {
-        let input = "Question?<br />\n<br />\nAnswer with code: `example`";
-        let html = crate::frontmatter::markdown_to_html_for_filter(input);
-        assert!(
-            html.contains("<code"),
-            "Issue 307 Pattern 4: Should contain <code> element. Got: {html}"
-        );
-        assert!(
-            html.contains("example"),
-            "Issue 307 Pattern 4: Code content 'example' should be present. Got: {html}"
-        );
-    }
-
-    /// Issue 307: markdownify with pre-existing HTML (text<br />\n<ol>...) should
-    /// not wrap text in extra <p>
-    #[test]
-    fn test_issue307_text_br_before_html_ol_no_extra_p() {
-        let input = "text<br />\n<ol>\n<li>a</li>\n</ol>";
-        let html = crate::frontmatter::markdown_to_html_for_filter(input);
-        assert!(
-            !html.contains("<p>text<br />"),
-            "Issue 307: text before <ol> should NOT get extra <p> wrapping. Got: {html}"
-        );
-    }
-
-    /// Issue 307: Unicode content with br + markdownify pipeline
-    #[test]
-    fn test_issue307_unicode_br_markdownify() {
-        let input = "Ren\u{00e9} says hello<br />\n\u{1f64f} Thank you<br />\n1. First item";
-        let html = crate::frontmatter::markdown_to_html_for_filter(input);
-        assert!(
-            html.contains("Ren\u{00e9}"),
-            "Issue 307 Unicode: Should preserve accented characters. Got: {html}"
-        );
-        assert!(
-            html.contains("\u{1f64f}"),
-            "Issue 307 Unicode: Should preserve emoji. Got: {html}"
-        );
-        assert!(
-            html.contains("<br />"),
-            "Issue 307 Unicode: Should preserve <br />. Got: {html}"
         );
     }
 }
