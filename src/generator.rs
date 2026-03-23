@@ -1442,6 +1442,9 @@ pub fn generate_collection_pages_cached_with_progress(
         errors: Vec::new(),
     });
 
+    // Hoist timezone resolution out of the per-page loop (same for all pages).
+    let site_tz = get_config_timezone(config);
+
     items.par_iter().for_each(|item| {
         let layout_name = resolve_layout(item, config, collection_type);
 
@@ -1494,7 +1497,6 @@ pub fn generate_collection_pages_cached_with_progress(
         // format with timezone offset (e.g., "2018/06/04 00:00" -> "2018-06-04 00:00:00 +0800").
         // This must happen before the front matter is converted to the Liquid context,
         // because yaml_to_liquid does not perform date expansion.
-        let site_tz = get_config_timezone(config);
         normalize_frontmatter_date(&mut page_fm, site_tz);
 
         // Inject excerpt into page front matter (needed for SEO description fallback).

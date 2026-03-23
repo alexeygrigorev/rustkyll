@@ -438,24 +438,30 @@ fn build_site(
     // 6. Build site context (always uses full collections for cross-references)
     // Collect static file paths first so they can be exposed as site.static_files
     let static_file_paths = static_files::collect_static_files(source, &config)?;
-    progress.phase("Building site context...");
-    let phase_start = Instant::now();
-    let site_context = generator::build_site_context_with_static_files(
-        &config,
-        &collections,
-        &data_tree,
-        Some(source),
-        &pages,
-        &static_file_paths,
-    );
-    summary.timing.context = phase_start.elapsed();
 
-    // 7. Create layout engine
-    progress.phase("Loading layouts...");
-    let phase_start = Instant::now();
+    // Build site context and load layouts in parallel since they are independent.
+    progress.phase("Building site context...");
+    let phase_start_context = Instant::now();
     let layouts_dir = source.join("_layouts");
     let includes_dir = source.join("_includes");
-    let mut layout_engine = LayoutEngine::new(&layouts_dir, &includes_dir)?;
+
+    let (site_context, layout_result) = rayon::join(
+        || {
+            generator::build_site_context_with_static_files(
+                &config,
+                &collections,
+                &data_tree,
+                Some(source),
+                &pages,
+                &static_file_paths,
+            )
+        },
+        || LayoutEngine::new(&layouts_dir, &includes_dir),
+    );
+    let mut layout_engine = layout_result?;
+    summary.timing.context = phase_start_context.elapsed();
+    // Layouts loaded in parallel, timing is subsumed by context.
+    summary.timing.layouts = std::time::Duration::ZERO;
 
     // Issue 216: Set markdown processor mode based on config.
     // When the site uses a non-kramdown markdown processor (e.g., CommonMarkGhPages),
@@ -478,15 +484,28 @@ fn build_site(
     // Issue 294: Enable autolink if the site config has commonmark.extensions: ["autolink"]
     layout_engine.set_autolink(config.has_commonmark_autolink());
 
-    summary.timing.layouts = phase_start.elapsed();
-
     // 8. Clean and create destination directory (only for full rebuilds)
-    if changed_set.is_none() {
-        // Full rebuild: wipe destination
-        if destination.exists() {
+    // Optimization: rename the old directory and delete it in the background,
+    // so generation can start immediately while the old files are being removed.
+    let _cleanup_handle = if changed_set.is_none() && destination.exists() {
+        // Rename to a temporary path for async removal
+        let tmp_path = destination.with_extension("_old_cleanup");
+        // Remove any leftover cleanup directory from a previous failed build
+        let _ = std::fs::remove_dir_all(&tmp_path);
+        if std::fs::rename(destination, &tmp_path).is_ok() {
+            // Spawn background thread to remove the old directory
+            let handle = std::thread::spawn(move || {
+                let _ = std::fs::remove_dir_all(&tmp_path);
+            });
+            Some(handle)
+        } else {
+            // Rename failed (different filesystem?), fall back to synchronous removal
             std::fs::remove_dir_all(destination)?;
+            None
         }
-    }
+    } else {
+        None
+    };
     std::fs::create_dir_all(destination)?;
 
     // 9. Build cached site context ONCE for all page renders.
@@ -537,42 +556,82 @@ fn build_site(
     };
     let render_progress = progress.render_progress(total_renderable as u64, "Rendering");
 
-    for (name, items) in &collections {
-        // Skip collections with output: false (except posts which always output).
-        // Jekyll only generates HTML pages for collections with `output: true`.
-        if name != "posts" {
-            if let Some(coll_config) = config.collection(name) {
-                if !coll_config.output {
-                    continue;
-                }
-            }
-        }
+    // Process all collections in parallel to maximize thread utilization.
+    // Each collection's items are also processed in parallel internally (nested par_iter).
+    // This avoids idle threads between sequential collection processing.
+    {
+        use std::sync::Mutex;
 
-        // For partial rebuilds, filter to only changed items
-        let filtered: Vec<CollectionItem>;
-        let items_slice: &[CollectionItem] = match &changed_set {
-            Some(changed) => {
-                filtered = items
-                    .iter()
-                    .filter(|item| changed.contains(&item.source_path))
-                    .cloned()
-                    .collect();
-                &filtered
-            }
-            None => items,
+        // Pre-filter collections and items.
+        let collection_tasks: Vec<(&str, &[CollectionItem])> = collections
+            .iter()
+            .filter_map(|(name, items)| {
+                // Skip collections with output: false (except posts which always output).
+                if name != "posts" {
+                    if let Some(coll_config) = config.collection(name) {
+                        if !coll_config.output {
+                            return None;
+                        }
+                    }
+                }
+                if items.is_empty() {
+                    return None;
+                }
+                Some((name.as_str(), items.as_slice()))
+            })
+            .collect();
+
+        // For incremental builds, filter items per collection.
+        let filtered_items: Vec<Vec<CollectionItem>> = match &changed_set {
+            Some(changed) => collection_tasks
+                .iter()
+                .map(|(_, items)| {
+                    items
+                        .iter()
+                        .filter(|item| changed.contains(&item.source_path))
+                        .cloned()
+                        .collect()
+                })
+                .collect(),
+            None => Vec::new(),
         };
 
-        if !items_slice.is_empty() {
-            let result = generator::generate_collection_pages_cached_with_progress(
-                items_slice,
-                name,
-                &config,
-                &layout_engine,
-                &cached_site,
-                destination,
-                author_items,
-                Some(&render_progress),
-            )?;
+        let results: Mutex<Vec<Result<generator::GenerationResult, generator::GeneratorError>>> =
+            Mutex::new(Vec::new());
+
+        rayon::scope(|s| {
+            for (i, (name, items)) in collection_tasks.iter().enumerate() {
+                let items_slice: &[CollectionItem] = if !filtered_items.is_empty() {
+                    if filtered_items[i].is_empty() {
+                        continue;
+                    }
+                    &filtered_items[i]
+                } else {
+                    items
+                };
+                let config = &config;
+                let layout_engine = &layout_engine;
+                let cached_site = &cached_site;
+                let render_progress = &render_progress;
+                let results = &results;
+                s.spawn(move |_| {
+                    let result = generator::generate_collection_pages_cached_with_progress(
+                        items_slice,
+                        name,
+                        config,
+                        layout_engine,
+                        cached_site,
+                        destination,
+                        author_items,
+                        Some(render_progress),
+                    );
+                    results.lock().unwrap().push(result);
+                });
+            }
+        });
+
+        for result in results.into_inner().unwrap() {
+            let result = result?;
             summary.collection_pages += result.generated;
             summary.errors.extend(result.errors);
         }

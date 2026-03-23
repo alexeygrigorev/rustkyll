@@ -304,12 +304,30 @@ impl LayoutEngine {
         page_front_matter: &FrontMatter,
         cached_site: &CachedSiteContext,
     ) -> Result<String, TemplateError> {
+        let page_obj = build_page_object(page_front_matter);
+        self.render_with_cached_site_prebuilt(layout_name, content, page_obj, cached_site)
+    }
+
+    /// Like render_with_cached_site but takes ownership of a pre-built page Object.
+    fn render_with_cached_site_prebuilt(
+        &self,
+        layout_name: &str,
+        content: &str,
+        page_obj: Object,
+        cached_site: &CachedSiteContext,
+    ) -> Result<String, TemplateError> {
         let layout = self
             .layouts
             .get(layout_name)
             .ok_or_else(|| TemplateError::LayoutNotFound(layout_name.to_string()))?;
 
-        let mut ctx = build_render_context_page_only(content, page_front_matter);
+        let has_parent = layout.parent_layout.is_some();
+        let page_obj_for_chaining = if has_parent {
+            Some(page_obj.clone())
+        } else {
+            None
+        };
+        let mut ctx = build_render_context_from_page_object(content, page_obj);
         ctx.insert(
             "layout".into(),
             LiquidValue::Object(
@@ -329,18 +347,28 @@ impl LayoutEngine {
         };
 
         if let Some(ref parent_name) = layout.parent_layout {
-            self.render_with_cached_site(parent_name, &result, page_front_matter, cached_site)
+            self.render_with_cached_site_prebuilt(
+                parent_name,
+                &result,
+                page_obj_for_chaining.unwrap(),
+                cached_site,
+            )
         } else {
             Ok(result)
         }
     }
 
     /// Like render_with_cached_site but with per-render site key overrides.
-    fn render_with_site_overrides(
+    ///
+    /// Takes ownership of the page Object on the first call to avoid cloning.
+    /// For layout chaining, the page Object is reconstructed from the inner Value
+    /// stored in the context (which is cheaper than a full clone since the original
+    /// page data is still available via reference).
+    fn render_with_prebuilt_page(
         &self,
         layout_name: &str,
         content: &str,
-        page_front_matter: &FrontMatter,
+        page_obj: Object,
         cached_site: &CachedSiteContext,
         site_overrides: &HashMap<String, super::engine::LenientValue>,
     ) -> Result<String, TemplateError> {
@@ -348,7 +376,14 @@ impl LayoutEngine {
             .layouts
             .get(layout_name)
             .ok_or_else(|| TemplateError::LayoutNotFound(layout_name.to_string()))?;
-        let mut ctx = build_render_context_page_only(content, page_front_matter);
+        let has_parent = layout.parent_layout.is_some();
+        // Clone page_obj only if we need it for layout chaining; otherwise move it.
+        let page_obj_for_chaining = if has_parent {
+            Some(page_obj.clone())
+        } else {
+            None
+        };
+        let mut ctx = build_render_context_from_page_object(content, page_obj);
         ctx.insert(
             "layout".into(),
             LiquidValue::Object(
@@ -370,10 +405,10 @@ impl LayoutEngine {
             )?
         };
         if let Some(ref parent_name) = layout.parent_layout {
-            self.render_with_site_overrides(
+            self.render_with_prebuilt_page(
                 parent_name,
                 &result,
-                page_front_matter,
+                page_obj_for_chaining.unwrap(),
                 cached_site,
                 site_overrides,
             )
@@ -383,6 +418,9 @@ impl LayoutEngine {
     }
 
     /// Render page content with cached site and per-render site overrides.
+    ///
+    /// Pre-builds the page Object once and reuses it for both content and layout
+    /// rendering, avoiding redundant yaml_to_liquid conversions.
     pub(crate) fn render_page_with_site_overrides(
         &self,
         layout_name: &str,
@@ -391,21 +429,25 @@ impl LayoutEngine {
         cached_site: &CachedSiteContext,
         site_overrides: &HashMap<String, super::engine::LenientValue>,
     ) -> Result<String, TemplateError> {
-        let rendered_content = if raw_content.contains("{{") || raw_content.contains("{%") {
-            let page_ctx = build_render_context_page_only("", page_front_matter);
-            self.engine.parse_and_render_with_site_overrides(
-                raw_content,
-                &page_ctx,
-                cached_site,
-                site_overrides,
-            )?
-        } else {
-            raw_content.to_string()
-        };
-        let result = self.render_with_site_overrides(
+        // Pre-build the page Object once for reuse across content + layout renders.
+        let page_obj = build_page_object(page_front_matter);
+        let (rendered_content, page_obj) =
+            if raw_content.contains("{{") || raw_content.contains("{%") {
+                let page_ctx = build_render_context_from_page_object("", page_obj.clone());
+                let rendered = self.engine.parse_and_render_with_site_overrides(
+                    raw_content,
+                    &page_ctx,
+                    cached_site,
+                    site_overrides,
+                )?;
+                (rendered, page_obj)
+            } else {
+                (raw_content.to_string(), page_obj)
+            };
+        let result = self.render_with_prebuilt_page(
             layout_name,
             &rendered_content,
-            page_front_matter,
+            page_obj,
             cached_site,
             site_overrides,
         )?;
@@ -418,6 +460,9 @@ impl LayoutEngine {
     }
 
     /// Render markdown page with cached site and per-render site overrides.
+    ///
+    /// Pre-builds the page Object once and reuses it for both content and layout
+    /// rendering, avoiding redundant yaml_to_liquid conversions.
     pub(crate) fn render_markdown_page_with_site_overrides(
         &self,
         layout_name: &str,
@@ -426,16 +471,19 @@ impl LayoutEngine {
         cached_site: &CachedSiteContext,
         site_overrides: &HashMap<String, super::engine::LenientValue>,
     ) -> Result<String, TemplateError> {
-        let after_liquid = if raw_content.contains("{{") || raw_content.contains("{%") {
-            let page_ctx = build_render_context_page_only("", page_front_matter);
-            self.engine.parse_and_render_with_site_overrides(
+        // Pre-build the page Object once for reuse across content + layout renders.
+        let page_obj = build_page_object(page_front_matter);
+        let (after_liquid, page_obj) = if raw_content.contains("{{") || raw_content.contains("{%") {
+            let page_ctx = build_render_context_from_page_object("", page_obj.clone());
+            let rendered = self.engine.parse_and_render_with_site_overrides(
                 raw_content,
                 &page_ctx,
                 cached_site,
                 site_overrides,
-            )?
+            )?;
+            (rendered, page_obj)
         } else {
-            raw_content.to_string()
+            (raw_content.to_string(), page_obj)
         };
         let dedented = crate::frontmatter::dedent_html_lines(&after_liquid);
         let marked = crate::kramdown::mark_existing_html_headings(&dedented);
@@ -448,10 +496,10 @@ impl LayoutEngine {
             self.enable_autolink,
         );
         let html_content = crate::kramdown::remove_heading_markers(&html_content);
-        let result = self.render_with_site_overrides(
+        let result = self.render_with_prebuilt_page(
             layout_name,
             &html_content,
-            page_front_matter,
+            page_obj,
             cached_site,
             site_overrides,
         )?;
@@ -584,22 +632,29 @@ impl LayoutEngine {
         page_front_matter: &FrontMatter,
         cached_site: &CachedSiteContext,
     ) -> Result<String, TemplateError> {
+        // Pre-build the page Object once for reuse across content + layout renders.
+        let page_obj = build_page_object(page_front_matter);
         // Optimization: skip Liquid parsing for content that has no Liquid tags.
         // Many collection items (podcast, books, people) have plain HTML content
         // with no Liquid tags. Parsing plain HTML through the Liquid parser is
         // pure overhead.
-        let rendered_content = if raw_content.contains("{{") || raw_content.contains("{%") {
-            let page_ctx = build_render_context_page_only("", page_front_matter);
-            self.engine
-                .parse_and_render_with_cached_site(raw_content, &page_ctx, cached_site)?
-        } else {
-            raw_content.to_string()
-        };
+        let (rendered_content, page_obj) =
+            if raw_content.contains("{{") || raw_content.contains("{%") {
+                let page_ctx = build_render_context_from_page_object("", page_obj.clone());
+                let rendered = self.engine.parse_and_render_with_cached_site(
+                    raw_content,
+                    &page_ctx,
+                    cached_site,
+                )?;
+                (rendered, page_obj)
+            } else {
+                (raw_content.to_string(), page_obj)
+            };
 
-        let result = self.render_with_cached_site(
+        let result = self.render_with_cached_site_prebuilt(
             layout_name,
             &rendered_content,
-            page_front_matter,
+            page_obj,
             cached_site,
         )?;
         // D2, D3, D12: Normalize boolean attributes and void elements
@@ -625,13 +680,19 @@ impl LayoutEngine {
         page_front_matter: &FrontMatter,
         cached_site: &CachedSiteContext,
     ) -> Result<String, TemplateError> {
+        // Pre-build the page Object once for reuse across content + layout renders.
+        let page_obj = build_page_object(page_front_matter);
         // Step 1: Process Liquid tags in the raw content
-        let after_liquid = if raw_content.contains("{{") || raw_content.contains("{%") {
-            let page_ctx = build_render_context_page_only("", page_front_matter);
-            self.engine
-                .parse_and_render_with_cached_site(raw_content, &page_ctx, cached_site)?
+        let (after_liquid, page_obj) = if raw_content.contains("{{") || raw_content.contains("{%") {
+            let page_ctx = build_render_context_from_page_object("", page_obj.clone());
+            let rendered = self.engine.parse_and_render_with_cached_site(
+                raw_content,
+                &page_ctx,
+                cached_site,
+            )?;
+            (rendered, page_obj)
         } else {
-            raw_content.to_string()
+            (raw_content.to_string(), page_obj)
         };
 
         // Step 2: Dedent HTML lines to prevent pulldown-cmark from treating
@@ -665,10 +726,10 @@ impl LayoutEngine {
         let html_content = crate::kramdown::remove_heading_markers(&html_content);
 
         // Step 4: Wrap in layout
-        let result = self.render_with_cached_site(
+        let result = self.render_with_cached_site_prebuilt(
             layout_name,
             &html_content,
-            page_front_matter,
+            page_obj,
             cached_site,
         )?;
         // D2, D3, D12: Normalize boolean attributes and void elements
@@ -959,8 +1020,16 @@ pub fn build_render_context(
 /// avoids the expensive `site_context.clone()` that was the main O(n^2)
 /// bottleneck on large sites.
 pub fn build_render_context_page_only(content: &str, page_front_matter: &FrontMatter) -> Object {
-    let mut ctx = Object::new();
+    let page = build_page_object(page_front_matter);
+    build_render_context_from_page_object(content, page)
+}
 
+/// Pre-build the Liquid `Object` representing the `page` namespace from front matter.
+///
+/// This is the expensive part of context building: converting each yaml value to a
+/// Liquid value and normalizing arrays. Call this ONCE per page, then pass the result
+/// to `build_render_context_from_page_object` for each render (content + layout).
+pub fn build_page_object(page_front_matter: &FrontMatter) -> Object {
     let mut page = Object::new();
     for (key, value) in page_front_matter {
         let liquid_val = yaml_to_liquid(value);
@@ -973,6 +1042,17 @@ pub fn build_render_context_page_only(content: &str, page_front_matter: &FrontMa
         };
         page.insert(key.clone().into(), liquid_val);
     }
+    page
+}
+
+/// Build a render context from a pre-built page Object and content string.
+///
+/// This is the cheap part: it clones the page Object and adds the content field.
+/// The page Object should be built once via `build_page_object` and reused for
+/// both content rendering and layout rendering.
+pub fn build_render_context_from_page_object(content: &str, mut page: Object) -> Object {
+    let mut ctx = Object::new();
+
     // Jekyll makes the rendered HTML available as page.content in layout context.
     // This is needed for templates that use {{ page.content | strip_html }} for
     // meta descriptions. Escape " to &quot; in text nodes to match kramdown.

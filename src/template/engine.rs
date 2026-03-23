@@ -29,10 +29,14 @@ pub struct Template {
 pub struct LenientValue {
     /// The original value.
     inner: Value,
-    /// Pre-wrapped child objects (for returning references from `get()`).
-    children: std::collections::HashMap<String, LenientValue>,
-    /// Pre-wrapped array elements (for returning references from array iteration).
-    array_children: Vec<LenientValue>,
+    /// Lazily wrapped child objects (for returning references from `get()`).
+    /// Built on first access to avoid upfront cost for objects whose children
+    /// are never queried (e.g., page front matter fields that aren't accessed).
+    children: OnceLock<std::collections::HashMap<String, LenientValue>>,
+    /// Lazily wrapped array elements (for returning references from array iteration).
+    /// Built on first `values()` or `get()` call to avoid wrapping large arrays
+    /// (like podcast transcripts with 200+ items) when they're never iterated.
+    array_children: OnceLock<Vec<LenientValue>>,
     /// Lazily computed positional children for integer-indexed access on objects.
     /// Each entry is a two-element array `[key_string, value]` matching Jekyll's
     /// `hash[0]` behavior. Only populated on first integer-index access.
@@ -42,42 +46,53 @@ pub struct LenientValue {
 }
 
 // LenientValue is Sync because all fields are Sync:
-// - inner (Value), children (HashMap), array_children (Vec), nil (Value) are all Sync
-// - positional_children uses OnceLock for safe lazy initialization across threads
+// - inner (Value), nil (Value) are Sync
+// - children, array_children, positional_children use OnceLock for safe lazy initialization
 
 impl LenientValue {
-    /// Build a `LenientValue` tree from a `Value`, recursively wrapping all
-    /// nested objects and arrays. This is the expensive operation that should
-    /// be done ONCE for shared contexts (like `site`) and reused.
+    /// Build a `LenientValue` node from a `Value`.
     ///
-    /// Positional children (for Jekyll's `hash[0]` syntax) are NOT built
-    /// eagerly -- they are lazily initialized on first integer-index access.
-    /// This avoids creating millions of extra allocations for objects that
-    /// are never integer-indexed, which was a major bottleneck on large sites.
+    /// Children (object keys, array elements, positional pairs) are all lazily
+    /// initialized on first access. This makes construction O(1) regardless of
+    /// the depth or breadth of the value tree. For shared contexts (like `site`),
+    /// the lazy children are built once and reused across all renders. For
+    /// per-render contexts (like `page`), unused children are never built at all.
     pub fn from_value(value: Value) -> Self {
-        let children = if let Value::Object(ref obj) = value {
-            let mut map = std::collections::HashMap::new();
-            for (key, val) in obj.iter() {
-                map.insert(key.to_string(), LenientValue::from_value(val.to_value()));
-            }
-            map
-        } else {
-            std::collections::HashMap::new()
-        };
-        let array_children = if let Value::Array(ref arr) = value {
-            arr.iter()
-                .map(|v| LenientValue::from_value(v.to_value()))
-                .collect()
-        } else {
-            Vec::new()
-        };
         Self {
             inner: value,
-            children,
-            array_children,
+            children: OnceLock::new(),
+            array_children: OnceLock::new(),
             positional_children: OnceLock::new(),
             nil: Value::Nil,
         }
+    }
+
+    /// Get or lazily initialize object children.
+    fn get_children(&self) -> &std::collections::HashMap<String, LenientValue> {
+        self.children.get_or_init(|| {
+            if let Value::Object(ref obj) = self.inner {
+                let mut map = std::collections::HashMap::with_capacity(obj.size() as usize);
+                for (key, val) in obj.iter() {
+                    map.insert(key.to_string(), LenientValue::from_value(val.to_value()));
+                }
+                map
+            } else {
+                std::collections::HashMap::new()
+            }
+        })
+    }
+
+    /// Get or lazily initialize array children.
+    fn get_array_children(&self) -> &[LenientValue] {
+        self.array_children.get_or_init(|| {
+            if let Value::Array(ref arr) = self.inner {
+                arr.iter()
+                    .map(|v| LenientValue::from_value(v.to_value()))
+                    .collect()
+            } else {
+                Vec::new()
+            }
+        })
     }
 
     /// Get or lazily initialize positional children for integer-indexed access.
@@ -163,24 +178,28 @@ impl ArrayView for LenientValue {
     }
 
     fn size(&self) -> i64 {
-        self.array_children.len() as i64
+        let children = self.get_array_children();
+        children.len() as i64
     }
 
     fn values<'k>(&'k self) -> Box<dyn Iterator<Item = &'k dyn ValueView> + 'k> {
-        Box::new(self.array_children.iter().map(|v| v as &dyn ValueView))
+        let children = self.get_array_children();
+        Box::new(children.iter().map(|v| v as &dyn ValueView))
     }
 
     fn contains_key(&self, index: i64) -> bool {
-        let len = self.array_children.len() as i64;
+        let children = self.get_array_children();
+        let len = children.len() as i64;
         let idx = if index >= 0 { index } else { len + index };
         idx >= 0 && idx < len
     }
 
     fn get(&self, index: i64) -> Option<&dyn ValueView> {
-        let len = self.array_children.len() as i64;
+        let children = self.get_array_children();
+        let len = children.len() as i64;
         let idx = if index >= 0 { index } else { len + index };
-        if idx >= 0 && (idx as usize) < self.array_children.len() {
-            Some(&self.array_children[idx as usize] as &dyn ValueView)
+        if idx >= 0 && (idx as usize) < children.len() {
+            Some(&children[idx as usize] as &dyn ValueView)
         } else {
             None
         }
@@ -209,12 +228,14 @@ impl ObjectView for LenientValue {
     }
 
     fn values<'k>(&'k self) -> Box<dyn Iterator<Item = &'k dyn ValueView> + 'k> {
-        Box::new(self.children.values().map(|v| v as &dyn ValueView))
+        let children = self.get_children();
+        Box::new(children.values().map(|v| v as &dyn ValueView))
     }
 
     fn iter<'k>(&'k self) -> Box<dyn Iterator<Item = (KStringCow<'k>, &'k dyn ValueView)> + 'k> {
+        let children = self.get_children();
         Box::new(
-            self.children
+            children
                 .iter()
                 .map(|(k, v)| (KStringCow::from_ref(k), v as &dyn ValueView)),
         )
@@ -226,7 +247,8 @@ impl ObjectView for LenientValue {
 
     fn get<'s>(&'s self, index: &str) -> Option<&'s dyn ValueView> {
         // First try normal string-key lookup.
-        if let Some(child) = self.children.get(index) {
+        let children = self.get_children();
+        if let Some(child) = children.get(index) {
             return Some(child as &dyn ValueView);
         }
         // For "size", "first", and "last" on objects/arrays: return None when
