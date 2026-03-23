@@ -445,7 +445,7 @@ fn build_site(
     let layouts_dir = source.join("_layouts");
     let includes_dir = source.join("_includes");
 
-    let (mut site_context, layout_result) = rayon::join(
+    let (site_context, layout_result) = rayon::join(
         || {
             generator::build_site_context_with_static_files(
                 &config,

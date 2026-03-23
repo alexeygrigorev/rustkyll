@@ -763,6 +763,9 @@ impl TemplateEngine {
             .filter(filters::StripHtml)
             // Jekyll URL filter: strip trailing /index.html from URLs
             .filter(filters::StripIndex)
+            // Lenient join: strings pass through unchanged (Issue 328)
+            // Must come after with_stdlib() to override the strict join
+            .filter(filters::Join)
     }
 
     /// Create a `TemplateEngine` from a pre-built `liquid::Parser`.
@@ -818,6 +821,14 @@ impl TemplateEngine {
         // Jekyll. We strip the inner `{{` / `}}` so the Liquid parser sees
         // a plain variable reference.
         let preprocessed = preprocess_nested_braces(&preprocessed);
+        // Pre-process `{% for var in expr | filter %}` to extract the filter
+        // chain into a separate assign. Jekyll supports filter chains in for
+        // loops but the Liquid crate does not. (Issue 328)
+        let preprocessed = preprocess_for_loop_filters(&preprocessed);
+        // Pre-process `{% assign var = (expr | filter) %}` to strip parens.
+        // Jekyll allows parenthesized expressions but Liquid crate does not.
+        // (Issue 328)
+        let preprocessed = preprocess_parenthesized_assign(&preprocessed);
         let template_str = &preprocessed;
         loop {
             let parser_guard = self
@@ -1272,6 +1283,178 @@ fn preprocess_nil_eq_false(template: &str) -> String {
     result.into_owned()
 }
 
+/// Pre-process `{% for var in expr | filter %}` to extract the filter chain.
+///
+/// Jekyll (Ruby Liquid) supports filter chains in `for` loop iterables, e.g.:
+///   `{% for name in names | sort %}`
+/// The `liquid` crate (Rust) does not. We rewrite these to:
+///   `{% assign __for_name = names | sort %}{% for name in __for_name %}`
+///
+/// Only for-loops with a pipe `|` between `in` and `%}` are rewritten.
+/// For-loops with `limit:`, `offset:`, or `reversed` but no pipe are unchanged.
+fn preprocess_for_loop_filters(template: &str) -> String {
+    // Fast path: if there's no "for " at all, nothing to do.
+    if !template.contains("for ") {
+        return template.to_string();
+    }
+
+    let mut result = String::with_capacity(template.len());
+    let mut remaining = template;
+
+    while let Some(start) = remaining.find("{%") {
+        result.push_str(&remaining[..start]);
+
+        let after_open = &remaining[start + 2..];
+        if let Some(end_offset) = after_open.find("%}") {
+            let tag_inner = &after_open[..end_offset];
+            let tag_end = start + 2 + end_offset + 2;
+
+            // Check if this is a for tag
+            let trimmed = tag_inner.trim();
+            let trimmed = trimmed.strip_prefix('-').unwrap_or(trimmed).trim();
+            let trimmed_end = trimmed.strip_suffix('-').unwrap_or(trimmed).trim();
+
+            if let Some(rest) = trimmed_end.strip_prefix("for ") {
+                let rest = rest.trim();
+                // Parse: VAR in EXPR | FILTER
+                if let Some(in_pos) = rest.find(" in ") {
+                    let var_name = rest[..in_pos].trim();
+                    let after_in = rest[in_pos + 4..].trim();
+
+                    // Check if there's a pipe that's NOT inside a string literal
+                    // and not part of limit:/offset:/reversed
+                    if let Some(pipe_pos) = find_top_level_pipe(after_in) {
+                        let expr = after_in[..pipe_pos].trim();
+                        let filter_chain = after_in[pipe_pos..].trim(); // includes the |
+
+                        // Preserve whitespace-control markers
+                        let orig_tag = &remaining[start..tag_end];
+                        let open_marker = if orig_tag.starts_with("{%-") {
+                            "{%-"
+                        } else {
+                            "{%"
+                        };
+                        let close_marker = if orig_tag.ends_with("-%}") {
+                            "-%}"
+                        } else {
+                            "%}"
+                        };
+
+                        let temp_var = format!("__for_{}", var_name);
+                        // Emit: {% assign __for_VAR = EXPR | FILTER %}{% for VAR in __for_VAR %}
+                        result.push_str("{%");
+                        result.push_str(&format!(
+                            " assign {} = {} {} ",
+                            temp_var, expr, filter_chain
+                        ));
+                        result.push_str("%}");
+                        result.push_str(open_marker);
+                        result.push_str(&format!(" for {} in {} ", var_name, temp_var));
+                        result.push_str(close_marker);
+                        remaining = &remaining[tag_end..];
+                        continue;
+                    }
+                }
+            }
+
+            // Not a for-with-filter -- copy as-is
+            result.push_str(&remaining[start..tag_end]);
+            remaining = &remaining[tag_end..];
+        } else {
+            result.push_str(&remaining[start..]);
+            remaining = "";
+        }
+    }
+
+    result.push_str(remaining);
+    result
+}
+
+/// Find the position of the first `|` that is NOT inside a string literal.
+/// Returns `None` if there's no top-level pipe.
+fn find_top_level_pipe(s: &str) -> Option<usize> {
+    let mut in_single_quote = false;
+    let mut in_double_quote = false;
+    for (i, ch) in s.char_indices() {
+        match ch {
+            '\'' if !in_double_quote => in_single_quote = !in_single_quote,
+            '"' if !in_single_quote => in_double_quote = !in_double_quote,
+            '|' if !in_single_quote && !in_double_quote => return Some(i),
+            _ => {}
+        }
+    }
+    None
+}
+
+/// Pre-process `{% assign var = (expr | filter) %}` to strip parentheses.
+///
+/// Jekyll (Ruby Liquid) allows parenthesized expressions in assign:
+///   `{% assign x = (arr | split: ',' | sort) %}`
+/// The `liquid` crate rejects the parentheses. We strip them:
+///   `{% assign x = arr | split: ',' | sort %}`
+fn preprocess_parenthesized_assign(template: &str) -> String {
+    // Fast path
+    if !template.contains("assign ") || !template.contains('(') {
+        return template.to_string();
+    }
+
+    let mut result = String::with_capacity(template.len());
+    let mut remaining = template;
+
+    while let Some(start) = remaining.find("{%") {
+        result.push_str(&remaining[..start]);
+
+        let after_open = &remaining[start + 2..];
+        if let Some(end_offset) = after_open.find("%}") {
+            let tag_inner = &after_open[..end_offset];
+            let tag_end = start + 2 + end_offset + 2;
+
+            let trimmed = tag_inner.trim();
+            let trimmed = trimmed.strip_prefix('-').unwrap_or(trimmed).trim();
+            let trimmed_end = trimmed.strip_suffix('-').unwrap_or(trimmed).trim();
+
+            if let Some(rest) = trimmed_end.strip_prefix("assign ") {
+                // Check for pattern: VAR = (EXPR)
+                if let Some(eq_pos) = rest.find('=') {
+                    let after_eq = rest[eq_pos + 1..].trim();
+                    if after_eq.starts_with('(') && after_eq.ends_with(')') {
+                        let inner = &after_eq[1..after_eq.len() - 1];
+                        let var_name = rest[..eq_pos].trim();
+
+                        // Preserve whitespace-control markers
+                        let orig_tag = &remaining[start..tag_end];
+                        let open_marker = if orig_tag.starts_with("{%-") {
+                            "{%-"
+                        } else {
+                            "{%"
+                        };
+                        let close_marker = if orig_tag.ends_with("-%}") {
+                            "-%}"
+                        } else {
+                            "%}"
+                        };
+
+                        result.push_str(open_marker);
+                        result.push_str(&format!(" assign {} = {} ", var_name, inner));
+                        result.push_str(close_marker);
+                        remaining = &remaining[tag_end..];
+                        continue;
+                    }
+                }
+            }
+
+            result.push_str(&remaining[start..tag_end]);
+            remaining = &remaining[tag_end..];
+        } else {
+            result.push_str(&remaining[start..]);
+            remaining = "";
+        }
+    }
+
+    result.push_str(remaining);
+    result
+}
+
 /// Pre-process `{{var}}` inside `{% %}` tags to strip the inner braces.
 ///
 /// Some Jekyll themes (e.g., documentation-theme-jekyll) use the non-standard
@@ -1481,12 +1664,21 @@ fn load_includes_recursive(
 
 /// Build an `EagerCompiler<InMemorySource>` from a map of partial names to content.
 ///
-/// Each partial's content is pre-processed to quote include paths containing
-/// `/` so the Liquid parser can handle subdirectory includes.
+/// Each partial's content is pre-processed with the same pipeline as templates:
+/// include path quoting, for-loop filter extraction, parenthesized assign stripping,
+/// etc. This ensures include files with Jekyll-specific Liquid syntax are handled
+/// correctly (Issue 328).
 fn build_partials(includes: &HashMap<String, String>) -> EagerCompiler<InMemorySource> {
     let mut partials = EagerCompiler::<InMemorySource>::empty();
     for (name, content) in includes {
         let preprocessed = super::include_tag::preprocess_include_paths(content);
+        let preprocessed = preprocess_capture_tags(&preprocessed);
+        let preprocessed = preprocess_jekyll_tags(&preprocessed);
+        let preprocessed = preprocess_nil_contains(&preprocessed);
+        let preprocessed = preprocess_nil_eq_false(&preprocessed);
+        let preprocessed = preprocess_nested_braces(&preprocessed);
+        let preprocessed = preprocess_for_loop_filters(&preprocessed);
+        let preprocessed = preprocess_parenthesized_assign(&preprocessed);
         partials.add(name.clone(), preprocessed);
     }
     partials
@@ -4860,5 +5052,214 @@ title: "Test Book"
         let template = r#"{% assign sorted = site.data.locales | sort %}{% for locale in sorted %}{{ locale[0] }}:{{ locale[1].name }},{% endfor %}"#;
         let output = eng.parse_and_render(template, &ctx).unwrap();
         assert_eq!(output, "ar:\u{0627}\u{0644}\u{0639}\u{0631}\u{0628}\u{064A}\u{0629},zh-hans:\u{7B80}\u{4F53}\u{4E2D}\u{6587},");
+    }
+
+    // ========================================================================
+    // Issue 328: preprocess_for_loop_filters
+    // ========================================================================
+
+    #[test]
+    fn test_preprocess_for_loop_filters_sort() {
+        let input = "{% for name in __names | sort %}{{ name }}{% endfor %}";
+        let output = preprocess_for_loop_filters(input);
+        assert!(
+            !output.contains("{% for name in __names | sort %}"),
+            "Filter chain in for loop should be extracted"
+        );
+        assert!(
+            output.contains("{% assign __for_name"),
+            "Should create temp assign: {}",
+            output
+        );
+        assert!(
+            output.contains("| sort"),
+            "Filter should be preserved in assign: {}",
+            output
+        );
+        assert!(
+            output.contains("{% for name in __for_name"),
+            "For loop should use temp var: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_for_loop_filters_no_change_without_filter() {
+        let input = "{% for item in items %}{{ item }}{% endfor %}";
+        let output = preprocess_for_loop_filters(input);
+        assert_eq!(
+            output, input,
+            "For loops without filters should be unchanged"
+        );
+    }
+
+    #[test]
+    fn test_preprocess_for_loop_filters_preserves_limit() {
+        let input = "{% for post in site.posts limit:4 %}{{ post }}{% endfor %}";
+        let output = preprocess_for_loop_filters(input);
+        assert_eq!(
+            output, input,
+            "For loops with limit but no filter should be unchanged"
+        );
+    }
+
+    #[test]
+    fn test_preprocess_for_loop_filters_with_whitespace_control() {
+        let input = "{%- for name in __names | sort -%}{{ name }}{%- endfor -%}";
+        let output = preprocess_for_loop_filters(input);
+        assert!(
+            output.contains("| sort"),
+            "Filter should be preserved: {}",
+            output
+        );
+        assert!(
+            output.contains("for name in __for_name"),
+            "For loop should use temp var: {}",
+            output
+        );
+    }
+
+    // ========================================================================
+    // Issue 328: preprocess_parenthesized_assign
+    // ========================================================================
+
+    #[test]
+    fn test_preprocess_parenthesized_assign_basic() {
+        let input = "{% assign tag_hashes = (page_tags | split: ',' | sort) %}";
+        let output = preprocess_parenthesized_assign(input);
+        assert!(
+            !output.contains('('),
+            "Parentheses should be removed: {}",
+            output
+        );
+        assert!(
+            output.contains("assign tag_hashes = page_tags | split: ',' | sort"),
+            "Expression should be preserved without parens: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_parenthesized_assign_no_change() {
+        let input = "{% assign x = arr | sort %}";
+        let output = preprocess_parenthesized_assign(input);
+        assert_eq!(
+            output, input,
+            "Non-parenthesized assigns should be unchanged"
+        );
+    }
+
+    #[test]
+    fn test_preprocess_parenthesized_assign_with_colon_arg() {
+        // sort:0 is valid Jekyll syntax (sort with argument 0)
+        let input = "{% assign tag_hashes = (page_tags | split: ',' | sort:0) %}";
+        let output = preprocess_parenthesized_assign(input);
+        assert!(
+            !output.contains('('),
+            "Parentheses should be removed: {}",
+            output
+        );
+    }
+
+    // ========================================================================
+    // Issue 328: Include content gets full preprocessing
+    // ========================================================================
+
+    #[test]
+    fn test_include_with_for_loop_filter_renders() {
+        // Simulate the group-by-array include pattern:
+        // The include file uses {% for name in __names | sort %}
+        let dir = tempfile::TempDir::new().unwrap();
+        let includes_dir = dir.path().join("_includes");
+        std::fs::create_dir_all(&includes_dir).unwrap();
+        std::fs::write(
+            includes_dir.join("test-include"),
+            "{% assign items = 'c,a,b' | split: ',' %}{% assign __for_item = items | sort %}{% for item in __for_item %}{{ item }},{% endfor %}",
+        ).unwrap();
+
+        let eng = TemplateEngine::with_includes(&includes_dir).unwrap();
+        let ctx = Object::new();
+        let output = eng
+            .parse_and_render("{% include test-include %}", &ctx)
+            .unwrap();
+        assert!(
+            output.contains("a,b,c,"),
+            "Include should render sorted items: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_extensionless_include_with_unicode() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let includes_dir = dir.path().join("_includes");
+        std::fs::create_dir_all(&includes_dir).unwrap();
+        // File without extension, containing Unicode content
+        std::fs::write(
+            includes_dir.join("unicode-test"),
+            "<p>Formule: $$\\alpha + \\beta$$, \u{4F60}\u{597D}</p>",
+        )
+        .unwrap();
+
+        let eng = TemplateEngine::with_includes(&includes_dir).unwrap();
+        let ctx = Object::new();
+        let output = eng
+            .parse_and_render("{% include unicode-test %}", &ctx)
+            .unwrap();
+        assert!(
+            output.contains("$$\\alpha + \\beta$$"),
+            "Unicode math notation should be preserved: {}",
+            output
+        );
+        assert!(
+            output.contains("\u{4F60}\u{597D}"),
+            "CJK characters should be preserved: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_extensionless_include_with_params() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let includes_dir = dir.path().join("_includes");
+        std::fs::create_dir_all(&includes_dir).unwrap();
+        std::fs::write(
+            includes_dir.join("group-helper"),
+            "field={{ include.field }}",
+        )
+        .unwrap();
+
+        let eng = TemplateEngine::with_includes(&includes_dir).unwrap();
+        let ctx = Object::new();
+        let output = eng
+            .parse_and_render("{% include group-helper field=\"categories\" %}", &ctx)
+            .unwrap();
+        assert!(
+            output.contains("field=categories"),
+            "Include params should be accessible: {}",
+            output
+        );
+    }
+
+    // ========================================================================
+    // Issue 328: for-loop filter integration test
+    // ========================================================================
+
+    #[test]
+    fn test_for_loop_with_filter_chain_renders() {
+        let eng = TemplateEngine::new().unwrap();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "__names".into(),
+            LiquidValue::Array(vec![
+                LiquidValue::scalar("cherry"),
+                LiquidValue::scalar("apple"),
+                LiquidValue::scalar("banana"),
+            ]),
+        );
+        // This pattern is used in academicpages group-by-array include
+        let template = "{% for name in __names | sort %}{{ name }},{% endfor %}";
+        let output = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(output, "apple,banana,cherry,");
     }
 }

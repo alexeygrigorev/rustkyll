@@ -891,12 +891,16 @@ pub fn load_pages(
 
     load_pages_recursive(site_dir, site_dir, config, &mut pages, &mut errors)?;
 
-    // Sort pages by (basename, full URL) to match Jekyll's site.pages order.
-    // Jekyll sorts pages by filename first, then by full path for stability.
+    // Sort pages by filename (page.name) to match Jekyll's site.pages order.
+    // Jekyll sorts pages by filename rather than by full path. This means
+    // `main.scss` (from `assets/css/`) sorts between `cv.md` and `markdown.md`
+    // (both from `_pages/`), matching Jekyll's interleaved ordering.
     pages.sort_by(|a, b| {
-        let basename_a = a.url.rsplit('/').next().unwrap_or(&a.url);
-        let basename_b = b.url.rsplit('/').next().unwrap_or(&b.url);
-        basename_a.cmp(basename_b).then_with(|| a.url.cmp(&b.url))
+        let name_a = a.source_path.rsplit('/').next().unwrap_or(&a.source_path);
+        let name_b = b.source_path.rsplit('/').next().unwrap_or(&b.source_path);
+        name_a
+            .cmp(name_b)
+            .then_with(|| a.source_path.cmp(&b.source_path))
     });
 
     Ok((pages, errors))
@@ -1033,14 +1037,22 @@ fn load_pages_recursive(
         // Jekyll only processes files that have YAML front matter (starting with ---)
         // This applies to all file types including .md files.
         // Exception: README.md files are processed even without front matter
-        // if config defaults target that path (matching Jekyll's behavior when
-        // README.md is explicitly configured via defaults in _config.yml).
+        // if config defaults target that path specifically (matching Jekyll's
+        // behavior when README.md is explicitly configured via defaults in
+        // _config.yml). A catch-all default (type: pages, path: "") does NOT
+        // cause README.md to be discovered -- only path-specific defaults do.
         if !has_front_matter(&raw) {
             if is_readme {
                 let rel = path.strip_prefix(site_dir).unwrap_or(&path);
                 let rel_str = rel.to_string_lossy();
-                let defaults = config.defaults_for_page(&rel_str);
-                if defaults.is_empty() {
+                // Check if there's a path-specific default targeting this file.
+                // Type-only defaults (type: pages, path: "") don't count --
+                // they apply to already-discovered pages, not README.md files.
+                let has_path_specific_default = config
+                    .defaults
+                    .iter()
+                    .any(|d| !d.scope.path.is_empty() && rel_str.starts_with(&d.scope.path));
+                if !has_path_specific_default {
                     continue;
                 }
             } else {
@@ -2789,11 +2801,11 @@ mod tests {
     // Unit: Page sort order (Issue 121)
     // ========================================================================
 
-    /// Jekyll sorts site.pages by (basename, full URL). This test verifies
-    /// that load_pages produces pages in that order by testing the sort logic
-    /// directly on a Vec<Page>.
+    /// Jekyll sorts site.pages by filename (page.name), with full path as
+    /// tie-breaker. This means files from different directories interleave
+    /// by their basename.
     #[test]
-    fn test_pages_sorted_by_basename_then_url() {
+    fn test_pages_sorted_by_filename_then_path() {
         use tempfile::TempDir;
 
         let tmp = TempDir::new().unwrap();
@@ -2803,8 +2815,7 @@ mod tests {
         std::fs::write(site.join("_config.yml"), "title: test\n").unwrap();
 
         // Create pages in subdirectories to test cross-directory sort order.
-        // Jekyll sorts by filename first, so page-1.html < page-10.html < page-2.html
-        // (string sort, not numeric), and pages from different dirs interleave by filename.
+        // Sort is by filename first, then full path as tie-breaker.
         let dir_a = site.join("docs").join("alpha");
         let dir_b = site.join("docs").join("beta");
         std::fs::create_dir_all(&dir_a).unwrap();
@@ -2839,10 +2850,9 @@ mod tests {
 
         let urls: Vec<&str> = pages.iter().map(|p| p.url.as_str()).collect();
 
-        // Expected order: sort by basename first, then full URL
-        // page-1.html (alpha) < page-1.html (beta) [same basename, alpha < beta]
-        // page-10.html (beta) [next basename]
-        // page-2.html (alpha) [next basename]
+        // Expected order: sort by filename first, then full path as tie-breaker
+        // page-1.md (alpha) < page-1.md (beta) [same name, alpha path < beta path]
+        // page-10.md (beta) < page-2.md (alpha) [different names, "page-10" < "page-2"]
         assert_eq!(
             urls,
             vec![
@@ -2851,7 +2861,7 @@ mod tests {
                 "/docs/beta/page-10.html",
                 "/docs/alpha/page-2.html",
             ],
-            "Pages should be sorted by (basename, full URL) to match Jekyll"
+            "Pages should be sorted by (filename, full path) to match Jekyll"
         );
     }
 

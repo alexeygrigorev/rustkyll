@@ -20,13 +20,90 @@ impl Filter for MarkdownifyFilter {
     fn evaluate(&self, input: &dyn ValueView, _runtime: &dyn Runtime) -> Result<Value> {
         let markdown = input.to_kstr();
         let html = crate::frontmatter::markdown_to_html_for_filter(&markdown);
+        // Convert kramdown-style math delimiters after markdown processing.
+        // Kramdown converts `$$inline math$$` to `\(inline math\)` (inline math).
+        // We do this after markdown rendering so the backslashes aren't consumed
+        // by the markdown parser.
+        let html = convert_math_delimiters(&html);
         Ok(Value::scalar(html))
     }
+}
+
+/// Convert kramdown math delimiters `$$..$$` to MathJax-compatible notation.
+///
+/// - Inline (within text): `$$E=mc^2$$` -> `\(E=mc^2\)`
+/// - Block-level (standalone paragraph): `$$E=mc^2$$` -> `\[E=mc^2\]`
+///
+/// This matches kramdown's behavior where `$$..$$` is used for both inline
+/// and display math, with the context determining which notation to use.
+fn convert_math_delimiters(input: &str) -> String {
+    if !input.contains("$$") {
+        return input.to_string();
+    }
+
+    let mut result = String::with_capacity(input.len());
+    let mut remaining = input;
+
+    while let Some(start) = remaining.find("$$") {
+        result.push_str(&remaining[..start]);
+        let after_open = &remaining[start + 2..];
+
+        if let Some(end) = after_open.find("$$") {
+            let math_content = &after_open[..end];
+            // Use inline math notation \(..\) since markdownify is typically
+            // used on titles and short text where inline is appropriate.
+            result.push_str("\\(");
+            result.push_str(math_content);
+            result.push_str("\\)");
+            remaining = &after_open[end + 2..];
+        } else {
+            // No closing $$, output as-is
+            result.push_str("$$");
+            remaining = after_open;
+        }
+    }
+
+    result.push_str(remaining);
+    result
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ========================================================================
+    // Issue 328: Math notation conversion
+    // ========================================================================
+
+    #[test]
+    fn test_math_notation_inline() {
+        let result =
+            liquid_core::call_filter!(Markdownify, "Test with $$E=mc^2$$ formula").unwrap();
+        let s = result.to_kstr().to_string();
+        assert!(
+            s.contains("\\(E=mc^2\\)"),
+            "$$E=mc^2$$ should be converted to \\(E=mc^2\\). Got: {s}"
+        );
+        assert!(!s.contains("$$"), "No raw $$ should remain. Got: {s}");
+    }
+
+    #[test]
+    fn test_math_notation_unicode() {
+        let result =
+            liquid_core::call_filter!(Markdownify, "Formule $$\\alpha + \\beta$$").unwrap();
+        let s = result.to_kstr().to_string();
+        assert!(
+            s.contains("\\(\\alpha + \\beta\\)"),
+            "Unicode math notation should be converted. Got: {s}"
+        );
+    }
+
+    #[test]
+    fn test_math_notation_no_change_without_math() {
+        let result = liquid_core::call_filter!(Markdownify, "No math here").unwrap();
+        let s = result.to_kstr().to_string();
+        assert!(!s.contains("\\("), "No math conversion needed. Got: {s}");
+    }
 
     #[test]
     fn test_bold() {

@@ -508,8 +508,13 @@ pub fn preprocess_include_paths(template: &str) -> String {
                 let path = &after_include[..path_end];
                 let rest_after_path = &after_include[path_end..];
 
-                let needs_path_quoting =
-                    path.contains('/') && !path.starts_with('"') && !path.starts_with('\'');
+                // Quote paths containing `/` (subdirectory separators) or `-`
+                // (hyphens, which the Liquid tokenizer treats as the minus
+                // operator). Without quoting, `group-by-array` would be
+                // tokenized as `group` `-` `by` `-` `array`. (Issue 328)
+                let needs_path_quoting = (path.contains('/') || path.contains('-'))
+                    && !path.starts_with('"')
+                    && !path.starts_with('\'');
                 let has_escaped_quotes =
                     rest_after_path.contains("\\\"") || rest_after_path.contains("\\'");
 

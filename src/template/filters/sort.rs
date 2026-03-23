@@ -146,17 +146,32 @@ impl Filter for SortFilter {
 
         if let Some(property) = &args.property {
             let prop = property.to_kstr();
-            sorted.sort_by(|a, b| {
-                let primary = nil_safe_compare(
-                    get_property(a, prop.as_str()),
-                    get_property(b, prop.as_str()),
-                );
-                if primary != cmp::Ordering::Equal {
-                    primary
-                } else {
-                    tiebreak(a, b)
-                }
+            // Check if any item actually has this property.
+            // If all lookups return Nil (e.g., sort:0 on strings), fall back
+            // to sorting by value -- matching Ruby's behavior where
+            // Array#sort_by with a non-existent key degrades to value sort.
+            let any_has_property = sorted.iter().any(|v| {
+                v.as_object()
+                    .and_then(|obj| obj.get(prop.as_str()))
+                    .map(|val| !val.is_nil())
+                    .unwrap_or(false)
             });
+            if any_has_property {
+                sorted.sort_by(|a, b| {
+                    let primary = nil_safe_compare(
+                        get_property(a, prop.as_str()),
+                        get_property(b, prop.as_str()),
+                    );
+                    if primary != cmp::Ordering::Equal {
+                        primary
+                    } else {
+                        tiebreak(a, b)
+                    }
+                });
+            } else {
+                // No items have the property -- sort by value directly
+                sorted.sort_by(|a, b| nil_safe_compare(a, b));
+            }
         } else {
             // No property -- sort scalars directly, no tiebreak needed
             sorted.sort_by(|a, b| nil_safe_compare(a, b));
