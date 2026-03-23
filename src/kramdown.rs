@@ -1403,6 +1403,50 @@ pub fn escape_headings_in_list_context(content: &str) -> String {
 /// Collapse blank lines between markdown list items to make partially-loose lists tight.
 ///
 /// A "fully loose" list (blank lines between ALL consecutive items) keeps its
+/// Issue 301: Mark forward-direction IALs in markdown source.
+///
+/// In kramdown, a standalone `{: .class}` with blank lines on BOTH sides
+/// applies to the FOLLOWING element, not the preceding one. Since
+/// pulldown-cmark doesn't preserve blank-line information in HTML output,
+/// we insert an HTML comment marker before such IALs so that
+/// `apply_block_ial` can detect them.
+///
+/// Pattern detected: `\n\n{: ...}\n\n` (blank line before and after the IAL)
+/// Transforms to: `\n\n<!-- IAL:FWD -->\n{: ...}\n\n`
+pub fn mark_forward_ial(content: &str) -> String {
+    let lines: Vec<&str> = content.split('\n').collect();
+    let mut result = String::with_capacity(content.len() + 64);
+
+    let mut i = 0;
+    while i < lines.len() {
+        let line = lines[i].trim();
+        // Check if this line is a standalone IAL: starts with {: and ends with }
+        if line.starts_with("{:") && line.ends_with('}') {
+            // Check if previous line is blank and next line is blank
+            let prev_blank = i > 0 && lines[i - 1].trim().is_empty();
+            let next_blank = i + 1 < lines.len() && lines[i + 1].trim().is_empty();
+            if prev_blank && next_blank {
+                // Insert forward marker before the IAL
+                result.push_str("<!-- IAL:FWD -->\n");
+                result.push_str(lines[i]);
+                result.push('\n');
+                i += 1;
+                continue;
+            }
+        }
+        result.push_str(lines[i]);
+        result.push('\n');
+        i += 1;
+    }
+
+    // Remove trailing newline added by the loop if original didn't have one
+    if !content.ends_with('\n') && result.ends_with('\n') {
+        result.pop();
+    }
+
+    result
+}
+
 /// blank lines because kramdown also wraps all items in `<p>`.
 /// A "partially loose" list (some blanks but not all) is collapsed to tight.
 pub fn collapse_blank_lines_between_list_items(content: &str) -> String {
@@ -2443,26 +2487,66 @@ fn apply_block_ial(html: &str) -> String {
             continue;
         }
 
-        // Find the preceding block element's closing tag
+        // Determine direction: if the IAL paragraph was preceded by a
+        // `<!-- IAL:FWD -->` marker (inserted by mark_forward_ial() during
+        // markdown preprocessing), apply to the FOLLOWING element.
         let before = &result[..start];
-        // Look for the last closing tag before this IAL paragraph
-        if let Some(close_pos) = before.rfind("</") {
-            if let Some(gt_pos) = before[close_pos..].find('>') {
-                let tag_name = before[close_pos + 2..close_pos + gt_pos].to_string();
+        let fwd_marker = "<!-- IAL:FWD -->";
+        let has_fwd_marker = before.trim_end().ends_with(fwd_marker);
 
-                // Find the matching opening tag
-                let search_area = &before[..close_pos];
-                if let Some(open_pos) = find_last_opening_tag(search_area, &tag_name) {
-                    // Remove the IAL paragraph (including any preceding newline)
-                    let remove_start = if start > 0 && result.as_bytes()[start - 1] == b'\n' {
-                        start - 1
-                    } else {
-                        start
-                    };
-                    result.replace_range(remove_start..end, "");
+        if has_fwd_marker {
+            // Forward direction: apply to the next block element after the IAL
+            let after = &result[end..];
+            // Skip whitespace/newlines to find the next opening tag
+            let trimmed_after = after.trim_start();
+            if trimmed_after.starts_with('<') {
+                // Calculate the absolute position of the next opening tag
+                let whitespace_len = after.len() - trimmed_after.len();
+                let next_tag_pos = end + whitespace_len;
 
-                    // Apply attributes to the opening tag
-                    insert_attributes_at(&mut result, open_pos, &attrs);
+                // Remove the IAL paragraph AND the preceding <!-- IAL:FWD --> marker.
+                // The marker is in the text before the <p>{: tag.
+                let marker_pos = before.trim_end().len() - fwd_marker.len();
+                // Extend removal to include any whitespace before the marker
+                let remove_start = if marker_pos > 0 && result.as_bytes()[marker_pos - 1] == b'\n' {
+                    marker_pos - 1
+                } else {
+                    marker_pos
+                };
+                // Also remove trailing newline after the IAL if present
+                let remove_end = if end < result.len() && result.as_bytes()[end] == b'\n' {
+                    end + 1
+                } else {
+                    end
+                };
+                let removed_len = remove_end - remove_start;
+                result.replace_range(remove_start..remove_end, "");
+
+                // Adjust position of the next tag after removal
+                let adjusted_pos = next_tag_pos - removed_len;
+                insert_attributes_at(&mut result, adjusted_pos, &attrs);
+            }
+        } else {
+            // Backward direction (original behavior): apply to the preceding element
+            // Look for the last closing tag before this IAL paragraph
+            if let Some(close_pos) = before.rfind("</") {
+                if let Some(gt_pos) = before[close_pos..].find('>') {
+                    let tag_name = before[close_pos + 2..close_pos + gt_pos].to_string();
+
+                    // Find the matching opening tag
+                    let search_area = &before[..close_pos];
+                    if let Some(open_pos) = find_last_opening_tag(search_area, &tag_name) {
+                        // Remove the IAL paragraph (including any preceding newline)
+                        let remove_start = if start > 0 && result.as_bytes()[start - 1] == b'\n' {
+                            start - 1
+                        } else {
+                            start
+                        };
+                        result.replace_range(remove_start..end, "");
+
+                        // Apply attributes to the opening tag
+                        insert_attributes_at(&mut result, open_pos, &attrs);
+                    }
                 }
             }
         }
@@ -11422,6 +11506,107 @@ by <a href="/people/author.html">Author Name</a>
             html.contains("id=\"section-1\""),
             "Second Arabic heading should get id=\"section-1\". Got: {}",
             html
+        );
+    }
+
+    #[test]
+    fn test_block_ial_forward_direction_from_markdown() {
+        // Issue 301: Test the full pipeline from markdown to HTML.
+        // When `{: .bullets}` has blank lines on both sides, it should apply to
+        // the FOLLOWING element (the <ul>), not the preceding one (the <h3>).
+        let md = "### Additional resources\n\n{: .bullets}\n\n* item1\n* item2\n";
+        let result = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            result.contains("<ul class=\"bullets\">"),
+            "IAL from markdown should apply to following <ul>. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("<h3 class=\"bullets\""),
+            "IAL should NOT apply to preceding <h3>. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_block_ial_backward_heading_from_markdown() {
+        // When IAL is right after heading (no blank line), it should apply to the heading.
+        let md = "# Title\n{: .fs-9 }\n\nSome paragraph text.\n";
+        let result = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            result.contains("class=\"fs-9\""),
+            "IAL after heading (no blank line) should apply to heading. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_mark_forward_ial_preprocessing() {
+        // Test that mark_forward_ial correctly identifies IALs with blank lines
+        let md = "### Title\n\n{: .bullets}\n\n* item\n";
+        let result = crate::kramdown::mark_forward_ial(md);
+        assert!(
+            result.contains("<!-- IAL:FWD -->"),
+            "Should insert forward marker for IAL with blank lines on both sides. Got: {:?}",
+            result
+        );
+
+        // IAL without blank line before should NOT get marker
+        let md2 = "### Title\n{: .fs-9 }\n\nParagraph.\n";
+        let result2 = crate::kramdown::mark_forward_ial(md2);
+        assert!(
+            !result2.contains("<!-- IAL:FWD -->"),
+            "Should not insert marker when no blank line before IAL. Got: {:?}",
+            result2
+        );
+    }
+
+    #[test]
+    fn test_block_ial_forward_direction_with_marker() {
+        // Issue 301: When the IAL has the <!-- IAL:FWD --> marker (inserted by
+        // mark_forward_ial during markdown preprocessing), apply_block_ial
+        // applies attributes to the FOLLOWING element.
+        let html = "<h3>Additional resources</h3>\n<!-- IAL:FWD -->\n<p>{: .bullets}</p>\n<ul>\n<li>item1</li>\n<li>item2</li>\n</ul>\n";
+        let result = apply_block_ial(html);
+        assert!(
+            result.contains("<ul class=\"bullets\">"),
+            "Block IAL with blank lines on both sides should apply to FOLLOWING element. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("<h3 class=\"bullets\""),
+            "Block IAL with blank lines on both sides should NOT apply to preceding element. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("{: .bullets}"),
+            "Block IAL should be removed from output. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_block_ial_forward_direction_unicode() {
+        // Same as above but with Unicode content
+        let html = "<h3>\u{00c9}l\u{00e9}ments</h3>\n<!-- IAL:FWD -->\n<p>{: .special}</p>\n\n<ul>\n<li>\u{00e9}l\u{00e9}ment</li>\n</ul>\n";
+        let result = apply_block_ial(html);
+        assert!(
+            result.contains("<ul class=\"special\">"),
+            "Forward IAL should work with Unicode content. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_block_ial_backward_when_no_blank_before() {
+        // When there's no blank line before the IAL, it still applies to the preceding element
+        // (this is the existing behavior that should be preserved)
+        let html = "<h3>Title</h3>\n<p>{: .my-class}</p>\n\n<ul>\n<li>item</li>\n</ul>\n";
+        let result = apply_block_ial(html);
+        assert!(
+            result.contains("<h3 class=\"my-class\""),
+            "IAL without blank line before should apply to preceding element. Got: {}",
+            result
         );
     }
 }

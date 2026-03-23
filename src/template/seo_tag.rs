@@ -330,8 +330,28 @@ impl Renderable for SeoRenderable {
             .or(site_description.as_deref())
             .or(content_snippet.as_deref());
 
-        // Strip HTML tags from description (Jekyll's SEO tag always does this)
-        let stripped_description = raw_description.map(strip_html_tags);
+        // Strip HTML tags from description (Jekyll's SEO tag always does this),
+        // collapse multiple whitespace to single space, and apply smartify.
+        let stripped_description = raw_description.map(|d| {
+            let stripped = strip_html_tags(d);
+            // Collapse multiple whitespace to single space
+            let mut prev_space = false;
+            let collapsed: String = stripped
+                .chars()
+                .filter(|&ch| {
+                    if ch == ' ' {
+                        if prev_space {
+                            return false;
+                        }
+                        prev_space = true;
+                    } else {
+                        prev_space = false;
+                    }
+                    true
+                })
+                .collect();
+            smartify(&collapsed)
+        });
         let description = stripped_description.as_deref();
 
         if let Some(desc) = description {
@@ -504,11 +524,9 @@ impl Renderable for SeoRenderable {
         }
 
         // description before headline (matching Jekyll's field order)
+        // JSON-LD descriptions use raw UTF-8, not HTML entities (issue 301)
         if let Some(desc) = description {
-            jsonld_fields.push(format!(
-                "\"description\":\"{}\"",
-                json_escape(&html_escape(desc))
-            ));
+            jsonld_fields.push(format!("\"description\":\"{}\"", json_escape(desc)));
         }
 
         if let Some(ref t) = og_page_title {
@@ -983,10 +1001,11 @@ mod tests {
             None,
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
-        // Issue 301: meta description does NOT escape quotes (matching Jekyll)
-        // Only & is escaped. Quotes appear literally.
+        // Issue 301: meta description has smartified quotes. & is escaped.
         assert!(
-            out.contains("<meta name=\"description\" content=\"Tom &amp; Jerry's \"show\"\" />")
+            out.contains("Tom &amp; Jerry\u{2019}s \u{201c}show\u{201d}"),
+            "Description should have smartified quotes and escaped ampersand. Got: {}",
+            out
         );
     }
 
@@ -1013,8 +1032,8 @@ mod tests {
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
         assert!(
-            out.contains("content=\"Nathan doesn't write tests\""),
-            "Meta content should use double quotes with literal apostrophe. Got: {}",
+            out.contains("content=\"Nathan doesn\u{2019}t write tests\""),
+            "Meta content should use double quotes with smartified apostrophe. Got: {}",
             out
         );
         // Must NOT contain single-quoted attribute
@@ -1043,8 +1062,8 @@ mod tests {
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
         assert!(
-            out.contains("B\u{00fc}scher's Buchladen \u{00f6}ffnet um 9 Uhr"),
-            "Unicode should pass through and apostrophe should be literal. Got: {}",
+            out.contains("B\u{00fc}scher\u{2019}s Buchladen \u{00f6}ffnet um 9 Uhr"),
+            "Unicode should pass through and apostrophe should be smartified. Got: {}",
             out
         );
         assert!(
@@ -2336,11 +2355,11 @@ mod tests {
             None,
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
-        // Issue 246: JSON-LD values are now HTML-entity-encoded to match Jekyll.
-        // & becomes &amp;, ' becomes &#39;, " becomes &quot; (then JSON-escaped to \")
+        // Issue 301: JSON-LD descriptions use raw UTF-8 (not HTML entities),
+        // and descriptions are smartified.
         assert!(
-            out.contains("\"description\":\"Tom &amp; Jerry&#39;s &quot;show&quot;\""),
-            "Special chars should be HTML-entity-encoded in JSON-LD. Got: {}",
+            out.contains("\"description\":\"Tom & Jerry\u{2019}s \u{201c}show\u{201d}\""),
+            "JSON-LD description should use raw UTF-8 with smart quotes. Got: {}",
             out
         );
     }
@@ -3394,15 +3413,15 @@ mod tests {
             None,
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
-        // Quotes should be literal, not &quot; or &#39;
+        // Quotes should be smartified, not &quot; or &#39;
         assert!(
-            out.contains("\"advertising clause\""),
-            "Meta description should have literal double quotes, not &quot;. Got: {}",
+            out.contains("\u{201c}advertising clause\u{201d}"),
+            "Meta description should have smartified double quotes. Got: {}",
             out
         );
         assert!(
-            out.contains("that's useful"),
-            "Meta description should have literal apostrophe, not &#39;. Got: {}",
+            out.contains("that\u{2019}s useful"),
+            "Meta description should have smartified apostrophe. Got: {}",
             out
         );
         // Check only the meta tag lines (not JSON-LD which uses different escaping)
@@ -3440,8 +3459,8 @@ mod tests {
         );
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
         assert!(
-            out.contains("Tom &amp; Jerry's show"),
-            "& should be escaped but quotes should not. Got: {}",
+            out.contains("Tom &amp; Jerry\u{2019}s show"),
+            "& should be escaped and apostrophe should be smartified. Got: {}",
             out
         );
         // Check only meta lines for no &#39;
@@ -3477,8 +3496,8 @@ mod tests {
         for line in out.lines() {
             if line.contains("meta") && line.contains("description") {
                 assert!(
-                    line.contains("L'universit\u{00e9}"),
-                    "Unicode and apostrophe should be literal in meta: {}",
+                    line.contains("L\u{2019}universit\u{00e9}"),
+                    "Unicode and apostrophe should be smartified in meta: {}",
                     line
                 );
                 assert!(
@@ -3590,6 +3609,123 @@ mod tests {
         assert!(
             out.contains("M\u{00fc}nchen"),
             "Publisher URL should contain unicode. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_description_smartify_apostrophe() {
+        // Issue 301: Jekyll applies smartify to meta descriptions, converting
+        // straight quotes to curly quotes.
+        let eng = engine();
+        let ctx = make_context(
+            Some("Test Page"),
+            Some("Test Site"),
+            Some("You're under no obligation and it's your right"),
+            None,
+            Some("https://example.com"),
+            Some("/test/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        // Meta description should have smart apostrophes (U+2019)
+        assert!(
+            out.contains("You\u{2019}re under no obligation and it\u{2019}s your right"),
+            "Description should have smartified apostrophes. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_description_collapse_whitespace() {
+        // Issue 301: Multiple whitespace in descriptions should be collapsed to single space
+        let eng = engine();
+        let ctx = make_context(
+            Some("Test Page"),
+            Some("Test Site"),
+            Some("First sentence.  Second sentence.  Third."),
+            None,
+            Some("https://example.com"),
+            Some("/test/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("First sentence. Second sentence. Third."),
+            "Description should collapse multiple spaces. Got:\n{}",
+            out
+        );
+        assert!(
+            !out.contains("  "),
+            "Description should not contain double spaces. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_jsonld_description_no_html_entities() {
+        // Issue 301: JSON-LD descriptions should use raw UTF-8, not HTML entities.
+        // Jekyll outputs smart quotes directly in JSON-LD, not &#39;
+        let eng = engine();
+        let ctx = make_context(
+            Some("Test Page"),
+            Some("Test Site"),
+            Some("You're under no obligation and it's your right"),
+            None,
+            Some("https://example.com"),
+            Some("/test/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        // Extract JSON-LD block
+        let jsonld_start = out
+            .find("application/ld+json")
+            .expect("should have json-ld");
+        let jsonld = &out[jsonld_start..];
+        // Should NOT contain HTML entities like &#39;
+        assert!(
+            !jsonld.contains("&#39;"),
+            "JSON-LD description should not contain &#39; HTML entities. Got:\n{}",
+            jsonld
+        );
+        // Should contain smart quotes directly
+        assert!(
+            jsonld.contains("You\u{2019}re"),
+            "JSON-LD description should contain smart UTF-8 apostrophes. Got:\n{}",
+            jsonld
+        );
+    }
+
+    #[test]
+    fn test_description_smartify_unicode() {
+        // Ensure smartify works with Unicode descriptions
+        let eng = engine();
+        let ctx = make_context(
+            Some("Test"),
+            Some("Site"),
+            Some("L'\u{00e9}l\u{00e8}ve a dit \"bonjour\" et c'est bien"),
+            None,
+            Some("https://example.com"),
+            Some("/test/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        // Should have smart quotes
+        assert!(
+            out.contains("\u{2019}"),
+            "Should contain smart apostrophe with Unicode content. Got:\n{}",
             out
         );
     }

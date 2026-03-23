@@ -385,6 +385,10 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // <div markdown="1">, etc. and strips the attribute.
     let markdown = crate::kramdown::process_markdown_attribute(markdown);
 
+    // Issue 301: Mark forward-direction IALs (standalone {: .class} with blank
+    // lines on both sides) so apply_block_ial can detect them.
+    let markdown = crate::kramdown::mark_forward_ial(&markdown);
+
     // Protect pre-existing curly quotes from being re-processed by
     // fix_smart_quote_directions. kramdown only converts straight quotes to
     // curly; pre-existing curly quotes pass through unchanged.
@@ -513,6 +517,9 @@ pub fn markdown_to_html_with_options(
     // Issue 228: Process markdown="1" attribute on HTML elements
     let markdown = crate::kramdown::process_markdown_attribute(markdown);
 
+    // Issue 301: Mark forward-direction IALs
+    let markdown = crate::kramdown::mark_forward_ial(&markdown);
+
     // Protect pre-existing curly quotes from fix_smart_quote_directions
     let markdown = protect_preexisting_curly_quotes(&markdown);
 
@@ -608,6 +615,9 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     // pulldown-cmark handles ---- as two en-dashes (--+--), but kramdown handles
     // it as em-dash + hyphen (---+-).
     let markdown = preprocess_kramdown_dashes(&markdown);
+
+    // Issue 301: Mark forward-direction IALs
+    let markdown = crate::kramdown::mark_forward_ial(&markdown);
 
     // Protect pre-existing curly quotes from fix_smart_quote_directions
     let markdown = protect_preexisting_curly_quotes(&markdown);
