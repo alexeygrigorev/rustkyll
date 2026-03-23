@@ -1123,13 +1123,22 @@ fn load_pages_recursive(
                 } else {
                     // Non-markdown files keep their original extension in the URL
                     // (e.g. podcast.xml -> /podcast.xml)
+                    // Exception: index.html files get directory URL (Jekyll behavior)
+                    //   index.html -> /
+                    //   subdir/index.html -> /subdir/
                     // Exception: .scss files are output as .css (Jekyll compiles SCSS)
-                    let url_path = if rel_path.ends_with(".scss") {
-                        format!("{}css", rel_path.strip_suffix("scss").unwrap_or(&rel_path))
+                    if stem == "index" && ext == ".html" {
+                        let dir = rel_path.rsplit_once('/').map(|(d, _)| d).unwrap_or("");
+                        if dir.is_empty() {
+                            "/".to_string()
+                        } else {
+                            format!("/{}/", dir)
+                        }
+                    } else if rel_path.ends_with(".scss") {
+                        format!("/{}css", rel_path.strip_suffix("scss").unwrap_or(&rel_path))
                     } else {
-                        rel_path.clone()
-                    };
-                    format!("/{}", url_path)
+                        format!("/{}", rel_path)
+                    }
                 }
             });
 
@@ -3522,5 +3531,98 @@ mod tests {
         assert_eq!(items.len(), 1);
         // Should use /:title/ pattern from defaults, not /:collection/:path
         assert_eq!(items[0].url, "/about/");
+    }
+
+    // ========================================================================
+    // Issue 300: Non-markdown index.html gets directory URL (like index.md)
+    // ========================================================================
+
+    #[test]
+    fn test_page_url_html_index_root_gets_directory_url() {
+        // Root index.html should get "/" not "/index.html"
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("index.html"),
+            "---\nlayout: default\ntitle: Home\n---\n<h1>Welcome</h1>",
+        )
+        .unwrap();
+        let config = SiteConfig::default();
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0].url, "/");
+    }
+
+    #[test]
+    fn test_page_url_html_index_subdir_gets_directory_url() {
+        // Subdirectory index.html should get "/subdir/" not "/subdir/index.html"
+        let dir = tempfile::tempdir().unwrap();
+        let subdir = dir.path().join("blog");
+        std::fs::create_dir(&subdir).unwrap();
+        std::fs::write(
+            subdir.join("index.html"),
+            "---\nlayout: default\ntitle: Blog\n---\n<h1>Blog</h1>",
+        )
+        .unwrap();
+        let config = SiteConfig::default();
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0].url, "/blog/");
+    }
+
+    #[test]
+    fn test_page_url_html_index_unicode_subdir() {
+        // Non-ASCII subdir index.html should get percent-encoded directory URL
+        let dir = tempfile::tempdir().unwrap();
+        let subdir = dir.path().join("über-uns");
+        std::fs::create_dir(&subdir).unwrap();
+        std::fs::write(
+            subdir.join("index.html"),
+            "---\ntitle: About Us\n---\n<p>Über uns</p>",
+        )
+        .unwrap();
+        let config = SiteConfig::default();
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 1);
+        // URL should be percent-encoded directory path
+        assert!(
+            pages[0].url.ends_with('/'),
+            "Expected directory URL ending with /, got: {}",
+            pages[0].url
+        );
+        assert!(
+            !pages[0].url.contains("index.html"),
+            "Should not contain index.html, got: {}",
+            pages[0].url
+        );
+    }
+
+    #[test]
+    fn test_page_url_html_non_index_preserved() {
+        // Non-index HTML files should keep their original URL
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("about.html"),
+            "---\ntitle: About\n---\n<p>About page</p>",
+        )
+        .unwrap();
+        let config = SiteConfig::default();
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0].url, "/about.html");
+    }
+
+    #[test]
+    fn test_page_url_html_index_with_permalink_override() {
+        // index.html with explicit permalink should use that permalink
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("index.html"),
+            "---\npermalink: /custom/\ntitle: Home\n---\n<h1>Welcome</h1>",
+        )
+        .unwrap();
+        let config = SiteConfig::default();
+        let (pages, _) = load_pages(dir.path(), &config).unwrap();
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0].url, "/custom/");
     }
 }
