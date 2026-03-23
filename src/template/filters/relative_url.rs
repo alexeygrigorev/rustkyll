@@ -21,6 +21,13 @@ impl Filter for RelativeUrlFilter {
     fn evaluate(&self, input: &dyn ValueView, runtime: &dyn Runtime) -> Result<Value> {
         let path = input.to_kstr();
 
+        // If the input already starts with a protocol scheme, return it unchanged.
+        // This matches Jekyll's behavior where relative_url is a no-op for
+        // already-absolute URLs (e.g., external nav links).
+        if path.starts_with("http://") || path.starts_with("https://") {
+            return Ok(Value::scalar(path.to_string()));
+        }
+
         // Try to get site.baseurl from the runtime context
         let baseurl = runtime
             .try_get(&[ScalarCow::new("site"), ScalarCow::new("baseurl")])
@@ -291,5 +298,60 @@ mod tests {
         let url = "/path/%d1%87/";
         let encoded = encode_url_path(url);
         assert_eq!(encoded, url);
+    }
+
+    // ========================================================================
+    // Absolute URL passthrough (issue 321)
+    // ========================================================================
+
+    #[test]
+    fn test_https_url_passthrough_no_baseurl() {
+        let result = liquid_core::call_filter!(RelativeUrl, "https://example.com").unwrap();
+        assert_eq!(result.to_kstr(), "https://example.com");
+    }
+
+    #[test]
+    fn test_https_url_with_path_passthrough_no_baseurl() {
+        let result = liquid_core::call_filter!(RelativeUrl, "https://example.com/path").unwrap();
+        assert_eq!(result.to_kstr(), "https://example.com/path");
+    }
+
+    #[test]
+    fn test_http_url_passthrough_no_baseurl() {
+        let result = liquid_core::call_filter!(RelativeUrl, "http://example.com/").unwrap();
+        assert_eq!(result.to_kstr(), "http://example.com/");
+    }
+
+    #[test]
+    fn test_https_url_with_encoded_unicode_passthrough() {
+        // Non-ASCII / Unicode content in URL (percent-encoded)
+        let result = liquid_core::call_filter!(
+            RelativeUrl,
+            "https://example.com/caf%C3%A9/%E4%B8%AD%E6%96%87"
+        )
+        .unwrap();
+        assert_eq!(
+            result.to_kstr(),
+            "https://example.com/caf%C3%A9/%E4%B8%AD%E6%96%87"
+        );
+    }
+
+    #[test]
+    fn test_https_url_passthrough_with_baseurl() {
+        // Even with baseurl set, absolute URLs must pass through unchanged.
+        // We test this via the template engine to set site.baseurl in context.
+        use crate::template::TemplateEngine;
+        use liquid::Object;
+
+        let eng = TemplateEngine::new().unwrap();
+        let mut ctx = Object::new();
+        let mut site = Object::new();
+        site.insert("baseurl".into(), Value::scalar("/blog".to_string()));
+        ctx.insert("site".into(), Value::Object(site));
+
+        let out = eng
+            .parse_and_render("{{ 'https://example.com' | relative_url }}", &ctx)
+            .unwrap();
+        assert_eq!(out.trim(), "https://example.com");
     }
 }
