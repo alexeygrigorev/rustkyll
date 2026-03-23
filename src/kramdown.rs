@@ -769,19 +769,37 @@ fn find_mixed_emphasis_span(
 pub fn process_markdown_attribute(content: &str) -> String {
     use pulldown_cmark::{html as cmark_html, Options, Parser};
 
+    // All recognised markdown attribute patterns and whether they mean "span" mode.
+    // "1" and "block" are block mode; "span" is inline mode.
+    const PATTERNS: &[(&str, bool)] = &[
+        ("markdown=\"1\"", false),
+        ("markdown='1'", false),
+        ("markdown=\"block\"", false),
+        ("markdown='block'", false),
+        ("markdown=\"span\"", true),
+        ("markdown='span'", true),
+    ];
+
     let mut result = String::with_capacity(content.len());
     let mut remaining = content;
 
     while !remaining.is_empty() {
-        // Find next occurrence of markdown="1" or markdown='1'
-        let md_attr_pos = remaining
-            .find("markdown=\"1\"")
-            .or_else(|| remaining.find("markdown='1'"));
-        if md_attr_pos.is_none() {
-            result.push_str(remaining);
-            break;
+        // Find the earliest occurrence of any markdown attribute pattern
+        let mut best: Option<(usize, bool)> = None;
+        for &(pat, is_span) in PATTERNS {
+            if let Some(pos) = remaining.find(pat) {
+                if best.is_none() || pos < best.unwrap().0 {
+                    best = Some((pos, is_span));
+                }
+            }
         }
-        let md_attr_pos = md_attr_pos.unwrap();
+        let (md_attr_pos, is_span_mode) = match best {
+            Some(v) => v,
+            None => {
+                result.push_str(remaining);
+                break;
+            }
+        };
 
         // Find the opening tag that contains this attribute (search backwards for '<')
         let before_attr = &remaining[..md_attr_pos];
@@ -856,12 +874,10 @@ pub fn process_markdown_attribute(content: &str) -> String {
             html_output
         };
 
-        // Issue 320: Recursively process any nested markdown="1" attributes
+        // Issue 320: Recursively process any nested markdown attributes
         // that survived the pulldown-cmark rendering (e.g., <p markdown="1">
         // inside a <div markdown="1"> block).
-        let rendered_inner = if rendered_inner.contains("markdown=\"1\"")
-            || rendered_inner.contains("markdown='1'")
-        {
+        let rendered_inner = if PATTERNS.iter().any(|(pat, _)| rendered_inner.contains(pat)) {
             process_markdown_attribute(&rendered_inner)
         } else {
             rendered_inner
@@ -873,13 +889,16 @@ pub fn process_markdown_attribute(content: &str) -> String {
         // markdown="1" is re-parsed by the base parser.
         let rendered_inner = mark_md1_headings_in_html(&rendered_inner);
 
-        let is_inline_container = tag_name == "p" || tag_name == "span";
+        // markdown="span" forces inline mode (strip outer <p> tags),
+        // regardless of the container element. For <p> and <span> containers
+        // inline mode is also the default.
+        let is_inline_container = is_span_mode || tag_name == "p" || tag_name == "span";
 
         // Copy everything before the tag
         result.push_str(&remaining[..tag_start]);
 
         if is_inline_container {
-            // For <p> containers, strip the outer <p> from rendered content
+            // For inline containers / span mode, strip the outer <p> from rendered content
             let inner_rendered = strip_outer_p_tags_for_markdown(&rendered_inner);
             result.push_str(&clean_open_tag);
             result.push_str(&inner_rendered);
@@ -1015,15 +1034,25 @@ fn extract_markdown_tag_name(tag: &str) -> String {
     inner[..name_end].to_lowercase()
 }
 
-/// Remove `markdown="1"` or `markdown='1'` from an opening tag string.
+/// Remove `markdown="1"`, `markdown="block"`, `markdown="span"` (and
+/// single-quote variants) from an opening tag string.
 fn remove_markdown_attr_from_tag(tag: &str) -> String {
-    let result = tag
-        .replace(" markdown=\"1\"", "")
-        .replace(" markdown='1'", "")
-        .replace("markdown=\"1\" ", "")
-        .replace("markdown='1' ", "")
-        .replace("markdown=\"1\"", "")
-        .replace("markdown='1'", "");
+    let mut result = tag.to_string();
+    for val in &["1", "block", "span"] {
+        let dq = format!(" markdown=\"{}\"", val);
+        let sq = format!(" markdown='{}'", val);
+        let dq_space = format!("markdown=\"{}\" ", val);
+        let sq_space = format!("markdown='{}' ", val);
+        let dq_bare = format!("markdown=\"{}\"", val);
+        let sq_bare = format!("markdown='{}'", val);
+        result = result
+            .replace(&dq, "")
+            .replace(&sq, "")
+            .replace(&dq_space, "")
+            .replace(&sq_space, "")
+            .replace(&dq_bare, "")
+            .replace(&sq_bare, "");
+    }
     // Clean up double spaces
     result.replace("  ", " ").replace("< ", "<")
 }
@@ -9545,6 +9574,133 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             result.contains("<p>Paragraph text.</p>"),
             "Paragraph should be wrapped in <p>. Got: {}",
+            result
+        );
+    }
+
+    // --- Issue 327: markdown="span" and markdown="block" attribute processing ---
+
+    #[test]
+    fn test_process_markdown_attr_span() {
+        // <div markdown="span"> should strip attribute and process as inline markdown
+        let input = "<div markdown=\"span\" class=\"alert alert-info\">This is **bold** text</div>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            !result.contains("markdown=\"span\""),
+            "markdown=\"span\" should be stripped. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("class=\"alert alert-info\""),
+            "class should be preserved. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<strong>bold</strong>"),
+            "Bold should be rendered. Got: {}",
+            result
+        );
+        // markdown="span" means inline -- no block <p> wrapping
+        assert!(
+            !result.contains("<p>"),
+            "Inline mode should not produce <p> tags. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_process_markdown_attr_block() {
+        // <div markdown="block"> should strip attribute and process as block markdown
+        let input = "<div markdown=\"block\">\n\nThis is a paragraph.\n\n- List item\n\n</div>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            !result.contains("markdown=\"block\""),
+            "markdown=\"block\" should be stripped. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<p>This is a paragraph.</p>"),
+            "Paragraph should be rendered. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<li>"),
+            "List should be rendered. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_process_markdown_attr_span_single_quotes() {
+        // markdown='span' with single quotes
+        let input = "<div markdown='span'>Some *italic* text</div>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            !result.contains("markdown='span'"),
+            "markdown='span' should be stripped. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<em>italic</em>"),
+            "Italic should be rendered. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_process_markdown_attr_span_unicode() {
+        // Unicode content inside markdown="span" (German umlauts)
+        let input = "<div markdown=\"span\" class=\"alert\">\u{00dc}berpr\u{00fc}fen Sie die Einstellungen f\u{00fc}r den Zugangspunkt</div>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            !result.contains("markdown=\"span\""),
+            "markdown attr should be stripped. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("\u{00dc}berpr\u{00fc}fen"),
+            "Unicode content should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_process_markdown_attr_span_is_inline() {
+        // markdown="span" should produce inline content (no block elements)
+        let input =
+            "<div markdown=\"span\">**Note:** See [link](http://example.com) for details.</div>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            result.contains("<strong>Note:</strong>"),
+            "Strong should be rendered. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<a href=\"http://example.com\">link</a>"),
+            "Link should be rendered. Got: {}",
+            result
+        );
+        // Inline mode should not wrap in <p>
+        assert!(
+            !result.contains("<p>"),
+            "Inline mode should not produce <p>. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_process_markdown_attr_block_equivalent_to_1() {
+        // markdown="block" should behave like markdown="1" for block content
+        let input = "<div markdown=\"block\">\n## Heading\n\nParagraph\n</div>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            result.contains("<h2"),
+            "Heading should be rendered. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<p>Paragraph</p>"),
+            "Paragraph should be rendered. Got: {}",
             result
         );
     }

@@ -445,7 +445,7 @@ fn build_site(
     let layouts_dir = source.join("_layouts");
     let includes_dir = source.join("_includes");
 
-    let (site_context, layout_result) = rayon::join(
+    let (mut site_context, layout_result) = rayon::join(
         || {
             generator::build_site_context_with_static_files(
                 &config,
@@ -483,6 +483,70 @@ fn build_site(
 
     // Issue 294: Enable autolink if the site config has commonmark.extensions: ["autolink"]
     layout_engine.set_autolink(config.has_commonmark_autolink());
+
+    // 7b. Pre-render collection items that contain Liquid tags (e.g.,
+    // `{% include links.html %}` in posts). This ensures `item.html_content`
+    // contains fully rendered HTML BEFORE the site context is built, so that
+    // aggregation pages (tag pages, news pages) see rendered content instead
+    // of raw Liquid tags. (Issue 327, Category C)
+    {
+        let needs_liquid_prerender: bool = collections.values().any(|items| {
+            items
+                .iter()
+                .any(|item| item.content.contains("{%") || item.content.contains("{{"))
+        });
+        if needs_liquid_prerender {
+            // Build a temporary cached site context for Liquid resolution
+            let temp_cached_site = CachedSiteContext::new(&site_context);
+            for items in collections.values_mut() {
+                for item in items.iter_mut() {
+                    if item.content.contains("{{") || item.content.contains("{%") {
+                        let is_markdown_source = item.source_path.ends_with(".md")
+                            || item.source_path.ends_with(".markdown");
+                        if !is_markdown_source {
+                            continue;
+                        }
+                        let mut page_fm = item.front_matter.clone();
+                        page_fm
+                            .entry("url".to_string())
+                            .or_insert_with(|| serde_yaml::Value::String(item.url.clone()));
+                        if !page_fm.contains_key("date") {
+                            if let Some(ref date) = item.date {
+                                page_fm.insert(
+                                    "date".to_string(),
+                                    serde_yaml::Value::String(date.clone()),
+                                );
+                            }
+                        }
+                        match layout_engine.render_markdown_content_with_cached_site(
+                            &item.content,
+                            &page_fm,
+                            &temp_cached_site,
+                        ) {
+                            Ok(rendered) => {
+                                item.html_content = rendered;
+                            }
+                            Err(e) => {
+                                eprintln!(
+                                    "Warning: failed to pre-render Liquid in '{}': {}",
+                                    item.source_path, e
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+            // Rebuild site context now that html_content is fully rendered
+            site_context = generator::build_site_context_with_static_files(
+                &config,
+                &collections,
+                &data_tree,
+                Some(source),
+                &pages,
+                &static_file_paths,
+            );
+        }
+    }
 
     // 8. Clean and create destination directory (only for full rebuilds)
     // Optimization: rename the old directory and delete it in the background,
