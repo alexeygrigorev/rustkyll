@@ -107,7 +107,9 @@ class DiffResult:
         self.actual = actual
 
     def __repr__(self):
-        return f"{self.path}: {self.diff_type} - expected: {self.expected!r}, actual: {self.actual!r}"
+        expected_display = self.expected[:200] if self.expected else self.expected
+        actual_display = self.actual[:200] if self.actual else self.actual
+        return f"{self.path}: {self.diff_type} - expected: {expected_display!r}, actual: {actual_display!r}"
 
     def __eq__(self, other):
         if not isinstance(other, DiffResult):
@@ -212,25 +214,35 @@ IGNORED_JSONLD_FIELDS = {"dateModified"}
 
 
 def _is_build_time_only_diff(j_str: str, r_str: str) -> bool:
-    """Check if two datetime strings differ only in the time-of-day component.
+    """Check if two datetime strings differ only in the build-time component.
 
     Build-time fields like endDate/startDate use the current time when built,
-    so Jekyll and rustkyll will always differ by seconds. We consider it
-    acceptable if the date and timezone match but the time differs.
+    so Jekyll and rustkyll will always differ. We consider it acceptable if
+    both are valid datetimes with the same year-month and timezone, differing
+    only in day and/or time (builds may happen on different days).
+
+    Month or year differences are considered real diffs (not build artifacts).
 
     Examples that match:
-      '2026-03-21 07:24:03 +0100' vs '2026-03-21 07:24:38 +0100'
-      '2026-03-21T07:24:03+01:00' vs '2026-03-21T07:24:38+01:00'
+      '2026-03-21 07:24:03 +0100' vs '2026-03-23 09:47:32 +0100'  (different day)
+      '2026-03-21 07:24:03 +0100' vs '2026-03-21 07:24:38 +0100'  (same day)
+      '2026-03-21T07:24:03+01:00' vs '2026-03-23T09:47:32+01:00'  (ISO format)
+
+    Examples that do NOT match:
+      '2026-02-21 07:24:03 +0100' vs '2026-03-23 09:47:32 +0100'  (different month)
+      '2025-03-21 07:24:03 +0100' vs '2026-03-21 09:47:32 +0100'  (different year)
     """
     import re
     # Match datetime patterns: YYYY-MM-DD[T ]HH:MM:SS[timezone]
-    pattern = r'^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})\s*(.*)$'
+    pattern = r'^(\d{4})-(\d{2})-\d{2}[T ](\d{2}:\d{2}:\d{2})\s*(.*)$'
     j_m = re.match(pattern, j_str.strip())
     r_m = re.match(pattern, r_str.strip())
     if not j_m or not r_m:
         return False
-    # Same date and timezone, different time = build-time diff
-    return j_m.group(1) == r_m.group(1) and j_m.group(3) == r_m.group(3)
+    # Same year, same month, same timezone = build-time diff (day and time may differ)
+    return (j_m.group(1) == r_m.group(1) and  # year
+            j_m.group(2) == r_m.group(2) and  # month
+            j_m.group(4) == r_m.group(4))      # timezone
 
 
 def compare_jsonld(jekyll_text: str, rustkyll_text: str, path: str) -> Optional[List[DiffResult]]:
@@ -286,12 +298,15 @@ def _compare_jsonld_values(j_val, r_val, path: str, diffs: list, depth: int = 0)
         j_str = json.dumps(j_val) if not isinstance(j_val, str) else j_val
         r_str = json.dumps(r_val) if not isinstance(r_val, str) else r_val
         if j_str != r_str:
-            # Skip build-time-only datetime diffs (same date+tz, different time)
+            # Skip build-time-only datetime diffs (same year-month+tz, different day/time)
             if _is_build_time_only_diff(j_str, r_str):
                 pass
             else:
+                # Store full strings in DiffResult so downstream filters
+                # (e.g. trailing newline check) can see the complete values.
+                # Truncation is only for display in __repr__.
                 diffs.append(DiffResult(path, "jsonld_value_differs",
-                                        str(j_str)[:200], str(r_str)[:200]))
+                                        str(j_str), str(r_str)))
 
 
 import json

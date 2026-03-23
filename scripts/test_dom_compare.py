@@ -12,11 +12,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from dom_compare import (
     DiffResult,
+    _is_build_time_only_diff,
     compare_html_files,
+    compare_jsonld,
     compare_trees,
     filter_acceptable_diffs,
     find_common_html_files,
     is_acceptable_sexagesimal_diff,
+    is_acceptable_trailing_newline_diff,
     normalize_text,
     parse_and_normalize,
     compare_directories,
@@ -554,6 +557,186 @@ class TestSexagesimalAllowlist(unittest.TestCase):
             self.assertEqual(exit_code, 0)
         finally:
             shutil.rmtree(tmpdir)
+
+
+class TestBuildTimeDiffFiltering(unittest.TestCase):
+    """Tests for Bug A: endDate/startDate build-time filtering."""
+
+    def test_same_date_different_time_is_build_diff(self):
+        """Same date, different time = build-time diff (existing behavior)."""
+        self.assertTrue(_is_build_time_only_diff(
+            '2026-03-21 07:24:03 +0100', '2026-03-21 07:24:38 +0100'))
+
+    def test_different_date_same_tz_is_build_diff(self):
+        """Different date (2 days apart), same timezone = build-time diff.
+        Builds on different days should still be filtered."""
+        self.assertTrue(_is_build_time_only_diff(
+            '2026-03-21 07:24:03 +0100', '2026-03-23 09:47:32 +0100'))
+
+    def test_different_month_is_not_build_diff(self):
+        """Different month = real diff, not a build-time artifact."""
+        self.assertFalse(_is_build_time_only_diff(
+            '2026-02-21 07:24:03 +0100', '2026-03-23 09:47:32 +0100'))
+
+    def test_different_year_is_not_build_diff(self):
+        """Different year = real diff."""
+        self.assertFalse(_is_build_time_only_diff(
+            '2025-03-21 07:24:03 +0100', '2026-03-21 09:47:32 +0100'))
+
+    def test_different_tz_is_not_build_diff(self):
+        """Different timezone = real diff."""
+        self.assertFalse(_is_build_time_only_diff(
+            '2026-03-21 07:24:03 +0100', '2026-03-23 09:47:32 +0200'))
+
+    def test_iso_format_different_date_is_build_diff(self):
+        """ISO 8601 format with T separator, different date, same tz = build diff."""
+        self.assertTrue(_is_build_time_only_diff(
+            '2026-03-21T07:24:03+01:00', '2026-03-23T09:47:32+01:00'))
+
+    def test_iso_format_different_month_is_not_build_diff(self):
+        """ISO 8601 format, different month = real diff."""
+        self.assertFalse(_is_build_time_only_diff(
+            '2026-02-21T07:24:03+01:00', '2026-03-23T09:47:32+01:00'))
+
+    def test_non_datetime_strings_not_build_diff(self):
+        """Non-datetime strings should not match."""
+        self.assertFalse(_is_build_time_only_diff('hello', 'world'))
+
+    def test_jsonld_enddate_filtered_in_comparison(self):
+        """JSON-LD comparison should filter endDate build-time diffs (different days)."""
+        import json
+        j_obj = {"@type": "Event", "name": "Podcast", "endDate": "2026-03-21 07:24:03 +0100"}
+        r_obj = {"@type": "Event", "name": "Podcast", "endDate": "2026-03-23 09:47:32 +0100"}
+        j_text = json.dumps(j_obj)
+        r_text = json.dumps(r_obj)
+        diffs = compare_jsonld(j_text, r_text, "script > jsonld")
+        self.assertEqual(len(diffs), 0, f"Expected no diffs (build-time filtered), got: {diffs}")
+
+    def test_jsonld_startdate_filtered_in_comparison(self):
+        """JSON-LD comparison should filter startDate build-time diffs."""
+        import json
+        j_obj = {"@type": "Event", "startDate": "2026-03-21 07:24:03 +0100",
+                 "endDate": "2026-03-21 07:24:03 +0100"}
+        r_obj = {"@type": "Event", "startDate": "2026-03-23 09:47:32 +0100",
+                 "endDate": "2026-03-23 09:47:32 +0100"}
+        j_text = json.dumps(j_obj)
+        r_text = json.dumps(r_obj)
+        diffs = compare_jsonld(j_text, r_text, "script > jsonld")
+        self.assertEqual(len(diffs), 0, f"Expected no diffs, got: {diffs}")
+
+    def test_jsonld_enddate_real_diff_not_filtered(self):
+        """JSON-LD endDate with month difference should NOT be filtered."""
+        import json
+        j_obj = {"@type": "Event", "endDate": "2026-02-21 07:24:03 +0100"}
+        r_obj = {"@type": "Event", "endDate": "2026-03-23 09:47:32 +0100"}
+        j_text = json.dumps(j_obj)
+        r_text = json.dumps(r_obj)
+        diffs = compare_jsonld(j_text, r_text, "script > jsonld")
+        self.assertGreater(len(diffs), 0, "Expected real diff for month difference")
+
+    def test_full_html_enddate_only_diff_filtered(self):
+        """Full HTML page with only endDate build-time diff should match after filtering."""
+        import json
+        j_jsonld = json.dumps({"@type": "Event", "name": "Podcast",
+                               "endDate": "2026-03-21 07:24:03 +0100"})
+        r_jsonld = json.dumps({"@type": "Event", "name": "Podcast",
+                               "endDate": "2026-03-23 09:47:32 +0100"})
+        j_html = f'<html><head><script type="application/ld+json">{j_jsonld}</script></head><body><p>Content</p></body></html>'
+        r_html = f'<html><head><script type="application/ld+json">{r_jsonld}</script></head><body><p>Content</p></body></html>'
+        tree1 = parse_and_normalize(j_html)
+        tree2 = parse_and_normalize(r_html)
+        diffs = compare_trees(tree1, tree2)
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertEqual(len(remaining), 0,
+                         f"Expected no remaining diffs after filtering, got: {remaining}")
+
+
+class TestTruncatedDescriptionTrailingNewline(unittest.TestCase):
+    """Tests for Bug B: truncated description trailing newline filtering."""
+
+    def test_long_description_trailing_newline_filtered(self):
+        """350-char description where rustkyll adds trailing newline should be filtered."""
+        import json
+        desc = "A" * 350
+        j_obj = {"@type": "Article", "description": desc}
+        r_obj = {"@type": "Article", "description": desc + "\n"}
+        j_text = json.dumps(j_obj)
+        r_text = json.dumps(r_obj)
+        diffs = compare_jsonld(j_text, r_text, "script > jsonld")
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertEqual(len(remaining), 0,
+                         f"Expected trailing newline diff to be filtered, got remaining: {remaining}")
+        self.assertGreater(len(accepted), 0, "Expected at least one accepted diff")
+
+    def test_long_description_real_diff_not_filtered(self):
+        """350-char description with text difference at position 250 should NOT be filtered."""
+        import json
+        desc_j = "A" * 250 + "B" * 100
+        desc_r = "A" * 250 + "C" * 100
+        j_obj = {"@type": "Article", "description": desc_j}
+        r_obj = {"@type": "Article", "description": desc_r}
+        j_text = json.dumps(j_obj)
+        r_text = json.dumps(r_obj)
+        diffs = compare_jsonld(j_text, r_text, "script > jsonld")
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertGreater(len(remaining), 0,
+                           "Expected real diff to remain unfiltered")
+
+    def test_short_description_trailing_newline_filtered(self):
+        """199-char description + trailing newline (under truncation) still filtered."""
+        import json
+        desc = "B" * 199
+        j_obj = {"@type": "Article", "description": desc}
+        r_obj = {"@type": "Article", "description": desc + "\n"}
+        j_text = json.dumps(j_obj)
+        r_text = json.dumps(r_obj)
+        diffs = compare_jsonld(j_text, r_text, "script > jsonld")
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertEqual(len(remaining), 0,
+                         f"Expected trailing newline diff to be filtered, got: {remaining}")
+
+    def test_exactly_200_char_description_trailing_newline_filtered(self):
+        """Exactly 200-char description + trailing newline should be filtered."""
+        import json
+        desc = "C" * 200
+        j_obj = {"@type": "Article", "description": desc}
+        r_obj = {"@type": "Article", "description": desc + "\n"}
+        j_text = json.dumps(j_obj)
+        r_text = json.dumps(r_obj)
+        diffs = compare_jsonld(j_text, r_text, "script > jsonld")
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertEqual(len(remaining), 0,
+                         f"Expected trailing newline diff to be filtered, got: {remaining}")
+
+    def test_unicode_description_trailing_newline_filtered(self):
+        """Long description with non-ASCII/Unicode content + trailing newline should be filtered."""
+        import json
+        # Mix of emoji, CJK, accented chars
+        desc = "Beschreibung mit Umlauten: " + "\u00e4\u00f6\u00fc\u00df" * 50 + " \u4e16\u754c \U0001f600"
+        j_obj = {"@type": "Article", "description": desc}
+        r_obj = {"@type": "Article", "description": desc + "\n"}
+        j_text = json.dumps(j_obj)
+        r_text = json.dumps(r_obj)
+        diffs = compare_jsonld(j_text, r_text, "script > jsonld")
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertEqual(len(remaining), 0,
+                         f"Expected unicode trailing newline diff to be filtered, got: {remaining}")
+
+    def test_full_html_long_description_trailing_newline_filtered(self):
+        """Full HTML with long description trailing newline in JSON-LD should be filtered."""
+        import json
+        desc = "D" * 350
+        j_jsonld = json.dumps({"@type": "Article", "description": desc})
+        r_jsonld = json.dumps({"@type": "Article", "description": desc + "\n"})
+        j_html = f'<html><head><script type="application/ld+json">{j_jsonld}</script></head><body><p>Content</p></body></html>'
+        r_html = f'<html><head><script type="application/ld+json">{r_jsonld}</script></head><body><p>Content</p></body></html>'
+        tree1 = parse_and_normalize(j_html)
+        tree2 = parse_and_normalize(r_html)
+        diffs = compare_trees(tree1, tree2)
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertEqual(len(remaining), 0,
+                         f"Expected no remaining diffs, got: {remaining}")
+        self.assertGreater(len(accepted), 0, "Expected at least one accepted diff")
 
 
 if __name__ == "__main__":
