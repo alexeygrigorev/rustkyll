@@ -399,8 +399,14 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // pulldown-cmark (CommonMark) would treat these as ordered lists.
     let markdown = escape_paren_list_markers(&markdown);
 
+    // Issue 329: Protect <details> blocks from pulldown-cmark processing.
+    let (markdown, details_saved) = protect_details_blocks(&markdown);
+
     // Issue 227: Protect math content from backslash-escape processing.
     let (markdown, math_saved) = protect_math_content(&markdown);
+
+    // Issue 329: Fix kramdown list indentation for ordered lists.
+    let markdown = crate::kramdown::fix_kramdown_list_indentation(&markdown);
 
     // Issue 204: Escape heading markers inside list context to match kramdown.
     // In kramdown, headings after list items without a blank line are text.
@@ -478,7 +484,10 @@ pub fn markdown_to_html(markdown: &str) -> String {
     let html_output = restore_preexisting_curly_quotes(&html_output);
 
     // Apply kramdown compatibility post-processing
-    crate::kramdown::postprocess(&html_output)
+    let html_output = crate::kramdown::postprocess(&html_output);
+
+    // Issue 329: Restore <details> blocks after all processing
+    restore_details_blocks(&html_output, &details_saved)
 }
 
 /// Convert Markdown to HTML with configurable inline code class, smart punctuation,
@@ -524,8 +533,20 @@ pub fn markdown_to_html_with_options(
     let markdown = protect_preexisting_curly_quotes(&markdown);
 
     let markdown = escape_paren_list_markers(&markdown);
+    // Issue 329: Protect <details> blocks (kramdown mode only)
+    let (markdown, details_saved) = if add_code_classes {
+        protect_details_blocks(&markdown)
+    } else {
+        (markdown, Vec::new())
+    };
     // Issue 227: Protect math content from backslash-escape processing
     let (markdown, math_saved) = protect_math_content(&markdown);
+    // Issue 329: Fix kramdown list indentation for ordered lists (kramdown mode only)
+    let markdown = if add_code_classes {
+        crate::kramdown::fix_kramdown_list_indentation(&markdown)
+    } else {
+        markdown
+    };
     let markdown = crate::kramdown::escape_headings_in_list_context(&markdown);
     let markdown = crate::kramdown::collapse_blank_lines_between_list_items(&markdown);
     let markdown = crate::kramdown::convert_kramdown_pipe_tables(&markdown);
@@ -582,7 +603,9 @@ pub fn markdown_to_html_with_options(
     let html_output = restore_preexisting_curly_quotes(&html_output);
     // Issue 297: Use add_code_classes as kramdown mode indicator.
     // When true (kramdown), indent list items. When false (CommonMarkGhPages), do not.
-    crate::kramdown::postprocess_with_options(&html_output, add_code_classes)
+    let html_output = crate::kramdown::postprocess_with_options(&html_output, add_code_classes);
+    // Issue 329: Restore <details> blocks after all processing
+    restore_details_blocks(&html_output, &details_saved)
 }
 
 /// Convert XHTML-style `<br />` to HTML5-style `<br>` for CommonMarkGhPages
@@ -918,6 +941,58 @@ fn restore_non_ascii_in_urls(html: &str, saved: &[String]) -> String {
 /// kramdown passes \, through literally inside math blocks.
 /// This replaces math block contents with placeholders before markdown processing,
 /// then restores them after HTML generation.
+/// Issue 329: Protect `<details>` blocks from pulldown-cmark processing.
+fn protect_details_blocks(input: &str) -> (String, Vec<String>) {
+    if !input.contains("<details") {
+        return (input.to_string(), Vec::new());
+    }
+
+    let mut result = String::with_capacity(input.len());
+    let mut saved = Vec::new();
+    let mut remaining = input;
+
+    while !remaining.is_empty() {
+        if let Some(start) = remaining.find("<details") {
+            if let Some(end_offset) = remaining[start..].find("</details>") {
+                let end = start + end_offset + "</details>".len();
+                result.push_str(&remaining[..start]);
+                let block = &remaining[start..end];
+                let idx = saved.len();
+                saved.push(block.to_string());
+                result.push_str(&format!("<!-- DETAILS_PLACEHOLDER_{} -->", idx));
+                remaining = &remaining[end..];
+            } else {
+                result.push_str(remaining);
+                break;
+            }
+        } else {
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    (result, saved)
+}
+
+/// Issue 329: Restore protected `<details>` blocks.
+fn restore_details_blocks(html: &str, saved: &[String]) -> String {
+    if saved.is_empty() {
+        return html.to_string();
+    }
+
+    let mut result = html.to_string();
+    for (idx, block) in saved.iter().enumerate() {
+        let placeholder = format!("<!-- DETAILS_PLACEHOLDER_{} -->", idx);
+        let wrapped_placeholder = format!("<p>{}</p>", placeholder);
+        if result.contains(&wrapped_placeholder) {
+            result = result.replace(&wrapped_placeholder, block);
+        } else {
+            result = result.replace(&placeholder, block);
+        }
+    }
+    result
+}
+
 /// A saved math entry: the content and whether it was inline ($...$) or display ($$...$$).
 struct MathEntry {
     content: String,

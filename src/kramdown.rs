@@ -1323,6 +1323,231 @@ fn collapse_blank_lines(content: &str) -> String {
 }
 
 // ============================================================================
+// Pre-markdown: Fix kramdown list indentation for ordered lists
+// ============================================================================
+
+/// Issue 329: Fix kramdown list indentation for ordered lists.
+///
+/// Kramdown allows sub-lists and continuation content to be indented with
+/// just 2 spaces under an ordered list item (e.g., `1. text`), but
+/// pulldown-cmark (CommonMark) requires indentation equal to the marker
+/// width (3 spaces for `N. `, 4 for `NN. `, etc.).
+pub fn fix_kramdown_list_indentation(content: &str) -> String {
+    let lines: Vec<&str> = content.split('\n').collect();
+    let mut result = String::with_capacity(content.len() + 256);
+    let mut in_code_block = false;
+    let mut ol_stack: Vec<(usize, usize)> = Vec::new();
+
+    for (i, line) in lines.iter().enumerate() {
+        if i > 0 {
+            result.push('\n');
+        }
+
+        let trimmed = line.trim_start();
+
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            in_code_block = !in_code_block;
+            result.push_str(line);
+            continue;
+        }
+
+        if in_code_block {
+            result.push_str(line);
+            continue;
+        }
+
+        let leading_spaces = line.len() - trimmed.len();
+
+        if let Some(marker_width) = ordered_list_marker_width(trimmed) {
+            while let Some(&(indent, _)) = ol_stack.last() {
+                if indent >= leading_spaces {
+                    ol_stack.pop();
+                } else {
+                    break;
+                }
+            }
+            let required_content_indent = leading_spaces + marker_width;
+            ol_stack.push((leading_spaces, required_content_indent));
+            result.push_str(line);
+            continue;
+        }
+
+        if trimmed.is_empty() {
+            result.push_str(line);
+            continue;
+        }
+
+        if !ol_stack.is_empty() {
+            let mut needs_fix = false;
+            let mut extra_spaces = 0;
+
+            for &(marker_indent, required_indent) in ol_stack.iter().rev() {
+                if leading_spaces > marker_indent && leading_spaces < required_indent {
+                    extra_spaces = required_indent - leading_spaces;
+                    needs_fix = true;
+                    break;
+                }
+            }
+
+            if needs_fix && extra_spaces > 0 {
+                for _ in 0..extra_spaces {
+                    result.push(' ');
+                }
+                result.push_str(line);
+                continue;
+            }
+
+            while let Some(&(indent, _)) = ol_stack.last() {
+                if leading_spaces <= indent && !trimmed.is_empty() {
+                    if is_markdown_list_item(trimmed) || leading_spaces < indent {
+                        ol_stack.pop();
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+        }
+
+        result.push_str(line);
+    }
+
+    result
+}
+
+/// Return the marker width (including trailing space) of an ordered list marker,
+/// or None if the trimmed line doesn't start with one.
+fn ordered_list_marker_width(trimmed: &str) -> Option<usize> {
+    let bytes = trimmed.as_bytes();
+    let mut pos = 0;
+    while pos < bytes.len() && bytes[pos].is_ascii_digit() {
+        pos += 1;
+    }
+    if pos > 0
+        && pos < bytes.len()
+        && bytes[pos] == b'.'
+        && pos + 1 < bytes.len()
+        && bytes[pos + 1] == b' '
+    {
+        Some(pos + 2)
+    } else {
+        None
+    }
+}
+
+/// Issue 329: Render fenced code blocks inside HTML block elements like `<details>`.
+///
+/// pulldown-cmark treats content inside HTML blocks as raw HTML, so fenced code
+/// blocks (triple backticks) inside `<details>` are not recognized. This function
+/// finds such code blocks and converts them to `<pre><code>` HTML.
+pub fn render_code_blocks_in_html_blocks(content: &str) -> String {
+    if !content.contains("```") {
+        return content.to_string();
+    }
+
+    let mut result = String::with_capacity(content.len());
+    let mut remaining = content;
+
+    while !remaining.is_empty() {
+        if let Some(pos) = find_html_block_with_code_fences(remaining) {
+            result.push_str(&remaining[..pos.start]);
+            let block = &remaining[pos.start..pos.end];
+            let processed = convert_fenced_code_in_html_block(block);
+            result.push_str(&processed);
+            remaining = &remaining[pos.end..];
+        } else {
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    result
+}
+
+struct HtmlBlockRange {
+    start: usize,
+    end: usize,
+}
+
+fn find_html_block_with_code_fences(content: &str) -> Option<HtmlBlockRange> {
+    let open_tag = "<details";
+    let close_tag = "</details>";
+
+    let mut search_from = 0;
+    while search_from < content.len() {
+        if let Some(open_pos) = content[search_from..].find(open_tag) {
+            let abs_open = search_from + open_pos;
+            if let Some(close_pos) = content[abs_open..].find(close_tag) {
+                let abs_end = abs_open + close_pos + close_tag.len();
+                let block = &content[abs_open..abs_end];
+                if block.contains("```") {
+                    return Some(HtmlBlockRange {
+                        start: abs_open,
+                        end: abs_end,
+                    });
+                }
+                search_from = abs_end;
+            } else {
+                break;
+            }
+        } else {
+            break;
+        }
+    }
+
+    None
+}
+
+fn convert_fenced_code_in_html_block(block: &str) -> String {
+    let mut result = String::with_capacity(block.len());
+    let mut remaining = block;
+
+    while !remaining.is_empty() {
+        if let Some(fence_start) = remaining.find("```") {
+            result.push_str(&remaining[..fence_start]);
+            let after_fence = &remaining[fence_start + 3..];
+            let line_end = after_fence.find('\n').unwrap_or(after_fence.len());
+            let lang = after_fence[..line_end].trim();
+            let code_start = if line_end < after_fence.len() {
+                line_end + 1
+            } else {
+                line_end
+            };
+
+            if let Some(close_pos) = after_fence[code_start..].find("```") {
+                let code_content = &after_fence[code_start..code_start + close_pos];
+                let code_content = code_content.strip_suffix('\n').unwrap_or(code_content);
+
+                if lang.is_empty() {
+                    result.push_str("<pre><code>");
+                } else {
+                    result.push_str(&format!("<pre><code class=\"language-{}\">", lang));
+                }
+                let escaped = code_content
+                    .replace('&', "&amp;")
+                    .replace('<', "&lt;")
+                    .replace('>', "&gt;");
+                result.push_str(&escaped);
+                result.push_str("\n</code></pre>");
+
+                let after_close = &after_fence[code_start + close_pos + 3..];
+                let skip_newline = after_close.strip_prefix('\n').unwrap_or(after_close);
+                remaining = skip_newline;
+            } else {
+                result.push_str("```");
+                remaining = after_fence;
+            }
+        } else {
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    result
+}
+
+// ============================================================================
 // Pre-markdown: Escape headings inside markdown list context
 // ============================================================================
 
@@ -3289,7 +3514,7 @@ fn get_unique_id(used: &mut HashMap<String, usize>, base: &str) -> String {
 ///
 /// Fenced code blocks without a language tag are wrapped as:
 /// ```html
-/// <div class="highlighter-rouge language-plaintext"><div class="highlight"><pre class="highlight"><code>...</code></pre></div></div>
+/// <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>...</code></pre></div></div>
 /// ```
 ///
 /// Fenced code blocks WITH a language class (e.g., `<pre><code class="language-python">`)
@@ -3305,6 +3530,48 @@ fn html_unescape(s: &str) -> String {
         .replace("&gt;", ">")
         .replace("&quot;", "\"")
         .replace("&#39;", "'")
+}
+
+/// Check if a language is recognized by Rouge (Jekyll's syntax highlighter),
+/// even if syntect cannot highlight it. These languages get the `<div>` wrapper
+/// in Jekyll's output rather than bare `<pre><code>`.
+fn is_rouge_recognized_language(lang: &str) -> bool {
+    matches!(
+        lang,
+        "turtle"
+            | "ecl"
+            | "verilog"
+            | "systemverilog"
+            | "sparql"
+            | "ntriples"
+            | "elixir"
+            | "slim"
+            | "haml"
+            | "sass"
+            | "scss"
+            | "less"
+            | "coffeescript"
+            | "handlebars"
+            | "liquid"
+            | "twig"
+            | "jinja"
+            | "django"
+            | "ada"
+            | "nim"
+            | "crystal"
+            | "ceylon"
+            | "io"
+            | "factor"
+            | "coq"
+            | "isabelle"
+            | "agda"
+            | "idris"
+            | "sml"
+            | "ocaml"
+            | "fsharp"
+            | "batchfile"
+            | "powershell"
+    )
 }
 
 fn wrap_fenced_code_blocks(html: &str) -> String {
@@ -3351,27 +3618,43 @@ fn wrap_fenced_code_blocks(html: &str) -> String {
             // Find the closing </code></pre>
             if let Some(close_pos) = after_open_tag.find("</code></pre>") {
                 let code_content = &after_open_tag[..close_pos];
-                // Write the kramdown wrapper
-                // Kramdown 2.5.1 adds "language-plaintext" to the wrapper div
-                // for no-language fenced code blocks.
-                if lang == "plaintext" {
-                    result.push_str(
-                        "<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\"><pre class=\"highlight\"><code>",
-                    );
-                } else {
-                    result.push_str(&format!(
-                        "<div class=\"language-{} highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>",
-                        lang
-                    ));
-                }
-                // Try syntax highlighting; fall back to plain code if unsupported
+                // Try syntax highlighting for non-plaintext languages
                 let raw_code = html_unescape(code_content);
-                if let Some(highlighted) = crate::syntax::highlight_code(&lang, &raw_code) {
-                    result.push_str(&highlighted);
+                let highlighted = if lang != "plaintext" {
+                    crate::syntax::highlight_code(&lang, &raw_code)
                 } else {
+                    None
+                };
+
+                if lang == "plaintext"
+                    || highlighted.is_some()
+                    || is_rouge_recognized_language(&lang)
+                {
+                    // Write the kramdown wrapper div structure
+                    // Issue 329: Fix class order for plaintext to match Jekyll
+                    if lang == "plaintext" {
+                        result.push_str(
+                            "<div class=\"language-plaintext highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>",
+                        );
+                    } else {
+                        result.push_str(&format!(
+                            "<div class=\"language-{} highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>",
+                            lang
+                        ));
+                    }
+                    if let Some(ref hl) = highlighted {
+                        result.push_str(hl);
+                    } else {
+                        result.push_str(code_content);
+                    }
+                    result.push_str("</code></pre></div></div>");
+                } else {
+                    // Issue 329: Unrecognized language -- Jekyll/kramdown falls back
+                    // to bare <pre><code class="language-..."> without the wrapper div.
+                    result.push_str(&format!("<pre><code class=\"language-{}\">", lang));
                     result.push_str(code_content);
+                    result.push_str("</code></pre>");
                 }
-                result.push_str("</code></pre></div></div>");
                 remaining = &after_open_tag[close_pos + 13..]; // skip "</code></pre>"
             } else {
                 // No closing tag found, copy as-is
@@ -6063,7 +6346,7 @@ mod tests {
         let html = "<pre><code>plain code\n</code></pre>\n";
         let result = postprocess(html);
         assert!(
-            result.contains("<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain code\n</code></pre>"),
+            result.contains("<div class=\"language-plaintext highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain code\n</code></pre>"),
             "Bare fenced code should be wrapped in kramdown divs. Got: {}",
             result
         );
@@ -6082,7 +6365,7 @@ mod tests {
         let result = postprocess(html);
         // The wrapping produces the kramdown div structure; block spacing adds newlines between closing tags
         assert!(
-            result.contains("<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain code\n</code></pre>"),
+            result.contains("<div class=\"language-plaintext highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain code\n</code></pre>"),
             "Simple fenced code wrapping failed. Got: {}",
             result
         );
@@ -6098,7 +6381,7 @@ mod tests {
             result
         );
         assert!(
-            result.contains("<div class=\"highlighter-rouge language-plaintext\">"),
+            result.contains("<div class=\"language-plaintext highlighter-rouge\">"),
             "Should have outer wrapper div. Got: {}",
             result
         );
@@ -6141,7 +6424,7 @@ mod tests {
         let html = "<pre><code>block 1\n</code></pre>\n<pre><code>block 2\n</code></pre>\n";
         let result = postprocess(html);
         let count = result
-            .matches("<div class=\"highlighter-rouge language-plaintext\">")
+            .matches("<div class=\"language-plaintext highlighter-rouge\">")
             .count();
         assert_eq!(
             count, 2,
@@ -6155,7 +6438,7 @@ mod tests {
         let html = "<pre><code>bare code\n</code></pre>\n<pre><code class=\"language-python\">print('hi')\n</code></pre>\n";
         let result = postprocess(html);
         let plaintext_count = result
-            .matches("<div class=\"highlighter-rouge language-plaintext\">")
+            .matches("<div class=\"language-plaintext highlighter-rouge\">")
             .count();
         assert_eq!(
             plaintext_count, 1,
@@ -6182,7 +6465,7 @@ mod tests {
         );
         assert!(
             !result.contains(
-                "<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\">"
+                "<div class=\"language-plaintext highlighter-rouge\"><div class=\"highlight\">"
             ),
             "Inline code should NOT be wrapped in divs. Got: {}",
             result
@@ -6201,7 +6484,7 @@ mod tests {
         );
         // Fenced code gets div wrapper
         assert!(
-            result.contains("<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\"><pre class=\"highlight\"><code>bare code\n</code></pre>"),
+            result.contains("<div class=\"language-plaintext highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>bare code\n</code></pre>"),
             "Fenced code should get div wrapper. Got: {}",
             result
         );
@@ -6226,13 +6509,13 @@ mod tests {
         );
         // Fenced without language: wrapped
         assert!(
-            result.contains("<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain\n</code></pre>"),
+            result.contains("<div class=\"language-plaintext highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>plain\n</code></pre>"),
             "Bare fenced code should be wrapped. Got: {}",
             result
         );
         // Should NOT wrap the language-tagged block
         let wrapper_count = result
-            .matches("<div class=\"highlighter-rouge language-plaintext\">")
+            .matches("<div class=\"language-plaintext highlighter-rouge\">")
             .count();
         assert_eq!(
             wrapper_count, 1,
@@ -6253,9 +6536,9 @@ mod tests {
         let result = postprocess(html);
         assert!(
             result.contains(
-                "<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\">"
+                "<div class=\"language-plaintext highlighter-rouge\"><div class=\"highlight\">"
             ),
-            "Wrapper div should have highlighter-rouge language-plaintext class. Got: {}",
+            "Wrapper div should have language-plaintext highlighter-rouge class. Got: {}",
             result
         );
     }
@@ -6268,9 +6551,9 @@ mod tests {
         let result = postprocess(html);
         assert!(
             result.contains(
-                "<div class=\"highlighter-rouge language-plaintext\"><div class=\"highlight\">"
+                "<div class=\"language-plaintext highlighter-rouge\"><div class=\"highlight\">"
             ),
-            "Wrapper div should have highlighter-rouge language-plaintext class. Got: {}",
+            "Wrapper div should have language-plaintext highlighter-rouge class. Got: {}",
             result
         );
     }
@@ -11607,6 +11890,183 @@ by <a href="/people/author.html">Author Name</a>
             result.contains("<h3 class=\"my-class\""),
             "IAL without blank line before should apply to preceding element. Got: {}",
             result
+        );
+    }
+
+    // =========================================================================
+    // Issue 329: Kramdown nested list continuation tests
+    // =========================================================================
+
+    #[test]
+    fn test_fix_kramdown_list_indentation_ordered_with_sublist() {
+        let input = "1. Item\n  - sub a\n  - sub b\n1. Item 2\n";
+        let result = fix_kramdown_list_indentation(input);
+        assert!(
+            result.contains("   - sub a"),
+            "Sub-list should be indented to 3 spaces. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_fix_kramdown_list_indentation_preserves_unordered() {
+        let input = "- Item\n  - sub a\n  - sub b\n- Item 2\n";
+        let result = fix_kramdown_list_indentation(input);
+        assert_eq!(input, result, "Unordered lists should not be changed");
+    }
+
+    #[test]
+    fn test_fix_kramdown_list_indentation_unicode() {
+        let input = "1. \u{0417}\u{0430}\u{0434}\u{0430}\u{0447}\u{0430}\n  - \u{041f}\u{043e}\u{0434}\u{043f}\u{0443}\u{043d}\u{043a}\u{0442} \u{0410}\n  - \u{041f}\u{043e}\u{0434}\u{043f}\u{0443}\u{043d}\u{043a}\u{0442} \u{0411}\n1. \u{0421}\u{043b}\u{0435}\u{0434}\u{0443}\u{044e}\u{0449}\u{0438}\u{0439}\n";
+        let result = fix_kramdown_list_indentation(input);
+        assert!(
+            result.contains(
+                "   - \u{041f}\u{043e}\u{0434}\u{043f}\u{0443}\u{043d}\u{043a}\u{0442} \u{0410}"
+            ),
+            "Cyrillic sub-items should be re-indented. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_fix_kramdown_list_indentation_deeply_nested() {
+        let input = "1. Level 1\n   - Level 2\n     - Level 3\n   - Back to 2\n1. Level 1 again\n";
+        let result = fix_kramdown_list_indentation(input);
+        assert!(
+            result.contains("   - Level 2"),
+            "3-space indent should be preserved. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_fix_kramdown_list_indentation_no_change_in_code_block() {
+        let input = "```\n1. Item\n  - sub\n```\n";
+        let result = fix_kramdown_list_indentation(input);
+        assert_eq!(input, result, "Code block content should not be changed");
+    }
+
+    #[test]
+    fn test_fix_kramdown_list_indentation_multidigit() {
+        let input = "10. Item ten\n  - sub item\n11. Item eleven\n";
+        let result = fix_kramdown_list_indentation(input);
+        assert!(
+            result.contains("    - sub item"),
+            "Sub-list under '10. ' should be indented to 4 spaces. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_fix_kramdown_list_indentation_math_content() {
+        let input =
+            "1. If $\\mathbf u$ is a unit vector\n  - Then $|\\mathbf u|^2 = 1$\n1. Otherwise\n";
+        let result = fix_kramdown_list_indentation(input);
+        assert!(
+            result.contains("   - Then $|\\mathbf u|^2 = 1$"),
+            "Math content should be preserved during re-indentation. Got:\n{}",
+            result
+        );
+    }
+
+    // =========================================================================
+    // Issue 329: Fenced code blocks inside <details> tests
+    // =========================================================================
+
+    #[test]
+    fn test_render_code_blocks_in_details() {
+        let input = "<details>\n<summary>Code</summary>\n\n```python\nprint(\"hello\")\n```\n\n</details>\n";
+        let result = render_code_blocks_in_html_blocks(input);
+        assert!(
+            result.contains("<pre><code"),
+            "Fenced code inside <details> should become <pre><code>. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_render_code_blocks_in_details_with_language() {
+        let input = "<details>\n<summary>R code</summary>\n\n```r\nx <- seq(1, 10)\nplot(x)\n```\n\n</details>\n";
+        let result = render_code_blocks_in_html_blocks(input);
+        assert!(
+            result.contains("language-r"),
+            "Language class should be preserved. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_render_code_blocks_in_details_no_language() {
+        let input = "<details>\n<summary>Code</summary>\n\n```\nsome code\n```\n\n</details>\n";
+        let result = render_code_blocks_in_html_blocks(input);
+        assert!(
+            result.contains("<pre><code>"),
+            "Code block without language should render as <pre><code>. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_render_code_blocks_outside_details_unchanged() {
+        let input = "Some text\n\n```python\nprint(\"hello\")\n```\n";
+        let result = render_code_blocks_in_html_blocks(input);
+        assert_eq!(
+            input, result,
+            "Code blocks outside HTML blocks should not be changed"
+        );
+    }
+
+    // =========================================================================
+    // Issue 329: End-to-end markdown_to_html integration tests
+    // =========================================================================
+
+    #[test]
+    fn test_e2e_ordered_list_with_nested_unordered() {
+        let input = "1. Item\n  - Sub-item A\n  - Sub-item B\n1. Next item\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        let li_pos = html.find("<li>").unwrap();
+        let ul_pos = html.find("<ul>").unwrap();
+        let first_li_close = html[li_pos..].find("</li>").map(|p| li_pos + p).unwrap();
+        assert!(
+            ul_pos > li_pos && ul_pos < first_li_close,
+            "The <ul> should be inside the first <li>. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_e2e_ordered_list_with_nested_unordered_unicode() {
+        let input = "1. \u{0417}\u{0430}\u{0434}\u{0430}\u{0447}\u{0430} \u{043f}\u{0440}\u{043e}\u{0433}\u{0440}\u{0430}\u{043c}\u{043c}\u{0438}\u{0440}\u{043e}\u{0432}\u{0430}\u{043d}\u{0438}\u{044f}\n  - \u{041f}\u{043e}\u{0434}\u{043f}\u{0443}\u{043d}\u{043a}\u{0442} \u{0410}\n  - \u{041f}\u{043e}\u{0434}\u{043f}\u{0443}\u{043d}\u{043a}\u{0442} \u{0411}\n1. \u{0421}\u{043b}\u{0435}\u{0434}\u{0443}\u{044e}\u{0449}\u{0438}\u{0439} \u{043f}\u{0443}\u{043d}\u{043a}\u{0442}\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        let li_pos = html.find("<li>").unwrap();
+        let ul_pos = html.find("<ul>").unwrap();
+        let first_li_close = html[li_pos..].find("</li>").map(|p| li_pos + p).unwrap();
+        assert!(
+            ul_pos > li_pos && ul_pos < first_li_close,
+            "Unicode: <ul> should be inside <li>. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_e2e_details_preserved_verbatim() {
+        // Jekyll/kramdown preserves <details> block content verbatim
+        let input = "<details>\n<summary>Code</summary>\n\n```python\nprint(\"hello\")\n```\n\n</details>\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<details>"),
+            "Details block should be preserved. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("```python"),
+            "Raw backtick fences should be preserved (matching Jekyll). Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("</summary>\n\n```"),
+            "Blank line after </summary> should be preserved. Got:\n{}",
+            html
         );
     }
 }
