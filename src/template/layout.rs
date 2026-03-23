@@ -44,6 +44,9 @@ pub struct LayoutEngine {
     layouts: HashMap<String, Layout>,
     /// Pre-compiled layout templates (parsed once, rendered many times).
     compiled_layouts: HashMap<String, Template>,
+    /// Pre-built layout Liquid Objects (built once per layout, reused across all pages).
+    /// Avoids redundant yaml_to_liquid conversions for layout front matter.
+    layout_objects: HashMap<String, Object>,
     /// Template engine with includes registered as partials.
     engine: TemplateEngine,
     /// Whether to add `language-plaintext highlighter-rouge` class to inline code.
@@ -72,9 +75,11 @@ impl LayoutEngine {
         let layouts = load_layouts(layouts_dir)?;
         let engine = TemplateEngine::with_includes(includes_dir)?;
         let compiled_layouts = Self::compile_layouts(&layouts, &engine)?;
+        let layout_objects = Self::precompute_layout_objects(&layouts);
         Ok(Self {
             layouts,
             compiled_layouts,
+            layout_objects,
             engine,
             use_kramdown_code_classes: true,
             enable_hardbreaks: false,
@@ -91,9 +96,11 @@ impl LayoutEngine {
     ) -> Result<Self, TemplateError> {
         let engine = TemplateEngine::with_includes_map(includes)?;
         let compiled_layouts = Self::compile_layouts(&layouts, &engine)?;
+        let layout_objects = Self::precompute_layout_objects(&layouts);
         Ok(Self {
             layouts,
             compiled_layouts,
+            layout_objects,
             engine,
             use_kramdown_code_classes: true,
             enable_hardbreaks: false,
@@ -133,6 +140,19 @@ impl LayoutEngine {
             compiled.insert(name.clone(), template);
         }
         Ok(compiled)
+    }
+
+    /// Pre-compute the Liquid Object for each layout's front matter.
+    ///
+    /// Layout front matter is the same for all pages using that layout,
+    /// so converting it once avoids redundant yaml_to_liquid calls
+    /// (e.g., 429 people pages all using the "author" layout).
+    fn precompute_layout_objects(layouts: &HashMap<String, Layout>) -> HashMap<String, Object> {
+        let mut objects = HashMap::new();
+        for (name, layout) in layouts {
+            objects.insert(name.clone(), build_layout_object(&layout.front_matter));
+        }
+        objects
     }
 
     /// Get a reference to the underlying template engine.
@@ -204,7 +224,12 @@ impl LayoutEngine {
         // Jekyll exposes layout front matter as layout.* in templates
         ctx.insert(
             "layout".into(),
-            LiquidValue::Object(build_layout_object(&layout.front_matter)),
+            LiquidValue::Object(
+                self.layout_objects
+                    .get(layout_name)
+                    .cloned()
+                    .unwrap_or_default(),
+            ),
         );
 
         // Use pre-compiled template if available, otherwise parse on the fly
@@ -287,7 +312,12 @@ impl LayoutEngine {
         let mut ctx = build_render_context_page_only(content, page_front_matter);
         ctx.insert(
             "layout".into(),
-            LiquidValue::Object(build_layout_object(&layout.front_matter)),
+            LiquidValue::Object(
+                self.layout_objects
+                    .get(layout_name)
+                    .cloned()
+                    .unwrap_or_default(),
+            ),
         );
 
         let result = if let Some(compiled) = self.compiled_layouts.get(layout_name) {
@@ -321,7 +351,12 @@ impl LayoutEngine {
         let mut ctx = build_render_context_page_only(content, page_front_matter);
         ctx.insert(
             "layout".into(),
-            LiquidValue::Object(build_layout_object(&layout.front_matter)),
+            LiquidValue::Object(
+                self.layout_objects
+                    .get(layout_name)
+                    .cloned()
+                    .unwrap_or_default(),
+            ),
         );
         let result = if let Some(compiled) = self.compiled_layouts.get(layout_name) {
             self.engine
@@ -450,7 +485,12 @@ impl LayoutEngine {
         ctx.insert("paginator".into(), paginator.clone());
         ctx.insert(
             "layout".into(),
-            LiquidValue::Object(build_layout_object(&layout.front_matter)),
+            LiquidValue::Object(
+                self.layout_objects
+                    .get(layout_name)
+                    .cloned()
+                    .unwrap_or_default(),
+            ),
         );
 
         let result = if let Some(compiled) = self.compiled_layouts.get(layout_name) {
@@ -496,7 +536,12 @@ impl LayoutEngine {
         let mut ctx = build_render_context_page_only(content, page_front_matter);
         ctx.insert(
             "layout".into(),
-            LiquidValue::Object(build_layout_object(&layout.front_matter)),
+            LiquidValue::Object(
+                self.layout_objects
+                    .get(layout_name)
+                    .cloned()
+                    .unwrap_or_default(),
+            ),
         );
 
         // Inject extra fields into the page object
@@ -894,17 +939,15 @@ pub fn build_render_context(
     let content_normalized = crate::frontmatter::normalize_block_whitespace(content);
     let content_escaped = crate::frontmatter::escape_quotes_in_text_nodes(&content_normalized);
     let content_escaped_str = content_escaped.into_owned();
-    page.insert(
-        "content".into(),
-        LiquidValue::scalar(content_escaped_str.clone()),
-    );
+    let content_val = LiquidValue::scalar(content_escaped_str);
+    page.insert("content".into(), content_val.clone());
     ctx.insert("page".into(), LiquidValue::Object(page));
 
     // Insert site context
     ctx.insert("site".into(), LiquidValue::Object(site_context.clone()));
 
     // Insert content (the body HTML used by {{ content }} in layouts)
-    ctx.insert("content".into(), LiquidValue::scalar(content_escaped_str));
+    ctx.insert("content".into(), content_val);
 
     ctx
 }
@@ -936,13 +979,13 @@ pub fn build_render_context_page_only(content: &str, page_front_matter: &FrontMa
     let content_normalized = crate::frontmatter::normalize_block_whitespace(content);
     let content_escaped = crate::frontmatter::escape_quotes_in_text_nodes(&content_normalized);
     let content_escaped_str = content_escaped.into_owned();
-    page.insert(
-        "content".into(),
-        LiquidValue::scalar(content_escaped_str.clone()),
-    );
+    // Build the content scalar once and clone it for both page.content and top-level content.
+    // Using kstring's arc feature means the clone is cheap (Arc bump, not string copy).
+    let content_val = LiquidValue::scalar(content_escaped_str);
+    page.insert("content".into(), content_val.clone());
     ctx.insert("page".into(), LiquidValue::Object(page));
 
-    ctx.insert("content".into(), LiquidValue::scalar(content_escaped_str));
+    ctx.insert("content".into(), content_val);
 
     ctx
 }
