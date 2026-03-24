@@ -69,10 +69,34 @@ cargo fmt --check
 
 Fix any issues.
 
+### 4b. DOM Regression Check (Mandatory for HTML output changes)
+
+If your changes touch the rendering pipeline (kramdown, frontmatter, templates, filters, syntax highlighting), you MUST verify no DOM regressions:
+
+```bash
+./scripts/cargo-safe build --release
+./target/release/rustkyll build --source websites/DataTalksClub/datatalksclub.github.io --destination /tmp/dtc_swe_check
+uv run scripts/dom_compare.py --jekyll-dir websites/DataTalksClub/datatalksclub.github.io/_site_jekyll_cached --rustkyll-dir /tmp/dtc_swe_check 2>&1 | tail -1
+```
+
+- DTC DOM match count must NOT decrease from the baseline (currently 765/790)
+- If targeting a specific site, also check that site
+- Report DOM counts in your log
+
+### 4c. DTC Build Performance Check
+
+```bash
+time ./target/release/rustkyll build --source websites/DataTalksClub/datatalksclub.github.io --destination /tmp/dtc_perf_check
+```
+
+- DTC build must complete under 1.0 second
+- Report build time in your log
+- If build time exceeds 1.0s, investigate and fix the performance regression
+
 ### 5. Rename Issue to In Progress
 
 ```bash
-mv docs/tracker/NN-name.groomed.md docs/tracker/NN-name.in-progress.md
+git mv docs/tracker/NN-name.groomed.md docs/tracker/NN-name.in-progress.md
 ```
 
 ### 6. Log Progress in the Issue File
@@ -130,7 +154,7 @@ Repeat until tester passes.
 Only after PM reports "ACCEPT":
 
 ```bash
-mv docs/tracker/NN-name.in-progress.md docs/tracker/done/NN-name.done.md
+git mv docs/tracker/NN-name.in-progress.md docs/tracker/done/NN-name.done.md
 git add .
 git commit -m "Implement issue NN: short description"
 ```
