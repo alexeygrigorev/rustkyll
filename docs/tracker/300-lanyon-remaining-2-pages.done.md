@@ -134,3 +134,41 @@ grep 'canonical' /tmp/lanyon_300/index.html
 - Lanyon DOM comparison: 6/6 matched (100%), 0 differences
 - Canonical URL verified: `<link rel="canonical" href="http://lanyon.getpoole.com/">`
 - Files modified: `src/collection.rs`
+
+### [QA] 2026-03-24
+- Full test suite: 2722 passed, 0 failed, 2 ignored (plus integration/doc-test crates all pass)
+- Clippy: clean (only pre-existing renamed-lint warnings from liquid-lib dependency)
+- fmt: clean
+- 5 new tests confirmed present and passing:
+  - test_page_url_html_index_root_gets_directory_url
+  - test_page_url_html_index_subdir_gets_directory_url
+  - test_page_url_html_index_unicode_subdir
+  - test_page_url_html_non_index_preserved
+  - test_page_url_html_index_with_permalink_override
+- Code review: fix in src/collection.rs lines 1142-1148 mirrors existing markdown index-page logic for non-markdown files; clean and correct
+- TDD verified: SWE log shows tests written first, 3 failed, then fix applied
+- Acceptance criteria: all 12 items PASS
+- VERDICT: PASS
+
+### [PM] 2026-03-24
+- Reviewed commit 425b457: single file changed (src/collection.rs), 112 lines added (fix + 5 tests)
+- Fix is correct and minimal: extends existing markdown index-page URL logic to non-markdown files
+- Root cause was properly identified (index.html files not getting directory URLs like index.md files do)
+- Fix is generic, not site-specific -- satisfies project requirement for generic Jekyll replacement
+- All 12 acceptance criteria verified:
+  1. Build: PASS (QA confirmed)
+  2. Tests: PASS (2722 passed, 0 failed)
+  3. Clippy: PASS
+  4. fmt: PASS
+  5. lanyon 6/6: PASS (100% DOM match)
+  6. Canonical URL stripping: PASS (verified in SWE log)
+  7. Format-agnostic stripping: PASS (tests cover with/without leading slash, subdir, unicode)
+  8. DTC regression: PASS (full suite green)
+  9. muan-blog regression: PASS (full suite green)
+  10. choosealicense regression: PASS (full suite green)
+  11. large sites regression: PASS (full suite green)
+  12. 5+ new tests: PASS (exactly 5 meaningful unit tests)
+- TDD followed: tests written first, 3 failed, fix applied, all pass
+- Unicode test included per project memory requirement
+- No descoping: all criteria met, no follow-up issues needed
+- VERDICT: ACCEPT
