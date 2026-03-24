@@ -12,6 +12,7 @@
 
 use crate::kramdown_parser::element::{Document, Element, ElementType};
 use crate::kramdown_parser::options::Options;
+use crate::kramdown_parser::span_parser::LINKDEF_REMOVED_MARKER;
 use std::collections::HashMap;
 
 /// Type alias for Attribute List Definition map.
@@ -116,7 +117,7 @@ fn parse_blocks_list_context(
             continue;
         }
 
-        if line.trim() == "^" {
+        if line.trim() == "^" || line == LINKDEF_REMOVED_MARKER {
             children.push(Element::new(ElementType::Eob));
             *pos += 1;
             continue;
@@ -211,7 +212,7 @@ fn parse_paragraph_in_list_context(
         if is_blank_line(line) {
             break;
         }
-        if line.trim() == "^" {
+        if line.trim() == "^" || line == LINKDEF_REMOVED_MARKER {
             break;
         }
         if is_block_ial(line) {
@@ -285,6 +286,9 @@ fn parse_paragraph_in_list_context_with_lazy(
             break;
         }
         if line.trim() == "^" {
+            break;
+        }
+        if line == LINKDEF_REMOVED_MARKER {
             break;
         }
         if is_block_ial(line) && !is_lazy {
@@ -924,6 +928,9 @@ fn parse_blocks_with_lazy(
 ) {
     // Pending IAL attributes to apply to the next visible element
     let mut pending_ial: Option<Vec<(String, String)>> = None;
+    // When true, the next line should not be parsed as a table.
+    // Set when a link-definition-removed marker is encountered.
+    let mut inhibit_table = false;
 
     while *pos < lines.len() {
         let line = lines[*pos];
@@ -933,6 +940,18 @@ fn parse_blocks_with_lazy(
         if is_blank_line(line) {
             children.push(Element::new(ElementType::Blank));
             *pos += 1;
+            inhibit_table = false;
+            continue;
+        }
+
+        // Link-definition-removed marker: acts like an EOB but also
+        // inhibits table parsing for the immediately following line,
+        // matching kramdown Ruby where content after a consumed link def
+        // inherits paragraph context.
+        if line == LINKDEF_REMOVED_MARKER {
+            children.push(Element::new(ElementType::Eob));
+            *pos += 1;
+            inhibit_table = true;
             continue;
         }
 
@@ -1001,6 +1020,11 @@ fn parse_blocks_with_lazy(
                 pending_ial = None;
             };
         }
+
+        // Consume the inhibit_table flag: it only applies to the first
+        // content line after the link-definition-removed marker.
+        let skip_table = inhibit_table;
+        inhibit_table = false;
 
         // If this line is lazy, it must be part of a paragraph (can't start new block types)
         if is_lazy {
@@ -1088,7 +1112,9 @@ fn parse_blocks_with_lazy(
         }
 
         // Table (must be checked before horizontal rule since `|---|---|` looks like hr)
-        if is_table_line(line) || try_parse_separator_line(line).is_some() {
+        // Skip table parsing when skip_table is set (content after a removed link def
+        // should be treated as a paragraph, not a table).
+        if !skip_table && (is_table_line(line) || try_parse_separator_line(line).is_some()) {
             let saved_pos = *pos;
             if let Some(mut table) = try_parse_table(lines, pos, options) {
                 apply_pending!(&mut table);
@@ -1096,6 +1122,37 @@ fn parse_blocks_with_lazy(
                 continue;
             }
             *pos = saved_pos;
+            // Table was rejected. If the first line is a table line (has pipes),
+            // collect all rejected lines into a paragraph so the paragraph
+            // parser doesn't re-break on them. Only do this for actual table
+            // lines, NOT separator-only lines (which might be HRs like "- - -").
+            if is_table_line(line) {
+                let mut table_reject_end = *pos;
+                while table_reject_end < lines.len() {
+                    let rl = lines[table_reject_end];
+                    if is_blank_line(rl)
+                        || is_block_ial(rl)
+                        || rl.trim() == "^"
+                        || rl == LINKDEF_REMOVED_MARKER
+                        || try_parse_atx_header(rl, options).is_some()
+                        || is_blockquote_line(rl)
+                        || try_parse_fenced_code(lines, table_reject_end).is_some()
+                    {
+                        break;
+                    }
+                    table_reject_end += 1;
+                }
+                if table_reject_end > *pos {
+                    let para_text = lines[*pos..table_reject_end].join("\n");
+                    let mut elem = Element::new(ElementType::Paragraph);
+                    let text_child = Element::with_value(ElementType::Text, para_text);
+                    elem.children.push(text_child);
+                    apply_pending!(&mut elem);
+                    children.push(elem);
+                    *pos = table_reject_end;
+                    continue;
+                }
+            }
         }
 
         // Horizontal rule (must be before list since `* * *` is HR not list)
@@ -1173,6 +1230,9 @@ fn parse_paragraph_with_lazy(
             break;
         }
         if line.trim() == "^" {
+            break;
+        }
+        if line == LINKDEF_REMOVED_MARKER {
             break;
         }
         if is_block_ial(line) {
@@ -1879,6 +1939,7 @@ fn try_parse_table(lines: &[&str], pos: &mut usize, options: &Options) -> Option
         && !is_blank_line(lines[scan])
         && !is_block_ial(lines[scan])
         && lines[scan].trim() != "^"
+        && lines[scan] != LINKDEF_REMOVED_MARKER
     {
         return None;
     }

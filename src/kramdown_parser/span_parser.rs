@@ -21,6 +21,14 @@ use crate::kramdown_parser::options::{EntityOutput, Options};
 use crate::syntax::highlight_code;
 use std::collections::HashMap;
 
+/// Sentinel marker emitted by `extract_definitions` when a link definition is
+/// removed and non-blank content immediately follows on the next line.  The
+/// block parser recognises this marker and inhibits table parsing for the
+/// subsequent line, matching kramdown Ruby's behaviour where the link def is
+/// consumed during block parsing and the following content inherits paragraph
+/// context.
+pub const LINKDEF_REMOVED_MARKER: &str = "^{:linkdef-removed}";
+
 /// Context for span parsing, carrying link definitions and abbreviations.
 pub struct SpanContext {
     /// Link definitions: id -> (url, optional title, optional attrs)
@@ -146,6 +154,21 @@ pub fn extract_definitions(text: &str, ctx: &mut SpanContext) -> String {
                             };
                             // Last definition wins (kramdown overwrites duplicate link IDs)
                             ctx.link_defs.insert(key, def);
+                            // If the next line is non-blank content that starts
+                            // with a pipe, emit a marker so the block parser knows
+                            // not to start a table here. In kramdown Ruby, the
+                            // link def is consumed during block parsing and the
+                            // following content inherits paragraph context rather
+                            // than starting a fresh block. We only need the marker
+                            // for pipe-starting lines (table candidates); other
+                            // content types are not affected.
+                            if i < lines.len()
+                                && !lines[i].trim().is_empty()
+                                && lines[i].trim_start().starts_with('|')
+                            {
+                                output_lines.push(LINKDEF_REMOVED_MARKER);
+                            }
+                            at_block_boundary = true;
                             continue;
                         }
                     }

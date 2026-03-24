@@ -1205,16 +1205,7 @@ conformance_test!(
     kramdown_block_14_table_empty_tag_in_cell,
     "block/14_table/empty_tag_in_cell"
 );
-// Deferred: link definition [5]: test is extracted during pre-pass, leaving |no|table|here|
-// as a standalone single-row table. But kramdown Ruby processes link defs during block parsing,
-// preserving the block context so |no|table|here| becomes a paragraph.
-// Root cause: architectural difference -- our pre-pass extraction vs kramdown Ruby's inline
-// block-level link definition handling. See issue 294.
-conformance_test_deferred!(
-    kramdown_block_14_table_errors,
-    "block/14_table/errors",
-    "requires inline block-level link definition handling (architectural)"
-);
+conformance_test!(kramdown_block_14_table_errors, "block/14_table/errors");
 conformance_test!(kramdown_block_14_table_escaping, "block/14_table/escaping");
 conformance_test!(kramdown_block_14_table_footer, "block/14_table/footer");
 conformance_test!(kramdown_block_14_table_header, "block/14_table/header");
@@ -2489,5 +2480,73 @@ fn test_issue323_long_cyrillic_path_and_fragment() {
             "<a href=\"../building-community/#споделете-собствеността-върху-вашия-проект\">"
         ),
         "Long Cyrillic link should render as <a>. Got: {html}"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Issue 294: Link definition + table interaction
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_issue294_link_def_followed_by_pipe_line_is_paragraph() {
+    // When a link definition is immediately followed by a pipe-delimited line
+    // (no blank line between), the pipe line should be a paragraph, not a table.
+    let input = "[5]: test\n|no|table|here|\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<p>|no|table|here|</p>"),
+        "Pipe line after link def should be paragraph, not table. Got: {html}"
+    );
+    assert!(
+        !html.contains("<table>"),
+        "Should not contain a table. Got: {html}"
+    );
+}
+
+#[test]
+fn test_issue294_link_def_still_extracted() {
+    // The link definition should still be usable for references.
+    let input = "[5]: http://example.com\n|no|table|here|\n\n[click][5]\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<a href=\"http://example.com\">click</a>"),
+        "Link def should be extracted and usable. Got: {html}"
+    );
+}
+
+#[test]
+fn test_issue294_link_def_with_blank_line_then_table_still_works() {
+    // A link def followed by a blank line and then a valid table should still produce a table.
+    let input = "[5]: test\n\n| col1 | col2 |\n|------|------|\n| a    | b    |\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<table>"),
+        "Valid table after blank line should still be a table. Got: {html}"
+    );
+}
+
+#[test]
+fn test_issue294_link_def_between_paragraphs_no_regression() {
+    // Link def between two paragraphs (separated by blank lines) should produce two paragraphs.
+    let input = "para1\n\n[5]: test\n\npara2\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<p>para1</p>"),
+        "First paragraph should remain. Got: {html}"
+    );
+    assert!(
+        html.contains("<p>para2</p>"),
+        "Second paragraph should remain. Got: {html}"
+    );
+}
+
+#[test]
+fn test_issue294_unicode_link_def_followed_by_pipe() {
+    // Unicode content: link def with non-ASCII followed by pipe line
+    let input = "[ссылка]: https://example.com/путь\n|кириллица|юникод|тест|\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<p>|кириллица|юникод|тест|</p>"),
+        "Unicode pipe line after link def should be paragraph. Got: {html}"
     );
 }
