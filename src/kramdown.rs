@@ -4578,11 +4578,10 @@ fn normalize_newlines_in_html_tags(html: &str) -> String {
                 if ch == q {
                     inside_quote = None;
                 }
-                if ch == '\n' {
-                    result.push(' ');
-                } else {
-                    result.push(ch);
-                }
+                // Preserve newlines inside quoted attribute values.
+                // Jekyll/kramdown only normalizes newlines between attributes
+                // (e.g., between src="..." and alt="..."), not within values.
+                result.push(ch);
             } else if ch == '"' || ch == '\'' {
                 inside_quote = Some(ch);
                 result.push(ch);

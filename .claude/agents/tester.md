@@ -61,6 +61,17 @@ Verify:
 - [ ] Verify links, images, and metadata in the output
 - [ ] Compare against the original Jekyll site in `datatalksclub.github.io/` where applicable
 
+#### DOM Regression Check (Mandatory for HTML output changes)
+- [ ] Build the release binary: `./scripts/cargo-safe build --release`
+- [ ] Build DTC and run DOM comparison — must not regress from baseline:
+  ```bash
+  ./target/release/rustkyll build --source websites/DataTalksClub/datatalksclub.github.io --destination /tmp/dtc_qa_check
+  uv run scripts/dom_compare.py --jekyll-dir websites/DataTalksClub/datatalksclub.github.io/_site_jekyll_cached --rustkyll-dir /tmp/dtc_qa_check 2>&1 | tail -1
+  ```
+- [ ] If the issue targets a specific site, also build and compare that site
+- [ ] Report DOM match counts in QA log (e.g., "DTC: 764/790, no regression")
+- [ ] If DOM count drops from known baseline, FAIL with details
+
 #### Lint and Format
 - [ ] `cargo clippy -- -D warnings` passes
 - [ ] `cargo fmt --check` passes
