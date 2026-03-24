@@ -940,6 +940,10 @@ fn extract_layout_front_matter(
                 }
             }
 
+            // Trim leading blank lines from the body. Jekyll strips blank
+            // lines between the closing `---` and actual content, preventing a
+            // leading newline before `<!DOCTYPE html>` in the final output.
+            let body = body.trim_start_matches('\n').trim_start_matches("\r\n");
             return (parent_layout, front_matter, body.to_string());
         }
     }
@@ -3935,6 +3939,85 @@ mod tests {
             result.contains("base:nav=false"),
             "Base layout should see nav_enabled=false, got: {}",
             result
+        );
+    }
+
+    // ========================================================================
+    // Issue 331: Leading blank line removal from layout chain output
+    // ========================================================================
+
+    #[test]
+    fn test_issue331_no_leading_blank_line_from_layout() {
+        // A layout with a blank line between closing --- and <!DOCTYPE html>
+        // should not produce a leading newline in the output.
+        let source = "---\nlayout: null\n---\n\n<!DOCTYPE html>\n<html>{{ content }}</html>";
+        let (parent, _fm, body) = extract_layout_front_matter(source);
+        assert!(parent.is_none());
+        assert!(
+            body.starts_with("<!DOCTYPE"),
+            "Layout body should not have leading blank line. Got: {:?}",
+            &body[..body.len().min(30)]
+        );
+    }
+
+    #[test]
+    fn test_issue331_no_leading_blank_line_multiple_blanks() {
+        // Multiple blank lines between --- and content
+        let source = "---\ntitle: test\n---\n\n\n\n<html>{{ content }}</html>";
+        let (_parent, _fm, body) = extract_layout_front_matter(source);
+        assert!(
+            body.starts_with("<html>"),
+            "Should strip all leading blank lines. Got: {:?}",
+            &body[..body.len().min(30)]
+        );
+    }
+
+    #[test]
+    fn test_issue331_no_leading_blank_line_layout_chain() {
+        // End-to-end: render through a 2-level layout chain and verify no leading newline
+        let dir = tempfile::tempdir().unwrap();
+        let layouts_dir = dir.path().join("_layouts");
+        let includes_dir = dir.path().join("_includes");
+        fs::create_dir_all(&layouts_dir).unwrap();
+        fs::create_dir_all(&includes_dir).unwrap();
+
+        // Base layout with blank line after front matter
+        fs::write(
+            layouts_dir.join("base.html"),
+            "---\ntitle: base\n---\n\n<!DOCTYPE html>\n<html><body>{{ content }}</body></html>",
+        )
+        .unwrap();
+
+        // Post layout chaining to base
+        fs::write(
+            layouts_dir.join("post.html"),
+            "---\nlayout: base\n---\n<article>{{ content }}</article>",
+        )
+        .unwrap();
+
+        let layout_engine = LayoutEngine::new(&layouts_dir, &includes_dir).unwrap();
+        let site_context = Object::new();
+        let cached_site = LayoutEngine::build_cached_site_context(&site_context);
+
+        let mut page_fm = FrontMatter::new();
+        page_fm.insert(
+            "title".into(),
+            serde_yaml::Value::String("Test Post".into()),
+        );
+
+        let result = layout_engine
+            .render_with_cached_site("post", "Hello World", &page_fm, &cached_site)
+            .unwrap();
+
+        assert!(
+            !result.starts_with('\n'),
+            "Output should not start with a newline. Got: {:?}",
+            &result[..result.len().min(40)]
+        );
+        assert!(
+            result.starts_with("<!DOCTYPE"),
+            "Output should start with <!DOCTYPE. Got: {:?}",
+            &result[..result.len().min(40)]
         );
     }
 }

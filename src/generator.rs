@@ -1486,6 +1486,12 @@ pub fn generate_collection_pages_cached_with_progress(
             .entry("collection".into())
             .or_insert_with(|| serde_yaml::Value::String(item.collection_name.clone()));
 
+        // Inject page.id for collection items (needed by templates like
+        // beautiful-jekyll that use `{% if page.id %}` to detect posts/articles).
+        page_fm
+            .entry("id".into())
+            .or_insert_with(|| serde_yaml::Value::String(item.id.clone()));
+
         // Also ensure date is in front matter if available (needed for posts)
         if !page_fm.contains_key("date") {
             if let Some(ref date) = item.date {

@@ -295,20 +295,14 @@ pub(crate) fn value_eq(lhs: &dyn ValueView, rhs: &dyn ValueView) -> bool {
     match (lhs.as_scalar(), rhs.as_scalar()) {
         (Some(x), Some(y)) => return x == y,
         (None, None) => (),
-        // encode Ruby truthiness: all values except false and nil are true
-        (Some(x), _) => {
-            if rhs.is_nil() {
-                return !x.to_bool().unwrap_or(true);
-            } else {
-                return x.to_bool().unwrap_or(false);
-            }
+        // Ruby Liquid: nil is only equal to nil, not to false or any other value.
+        // Previously this used truthiness encoding which made false == nil return true,
+        // but that diverges from Ruby Liquid where nil and false are distinct values.
+        (Some(_x), _) => {
+            return false;
         }
-        (_, Some(x)) => {
-            if lhs.is_nil() {
-                return !x.to_bool().unwrap_or(true);
-            } else {
-                return x.to_bool().unwrap_or(false);
-            }
+        (_, Some(_x)) => {
+            return false;
         }
     }
 

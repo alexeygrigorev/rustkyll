@@ -1272,11 +1272,12 @@ fn preprocess_nil_eq_false(template: &str) -> String {
     use std::sync::LazyLock;
 
     // Match patterns like: VARIABLE == false or VARIABLE != false
-    // VARIABLE is a dotted name like page.toc, site.show_edit, etc.
+    // VARIABLE is a dotted name like page.toc, site.show_edit, page.show-avatar, etc.
+    // Hyphens are valid in Liquid/Jekyll property names (e.g. show-avatar, full-width).
     static EQ_FALSE_RE: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"\b([\w][\w.]*)\s*==\s*false\b").unwrap());
+        LazyLock::new(|| Regex::new(r"\b([\w][\w.\-]*)\s*==\s*false\b").unwrap());
     static NEQ_FALSE_RE: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"\b([\w][\w.]*)\s*!=\s*false\b").unwrap());
+        LazyLock::new(|| Regex::new(r"\b([\w][\w.\-]*)\s*!=\s*false\b").unwrap());
 
     let result = EQ_FALSE_RE.replace_all(template, "$1 == false and $1 != nil");
     let result = NEQ_FALSE_RE.replace_all(&result, "$1 != false or $1 == nil");
@@ -5261,5 +5262,141 @@ title: "Test Book"
         let template = "{% for name in __names | sort %}{{ name }},{% endfor %}";
         let output = eng.parse_and_render(template, &ctx).unwrap();
         assert_eq!(output, "apple,banana,cherry,");
+    }
+
+    // ========================================================================
+    // Issue 331: Hyphenated property names in Liquid dotted paths
+    // ========================================================================
+
+    #[test]
+    fn test_issue331_hyphenated_property_in_output() {
+        // {{ page.show-avatar }} should resolve to the value of page["show-avatar"]
+        let eng = engine();
+        let mut page = Object::new();
+        page.insert("show-avatar".into(), LiquidValue::scalar(true));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        let output = eng
+            .parse_and_render("{{ page.show-avatar }}", &ctx)
+            .unwrap();
+        assert_eq!(output, "true");
+    }
+
+    #[test]
+    fn test_issue331_hyphenated_property_in_if_truthy() {
+        // {% if page.show-avatar %}yes{% else %}no{% endif %}
+        // with show-avatar: true -> "yes"
+        let eng = engine();
+        let mut page = Object::new();
+        page.insert("show-avatar".into(), LiquidValue::scalar(true));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        let output = eng
+            .parse_and_render("{% if page.show-avatar %}yes{% else %}no{% endif %}", &ctx)
+            .unwrap();
+        assert_eq!(output, "yes");
+    }
+
+    #[test]
+    fn test_issue331_hyphenated_property_absent_is_falsy() {
+        // page has no "show-avatar" key -> should be nil (falsy)
+        let eng = engine();
+        let page = Object::new();
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        let output = eng
+            .parse_and_render("{% if page.show-avatar %}yes{% else %}no{% endif %}", &ctx)
+            .unwrap();
+        assert_eq!(output, "no");
+    }
+
+    #[test]
+    fn test_issue331_hyphenated_property_neq_false() {
+        // page.show-avatar is nil (not set) -> nil != false is true in Liquid
+        let eng = engine();
+        let page = Object::new();
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        let output = eng
+            .parse_and_render(
+                "{% if page.show-avatar != false %}shown{% else %}hidden{% endif %}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(output, "shown");
+    }
+
+    #[test]
+    fn test_issue331_hyphenated_property_neq_false_when_false() {
+        // page.show-avatar is false -> false != false is false
+        let eng = engine();
+        let mut page = Object::new();
+        page.insert("show-avatar".into(), LiquidValue::scalar(false));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        let output = eng
+            .parse_and_render(
+                "{% if page.show-avatar != false %}shown{% else %}hidden{% endif %}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(output, "hidden");
+    }
+
+    #[test]
+    fn test_issue331_hyphenated_property_and_chain() {
+        // {% if site.avatar and page.show-avatar != false %}visible{% endif %}
+        // site.avatar set, no show-avatar in page -> nil != false -> true
+        let eng = engine();
+        let mut site = Object::new();
+        site.insert("avatar".into(), LiquidValue::scalar("/img/avatar.png"));
+        let page = Object::new();
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        let output = eng
+            .parse_and_render(
+                "{% if site.avatar and page.show-avatar != false %}visible{% endif %}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(output, "visible");
+    }
+
+    #[test]
+    fn test_issue331_multiple_hyphenated_properties() {
+        // Test page.full-width, page.before-content, page.after-content
+        let eng = engine();
+        let mut page = Object::new();
+        page.insert("full-width".into(), LiquidValue::scalar(true));
+        page.insert("before-content".into(), LiquidValue::scalar("header"));
+        page.insert("after-content".into(), LiquidValue::scalar("footer"));
+        page.insert(
+            "use-hierarchical-categories".into(),
+            LiquidValue::scalar(false),
+        );
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        let output = eng
+            .parse_and_render("{{ page.full-width }},{{ page.before-content }},{{ page.after-content }},{{ page.use-hierarchical-categories }}", &ctx)
+            .unwrap();
+        assert_eq!(output, "true,header,footer,false");
+    }
+
+    #[test]
+    fn test_issue331_unicode_hyphenated_property() {
+        // page.meta-description with Chinese value
+        let eng = engine();
+        let mut page = Object::new();
+        page.insert(
+            "meta-description".into(),
+            LiquidValue::scalar("\u{9019}\u{662F}\u{4E2D}\u{6587}\u{63CF}\u{8FF0}"),
+        );
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        let output = eng
+            .parse_and_render("{{ page.meta-description }}", &ctx)
+            .unwrap();
+        assert_eq!(output, "\u{9019}\u{662F}\u{4E2D}\u{6587}\u{63CF}\u{8FF0}");
     }
 }

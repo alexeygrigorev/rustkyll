@@ -1,12 +1,6 @@
-Jekyll directory:   /home/alexey/git/rustkyl/websites/time-machine-theme/_site_jekyll_cached
-Rustkyll directory: /home/alexey/git/rustkyl/websites/time-machine-theme/_site_rustkyll_recount
+Jekyll directory:   websites/time-machine-theme/_site_jekyll_cached
+Rustkyll directory: /tmp/time-machine-theme_fix
 Common HTML files:  2
 
-DIFF another-page.html (2 differences)
-  body > div > div > div > div > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/time-machine'"
-  body > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/time-machine'"
-DIFF index.html (2 differences)
-  body > div > div > div > div > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/time-machine'"
-  body > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/time-machine'"
 
-Summary: 0 files matched, 2 files with differences, 4 total differences
+Summary: 2 files matched, 0 files with differences, 0 total differences

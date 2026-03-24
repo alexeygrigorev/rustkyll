@@ -1,14 +1,6 @@
-Jekyll directory:   /home/alexey/git/rustkyl/websites/primer-theme/_site_jekyll_cached
-Rustkyll directory: /home/alexey/git/rustkyl/websites/primer-theme/_site_rustkyll_recount
+Jekyll directory:   websites/primer-theme/_site_jekyll_cached
+Rustkyll directory: /tmp/primer-theme_fix
 Common HTML files:  2
 
-DIFF another-page.html (3 differences)
-  body > div > div: text_differs - expected: 'This site is open source.', actual: 'This site is open source. .'
-  body > div > div > a: missing_element - expected: '<a>', actual: '(none)'
-  body > div > div: missing_text - expected: '.', actual: '(none)'
-DIFF index.html (3 differences)
-  body > div > div: text_differs - expected: 'This site is open source.', actual: 'This site is open source. .'
-  body > div > div > a: missing_element - expected: '<a>', actual: '(none)'
-  body > div > div: missing_text - expected: '.', actual: '(none)'
 
-Summary: 0 files matched, 2 files with differences, 6 total differences
+Summary: 2 files matched, 0 files with differences, 0 total differences

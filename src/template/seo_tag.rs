@@ -393,32 +393,18 @@ impl Renderable for SeoRenderable {
             _ => None,
         };
 
-        // Output canonical URL. When site_url is set, use the full absolute URL.
-        // When site_url is empty/missing, fall back to just the page path (relative URL),
-        // matching jekyll-seo-tag behavior which always outputs canonical/og:url.
-        {
-            let canonical = if let Some(ref url) = canonical_url {
-                Some(url.clone())
-            } else {
-                // No site_url: use page_url directly as relative canonical
-                page_url.as_ref().map(|p| {
-                    if p.starts_with('/') {
-                        p.clone()
-                    } else {
-                        format!("/{}", p)
-                    }
-                })
-            };
-            if let Some(ref url) = canonical {
-                output.push_str(&format!(
-                    "<link rel=\"canonical\" href=\"{}\" />\n",
-                    html_escape(url)
-                ));
-                output.push_str(&format!(
-                    "<meta property=\"og:url\" content=\"{}\" />\n",
-                    html_escape(url)
-                ));
-            }
+        // Output canonical URL + og:url only when site.url is configured.
+        // Jekyll's seo-tag requires site.url (or site.github.url) to emit these;
+        // when neither is set, canonical/og:url are omitted entirely.
+        if let Some(ref url) = canonical_url {
+            output.push_str(&format!(
+                "<link rel=\"canonical\" href=\"{}\" />\n",
+                html_escape(url)
+            ));
+            output.push_str(&format!(
+                "<meta property=\"og:url\" content=\"{}\" />\n",
+                html_escape(url)
+            ));
         }
 
         // 8. og:site_name
@@ -449,7 +435,14 @@ impl Renderable for SeoRenderable {
                 "<meta property=\"article:published_time\" content=\"{}\" />\n",
                 html_escape(&formatted_date)
             ));
-            // 10c. article:publisher (only for articles when site.facebook.publisher is set)
+            // 10c. article:author (only for articles when author is set)
+            if let Some(a) = &author {
+                output.push_str(&format!(
+                    "<meta property=\"article:author\" content=\"{}\" />\n",
+                    html_escape(a)
+                ));
+            }
+            // 10d. article:publisher (only for articles when site.facebook.publisher is set)
             if let Some(ref publisher) = facebook_publisher {
                 output.push_str(&format!(
                     "<meta property=\"article:publisher\" content=\"{}\" />\n",
@@ -3726,6 +3719,133 @@ mod tests {
         assert!(
             out.contains("\u{2019}"),
             "Should contain smart apostrophe with Unicode content. Got:\n{}",
+            out
+        );
+    }
+
+    // ========================================================================
+    // Issue 331: og:article:author meta tag
+    // ========================================================================
+
+    #[test]
+    fn test_issue331_article_author_present() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        page.insert("title".into(), Value::scalar("Test Post"));
+        page.insert("date".into(), Value::scalar("2020-02-26"));
+        page.insert("author".into(), Value::scalar("John Doe"));
+        ctx.insert("page".into(), Value::Object(page));
+        let mut site = Object::new();
+        site.insert("title".into(), Value::scalar("My Site"));
+        ctx.insert("site".into(), Value::Object(site));
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("article:author"),
+            "Should contain article:author meta tag. Got:\n{}",
+            out
+        );
+        assert!(
+            out.contains("content=\"John Doe\""),
+            "article:author should have correct content. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_issue331_article_author_absent_for_website() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        page.insert("title".into(), Value::scalar("About"));
+        // No date -> website type -> no article:author
+        ctx.insert("page".into(), Value::Object(page));
+        let mut site = Object::new();
+        site.insert("title".into(), Value::scalar("My Site"));
+        ctx.insert("site".into(), Value::Object(site));
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            !out.contains("article:author"),
+            "Should NOT contain article:author for website type. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_issue331_article_author_unicode() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        page.insert("title".into(), Value::scalar("Post"));
+        page.insert("date".into(), Value::scalar("2020-01-01"));
+        page.insert("author".into(), Value::scalar("\u{5F35}\u{4E09}\u{8C50}"));
+        ctx.insert("page".into(), Value::Object(page));
+        let mut site = Object::new();
+        site.insert("title".into(), Value::scalar("Site"));
+        ctx.insert("site".into(), Value::Object(site));
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\u{5F35}\u{4E09}\u{8C50}"),
+            "Should contain Unicode author name. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_issue331_no_canonical_without_site_url() {
+        // When site.url is not set, canonical/og:url should NOT be emitted
+        // (matching Jekyll's jekyll-seo-tag behavior)
+        let eng = engine();
+        let ctx = make_context(
+            Some("Architect theme"),
+            Some("Architect theme"),
+            Some("Architect is a theme for GitHub Pages."),
+            None,
+            None, // No site.url
+            Some("/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            !out.contains("rel=\"canonical\""),
+            "Should NOT emit canonical link without site.url. Got:\n{}",
+            out
+        );
+        assert!(
+            !out.contains("og:url"),
+            "Should NOT emit og:url without site.url. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_issue331_canonical_present_with_site_url() {
+        // When site.url IS set, canonical/og:url should be emitted
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Site"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/about/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("rel=\"canonical\""),
+            "Should emit canonical link with site.url. Got:\n{}",
+            out
+        );
+        assert!(
+            out.contains("og:url"),
+            "Should emit og:url with site.url. Got:\n{}",
             out
         );
     }

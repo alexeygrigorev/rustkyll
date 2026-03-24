@@ -1,10 +1,6 @@
-Jekyll directory:   /home/alexey/git/rustkyl/websites/leap-day-theme/_site_jekyll_cached
-Rustkyll directory: /home/alexey/git/rustkyl/websites/leap-day-theme/_site_rustkyll_recount
+Jekyll directory:   websites/leap-day-theme/_site_jekyll_cached
+Rustkyll directory: /tmp/leap-day-theme_fix
 Common HTML files:  2
 
-DIFF another-page.html (1 differences)
-  body > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/leap-day'"
-DIFF index.html (1 differences)
-  body > div > a: attribute_differs - expected: "href=''", actual: "href='https://github.com/pages-themes/leap-day'"
 
-Summary: 0 files matched, 2 files with differences, 2 total differences
+Summary: 2 files matched, 0 files with differences, 0 total differences
