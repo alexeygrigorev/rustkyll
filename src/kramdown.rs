@@ -238,13 +238,112 @@ pub fn postprocess(html: &str) -> String {
     postprocess_with_options(html, true)
 }
 
+/// Fix mis-balanced emphasis tags produced by pulldown-cmark.
+///
+/// pulldown-cmark sometimes produces `<strong>A<strong>B</strong>C</strong>` when
+/// the correct output should be `<strong>A</strong>B<strong>C</strong>`. This happens
+/// when `**text**"` patterns confuse the emphasis resolver in certain document contexts.
+///
+/// This function detects the pattern where a `<strong>` or `<em>` tag is opened, then
+/// another opening tag of the SAME type appears before the first is closed, and rewrites
+/// the second opening tag as a closing tag for the first span.
+pub fn fix_nested_emphasis_tags(html: &str) -> String {
+    // Quick check: if no emphasis tags, return early
+    if !html.contains("<strong>") && !html.contains("<em>") {
+        return html.to_string();
+    }
+
+    let mut result = html.to_string();
+
+    // Fix nested <strong>: <strong>A<strong>B</strong>C</strong>
+    // -> <strong>A</strong>B<strong>C</strong>
+    result = fix_nested_tag(&result, "strong");
+    result = fix_nested_tag(&result, "em");
+
+    result
+}
+
+/// Fix nested same-type emphasis tags.
+///
+/// Detects the pattern `<tag>A<tag>B</tag>C</tag>` and rewrites it as
+/// `<tag>A</tag>B<tag>C</tag>`. This handles cases where pulldown-cmark
+/// mis-nests emphasis delimiters.
+fn fix_nested_tag(html: &str, tag: &str) -> String {
+    let open_tag = format!("<{tag}>");
+    let close_tag = format!("</{tag}>");
+
+    if !html.contains(&open_tag) {
+        return html.to_string();
+    }
+
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+
+    while !remaining.is_empty() {
+        // Find the next opening tag
+        if let Some(first_open_pos) = remaining.find(&open_tag) {
+            let after_first_open = first_open_pos + open_tag.len();
+
+            // Look for the next occurrence of the SAME opening tag before a closing tag
+            let next_open = remaining[after_first_open..].find(&open_tag);
+            let next_close = remaining[after_first_open..].find(&close_tag);
+
+            match (next_open, next_close) {
+                (Some(open_offset), Some(close_offset)) if open_offset < close_offset => {
+                    // Found <tag>A<tag>B</tag>C</tag> pattern.
+                    // Rewrite as <tag>A</tag>B<tag>C</tag>.
+                    //
+                    // Step 1: Copy up to second <tag>, replace it with </tag>
+                    let second_open_abs = after_first_open + open_offset;
+                    result.push_str(&remaining[..second_open_abs]);
+                    result.push_str(&close_tag);
+
+                    // Step 2: The first </tag> in the remaining text becomes <tag>
+                    let after_second = &remaining[second_open_abs + open_tag.len()..];
+                    if let Some(first_close_in_rest) = after_second.find(&close_tag) {
+                        result.push_str(&after_second[..first_close_in_rest]);
+                        result.push_str(&open_tag);
+                        remaining = &after_second[first_close_in_rest + close_tag.len()..];
+                    } else {
+                        // No matching close tag -- just copy rest
+                        result.push_str(after_second);
+                        remaining = "";
+                    }
+                }
+                _ => {
+                    // Normal: <tag>...</tag> -- no nesting issue.
+                    // Copy up to and past the closing tag.
+                    if let Some(close_offset) = next_close {
+                        let close_abs = after_first_open + close_offset + close_tag.len();
+                        result.push_str(&remaining[..close_abs]);
+                        remaining = &remaining[close_abs..];
+                    } else {
+                        // No closing tag found -- copy rest and stop.
+                        result.push_str(remaining);
+                        remaining = "";
+                    }
+                }
+            }
+        } else {
+            // No more opening tags -- copy rest.
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    result
+}
+
 /// Apply all kramdown compatibility transformations to HTML output.
 ///
 /// When `indent_lists` is true (kramdown mode), list items are indented with
 /// 2 spaces to match Jekyll's kramdown renderer. When false (CommonMarkGhPages),
 /// list items are NOT indented, matching Jekyll's CommonMark renderer.
 pub fn postprocess_with_options(html: &str, indent_lists: bool) -> String {
-    let html = strip_paragraphs_in_html_blocks(html);
+    // Issue 275b: Fix mis-balanced emphasis tags from pulldown-cmark before other
+    // postprocessing steps that depend on correct tag nesting.
+    let html = fix_nested_emphasis_tags(html);
+    let html = strip_paragraphs_in_html_blocks(&html);
     let html = encode_bare_ampersands(&html);
     let html = add_heading_ids(&html);
     let html = apply_block_ial(&html);
@@ -308,7 +407,9 @@ pub fn postprocess_for_filter(html: &str) -> String {
 /// When false (CommonMarkGhPages), list items are NOT indented, matching
 /// how `postprocess_with_options` works for page body content.
 pub fn postprocess_for_filter_with_options(html: &str, indent_lists: bool) -> String {
-    let html = apply_inline_attributes(html);
+    // Issue 275b: Fix mis-balanced emphasis tags from pulldown-cmark
+    let html = fix_nested_emphasis_tags(html);
+    let html = apply_inline_attributes(&html);
     // Note: inline code classes are now added during markdown rendering
     // (in frontmatter::add_inline_code_class_to_events) rather than here.
     let html = remove_ol_start_attribute(&html);
@@ -12319,12 +12420,14 @@ by <a href="/people/author.html">Author Name</a>
     #[test]
     fn test_issue275b_adjacent_bold_no_nesting() {
         // Problem 1: **A**" or "**B** must produce two separate <strong> elements
-        // Full DTC pipeline: dedent -> mark headings -> collapse blanks -> markdown
-        let raw = "<figure>\n<img src=\"/images/image.png\"  />\n<figcaption><p>Caption</p></figcaption>\n</figure>\n\nEvery time we open an article with a title similar to \"**What is a data engineer?**\" or \"**The difference between data engineer and data scientist**\" we get a cliche answer: *Data engineers are like plumbers.*\n\nNo! No! No!\n";
-        let dedented = crate::frontmatter::dedent_html_lines(raw);
-        let marked = mark_existing_html_headings(&dedented);
-        let collapsed = collapse_blank_lines_in_html_blocks(&marked);
-        let html = render_kramdown_mode(&collapsed);
+        // Test with the ACTUAL DTC blog post content (read from file).
+        // The bug only reproduces with the full file content -- some earlier content
+        // affects pulldown-cmark's emphasis parsing.
+        let path = std::path::Path::new("websites/DataTalksClub/datatalksclub.github.io/_posts/2022-09-02-data-engineers-arent-plumbers.md");
+        assert!(path.exists(), "DTC blog post file must exist at {:?}", path);
+        let raw = std::fs::read_to_string(path).unwrap();
+        let doc = crate::frontmatter::parse_document(&raw).unwrap();
+        let html = render_kramdown_mode(&doc.content);
         // Must have two separate <strong> elements, not nested
         assert!(
             !html.contains("<strong><strong>")
@@ -12337,16 +12440,44 @@ by <a href="/people/author.html">Author Name</a>
             "First bold span must be properly closed. Got:\n{}",
             html
         );
+        // Check second bold span
+        if let Some(pos) = html.find("What is a data engineer") {
+            let start = html[..pos].rfind('<').unwrap_or(0);
+            let end = html[pos..]
+                .find("</p>")
+                .map(|p| pos + p + 4)
+                .unwrap_or(html.len());
+            let para = &html[start..end];
+            assert!(
+                html.contains(
+                    "<strong>The difference between data engineer and data scientist</strong>"
+                ),
+                "Second bold span must be properly closed. Emphasis paragraph:\n{}",
+                para
+            );
+            assert!(
+                html.contains("<em>Data engineers are like plumbers.</em>"),
+                "Italic span must be present. Emphasis paragraph:\n{}",
+                para
+            );
+        } else {
+            panic!("Expected emphasis paragraph not found in output");
+        }
+    }
+
+    #[test]
+    fn test_issue275b_adjacent_bold_minimal_repro() {
+        // Minimal reproduction using the exact DTC blog post content.
+        // The bug only reproduces with the full file content through
+        // markdown_to_html_with_options (pulldown-cmark path).
+        let path = std::path::Path::new("websites/DataTalksClub/datatalksclub.github.io/_posts/2022-09-02-data-engineers-arent-plumbers.md");
+        assert!(path.exists(), "DTC blog post file must exist at {:?}", path);
+        let raw = std::fs::read_to_string(path).unwrap();
+        let doc = crate::frontmatter::parse_document(&raw).unwrap();
+        let html = render_kramdown_mode(&doc.content);
         assert!(
-            html.contains(
-                "<strong>The difference between data engineer and data scientist</strong>"
-            ),
-            "Second bold span must be properly closed. Got:\n{}",
-            html
-        );
-        assert!(
-            html.contains("<em>Data engineers are like plumbers.</em>"),
-            "Italic span must be present. Got:\n{}",
+            html.contains("<strong>What is a data engineer?</strong>"),
+            "First bold span must be properly closed. Got:\n{}",
             html
         );
     }
@@ -12381,8 +12512,7 @@ by <a href="/people/author.html">Author Name</a>
     #[test]
     fn test_issue275b_emphasis_wrapping_html_link() {
         // Problem 2: *<a href="...">text</a>, trailing* must produce <em>
-        let md =
-            "*<a href=\"https://example.com\">EV Connect</a>, a charging provider*\n";
+        let md = "*<a href=\"https://example.com\">EV Connect</a>, a charging provider*\n";
         let html = render_kramdown_mode(md);
         assert!(
             html.contains("<em>") && html.contains("</em>"),
