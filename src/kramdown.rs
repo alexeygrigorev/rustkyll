@@ -1873,6 +1873,79 @@ pub fn convert_kramdown_pipe_tables(content: &str) -> String {
             }
             result.push_str("</tbody>\n</table>");
             i = j;
+        } else if is_kramdown_table_line(trimmed) && is_standard_pipe_table_context(&lines, i) {
+            // GFM table detected (has separator row). Check block boundaries
+            // like kramdown does. If not at proper boundaries, escape the
+            // separator row so pulldown-cmark doesn't render it as a table.
+
+            // Only process from the start of the table block (header row).
+            // Walk backward to find the start.
+            let mut table_start = i;
+            while table_start > 0 {
+                let prev_trimmed = lines[table_start - 1].trim();
+                if is_table_separator_line(prev_trimmed)
+                    || (prev_trimmed.starts_with('|') && prev_trimmed.ends_with('|'))
+                {
+                    table_start -= 1;
+                } else {
+                    break;
+                }
+            }
+
+            // If we're not at the start of the table block, this line was
+            // already processed or will be. Output as-is.
+            if table_start != i {
+                if i > 0 {
+                    result.push('\n');
+                }
+                result.push_str(line);
+                i += 1;
+                continue;
+            }
+
+            // Collect all lines in this GFM table block
+            let mut j = i;
+            while j < lines.len() {
+                let jt = lines[j].trim();
+                if is_table_separator_line(jt) || (jt.starts_with('|') && jt.ends_with('|')) {
+                    j += 1;
+                } else {
+                    break;
+                }
+            }
+
+            // Check block boundaries (both before and after)
+            let at_after_boundary = is_after_block_boundary(&lines, i);
+            let at_before_boundary = is_before_block_boundary(&lines, j);
+
+            if at_after_boundary && at_before_boundary {
+                // Proper block boundaries -- pass through for pulldown-cmark.
+                for (idx, line_text) in lines[i..j].iter().enumerate() {
+                    if i + idx > 0 {
+                        result.push('\n');
+                    }
+                    result.push_str(line_text);
+                }
+            } else {
+                // Not at proper block boundaries -- escape separator rows
+                // by replacing leading `|` with `\|` so pulldown-cmark does
+                // not recognize them as GFM tables.
+                for (idx, line_text) in lines[i..j].iter().enumerate() {
+                    if i + idx > 0 {
+                        result.push('\n');
+                    }
+                    let lt = line_text.trim();
+                    if is_table_separator_line(lt) {
+                        let indent_len = line_text.len() - line_text.trim_start().len();
+                        let indent = &line_text[..indent_len];
+                        result.push_str(indent);
+                        result.push_str(&lt.replacen('|', "\\|", 1));
+                    } else {
+                        result.push_str(line_text);
+                    }
+                }
+            }
+            i = j;
         } else {
             if i > 0 {
                 result.push('\n');
@@ -12066,6 +12139,351 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             html.contains("</summary>\n\n```"),
             "Blank line after </summary> should be preserved. Got:\n{}",
+            html
+        );
+    }
+
+    // === Issue 265: GFM table before block boundary fix ===
+
+    #[test]
+    fn test_265_gfm_table_no_block_boundary_after_suppressed() {
+        // GFM table followed by non-pipe text should NOT render as table
+        let input = "| A | B |\n|---|---|\n| 1 | 2 |\nnot a pipe\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<table>"),
+            "GFM table followed by text should NOT be a table. Got: {html}"
+        );
+        assert!(
+            html.contains("| A | B |"),
+            "Text content should be preserved. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_265_gfm_table_three_columns_no_boundary() {
+        let input = "| H1 | H2 | H3 |\n|---|---|---|\n| a | b | c |\ncontinuation text\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<table>"),
+            "Three-column GFM table followed by text should NOT be a table. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_265_gfm_table_alignment_markers_no_boundary() {
+        // Separator with alignment markers (:---:, ---:) followed by text
+        let input = "| A | B |\n|:---:|---:|\n| 1 | 2 |\nnot a pipe\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<table>"),
+            "GFM table with alignment markers followed by text should NOT be a table. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_265_gfm_table_no_boundary_before_or_after() {
+        let input = "some text\n| A | B |\n|---|---|\n| 1 | 2 |\nmore text\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<table>"),
+            "GFM table with no block boundary before or after should NOT be a table. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_265_gfm_table_blank_line_after_preserved() {
+        // Blank line after table = block boundary, should render as table
+        let input = "| A | B |\n|---|---|\n| 1 | 2 |\n\nParagraph\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<table>"),
+            "GFM table with blank line after should render. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_265_gfm_table_eof_after_preserved() {
+        // EOF after table = block boundary
+        let input = "| A | B |\n|---|---|\n| 1 | 2 |\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<table>"),
+            "GFM table at EOF should render. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_265_gfm_table_blank_lines_around_preserved() {
+        let input = "\n| A | B |\n|---|---|\n| 1 | 2 |\n\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<table>"),
+            "GFM table with blank lines around should render. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_265_gfm_table_heading_after_preserved() {
+        // Heading after table = block boundary
+        let input = "| A | B |\n|---|---|\n| 1 | 2 |\n# Heading\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<table>"),
+            "GFM table followed by heading should render. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_265_gfm_table_hr_after_preserved() {
+        // HR after table = block boundary
+        let input = "| A | B |\n|---|---|\n| 1 | 2 |\n---\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<table>"),
+            "GFM table followed by HR should render. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_265_mixed_document_gfm_tables() {
+        // One GFM table with block boundary, one without
+        let input =
+            "| A | B |\n|---|---|\n| 1 | 2 |\n\n| X | Y |\n|---|---|\n| 3 | 4 |\ncontinuation\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        // First table should render (blank line after)
+        assert!(
+            html.contains("<table>"),
+            "First GFM table should render. Got: {html}"
+        );
+        // Second table should NOT render (text after, no blank line)
+        // Count table occurrences
+        let table_count = html.matches("<table>").count();
+        assert_eq!(
+            table_count, 1,
+            "Should have exactly 1 table (first renders, second suppressed). Got {table_count} tables. HTML: {html}"
+        );
+    }
+
+    #[test]
+    fn test_265_gfm_table_unicode_suppressed() {
+        let input = "| Spalte | Wert |\n|---|---|\n| B\u{00fc}cher | Zahlen |\nWeiter geht es\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<table>"),
+            "GFM table with Unicode followed by text should NOT be a table. Got: {html}"
+        );
+        assert!(
+            html.contains("B\u{00fc}cher"),
+            "Unicode content should be preserved. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_265_gfm_table_unicode_preserved() {
+        let input = "| Spalte | Wert |\n|---|---|\n| B\u{00fc}cher | Zahlen |\n\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<table>"),
+            "GFM table with Unicode at block boundary should render. Got: {html}"
+        );
+        assert!(
+            html.contains("B\u{00fc}cher"),
+            "Unicode content should be preserved in table. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_265_gfm_table_text_before_no_blank_line() {
+        // Text before table without blank line = no block boundary before
+        let input = "text before\n| A | B |\n|---|---|\n| 1 | 2 |\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<table>"),
+            "GFM table with text before (no blank line) should NOT be a table. Got: {html}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 275b: DTC inline emphasis double-nesting and misparse
+    // Uses markdown_to_html_with_options (kramdown mode with smart punctuation)
+    // to match the actual DTC rendering pipeline.
+    // ========================================================================
+
+    /// Helper: render markdown through the same pipeline as DTC (kramdown mode,
+    /// smart punctuation enabled).
+    fn render_kramdown_mode(md: &str) -> String {
+        crate::frontmatter::markdown_to_html_with_options(md, true, true, false, false)
+    }
+
+    #[test]
+    fn test_issue275b_adjacent_bold_no_nesting() {
+        // Problem 1: **A**" or "**B** must produce two separate <strong> elements
+        // Full DTC pipeline: dedent -> mark headings -> collapse blanks -> markdown
+        let raw = "<figure>\n<img src=\"/images/image.png\"  />\n<figcaption><p>Caption</p></figcaption>\n</figure>\n\nEvery time we open an article with a title similar to \"**What is a data engineer?**\" or \"**The difference between data engineer and data scientist**\" we get a cliche answer: *Data engineers are like plumbers.*\n\nNo! No! No!\n";
+        let dedented = crate::frontmatter::dedent_html_lines(raw);
+        let marked = mark_existing_html_headings(&dedented);
+        let collapsed = collapse_blank_lines_in_html_blocks(&marked);
+        let html = render_kramdown_mode(&collapsed);
+        // Must have two separate <strong> elements, not nested
+        assert!(
+            !html.contains("<strong><strong>")
+                && !html.contains("<strong>What is a data engineer?<strong>"),
+            "Must not have nested <strong> tags. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("<strong>What is a data engineer?</strong>"),
+            "First bold span must be properly closed. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains(
+                "<strong>The difference between data engineer and data scientist</strong>"
+            ),
+            "Second bold span must be properly closed. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("<em>Data engineers are like plumbers.</em>"),
+            "Italic span must be present. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue275b_triple_adjacent_bold() {
+        // **A** and **B** and **C** must produce three separate <strong>
+        let md = "**A** and **B** and **C**\n";
+        let html = render_kramdown_mode(md);
+        assert!(
+            html.contains("<strong>A</strong>")
+                && html.contains("<strong>B</strong>")
+                && html.contains("<strong>C</strong>"),
+            "Must have three separate <strong> elements. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue275b_bold_separated_by_quotes() {
+        let md = "**bold**\" or \"**bold**\n";
+        let html = render_kramdown_mode(md);
+        // Count occurrences of <strong>bold</strong>
+        let count = html.matches("<strong>bold</strong>").count();
+        assert_eq!(
+            count, 2,
+            "Must have two separate <strong>bold</strong> spans. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue275b_emphasis_wrapping_html_link() {
+        // Problem 2: *<a href="...">text</a>, trailing* must produce <em>
+        let md =
+            "*<a href=\"https://example.com\">EV Connect</a>, a charging provider*\n";
+        let html = render_kramdown_mode(md);
+        assert!(
+            html.contains("<em>") && html.contains("</em>"),
+            "Must wrap in <em> tags, not literal asterisks. Got:\n{}",
+            html
+        );
+        assert!(
+            !html.contains("*&lt;a") && !html.contains("*<a"),
+            "Must not have literal asterisks around content. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue275b_two_emphasis_spans_with_links() {
+        // Two separate *<a>link</a>, text* spans
+        let md = "*<a href=\"url1\">Link1</a>, text1* *<a href=\"url2\">Link2</a>, text2*\n";
+        let html = render_kramdown_mode(md);
+        let em_count = html.matches("<em>").count();
+        assert!(
+            em_count >= 2,
+            "Must have two <em> spans. Got {} <em> tags in:\n{}",
+            em_count,
+            html
+        );
+        assert!(
+            !html.contains("*&lt;a") && !html.contains("*<a"),
+            "Must not have literal asterisks. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue275b_underscore_emphasis_with_slash() {
+        // Problem 3: _CI/CD_ must produce <em>CI/CD</em>
+        let md = "_CI/CD_\n";
+        let html = render_kramdown_mode(md);
+        assert!(
+            html.contains("<em>CI/CD</em>"),
+            "Underscore emphasis with slash must work. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue275b_multiple_underscore_emphasis_with_slash() {
+        let md = "_CI/CD_, _Testing_ and _Deployment_\n";
+        let html = render_kramdown_mode(md);
+        assert!(
+            html.contains("<em>CI/CD</em>"),
+            "Must have <em>CI/CD</em>. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("<em>Testing</em>"),
+            "Must have <em>Testing</em>. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("<em>Deployment</em>"),
+            "Must have <em>Deployment</em>. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue275b_underscore_emphasis_with_path() {
+        let md = "_path/to/file_\n";
+        let html = render_kramdown_mode(md);
+        assert!(
+            html.contains("<em>path/to/file</em>"),
+            "Underscore emphasis with path slashes must work. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue275b_unicode_adjacent_bold() {
+        // German text with adjacent bold spans
+        let md = "\"**Was ist ein Dateningenieur?**\" oder \"**Der Unterschied**\"\n";
+        let html = render_kramdown_mode(md);
+        assert!(
+            html.contains("<strong>Was ist ein Dateningenieur?</strong>"),
+            "German bold text must be preserved. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("<strong>Der Unterschied</strong>"),
+            "Second German bold text must be preserved. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue275b_unicode_underscore_emphasis() {
+        // Accented characters in underscore emphasis
+        let md = "_donn\u{00e9}es_\n";
+        let html = render_kramdown_mode(md);
+        assert!(
+            html.contains("<em>donn\u{00e9}es</em>"),
+            "Accented character in emphasis must be preserved. Got:\n{}",
             html
         );
     }
