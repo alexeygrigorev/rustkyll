@@ -423,6 +423,186 @@ pub fn fix_literal_asterisk_emphasis(html: &str) -> String {
     result
 }
 
+/// Fix literal underscore emphasis that pulldown-cmark failed to parse.
+///
+/// Issue 333: In certain document contexts, pulldown-cmark leaves `_text_`
+/// as literal underscores instead of converting to `<em>text</em>`. This
+/// postprocessor detects such patterns in the HTML output and wraps them
+/// in emphasis tags.
+///
+/// This mirrors `fix_literal_asterisk_emphasis` but for underscore markers.
+/// Extra care is taken to avoid false positives since underscores are common
+/// in HTML attributes, URLs, and code.
+pub fn fix_literal_underscore_emphasis(html: &str) -> String {
+    if !html.contains('_') {
+        return html.to_string();
+    }
+
+    let mut result = String::with_capacity(html.len());
+    let bytes = html.as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
+    let mut em_depth: i32 = 0;
+    let mut in_code = false;
+
+    while i < len {
+        // Handle HTML tags
+        if bytes[i] == b'<' {
+            let tag_start = i;
+            i += 1;
+            while i < len && bytes[i] != b'>' {
+                i += 1;
+            }
+            if i < len {
+                i += 1;
+            }
+            let tag = &html[tag_start..i];
+            if tag == "<em>" || tag == "<strong>" {
+                em_depth += 1;
+            } else if tag == "</em>" || tag == "</strong>" {
+                em_depth -= 1;
+            } else if tag == "<code>" || tag.starts_with("<code ") {
+                in_code = true;
+            } else if tag == "</code>" {
+                in_code = false;
+            }
+            result.push_str(tag);
+            continue;
+        }
+
+        // Only consider `_` as emphasis when NOT inside <em>/<strong> or <code>
+        if bytes[i] == b'_' && em_depth <= 0 && !in_code {
+            // Check for double underscore (__strong__)
+            let is_double = i + 1 < len && bytes[i + 1] == b'_';
+
+            if is_double {
+                let delim_count = 2;
+                let content_start = i + delim_count;
+                let is_opener = {
+                    let prev_ok = i == 0
+                        || matches!(
+                            bytes[i - 1],
+                            b' ' | b'>' | b'"' | b'\n' | b'\t' | b'(' | b',' | b';'
+                        )
+                        || (i >= 2 && !bytes[i - 1].is_ascii());
+                    let next_ok = content_start < len
+                        && bytes[content_start] != b' '
+                        && bytes[content_start] != b'\n';
+                    prev_ok && next_ok
+                };
+                if is_opener {
+                    if let Some((content, end_pos)) =
+                        find_literal_underscore_emphasis_span(html, content_start, delim_count)
+                    {
+                        result.push_str("<strong>");
+                        result.push_str(content);
+                        result.push_str("</strong>");
+                        i = end_pos + delim_count;
+                        continue;
+                    }
+                }
+            }
+
+            // Single underscore (_em_)
+            let is_opener = {
+                let prev_ok = i == 0
+                    || matches!(
+                        bytes[i - 1],
+                        b' ' | b'>' | b'"' | b'\n' | b'\t' | b'(' | b',' | b';'
+                    )
+                    || (i >= 2 && !bytes[i - 1].is_ascii());
+                let next_ok = i + 1 < len
+                    && bytes[i + 1] != b' '
+                    && bytes[i + 1] != b'\n'
+                    && bytes[i + 1] != b'_';
+                prev_ok && next_ok
+            };
+
+            if is_opener {
+                if let Some((content, end_pos)) =
+                    find_literal_underscore_emphasis_span(html, i + 1, 1)
+                {
+                    result.push_str("<em>");
+                    result.push_str(content);
+                    result.push_str("</em>");
+                    i = end_pos + 1;
+                    continue;
+                }
+            }
+        }
+
+        // Regular character - handle multi-byte UTF-8
+        let ch_len = utf8_char_len(bytes[i]);
+        result.push_str(&html[i..i + ch_len]);
+        i += ch_len;
+    }
+
+    result
+}
+
+/// Find the end of a literal underscore emphasis span.
+/// `delim_count` is 1 for _em_ or 2 for __strong__.
+fn find_literal_underscore_emphasis_span(
+    html: &str,
+    start: usize,
+    delim_count: usize,
+) -> Option<(&str, usize)> {
+    let bytes = html.as_bytes();
+    let len = bytes.len();
+    let mut i = start;
+
+    while i < len {
+        // Don't cross HTML tags (stop at < to avoid matching underscores inside attributes)
+        if bytes[i] == b'<' {
+            return None;
+        }
+
+        // Don't cross newlines
+        if bytes[i] == b'\n' {
+            return None;
+        }
+
+        // Check for closing underscore(s)
+        if bytes[i] == b'_' {
+            // Count consecutive underscores
+            let close_start = i;
+            let mut close_count = 0;
+            while i < len && bytes[i] == b'_' {
+                close_count += 1;
+                i += 1;
+            }
+
+            if close_count >= delim_count {
+                // Check closer validity:
+                // - preceded by non-whitespace
+                // - followed by non-alphanumeric or end
+                let preceded_ok = close_start > start
+                    && bytes[close_start - 1] != b' '
+                    && bytes[close_start - 1] != b'\n';
+                let followed_ok = i >= len || !bytes[i].is_ascii_alphanumeric();
+
+                if preceded_ok && followed_ok {
+                    let span_len = close_start - start;
+                    if span_len > 0 && span_len < 2000 {
+                        let content = &html[start..close_start];
+                        // Content must not be just whitespace
+                        if !content.trim().is_empty() {
+                            return Some((content, close_start));
+                        }
+                    }
+                }
+            }
+            // Not a valid closer, continue scanning
+            continue;
+        }
+
+        let ch_len = utf8_char_len(bytes[i]);
+        i += ch_len;
+    }
+
+    None
+}
+
 /// Find the end of a literal emphasis span starting after the opening `*`.
 fn find_literal_emphasis_span(html: &str, start: usize) -> Option<(&str, usize)> {
     let bytes = html.as_bytes();
@@ -524,6 +704,8 @@ pub fn postprocess_with_options(html: &str, indent_lists: bool) -> String {
     let html = fix_nested_emphasis_tags(html);
     // Issue 332: Fix literal asterisks that should have been emphasis.
     let html = fix_literal_asterisk_emphasis(&html);
+    // Issue 333: Fix literal underscores that should have been emphasis.
+    let html = fix_literal_underscore_emphasis(&html);
     let html = strip_paragraphs_in_html_blocks(&html);
     let html = encode_bare_ampersands(&html);
     // Issue 330: Use different heading ID generation for kramdown vs CommonMarkGhPages.
@@ -599,6 +781,8 @@ pub fn postprocess_for_filter_with_options(html: &str, indent_lists: bool) -> St
     let html = fix_nested_emphasis_tags(html);
     // Issue 332: Fix literal asterisks that should have been emphasis.
     let html = fix_literal_asterisk_emphasis(&html);
+    // Issue 333: Fix literal underscores that should have been emphasis.
+    let html = fix_literal_underscore_emphasis(&html);
     let html = apply_inline_attributes(&html);
     // Note: inline code classes are now added during markdown rendering
     // (in frontmatter::add_inline_code_class_to_events) rather than here.
@@ -687,6 +871,202 @@ pub fn normalize_html_output_owned(html: String) -> String {
 ///
 /// Does not modify same-delimiter nesting (e.g., `**text *inner* more**`).
 ///
+/// Convert underscore emphasis containing slashes to asterisk emphasis.
+///
+/// Issue 333: pulldown-cmark follows CommonMark rules that are stricter than
+/// kramdown about underscore emphasis near punctuation. The `/` character in
+/// `_CI/CD_` prevents the closing `_` from being recognized as a valid emphasis
+/// boundary in certain document contexts. By converting `_word/word_` to
+/// `*word/word*` (and `__word/word__` to `**word/word**`), we use asterisk
+/// emphasis which is not subject to the same word-boundary restrictions.
+///
+/// This function only converts underscore emphasis spans that contain at least
+/// one `/` character. It skips code spans (backticks) to avoid modifying code.
+pub fn convert_underscore_slash_emphasis(markdown: &str) -> String {
+    if !markdown.contains('_') || !markdown.contains('/') {
+        return markdown.to_string();
+    }
+
+    let mut result = String::with_capacity(markdown.len());
+    let bytes = markdown.as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
+
+    while i < len {
+        // Skip code spans (backticks)
+        if bytes[i] == b'`' {
+            let backtick_start = i;
+            let mut backtick_count = 0;
+            while i < len && bytes[i] == b'`' {
+                backtick_count += 1;
+                i += 1;
+            }
+            let mut found_close = false;
+            while i < len {
+                if bytes[i] == b'`' {
+                    let mut close_count = 0;
+                    while i < len && bytes[i] == b'`' {
+                        close_count += 1;
+                        i += 1;
+                    }
+                    if close_count == backtick_count {
+                        found_close = true;
+                        break;
+                    }
+                } else {
+                    i += 1;
+                }
+            }
+            let end = if found_close { i } else { len };
+            result.push_str(&markdown[backtick_start..end]);
+            continue;
+        }
+
+        // Check for underscore that could be emphasis opener
+        if bytes[i] == b'_' {
+            // Count consecutive underscores (1 for em, 2 for strong)
+            let us_start = i;
+            let mut us_count = 0;
+            while i < len && bytes[i] == b'_' && us_count < 2 {
+                us_count += 1;
+                i += 1;
+            }
+
+            // Check if this looks like an emphasis opener:
+            // - preceded by whitespace, start of line, or punctuation (not alphanumeric)
+            // - followed by non-whitespace
+            let preceded_by_word = us_start > 0 && bytes[us_start - 1].is_ascii_alphanumeric();
+            let followed_by_nonspace =
+                i < len && bytes[i] != b' ' && bytes[i] != b'\n' && bytes[i] != b'\t';
+
+            if !preceded_by_word && followed_by_nonspace && (us_count == 1 || us_count == 2) {
+                // Scan ahead for the closing underscore(s) and check for slash
+                if let Some((content_end, has_slash)) =
+                    find_underscore_emphasis_end(bytes, i, us_count)
+                {
+                    if has_slash {
+                        // Convert _ to * (or __ to **)
+                        for _ in 0..us_count {
+                            result.push('*');
+                        }
+                        result.push_str(&markdown[i..content_end]);
+                        for _ in 0..us_count {
+                            result.push('*');
+                        }
+                        i = content_end + us_count;
+                        continue;
+                    }
+                }
+            }
+
+            // Not a slash emphasis -- output original underscores
+            result.push_str(&markdown[us_start..i]);
+            continue;
+        }
+
+        // Regular character - handle multi-byte UTF-8
+        let ch_len = utf8_char_len(bytes[i]);
+        result.push_str(&markdown[i..i + ch_len]);
+        i += ch_len;
+    }
+
+    result
+}
+
+/// Find the end of an underscore emphasis span, checking for slashes.
+/// Returns (content_end_index, has_slash) where content_end_index is the
+/// position of the first closing underscore.
+fn find_underscore_emphasis_end(
+    bytes: &[u8],
+    start: usize,
+    us_count: usize,
+) -> Option<(usize, bool)> {
+    let len = bytes.len();
+    let mut i = start;
+    let mut has_slash = false;
+
+    while i < len {
+        // Don't cross paragraph boundaries
+        if bytes[i] == b'\n' {
+            // Allow single newlines (emphasis can span soft breaks)
+            if i + 1 < len && bytes[i + 1] == b'\n' {
+                // Double newline = paragraph boundary, stop
+                return None;
+            }
+            i += 1;
+            continue;
+        }
+
+        if bytes[i] == b'/' {
+            has_slash = true;
+        }
+
+        // Skip code spans inside the emphasis
+        if bytes[i] == b'`' {
+            let mut bt_count = 0;
+            while i < len && bytes[i] == b'`' {
+                bt_count += 1;
+                i += 1;
+            }
+            let mut found = false;
+            while i < len {
+                if bytes[i] == b'`' {
+                    let mut close = 0;
+                    while i < len && bytes[i] == b'`' {
+                        close += 1;
+                        i += 1;
+                    }
+                    if close == bt_count {
+                        found = true;
+                        break;
+                    }
+                } else {
+                    i += 1;
+                }
+            }
+            if !found {
+                return None;
+            }
+            continue;
+        }
+
+        // Check for closing underscores
+        if bytes[i] == b'_' {
+            let close_start = i;
+            let mut close_count = 0;
+            while i < len && bytes[i] == b'_' {
+                close_count += 1;
+                i += 1;
+            }
+
+            // The closing delimiter must match the opening count
+            if close_count >= us_count {
+                // Check that it looks like a closer:
+                // - preceded by non-whitespace
+                // - followed by non-alphanumeric or end of string
+                let preceded_by_nonspace = close_start > start
+                    && bytes[close_start - 1] != b' '
+                    && bytes[close_start - 1] != b'\n';
+                let followed_by_word = i < len && bytes[i].is_ascii_alphanumeric();
+
+                if preceded_by_nonspace && !followed_by_word {
+                    // Content must not be empty
+                    if close_start > start {
+                        return Some((close_start, has_slash));
+                    }
+                }
+            }
+            // Not a valid closer, continue scanning
+            continue;
+        }
+
+        let ch_len = utf8_char_len(bytes[i]);
+        i += ch_len;
+    }
+
+    None
+}
+
 /// Convert runs of 4+ consecutive underscores to match kramdown behavior.
 ///
 /// Kramdown treats underscore runs differently from CommonMark:
@@ -12942,4 +13322,123 @@ by <a href="/people/author.html">Author Name</a>
         );
     }
 
+    // ---- Issue 333: Underscore emphasis with slashes (context-dependent bug) ----
+
+    #[test]
+    fn test_issue333_underscore_emphasis_with_slash_full_context() {
+        // The bug reproduces in context with mixed emphasis delimiters.
+        // This is the actual text from the DTC book YAML text field (decoded).
+        let text = "Laurence Moroney it\u{2019}s amazing to have the opportunity to talk to you. \
+            I have taken all of your courses with [deeplearning.ai](http://deeplearning.ai) \
+            and I love the way you taught and broke down the API into small chunks.\n\
+            My question is: What according to you is the ideal \u{201C}*Full-Stack*\u{201D} pipeline \
+            for building deep learning models ? How do we incorporate methodologies like \
+            _CI/CD_, _Testing_ and _Deployment_ with the Tensorflow Ecosystem. Does Post-Training \
+            Optimization methods such as _Pruning_ and _Quantisation_ come under \u{201C}\
+            *Full-Stack*\u{201D} and what according to you is the future of the `tfmot` package ?";
+        let html = crate::frontmatter::markdown_to_html_for_filter(text);
+        assert!(
+            html.contains("<em>CI/CD</em>"),
+            "Must have <em>CI/CD</em> not literal _CI/CD_. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue333_testing_deployment_emphasis_full_context() {
+        // Same text as above, checking all emphasis markers
+        let text = "Laurence Moroney it\u{2019}s amazing to have the opportunity to talk to you. \
+            I have taken all of your courses with [deeplearning.ai](http://deeplearning.ai) \
+            and I love the way you taught and broke down the API into small chunks.\n\
+            My question is: What according to you is the ideal \u{201C}*Full-Stack*\u{201D} pipeline \
+            for building deep learning models ? How do we incorporate methodologies like \
+            _CI/CD_, _Testing_ and _Deployment_ with the Tensorflow Ecosystem. Does Post-Training \
+            Optimization methods such as _Pruning_ and _Quantisation_ come under \u{201C}\
+            *Full-Stack*\u{201D} and what according to you is the future of the `tfmot` package ?";
+        let html = crate::frontmatter::markdown_to_html_for_filter(text);
+        assert!(
+            html.contains("<em>Testing</em>"),
+            "Must have <em>Testing</em>. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("<em>Deployment</em>"),
+            "Must have <em>Deployment</em>. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("<em>Pruning</em>"),
+            "Must have <em>Pruning</em>. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("<em>Quantisation</em>"),
+            "Must have <em>Quantisation</em>. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue333_underscore_slash_edge_cases() {
+        // Multiple slashes
+        let md = "_one/two/three_\n";
+        let html = render_kramdown_mode(md);
+        assert!(
+            html.contains("<em>one/two/three</em>"),
+            "Multiple slashes must produce emphasis. Got:\n{}",
+            html
+        );
+
+        // Multiple underscore-with-slash spans
+        let md2 = "_a/b_ and _c/d_\n";
+        let html2 = render_kramdown_mode(md2);
+        assert!(
+            html2.contains("<em>a/b</em>"),
+            "First slash span must be emphasis. Got:\n{}",
+            html2
+        );
+        assert!(
+            html2.contains("<em>c/d</em>"),
+            "Second slash span must be emphasis. Got:\n{}",
+            html2
+        );
+    }
+
+    #[test]
+    fn test_issue333_strong_emphasis_with_slash() {
+        let md = "__CI/CD__\n";
+        let html = render_kramdown_mode(md);
+        assert!(
+            html.contains("<strong>CI/CD</strong>"),
+            "Strong emphasis with slash must work. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue333_code_span_not_affected() {
+        let md = "`_CI/CD_`\n";
+        let html = render_kramdown_mode(md);
+        assert!(
+            html.contains("_CI/CD_"),
+            "Code span must preserve literal underscores. Got:\n{}",
+            html
+        );
+        assert!(
+            !html.contains("<em>CI/CD</em>"),
+            "Code span must NOT produce emphasis. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue333_unicode_with_slash() {
+        let md = "_donn\u{00e9}es/analyse_\n";
+        let html = render_kramdown_mode(md);
+        assert!(
+            html.contains("<em>donn\u{00e9}es/analyse</em>"),
+            "Unicode emphasis with slash must work. Got:\n{}",
+            html
+        );
+    }
 }
