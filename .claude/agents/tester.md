@@ -72,6 +72,14 @@ Verify:
 - [ ] Report DOM match counts in QA log (e.g., "DTC: 764/790, no regression")
 - [ ] If DOM count drops from known baseline, FAIL with details
 
+#### DTC Build Performance Check (Mandatory for changes touching rendering pipeline)
+- [ ] Time the DTC build — must complete under 1.0 second:
+  ```bash
+  time ./target/release/rustkyll build --source websites/DataTalksClub/datatalksclub.github.io --destination /tmp/dtc_perf_check
+  ```
+- [ ] Report build time in QA log (e.g., "DTC build: 0.85s")
+- [ ] If build time exceeds 1.0s, FAIL with details — performance regression
+
 #### Lint and Format
 - [ ] `cargo clippy -- -D warnings` passes
 - [ ] `cargo fmt --check` passes
