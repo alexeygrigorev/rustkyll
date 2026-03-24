@@ -773,6 +773,11 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     // Restore pre-existing curly quotes after direction fix
     let html_output = restore_preexisting_curly_quotes(&html_output);
 
+    // Issue 341: Re-nest headings that pulldown-cmark pulled out of list items.
+    // In kramdown, a `# heading` inside a list item stays inside the <li>.
+    // pulldown-cmark closes the <li> and <ul>/<ol> before the heading.
+    let html_output = renest_heading_after_list(&html_output);
+
     // Issue 314: Use the global indent_lists flag so CommonMark sites
     // produce unindented <li> elements in the markdownify filter path too.
     let indent_lists = get_markdownify_indent_lists();
@@ -1817,6 +1822,72 @@ fn preprocess_kramdown_dashes(markdown: &str) -> String {
             i += 1;
         }
     }
+    result
+}
+
+/// Issue 341: Re-nest headings that pulldown-cmark pulled out of list items.
+///
+/// When a `# heading` appears inside a list item in the newline_to_br | markdownify
+/// pipeline, pulldown-cmark closes the `</li>` and `</ul>/<ol>` before the heading.
+/// Kramdown keeps the heading inside the `<li>`. This function detects the pattern:
+///
+///   `</li>\n</ul>\n\n<hN>...</hN>`  or  `</li>\n</ol>\n\n<hN>...</hN>`
+///
+/// and moves the heading back inside the list item.
+fn renest_heading_after_list(html: &str) -> String {
+    // Quick check: if no heading tags after list close, nothing to do
+    if !html.contains("</ul>") && !html.contains("</ol>") {
+        return html.to_string();
+    }
+
+    let mut result = html.to_string();
+
+    // Match pattern: </li>\n</ul>\n<hN...>...</hN>  or  </li>\n</ol>\n<hN...>...</hN>
+    // (pulldown-cmark uses single newline between </ul> and <h1>)
+    for list_tag in &["ul", "ol"] {
+        loop {
+            let close_li_list = format!("</li>\n</{list_tag}>\n<h");
+            if let Some(pos) = result.find(&close_li_list) {
+                let after_list_close = pos + format!("</li>\n</{list_tag}>\n").len();
+                let heading_start = &result[after_list_close..];
+
+                // Find the end of the heading tag (e.g., </h1>\n or </h1> at end)
+                if let Some(heading_end_offset) = heading_start.find("</h") {
+                    let after_close_tag = &heading_start[heading_end_offset..];
+                    if let Some(gt_pos) = after_close_tag.find('>') {
+                        let full_heading_end = after_list_close + heading_end_offset + gt_pos + 1;
+                        let heading_html = &result[after_list_close..full_heading_end];
+
+                        // Build the replacement: heading inside li, then close li and list
+                        let mut replacement = String::new();
+                        replacement.push_str("\n    ");
+                        replacement.push_str(heading_html);
+                        replacement.push_str("\n  </li>\n</");
+                        replacement.push_str(list_tag);
+                        replacement.push('>');
+
+                        // Check if there's a trailing newline after the heading
+                        let consume_end = if result[full_heading_end..].starts_with('\n') {
+                            full_heading_end + 1
+                        } else {
+                            full_heading_end
+                        };
+
+                        let new_result = format!(
+                            "{}{}{}",
+                            &result[..pos],
+                            replacement,
+                            &result[consume_end..]
+                        );
+                        result = new_result;
+                        continue; // Check for more occurrences
+                    }
+                }
+            }
+            break;
+        }
+    }
+
     result
 }
 

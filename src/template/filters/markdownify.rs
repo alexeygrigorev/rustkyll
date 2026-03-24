@@ -742,4 +742,57 @@ mod tests {
             html_kramdown
         );
     }
+
+    // --- Issue 341: Heading after <br />\n in list context should render as <h1> ---
+
+    /// In the newline_to_br | markdownify pipeline, when a `# heading` appears
+    /// on a new line after `<br />\n` inside a list item, kramdown renders it as
+    /// an actual `<h1>` heading. The escape_headings_in_list_context function
+    /// should NOT escape these headings.
+    #[test]
+    fn test_issue341_heading_after_br_in_list_rendered_as_h1() {
+        // Simulate the mastering-spacy comment: list items followed by text
+        // with `# heading` after <br />\n
+        let input = "- list item one<br />\n- list item two<br />\nsome text<br />\n# Then do your stuff with the pos tags";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<h1"),
+            "Issue 341: '# heading' after <br /> in list should render as <h1>. Got: {html}"
+        );
+        assert!(
+            html.contains("Then do your stuff with the pos tags"),
+            "Issue 341: heading text should be present. Got: {html}"
+        );
+        // The heading should be inside the <li>, not after </ul>
+        // (kramdown nests headings inside list items)
+        let h1_pos = html.find("<h1").unwrap();
+        let close_ul_pos = html.find("</ul>").unwrap();
+        assert!(
+            h1_pos < close_ul_pos,
+            "Issue 341: <h1> should appear before </ul> (nested in <li>). Got: {html}"
+        );
+    }
+
+    /// Unicode variant: heading with non-ASCII after br in list context
+    #[test]
+    fn test_issue341_heading_after_br_in_list_unicode() {
+        let input =
+            "- \u{00e9}l\u{00e9}ment un<br />\ntexte<br />\n# R\u{00e9}sum\u{00e9} des tags";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<h1"),
+            "Issue 341: Unicode heading after <br /> in list should render as <h1>. Got: {html}"
+        );
+        assert!(
+            html.contains("R\u{00e9}sum\u{00e9}"),
+            "Issue 341: Unicode content in heading should be preserved. Got: {html}"
+        );
+        // Heading should be nested inside the list
+        let h1_pos = html.find("<h1").unwrap();
+        let close_ul_pos = html.find("</ul>").unwrap();
+        assert!(
+            h1_pos < close_ul_pos,
+            "Issue 341: Unicode <h1> should be nested in <li>. Got: {html}"
+        );
+    }
 }

@@ -2066,11 +2066,20 @@ pub fn escape_headings_in_list_context(content: &str) -> String {
         // Check if this line is a heading marker in list context
         let is_heading = trimmed.starts_with('#');
         if in_list && is_heading {
-            // Escape the heading marker by prefixing # with backslash
-            let leading_ws = &line[..line.len() - trimmed.len()];
-            result.push_str(leading_ws);
-            result.push('\\');
-            result.push_str(trimmed);
+            // Issue 341: In the newline_to_br | markdownify pipeline, a heading
+            // after <br /> is treated as a real heading by kramdown, not escaped.
+            // Check if the previous line ends with <br /> to detect this context.
+            let prev_ends_with_br = i > 0 && lines[i - 1].trim_end().ends_with("<br />");
+            if prev_ends_with_br {
+                // Don't escape -- kramdown renders this as a real heading
+                result.push_str(line);
+            } else {
+                // Escape the heading marker by prefixing # with backslash
+                let leading_ws = &line[..line.len() - trimmed.len()];
+                result.push_str(leading_ws);
+                result.push('\\');
+                result.push_str(trimmed);
+            }
         } else {
             result.push_str(line);
         }
@@ -4891,9 +4900,6 @@ fn is_void_element(tag_name: &str) -> bool {
 // ============================================================================
 // 8b. Normalize bare void elements to XHTML-style (Issue 201)
 // ============================================================================
-
-/// Convert bare void element tags to XHTML-style self-closing tags.
-///
 /// Collapse newlines inside HTML tags to spaces.
 ///
 /// Jekyll/kramdown normalizes raw HTML tags that span multiple lines into
