@@ -36,6 +36,17 @@ Issue status is encoded in the filename:
                                                  .done.md
 ```
 
+### Renaming Issue Files
+
+ALWAYS use `git mv` (not plain `mv`) when changing issue status. This ensures git tracks it as a rename instead of a delete + create:
+
+```bash
+git mv docs/tracker/01-name.groomed.md docs/tracker/01-name.in-progress.md
+git mv docs/tracker/01-name.in-progress.md docs/tracker/01-name.done.md
+```
+
+Agents that rename issue files (PM groom, SWE pickup) should also use `git mv` or the Bash tool with `git mv`.
+
 ## Orchestrator Role
 
 The orchestrator (top-level Claude Code session) is a MANAGER, not an implementer. It:

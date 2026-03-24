@@ -1137,12 +1137,16 @@ fn preprocess_jekyll_tags(template: &str) -> String {
                 // For root pages: convert .md to .html, keep .html as-is
                 let url_path = if let Some(stem) = url_path.strip_suffix(".md") {
                     if is_collection {
+                        // Issue 334: For posts, strip YYYY-MM-DD- date prefix from
+                        // the filename to match Jekyll's :title permalink behavior.
+                        let stem = strip_post_date_prefix_from_link(stem);
                         format!("/{}", stem)
                     } else {
                         format!("/{}.html", stem)
                     }
                 } else if let Some(stem) = url_path.strip_suffix(".html") {
                     if is_collection {
+                        let stem = strip_post_date_prefix_from_link(stem);
                         format!("/{}", stem)
                     } else {
                         format!("/{}", url_path)
@@ -1185,6 +1189,35 @@ fn preprocess_jekyll_tags(template: &str) -> String {
 
     result.push_str(remaining);
     result
+}
+
+/// Issue 334: Strip YYYY-MM-DD- date prefix from post filenames in link paths.
+///
+/// Given a path like "posts/2024-11-02-javascript", returns "posts/javascript".
+/// Only strips the date prefix if the path is under "posts/" and the filename
+/// portion matches the YYYY-MM-DD- pattern. Non-post paths are returned unchanged.
+fn strip_post_date_prefix_from_link(path: &str) -> String {
+    // Only strip for posts collection
+    if let Some(filename) = path.strip_prefix("posts/") {
+        if filename.len() > 11 {
+            let maybe_date = &filename[..10];
+            let parts: Vec<&str> = maybe_date.split('-').collect();
+            if parts.len() == 3
+                && parts[0].len() == 4
+                && parts[1].len() == 2
+                && parts[2].len() == 2
+                && parts[0].chars().all(|c| c.is_ascii_digit())
+                && parts[1].chars().all(|c| c.is_ascii_digit())
+                && parts[2].chars().all(|c| c.is_ascii_digit())
+                && filename.as_bytes()[10] == b'-'
+            {
+                return format!("posts/{}", &filename[11..]);
+            }
+        }
+        path.to_string()
+    } else {
+        path.to_string()
+    }
 }
 
 /// Pre-process Liquid templates to add nil guards around `contains` operators.
@@ -3343,6 +3376,27 @@ title: "Test Book"
     fn test_post_url_tag_preprocessing() {
         let result = preprocess_jekyll_tags("{% post_url 2022-09-07-homebrew-3.6.0 %}");
         assert_eq!(result, "/2022/09/07/homebrew-3.6.0");
+    }
+
+    // Issue 334: {% link _posts/YYYY-MM-DD-title.md %} should strip date prefix
+    #[test]
+    fn test_link_tag_strips_date_prefix_for_posts() {
+        let result = preprocess_jekyll_tags("{% link _posts/2024-11-02-javascript.md %}");
+        assert_eq!(result, "/posts/javascript");
+    }
+
+    #[test]
+    fn test_link_tag_strips_date_prefix_for_posts_with_hyphens_in_title() {
+        let result =
+            preprocess_jekyll_tags("{% link _posts/2020-06-06-thoughts-on-reparations.md %}");
+        assert_eq!(result, "/posts/thoughts-on-reparations");
+    }
+
+    #[test]
+    fn test_link_tag_non_post_collection_unchanged() {
+        // Non-post collections should NOT strip any prefix
+        let result = preprocess_jekyll_tags("{% link _pages/2024-11-02-javascript.md %}");
+        assert_eq!(result, "/pages/2024-11-02-javascript");
     }
 
     #[test]

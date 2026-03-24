@@ -395,6 +395,19 @@ def filter_br_text_placement_diffs(diffs: list) -> tuple:
                     '> br' in (d2.path or '') and '> p' in (d1.path or '')):
                 if d2.expected and d1.actual and d2.expected.strip() == d1.actual.strip():
                     is_pair = True
+            # Also handle element placement: missing_element under "br" path +
+            # extra_element under parent "p" path (or vice versa) with same tag.
+            # BeautifulSoup may place elements after <br> as children of <br>
+            # in one parse but as siblings in another.
+            elif (d1.diff_type == 'missing_element' and d2.diff_type == 'extra_element' and
+                    '> br' in (d1.path or '') and '> p' in (d2.path or '')):
+                # Same tag type
+                if d1.expected and d2.actual and d1.expected == d2.actual:
+                    is_pair = True
+            elif (d1.diff_type == 'extra_element' and d2.diff_type == 'missing_element' and
+                    '> br' in (d2.path or '') and '> p' in (d1.path or '')):
+                if d2.expected and d1.actual and d2.expected == d1.actual:
+                    is_pair = True
             if is_pair:
                 accepted_indices.add(i)
                 accepted_indices.add(j)

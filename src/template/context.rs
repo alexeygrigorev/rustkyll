@@ -122,6 +122,7 @@ pub(crate) fn expand_date_only_string_with_tz(s: &str, site_tz: Option<chrono_tz
         });
 
     if let Some(dt) = parsed_dt {
+        // Date-only and partial datetime formats: treat as local time in the site timezone.
         let date_str = dt.format("%Y-%m-%d %H:%M:%S").to_string();
         if let Some(tz) = site_tz {
             use chrono::TimeZone;
@@ -140,6 +141,27 @@ pub(crate) fn expand_date_only_string_with_tz(s: &str, site_tz: Option<chrono_tz
         }
         format!("{date_str} +0000")
     } else {
+        // Issue 334: Handle YYYY-MM-DD HH:MM:SS (19 chars, no timezone).
+        // Ruby YAML treats these as UTC timestamps. Convert from UTC to site timezone.
+        if s.len() == 19 {
+            if let Ok(naive_dt) = chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S") {
+                if let Some(tz) = site_tz {
+                    use chrono::TimeZone;
+                    let utc_dt = chrono::Utc.from_utc_datetime(&naive_dt);
+                    let local_dt = utc_dt.with_timezone(&tz);
+                    use chrono::Offset;
+                    let offset = local_dt.offset().fix();
+                    let total_secs = offset.local_minus_utc();
+                    let sign = if total_secs >= 0 { '+' } else { '-' };
+                    let abs_secs = total_secs.unsigned_abs();
+                    let hours = abs_secs / 3600;
+                    let minutes = (abs_secs % 3600) / 60;
+                    let date_str = local_dt.format("%Y-%m-%d %H:%M:%S").to_string();
+                    return format!("{date_str} {sign}{hours:02}{minutes:02}");
+                }
+                return format!("{s} +0000");
+            }
+        }
         s.to_string()
     }
 }
@@ -819,6 +841,40 @@ title: Not a date
         );
         // title should be unchanged
         assert_eq!(fm.get("title").unwrap().as_str().unwrap(), "Not a date");
+    }
+
+    // Issue 334: YYYY-MM-DD HH:MM:SS (no timezone) treated as UTC, converted to site timezone
+    #[test]
+    fn test_naive_datetime_with_seconds_treated_as_utc_and_converted() {
+        // Jekyll treats "2013-05-05 20:38:50" (YAML timestamp with no tz) as UTC.
+        // With timezone: Asia/Taipei (+08:00), this becomes 2013-05-06 04:38:50 +0800.
+        let tz: chrono_tz::Tz = "Asia/Taipei".parse().unwrap();
+        let result = expand_date_only_string_with_tz("2013-05-05 20:38:50", Some(tz));
+        assert_eq!(
+            result, "2013-05-06 04:38:50 +0800",
+            "Naive YYYY-MM-DD HH:MM:SS should be treated as UTC and converted to site tz"
+        );
+    }
+
+    #[test]
+    fn test_naive_datetime_with_seconds_no_tz_becomes_utc() {
+        // Without a site timezone, naive datetime stays as UTC (+0000)
+        let result = expand_date_only_string_with_tz("2013-05-05 20:38:50", None);
+        assert_eq!(
+            result, "2013-05-05 20:38:50 +0000",
+            "Naive YYYY-MM-DD HH:MM:SS without site tz should get +0000"
+        );
+    }
+
+    #[test]
+    fn test_naive_datetime_america_new_york() {
+        // Test with a different timezone for generic timezone support
+        let tz: chrono_tz::Tz = "America/New_York".parse().unwrap();
+        let result = expand_date_only_string_with_tz("2013-05-05 20:38:50", Some(tz));
+        assert_eq!(
+            result, "2013-05-05 16:38:50 -0400",
+            "Naive datetime should be converted from UTC to America/New_York"
+        );
     }
 
     #[test]

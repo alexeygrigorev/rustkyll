@@ -2550,3 +2550,146 @@ fn test_issue294_unicode_link_def_followed_by_pipe() {
         "Unicode pipe line after link def should be paragraph. Got: {html}"
     );
 }
+
+// ---- Issue 335: Inline IAL on images ----
+
+#[test]
+fn test_issue335_image_inline_ial_classes() {
+    // Inline IAL on image should apply CSS classes to <img>
+    let input = "![Crepe](https://example.com/img.jpg){: .mx-auto.d-block :}\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("class=\"mx-auto d-block\""),
+        "Image IAL should produce class attribute. Got: {html}"
+    );
+    assert!(
+        html.contains(
+            "<img src=\"https://example.com/img.jpg\" alt=\"Crepe\" class=\"mx-auto d-block\" />"
+        ),
+        "Full img tag should have class attribute. Got: {html}"
+    );
+}
+
+#[test]
+fn test_issue335_image_inline_ial_id_and_class() {
+    let input = "![alt](https://example.com/x.png){: #my-id .custom-class :}\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("class=\"custom-class\""),
+        "Image IAL should apply class. Got: {html}"
+    );
+    assert!(
+        html.contains("id=\"my-id\""),
+        "Image IAL should apply id. Got: {html}"
+    );
+}
+
+#[test]
+fn test_issue335_image_no_ial_no_regression() {
+    // Image without IAL should not have extra attributes
+    let input = "![alt](https://example.com/x.png)\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<img src=\"https://example.com/x.png\" alt=\"alt\" />"),
+        "Image without IAL should be unchanged. Got: {html}"
+    );
+    assert!(
+        !html.contains("class="),
+        "Image without IAL should not have class. Got: {html}"
+    );
+}
+
+#[test]
+fn test_issue335_image_ial_unicode_alt() {
+    let input = "![Кафе](https://example.com/img.jpg){: .centered :}\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("alt=\"Кафе\""),
+        "Unicode alt text should be preserved. Got: {html}"
+    );
+    assert!(
+        html.contains("class=\"centered\""),
+        "IAL class should be applied with unicode alt. Got: {html}"
+    );
+}
+
+// ---- Issue 335: Dot-separated classes in IAL ----
+
+#[test]
+fn test_issue335_ial_dot_separated_classes() {
+    use super::span_parser::parse_ial;
+    let attrs = parse_ial("{: .class-one.class-two.class-three :}");
+    let classes: Vec<&str> = attrs
+        .iter()
+        .filter(|(k, _)| k == "class")
+        .map(|(_, v)| v.as_str())
+        .collect();
+    assert_eq!(
+        classes,
+        vec!["class-one", "class-two", "class-three"],
+        "Dot-separated classes should produce separate class entries"
+    );
+}
+
+// ---- Issue 335: Inline $$...$$ math within paragraph text ----
+
+#[test]
+fn test_issue335_inline_math_in_paragraph() {
+    let mut opts = Options::default();
+    opts.math_engine = Some("mathjax".to_string());
+    let input = "text before $$x^2$$ text after\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("\\(x^2\\)"),
+        "Inline $$...$$ should become \\(...\\). Got: {html}"
+    );
+    assert!(!html.contains("$$"), "No raw $$ should remain. Got: {html}");
+}
+
+#[test]
+fn test_issue335_display_math_no_regression() {
+    let mut opts = Options::default();
+    opts.math_engine = Some("mathjax".to_string());
+    // Display math: $$ as sole content of paragraph
+    let input = "$$x^2 + y^2 = z^2$$\n";
+    let html = super::to_html_with_options(input, &opts);
+    // Display math (sole content of paragraph) should be \[...\] not \(...\)
+    assert!(
+        html.contains("\\[x^2 + y^2 = z^2\\]"),
+        "Display math should use \\[...\\]. Got: {html}"
+    );
+    assert!(
+        !html.contains("\\("),
+        "Display math should NOT use \\(...\\). Got: {html}"
+    );
+}
+
+#[test]
+fn test_issue335_inline_math_sample_markdown() {
+    let mut opts = Options::default();
+    opts.math_engine = Some("mathjax".to_string());
+    let input = "they are $$x = {-b \\pm \\sqrt{b^2-4ac} \\over 2a}.$$\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("\\(x = {-b \\pm \\sqrt{b^2-4ac} \\over 2a}.\\)"),
+        "Complex inline math should be properly converted. Got: {html}"
+    );
+    assert!(!html.contains("$$"), "No raw $$ should remain. Got: {html}");
+}
+
+#[test]
+fn test_issue335_inline_math_full_line() {
+    // Test the full line from sample-markdown.md
+    let mut opts = Options::default();
+    opts.math_engine = Some("mathjax".to_string());
+    let input = "When \\\\(a \\ne 0\\\\), there are two solutions to \\\\(ax^2 + bx + c = 0\\\\) and they are $$x = {-b \\pm \\sqrt{b^2-4ac} \\over 2a}.$$\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("\\(x = {-b \\pm \\sqrt{b^2-4ac} \\over 2a}.\\)"),
+        "Inline math in full line context should be converted. Got: {html}"
+    );
+    assert!(
+        !html.contains("$${"),
+        "No raw $$ should remain. Got: {html}"
+    );
+}

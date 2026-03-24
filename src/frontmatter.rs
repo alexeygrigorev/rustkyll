@@ -597,8 +597,13 @@ pub fn markdown_to_html_with_options(
     let html_output =
         restore_math_content_impl(&html_output, &math_saved, enable_smart_punctuation);
     let html_output = decode_pulldown_url_encoding(&html_output);
-    // Issue 313: Restore non-ASCII characters in URLs
-    let html_output = restore_non_ascii_in_urls(&html_output, &url_non_ascii_saved);
+    // Issue 313: Restore non-ASCII characters in URLs for kramdown sites.
+    // Issue 334: For CommonMarkGhPages, percent-encode non-ASCII in URLs instead.
+    let html_output = if add_code_classes {
+        restore_non_ascii_in_urls(&html_output, &url_non_ascii_saved)
+    } else {
+        restore_non_ascii_in_urls_percent_encoded(&html_output, &url_non_ascii_saved)
+    };
     // Issue 211: Fix smart quote directions to match kramdown
     let html_output = crate::kramdown::fix_smart_quote_directions(&html_output);
     // Issue 247: Apply kramdown SQ_RULES to straight quotes from restored ''/'''' sequences.
@@ -726,6 +731,9 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
 
     // Issue 308: Prevent fenced code blocks after <br />\n from newline_to_br.
     let markdown = escape_fenced_code_after_br(markdown);
+
+    // Issue 336: Nest unordered sub-lists under numbered list items after <br />.
+    let markdown = nest_sublists_after_br_in_ordered_list(&markdown);
 
     // Issue 325: Preprocess dash sequences to match kramdown's greedy behavior.
     // Kramdown processes dashes as ---=em-dash first, then --=en-dash on remainder.
@@ -1027,6 +1035,38 @@ fn restore_non_ascii_in_urls(html: &str, saved: &[String]) -> String {
     for (idx, original) in saved.iter().enumerate() {
         let placeholder = format!("{}{}{}", URL_NON_ASCII_PREFIX, idx, URL_NON_ASCII_SUFFIX);
         result = result.replace(&placeholder, original);
+    }
+    result
+}
+
+/// Issue 334: Restore non-ASCII URL placeholders with percent-encoded characters.
+///
+/// For CommonMarkGhPages sites, Jekyll percent-encodes non-ASCII characters in
+/// href attributes. This function replaces the placeholders with their
+/// percent-encoded equivalents instead of the original characters.
+fn restore_non_ascii_in_urls_percent_encoded(html: &str, saved: &[String]) -> String {
+    if saved.is_empty() {
+        return html.to_string();
+    }
+    let mut result = html.to_string();
+    for (idx, original) in saved.iter().enumerate() {
+        let placeholder = format!("{}{}{}", URL_NON_ASCII_PREFIX, idx, URL_NON_ASCII_SUFFIX);
+        // Percent-encode each byte of the UTF-8 representation
+        let mut encoded = String::new();
+        for byte in original.bytes() {
+            encoded.push('%');
+            encoded.push(
+                std::char::from_digit((byte >> 4) as u32, 16)
+                    .unwrap_or('0')
+                    .to_ascii_uppercase(),
+            );
+            encoded.push(
+                std::char::from_digit((byte & 0x0F) as u32, 16)
+                    .unwrap_or('0')
+                    .to_ascii_uppercase(),
+            );
+        }
+        result = result.replace(&placeholder, &encoded);
     }
     result
 }
@@ -1898,6 +1938,110 @@ fn escape_fenced_code_after_br(markdown: &str) -> String {
     }
 
     result
+}
+
+/// Issue 336: Preprocess content from the `newline_to_br | markdownify` pipeline
+/// to nest unordered sub-list items under their parent numbered list item.
+///
+/// After `newline_to_br`, every `\n` becomes `<br />\n`. When a numbered list
+/// item (`1. ...`) is followed by `<br />\n` and then unordered list markers
+/// (`- ...`), pulldown-cmark treats the `<br />` as ending the list item and
+/// creates a separate `<ul>` instead of nesting it. This function detects that
+/// pattern and indents the sub-items so pulldown-cmark nests them correctly.
+///
+/// The `<br />` at the end of the numbered list item line is replaced with a
+/// newline (to allow the continuation), and each subsequent `- ` sub-item line
+/// is indented by 3 spaces (matching the `N. ` prefix width for single-digit
+/// numbers). The `<br />` tags on sub-item lines are preserved.
+fn nest_sublists_after_br_in_ordered_list(markdown: &str) -> String {
+    // Quick check: if no pattern of <br /> followed by a line starting with -
+    // after a numbered list, skip processing.
+    if !markdown.contains("<br />\n- ") && !markdown.contains("<br />\n-\t") {
+        return markdown.to_string();
+    }
+
+    let lines: Vec<&str> = markdown.split('\n').collect();
+    let mut result = String::with_capacity(markdown.len() + 64);
+    let mut i = 0;
+
+    while i < lines.len() {
+        let line = lines[i];
+
+        // Check if this line is a numbered list item ending with <br />
+        let is_numbered_with_br = is_ordered_list_item_with_br(line);
+
+        if is_numbered_with_br && i + 1 < lines.len() && is_unordered_list_item(lines[i + 1]) {
+            // Found the pattern: numbered item with br, followed by sub-items.
+            // Strip the trailing <br /> from this line and emit it.
+            let stripped = line.trim_end_matches("<br />").trim_end_matches("<br/>");
+            result.push_str(stripped);
+            result.push('\n');
+            i += 1;
+
+            // Calculate indent: for "N. " prefix, we need to indent sub-items
+            // so they're inside the <li>. pulldown-cmark needs at least 3 spaces
+            // for single-digit numbers (matching "1. " width).
+            let indent = compute_ordered_list_indent(line);
+
+            // Indent all consecutive unordered list items
+            while i < lines.len() && is_unordered_list_item(lines[i]) {
+                let sub_line = lines[i];
+                // Add indentation
+                for _ in 0..indent {
+                    result.push(' ');
+                }
+                result.push_str(sub_line);
+                if i + 1 < lines.len() {
+                    result.push('\n');
+                }
+                i += 1;
+            }
+        } else {
+            result.push_str(line);
+            if i + 1 < lines.len() {
+                result.push('\n');
+            }
+            i += 1;
+        }
+    }
+
+    result
+}
+
+/// Check if a line is an ordered list item ending with `<br />`.
+fn is_ordered_list_item_with_br(line: &str) -> bool {
+    let trimmed = line.trim_start();
+    // Must start with a digit followed by `. `
+    let mut chars = trimmed.chars();
+    if !chars.next().is_some_and(|c| c.is_ascii_digit()) {
+        return false;
+    }
+    // Consume remaining digits
+    let rest: String = chars.collect();
+    let rest = rest.trim_start_matches(|c: char| c.is_ascii_digit());
+    if !rest.starts_with(". ") {
+        return false;
+    }
+    line.trim_end().ends_with("<br />") || line.trim_end().ends_with("<br/>")
+}
+
+/// Check if a line starts with an unordered list marker (`- ` or `- ` with leading spaces).
+fn is_unordered_list_item(line: &str) -> bool {
+    let trimmed = line.trim_start();
+    trimmed.starts_with("- ") || trimmed.starts_with("-\t") || trimmed == "-"
+}
+
+/// Compute the indentation needed for sub-items of an ordered list item.
+/// For `1. text`, the prefix is "1. " (3 chars), so indent = 3.
+/// For `10. text`, the prefix is "10. " (4 chars), so indent = 4.
+fn compute_ordered_list_indent(line: &str) -> usize {
+    let trimmed = line.trim_start();
+    if let Some(dot_pos) = trimmed.find(". ") {
+        // "N. " -> dot_pos + 2 characters
+        dot_pos + 2
+    } else {
+        3 // default fallback
+    }
 }
 
 fn escape_paren_list_markers(markdown: &str) -> String {
@@ -3681,6 +3825,77 @@ Some text after.
         assert!(
             html.contains("\u{043D}\u{0430}\u{0437}\u{0432}\u{0430}\u{043D}\u{0438}\u{0435}"),
             "Non-ASCII in URL should be preserved as raw UTF-8. Got: {html}"
+        );
+    }
+
+    // Issue 334: Non-ASCII URL percent-encoding for CommonMarkGhPages
+    #[test]
+    fn test_commonmark_non_ascii_url_percent_encoded() {
+        // For CommonMarkGhPages (add_code_classes=false), non-ASCII characters
+        // in markdown link URLs should be percent-encoded to match Jekyll/GFM output.
+        let md = "[text](https://zh.wikipedia.org/zh-tw/\u{8F49}\u{578B}\u{6B63}\u{7FA9})";
+        let html = markdown_to_html_with_options(md, false, false, false, false);
+        assert!(
+            html.contains(
+                "href=\"https://zh.wikipedia.org/zh-tw/%E8%BD%89%E5%9E%8B%E6%AD%A3%E7%BE%A9\""
+            ),
+            "Non-ASCII in URL should be percent-encoded for CommonMarkGhPages. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_commonmark_non_ascii_url_already_encoded_not_double_encoded() {
+        // Already percent-encoded URLs should not be double-encoded
+        let md = "[text](https://example.com/%E8%BB%89%E5%9E%8B)";
+        let html = markdown_to_html_with_options(md, false, false, false, false);
+        assert!(
+            html.contains("href=\"https://example.com/%E8%BB%89%E5%9E%8B\""),
+            "Already-encoded URL should not be double-encoded. Got: {html}"
+        );
+    }
+
+    // Issue 334: Kaomoji underscore handling
+    #[test]
+    fn test_kaomoji_underscores_not_emphasis() {
+        // The kaomoji ¯\_(ツ)_/¯ should render with literal underscores, not <em>
+        let md = r"hello ¯\_(ツ)_/¯ world";
+        let html = markdown_to_html_with_options(md, false, false, false, false);
+        assert!(
+            !html.contains("<em>"),
+            "Kaomoji underscores should NOT create emphasis. Got: {html}"
+        );
+        // Should contain the literal underscore characters
+        assert!(
+            html.contains("¯_(ツ)_/¯"),
+            "Kaomoji should render with literal underscores. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_kaomoji_at_end_of_sentence() {
+        // Kaomoji at end of sentence should also be preserved
+        let md = r"It me. Waking up everyday ¯\_(ツ)_/¯.";
+        let html = markdown_to_html_with_options(md, false, false, false, false);
+        assert!(
+            !html.contains("<em>"),
+            "Kaomoji at end of sentence should NOT create emphasis. Got: {html}"
+        );
+    }
+
+    // Issue 334: Iframe preservation in GFM rendering
+    #[test]
+    fn test_iframe_preserved_as_block_html() {
+        let md = r#"<iframe src="https://example.com" width="560"></iframe>
+
+Some text after."#;
+        let html = markdown_to_html_with_options(md, false, false, false, false);
+        assert!(
+            html.contains("<iframe src=\"https://example.com\" width=\"560\"></iframe>"),
+            "Iframe should be preserved as-is, not wrapped in <p>. Got: {html}"
+        );
+        assert!(
+            !html.contains("<p><iframe"),
+            "Iframe should NOT be wrapped in <p>. Got: {html}"
         );
     }
 
@@ -5485,6 +5700,206 @@ More text.
             a_count, 1,
             "Should have exactly one <a> tag. Got {} in: {}",
             a_count, html
+        );
+    }
+
+    // === Issue 336: Kramdown nested list continuation after <br /> ===
+
+    #[test]
+    fn test_issue336_br_then_sublist_basic() {
+        // Numbered list item followed by <br />\n then unordered sub-items
+        let input = "1. First item<br />\n- sub a<br />\n- sub b<br />\n2. Second item";
+        let html = markdown_to_html_for_filter(input);
+        // Should produce a single <ol> with nested <ul>
+        assert!(
+            html.contains("<ol>") && html.contains("<ul>"),
+            "Should contain both <ol> and <ul>. Got: {}",
+            html
+        );
+        // The <ul> should be nested inside the first <li>, not a sibling
+        // Check that we don't have </ol> before <ul>
+        let ol_close_pos = html.find("</ol>");
+        let ul_open_pos = html.find("<ul>");
+        assert!(
+            ul_open_pos.unwrap() < ol_close_pos.unwrap(),
+            "The <ul> should appear before the first </ol> (nested). Got: {}",
+            html
+        );
+        // Should have 2 sub-items
+        assert!(
+            html.contains("sub a") && html.contains("sub b"),
+            "Should contain both sub-items. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("Second item"),
+            "Should contain second numbered item. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue336_multiple_numbered_items_with_sublists() {
+        let input =
+            "1. Item one<br />\n- sub<br />\n2. Item two<br />\n- sub2<br />\n3. Item three";
+        let html = markdown_to_html_for_filter(input);
+        // Should have a single <ol> with nested <ul> elements
+        let ol_count = html.matches("<ol>").count();
+        assert_eq!(
+            ol_count, 1,
+            "Should have exactly one <ol>. Got {} in: {}",
+            ol_count, html
+        );
+        assert!(
+            html.contains("sub") && html.contains("sub2"),
+            "Should contain both sub-items. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("Item three"),
+            "Should contain third item. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue336_no_sublists_no_regression() {
+        // Numbered list without sub-items should be unaffected
+        let input = "1. No sub items<br />\n2. Also no sub items";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            !html.contains("<ul>"),
+            "Should not contain <ul> when there are no sub-items. Got: {}",
+            html
+        );
+        assert!(html.contains("<ol>"), "Should contain <ol>. Got: {}", html);
+    }
+
+    #[test]
+    fn test_issue336_intro_text_before_list() {
+        let input = "intro text<br />\n1. First item<br />\n- sub a<br />\n2. Second item";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("intro text"),
+            "Should contain intro text. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<ol>") && html.contains("<ul>"),
+            "Should have nested list structure. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue336_inline_formatting_preserved() {
+        let input = "1. **bold item**<br />\n- *italic sub*";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<strong>bold item</strong>"),
+            "Should preserve bold. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<em>italic sub</em>"),
+            "Should preserve italic. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue336_code_and_links_preserved() {
+        let input = "1. Item with `code`<br />\n- sub with [link](url)";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<code") && html.contains("code</code>"),
+            "Should preserve inline code. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<a href=\"url\">link</a>"),
+            "Should preserve link. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue336_unicode_content() {
+        let input =
+            "1. Universit\u{00e9} Technologique<br />\n- R\u{00e9}sum\u{00e9} du cours<br />\n2. \u{4f60}\u{597d}";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("Universit\u{00e9}"),
+            "Should preserve French accents. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("R\u{00e9}sum\u{00e9}"),
+            "Should preserve accents in sub-item. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("\u{4f60}\u{597d}"),
+            "Should preserve CJK characters. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue336_unordered_list_with_br_no_nesting() {
+        // Unordered list items with <br /> between them should stay as siblings
+        let input = "- bullet one<br />\n- bullet two";
+        let html = markdown_to_html_for_filter(input);
+        let ul_count = html.matches("<ul>").count();
+        assert_eq!(
+            ul_count, 1,
+            "Should have exactly one <ul> (not nested). Got {} in: {}",
+            ul_count, html
+        );
+    }
+
+    #[test]
+    fn test_issue336_plain_text_br_then_bullet() {
+        // text<br />\n- bullet should still create a list (issue 273 Pattern C)
+        let input = "text<br />\n- bullet";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("text") && html.contains("bullet"),
+            "Should contain both text and bullet. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue336_real_dtc_pattern() {
+        // Real DTC data pattern from ml-algotrading book: one numbered item
+        // followed by many unordered sub-items, all separated by <br />\n.
+        let input = "Alright, so here are a few points:<br />\n\
+            1. On Aleix question of how I would describe the use of ML:<br />\n\
+            - Finance, of course, has very long history.<br />\n\
+            - Just as elsewhere, more data drives more demand.<br />\n\
+            - The basic argument in favor of using ML.<br />\n\
+            - It is important to keep in mind that financial markets are competitive.<br />\n\
+            - However, financial markets are very large and diverse.";
+        let html = markdown_to_html_for_filter(input);
+        // The <ul> should be nested inside the <ol><li>, not a sibling
+        let ol_close_pos = html.find("</ol>");
+        let ul_open_pos = html.find("<ul>");
+        assert!(
+            ol_close_pos.is_some() && ul_open_pos.is_some(),
+            "Should contain both <ol> and <ul>. Got: {}",
+            html
+        );
+        assert!(
+            ul_open_pos.unwrap() < ol_close_pos.unwrap(),
+            "The <ul> should appear before </ol> (nested inside <li>). Got: {}",
+            html
+        );
+        // All sub-items should be in the nested <ul>
+        assert!(
+            html.contains("Finance") && html.contains("diverse"),
+            "Should contain first and last sub-items. Got: {}",
+            html
         );
     }
 }
