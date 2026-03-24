@@ -71,7 +71,9 @@ Fix any issues.
 
 ### 4b. DOM Regression Check (Mandatory for HTML output changes)
 
-If your changes touch the rendering pipeline (kramdown, frontmatter, templates, filters, syntax highlighting), you MUST verify no DOM regressions:
+If your changes touch the rendering pipeline (kramdown, frontmatter, templates, filters, syntax highlighting), you MUST verify no DOM regressions.
+
+IMPORTANT: You must compare against the **baseline DOM count specified in the issue file**. This baseline was recorded from committed code before your work started. Your changes must not cause the count to drop below this baseline.
 
 ```bash
 ./scripts/cargo-safe build --release
@@ -79,9 +81,10 @@ If your changes touch the rendering pipeline (kramdown, frontmatter, templates, 
 uv run scripts/dom_compare.py --jekyll-dir websites/DataTalksClub/datatalksclub.github.io/_site_jekyll_cached --rustkyll-dir /tmp/dtc_swe_check 2>&1 | tail -1
 ```
 
-- DTC DOM match count must NOT decrease from the baseline (currently 765/790)
+- DTC DOM match count must NOT decrease from the baseline in the issue file
 - If targeting a specific site, also check that site
 - Report DOM counts in your log
+- If the count drops below baseline, DO NOT report the task as done — fix the regression first
 
 ### 4c. DTC Build Performance Check
 

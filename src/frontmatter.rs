@@ -431,10 +431,6 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // kramdown does (e.g., word*.*).
     let markdown = fix_kramdown_emphasis_patterns(&markdown);
 
-    // Issue 333: Convert underscore emphasis with slashes to asterisk emphasis
-    // (e.g., _CI/CD_ -> *CI/CD*) so pulldown-cmark handles them correctly.
-    let markdown = crate::kramdown::convert_underscore_slash_emphasis(&markdown);
-
     // Issue 275: Escape inner delimiters in mixed-delimiter emphasis patterns
     // (e.g., _*text*_ -> _\*text\*_) to match kramdown behavior.
     let markdown = crate::kramdown::escape_mixed_delimiter_emphasis(&markdown);
@@ -455,9 +451,6 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // Issue 313: Protect non-ASCII characters in markdown link/image URLs from
     // pulldown-cmark's percent-encoding. Jekyll preserves raw non-ASCII in URLs.
     let (protected, url_non_ascii_saved) = protect_non_ascii_in_link_urls(&protected);
-
-    // Issue 337B: Escape autolinks with non-kramdown schemes (tel:, ssh:, etc.)
-    let protected = escape_non_kramdown_autolinks(&protected);
 
     let parser = Parser::new_ext(&protected, options);
     let events = add_inline_code_class_to_events(parser.into_offset_iter(), &protected);
@@ -492,12 +485,6 @@ pub fn markdown_to_html(markdown: &str) -> String {
 
     // Apply kramdown compatibility post-processing
     let html_output = crate::kramdown::postprocess(&html_output);
-
-    // Issue 337D: Strip zero-width spaces (U+200B) from output.
-    // kramdown/Jekyll strips these characters; we introduced them in
-    // normalize_zwsp_for_emphasis and fix_kramdown_emphasis_patterns
-    // to help pulldown-cmark recognize emphasis boundaries.
-    let html_output = html_output.replace('\u{200b}', "");
 
     // Issue 329: Restore <details> blocks after all processing
     restore_details_blocks(&html_output, &details_saved)
@@ -569,8 +556,6 @@ pub fn markdown_to_html_with_options(
     let markdown = crate::kramdown::split_text_after_html_block_close(&markdown);
     let markdown = normalize_zwsp_for_emphasis(&markdown);
     let markdown = fix_kramdown_emphasis_patterns(&markdown);
-    // Issue 333: Convert underscore emphasis with slashes to asterisk emphasis
-    let markdown = crate::kramdown::convert_underscore_slash_emphasis(&markdown);
     // Issue 275: Escape inner delimiters in mixed-delimiter emphasis patterns
     let markdown = crate::kramdown::escape_mixed_delimiter_emphasis(&markdown);
     // Issue 270: Convert runs of 4+ consecutive underscores to match kramdown
@@ -589,9 +574,6 @@ pub fn markdown_to_html_with_options(
     // Issue 313: Protect non-ASCII characters in markdown link/image URLs
     let (protected, url_non_ascii_saved) = protect_non_ascii_in_link_urls(&protected);
 
-    // Issue 337B: Escape autolinks with non-kramdown schemes (tel:, ssh:, etc.)
-    let protected = escape_non_kramdown_autolinks(&protected);
-
     let parser = Parser::new_ext(&protected, options);
     let events = add_inline_code_class_to_events_impl(
         parser.into_offset_iter(),
@@ -609,13 +591,8 @@ pub fn markdown_to_html_with_options(
     let html_output =
         restore_math_content_impl(&html_output, &math_saved, enable_smart_punctuation);
     let html_output = decode_pulldown_url_encoding(&html_output);
-    // Issue 313: Restore non-ASCII characters in URLs for kramdown sites.
-    // Issue 334: For CommonMarkGhPages, percent-encode non-ASCII in URLs instead.
-    let html_output = if add_code_classes {
-        restore_non_ascii_in_urls(&html_output, &url_non_ascii_saved)
-    } else {
-        restore_non_ascii_in_urls_percent_encoded(&html_output, &url_non_ascii_saved)
-    };
+    // Issue 313: Restore non-ASCII characters in URLs
+    let html_output = restore_non_ascii_in_urls(&html_output, &url_non_ascii_saved);
     // Issue 211: Fix smart quote directions to match kramdown
     let html_output = crate::kramdown::fix_smart_quote_directions(&html_output);
     // Issue 247: Apply kramdown SQ_RULES to straight quotes from restored ''/'''' sequences.
@@ -630,8 +607,6 @@ pub fn markdown_to_html_with_options(
     // Issue 297: Use add_code_classes as kramdown mode indicator.
     // When true (kramdown), indent list items. When false (CommonMarkGhPages), do not.
     let html_output = crate::kramdown::postprocess_with_options(&html_output, add_code_classes);
-    // Issue 337D: Strip zero-width spaces from output
-    let html_output = html_output.replace('\u{200b}', "");
     // Issue 329: Restore <details> blocks after all processing
     let html_output = restore_details_blocks(&html_output, &details_saved);
     // Issue 330: Fix inline content in <details> blocks for CommonMarkGhPages
@@ -771,8 +746,6 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     // Issue 198/206: Same ZWSP and emphasis handling as markdown_to_html
     let markdown = normalize_zwsp_for_emphasis(&markdown);
     let markdown = fix_kramdown_emphasis_patterns(&markdown);
-    // Issue 333: Convert underscore emphasis with slashes to asterisk emphasis
-    let markdown = crate::kramdown::convert_underscore_slash_emphasis(&markdown);
     // Issue 275: Escape inner delimiters in mixed-delimiter emphasis patterns
     let markdown = crate::kramdown::escape_mixed_delimiter_emphasis(&markdown);
     let markdown = protect_consecutive_single_quotes(&markdown);
@@ -781,9 +754,6 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
 
     // Issue 313: Protect non-ASCII characters in markdown link/image URLs
     let (protected, url_non_ascii_saved) = protect_non_ascii_in_link_urls(&protected);
-
-    // Issue 337B: Escape autolinks with non-kramdown schemes (tel:, ssh:, etc.)
-    let protected = escape_non_kramdown_autolinks(&protected);
 
     let parser = Parser::new_ext(&protected, options);
     let events = add_inline_code_class_to_events(parser.into_offset_iter(), &protected);
@@ -802,9 +772,6 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     let html_output = crate::kramdown::apply_kramdown_smart_quotes_to_straight(&html_output);
     // Restore pre-existing curly quotes after direction fix
     let html_output = restore_preexisting_curly_quotes(&html_output);
-
-    // Issue 337D: Strip zero-width spaces from output
-    let html_output = html_output.replace('\u{200b}', "");
 
     // Issue 314: Use the global indent_lists flag so CommonMark sites
     // produce unindented <li> elements in the markdownify filter path too.
@@ -855,93 +822,6 @@ fn fix_kramdown_emphasis_patterns(markdown: &str) -> String {
                 continue;
             }
         }
-        result.push(chars[i]);
-        i += 1;
-    }
-    result
-}
-
-/// Issue 337B: Escape angle-bracketed URIs with non-kramdown schemes.
-///
-/// CommonMark/pulldown-cmark autolinks any `<scheme:...>` where scheme is
-/// `[a-zA-Z][a-zA-Z0-9+.-]{1,31}`. But kramdown only autolinks `http://`,
-/// `https://`, `ftp://`, and `mailto:`. Schemes like `tel:`, `ssh://`, etc.
-/// are escaped as `&lt;...&gt;` in kramdown.
-///
-/// This function escapes the leading `<` of non-allowed autolink URIs so
-/// pulldown-cmark treats them as text instead of autolinks.
-fn escape_non_kramdown_autolinks(markdown: &str) -> String {
-    use std::fmt::Write;
-    // Fast path: if no '<' exists, nothing to do
-    if !markdown.contains('<') {
-        return markdown.to_string();
-    }
-
-    let mut result = String::with_capacity(markdown.len() + 32);
-    let chars: Vec<char> = markdown.chars().collect();
-    let len = chars.len();
-    let mut i = 0;
-    let mut in_code_block = false;
-    let mut in_inline_code = false;
-
-    while i < len {
-        // Track fenced code blocks (``` or ~~~)
-        if !in_inline_code && i == 0 || (i > 0 && chars[i - 1] == '\n') {
-            let rest: String = chars[i..].iter().take(4).collect();
-            if rest.starts_with("```") || rest.starts_with("~~~") {
-                in_code_block = !in_code_block;
-                result.push(chars[i]);
-                i += 1;
-                continue;
-            }
-        }
-
-        // Track inline code
-        if !in_code_block && chars[i] == '`' {
-            in_inline_code = !in_inline_code;
-            result.push(chars[i]);
-            i += 1;
-            continue;
-        }
-
-        // Only process < outside code blocks and inline code
-        if !in_code_block && !in_inline_code && chars[i] == '<' {
-            // Extract content between < and >
-            let mut j = i + 1;
-            while j < len && chars[j] != '>' && chars[j] != '\n' && chars[j] != ' ' {
-                j += 1;
-            }
-            if j < len && chars[j] == '>' {
-                let content: String = chars[i + 1..j].iter().collect();
-                // Check if this looks like a URI autolink (scheme: followed by content)
-                if let Some(colon_pos) = content.find(':') {
-                    let scheme = &content[..colon_pos];
-                    // Validate scheme: starts with letter, rest is alphanumeric/+/./-
-                    let is_valid_scheme = !scheme.is_empty()
-                        && scheme
-                            .chars()
-                            .next()
-                            .is_some_and(|c| c.is_ascii_alphabetic())
-                        && scheme
-                            .chars()
-                            .all(|c| c.is_ascii_alphanumeric() || c == '+' || c == '.' || c == '-');
-
-                    if is_valid_scheme {
-                        // Check if it's an allowed kramdown scheme
-                        let scheme_lower = scheme.to_lowercase();
-                        let allowed =
-                            matches!(scheme_lower.as_str(), "http" | "https" | "ftp" | "mailto");
-                        if !allowed {
-                            // Escape the < to prevent autolink
-                            let _ = write!(result, "&lt;");
-                            i += 1;
-                            continue;
-                        }
-                    }
-                }
-            }
-        }
-
         result.push(chars[i]);
         i += 1;
     }
@@ -1139,38 +1019,6 @@ fn restore_non_ascii_in_urls(html: &str, saved: &[String]) -> String {
     for (idx, original) in saved.iter().enumerate() {
         let placeholder = format!("{}{}{}", URL_NON_ASCII_PREFIX, idx, URL_NON_ASCII_SUFFIX);
         result = result.replace(&placeholder, original);
-    }
-    result
-}
-
-/// Issue 334: Restore non-ASCII URL placeholders with percent-encoded characters.
-///
-/// For CommonMarkGhPages sites, Jekyll percent-encodes non-ASCII characters in
-/// href attributes. This function replaces the placeholders with their
-/// percent-encoded equivalents instead of the original characters.
-fn restore_non_ascii_in_urls_percent_encoded(html: &str, saved: &[String]) -> String {
-    if saved.is_empty() {
-        return html.to_string();
-    }
-    let mut result = html.to_string();
-    for (idx, original) in saved.iter().enumerate() {
-        let placeholder = format!("{}{}{}", URL_NON_ASCII_PREFIX, idx, URL_NON_ASCII_SUFFIX);
-        // Percent-encode each byte of the UTF-8 representation
-        let mut encoded = String::new();
-        for byte in original.bytes() {
-            encoded.push('%');
-            encoded.push(
-                std::char::from_digit((byte >> 4) as u32, 16)
-                    .unwrap_or('0')
-                    .to_ascii_uppercase(),
-            );
-            encoded.push(
-                std::char::from_digit((byte & 0x0F) as u32, 16)
-                    .unwrap_or('0')
-                    .to_ascii_uppercase(),
-            );
-        }
-        result = result.replace(&placeholder, &encoded);
     }
     result
 }
@@ -3828,77 +3676,6 @@ Some text after.
         );
     }
 
-    // Issue 334: Non-ASCII URL percent-encoding for CommonMarkGhPages
-    #[test]
-    fn test_commonmark_non_ascii_url_percent_encoded() {
-        // For CommonMarkGhPages (add_code_classes=false), non-ASCII characters
-        // in markdown link URLs should be percent-encoded to match Jekyll/GFM output.
-        let md = "[text](https://zh.wikipedia.org/zh-tw/\u{8F49}\u{578B}\u{6B63}\u{7FA9})";
-        let html = markdown_to_html_with_options(md, false, false, false, false);
-        assert!(
-            html.contains(
-                "href=\"https://zh.wikipedia.org/zh-tw/%E8%BD%89%E5%9E%8B%E6%AD%A3%E7%BE%A9\""
-            ),
-            "Non-ASCII in URL should be percent-encoded for CommonMarkGhPages. Got: {html}"
-        );
-    }
-
-    #[test]
-    fn test_commonmark_non_ascii_url_already_encoded_not_double_encoded() {
-        // Already percent-encoded URLs should not be double-encoded
-        let md = "[text](https://example.com/%E8%BB%89%E5%9E%8B)";
-        let html = markdown_to_html_with_options(md, false, false, false, false);
-        assert!(
-            html.contains("href=\"https://example.com/%E8%BB%89%E5%9E%8B\""),
-            "Already-encoded URL should not be double-encoded. Got: {html}"
-        );
-    }
-
-    // Issue 334: Kaomoji underscore handling
-    #[test]
-    fn test_kaomoji_underscores_not_emphasis() {
-        // The kaomoji ¯\_(ツ)_/¯ should render with literal underscores, not <em>
-        let md = r"hello ¯\_(ツ)_/¯ world";
-        let html = markdown_to_html_with_options(md, false, false, false, false);
-        assert!(
-            !html.contains("<em>"),
-            "Kaomoji underscores should NOT create emphasis. Got: {html}"
-        );
-        // Should contain the literal underscore characters
-        assert!(
-            html.contains("¯_(ツ)_/¯"),
-            "Kaomoji should render with literal underscores. Got: {html}"
-        );
-    }
-
-    #[test]
-    fn test_kaomoji_at_end_of_sentence() {
-        // Kaomoji at end of sentence should also be preserved
-        let md = r"It me. Waking up everyday ¯\_(ツ)_/¯.";
-        let html = markdown_to_html_with_options(md, false, false, false, false);
-        assert!(
-            !html.contains("<em>"),
-            "Kaomoji at end of sentence should NOT create emphasis. Got: {html}"
-        );
-    }
-
-    // Issue 334: Iframe preservation in GFM rendering
-    #[test]
-    fn test_iframe_preserved_as_block_html() {
-        let md = r#"<iframe src="https://example.com" width="560"></iframe>
-
-Some text after."#;
-        let html = markdown_to_html_with_options(md, false, false, false, false);
-        assert!(
-            html.contains("<iframe src=\"https://example.com\" width=\"560\"></iframe>"),
-            "Iframe should be preserved as-is, not wrapped in <p>. Got: {html}"
-        );
-        assert!(
-            !html.contains("<p><iframe"),
-            "Iframe should NOT be wrapped in <p>. Got: {html}"
-        );
-    }
-
     #[test]
     fn test_url_bracket_not_percent_encoded() {
         // Test that ] in URLs is decoded back to literal
@@ -5700,160 +5477,6 @@ More text.
             a_count, 1,
             "Should have exactly one <a> tag. Got {} in: {}",
             a_count, html
-        );
-    }
-
-    /// Issue 337B: <tel:...> should be escaped, not autolinked.
-    /// Kramdown only autolinks http://, https://, ftp://, and mailto: schemes.
-    /// All other schemes in angle brackets should be HTML-escaped.
-    #[test]
-    fn test_337b_tel_autolink_escaped() {
-        let input = "text <tel:100-1000> more\n";
-        let html = markdown_to_html_for_filter(input);
-        assert!(
-            !html.contains("<a "),
-            "tel: URI should NOT be autolinked. Got: {html}"
-        );
-        assert!(
-            html.contains("&lt;tel:100-1000&gt;"),
-            "tel: URI should be HTML-escaped. Got: {html}"
-        );
-    }
-
-    /// Issue 337B: http:// autolinks should still work.
-    #[test]
-    fn test_337b_http_autolink_still_works() {
-        let input = "visit <http://example.com> now\n";
-        let html = markdown_to_html_for_filter(input);
-        assert!(
-            html.contains("<a href=\"http://example.com\">"),
-            "http:// should still be autolinked. Got: {html}"
-        );
-    }
-
-    /// Issue 337B: https:// autolinks should still work.
-    #[test]
-    fn test_337b_https_autolink_still_works() {
-        let input = "visit <https://example.com> now\n";
-        let html = markdown_to_html_for_filter(input);
-        assert!(
-            html.contains("<a href=\"https://example.com\">"),
-            "https:// should still be autolinked. Got: {html}"
-        );
-    }
-
-    /// Issue 337B: mailto: autolinks should still work.
-    #[test]
-    fn test_337b_mailto_autolink_still_works() {
-        let input = "email <mailto:user@example.com> now\n";
-        let html = markdown_to_html_for_filter(input);
-        assert!(
-            html.contains("<a href=\"mailto:user@example.com\">"),
-            "mailto: should still be autolinked. Got: {html}"
-        );
-    }
-
-    /// Issue 337B: ssh:// should be escaped, not autolinked.
-    #[test]
-    fn test_337b_ssh_autolink_escaped() {
-        let input = "connect <ssh://server.com> now\n";
-        let html = markdown_to_html_for_filter(input);
-        assert!(
-            !html.contains("<a "),
-            "ssh:// should NOT be autolinked. Got: {html}"
-        );
-        assert!(
-            html.contains("&lt;ssh://server.com&gt;"),
-            "ssh:// should be HTML-escaped. Got: {html}"
-        );
-    }
-
-    /// Issue 337B: tel: with plus sign should be escaped.
-    #[test]
-    fn test_337b_tel_plus_escaped() {
-        let input = "call <tel:+1-555-0100> now\n";
-        let html = markdown_to_html_for_filter(input);
-        assert!(
-            !html.contains("<a "),
-            "tel:+... should NOT be autolinked. Got: {html}"
-        );
-    }
-
-    /// Issue 337B: ftp:// autolinks should still work.
-    #[test]
-    fn test_337b_ftp_autolink_still_works() {
-        let input = "download <ftp://files.example.com> now\n";
-        let html = markdown_to_html_for_filter(input);
-        assert!(
-            html.contains("<a href=\"ftp://files.example.com\">"),
-            "ftp:// should still be autolinked. Got: {html}"
-        );
-    }
-
-    /// Issue 337D: Tight list (no blank lines) should have no <p> wrapping.
-    #[test]
-    fn test_337d_tight_list_no_p_wrapping() {
-        let input = "- Item 1\n- Item 2\n- Item 3\n";
-        let html = markdown_to_html(input);
-        assert!(
-            !html.contains("<p>Item"),
-            "Tight list items should NOT have <p> wrapping. Got: {html}"
-        );
-    }
-
-    /// Issue 337D: Zero-width space (U+200B) should be stripped from output.
-    #[test]
-    fn test_337d_zwsp_stripped_from_text() {
-        let input = "straightforward\u{200b} _._\n";
-        let html = markdown_to_html(input);
-        assert!(
-            !html.contains('\u{200b}'),
-            "U+200B should be stripped from output. Got: {html}"
-        );
-    }
-
-    /// Issue 337D: ZWSP at various positions should all be stripped.
-    #[test]
-    fn test_337d_zwsp_stripped_various_positions() {
-        let input = "\u{200b}start middle\u{200b}word end\u{200b}\n";
-        let html = markdown_to_html(input);
-        assert!(
-            !html.contains('\u{200b}'),
-            "U+200B at all positions should be stripped. Got: {html}"
-        );
-        assert!(
-            html.contains("start"),
-            "Regular text should remain. Got: {html}"
-        );
-    }
-
-    /// Issue 337D: Other Unicode characters should NOT be stripped.
-    #[test]
-    fn test_337d_other_unicode_preserved() {
-        let input = "\u{00e9}t\u{00e9} caf\u{00e9} \u{4f60}\u{597d}\n";
-        let html = markdown_to_html(input);
-        assert!(
-            html.contains("\u{00e9}t\u{00e9}"),
-            "Accented chars should be preserved. Got: {html}"
-        );
-        assert!(
-            html.contains("\u{4f60}\u{597d}"),
-            "CJK chars should be preserved. Got: {html}"
-        );
-    }
-
-    /// Issue 337D: ZWSP between words should preserve word boundaries after stripping.
-    #[test]
-    fn test_337d_zwsp_word_boundary_preserved() {
-        let input = "hello\u{200b}world\n";
-        let html = markdown_to_html(input);
-        assert!(
-            html.contains("helloworld"),
-            "ZWSP removed, words joined. Got: {html}"
-        );
-        assert!(
-            !html.contains('\u{200b}'),
-            "U+200B should be gone. Got: {html}"
         );
     }
 }

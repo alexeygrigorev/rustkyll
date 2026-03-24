@@ -415,24 +415,6 @@ pub fn sanitize_slug(raw: &str) -> String {
     result
 }
 
-/// Strip kramdown IAL (Inline Attribute List) syntax from excerpt text.
-///
-/// Removes patterns like `{: .class}`, `{: #id}`, `{: target="_blank"}` that
-/// appear on their own lines. These are block-level attribute annotations in
-/// kramdown that should not appear as visible text in excerpts.
-fn strip_ial_from_excerpt(excerpt: &str) -> String {
-    use regex::Regex;
-    use std::sync::LazyLock;
-
-    // Match lines that are just IAL: optional whitespace, {: ...}, optional whitespace
-    static IAL_LINE_RE: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"(?m)^\s*\{:\s*[^}]+\}\s*$").unwrap());
-
-    let result = IAL_LINE_RE.replace_all(excerpt, "");
-    // Clean up any resulting leading/trailing blank lines
-    result.trim().to_string()
-}
-
 /// Check if the config enables CommonMarkGhPages HARDBREAKS option.
 ///
 /// Delegates to `SiteConfig::has_commonmark_hardbreaks()`.
@@ -823,25 +805,21 @@ fn process_collection_file(
         if e.is_empty() {
             None
         } else {
-            // Strip kramdown IAL syntax (e.g. {: .box-success}, {: #id}) from excerpts.
-            // These are block attribute annotations that should not appear as text.
-            let processed = strip_ial_from_excerpt(e);
-
             // If the excerpt contains Liquid tags (e.g. {% highlight %}),
             // process them through the Liquid engine first, then markdown.
             // This ensures syntax-highlighted code blocks render properly
             // in post excerpts on index/listing pages (issue 300).
-            let processed = if processed.contains("{%") || processed.contains("{{") {
+            let processed = if e.contains("{%") || e.contains("{{") {
                 if let Ok(engine) = crate::template::TemplateEngine::new() {
                     let ctx = liquid::Object::new();
                     engine
-                        .parse_and_render(&processed, &ctx)
-                        .unwrap_or(processed)
+                        .parse_and_render(e, &ctx)
+                        .unwrap_or_else(|_| e.clone())
                 } else {
-                    processed
+                    e.clone()
                 }
             } else {
-                processed
+                e.clone()
             };
             Some(crate::frontmatter::markdown_to_html(&processed))
         }
@@ -3656,60 +3634,5 @@ mod tests {
         let (pages, _) = load_pages(dir.path(), &config).unwrap();
         assert_eq!(pages.len(), 1);
         assert_eq!(pages[0].url, "/custom/");
-    }
-
-    // ========================================================================
-    // Issue 331: Excerpt IAL stripping
-    // ========================================================================
-
-    #[test]
-    fn test_issue331_strip_ial_from_excerpt_basic() {
-        let excerpt = "{: .box-success}\nThis is **bold** text.";
-        let result = strip_ial_from_excerpt(excerpt);
-        assert!(
-            !result.contains("{:"),
-            "IAL should be stripped. Got: {}",
-            result
-        );
-        assert!(
-            result.contains("This is **bold** text."),
-            "Content should be preserved. Got: {}",
-            result
-        );
-    }
-
-    #[test]
-    fn test_issue331_strip_ial_from_excerpt_unicode() {
-        let excerpt = "{: .note}\n\u{9019}\u{662F}\u{4E2D}\u{6587}\u{5167}\u{5BB9}";
-        let result = strip_ial_from_excerpt(excerpt);
-        assert!(
-            !result.contains("{:"),
-            "IAL should be stripped. Got: {}",
-            result
-        );
-        assert!(
-            result.contains("\u{9019}\u{662F}\u{4E2D}\u{6587}"),
-            "Chinese content should be preserved. Got: {}",
-            result
-        );
-    }
-
-    #[test]
-    fn test_issue331_strip_ial_multiple() {
-        let excerpt = "{: .box-success}\n{: #custom-id}\nText content here.";
-        let result = strip_ial_from_excerpt(excerpt);
-        assert!(
-            !result.contains("{:"),
-            "All IALs should be stripped. Got: {}",
-            result
-        );
-        assert_eq!(result, "Text content here.");
-    }
-
-    #[test]
-    fn test_issue331_strip_ial_preserves_non_ial_braces() {
-        let excerpt = "This has {normal braces} in text.";
-        let result = strip_ial_from_excerpt(excerpt);
-        assert_eq!(result, "This has {normal braces} in text.");
     }
 }

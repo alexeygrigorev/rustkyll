@@ -63,14 +63,16 @@ Verify:
 
 #### DOM Regression Check (Mandatory for HTML output changes)
 - [ ] Build the release binary: `./scripts/cargo-safe build --release`
-- [ ] Build DTC and run DOM comparison — must not regress from baseline:
+- [ ] Build DTC and run DOM comparison:
   ```bash
   ./target/release/rustkyll build --source websites/DataTalksClub/datatalksclub.github.io --destination /tmp/dtc_qa_check
   uv run scripts/dom_compare.py --jekyll-dir websites/DataTalksClub/datatalksclub.github.io/_site_jekyll_cached --rustkyll-dir /tmp/dtc_qa_check 2>&1 | tail -1
   ```
+- [ ] Compare the DOM match count against the **baseline recorded in the issue file** (not the SWE's reported number)
 - [ ] If the issue targets a specific site, also build and compare that site
-- [ ] Report DOM match counts in QA log (e.g., "DTC: 764/790, no regression")
-- [ ] If DOM count drops from known baseline, FAIL with details
+- [ ] Report DOM match counts in QA log (e.g., "DTC: 764/790, baseline was 764, no regression")
+- [ ] If DOM count drops below the issue's baseline, FAIL immediately — this is a regression
+- [ ] Do NOT trust the SWE's reported DOM numbers — always verify independently
 
 #### DTC Build Performance Check (Mandatory for changes touching rendering pipeline)
 - [ ] Time the DTC build — must complete under 1.0 second:

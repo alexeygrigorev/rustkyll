@@ -21,14 +21,6 @@ use crate::kramdown_parser::options::{EntityOutput, Options};
 use crate::syntax::highlight_code;
 use std::collections::HashMap;
 
-/// Sentinel marker emitted by `extract_definitions` when a link definition is
-/// removed and non-blank content immediately follows on the next line.  The
-/// block parser recognises this marker and inhibits table parsing for the
-/// subsequent line, matching kramdown Ruby's behaviour where the link def is
-/// consumed during block parsing and the following content inherits paragraph
-/// context.
-pub const LINKDEF_REMOVED_MARKER: &str = "^{:linkdef-removed}";
-
 /// Context for span parsing, carrying link definitions and abbreviations.
 pub struct SpanContext {
     /// Link definitions: id -> (url, optional title, optional attrs)
@@ -154,21 +146,6 @@ pub fn extract_definitions(text: &str, ctx: &mut SpanContext) -> String {
                             };
                             // Last definition wins (kramdown overwrites duplicate link IDs)
                             ctx.link_defs.insert(key, def);
-                            // If the next line is non-blank content that starts
-                            // with a pipe, emit a marker so the block parser knows
-                            // not to start a table here. In kramdown Ruby, the
-                            // link def is consumed during block parsing and the
-                            // following content inherits paragraph context rather
-                            // than starting a fresh block. We only need the marker
-                            // for pipe-starting lines (table candidates); other
-                            // content types are not affected.
-                            if i < lines.len()
-                                && !lines[i].trim().is_empty()
-                                && lines[i].trim_start().starts_with('|')
-                            {
-                                output_lines.push(LINKDEF_REMOVED_MARKER);
-                            }
-                            at_block_boundary = true;
                             continue;
                         }
                     }
@@ -1299,20 +1276,8 @@ fn parse_spans(
         // Image link: ![alt](url) or ![alt][ref] (allowed inside links too)
         if chars[i] == '!' && i + 1 < end && chars[i + 1] == '[' {
             if let Some((html, advance)) = try_parse_image(chars, i, end, ctx) {
-                let mut after = i + advance;
-                // Check for IAL(s) after image
-                let mut all_ial_attrs: Vec<(String, String)> = Vec::new();
-                while let Some((ial_attrs, ial_len)) = try_parse_span_ial(chars, after, end) {
-                    all_ial_attrs.extend(ial_attrs);
-                    after += ial_len;
-                }
-                if !all_ial_attrs.is_empty() {
-                    output.push_str(&apply_ial_to_img_tag(&html, &all_ial_attrs));
-                    i = after;
-                } else {
-                    output.push_str(&html);
-                    i += advance;
-                }
+                output.push_str(&html);
+                i += advance;
                 continue;
             }
         }
@@ -1702,41 +1667,6 @@ fn apply_ial_to_a_tag(html: &str, attrs: &[(String, String)]) -> String {
         result.push_str(&html[..close_pos]);
         result.push_str(&attrs_str);
         result.push_str(&html[close_pos..]);
-        result
-    } else {
-        html.to_string()
-    }
-}
-
-/// Apply IAL attributes to an `<img .../>` tag string.
-/// Inserts the IAL attributes into the `<img` tag, right before the closing `/>`.
-fn apply_ial_to_img_tag(html: &str, attrs: &[(String, String)]) -> String {
-    // Find the <img opening
-    let img_open = if let Some(pos) = html.find("<img ") {
-        pos
-    } else {
-        return html.to_string();
-    };
-
-    // Find the closing /> of this <img tag
-    if let Some(close_pos) = html[img_open..].find("/>") {
-        let close_abs = img_open + close_pos;
-        // Remove trailing space before /> if present (format_attrs adds its own leading space)
-        let insert_pos = if close_abs > 0 && html.as_bytes()[close_abs - 1] == b' ' {
-            close_abs - 1
-        } else {
-            close_abs
-        };
-        let attrs_str = format_attrs(attrs);
-        let mut result = String::with_capacity(html.len() + attrs_str.len());
-        result.push_str(&html[..insert_pos]);
-        result.push_str(&attrs_str);
-        result.push_str(" />");
-        // Append anything after the original />
-        let after_close = close_abs + 2;
-        if after_close < html.len() {
-            result.push_str(&html[after_close..]);
-        }
         result
     } else {
         html.to_string()
@@ -3009,20 +2939,8 @@ fn parse_spans_until_emphasis_close(
         // Image
         if chars[i] == '!' && i + 1 < end && chars[i + 1] == '[' {
             if let Some((html, advance)) = try_parse_image(chars, i, end, ctx) {
-                let mut after = i + advance;
-                // Check for IAL(s) after image
-                let mut all_ial_attrs: Vec<(String, String)> = Vec::new();
-                while let Some((ial_attrs, ial_len)) = try_parse_span_ial(chars, after, end) {
-                    all_ial_attrs.extend(ial_attrs);
-                    after += ial_len;
-                }
-                if !all_ial_attrs.is_empty() {
-                    output.push_str(&apply_ial_to_img_tag(&html, &all_ial_attrs));
-                    i = after;
-                } else {
-                    output.push_str(&html);
-                    i += advance;
-                }
+                output.push_str(&html);
+                i += advance;
                 has_content = true;
                 continue;
             }

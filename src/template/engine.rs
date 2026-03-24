@@ -1137,16 +1137,12 @@ fn preprocess_jekyll_tags(template: &str) -> String {
                 // For root pages: convert .md to .html, keep .html as-is
                 let url_path = if let Some(stem) = url_path.strip_suffix(".md") {
                     if is_collection {
-                        // Issue 334: For posts, strip YYYY-MM-DD- date prefix from
-                        // the filename to match Jekyll's :title permalink behavior.
-                        let stem = strip_post_date_prefix_from_link(stem);
                         format!("/{}", stem)
                     } else {
                         format!("/{}.html", stem)
                     }
                 } else if let Some(stem) = url_path.strip_suffix(".html") {
                     if is_collection {
-                        let stem = strip_post_date_prefix_from_link(stem);
                         format!("/{}", stem)
                     } else {
                         format!("/{}", url_path)
@@ -1189,35 +1185,6 @@ fn preprocess_jekyll_tags(template: &str) -> String {
 
     result.push_str(remaining);
     result
-}
-
-/// Issue 334: Strip YYYY-MM-DD- date prefix from post filenames in link paths.
-///
-/// Given a path like "posts/2024-11-02-javascript", returns "posts/javascript".
-/// Only strips the date prefix if the path is under "posts/" and the filename
-/// portion matches the YYYY-MM-DD- pattern. Non-post paths are returned unchanged.
-fn strip_post_date_prefix_from_link(path: &str) -> String {
-    // Only strip for posts collection
-    if let Some(filename) = path.strip_prefix("posts/") {
-        if filename.len() > 11 {
-            let maybe_date = &filename[..10];
-            let parts: Vec<&str> = maybe_date.split('-').collect();
-            if parts.len() == 3
-                && parts[0].len() == 4
-                && parts[1].len() == 2
-                && parts[2].len() == 2
-                && parts[0].chars().all(|c| c.is_ascii_digit())
-                && parts[1].chars().all(|c| c.is_ascii_digit())
-                && parts[2].chars().all(|c| c.is_ascii_digit())
-                && filename.as_bytes()[10] == b'-'
-            {
-                return format!("posts/{}", &filename[11..]);
-            }
-        }
-        path.to_string()
-    } else {
-        path.to_string()
-    }
 }
 
 /// Pre-process Liquid templates to add nil guards around `contains` operators.
@@ -1305,12 +1272,11 @@ fn preprocess_nil_eq_false(template: &str) -> String {
     use std::sync::LazyLock;
 
     // Match patterns like: VARIABLE == false or VARIABLE != false
-    // VARIABLE is a dotted name like page.toc, site.show_edit, page.show-avatar, etc.
-    // Hyphens are valid in Liquid/Jekyll property names (e.g. show-avatar, full-width).
+    // VARIABLE is a dotted name like page.toc, site.show_edit, etc.
     static EQ_FALSE_RE: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"\b([\w][\w.\-]*)\s*==\s*false\b").unwrap());
+        LazyLock::new(|| Regex::new(r"\b([\w][\w.]*)\s*==\s*false\b").unwrap());
     static NEQ_FALSE_RE: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"\b([\w][\w.\-]*)\s*!=\s*false\b").unwrap());
+        LazyLock::new(|| Regex::new(r"\b([\w][\w.]*)\s*!=\s*false\b").unwrap());
 
     let result = EQ_FALSE_RE.replace_all(template, "$1 == false and $1 != nil");
     let result = NEQ_FALSE_RE.replace_all(&result, "$1 != false or $1 == nil");
@@ -3378,27 +3344,6 @@ title: "Test Book"
         assert_eq!(result, "/2022/09/07/homebrew-3.6.0");
     }
 
-    // Issue 334: {% link _posts/YYYY-MM-DD-title.md %} should strip date prefix
-    #[test]
-    fn test_link_tag_strips_date_prefix_for_posts() {
-        let result = preprocess_jekyll_tags("{% link _posts/2024-11-02-javascript.md %}");
-        assert_eq!(result, "/posts/javascript");
-    }
-
-    #[test]
-    fn test_link_tag_strips_date_prefix_for_posts_with_hyphens_in_title() {
-        let result =
-            preprocess_jekyll_tags("{% link _posts/2020-06-06-thoughts-on-reparations.md %}");
-        assert_eq!(result, "/posts/thoughts-on-reparations");
-    }
-
-    #[test]
-    fn test_link_tag_non_post_collection_unchanged() {
-        // Non-post collections should NOT strip any prefix
-        let result = preprocess_jekyll_tags("{% link _pages/2024-11-02-javascript.md %}");
-        assert_eq!(result, "/pages/2024-11-02-javascript");
-    }
-
     #[test]
     fn test_capture_preprocess_with_dash() {
         let result = preprocess_capture_tags("{%- capture myvar do -%}content{%- endcapture -%}");
@@ -5316,141 +5261,5 @@ title: "Test Book"
         let template = "{% for name in __names | sort %}{{ name }},{% endfor %}";
         let output = eng.parse_and_render(template, &ctx).unwrap();
         assert_eq!(output, "apple,banana,cherry,");
-    }
-
-    // ========================================================================
-    // Issue 331: Hyphenated property names in Liquid dotted paths
-    // ========================================================================
-
-    #[test]
-    fn test_issue331_hyphenated_property_in_output() {
-        // {{ page.show-avatar }} should resolve to the value of page["show-avatar"]
-        let eng = engine();
-        let mut page = Object::new();
-        page.insert("show-avatar".into(), LiquidValue::scalar(true));
-        let mut ctx = Object::new();
-        ctx.insert("page".into(), LiquidValue::Object(page));
-        let output = eng
-            .parse_and_render("{{ page.show-avatar }}", &ctx)
-            .unwrap();
-        assert_eq!(output, "true");
-    }
-
-    #[test]
-    fn test_issue331_hyphenated_property_in_if_truthy() {
-        // {% if page.show-avatar %}yes{% else %}no{% endif %}
-        // with show-avatar: true -> "yes"
-        let eng = engine();
-        let mut page = Object::new();
-        page.insert("show-avatar".into(), LiquidValue::scalar(true));
-        let mut ctx = Object::new();
-        ctx.insert("page".into(), LiquidValue::Object(page));
-        let output = eng
-            .parse_and_render("{% if page.show-avatar %}yes{% else %}no{% endif %}", &ctx)
-            .unwrap();
-        assert_eq!(output, "yes");
-    }
-
-    #[test]
-    fn test_issue331_hyphenated_property_absent_is_falsy() {
-        // page has no "show-avatar" key -> should be nil (falsy)
-        let eng = engine();
-        let page = Object::new();
-        let mut ctx = Object::new();
-        ctx.insert("page".into(), LiquidValue::Object(page));
-        let output = eng
-            .parse_and_render("{% if page.show-avatar %}yes{% else %}no{% endif %}", &ctx)
-            .unwrap();
-        assert_eq!(output, "no");
-    }
-
-    #[test]
-    fn test_issue331_hyphenated_property_neq_false() {
-        // page.show-avatar is nil (not set) -> nil != false is true in Liquid
-        let eng = engine();
-        let page = Object::new();
-        let mut ctx = Object::new();
-        ctx.insert("page".into(), LiquidValue::Object(page));
-        let output = eng
-            .parse_and_render(
-                "{% if page.show-avatar != false %}shown{% else %}hidden{% endif %}",
-                &ctx,
-            )
-            .unwrap();
-        assert_eq!(output, "shown");
-    }
-
-    #[test]
-    fn test_issue331_hyphenated_property_neq_false_when_false() {
-        // page.show-avatar is false -> false != false is false
-        let eng = engine();
-        let mut page = Object::new();
-        page.insert("show-avatar".into(), LiquidValue::scalar(false));
-        let mut ctx = Object::new();
-        ctx.insert("page".into(), LiquidValue::Object(page));
-        let output = eng
-            .parse_and_render(
-                "{% if page.show-avatar != false %}shown{% else %}hidden{% endif %}",
-                &ctx,
-            )
-            .unwrap();
-        assert_eq!(output, "hidden");
-    }
-
-    #[test]
-    fn test_issue331_hyphenated_property_and_chain() {
-        // {% if site.avatar and page.show-avatar != false %}visible{% endif %}
-        // site.avatar set, no show-avatar in page -> nil != false -> true
-        let eng = engine();
-        let mut site = Object::new();
-        site.insert("avatar".into(), LiquidValue::scalar("/img/avatar.png"));
-        let page = Object::new();
-        let mut ctx = Object::new();
-        ctx.insert("site".into(), LiquidValue::Object(site));
-        ctx.insert("page".into(), LiquidValue::Object(page));
-        let output = eng
-            .parse_and_render(
-                "{% if site.avatar and page.show-avatar != false %}visible{% endif %}",
-                &ctx,
-            )
-            .unwrap();
-        assert_eq!(output, "visible");
-    }
-
-    #[test]
-    fn test_issue331_multiple_hyphenated_properties() {
-        // Test page.full-width, page.before-content, page.after-content
-        let eng = engine();
-        let mut page = Object::new();
-        page.insert("full-width".into(), LiquidValue::scalar(true));
-        page.insert("before-content".into(), LiquidValue::scalar("header"));
-        page.insert("after-content".into(), LiquidValue::scalar("footer"));
-        page.insert(
-            "use-hierarchical-categories".into(),
-            LiquidValue::scalar(false),
-        );
-        let mut ctx = Object::new();
-        ctx.insert("page".into(), LiquidValue::Object(page));
-        let output = eng
-            .parse_and_render("{{ page.full-width }},{{ page.before-content }},{{ page.after-content }},{{ page.use-hierarchical-categories }}", &ctx)
-            .unwrap();
-        assert_eq!(output, "true,header,footer,false");
-    }
-
-    #[test]
-    fn test_issue331_unicode_hyphenated_property() {
-        // page.meta-description with Chinese value
-        let eng = engine();
-        let mut page = Object::new();
-        page.insert(
-            "meta-description".into(),
-            LiquidValue::scalar("\u{9019}\u{662F}\u{4E2D}\u{6587}\u{63CF}\u{8FF0}"),
-        );
-        let mut ctx = Object::new();
-        ctx.insert("page".into(), LiquidValue::Object(page));
-        let output = eng
-            .parse_and_render("{{ page.meta-description }}", &ctx)
-            .unwrap();
-        assert_eq!(output, "\u{9019}\u{662F}\u{4E2D}\u{6587}\u{63CF}\u{8FF0}");
     }
 }

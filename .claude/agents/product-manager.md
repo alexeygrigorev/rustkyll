@@ -30,7 +30,14 @@ An issue filename (e.g. `docs/tracker/01-project-setup.todo.md`).
    - Dependencies listed (which other issues must be `.done.md` first)
    - **For output/rendering issues:** Include output verification criteria -- specify which pages must render correctly, what the expected HTML output should contain, and require building the site and inspecting output as part of testing
 5. If the issue is missing any of the above, add them
-6. Rename: `mv docs/tracker/NN-name.todo.md docs/tracker/NN-name.groomed.md`
+6. **Record DOM baseline (for rendering issues):** Run the DTC DOM comparison from committed code and record the baseline count in the issue:
+   ```bash
+   ./scripts/cargo-safe build --release
+   ./target/release/rustkyll build --source websites/DataTalksClub/datatalksclub.github.io --destination /tmp/dtc_baseline
+   uv run scripts/dom_compare.py --jekyll-dir websites/DataTalksClub/datatalksclub.github.io/_site_jekyll_cached --rustkyll-dir /tmp/dtc_baseline 2>&1 | tail -1
+   ```
+   Add to acceptance criteria: "DTC DOM match count must not drop below [baseline]"
+7. Rename: `git mv docs/tracker/NN-name.todo.md docs/tracker/NN-name.groomed.md`
 
 ### Acceptance Criteria Format
 

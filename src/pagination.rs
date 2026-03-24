@@ -169,12 +169,9 @@ fn collection_item_to_liquid_full(item: &CollectionItem) -> LiquidValue {
         LiquidValue::scalar(item.html_content.clone()),
     );
 
-    // Excerpt -- Jekyll provides post.excerpt as rendered HTML in paginator.posts.
-    // Use the pre-rendered excerpt_html first (which has IAL syntax stripped and
-    // markdown rendered), then fall back to generating from html_content.
-    if let Some(ref excerpt_html) = item.excerpt_html {
-        obj.insert("excerpt".into(), LiquidValue::scalar(excerpt_html.clone()));
-    } else if let Some(ref excerpt) = item.excerpt {
+    // Excerpt -- Jekyll provides post.excerpt in paginator.posts
+    // Use the CollectionItem's excerpt if present, otherwise generate from content
+    if let Some(ref excerpt) = item.excerpt {
         obj.insert("excerpt".into(), LiquidValue::scalar(excerpt.clone()));
     } else if !item.front_matter.contains_key("excerpt") {
         let excerpt = generate_excerpt(&item.html_content);

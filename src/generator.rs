@@ -732,15 +732,15 @@ fn build_related_posts(
     };
 
     // Sort posts by date descending, take up to 10.
-    // Jekyll sorts by date descending, then by source path ascending for
-    // same-date posts (Issue 337A).
+    // Jekyll sorts by date descending, then by path/slug descending for
+    // same-date posts (matching the reverse chronological order of site.posts).
     let mut sorted: Vec<&CollectionItem> = posts.iter().collect();
     sorted.sort_by(|a, b| {
         let date_a = a.date.as_deref().unwrap_or("");
         let date_b = b.date.as_deref().unwrap_or("");
         date_b
             .cmp(date_a) // descending by date
-            .then_with(|| a.source_path.cmp(&b.source_path)) // ascending by source path for tiebreaking
+            .then_with(|| b.slug.cmp(&a.slug)) // descending by slug for tiebreaking
     });
 
     sorted
@@ -1485,12 +1485,6 @@ pub fn generate_collection_pages_cached_with_progress(
         page_fm
             .entry("collection".into())
             .or_insert_with(|| serde_yaml::Value::String(item.collection_name.clone()));
-
-        // Inject page.id for collection items (needed by templates like
-        // beautiful-jekyll that use `{% if page.id %}` to detect posts/articles).
-        page_fm
-            .entry("id".into())
-            .or_insert_with(|| serde_yaml::Value::String(item.id.clone()));
 
         // Also ensure date is in front matter if available (needed for posts)
         if !page_fm.contains_key("date") {
@@ -4770,7 +4764,7 @@ defaults:
     // ========================================================================
 
     #[test]
-    fn test_related_posts_tiebreaking_same_date_by_path_ascending() {
+    fn test_related_posts_tiebreaking_same_date_by_slug_descending() {
         let config = SiteConfig::default();
         let data = DataTree::new();
 
@@ -4787,8 +4781,8 @@ defaults:
         let related = ctx.get("related_posts").expect("should have related_posts");
         if let LiquidValue::Array(arr) = related {
             assert_eq!(arr.len(), 3);
-            // Issue 337A: Jekyll sorts same-date posts by source path ascending.
-            // So order should be: alpha, beta, gamma
+            // Jekyll sorts same-date posts by path descending (slug descending).
+            // So order should be: gamma, beta, alpha
             let titles: Vec<String> = arr
                 .iter()
                 .filter_map(|v| {
@@ -4801,8 +4795,8 @@ defaults:
                 .collect();
             assert_eq!(
                 titles,
-                vec!["Alpha Post", "Beta Post", "Gamma Post"],
-                "Same-date posts should be sorted by path ascending (matching Jekyll)"
+                vec!["Gamma Post", "Beta Post", "Alpha Post"],
+                "Same-date posts should be sorted by slug descending (matching Jekyll)"
             );
         } else {
             panic!("Expected related_posts to be an array");
@@ -7620,89 +7614,5 @@ defaults:
         } else {
             panic!("github should be an Object");
         }
-    }
-
-    /// Issue 337A: Related posts tiebreaking should use source_path ascending
-    /// (matching Jekyll) instead of slug descending.
-    #[test]
-    fn test_337a_related_posts_tiebreak_by_path_ascending() {
-        use crate::collection::CollectionItem;
-
-        // Create 3 posts: 1 with a different date, 2 with the same date
-        let post_a = CollectionItem {
-            slug: "zzz-post".to_string(),
-            front_matter: HashMap::new(),
-            content: String::new(),
-            html_content: String::new(),
-            excerpt: None,
-            excerpt_html: None,
-            url: "/blog/zzz-post.html".to_string(),
-            date: Some("2025-08-11".to_string()),
-            collection_name: "posts".to_string(),
-            source_path: "_posts/2025-08-11-zzz-post.md".to_string(),
-            id: "/2025/08/11/zzz-post".to_string(),
-        };
-        let post_b = CollectionItem {
-            slug: "aaa-post".to_string(),
-            front_matter: HashMap::new(),
-            content: String::new(),
-            html_content: String::new(),
-            excerpt: None,
-            excerpt_html: None,
-            url: "/blog/aaa-post.html".to_string(),
-            date: Some("2025-08-11".to_string()),
-            collection_name: "posts".to_string(),
-            source_path: "_posts/2025-08-11-aaa-post.md".to_string(),
-            id: "/2025/08/11/aaa-post".to_string(),
-        };
-        let post_c = CollectionItem {
-            slug: "old-post".to_string(),
-            front_matter: HashMap::new(),
-            content: String::new(),
-            html_content: String::new(),
-            excerpt: None,
-            excerpt_html: None,
-            url: "/blog/old-post.html".to_string(),
-            date: Some("2023-11-18".to_string()),
-            collection_name: "posts".to_string(),
-            source_path: "_posts/2023-11-18-old-post.md".to_string(),
-            id: "/2023/11/18/old-post".to_string(),
-        };
-
-        let mut collections = HashMap::new();
-        collections.insert("posts".to_string(), vec![post_a, post_b, post_c]);
-
-        let related = build_related_posts(&collections, None);
-
-        // Extract URLs from the related posts
-        let urls: Vec<String> = related
-            .iter()
-            .filter_map(|v| {
-                if let LiquidValue::Object(obj) = v {
-                    obj.get("url").map(|u| u.to_kstr().to_string())
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        // Jekyll tiebreaks same-date posts by source path ASCENDING:
-        // aaa-post < zzz-post (alphabetical path order)
-        assert_eq!(urls.len(), 3);
-        assert_eq!(
-            urls[0], "/blog/aaa-post.html",
-            "First should be aaa-post (path ascending tiebreak). Got: {:?}",
-            urls
-        );
-        assert_eq!(
-            urls[1], "/blog/zzz-post.html",
-            "Second should be zzz-post (path ascending tiebreak). Got: {:?}",
-            urls
-        );
-        assert_eq!(
-            urls[2], "/blog/old-post.html",
-            "Third should be old-post (earlier date). Got: {:?}",
-            urls
-        );
     }
 }

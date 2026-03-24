@@ -141,62 +141,6 @@ fn convert_display_math_blocks(html: &str) -> String {
     result
 }
 
-/// Convert inline `$$...$$` math (within HTML text, not sole content of `<p>`)
-/// to `\(...\)`, matching Jekyll/kramdown behavior.
-///
-/// Display math (`<p>$$...$$</p>`) is handled by `convert_display_math_blocks`.
-/// This handles the remaining case where `$$...$$` appears inline within a
-/// paragraph alongside other text.
-fn convert_inline_double_dollar_math(html: &str) -> String {
-    if !html.contains("$$") {
-        return html.to_string();
-    }
-
-    let mut result = String::with_capacity(html.len());
-    let mut remaining = html;
-
-    while let Some(pos) = remaining.find("$$") {
-        // Check we're not inside <code> or <pre>
-        let before = &remaining[..pos];
-        let in_code = before
-            .rfind("<code")
-            .is_some_and(|code_start| before[code_start..].find("</code>").is_none());
-        let in_pre = before
-            .rfind("<pre")
-            .is_some_and(|pre_start| before[pre_start..].find("</pre>").is_none());
-
-        if in_code || in_pre {
-            // Inside code/pre: copy literally and advance past $$
-            result.push_str(&remaining[..pos + 2]);
-            remaining = &remaining[pos + 2..];
-            continue;
-        }
-
-        // Find closing $$
-        let content_start = pos + 2;
-        let after_open = &remaining[content_start..];
-        if let Some(close_pos) = after_open.find("$$") {
-            let math_content = &after_open[..close_pos];
-            // Only convert if there's actual content (not empty)
-            if !math_content.trim().is_empty() {
-                result.push_str(before);
-                result.push_str("\\(");
-                result.push_str(math_content);
-                result.push_str("\\)");
-                remaining = &after_open[close_pos + 2..];
-                continue;
-            }
-        }
-
-        // No closing $$ found or empty content: copy literally
-        result.push_str(&remaining[..pos + 2]);
-        remaining = &remaining[pos + 2..];
-    }
-
-    result.push_str(remaining);
-    result
-}
-
 /// Convert inline math `$...$` to `\(...\)` within a line of HTML.
 ///
 /// Only converts when `$` is followed by non-space content and closed by another `$`.
@@ -400,355 +344,6 @@ fn fix_nested_tag(html: &str, tag: &str) -> String {
     result
 }
 
-/// Issue 332: Fix literal `*` characters that should have been emphasis markers.
-///
-/// pulldown-cmark sometimes fails to resolve `*...*` as emphasis in certain document
-/// contexts (e.g., when preceded by `<figure>` blocks with `<figcaption>` containing
-/// nested `<a>` tags). The `*` characters end up as literal text in the HTML output.
-///
-/// This function detects paired `*...*` patterns in the HTML output where the content
-/// between them may include HTML tags (like `<a>`) and plain text, and converts them
-/// to `<em>...</em>`.
-pub fn fix_literal_asterisk_emphasis(html: &str) -> String {
-    if !html.contains('*') {
-        return html.to_string();
-    }
-
-    let mut result = String::with_capacity(html.len());
-    let bytes = html.as_bytes();
-    let len = bytes.len();
-    let mut i = 0;
-    // Track nesting depth inside <em>/<strong> to avoid double-wrapping
-    let mut em_depth: i32 = 0;
-
-    while i < len {
-        // Handle HTML tags
-        if bytes[i] == b'<' {
-            let tag_start = i;
-            i += 1;
-            while i < len && bytes[i] != b'>' {
-                i += 1;
-            }
-            if i < len {
-                i += 1;
-            }
-            let tag = &html[tag_start..i];
-            // Track em/strong nesting
-            if tag == "<em>" || tag == "<strong>" {
-                em_depth += 1;
-            } else if tag == "</em>" || tag == "</strong>" {
-                em_depth -= 1;
-            }
-            result.push_str(tag);
-            continue;
-        }
-
-        // Only consider `*` as emphasis when NOT inside existing <em>/<strong>
-        if bytes[i] == b'*' && em_depth <= 0 {
-            let is_opener = {
-                let prev_ok = i == 0
-                    || matches!(bytes[i - 1], b' ' | b'>' | b'"' | b'\n' | b'\t' | b'(')
-                    || (i >= 2 && !bytes[i - 1].is_ascii());
-                let next_ok = i + 1 < len && bytes[i + 1] != b' ' && bytes[i + 1] != b'\n';
-                prev_ok && next_ok
-            };
-
-            if is_opener {
-                if let Some((content, end_pos)) = find_literal_emphasis_span(html, i + 1) {
-                    result.push_str("<em>");
-                    result.push_str(content);
-                    result.push_str("</em>");
-                    i = end_pos + 1;
-                    continue;
-                }
-            }
-        }
-
-        if bytes[i] == b'*' {
-            result.push('*');
-            i += 1;
-            continue;
-        }
-
-        // Regular character - handle multi-byte UTF-8
-        let ch_len = utf8_char_len(bytes[i]);
-        result.push_str(&html[i..i + ch_len]);
-        i += ch_len;
-    }
-
-    result
-}
-
-/// Fix literal underscore emphasis that pulldown-cmark failed to parse.
-///
-/// Issue 333: In certain document contexts, pulldown-cmark leaves `_text_`
-/// as literal underscores instead of converting to `<em>text</em>`. This
-/// postprocessor detects such patterns in the HTML output and wraps them
-/// in emphasis tags.
-///
-/// This mirrors `fix_literal_asterisk_emphasis` but for underscore markers.
-/// Extra care is taken to avoid false positives since underscores are common
-/// in HTML attributes, URLs, and code.
-pub fn fix_literal_underscore_emphasis(html: &str) -> String {
-    if !html.contains('_') {
-        return html.to_string();
-    }
-
-    let mut result = String::with_capacity(html.len());
-    let bytes = html.as_bytes();
-    let len = bytes.len();
-    let mut i = 0;
-    let mut em_depth: i32 = 0;
-    let mut in_code = false;
-
-    while i < len {
-        // Handle HTML tags
-        if bytes[i] == b'<' {
-            let tag_start = i;
-            i += 1;
-            while i < len && bytes[i] != b'>' {
-                i += 1;
-            }
-            if i < len {
-                i += 1;
-            }
-            let tag = &html[tag_start..i];
-            if tag == "<em>" || tag == "<strong>" {
-                em_depth += 1;
-            } else if tag == "</em>" || tag == "</strong>" {
-                em_depth -= 1;
-            } else if tag == "<code>" || tag.starts_with("<code ") {
-                in_code = true;
-            } else if tag == "</code>" {
-                in_code = false;
-            }
-            result.push_str(tag);
-            continue;
-        }
-
-        // Only consider `_` as emphasis when NOT inside <em>/<strong> or <code>
-        if bytes[i] == b'_' && em_depth <= 0 && !in_code {
-            // Check for double underscore (__strong__)
-            let is_double = i + 1 < len && bytes[i + 1] == b'_';
-
-            if is_double {
-                let delim_count = 2;
-                let content_start = i + delim_count;
-                let is_opener = {
-                    let prev_ok = i == 0
-                        || matches!(
-                            bytes[i - 1],
-                            b' ' | b'>' | b'"' | b'\n' | b'\t' | b'(' | b',' | b';'
-                        )
-                        || (i >= 2 && !bytes[i - 1].is_ascii());
-                    let next_ok = content_start < len
-                        && bytes[content_start] != b' '
-                        && bytes[content_start] != b'\n';
-                    prev_ok && next_ok
-                };
-                if is_opener {
-                    if let Some((content, end_pos)) =
-                        find_literal_underscore_emphasis_span(html, content_start, delim_count)
-                    {
-                        result.push_str("<strong>");
-                        result.push_str(content);
-                        result.push_str("</strong>");
-                        i = end_pos + delim_count;
-                        continue;
-                    }
-                }
-            }
-
-            // Single underscore (_em_)
-            let is_opener = {
-                let prev_ok = i == 0
-                    || matches!(
-                        bytes[i - 1],
-                        b' ' | b'>' | b'"' | b'\n' | b'\t' | b'(' | b',' | b';'
-                    )
-                    || (i >= 2 && !bytes[i - 1].is_ascii());
-                let next_ok = i + 1 < len
-                    && bytes[i + 1] != b' '
-                    && bytes[i + 1] != b'\n'
-                    && bytes[i + 1] != b'_';
-                prev_ok && next_ok
-            };
-
-            if is_opener {
-                if let Some((content, end_pos)) =
-                    find_literal_underscore_emphasis_span(html, i + 1, 1)
-                {
-                    result.push_str("<em>");
-                    result.push_str(content);
-                    result.push_str("</em>");
-                    i = end_pos + 1;
-                    continue;
-                }
-            }
-        }
-
-        // Regular character - handle multi-byte UTF-8
-        let ch_len = utf8_char_len(bytes[i]);
-        result.push_str(&html[i..i + ch_len]);
-        i += ch_len;
-    }
-
-    result
-}
-
-/// Find the end of a literal underscore emphasis span.
-/// `delim_count` is 1 for _em_ or 2 for __strong__.
-fn find_literal_underscore_emphasis_span(
-    html: &str,
-    start: usize,
-    delim_count: usize,
-) -> Option<(&str, usize)> {
-    let bytes = html.as_bytes();
-    let len = bytes.len();
-    let mut i = start;
-
-    while i < len {
-        // Don't cross HTML tags (stop at < to avoid matching underscores inside attributes)
-        if bytes[i] == b'<' {
-            return None;
-        }
-
-        // Don't cross newlines
-        if bytes[i] == b'\n' {
-            return None;
-        }
-
-        // Check for closing underscore(s)
-        if bytes[i] == b'_' {
-            // Count consecutive underscores
-            let close_start = i;
-            let mut close_count = 0;
-            while i < len && bytes[i] == b'_' {
-                close_count += 1;
-                i += 1;
-            }
-
-            if close_count >= delim_count {
-                // Check closer validity:
-                // - preceded by non-whitespace
-                // - followed by non-alphanumeric or end
-                let preceded_ok = close_start > start
-                    && bytes[close_start - 1] != b' '
-                    && bytes[close_start - 1] != b'\n';
-                let followed_ok = i >= len || !bytes[i].is_ascii_alphanumeric();
-
-                if preceded_ok && followed_ok {
-                    let span_len = close_start - start;
-                    if span_len > 0 && span_len < 2000 {
-                        let content = &html[start..close_start];
-                        // Content must not be just whitespace
-                        if !content.trim().is_empty() {
-                            return Some((content, close_start));
-                        }
-                    }
-                }
-            }
-            // Not a valid closer, continue scanning
-            continue;
-        }
-
-        let ch_len = utf8_char_len(bytes[i]);
-        i += ch_len;
-    }
-
-    None
-}
-
-/// Find the end of a literal emphasis span starting after the opening `*`.
-fn find_literal_emphasis_span(html: &str, start: usize) -> Option<(&str, usize)> {
-    let bytes = html.as_bytes();
-    let len = bytes.len();
-    let mut i = start;
-    let mut depth: i32 = 0;
-
-    while i < len {
-        if bytes[i] == b'<' {
-            if i + 1 < len && bytes[i + 1] == b'/' {
-                depth -= 1;
-            } else if i + 1 < len && bytes[i + 1] != b'!' {
-                let tag_end = html[i..].find('>')?;
-                let abs_end = i + tag_end;
-                if bytes[abs_end - 1] != b'/' {
-                    let tag_content = &html[i + 1..abs_end];
-                    let tag_name = tag_content.split_whitespace().next().unwrap_or("");
-                    if !matches!(tag_name, "br" | "hr" | "img" | "input" | "meta" | "link") {
-                        depth += 1;
-                    }
-                }
-            }
-            while i < len && bytes[i] != b'>' {
-                i += 1;
-            }
-            if i < len {
-                i += 1;
-            }
-            continue;
-        }
-
-        if bytes[i] == b'*'
-            && depth <= 0
-            && i > start
-            && bytes[i - 1] != b' '
-            && bytes[i - 1] != b'\n'
-        {
-            let next_ok = i + 1 >= len
-                || matches!(
-                    bytes[i + 1],
-                    b' ' | b',' | b'.' | b'<' | b'"' | b'\n' | b')' | b';' | b':' | b'!' | b'?'
-                );
-            if next_ok {
-                let span_len = i - start;
-                if span_len > 0 && span_len < 2000 {
-                    let content = &html[start..i];
-                    let text_content = strip_html_tags_simple(content);
-                    if !text_content.trim().is_empty() {
-                        return Some((content, i));
-                    }
-                }
-            }
-        }
-
-        let ch_len = utf8_char_len(bytes[i]);
-        i += ch_len;
-    }
-
-    None
-}
-
-/// Simple HTML tag stripper for validation purposes.
-fn strip_html_tags_simple(html: &str) -> String {
-    let mut result = String::new();
-    let mut in_tag = false;
-    for ch in html.chars() {
-        if ch == '<' {
-            in_tag = true;
-        } else if ch == '>' {
-            in_tag = false;
-        } else if !in_tag {
-            result.push(ch);
-        }
-    }
-    result
-}
-
-/// Get the length of a UTF-8 character from its first byte.
-fn utf8_char_len(first_byte: u8) -> usize {
-    if first_byte < 0x80 {
-        1
-    } else if first_byte < 0xE0 {
-        2
-    } else if first_byte < 0xF0 {
-        3
-    } else {
-        4
-    }
-}
-
 /// Apply all kramdown compatibility transformations to HTML output.
 ///
 /// When `indent_lists` is true (kramdown mode), list items are indented with
@@ -758,25 +353,7 @@ pub fn postprocess_with_options(html: &str, indent_lists: bool) -> String {
     // Issue 275b: Fix mis-balanced emphasis tags from pulldown-cmark before other
     // postprocessing steps that depend on correct tag nesting.
     let html = fix_nested_emphasis_tags(html);
-    // Issue 332: Fix literal asterisks that should have been emphasis.
-    // Only for kramdown mode -- CommonMarkGhPages handles emphasis correctly.
-    let html = if indent_lists {
-        fix_literal_asterisk_emphasis(&html)
-    } else {
-        html
-    };
-    // Issue 333: Fix literal underscores that should have been emphasis.
-    // Only for kramdown mode -- for CommonMarkGhPages, pulldown-cmark already
-    // handles emphasis correctly and this would create false emphasis (e.g., kaomoji).
-    let html = if indent_lists {
-        fix_literal_underscore_emphasis(&html)
-    } else {
-        html
-    };
     let html = strip_paragraphs_in_html_blocks(&html);
-    // Issue 334: Unwrap <iframe> elements that pulldown-cmark wraps in <p> tags.
-    // In GFM/CommonMark, standalone <iframe> on its own line should be a block element.
-    let html = unwrap_p_around_iframes(&html);
     let html = encode_bare_ampersands(&html);
     // Issue 330: Use different heading ID generation for kramdown vs CommonMarkGhPages.
     // indent_lists=true means kramdown mode, false means CommonMarkGhPages.
@@ -787,8 +364,6 @@ pub fn postprocess_with_options(html: &str, indent_lists: bool) -> String {
     };
     let html = add_heading_ids(&html, heading_mode);
     let html = apply_block_ial(&html);
-    // Issue 335: Apply span-level IAL on images: <img ... />{: .class :} -> <img ... class="..." />
-    let html = apply_image_span_ial(&html);
     let html = apply_inline_attributes(&html);
     let html = wrap_fenced_code_blocks(&html);
     // Note: inline code classes are now added during markdown rendering
@@ -819,9 +394,6 @@ pub fn postprocess_with_options(html: &str, indent_lists: bool) -> String {
     // text nodes, matching Jekyll/kramdown behavior for MathJax rendering.
     // Only display math is converted; inline $...$ is preserved as-is.
     let html = convert_display_math_blocks(&html);
-    // Issue 335: Convert inline $$...$$ (within paragraphs alongside other text)
-    // to \(...\) to match Jekyll/kramdown behavior.
-    let html = convert_inline_double_dollar_math(&html);
     // D2, D12: Normalize boolean attributes in the markdown output early
     // (during collection loading). This ensures that the final
     // normalize_html_output() call after layout wrapping finds nothing to change
@@ -854,10 +426,6 @@ pub fn postprocess_for_filter(html: &str) -> String {
 pub fn postprocess_for_filter_with_options(html: &str, indent_lists: bool) -> String {
     // Issue 275b: Fix mis-balanced emphasis tags from pulldown-cmark
     let html = fix_nested_emphasis_tags(html);
-    // Issue 332: Fix literal asterisks that should have been emphasis.
-    let html = fix_literal_asterisk_emphasis(&html);
-    // Issue 333: Fix literal underscores that should have been emphasis.
-    let html = fix_literal_underscore_emphasis(&html);
     let html = apply_inline_attributes(&html);
     // Note: inline code classes are now added during markdown rendering
     // (in frontmatter::add_inline_code_class_to_events) rather than here.
@@ -946,202 +514,6 @@ pub fn normalize_html_output_owned(html: String) -> String {
 ///
 /// Does not modify same-delimiter nesting (e.g., `**text *inner* more**`).
 ///
-/// Convert underscore emphasis containing slashes to asterisk emphasis.
-///
-/// Issue 333: pulldown-cmark follows CommonMark rules that are stricter than
-/// kramdown about underscore emphasis near punctuation. The `/` character in
-/// `_CI/CD_` prevents the closing `_` from being recognized as a valid emphasis
-/// boundary in certain document contexts. By converting `_word/word_` to
-/// `*word/word*` (and `__word/word__` to `**word/word**`), we use asterisk
-/// emphasis which is not subject to the same word-boundary restrictions.
-///
-/// This function only converts underscore emphasis spans that contain at least
-/// one `/` character. It skips code spans (backticks) to avoid modifying code.
-pub fn convert_underscore_slash_emphasis(markdown: &str) -> String {
-    if !markdown.contains('_') || !markdown.contains('/') {
-        return markdown.to_string();
-    }
-
-    let mut result = String::with_capacity(markdown.len());
-    let bytes = markdown.as_bytes();
-    let len = bytes.len();
-    let mut i = 0;
-
-    while i < len {
-        // Skip code spans (backticks)
-        if bytes[i] == b'`' {
-            let backtick_start = i;
-            let mut backtick_count = 0;
-            while i < len && bytes[i] == b'`' {
-                backtick_count += 1;
-                i += 1;
-            }
-            let mut found_close = false;
-            while i < len {
-                if bytes[i] == b'`' {
-                    let mut close_count = 0;
-                    while i < len && bytes[i] == b'`' {
-                        close_count += 1;
-                        i += 1;
-                    }
-                    if close_count == backtick_count {
-                        found_close = true;
-                        break;
-                    }
-                } else {
-                    i += 1;
-                }
-            }
-            let end = if found_close { i } else { len };
-            result.push_str(&markdown[backtick_start..end]);
-            continue;
-        }
-
-        // Check for underscore that could be emphasis opener
-        if bytes[i] == b'_' {
-            // Count consecutive underscores (1 for em, 2 for strong)
-            let us_start = i;
-            let mut us_count = 0;
-            while i < len && bytes[i] == b'_' && us_count < 2 {
-                us_count += 1;
-                i += 1;
-            }
-
-            // Check if this looks like an emphasis opener:
-            // - preceded by whitespace, start of line, or punctuation (not alphanumeric)
-            // - followed by non-whitespace
-            let preceded_by_word = us_start > 0 && bytes[us_start - 1].is_ascii_alphanumeric();
-            let followed_by_nonspace =
-                i < len && bytes[i] != b' ' && bytes[i] != b'\n' && bytes[i] != b'\t';
-
-            if !preceded_by_word && followed_by_nonspace && (us_count == 1 || us_count == 2) {
-                // Scan ahead for the closing underscore(s) and check for slash
-                if let Some((content_end, has_slash)) =
-                    find_underscore_emphasis_end(bytes, i, us_count)
-                {
-                    if has_slash {
-                        // Convert _ to * (or __ to **)
-                        for _ in 0..us_count {
-                            result.push('*');
-                        }
-                        result.push_str(&markdown[i..content_end]);
-                        for _ in 0..us_count {
-                            result.push('*');
-                        }
-                        i = content_end + us_count;
-                        continue;
-                    }
-                }
-            }
-
-            // Not a slash emphasis -- output original underscores
-            result.push_str(&markdown[us_start..i]);
-            continue;
-        }
-
-        // Regular character - handle multi-byte UTF-8
-        let ch_len = utf8_char_len(bytes[i]);
-        result.push_str(&markdown[i..i + ch_len]);
-        i += ch_len;
-    }
-
-    result
-}
-
-/// Find the end of an underscore emphasis span, checking for slashes.
-/// Returns (content_end_index, has_slash) where content_end_index is the
-/// position of the first closing underscore.
-fn find_underscore_emphasis_end(
-    bytes: &[u8],
-    start: usize,
-    us_count: usize,
-) -> Option<(usize, bool)> {
-    let len = bytes.len();
-    let mut i = start;
-    let mut has_slash = false;
-
-    while i < len {
-        // Don't cross paragraph boundaries
-        if bytes[i] == b'\n' {
-            // Allow single newlines (emphasis can span soft breaks)
-            if i + 1 < len && bytes[i + 1] == b'\n' {
-                // Double newline = paragraph boundary, stop
-                return None;
-            }
-            i += 1;
-            continue;
-        }
-
-        if bytes[i] == b'/' {
-            has_slash = true;
-        }
-
-        // Skip code spans inside the emphasis
-        if bytes[i] == b'`' {
-            let mut bt_count = 0;
-            while i < len && bytes[i] == b'`' {
-                bt_count += 1;
-                i += 1;
-            }
-            let mut found = false;
-            while i < len {
-                if bytes[i] == b'`' {
-                    let mut close = 0;
-                    while i < len && bytes[i] == b'`' {
-                        close += 1;
-                        i += 1;
-                    }
-                    if close == bt_count {
-                        found = true;
-                        break;
-                    }
-                } else {
-                    i += 1;
-                }
-            }
-            if !found {
-                return None;
-            }
-            continue;
-        }
-
-        // Check for closing underscores
-        if bytes[i] == b'_' {
-            let close_start = i;
-            let mut close_count = 0;
-            while i < len && bytes[i] == b'_' {
-                close_count += 1;
-                i += 1;
-            }
-
-            // The closing delimiter must match the opening count
-            if close_count >= us_count {
-                // Check that it looks like a closer:
-                // - preceded by non-whitespace
-                // - followed by non-alphanumeric or end of string
-                let preceded_by_nonspace = close_start > start
-                    && bytes[close_start - 1] != b' '
-                    && bytes[close_start - 1] != b'\n';
-                let followed_by_word = i < len && bytes[i].is_ascii_alphanumeric();
-
-                if preceded_by_nonspace && !followed_by_word {
-                    // Content must not be empty
-                    if close_start > start {
-                        return Some((close_start, has_slash));
-                    }
-                }
-            }
-            // Not a valid closer, continue scanning
-            continue;
-        }
-
-        let ch_len = utf8_char_len(bytes[i]);
-        i += ch_len;
-    }
-
-    None
-}
-
 /// Convert runs of 4+ consecutive underscores to match kramdown behavior.
 ///
 /// Kramdown treats underscore runs differently from CommonMark:
@@ -1598,15 +970,10 @@ pub fn process_markdown_attribute(content: &str) -> String {
 
         // Render inner content as markdown
         let trimmed_inner = inner_content.trim();
-        // Issue 335: Ensure blank line after HTML block elements (like <summary>)
-        // so pulldown-cmark recognizes following content as markdown rather than
-        // extending the HTML block.
-        let trimmed_inner = ensure_blank_line_after_html_blocks(trimmed_inner);
-        let trimmed_inner_ref = trimmed_inner.as_ref();
         // Issue 322: Pre-process to join <img> lines with following text so
         // pulldown-cmark treats them as inline content (paragraph) rather than
         // HTML blocks.
-        let preprocessed_inner = preprocess_inline_html_for_markdown(trimmed_inner_ref);
+        let preprocessed_inner = preprocess_inline_html_for_markdown(trimmed_inner);
         let preprocessed_ref = preprocessed_inner.trim();
         let rendered_inner = if preprocessed_ref.is_empty() {
             String::new()
@@ -1677,35 +1044,6 @@ pub fn process_markdown_attribute(content: &str) -> String {
 /// Without this, `<img` at the start of a line triggers HTML block mode in
 /// pulldown-cmark, which suppresses `<p>` wrapping. Kramdown treats `<img>` as
 /// inline inside `markdown="1"` blocks, so the text gets `<p>` wrapped.
-/// Ensure a blank line exists after lines ending with HTML closing tags
-/// (like `</summary>`, `</div>`, etc.) when followed by non-HTML content.
-/// This is needed so pulldown-cmark doesn't treat the following markdown
-/// as part of the HTML block.
-fn ensure_blank_line_after_html_blocks(content: &str) -> String {
-    let lines: Vec<&str> = content.split('\n').collect();
-    let mut result = String::with_capacity(content.len() + 64);
-
-    for i in 0..lines.len() {
-        result.push_str(lines[i]);
-        if i < lines.len() - 1 {
-            result.push('\n');
-            // If this line ends with a closing HTML tag and the next line is
-            // not blank and doesn't start with '<', insert a blank line
-            let trimmed = lines[i].trim();
-            let next = lines[i + 1].trim();
-            if trimmed.ends_with('>')
-                && trimmed.contains("</")
-                && !next.is_empty()
-                && !next.starts_with('<')
-            {
-                result.push('\n');
-            }
-        }
-    }
-
-    result
-}
-
 fn preprocess_inline_html_for_markdown(content: &str) -> String {
     let lines: Vec<&str> = content.lines().collect();
     let mut result = String::with_capacity(content.len());
@@ -3235,49 +2573,6 @@ const STRIP_P_PARENT_TAGS: &[&str] = &[
 ///
 /// Uses `STRIP_P_PARENT_TAGS` (not `BLOCK_PARENT_TAGS`) to avoid stripping
 /// intentional `<p>` tags from semantic container elements like `<section>`.
-/// Issue 334: Unwrap `<iframe>` elements that pulldown-cmark wraps in `<p>` tags.
-///
-/// When pulldown-cmark encounters `<iframe>` in markdown, it may treat it as an
-/// inline element and wrap it in `<p>` tags. Jekyll (GFM) preserves iframes as
-/// block-level elements. This function finds `<p><iframe...>...</iframe></p>`
-/// patterns and removes the wrapping `<p>` tags.
-fn unwrap_p_around_iframes(html: &str) -> String {
-    if !html.contains("<iframe") {
-        return html.to_string();
-    }
-
-    let mut result = String::with_capacity(html.len());
-    let mut remaining = html;
-
-    while !remaining.is_empty() {
-        // Look for <p><iframe pattern
-        if let Some(p_pos) = remaining.find("<p><iframe") {
-            result.push_str(&remaining[..p_pos]);
-            let after_p = &remaining[p_pos + 3..]; // skip <p>
-
-            // Find the matching </iframe> and then </p>
-            if let Some(iframe_end) = after_p.find("</iframe>") {
-                let after_iframe_close = &after_p[iframe_end + 9..];
-                if let Some(rest) = after_iframe_close.strip_prefix("</p>") {
-                    // Found <p><iframe...></iframe></p> -- remove <p> and </p>
-                    result.push_str(&after_p[..iframe_end + 9]);
-                    remaining = rest;
-                    continue;
-                }
-            }
-
-            // No match -- output the <p> and continue searching
-            result.push_str("<p>");
-            remaining = after_p;
-        } else {
-            result.push_str(remaining);
-            break;
-        }
-    }
-
-    result
-}
-
 fn strip_paragraphs_in_html_blocks(html: &str) -> String {
     let mut result = html.to_string();
 
@@ -3583,113 +2878,6 @@ fn contains_block_elements(content: &str) -> bool {
 /// ```
 /// is parsed by comrak, which wraps the `{: .fs-9 }` line in a `<p>` tag.
 ///
-/// Apply span-level IAL on images: `<img ... />{: .class1.class2 :}` -> `<img ... class="class1 class2" />`
-///
-/// This handles the case where an image in markdown has an inline IAL like
-/// `![alt](url){: .mx-auto.d-block :}`. After pulldown-cmark processing, the IAL
-/// text appears as literal text after the `<img>` tag. This function finds these
-/// patterns and applies the attributes to the `<img>` tag.
-fn apply_image_span_ial(html: &str) -> String {
-    // Pattern: <img ... />{: ... }  or  <img ... />{: ... :}
-    let img_ial_pattern = "/>{:";
-    if !html.contains(img_ial_pattern) {
-        return html.to_string();
-    }
-
-    let mut result = html.to_string();
-    let mut search_from = 0;
-
-    while let Some(ial_start) = result[search_from..].find(img_ial_pattern) {
-        let abs_ial_start = search_from + ial_start + 2; // position of `{:`
-
-        // Verify there's an <img before this />
-        let before = &result[..abs_ial_start];
-        if !before.ends_with("/>") {
-            search_from = abs_ial_start + 2;
-            continue;
-        }
-
-        // Check that we have an <img tag ending at this />
-        let img_tag_start = if let Some(pos) = before.rfind("<img ") {
-            pos
-        } else {
-            search_from = abs_ial_start + 2;
-            continue;
-        };
-
-        // Make sure no other tags between <img and />
-        let between = &before[img_tag_start..];
-        if between.contains("><") {
-            search_from = abs_ial_start + 2;
-            continue;
-        }
-
-        // Find the closing } of the IAL
-        let after_ial_open = abs_ial_start;
-        if let Some(close_brace) = result[after_ial_open..].find('}') {
-            let abs_close = after_ial_open + close_brace;
-            // Extract attribute string between {: and }
-            let attr_content = &result[abs_ial_start + 2..abs_close];
-            // Remove trailing : if present (kramdown allows {: .class :})
-            let attr_str = attr_content.trim().trim_end_matches(':').trim();
-
-            let attrs = parse_ial_attributes(attr_str);
-            if attrs.is_empty() {
-                search_from = abs_close + 1;
-                continue;
-            }
-
-            // Build the attribute string to insert
-            let mut attr_html = String::new();
-            let mut classes = Vec::new();
-            let mut id = None;
-            let mut others = Vec::new();
-            for (k, v) in &attrs {
-                match k.as_str() {
-                    "class" => classes.push(v.as_str()),
-                    "id" => id = Some(v.as_str()),
-                    _ => others.push((k.as_str(), v.as_str())),
-                }
-            }
-            if !classes.is_empty() {
-                attr_html.push_str(&format!(" class=\"{}\"", classes.join(" ")));
-            }
-            if let Some(id_val) = id {
-                attr_html.push_str(&format!(" id=\"{id_val}\""));
-            }
-            for (k, v) in &others {
-                attr_html.push_str(&format!(" {k}=\"{v}\""));
-            }
-
-            // Find where to insert (before the ` />` closing)
-            let close_tag_pos = abs_ial_start; // position of `{:` (which is right after `/>`)
-            let mut insert_pos = close_tag_pos - 2; // before `/>`
-                                                    // Also skip the space before /> if present
-            if insert_pos > 0 && result.as_bytes()[insert_pos - 1] == b' ' {
-                insert_pos -= 1;
-            }
-
-            // Remove the IAL text: from after /> to end of }
-            let ial_text_end = abs_close + 1; // after }
-
-            // Insert attributes into the <img tag and remove the IAL text
-            let mut new_result = String::with_capacity(result.len() + attr_html.len());
-            // Everything up to the insert position (before the space+/>)
-            let before_close = &result[..insert_pos];
-            new_result.push_str(before_close);
-            new_result.push_str(&attr_html);
-            new_result.push_str(" />");
-            new_result.push_str(&result[ial_text_end..]);
-            result = new_result;
-            search_from = insert_pos + attr_html.len() + 3; // past the inserted content
-        } else {
-            search_from = abs_ial_start + 2;
-        }
-    }
-
-    result
-}
-
 /// This function finds `<p>{: ... }</p>` paragraphs and applies their
 /// attributes to the preceding block element, then removes the IAL paragraph.
 fn apply_block_ial(html: &str) -> String {
@@ -4139,10 +3327,10 @@ fn parse_ial_attributes(attr_str: &str) -> Vec<(String, String)> {
         }
 
         if remaining.starts_with('.') {
-            // Class shorthand: .class-name (dot-separated means multiple classes)
+            // Class shorthand
             remaining = &remaining[1..];
             let end = remaining
-                .find(|c: char| c.is_whitespace() || c == '}' || c == '.' || c == '#')
+                .find(|c: char| c.is_whitespace() || c == '}')
                 .unwrap_or(remaining.len());
             let class_name = &remaining[..end];
             if !class_name.is_empty() {
@@ -4772,7 +3960,6 @@ fn wrap_bare_text_in_paragraphs(html: &str) -> String {
         "dd",
         "dt",
         "script",
-        "iframe",
     ];
 
     /// Block-level tags (includes void/self-closing like hr).
@@ -4814,7 +4001,6 @@ fn wrap_bare_text_in_paragraphs(html: &str) -> String {
         "dt",
         "p",
         "script",
-        "iframe",
     ];
 
     let lines: Vec<&str> = html.split('\n').collect();
@@ -5392,10 +4578,11 @@ fn normalize_newlines_in_html_tags(html: &str) -> String {
                 if ch == q {
                     inside_quote = None;
                 }
-                // Preserve newlines inside quoted attribute values.
-                // Jekyll/kramdown only normalizes newlines between attributes
-                // (e.g., between src="..." and alt="..."), not within values.
-                result.push(ch);
+                if ch == '\n' {
+                    result.push(' ');
+                } else {
+                    result.push(ch);
+                }
             } else if ch == '"' || ch == '\'' {
                 inside_quote = Some(ch);
                 result.push(ch);
@@ -10298,13 +9485,12 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     #[test]
-    fn test_issue198_zwsp_stripped_from_output() {
-        // Issue 337D: ZWSP is stripped from markdown output to match Jekyll/kramdown
+    fn test_issue198_zwsp_preserved_without_emphasis() {
         let input = "text\u{200b}more text";
         let html = crate::frontmatter::markdown_to_html(input);
         assert!(
-            !html.contains('\u{200b}'),
-            "ZWSP should be stripped from output. Got: {html}"
+            html.contains("\u{200b}"),
+            "ZWSP without emphasis should be preserved. Got: {html}"
         );
     }
 
@@ -13495,273 +12681,5 @@ by <a href="/people/author.html">Author Name</a>
             "Accented character in emphasis must be preserved. Got:\n{}",
             html
         );
-    }
-
-    #[test]
-    fn test_issue332_emphasis_with_links_full_context() {
-        let path = std::path::Path::new("websites/DataTalksClub/datatalksclub.github.io/_posts/2022-09-29-interview-with-valerii-chetvertakov.md");
-        assert!(path.exists(), "DTC blog post must exist at {:?}", path);
-        let content = std::fs::read_to_string(path).unwrap();
-        let body = if content.starts_with("---") {
-            if let Some(end) = content[3..].find("---") {
-                content[end + 6..].to_string()
-            } else {
-                content
-            }
-        } else {
-            content
-        };
-        let html = render_kramdown_mode(&body);
-        assert!(html.contains("<em>EL SEGUNDO"), "Must have <em>EL SEGUNDO");
-        assert!(html.contains("<em><a href="), "Must have <em><a href=");
-        assert!(
-            !html.contains("\"*EL SEGUNDO"),
-            "Must not have literal *EL SEGUNDO"
-        );
-        assert!(
-            !html.contains("*<a href="),
-            "Must not have literal *<a href="
-        );
-    }
-
-    #[test]
-    fn test_issue332_multiple_emphasis_spans() {
-        let path = std::path::Path::new("websites/DataTalksClub/datatalksclub.github.io/_posts/2022-09-29-interview-with-valerii-chetvertakov.md");
-        assert!(path.exists(), "DTC blog post must exist at {:?}", path);
-        let content = std::fs::read_to_string(path).unwrap();
-        let body = if content.starts_with("---") {
-            if let Some(end) = content[3..].find("---") {
-                content[end + 6..].to_string()
-            } else {
-                content
-            }
-        } else {
-            content
-        };
-        let html = render_kramdown_mode(&body);
-        let ps = html.find("EL SEGUNDO").expect("Must contain EL SEGUNDO");
-        let pe = html[ps..].find("</p>").unwrap_or(html.len() - ps) + ps;
-        let paragraph = &html[ps..pe];
-        let em_count = paragraph.matches("<em>").count();
-        assert!(
-            em_count >= 4,
-            "Need >= 4 <em>, got {}. Para:\n{}",
-            em_count,
-            paragraph
-        );
-    }
-
-    #[test]
-    fn test_issue332_simplified_regression() {
-        let md = "*<a href=\"https://example.com\">Link Text</a>, trailing*\n";
-        let html = render_kramdown_mode(md);
-        assert!(html.contains("<em>"), "Must produce <em>. Got:\n{}", html);
-        let md2 = "*<a href=\"url1\">A</a>, text1* and *<a href=\"url2\">B</a>, text2*\n";
-        let html2 = render_kramdown_mode(md2);
-        assert!(
-            html2.matches("<em>").count() >= 2,
-            "Must have 2+ <em> in:\n{}",
-            html2
-        );
-    }
-
-    #[test]
-    fn test_issue332_unicode_emphasis_link() {
-        let md = "*<a href=\"https://example.com\">Compagnie \u{00c9}lectrique</a>, fournisseur d\u{2019}\u{00e9}nergie*\n";
-        let html = render_kramdown_mode(md);
-        assert!(
-            html.contains("<em>"),
-            "Unicode emphasis must produce <em>. Got:\n{}",
-            html
-        );
-        assert!(
-            html.contains("\u{00c9}lectrique"),
-            "Must preserve accented chars"
-        );
-        assert!(
-            html.contains("\u{00e9}nergie"),
-            "Must preserve accented trailing text"
-        );
-    }
-
-    #[test]
-    fn test_issue335_details_markdown_attribute() {
-        let input = "<details markdown=\"1\">\n<summary>Click here!</summary>\nHere you can see an **expandable** section\n</details>\n";
-        let result = super::process_markdown_attribute(input);
-        // The inner content should have markdown rendered
-        assert!(
-            result.contains("<strong>expandable</strong>"),
-            "Details block with markdown='1' should render markdown. Got: {result}"
-        );
-    }
-
-    // ---- Issue 333: Underscore emphasis with slashes (context-dependent bug) ----
-
-    #[test]
-    fn test_issue333_underscore_emphasis_with_slash_full_context() {
-        // The bug reproduces in context with mixed emphasis delimiters.
-        // This is the actual text from the DTC book YAML text field (decoded).
-        let text = "Laurence Moroney it\u{2019}s amazing to have the opportunity to talk to you. \
-            I have taken all of your courses with [deeplearning.ai](http://deeplearning.ai) \
-            and I love the way you taught and broke down the API into small chunks.\n\
-            My question is: What according to you is the ideal \u{201C}*Full-Stack*\u{201D} pipeline \
-            for building deep learning models ? How do we incorporate methodologies like \
-            _CI/CD_, _Testing_ and _Deployment_ with the Tensorflow Ecosystem. Does Post-Training \
-            Optimization methods such as _Pruning_ and _Quantisation_ come under \u{201C}\
-            *Full-Stack*\u{201D} and what according to you is the future of the `tfmot` package ?";
-        let html = crate::frontmatter::markdown_to_html_for_filter(text);
-        assert!(
-            html.contains("<em>CI/CD</em>"),
-            "Must have <em>CI/CD</em> not literal _CI/CD_. Got:\n{}",
-            html
-        );
-    }
-
-    #[test]
-    fn test_issue333_testing_deployment_emphasis_full_context() {
-        // Same text as above, checking all emphasis markers
-        let text = "Laurence Moroney it\u{2019}s amazing to have the opportunity to talk to you. \
-            I have taken all of your courses with [deeplearning.ai](http://deeplearning.ai) \
-            and I love the way you taught and broke down the API into small chunks.\n\
-            My question is: What according to you is the ideal \u{201C}*Full-Stack*\u{201D} pipeline \
-            for building deep learning models ? How do we incorporate methodologies like \
-            _CI/CD_, _Testing_ and _Deployment_ with the Tensorflow Ecosystem. Does Post-Training \
-            Optimization methods such as _Pruning_ and _Quantisation_ come under \u{201C}\
-            *Full-Stack*\u{201D} and what according to you is the future of the `tfmot` package ?";
-        let html = crate::frontmatter::markdown_to_html_for_filter(text);
-        assert!(
-            html.contains("<em>Testing</em>"),
-            "Must have <em>Testing</em>. Got:\n{}",
-            html
-        );
-        assert!(
-            html.contains("<em>Deployment</em>"),
-            "Must have <em>Deployment</em>. Got:\n{}",
-            html
-        );
-        assert!(
-            html.contains("<em>Pruning</em>"),
-            "Must have <em>Pruning</em>. Got:\n{}",
-            html
-        );
-        assert!(
-            html.contains("<em>Quantisation</em>"),
-            "Must have <em>Quantisation</em>. Got:\n{}",
-            html
-        );
-    }
-
-    #[test]
-    fn test_issue333_underscore_slash_edge_cases() {
-        // Multiple slashes
-        let md = "_one/two/three_\n";
-        let html = render_kramdown_mode(md);
-        assert!(
-            html.contains("<em>one/two/three</em>"),
-            "Multiple slashes must produce emphasis. Got:\n{}",
-            html
-        );
-
-        // Multiple underscore-with-slash spans
-        let md2 = "_a/b_ and _c/d_\n";
-        let html2 = render_kramdown_mode(md2);
-        assert!(
-            html2.contains("<em>a/b</em>"),
-            "First slash span must be emphasis. Got:\n{}",
-            html2
-        );
-        assert!(
-            html2.contains("<em>c/d</em>"),
-            "Second slash span must be emphasis. Got:\n{}",
-            html2
-        );
-    }
-
-    #[test]
-    fn test_issue333_strong_emphasis_with_slash() {
-        let md = "__CI/CD__\n";
-        let html = render_kramdown_mode(md);
-        assert!(
-            html.contains("<strong>CI/CD</strong>"),
-            "Strong emphasis with slash must work. Got:\n{}",
-            html
-        );
-    }
-
-    #[test]
-    fn test_issue333_code_span_not_affected() {
-        let md = "`_CI/CD_`\n";
-        let html = render_kramdown_mode(md);
-        assert!(
-            html.contains("_CI/CD_"),
-            "Code span must preserve literal underscores. Got:\n{}",
-            html
-        );
-        assert!(
-            !html.contains("<em>CI/CD</em>"),
-            "Code span must NOT produce emphasis. Got:\n{}",
-            html
-        );
-    }
-
-    #[test]
-    fn test_issue333_unicode_with_slash() {
-        let md = "_donn\u{00e9}es/analyse_\n";
-        let html = render_kramdown_mode(md);
-        assert!(
-            html.contains("<em>donn\u{00e9}es/analyse</em>"),
-            "Unicode emphasis with slash must work. Got:\n{}",
-            html
-        );
-    }
-
-    // ---- Issue 335: Inline $$...$$ math conversion ----
-
-    #[test]
-    fn test_issue335_inline_double_dollar_math() {
-        let html = "<p>text before $$x^2$$ text after</p>";
-        let result = super::convert_inline_double_dollar_math(html);
-        assert_eq!(result, "<p>text before \\(x^2\\) text after</p>");
-    }
-
-    #[test]
-    fn test_issue335_display_math_not_affected() {
-        // Display math (sole content of <p>) should have already been handled
-        // by convert_display_math_blocks. This function should still convert
-        // the $$ since it doesn't know about <p> context.
-        let html = "\\[x^2\\]";
-        let result = super::convert_inline_double_dollar_math(html);
-        assert_eq!(
-            result, "\\[x^2\\]",
-            "Already-converted display math should be unchanged"
-        );
-    }
-
-    #[test]
-    fn test_issue335_inline_math_in_code_not_converted() {
-        let html = "<p><code>$$x^2$$</code></p>";
-        let result = super::convert_inline_double_dollar_math(html);
-        assert_eq!(result, html, "Math inside code should not be converted");
-    }
-
-    #[test]
-    fn test_issue335_inline_math_complex() {
-        let html = "<p>they are $$x = {-b \\pm \\sqrt{b^2-4ac} \\over 2a}.$$</p>";
-        let result = super::convert_inline_double_dollar_math(html);
-        assert!(
-            result.contains("\\(x = {-b \\pm \\sqrt{b^2-4ac} \\over 2a}.\\)"),
-            "Complex math should be converted. Got: {result}"
-        );
-        assert!(
-            !result.contains("$$"),
-            "No raw $$ should remain. Got: {result}"
-        );
-    }
-
-    #[test]
-    fn test_issue335_no_double_dollar_no_change() {
-        let html = "<p>no math here</p>";
-        let result = super::convert_inline_double_dollar_math(html);
-        assert_eq!(result, html);
     }
 }

@@ -225,6 +225,22 @@ Plain `cargo fmt` is fine since it uses negligible memory.
 3. Check dependencies -- don't start until deps are `.done.md`
 4. Pick 2 independent issues at a time for parallel implementation
 
+## DOM Baseline Tracking (Critical)
+
+Every issue that touches the rendering pipeline MUST track the DTC DOM baseline:
+
+1. **PM records baseline** during grooming — run DOM comparison from committed code, record the number (e.g., "DTC baseline: 764/790")
+2. **Add acceptance criterion**: "DTC DOM match count must not drop below [baseline]"
+3. **SWE verifies** before reporting done — must build and compare, report in log
+4. **QA independently verifies** — do NOT trust the SWE's reported number, run the comparison yourself and compare against the issue's baseline
+5. **PM verifies** during acceptance — check the QA's reported number against baseline
+
+If the DOM count drops below baseline at any stage, it's a FAIL. No exceptions.
+
+### Why this matters
+
+SWE agents building against dirty working trees (with other issues' uncommitted changes) can report inflated DOM counts. Without baseline tracking, regressions slip through undetected.
+
 ## Output Verification (Critical)
 
 For any issue that changes HTML output or templating:
