@@ -344,6 +344,326 @@ fn fix_nested_tag(html: &str, tag: &str) -> String {
     result
 }
 
+/// Return the byte length of a UTF-8 character from its first byte.
+fn utf8_char_len(first_byte: u8) -> usize {
+    if first_byte < 0x80 {
+        1
+    } else if first_byte < 0xE0 {
+        2
+    } else if first_byte < 0xF0 {
+        3
+    } else {
+        4
+    }
+}
+
+/// Strip HTML tags from a string, returning only the text content.
+fn strip_html_tags_simple(html: &str) -> String {
+    let mut result = String::new();
+    let mut in_tag = false;
+    for ch in html.chars() {
+        if ch == '<' {
+            in_tag = true;
+        } else if ch == '>' {
+            in_tag = false;
+        } else if !in_tag {
+            result.push(ch);
+        }
+    }
+    result
+}
+
+/// Find a closing `*` for a literal emphasis span starting at `start`.
+/// Returns the content and position of the closing `*`.
+fn find_literal_emphasis_span(html: &str, start: usize) -> Option<(&str, usize)> {
+    let bytes = html.as_bytes();
+    let len = bytes.len();
+    let mut i = start;
+    let mut depth: i32 = 0;
+
+    while i < len {
+        if bytes[i] == b'<' {
+            if i + 1 < len && bytes[i + 1] == b'/' {
+                depth -= 1;
+            } else if i + 1 < len && bytes[i + 1] != b'!' {
+                let tag_end = html[i..].find('>')?;
+                let abs_end = i + tag_end;
+                if bytes[abs_end - 1] != b'/' {
+                    let tag_content = &html[i + 1..abs_end];
+                    let tag_name = tag_content.split_whitespace().next().unwrap_or("");
+                    if !matches!(tag_name, "br" | "hr" | "img" | "input" | "meta" | "link") {
+                        depth += 1;
+                    }
+                }
+            }
+            while i < len && bytes[i] != b'>' {
+                i += 1;
+            }
+            if i < len {
+                i += 1;
+            }
+            continue;
+        }
+
+        if bytes[i] == b'*'
+            && depth <= 0
+            && i > start
+            && bytes[i - 1] != b' '
+            && bytes[i - 1] != b'\n'
+        {
+            let next_ok = i + 1 >= len
+                || matches!(
+                    bytes[i + 1],
+                    b' ' | b',' | b'.' | b'<' | b'"' | b'\n' | b')' | b';' | b':' | b'!' | b'?'
+                );
+            if next_ok {
+                let span_len = i - start;
+                if span_len > 0 && span_len < 2000 {
+                    let content = &html[start..i];
+                    let text_content = strip_html_tags_simple(content);
+                    if !text_content.trim().is_empty() {
+                        return Some((content, i));
+                    }
+                }
+            }
+        }
+
+        let ch_len = utf8_char_len(bytes[i]);
+        i += ch_len;
+    }
+
+    None
+}
+
+/// Find a closing `_` (or `__`) for a literal underscore emphasis span.
+fn find_literal_underscore_emphasis_span(
+    html: &str,
+    start: usize,
+    delim_count: usize,
+) -> Option<(&str, usize)> {
+    let bytes = html.as_bytes();
+    let len = bytes.len();
+    let mut i = start;
+
+    while i < len {
+        if bytes[i] == b'<' {
+            return None;
+        }
+        if bytes[i] == b'\n' {
+            return None;
+        }
+        if bytes[i] == b'_' {
+            let close_start = i;
+            let mut close_count = 0;
+            while i < len && bytes[i] == b'_' {
+                close_count += 1;
+                i += 1;
+            }
+            if close_count >= delim_count {
+                let preceded_ok = close_start > start
+                    && bytes[close_start - 1] != b' '
+                    && bytes[close_start - 1] != b'\n';
+                let followed_ok = i >= len || !bytes[i].is_ascii_alphanumeric();
+                if preceded_ok && followed_ok {
+                    let span_len = close_start - start;
+                    if span_len > 0 && span_len < 2000 {
+                        let content = &html[start..close_start];
+                        if !content.trim().is_empty() {
+                            return Some((content, close_start));
+                        }
+                    }
+                }
+            }
+            continue;
+        }
+        let ch_len = utf8_char_len(bytes[i]);
+        i += ch_len;
+    }
+
+    None
+}
+
+/// Issue 332: Fix literal `*` characters that should have been emphasis markers.
+///
+/// pulldown-cmark sometimes fails to resolve `*...*` as emphasis in certain document
+/// contexts (e.g., when preceded by `<figure>` blocks with `<figcaption>` containing
+/// nested `<a>` tags). The `*` characters end up as literal text in the HTML output.
+///
+/// This function detects paired `*...*` patterns in the HTML output where the content
+/// between them may include HTML tags (like `<a>`) and plain text, and converts them
+/// to `<em>...</em>`.
+pub fn fix_literal_asterisk_emphasis(html: &str) -> String {
+    if !html.contains('*') {
+        return html.to_string();
+    }
+
+    let mut result = String::with_capacity(html.len());
+    let bytes = html.as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
+    let mut em_depth: i32 = 0;
+
+    while i < len {
+        if bytes[i] == b'<' {
+            let tag_start = i;
+            i += 1;
+            while i < len && bytes[i] != b'>' {
+                i += 1;
+            }
+            if i < len {
+                i += 1;
+            }
+            let tag = &html[tag_start..i];
+            if tag == "<em>" || tag == "<strong>" {
+                em_depth += 1;
+            } else if tag == "</em>" || tag == "</strong>" {
+                em_depth -= 1;
+            }
+            result.push_str(tag);
+            continue;
+        }
+
+        if bytes[i] == b'*' && em_depth <= 0 {
+            let is_opener = {
+                let prev_ok = i == 0
+                    || matches!(bytes[i - 1], b' ' | b'>' | b'"' | b'\n' | b'\t' | b'(')
+                    || (i >= 2 && !bytes[i - 1].is_ascii());
+                let next_ok = i + 1 < len && bytes[i + 1] != b' ' && bytes[i + 1] != b'\n';
+                prev_ok && next_ok
+            };
+
+            if is_opener {
+                if let Some((content, end_pos)) = find_literal_emphasis_span(html, i + 1) {
+                    result.push_str("<em>");
+                    result.push_str(content);
+                    result.push_str("</em>");
+                    i = end_pos + 1;
+                    continue;
+                }
+            }
+        }
+
+        if bytes[i] == b'*' {
+            result.push('*');
+            i += 1;
+            continue;
+        }
+
+        let ch_len = utf8_char_len(bytes[i]);
+        result.push_str(&html[i..i + ch_len]);
+        i += ch_len;
+    }
+
+    result
+}
+
+/// Issue 333: Fix literal underscore emphasis that pulldown-cmark failed to parse.
+///
+/// In certain document contexts, pulldown-cmark leaves `_text_` as literal
+/// underscores instead of converting to `<em>text</em>`. This postprocessor
+/// detects such patterns in the HTML output and wraps them in emphasis tags.
+pub fn fix_literal_underscore_emphasis(html: &str) -> String {
+    if !html.contains('_') {
+        return html.to_string();
+    }
+
+    let mut result = String::with_capacity(html.len());
+    let bytes = html.as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
+    let mut em_depth: i32 = 0;
+    let mut in_code = false;
+
+    while i < len {
+        if bytes[i] == b'<' {
+            let tag_start = i;
+            i += 1;
+            while i < len && bytes[i] != b'>' {
+                i += 1;
+            }
+            if i < len {
+                i += 1;
+            }
+            let tag = &html[tag_start..i];
+            if tag == "<em>" || tag == "<strong>" {
+                em_depth += 1;
+            } else if tag == "</em>" || tag == "</strong>" {
+                em_depth -= 1;
+            } else if tag == "<code>" || tag.starts_with("<code ") {
+                in_code = true;
+            } else if tag == "</code>" {
+                in_code = false;
+            }
+            result.push_str(tag);
+            continue;
+        }
+
+        if bytes[i] == b'_' && em_depth <= 0 && !in_code {
+            let is_double = i + 1 < len && bytes[i + 1] == b'_';
+
+            if is_double {
+                let delim_count = 2;
+                let content_start = i + delim_count;
+                let is_opener = {
+                    let prev_ok = i == 0
+                        || matches!(
+                            bytes[i - 1],
+                            b' ' | b'>' | b'"' | b'\n' | b'\t' | b'(' | b',' | b';'
+                        )
+                        || (i >= 2 && !bytes[i - 1].is_ascii());
+                    let next_ok = content_start < len
+                        && bytes[content_start] != b' '
+                        && bytes[content_start] != b'\n';
+                    prev_ok && next_ok
+                };
+                if is_opener {
+                    if let Some((content, end_pos)) =
+                        find_literal_underscore_emphasis_span(html, content_start, delim_count)
+                    {
+                        result.push_str("<strong>");
+                        result.push_str(content);
+                        result.push_str("</strong>");
+                        i = end_pos + delim_count;
+                        continue;
+                    }
+                }
+            }
+
+            let is_opener = {
+                let prev_ok = i == 0
+                    || matches!(
+                        bytes[i - 1],
+                        b' ' | b'>' | b'"' | b'\n' | b'\t' | b'(' | b',' | b';'
+                    )
+                    || (i >= 2 && !bytes[i - 1].is_ascii());
+                let next_ok = i + 1 < len
+                    && bytes[i + 1] != b' '
+                    && bytes[i + 1] != b'\n'
+                    && bytes[i + 1] != b'_';
+                prev_ok && next_ok
+            };
+
+            if is_opener {
+                if let Some((content, end_pos)) =
+                    find_literal_underscore_emphasis_span(html, i + 1, 1)
+                {
+                    result.push_str("<em>");
+                    result.push_str(content);
+                    result.push_str("</em>");
+                    i = end_pos + 1;
+                    continue;
+                }
+            }
+        }
+
+        let ch_len = utf8_char_len(bytes[i]);
+        result.push_str(&html[i..i + ch_len]);
+        i += ch_len;
+    }
+
+    result
+}
+
 /// Apply all kramdown compatibility transformations to HTML output.
 ///
 /// When `indent_lists` is true (kramdown mode), list items are indented with
@@ -353,6 +673,21 @@ pub fn postprocess_with_options(html: &str, indent_lists: bool) -> String {
     // Issue 275b: Fix mis-balanced emphasis tags from pulldown-cmark before other
     // postprocessing steps that depend on correct tag nesting.
     let html = fix_nested_emphasis_tags(html);
+    // Issue 332: Fix literal asterisks that should have been emphasis.
+    // Only for kramdown mode -- CommonMarkGhPages handles emphasis correctly.
+    let html = if indent_lists {
+        fix_literal_asterisk_emphasis(&html)
+    } else {
+        html
+    };
+    // Issue 333: Fix literal underscores that should have been emphasis.
+    // Only for kramdown mode -- for CommonMarkGhPages, pulldown-cmark already
+    // handles emphasis correctly and this would create false emphasis.
+    let html = if indent_lists {
+        fix_literal_underscore_emphasis(&html)
+    } else {
+        html
+    };
     let html = strip_paragraphs_in_html_blocks(&html);
     let html = encode_bare_ampersands(&html);
     // Issue 330: Use different heading ID generation for kramdown vs CommonMarkGhPages.
@@ -426,6 +761,10 @@ pub fn postprocess_for_filter(html: &str) -> String {
 pub fn postprocess_for_filter_with_options(html: &str, indent_lists: bool) -> String {
     // Issue 275b: Fix mis-balanced emphasis tags from pulldown-cmark
     let html = fix_nested_emphasis_tags(html);
+    // Issue 332: Fix literal asterisks that should have been emphasis.
+    let html = fix_literal_asterisk_emphasis(&html);
+    // Issue 333: Fix literal underscores that should have been emphasis.
+    let html = fix_literal_underscore_emphasis(&html);
     let html = apply_inline_attributes(&html);
     // Note: inline code classes are now added during markdown rendering
     // (in frontmatter::add_inline_code_class_to_events) rather than here.
@@ -12807,6 +13146,59 @@ by <a href="/people/author.html">Author Name</a>
             html.contains("<em>donn\u{00e9}es</em>"),
             "Accented character in emphasis must be preserved. Got:\n{}",
             html
+        );
+    }
+
+    // ========================================================================
+    // Regression: fix_literal_asterisk_emphasis restores emphasis from literal *
+    // ========================================================================
+
+    #[test]
+    fn test_regression_literal_asterisk_emphasis_in_postprocess() {
+        // When pulldown-cmark fails to parse *text* as emphasis in certain
+        // document contexts (e.g., after <figure> blocks), the asterisks end
+        // up as literal text. The postprocessor must fix these.
+        let html = r#"<p>"*EL SEGUNDO, Calif., June 21, 2022 —* *<a href="https://example.com">Blink Charging</a>, a premier electric vehicle (EV) charging solution provider, announced that it has been acquired by <a href="https://example.com">Schneider Electric</a>, the leader in energy management and automation."*</p>"#;
+        let result = postprocess_with_options(html, true);
+        assert!(
+            result.contains("<em>"),
+            "Literal *...* should be converted to <em>...</em> by postprocessor. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_regression_literal_underscore_emphasis_in_postprocess() {
+        // Literal _text_ in HTML output should be converted to <em>text</em>
+        // when pulldown-cmark fails to parse it.
+        let html = "<p>methodologies like _CI/CD_, _Testing_ and _Deployment_ with TensorFlow</p>";
+        let result = postprocess_with_options(html, true);
+        assert!(
+            result.contains("<em>CI/CD</em>"),
+            "Literal _CI/CD_ should become <em>CI/CD</em>. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<em>Testing</em>"),
+            "Literal _Testing_ should become <em>Testing</em>. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<em>Deployment</em>"),
+            "Literal _Deployment_ should become <em>Deployment</em>. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_regression_literal_emphasis_unicode_content() {
+        // Emphasis with non-ASCII content must also work
+        let html = "<p>Le mot _r\u{00e9}sum\u{00e9}_ est fran\u{00e7}ais</p>";
+        let result = postprocess_with_options(html, true);
+        assert!(
+            result.contains("<em>r\u{00e9}sum\u{00e9}</em>"),
+            "Underscore emphasis with accented chars should work. Got: {}",
+            result
         );
     }
 }
