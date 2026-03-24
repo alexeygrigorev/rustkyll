@@ -344,6 +344,175 @@ fn fix_nested_tag(html: &str, tag: &str) -> String {
     result
 }
 
+/// Issue 332: Fix literal `*` characters that should have been emphasis markers.
+///
+/// pulldown-cmark sometimes fails to resolve `*...*` as emphasis in certain document
+/// contexts (e.g., when preceded by `<figure>` blocks with `<figcaption>` containing
+/// nested `<a>` tags). The `*` characters end up as literal text in the HTML output.
+///
+/// This function detects paired `*...*` patterns in the HTML output where the content
+/// between them may include HTML tags (like `<a>`) and plain text, and converts them
+/// to `<em>...</em>`.
+pub fn fix_literal_asterisk_emphasis(html: &str) -> String {
+    if !html.contains('*') {
+        return html.to_string();
+    }
+
+    let mut result = String::with_capacity(html.len());
+    let bytes = html.as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
+    // Track nesting depth inside <em>/<strong> to avoid double-wrapping
+    let mut em_depth: i32 = 0;
+
+    while i < len {
+        // Handle HTML tags
+        if bytes[i] == b'<' {
+            let tag_start = i;
+            i += 1;
+            while i < len && bytes[i] != b'>' {
+                i += 1;
+            }
+            if i < len {
+                i += 1;
+            }
+            let tag = &html[tag_start..i];
+            // Track em/strong nesting
+            if tag == "<em>" || tag == "<strong>" {
+                em_depth += 1;
+            } else if tag == "</em>" || tag == "</strong>" {
+                em_depth -= 1;
+            }
+            result.push_str(tag);
+            continue;
+        }
+
+        // Only consider `*` as emphasis when NOT inside existing <em>/<strong>
+        if bytes[i] == b'*' && em_depth <= 0 {
+            let is_opener = {
+                let prev_ok = i == 0
+                    || matches!(bytes[i - 1], b' ' | b'>' | b'"' | b'\n' | b'\t' | b'(')
+                    || (i >= 2 && !bytes[i - 1].is_ascii());
+                let next_ok = i + 1 < len && bytes[i + 1] != b' ' && bytes[i + 1] != b'\n';
+                prev_ok && next_ok
+            };
+
+            if is_opener {
+                if let Some((content, end_pos)) = find_literal_emphasis_span(html, i + 1) {
+                    result.push_str("<em>");
+                    result.push_str(content);
+                    result.push_str("</em>");
+                    i = end_pos + 1;
+                    continue;
+                }
+            }
+        }
+
+        if bytes[i] == b'*' {
+            result.push('*');
+            i += 1;
+            continue;
+        }
+
+        // Regular character - handle multi-byte UTF-8
+        let ch_len = utf8_char_len(bytes[i]);
+        result.push_str(&html[i..i + ch_len]);
+        i += ch_len;
+    }
+
+    result
+}
+
+/// Find the end of a literal emphasis span starting after the opening `*`.
+fn find_literal_emphasis_span(html: &str, start: usize) -> Option<(&str, usize)> {
+    let bytes = html.as_bytes();
+    let len = bytes.len();
+    let mut i = start;
+    let mut depth: i32 = 0;
+
+    while i < len {
+        if bytes[i] == b'<' {
+            if i + 1 < len && bytes[i + 1] == b'/' {
+                depth -= 1;
+            } else if i + 1 < len && bytes[i + 1] != b'!' {
+                let tag_end = html[i..].find('>')?;
+                let abs_end = i + tag_end;
+                if bytes[abs_end - 1] != b'/' {
+                    let tag_content = &html[i + 1..abs_end];
+                    let tag_name = tag_content.split_whitespace().next().unwrap_or("");
+                    if !matches!(tag_name, "br" | "hr" | "img" | "input" | "meta" | "link") {
+                        depth += 1;
+                    }
+                }
+            }
+            while i < len && bytes[i] != b'>' {
+                i += 1;
+            }
+            if i < len {
+                i += 1;
+            }
+            continue;
+        }
+
+        if bytes[i] == b'*'
+            && depth <= 0
+            && i > start
+            && bytes[i - 1] != b' '
+            && bytes[i - 1] != b'\n'
+        {
+            let next_ok = i + 1 >= len
+                || matches!(
+                    bytes[i + 1],
+                    b' ' | b',' | b'.' | b'<' | b'"' | b'\n' | b')' | b';' | b':' | b'!' | b'?'
+                );
+            if next_ok {
+                let span_len = i - start;
+                if span_len > 0 && span_len < 2000 {
+                    let content = &html[start..i];
+                    let text_content = strip_html_tags_simple(content);
+                    if !text_content.trim().is_empty() {
+                        return Some((content, i));
+                    }
+                }
+            }
+        }
+
+        let ch_len = utf8_char_len(bytes[i]);
+        i += ch_len;
+    }
+
+    None
+}
+
+/// Simple HTML tag stripper for validation purposes.
+fn strip_html_tags_simple(html: &str) -> String {
+    let mut result = String::new();
+    let mut in_tag = false;
+    for ch in html.chars() {
+        if ch == '<' {
+            in_tag = true;
+        } else if ch == '>' {
+            in_tag = false;
+        } else if !in_tag {
+            result.push(ch);
+        }
+    }
+    result
+}
+
+/// Get the length of a UTF-8 character from its first byte.
+fn utf8_char_len(first_byte: u8) -> usize {
+    if first_byte < 0x80 {
+        1
+    } else if first_byte < 0xE0 {
+        2
+    } else if first_byte < 0xF0 {
+        3
+    } else {
+        4
+    }
+}
+
 /// Apply all kramdown compatibility transformations to HTML output.
 ///
 /// When `indent_lists` is true (kramdown mode), list items are indented with
@@ -353,6 +522,8 @@ pub fn postprocess_with_options(html: &str, indent_lists: bool) -> String {
     // Issue 275b: Fix mis-balanced emphasis tags from pulldown-cmark before other
     // postprocessing steps that depend on correct tag nesting.
     let html = fix_nested_emphasis_tags(html);
+    // Issue 332: Fix literal asterisks that should have been emphasis.
+    let html = fix_literal_asterisk_emphasis(&html);
     let html = strip_paragraphs_in_html_blocks(&html);
     let html = encode_bare_ampersands(&html);
     // Issue 330: Use different heading ID generation for kramdown vs CommonMarkGhPages.
@@ -426,6 +597,8 @@ pub fn postprocess_for_filter(html: &str) -> String {
 pub fn postprocess_for_filter_with_options(html: &str, indent_lists: bool) -> String {
     // Issue 275b: Fix mis-balanced emphasis tags from pulldown-cmark
     let html = fix_nested_emphasis_tags(html);
+    // Issue 332: Fix literal asterisks that should have been emphasis.
+    let html = fix_literal_asterisk_emphasis(&html);
     let html = apply_inline_attributes(&html);
     // Note: inline code classes are now added during markdown rendering
     // (in frontmatter::add_inline_code_class_to_events) rather than here.
@@ -12681,4 +12854,92 @@ by <a href="/people/author.html">Author Name</a>
             html
         );
     }
+
+    #[test]
+    fn test_issue332_emphasis_with_links_full_context() {
+        let path = std::path::Path::new("websites/DataTalksClub/datatalksclub.github.io/_posts/2022-09-29-interview-with-valerii-chetvertakov.md");
+        assert!(path.exists(), "DTC blog post must exist at {:?}", path);
+        let content = std::fs::read_to_string(path).unwrap();
+        let body = if content.starts_with("---") {
+            if let Some(end) = content[3..].find("---") {
+                content[end + 6..].to_string()
+            } else {
+                content
+            }
+        } else {
+            content
+        };
+        let html = render_kramdown_mode(&body);
+        assert!(html.contains("<em>EL SEGUNDO"), "Must have <em>EL SEGUNDO");
+        assert!(html.contains("<em><a href="), "Must have <em><a href=");
+        assert!(
+            !html.contains("\"*EL SEGUNDO"),
+            "Must not have literal *EL SEGUNDO"
+        );
+        assert!(
+            !html.contains("*<a href="),
+            "Must not have literal *<a href="
+        );
+    }
+
+    #[test]
+    fn test_issue332_multiple_emphasis_spans() {
+        let path = std::path::Path::new("websites/DataTalksClub/datatalksclub.github.io/_posts/2022-09-29-interview-with-valerii-chetvertakov.md");
+        assert!(path.exists(), "DTC blog post must exist at {:?}", path);
+        let content = std::fs::read_to_string(path).unwrap();
+        let body = if content.starts_with("---") {
+            if let Some(end) = content[3..].find("---") {
+                content[end + 6..].to_string()
+            } else {
+                content
+            }
+        } else {
+            content
+        };
+        let html = render_kramdown_mode(&body);
+        let ps = html.find("EL SEGUNDO").expect("Must contain EL SEGUNDO");
+        let pe = html[ps..].find("</p>").unwrap_or(html.len() - ps) + ps;
+        let paragraph = &html[ps..pe];
+        let em_count = paragraph.matches("<em>").count();
+        assert!(
+            em_count >= 4,
+            "Need >= 4 <em>, got {}. Para:\n{}",
+            em_count,
+            paragraph
+        );
+    }
+
+    #[test]
+    fn test_issue332_simplified_regression() {
+        let md = "*<a href=\"https://example.com\">Link Text</a>, trailing*\n";
+        let html = render_kramdown_mode(md);
+        assert!(html.contains("<em>"), "Must produce <em>. Got:\n{}", html);
+        let md2 = "*<a href=\"url1\">A</a>, text1* and *<a href=\"url2\">B</a>, text2*\n";
+        let html2 = render_kramdown_mode(md2);
+        assert!(
+            html2.matches("<em>").count() >= 2,
+            "Must have 2+ <em> in:\n{}",
+            html2
+        );
+    }
+
+    #[test]
+    fn test_issue332_unicode_emphasis_link() {
+        let md = "*<a href=\"https://example.com\">Compagnie \u{00c9}lectrique</a>, fournisseur d\u{2019}\u{00e9}nergie*\n";
+        let html = render_kramdown_mode(md);
+        assert!(
+            html.contains("<em>"),
+            "Unicode emphasis must produce <em>. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("\u{00c9}lectrique"),
+            "Must preserve accented chars"
+        );
+        assert!(
+            html.contains("\u{00e9}nergie"),
+            "Must preserve accented trailing text"
+        );
+    }
+
 }
