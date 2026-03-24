@@ -23,15 +23,17 @@ Read the issue file. Understand the scope, acceptance criteria, and test scenari
 
 ### 2. Implement Using TDD (Mandatory)
 
-You MUST follow strict Test-Driven Development for every fix. The cycle is:
+You MUST follow strict Test-Driven Development for every fix. This applies to ALL work — new features, bug fixes, AND regression fixes. No exceptions.
 
 **For each distinct fix in the issue:**
 
 1. **Write the test FIRST** — before any implementation code
-2. **Run the test and verify it FAILS** — capture the failure output
+2. **Run the test and verify it FAILS** — capture the failure output. If the test passes before you write the fix, the test is not testing the right thing.
 3. **Implement the fix** — write the minimum code to make the test pass
 4. **Run the test and verify it PASSES** — capture the passing output
 5. **Log each step** in the issue file (see section 6)
+
+**This cycle is NOT optional.** You must prove the test catches the bug by showing it fails first. Writing tests and implementation together provides zero proof that the test guards against the problem.
 
 Example TDD cycle log:
 ```
@@ -39,6 +41,14 @@ Example TDD cycle log:
 - Ran test: FAILS — got "2018/06/04 00:00", expected "2018-06-04 00:00:00 +0800"
 - Implemented fix in src/template/context.rs:245
 - Ran test: PASSES
+```
+
+**For regression fixes specifically:**
+```
+- Wrote test_emphasis_preserved_after_figure_block
+- Ran test: FAILS (confirms regression exists) — got literal "*text*", expected "<em>text</em>"
+- Restored fix_literal_asterisk_emphasis() in kramdown.rs
+- Ran test: PASSES (regression fixed)
 ```
 
 Code guidelines:

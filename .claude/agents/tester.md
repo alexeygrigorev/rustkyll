@@ -51,8 +51,9 @@ Verify:
   2. Test ran and FAILED (with expected vs actual output logged)
   3. Fix implemented
   4. Test ran and PASSED
-- [ ] If the log skips the "verify FAILS" step, flag it as a non-blocking concern
+- [ ] If the log skips the "verify FAILS" step, **FAIL the review** — this is not optional. The fail step proves the test actually catches the bug. Without it, the test might be passing for the wrong reason.
 - [ ] If no TDD evidence at all, FAIL the review
+- [ ] This applies equally to regression fixes — the test must fail with the broken code before the fix is applied
 
 #### Output Verification (for HTML generation issues)
 - [ ] Build the site with `cargo run` (or the appropriate command)
