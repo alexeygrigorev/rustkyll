@@ -529,16 +529,19 @@ pub fn markdown_to_html_with_options(
     // Issue 301: Mark forward-direction IALs
     let markdown = crate::kramdown::mark_forward_ial(&markdown);
 
+    // Issue 329: Protect <details> blocks (kramdown mode only).
+    // Issue 330: For CommonMarkGhPages, mark inline content after </summary>
+    // so we can strip the <p> wrapping in post-processing.
+    let (markdown, details_saved) = if add_code_classes {
+        protect_details_blocks(&markdown)
+    } else {
+        (mark_details_inline_content(&markdown), Vec::new())
+    };
+
     // Protect pre-existing curly quotes from fix_smart_quote_directions
     let markdown = protect_preexisting_curly_quotes(&markdown);
 
     let markdown = escape_paren_list_markers(&markdown);
-    // Issue 329: Protect <details> blocks (kramdown mode only)
-    let (markdown, details_saved) = if add_code_classes {
-        protect_details_blocks(&markdown)
-    } else {
-        (markdown, Vec::new())
-    };
     // Issue 227: Protect math content from backslash-escape processing
     let (markdown, math_saved) = protect_math_content(&markdown);
     // Issue 329: Fix kramdown list indentation for ordered lists (kramdown mode only)
@@ -605,7 +608,92 @@ pub fn markdown_to_html_with_options(
     // When true (kramdown), indent list items. When false (CommonMarkGhPages), do not.
     let html_output = crate::kramdown::postprocess_with_options(&html_output, add_code_classes);
     // Issue 329: Restore <details> blocks after all processing
-    restore_details_blocks(&html_output, &details_saved)
+    let html_output = restore_details_blocks(&html_output, &details_saved);
+    // Issue 330: Fix inline content in <details> blocks for CommonMarkGhPages
+    if !add_code_classes {
+        fix_details_inline_content(&html_output)
+    } else {
+        html_output
+    }
+}
+
+/// Issue 330: Mark inline content that directly follows `</summary>` on the same line.
+///
+/// In CommonMarkGhPages, when `<details><summary>X</summary>text` has text on the
+/// same line as `</summary>`, the text should NOT be wrapped in `<p>`. We insert
+/// a marker comment so post-processing can detect and fix this.
+fn mark_details_inline_content(input: &str) -> String {
+    if !input.contains("</summary>") {
+        return input.to_string();
+    }
+
+    let mut result = String::with_capacity(input.len() + 100);
+    let mut remaining = input;
+
+    while !remaining.is_empty() {
+        if let Some(pos) = remaining.find("</summary>") {
+            let end = pos + "</summary>".len();
+            result.push_str(&remaining[..end]);
+            let after = &remaining[end..];
+
+            // Check if non-whitespace content follows on the same line
+            if let Some(first_char) = after.chars().next() {
+                if first_char != '\n' && first_char != '\r' {
+                    // Inline content -- insert marker
+                    result.push_str("<!-- DETAILS_INLINE -->");
+                }
+            }
+
+            remaining = after;
+        } else {
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    result
+}
+
+/// Issue 330: Fix inline content in `<details>` blocks after rendering.
+///
+/// When `<!-- DETAILS_INLINE -->` marker is present, pulldown-cmark has wrapped
+/// the inline content in `<p>` tags. We strip the first `<p>` wrap that
+/// immediately follows the marker.
+fn fix_details_inline_content(html: &str) -> String {
+    const MARKER: &str = "<!-- DETAILS_INLINE -->";
+    if !html.contains(MARKER) {
+        return html.to_string();
+    }
+
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+
+    while !remaining.is_empty() {
+        if let Some(pos) = remaining.find(MARKER) {
+            // Copy everything before the marker, but strip the marker itself
+            result.push_str(&remaining[..pos]);
+            let after = &remaining[pos + MARKER.len()..];
+
+            // After the marker, pulldown-cmark inserts \n<p>CONTENT
+            // We need to strip the \n<p> and the matching </p>
+            if let Some(inner) = after.strip_prefix("\n<p>") {
+                // Find the first </p> (end of the first paragraph)
+                if let Some(close_p_pos) = inner.find("</p>") {
+                    // Output the content without <p></p> wrapping
+                    result.push_str(&inner[..close_p_pos]);
+                    remaining = &inner[close_p_pos + "</p>".len()..];
+                    continue;
+                }
+            }
+
+            remaining = after;
+        } else {
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    result
 }
 
 /// Convert XHTML-style `<br />` to HTML5-style `<br>` for CommonMarkGhPages
@@ -1392,7 +1480,11 @@ fn autolink_process_line(line: &str) -> String {
             } else {
                 None
             };
-            let skip = matches!(prev_char, Some('<') | Some('(') | Some('"') | Some('\''));
+            // Issue 330: Removed '(' from skip chars. The autolink_find_markdown_links
+            // function already marks proper [text](url) patterns as skip regions.
+            // Skipping on '(' was too aggressive and prevented autolinking bare URLs
+            // in broken markdown links like [text](https://url\n\n).
+            let skip = matches!(prev_char, Some('<') | Some('"') | Some('\''));
 
             if !skip {
                 // Find the end of the URL
@@ -1517,31 +1609,52 @@ fn autolink_find_angle_brackets(line: &str, regions: &mut Vec<(usize, usize)>) {
     }
 }
 
-/// Find byte ranges of markdown link targets: `](url)`.
+/// Find byte ranges of full markdown links: `[text](url)`.
+/// Issue 330: Mark the entire `[text](url)` as a skip region, not just `(url)`.
+/// This prevents URLs in link text from being autolinked (e.g.,
+/// `[https://example.com](https://example.com)` would create nested `<a>` tags).
 fn autolink_find_markdown_links(line: &str, regions: &mut Vec<(usize, usize)>) {
     let bytes = line.as_bytes();
     let len = bytes.len();
     let mut i = 0;
 
     while i < len {
-        if bytes[i] == b']' && i + 1 < len && bytes[i + 1] == b'(' {
-            let paren_start = i + 1;
-            let mut depth = 0;
-            let mut j = paren_start;
-            while j < len {
-                if bytes[j] == b'(' {
-                    depth += 1;
-                } else if bytes[j] == b')' {
-                    depth -= 1;
-                    if depth == 0 {
-                        regions.push((paren_start, j + 1));
-                        i = j + 1;
-                        break;
-                    }
+        if bytes[i] == b'[' {
+            // Find the matching `](`
+            let bracket_start = i;
+            let mut j = i + 1;
+            let mut bracket_depth = 1;
+            while j < len && bracket_depth > 0 {
+                if bytes[j] == b'[' {
+                    bracket_depth += 1;
+                } else if bytes[j] == b']' {
+                    bracket_depth -= 1;
                 }
                 j += 1;
             }
-            if j >= len {
+            // j is now past the `]`
+            if bracket_depth == 0 && j < len && bytes[j] == b'(' {
+                // Found `](`, now find the matching `)`
+                let mut depth = 0;
+                let mut k = j;
+                while k < len {
+                    if bytes[k] == b'(' {
+                        depth += 1;
+                    } else if bytes[k] == b')' {
+                        depth -= 1;
+                        if depth == 0 {
+                            // Mark the entire [text](url) as a skip region
+                            regions.push((bracket_start, k + 1));
+                            i = k + 1;
+                            break;
+                        }
+                    }
+                    k += 1;
+                }
+                if k >= len {
+                    i = j;
+                }
+            } else {
                 i += 1;
             }
         } else {
@@ -5170,6 +5283,200 @@ More text.
             !html.contains(r"is\_car"),
             "Found escaped underscore in code span: {}",
             html
+        );
+    }
+
+    // ========================================================================
+    // Issue 330: muan-blog fixes
+    // ========================================================================
+
+    #[test]
+    fn test_issue330_details_summary_no_p_wrap_commonmark() {
+        // CommonMarkGhPages: content inside <details> after </summary> should NOT be wrapped in <p>
+        let md = "<details><summary>CW</summary>the condition is perfect.</details>\n";
+        let html = markdown_to_html_with_options(md, false, false, true, true);
+        // Jekyll output: <details><summary>CW</summary>the condition is perfect.</details>
+        // Should NOT have <p> wrapping
+        assert!(
+            !html.contains("<p>the condition"),
+            "Content after </summary> should not be wrapped in <p>. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("</summary>the condition"),
+            "Content should immediately follow </summary>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue330_details_summary_cjk_content_commonmark() {
+        // Test with CJK content (actual muan-blog content pattern)
+        let md =
+            "<details><summary>Content warning</summary>如果現在墜機就不用繼續活著了。</details>\n";
+        let html = markdown_to_html_with_options(md, false, false, true, true);
+        assert!(
+            !html.contains("<p>如果"),
+            "CJK content after </summary> should not be wrapped in <p>. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("</summary>如果"),
+            "CJK content should immediately follow </summary>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue330_details_multiline_commonmark() {
+        // <details> with content on next line after </summary>
+        let md = "<details><summary>CW: depression/suicide/family</summary>\nlong story short, after evading my family\n</details>\n";
+        let html = markdown_to_html_with_options(md, false, false, true, true);
+        // Jekyll preserves the <details> as-is, no <p> wrapping of content
+        assert!(
+            !html.contains("<p>long story"),
+            "Content after </summary> should not be wrapped in <p>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue330_autolink_url_after_emoji() {
+        // URL after emoji with space separator
+        let md = "text \u{1F643} https://youtu.be/H_nCw1WMFs4\n";
+        let html = markdown_to_html_with_options(md, false, false, true, true);
+        assert!(
+            html.contains("<a href=\"https://youtu.be/H_nCw1WMFs4\">"),
+            "URL after emoji should be autolinked. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue330_autolink_url_in_list_item() {
+        let md = "- https://en.wikipedia.org/wiki/Swordsman_II\n- https://en.wikipedia.org/wiki/New_Dragon_Gate_Inn\n";
+        let html = markdown_to_html_with_options(md, false, false, true, true);
+        assert!(
+            html.contains("<a href=\"https://en.wikipedia.org/wiki/Swordsman_II\">"),
+            "URL in list item should be autolinked. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<a href=\"https://en.wikipedia.org/wiki/New_Dragon_Gate_Inn\">"),
+            "Second URL in list item should be autolinked. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue330_autolink_url_followed_by_text() {
+        let md = "Visit https://muan.co/film has new content.\n";
+        let html = markdown_to_html_with_options(md, false, false, true, true);
+        assert!(
+            html.contains("<a href=\"https://muan.co/film\">"),
+            "URL followed by text should be autolinked. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("has new content."),
+            "Text after URL should be plain text. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue330_autolink_url_at_end_of_paragraph() {
+        let md = "Check this https://example.com\n";
+        let html = markdown_to_html_with_options(md, false, false, true, true);
+        assert!(
+            html.contains("<a href=\"https://example.com\">"),
+            "URL at end of paragraph should be autolinked. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue330_autolink_broken_markdown_link_url_autolinked() {
+        // When a markdown link is broken (URL on next line), the bare URL should still be autolinked
+        let md = "[Abuse and harassment](https://blog.mollywhite.net/abuse/\n\n)\n";
+        let html = markdown_to_html_with_options(md, false, false, true, true);
+        // The markdown link is broken, so the URL text should be autolinked
+        assert!(
+            html.contains("<a href=\"https://blog.mollywhite.net/abuse/\""),
+            "Bare URL from broken markdown link should be autolinked. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue330_heading_id_with_link_commonmark() {
+        // Jekyll CommonMarkGhPages includes raw markdown link syntax in heading IDs
+        let md = "## [Manuel Moreale](https://manuelmoreale.com) `(en)`\n";
+        let html = markdown_to_html_with_options(md, false, false, false, false);
+        // Jekyll: id="a-hrefhttpsmanuelmorealecommanuel-morealea-code-classsmolencode"
+        // Rustkyll currently: id="manuel-moreale-en"
+        // The ID should include the raw markdown/HTML of the heading
+        assert!(
+            html.contains("id=\"a-hrefhttpsmanuelmorealecom"),
+            "Heading ID should include raw HTML link syntax. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue330_heading_id_quoted_text_commonmark() {
+        // Jekyll heading ID includes quotes literally
+        let md = "## \"It's time to revisit the idea of suicide\"\n";
+        let html = markdown_to_html_with_options(md, false, false, false, false);
+        // Jekyll: id="quotits-time-to-revisit-the-idea-of-suicidequot"
+        assert!(
+            html.contains("id=\"quotits-time"),
+            "Heading ID should include 'quot' for double quotes. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue330_heading_id_cjk_only_ascii_commonmark() {
+        // For bilingual headings, Jekyll uses only ASCII portion
+        let md = "## 延伸閱讀 Further reading\n";
+        let html = markdown_to_html_with_options(md, false, false, false, false);
+        // Jekyll: id="further-reading" (CJK chars become empty 'section')
+        // Actually Jekyll: id="section" when heading is only CJK.
+        // For mixed: different behavior.
+        assert!(
+            html.contains("id=\"further-reading\"") || html.contains("id=\"section\""),
+            "Heading ID for bilingual text. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue330_no_double_autolink_in_link_text() {
+        // When link text IS a URL, it should not be autolinked
+        // [https://muan.co/photos](https://muan.co/photos) should produce
+        // a single <a> link, not nested <a> tags
+        let md = "[https://muan.co/photos](https://muan.co/photos) is a new thing!\n";
+        let html = markdown_to_html_with_options(md, false, false, true, true);
+        // Count <a> tags -- should have exactly one opening <a> and one closing </a>
+        let a_count = html.matches("<a ").count();
+        assert_eq!(
+            a_count, 1,
+            "Should have exactly one <a> tag, not nested. Got {} in: {}",
+            a_count, html
+        );
+    }
+
+    #[test]
+    fn test_issue330_autolink_not_in_link_display_text_unicode() {
+        // Link text with URL should not be double-autolinked (with CJK context)
+        let md = "Check [https://example.com](https://example.com) 好的\n";
+        let html = markdown_to_html_with_options(md, false, false, true, true);
+        let a_count = html.matches("<a ").count();
+        assert_eq!(
+            a_count, 1,
+            "Should have exactly one <a> tag. Got {} in: {}",
+            a_count, html
         );
     }
 }

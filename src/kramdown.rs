@@ -238,6 +238,16 @@ pub fn postprocess(html: &str) -> String {
     postprocess_with_options(html, true)
 }
 
+/// Whether heading IDs are generated in kramdown mode (GFM slugify on text content)
+/// or CommonMarkGhPages mode (basic_generate_id on raw inner HTML).
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum HeadingIdMode {
+    /// Kramdown: strip HTML tags, decode entities, then GFM slugify (Unicode-preserving).
+    Kramdown,
+    /// CommonMarkGhPages: use raw inner HTML with basic_generate_id (ASCII-only).
+    CommonMarkGhPages,
+}
+
 /// Fix mis-balanced emphasis tags produced by pulldown-cmark.
 ///
 /// pulldown-cmark sometimes produces `<strong>A<strong>B</strong>C</strong>` when
@@ -345,7 +355,14 @@ pub fn postprocess_with_options(html: &str, indent_lists: bool) -> String {
     let html = fix_nested_emphasis_tags(html);
     let html = strip_paragraphs_in_html_blocks(&html);
     let html = encode_bare_ampersands(&html);
-    let html = add_heading_ids(&html);
+    // Issue 330: Use different heading ID generation for kramdown vs CommonMarkGhPages.
+    // indent_lists=true means kramdown mode, false means CommonMarkGhPages.
+    let heading_mode = if indent_lists {
+        HeadingIdMode::Kramdown
+    } else {
+        HeadingIdMode::CommonMarkGhPages
+    };
+    let html = add_heading_ids(&html, heading_mode);
     let html = apply_block_ial(&html);
     let html = apply_inline_attributes(&html);
     let html = wrap_fenced_code_blocks(&html);
@@ -460,7 +477,7 @@ pub fn normalize_html_output(html: &str) -> String {
 /// version would incur. Used in the per-page rendering hot path.
 pub fn normalize_html_output_owned(html: String) -> String {
     let needs_bool_attrs = html.contains("=\"\"");
-    let needs_br = html.contains("<br>");
+    let needs_br = html.contains("<br>") || html.contains("<br/>");
 
     // Fast path: nothing to normalize -- return the original String without allocating.
     if !needs_bool_attrs && !needs_br {
@@ -1738,6 +1755,8 @@ pub fn escape_headings_in_list_context(content: &str) -> String {
 /// `apply_block_ial` can detect them.
 ///
 /// Pattern detected: `\n\n{: ...}\n\n` (blank line before and after the IAL)
+/// Also handles IAL at the very start of content followed by a non-blank line
+/// (forward IAL applies to the next block element).
 /// Transforms to: `\n\n<!-- IAL:FWD -->\n{: ...}\n\n`
 pub fn mark_forward_ial(content: &str) -> String {
     let lines: Vec<&str> = content.split('\n').collect();
@@ -1748,14 +1767,24 @@ pub fn mark_forward_ial(content: &str) -> String {
         let line = lines[i].trim();
         // Check if this line is a standalone IAL: starts with {: and ends with }
         if line.starts_with("{:") && line.ends_with('}') {
-            // Check if previous line is blank and next line is blank
-            let prev_blank = i > 0 && lines[i - 1].trim().is_empty();
+            // Check if previous line is blank (or this is the first line)
+            let prev_blank = i == 0 || lines[i - 1].trim().is_empty();
+            // Check if next line is blank
             let next_blank = i + 1 < lines.len() && lines[i + 1].trim().is_empty();
-            if prev_blank && next_blank {
+            // Forward IAL: standalone IAL with a blank line (or start) before it.
+            // In kramdown, {: .class} on its own line preceded by a blank applies
+            // to the following block element.
+            if prev_blank {
                 // Insert forward marker before the IAL
                 result.push_str("<!-- IAL:FWD -->\n");
                 result.push_str(lines[i]);
                 result.push('\n');
+                // If the next line is NOT blank, insert a blank line to ensure
+                // pulldown-cmark creates a separate paragraph for the IAL
+                // instead of merging it with the following text.
+                if !next_blank && i + 1 < lines.len() {
+                    result.push('\n');
+                }
                 i += 1;
                 continue;
             }
@@ -3377,7 +3406,7 @@ fn parse_ial_attributes(attr_str: &str) -> Vec<(String, String)> {
 /// - Replace spaces with hyphens
 /// - Strip non-alphanumeric characters (except hyphens)
 /// - Handle duplicates by appending `-1`, `-2`, etc.
-fn add_heading_ids(html: &str) -> String {
+fn add_heading_ids(html: &str, mode: HeadingIdMode) -> String {
     let mut result = String::with_capacity(html.len());
     let mut used_ids: HashMap<String, usize> = HashMap::new();
     let mut remaining = html;
@@ -3409,6 +3438,16 @@ fn add_heading_ids(html: &str) -> String {
                         // Use explicit ID, still track for uniqueness
                         let _ = get_unique_id(&mut used_ids, &eid);
                         eid
+                    } else if mode == HeadingIdMode::CommonMarkGhPages {
+                        // Issue 330: CommonMarkGhPages generates heading IDs from
+                        // raw inner HTML using basic_generate_id (ASCII-only).
+                        // Jekyll's commonmarker gem outputs &quot; for " in text
+                        // nodes, and the slugify preserves "quot" as ASCII text.
+                        // We replicate this by HTML-encoding text nodes in the
+                        // inner HTML before running basic_generate_id.
+                        let encoded = encode_text_nodes_for_heading_id(&clean_inner);
+                        let slug = basic_generate_id(&encoded);
+                        get_unique_id(&mut used_ids, &slug)
                     } else {
                         // Extract text content (strip HTML tags, decode entities)
                         let text = strip_html_tags(&clean_inner);
@@ -3666,6 +3705,31 @@ fn basic_generate_id(text: &str) -> String {
     } else {
         slug
     }
+}
+
+/// Issue 330: HTML-encode text nodes in heading inner HTML, preserving HTML tags as-is.
+///
+/// Jekyll's commonmarker gem outputs `&quot;` for `"` in text nodes, and the heading
+/// ID generation includes "quot" as part of the slug. pulldown-cmark outputs literal `"`
+/// in text nodes. This function encodes `"` in text nodes to `&quot;` while preserving
+/// HTML tags (where `"` is used as attribute delimiters).
+fn encode_text_nodes_for_heading_id(inner_html: &str) -> String {
+    let mut result = String::with_capacity(inner_html.len());
+    let mut in_tag = false;
+    for ch in inner_html.chars() {
+        if ch == '<' {
+            in_tag = true;
+            result.push(ch);
+        } else if ch == '>' {
+            in_tag = false;
+            result.push(ch);
+        } else if !in_tag && ch == '"' {
+            result.push_str("&quot;");
+        } else {
+            result.push(ch);
+        }
+    }
+    result
 }
 
 /// Get a unique ID, appending `-1`, `-2`, etc. for duplicates.
@@ -4646,10 +4710,11 @@ fn normalize_bare_void_elements(html: &str) -> String {
 /// We also do NOT convert `<meta>`, `<link>`, `<input>`, `<img>` etc.
 /// since Jekyll doesn't self-close those in layout templates.
 fn normalize_br_only(html: &str) -> String {
-    if !html.contains("<br>") {
+    if !html.contains("<br>") && !html.contains("<br/>") {
         return html.to_string();
     }
-    html.replace("<br>", "<br />")
+    // Normalize both <br> and <br/> (no space) to <br /> (XHTML-style with space)
+    html.replace("<br>", "<br />").replace("<br/>", "<br />")
 }
 
 // ============================================================================
@@ -7132,7 +7197,7 @@ on 20 Mar 2026
     #[test]
     fn test_d1_marked_heading_skipped_by_add_heading_ids() {
         let input = "<h2 data-raw-html>Include Title</h2>";
-        let result = add_heading_ids(input);
+        let result = add_heading_ids(input, HeadingIdMode::Kramdown);
         // Should NOT get an id because it has attributes
         assert!(
             !result.contains("id=\"include-title\""),
@@ -7145,7 +7210,7 @@ on 20 Mar 2026
     fn test_d1_markdown_heading_still_gets_id() {
         // Markdown-generated heading (bare <h2>)
         let input = "<h2>Markdown Title</h2>";
-        let result = add_heading_ids(input);
+        let result = add_heading_ids(input, HeadingIdMode::Kramdown);
         assert!(
             result.contains("id=\"markdown-title\""),
             "Markdown heading should get auto-generated ID. Got: {}",
