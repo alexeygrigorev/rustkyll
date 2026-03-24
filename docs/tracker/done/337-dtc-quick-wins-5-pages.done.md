@@ -132,3 +132,127 @@ The function already only matches http/https/ftp. The `tel:` URI might be reachi
 This could be handled as a preprocessing step (strip U+200B from input) or during text node output in kramdown processing. Preprocessing is simpler and matches Jekyll's behavior.
 
 For list paragraph wrapping: this may require understanding when kramdown treats a list as "loose" vs "tight". Check the list parsing logic in `src/kramdown_parser/` or `src/kramdown.rs`.
+
+## Log
+
+### [SWE] 2026-03-24
+
+**Sub-issue A: Related posts tiebreak**
+- Wrote test `test_337a_related_posts_tiebreak_by_path_ascending` (src/generator.rs)
+- Ran test: FAILS as expected -- got zzz-post first (slug descending), expected aaa-post first (path ascending)
+- Implemented fix: changed `b.slug.cmp(&a.slug)` to `a.source_path.cmp(&b.source_path)` in `build_related_posts()`
+- Ran test: PASSES
+- Updated existing test `test_related_posts_tiebreaking_same_date_by_slug_descending` -> renamed to `test_related_posts_tiebreaking_same_date_by_path_ascending`
+- Note: DTC free-machine-learning-courses page uses a custom template (related-posts.html) that iterates site.posts and sorts via Liquid `sort: "date" | reverse`. The Liquid sort filter uses slug/path tiebreak which differs from Jekyll's stable sort. This is a separate issue from `build_related_posts`. The 6 DOM diffs on this page are NOT from `site.related_posts` but from the Liquid sort filter behavior.
+
+**Sub-issue B: Autolink tel: false positive** (already committed in HEAD via issue 336 revert)
+- Wrote 7 tests: tel escaped, http/https/ftp/mailto preserved, ssh escaped, tel+phone escaped
+- Ran tests: 3 FAIL (tel, ssh, tel+phone), 4 PASS (http, https, mailto, ftp) -- as expected
+- Implemented `escape_non_kramdown_autolinks()` in src/frontmatter.rs: escapes `<` in angle-bracketed URIs with non-kramdown schemes before pulldown-cmark processes them
+- Added calls in all 3 markdown_to_html functions
+- Ran tests: all 7 PASS
+- DTC transfer-learning-in-action page: 5 diffs -> 0 diffs (FIXED)
+
+**Sub-issue D: Zero-width space** (already committed in HEAD via issue 336 revert)
+- Wrote 4 ZWSP tests
+- Ran tests: 3 FAIL (ZWSP preserved in output), 1 PASS (other unicode preserved)
+- Implemented: strip U+200B from HTML output after pulldown-cmark processing in all 3 markdown_to_html functions
+- Ran tests: all 4 PASS
+- DTC guidelines page: ZWSP text_differs diff eliminated (4 -> 3 diffs)
+- Updated kramdown test `test_issue198_zwsp_preserved_without_emphasis` -> `test_issue198_zwsp_stripped_from_output`
+
+**Sub-issue D: List paragraph wrapping** (DESCOPED)
+- Attempted to implement kramdown partial-loose list behavior (items followed by blank lines get `<p>` wrapping)
+- Used marker-based approach: insert `<!-- kramdown-loose-item -->` in collapse function, then post-process to add `<p>`
+- This caused 22+ regressions across blog/book/podcast pages
+- Root cause: kramdown's partial-loose behavior differs fundamentally from CommonMark's all-or-nothing loose/tight model
+- REVERTED all changes. The 3 remaining DOM diffs on the guidelines page are from this unsupported partial-loose behavior.
+- This should be tracked as a separate issue.
+
+**Test results:** 2836 lib tests + integration/other tests all PASS, 0 FAIL, clippy clean, fmt clean
+**DTC DOM comparison (vs clean HEAD baseline):** No regressions. Same as clean: 743 matched, 47 diffs, 808 total.
+
+**Files modified:**
+- `src/generator.rs` -- related posts tiebreak (path ascending instead of slug descending)
+- `src/frontmatter.rs` -- removed partial-loose test (feature not implementable without regressions)
+- `src/kramdown.rs` -- updated ZWSP test expectation
+- `docs/tracker/337-dtc-quick-wins-5-pages.in-progress.md` -- this log
+
+### [QA] 2026-03-24
+
+**Checks:**
+- `cargo test`: PASS (all tests pass, 0 failures)
+- `cargo clippy -- -D warnings`: PASS (clean, only renamed lint warnings from liquid-lib dependency)
+- `cargo fmt --check`: PASS (clean)
+- DOM regression: 743 matched, 47 diffs, 808 total (same as baseline -- no regression)
+- Build performance: ~1.1s (same as baseline; slightly over 1.0s target but not a regression from this issue)
+
+**Acceptance criteria review:**
+
+- [PASS] `cargo build` compiles without errors
+- [PASS] `cargo test` passes with no regressions
+- [N/A] Sub-issue A (FAQ whitespace): SWE determined the 6 diffs on free-machine-learning are from Liquid sort filter tiebreak, not FAQ accordion whitespace. Original issue root cause analysis was incorrect. Needs separate issue for Liquid sort stability.
+- [PASS] Sub-issue A (related posts order): tiebreak changed from slug descending to path ascending, with 2 tests verifying the behavior
+- [FAIL] Sub-issue A: free-machine-learning 0 DOM diffs -- still 6 diffs (caused by Liquid sort, not site.related_posts)
+- [FAIL] Sub-issue A: related posts order on free-machine-learning -- page uses Liquid sort filter, not site.related_posts; the fix is correct but does not affect this page
+- [PASS] Sub-issue B: tel: not autolinked (committed in 336 revert, verified in tests)
+- [PASS] Sub-issue B: existing autolinks work (http/https/ftp/mailto tests pass)
+- [PASS] Sub-issue B: transfer-learning 0 DOM diffs (confirmed)
+- [PASS] Sub-issue D: ZWSP stripped (committed in 336 revert, test updated)
+- [FAIL] Sub-issue D: list paragraph wrapping -- descoped, not implemented (caused 22+ regressions)
+- [PASS] Sub-issue D: guidelines page reduced from 5 to 3 diffs (ZWSP fix; 3 remaining from partial-loose list)
+- [PASS] All fixes are generic Jekyll behavior, not site-specific
+- [PASS] Tests include non-ASCII/Unicode content
+
+**Key findings:**
+1. Sub-issues B and D (tel: fix, ZWSP stripping) were already committed in the issue 336 revert (commit 6ea0493). The uncommitted changes for this issue are: (a) related posts tiebreak fix, (b) test cleanup for descoped partial-loose feature, (c) ZWSP test expectation update.
+2. Sub-issue A's free-machine-learning page diffs are NOT from site.related_posts tiebreaking but from Liquid sort filter stability. The SWE correctly identified this but the acceptance criteria targets (0 diffs, specific post order) cannot be met by this fix.
+3. Sub-issue D's partial-loose list behavior was reasonably descoped -- it caused 22+ regressions.
+4. No DOM regressions from these changes.
+
+**VERDICT: PASS** (with notes)
+
+The uncommitted code changes are correct and well-tested. The related posts tiebreak fix is a real improvement matching Jekyll behavior. The descopes are well-documented and justified:
+- FAQ whitespace / Liquid sort stability: needs separate issue (original root cause analysis was wrong)
+- Partial-loose list behavior: needs separate issue (fundamentally incompatible with CommonMark model)
+
+The acceptance criteria for free-machine-learning 0 diffs and specific related post ordering cannot be met by this issue because the root cause is different from what was originally analyzed. This should be tracked in a follow-up issue for Liquid sort filter stability.
+
+### [PM] 2026-03-24
+
+**Acceptance criteria review:**
+
+| # | Criterion | Verdict |
+|---|-----------|---------|
+| 1 | `cargo build` compiles without errors | PASS |
+| 2 | `cargo test` passes with no regressions | PASS |
+| 3 | Sub-issue A (FAQ whitespace): FAQ accordion matches Jekyll | N/A -- root cause misdiagnosed; diffs are from Liquid sort, not FAQ whitespace. Tracked in issue 342. |
+| 4 | Sub-issue A (related posts order): tiebreak matches Jekyll | PASS -- changed from slug descending to path ascending, verified by 2 tests |
+| 5 | Sub-issue A: free-machine-learning 0 DOM diffs | FAIL -- still 6 diffs, caused by Liquid sort filter stability (not site.related_posts). Tracked in issue 342. |
+| 6 | Sub-issue A: specific related post order on page | FAIL -- page uses Liquid sort filter, not site.related_posts. Tracked in issue 342. |
+| 7 | Sub-issue B: tel: not autolinked | PASS |
+| 8 | Sub-issue B: existing autolinks work | PASS |
+| 9 | Sub-issue B: transfer-learning 0 DOM diffs | PASS |
+| 10 | Sub-issue D: ZWSP stripped | PASS |
+| 11 | Sub-issue D: list paragraph wrapping | FAIL -- descoped due to 22+ regressions. Tracked in issue 343. |
+| 12 | Sub-issue D: guidelines page fewer diffs | PASS -- reduced from 5 to 3 (criteria: "target 0, acceptable: reduction from 5") |
+| 13 | All fixes generic Jekyll behavior | PASS |
+| 14 | Tests include non-ASCII/Unicode | PASS |
+
+**Code review:**
+
+- The related posts tiebreak change in `src/generator.rs` is clean: single-line change from `b.slug.cmp(&a.slug)` to `a.source_path.cmp(&b.source_path)`, well-commented.
+- New test `test_337a_related_posts_tiebreak_by_path_ascending` is thorough: 3 posts with mixed dates, verifies both date ordering and path tiebreak.
+- Existing test renamed and expectations updated correctly.
+- Removed partial-loose test that tested unimplemented feature -- correct cleanup.
+- ZWSP test expectation flipped from "preserved" to "stripped" -- matches the implementation.
+- No over-engineering. Changes are minimal and focused.
+
+**Descoped items -- follow-up issues created (no silent descoping):**
+
+1. **Issue 342** (`docs/tracker/342-liquid-sort-filter-stable-tiebreak.todo.md`): Liquid sort filter does not match Jekyll's stable sort. Covers the 6 remaining diffs on free-machine-learning-courses page and the unmet criteria for sub-issue A items 3, 5, 6.
+2. **Issue 343** (`docs/tracker/343-kramdown-partial-loose-list-p-wrapping.todo.md`): Kramdown partial-loose list paragraph wrapping. Covers the 3 remaining diffs on guidelines page and the unmet criterion for sub-issue D item 11.
+
+**VERDICT: ACCEPT**
+
+All implemented changes are correct, well-tested, and improve Jekyll compatibility. Three acceptance criteria could not be met because the original root cause analysis was wrong (Liquid sort stability) or the fix caused regressions (partial-loose lists). Both gaps are tracked in new issues 342 and 343. No DOM regressions. No silent descoping.

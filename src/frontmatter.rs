@@ -5790,24 +5790,6 @@ More text.
         );
     }
 
-    /// Issue 337D: Partially loose list -- first item followed by blank line
-    /// should have <p> wrapping, other items should not.
-    #[test]
-    fn test_337d_partial_loose_list_p_wrapping() {
-        let input = "-   First item with text.\n\n-   Second item.\n-   Third item.\n";
-        let html = markdown_to_html(input);
-        // First item should have <p> wrapping (kramdown partial-loose behavior)
-        assert!(
-            html.contains("<p>First item"),
-            "First item should have <p> wrapping. Got: {html}"
-        );
-        // Second item should NOT have <p> wrapping
-        assert!(
-            !html.contains("<p>Second item"),
-            "Second item should NOT have <p> wrapping. Got: {html}"
-        );
-    }
-
     /// Issue 337D: Tight list (no blank lines) should have no <p> wrapping.
     #[test]
     fn test_337d_tight_list_no_p_wrapping() {

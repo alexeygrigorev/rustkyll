@@ -10298,12 +10298,13 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     #[test]
-    fn test_issue198_zwsp_preserved_without_emphasis() {
+    fn test_issue198_zwsp_stripped_from_output() {
+        // Issue 337D: ZWSP is stripped from markdown output to match Jekyll/kramdown
         let input = "text\u{200b}more text";
         let html = crate::frontmatter::markdown_to_html(input);
         assert!(
-            html.contains("\u{200b}"),
-            "ZWSP without emphasis should be preserved. Got: {html}"
+            !html.contains('\u{200b}'),
+            "ZWSP should be stripped from output. Got: {html}"
         );
     }
 
