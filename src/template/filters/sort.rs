@@ -33,20 +33,15 @@ struct SortArgs {
     property: Option<Expression>,
 }
 
-/// Sort filter with stable tie-breaking by slug/path.
+/// Sort filter matching Liquid/Jekyll's stable ordering semantics.
 ///
 /// When sorting an array of objects by a property (e.g., `| sort: 'episode'`),
-/// items with equal sort key values are tie-broken by `slug` (then `path` if
-/// slug is also equal). This matches Jekyll's behavior where equal items
-/// preserve the underlying filename/path order.
-///
-/// Without this, the Liquid crate's built-in sort uses `sort_by` (which is
-/// stable) but the preserved input order may not match Jekyll's when the
-/// collection was loaded via parallel I/O.
+/// equal sort-key values must preserve their original input order. Liquid's
+/// `sort` is stable and does not inject a secondary slug/path tiebreak.
 #[derive(Clone, ParseFilter, FilterReflection)]
 #[filter(
     name = "sort",
-    description = "Sorts items in an array with stable tie-breaking by slug.",
+    description = "Sorts items in an array while preserving input order for equal values.",
     parameters(SortArgs),
     parsed(SortFilter)
 )]
@@ -93,20 +88,6 @@ fn get_property<'a>(value: &'a Value, property: &str) -> &'a dyn ValueView {
         .as_object()
         .and_then(|obj| obj.get(property))
         .unwrap_or(&Value::Nil)
-}
-
-/// Tiebreak two objects by slug, then by path.
-fn tiebreak(a: &Value, b: &Value) -> cmp::Ordering {
-    let slug_a = get_property(a, "slug");
-    let slug_b = get_property(b, "slug");
-    let slug_cmp = nil_safe_compare(slug_a, slug_b);
-    if slug_cmp != cmp::Ordering::Equal {
-        return slug_cmp;
-    }
-    // Fall back to path
-    let path_a = get_property(a, "path");
-    let path_b = get_property(b, "path");
-    nil_safe_compare(path_a, path_b)
 }
 
 impl Filter for SortFilter {
@@ -158,15 +139,10 @@ impl Filter for SortFilter {
             });
             if any_has_property {
                 sorted.sort_by(|a, b| {
-                    let primary = nil_safe_compare(
+                    nil_safe_compare(
                         get_property(a, prop.as_str()),
                         get_property(b, prop.as_str()),
-                    );
-                    if primary != cmp::Ordering::Equal {
-                        primary
-                    } else {
-                        tiebreak(a, b)
-                    }
+                    )
                 });
             } else {
                 // No items have the property -- sort by value directly
@@ -227,7 +203,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sort_tiebreaks_by_slug() {
+    fn test_sort_preserves_input_order_for_equal_property_values() {
         let input = Value::Array(vec![
             make_obj(vec![
                 ("episode", Value::scalar(4)),
@@ -255,15 +231,14 @@ mod tests {
                     .to_string()
             })
             .collect();
-        // episode 3 first, then episode 4 tie-broken by slug alphabetically
         assert_eq!(
             slugs,
-            vec!["earlier", "data-science-interview", "data-translator"]
+            vec!["earlier", "data-translator", "data-science-interview"]
         );
     }
 
     #[test]
-    fn test_sort_tiebreaks_by_path_when_slugs_equal() {
+    fn test_sort_preserves_input_order_for_equal_property_values_with_paths() {
         let input = Value::Array(vec![
             make_obj(vec![
                 ("episode", Value::scalar(4)),
@@ -289,7 +264,73 @@ mod tests {
                     .to_string()
             })
             .collect();
-        assert_eq!(paths, vec!["_podcast/aaa.md", "_podcast/zzz.md"]);
+        assert_eq!(paths, vec!["_podcast/zzz.md", "_podcast/aaa.md"]);
+    }
+
+    #[test]
+    fn test_sort_preserves_input_order_for_equal_property_values_existing_case() {
+        let input = Value::Array(vec![
+            make_obj(vec![
+                ("episode", Value::scalar(4)),
+                ("slug", Value::scalar("data-translator")),
+            ]),
+            make_obj(vec![
+                ("episode", Value::scalar(4)),
+                ("slug", Value::scalar("data-science-interview")),
+            ]),
+            make_obj(vec![
+                ("episode", Value::scalar(3)),
+                ("slug", Value::scalar("earlier")),
+            ]),
+        ]);
+        let result = liquid_core::call_filter!(Sort, input, "episode").unwrap();
+        let arr = result.as_array().unwrap();
+        let slugs: Vec<_> = arr
+            .values()
+            .map(|v| {
+                v.as_object()
+                    .unwrap()
+                    .get("slug")
+                    .unwrap()
+                    .to_kstr()
+                    .to_string()
+            })
+            .collect();
+        // episode 3 first, then episode 4 items stay in input order
+        assert_eq!(
+            slugs,
+            vec!["earlier", "data-translator", "data-science-interview"]
+        );
+    }
+
+    #[test]
+    fn test_sort_preserves_input_order_when_slugs_equal() {
+        let input = Value::Array(vec![
+            make_obj(vec![
+                ("episode", Value::scalar(4)),
+                ("slug", Value::scalar("same")),
+                ("path", Value::scalar("_podcast/zzz.md")),
+            ]),
+            make_obj(vec![
+                ("episode", Value::scalar(4)),
+                ("slug", Value::scalar("same")),
+                ("path", Value::scalar("_podcast/aaa.md")),
+            ]),
+        ]);
+        let result = liquid_core::call_filter!(Sort, input, "episode").unwrap();
+        let arr = result.as_array().unwrap();
+        let paths: Vec<_> = arr
+            .values()
+            .map(|v| {
+                v.as_object()
+                    .unwrap()
+                    .get("path")
+                    .unwrap()
+                    .to_kstr()
+                    .to_string()
+            })
+            .collect();
+        assert_eq!(paths, vec!["_podcast/zzz.md", "_podcast/aaa.md"]);
     }
 
     #[test]

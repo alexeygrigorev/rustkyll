@@ -571,12 +571,9 @@ pub fn load_collection(
                 (None, None) => a.source_path.cmp(&b.source_path),
             }
         });
-    } else {
-        // Default sort: by date ascending (oldest first), with source_path as
-        // tiebreaker. This matches Jekyll's behavior where all collection documents
-        // (not just posts) are sorted by date. Without this sort, file path ordering
-        // produces incorrect results for filenames with mixed-length numeric prefixes
-        // (e.g. 099 sorts before 1000 but 1000 sorts before 100 in string order).
+    } else if collection_name == "posts" {
+        // Posts are ordered by date ascending (oldest first) before site.posts
+        // gets reversed to newest-first in the site context.
         items.sort_by(|a, b| {
             let date_a = a.date.as_deref().unwrap_or("");
             let date_b = b.date.as_deref().unwrap_or("");
@@ -584,6 +581,11 @@ pub fn load_collection(
                 .cmp(date_b)
                 .then_with(|| a.source_path.cmp(&b.source_path))
         });
+    } else {
+        // For non-post collections, preserve source-path order unless the site
+        // explicitly configures `sort_by`. Jekyll exposes collections in their
+        // natural document order, and Liquid `sort` relies on that input order
+        // being stable for equal-key values.
     }
 
     Ok((items, errors))
@@ -3634,5 +3636,44 @@ mod tests {
         let (pages, _) = load_pages(dir.path(), &config).unwrap();
         assert_eq!(pages.len(), 1);
         assert_eq!(pages[0].url, "/custom/");
+    }
+
+    #[test]
+    fn test_load_podcast_preserves_source_path_order_without_sort_by() {
+        use tempfile::TempDir;
+
+        let tmp = TempDir::new().unwrap();
+        let site = tmp.path();
+
+        std::fs::write(
+            site.join("_config.yml"),
+            "collections:\n  podcast:\n    output: true\n    permalink: /:collection/:title.html\n",
+        )
+        .unwrap();
+
+        let podcast_dir = site.join("_podcast");
+        std::fs::create_dir_all(&podcast_dir).unwrap();
+        std::fs::write(
+            podcast_dir.join("data-translator-role-and-data-strategy.md"),
+            "---\ntitle: Translator\nseason: 3\nepisode: 4\n---\nContent\n",
+        )
+        .unwrap();
+        std::fs::write(
+            podcast_dir.join("data-science-interview-and-cv-guide.md"),
+            "---\ntitle: Interview\ndate: 2025-11-07\nseason: 3\nepisode: 4\n---\nContent\n",
+        )
+        .unwrap();
+
+        let config = crate::config::SiteConfig::from_file(&site.join("_config.yml")).unwrap();
+        let (items, errors) = load_collection("podcast", site, &config).unwrap();
+        assert!(errors.is_empty(), "Unexpected errors: {:?}", errors);
+        let slugs: Vec<_> = items.iter().map(|item| item.slug.as_str()).collect();
+        assert_eq!(
+            slugs,
+            vec![
+                "data-science-interview-and-cv-guide",
+                "data-translator-role-and-data-strategy"
+            ]
+        );
     }
 }
