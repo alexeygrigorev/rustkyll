@@ -795,4 +795,182 @@ mod tests {
             "Issue 341: Unicode <h1> should be nested in <li>. Got: {html}"
         );
     }
+
+    // ========================================================================
+    // Issue 362: DTC books nested list rendering
+    // ========================================================================
+
+    /// Issue 362: The exact pattern from the DTC books page
+    /// "effective-data-science-infrastructure" after newline_to_br.
+    /// Jekyll/kramdown nests the <ul> inside the <ol>'s <li>.
+    /// pulldown-cmark by default promotes the <ul> to a sibling.
+    #[test]
+    fn test_issue362_ol_li_contains_nested_ul() {
+        // This is the exact pattern: numbered item followed by bullet items,
+        // separated only by <br />\n (from newline_to_br).
+        // Jekyll produces: <ol><li>text<br />\n<ul><li>...</li></ul></li></ol>
+        // Without fix: <ol><li>text<br /></li></ol>\n<ul><li>...</li></ul>
+        let input = "2. Re: when not Metaflow. Here are some good reasons for not using it:<br />\n- You use primarily JVM-based languages.<br />\n- Your use cases are all based on streaming data.<br />\n- You have one specific use case.";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        eprintln!("=== test_issue362_ol_li_contains_nested_ul ===\n{html}");
+
+        assert!(html.contains("<ol>"), "Should have <ol>. Got: {html}");
+        assert!(html.contains("<ul>"), "Should have <ul>. Got: {html}");
+
+        // The <ul> must be INSIDE the <li> of the <ol>, not a sibling after </ol>.
+        // i.e. the structure should be: <ol><li>...<ul>...</ul></li></ol>
+        // NOT: <ol><li>...</li></ol><ul>...</ul>
+        let ol_close = html.find("</ol>").expect("must have </ol>");
+        let ul_open = html.find("<ul>").expect("must have <ul>");
+        assert!(
+            ul_open < ol_close,
+            "Issue 362: <ul> must appear before </ol> (nested inside <li>), not after. Got:\n{html}"
+        );
+    }
+
+    /// Issue 362: UL > LI > OL pattern (unordered list with nested ordered sub-list).
+    /// Pattern from business-skills-for-data-scientists book.
+    #[test]
+    fn test_issue362_ul_li_contains_nested_ol() {
+        let input = "- Main bullet:<br />\n1. Sub-numbered one<br />\n2. Sub-numbered two";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        eprintln!("=== test_issue362_ul_li_contains_nested_ol ===\n{html}");
+
+        assert!(html.contains("<ul>"), "Should have <ul>. Got: {html}");
+        assert!(html.contains("<ol>"), "Should have <ol>. Got: {html}");
+
+        // <ol> must be inside <li> of <ul>
+        let ul_close = html.find("</ul>").expect("must have </ul>");
+        let ol_open = html.find("<ol>").expect("must have <ol>");
+        assert!(
+            ol_open < ul_close,
+            "Issue 362: <ol> must appear before </ul> (nested inside <li>). Got:\n{html}"
+        );
+    }
+
+    /// Issue 362: Unicode content in nested list items through the pipeline.
+    #[test]
+    fn test_issue362_nested_list_unicode_content() {
+        let input = "1. R\u{00e9}sum\u{00e9} des points:<br />\n- Premi\u{00e8}re observation \u{1f4ca}<br />\n- Deuxi\u{00e8}me point \u{2714}";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("R\u{00e9}sum\u{00e9}"),
+            "Issue 362: Should preserve accented characters. Got: {html}"
+        );
+        assert!(
+            html.contains("\u{1f4ca}"),
+            "Issue 362: Should preserve emoji in list items. Got: {html}"
+        );
+        // <ul> must be nested inside <ol>'s <li>
+        let ol_close = html.find("</ol>").expect("must have </ol>");
+        let ul_open = html.find("<ul>").expect("must have <ul>");
+        assert!(
+            ul_open < ol_close,
+            "Issue 362: <ul> must be nested inside <ol>'s <li> (unicode). Got:\n{html}"
+        );
+    }
+
+    /// Issue 362: Blockquote containing a list through the markdownify filter.
+    #[test]
+    fn test_issue362_blockquote_with_list_markdownify() {
+        let input = "> Some quoted text\n>\n> - item one\n> - item two\n";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<blockquote>"),
+            "Issue 362: Should have <blockquote>. Got: {html}"
+        );
+        assert!(
+            html.contains("<ul>"),
+            "Issue 362: Should have <ul> inside blockquote. Got: {html}"
+        );
+        let bq_start = html.find("<blockquote>").unwrap();
+        let bq_end = html.find("</blockquote>").unwrap();
+        let ul_start = html.find("<ul>").unwrap();
+        assert!(
+            ul_start > bq_start && ul_start < bq_end,
+            "Issue 362: <ul> should be inside <blockquote>. Got: {html}"
+        );
+    }
+
+    /// Issue 362: Blockquote followed by list items after newline_to_br.
+    /// Pattern from analytics-engineering-with-sql-and-dbt book.
+    /// In kramdown, `> quote\n- item` after newline_to_br nests the <ul> inside <blockquote>.
+    #[test]
+    fn test_issue362_blockquote_then_list_after_newline_to_br() {
+        // Original: "> *Is there any tool comparable to dbt?*\n- Matilion is a tool\n- Another option"
+        // After newline_to_br: "> *Is there any tool?*<br />\n- Matilion is a tool<br />\n- Another option"
+        let input = "> *Is there any tool comparable to dbt?*<br />\n- Matilion is a fully-fledged ETL tool<br />\n- Another option is X";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        eprintln!("=== test_issue362_blockquote_then_list ===\n{html}");
+
+        assert!(
+            html.contains("<blockquote>"),
+            "Issue 362: Should have <blockquote>. Got: {html}"
+        );
+        assert!(
+            html.contains("<ul>"),
+            "Issue 362: Should have <ul>. Got: {html}"
+        );
+        // The <ul> should be inside the <blockquote>
+        let bq_end = html.find("</blockquote>").expect("must have </blockquote>");
+        let ul_open = html.find("<ul>").expect("must have <ul>");
+        assert!(
+            ul_open < bq_end,
+            "Issue 362: <ul> must appear before </blockquote> (nested). Got:\n{html}"
+        );
+    }
+
+    /// Issue 362: Ordered list with only some items having nested bullets.
+    #[test]
+    fn test_issue362_partial_nesting_some_items_with_bullets() {
+        let input = "1. Simple item<br />\n2. Item with sub-bullets:<br />\n- bullet a<br />\n- bullet b<br />\n3. Another simple item";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("Simple item"),
+            "Issue 362: Simple item should be present. Got: {html}"
+        );
+        assert!(
+            html.contains("bullet a"),
+            "Issue 362: Sub-bullet should be present. Got: {html}"
+        );
+        assert!(
+            html.contains("Another simple item"),
+            "Issue 362: Third item should be present. Got: {html}"
+        );
+    }
+
+    /// Issue 362: Real DTC numbered list with br continuation (no sub-lists).
+    #[test]
+    fn test_issue362_numbered_list_with_br_continuation() {
+        let input = "1. First question about topic<br />\n2. Second question about something else<br />\n3. Third question";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<ol>"),
+            "Issue 362: Should have <ol>. Got: {html}"
+        );
+        let li_count = html.matches("<li>").count();
+        assert!(
+            li_count >= 3,
+            "Issue 362: Should have 3 <li> elements, got {li_count}. Got: {html}"
+        );
+    }
+
+    /// Issue 362: Regression: plain markdown nested list (without newline_to_br) still works.
+    #[test]
+    fn test_issue362_regression_plain_nested_list() {
+        let input = "1. First item\n   - Sub item a\n   - Sub item b\n2. Second item\n";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<ol>"),
+            "Issue 362 regression: Should have <ol>. Got: {html}"
+        );
+        assert!(
+            html.contains("<ul>"),
+            "Issue 362 regression: Should have <ul> for sub-items. Got: {html}"
+        );
+        assert!(
+            html.contains("Sub item a"),
+            "Issue 362 regression: Sub-items should be present. Got: {html}"
+        );
+    }
 }

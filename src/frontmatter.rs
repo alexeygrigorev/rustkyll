@@ -795,6 +795,12 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     // pulldown-cmark closes the <li> and <ul>/<ol> before the heading.
     let html_output = renest_heading_after_list(&html_output);
 
+    // Issue 362: Re-nest sibling lists that should be nested inside parent <li>.
+    // In kramdown, when `newline_to_br | markdownify` processes text like
+    // `2. text\n- bullet`, the <ul> is nested inside the <ol>'s <li>.
+    // pulldown-cmark promotes the <ul> to a sibling of the <ol>.
+    let html_output = renest_sibling_list_into_parent_li(&html_output);
+
     // Issue 314: Use the global indent_lists flag so CommonMark sites
     // produce unindented <li> elements in the markdownify filter path too.
     let indent_lists = get_markdownify_indent_lists();
@@ -1925,6 +1931,173 @@ fn renest_heading_after_list(html: &str) -> String {
                 }
             }
             break;
+        }
+    }
+
+    result
+}
+
+/// Issue 362: Re-nest a sibling list (<ul> or <ol>) into the preceding list's
+/// last <li>, matching kramdown's behavior for the `newline_to_br | markdownify`
+/// pipeline.
+///
+/// pulldown-cmark produces:
+///   <ol>\n  <li>text<br /></li>\n</ol>\n\n<ul>\n  <li>sub</li>\n</ul>
+///
+/// kramdown produces:
+///   <ol>\n  <li>text<br />\n<ul>\n  <li>sub</li>\n</ul>\n</li>\n</ol>
+///
+/// This function detects the pattern `</li>\n</LIST1>\n\n<LIST2>` where LIST1
+/// and LIST2 are different list types (ol/ul or ul/ol) and re-nests LIST2
+/// inside the last <li> of LIST1.
+fn renest_sibling_list_into_parent_li(html: &str) -> String {
+    if !html.contains("</ol>") && !html.contains("</ul>") {
+        return html.to_string();
+    }
+
+    let mut result = html.to_string();
+
+    // Handle both directions: ol followed by ul, and ul followed by ol
+    for (parent_tag, child_tag) in &[("ol", "ul"), ("ul", "ol")] {
+        loop {
+            // Pattern: </li>\n</parent>\n\n<child> (with possible indentation variations)
+            let close_pattern = format!("</li>\n</{parent_tag}>\n\n<{child_tag}>");
+            let close_pattern_single_nl = format!("</li>\n</{parent_tag}>\n<{child_tag}>");
+
+            let (pattern, found_pos) = if let Some(pos) = result.find(&close_pattern) {
+                (close_pattern.as_str(), Some(pos))
+            } else if let Some(pos) = result.find(&close_pattern_single_nl) {
+                (close_pattern_single_nl.as_str(), Some(pos))
+            } else {
+                ("", None)
+            };
+
+            let pos = match found_pos {
+                Some(p) => p,
+                None => break,
+            };
+
+            // Find the end of the child list: </child_tag>
+            let child_open_start = pos + pattern.len() - format!("<{child_tag}>").len();
+            let after_child_open = &result[child_open_start..];
+            let child_close_tag = format!("</{child_tag}>");
+            let child_close_offset = match after_child_open.find(&child_close_tag) {
+                Some(off) => off,
+                None => break,
+            };
+            let child_close_end = child_open_start + child_close_offset + child_close_tag.len();
+
+            // Consume trailing newline after </child_tag> if present
+            let consume_end = if result[child_close_end..].starts_with('\n') {
+                child_close_end + 1
+            } else {
+                child_close_end
+            };
+
+            // Extract the child list HTML (e.g., <ul>\n  <li>...</li>\n</ul>)
+            let child_list_html = &result[child_open_start..child_close_end];
+
+            // Build the replacement:
+            // Original: ...text<br /></li>\n</parent>\n\n<child>...\n</child>\n
+            // New:      ...text<br />\n<child>...\n</child>\n</li>\n</parent>\n
+            let mut replacement = String::new();
+            replacement.push('\n');
+            replacement.push_str(child_list_html);
+            replacement.push_str("\n</li>\n</");
+            replacement.push_str(parent_tag);
+            replacement.push_str(">\n");
+
+            let new_result = format!(
+                "{}{}{}",
+                &result[..pos],
+                replacement,
+                &result[consume_end..]
+            );
+            result = new_result;
+            continue;
+        }
+    }
+
+    // Merge consecutive same-type lists: </ol>\n\n<ol> and </ul>\n\n<ul>
+    // In kramdown, `1. item<br />\n2. item` produces a single <ol>.
+    // pulldown-cmark splits them into separate <ol> elements.
+    for list_tag in &["ol", "ul"] {
+        loop {
+            let pattern_double = format!("</{list_tag}>\n\n<{list_tag}>");
+            let pattern_single = format!("</{list_tag}>\n<{list_tag}>");
+
+            let (pattern, found_pos) = if let Some(pos) = result.find(&pattern_double) {
+                (pattern_double.as_str(), Some(pos))
+            } else if let Some(pos) = result.find(&pattern_single) {
+                (pattern_single.as_str(), Some(pos))
+            } else {
+                ("", None)
+            };
+
+            let pos = match found_pos {
+                Some(p) => p,
+                None => break,
+            };
+
+            // Replace </list>\n\n<list> with just a newline (merge into single list)
+            let new_result = format!("{}\n{}", &result[..pos], &result[pos + pattern.len()..]);
+            result = new_result;
+            continue;
+        }
+    }
+
+    // Handle blockquote followed by list: </blockquote>\n\n<ul> or </blockquote>\n\n<ol>
+    // kramdown nests the list inside the blockquote
+    for list_tag in &["ul", "ol"] {
+        loop {
+            let pattern_double = format!("</blockquote>\n\n<{list_tag}>");
+            let pattern_single = format!("</blockquote>\n<{list_tag}>");
+
+            let (pattern, found_pos) = if let Some(pos) = result.find(&pattern_double) {
+                (pattern_double.as_str(), Some(pos))
+            } else if let Some(pos) = result.find(&pattern_single) {
+                (pattern_single.as_str(), Some(pos))
+            } else {
+                ("", None)
+            };
+
+            let pos = match found_pos {
+                Some(p) => p,
+                None => break,
+            };
+
+            // Find the end of the list
+            let list_open_start = pos + pattern.len() - format!("<{list_tag}>").len();
+            let after_list_open = &result[list_open_start..];
+            let list_close_tag = format!("</{list_tag}>");
+            let list_close_offset = match after_list_open.find(&list_close_tag) {
+                Some(off) => off,
+                None => break,
+            };
+            let list_close_end = list_open_start + list_close_offset + list_close_tag.len();
+
+            let consume_end = if result[list_close_end..].starts_with('\n') {
+                list_close_end + 1
+            } else {
+                list_close_end
+            };
+
+            let list_html = result[list_open_start..list_close_end].to_string();
+
+            // Build replacement: insert list before </blockquote>
+            let mut replacement = String::new();
+            replacement.push('\n');
+            replacement.push_str(&list_html);
+            replacement.push_str("\n</blockquote>\n");
+
+            let new_result = format!(
+                "{}{}{}",
+                &result[..pos],
+                replacement,
+                &result[consume_end..]
+            );
+            result = new_result;
+            continue;
         }
     }
 
