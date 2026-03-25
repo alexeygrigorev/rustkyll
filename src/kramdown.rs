@@ -2532,11 +2532,19 @@ pub fn convert_kramdown_pipe_tables(content: &str) -> String {
                 continue;
             }
 
-            // Collect all lines in this GFM table block
+            // Collect all lines in this GFM table block.
+            // GFM tables don't require leading/trailing `|`, so we match
+            // separator lines, `|`-bounded lines, AND lines with internal
+            // pipes (kramdown table lines). Without this, tables like
+            // `A | B\n--|--\n1 | 2` would fail to collect any lines and
+            // cause an infinite loop (j == i, i never advances).
             let mut j = i;
             while j < lines.len() {
                 let jt = lines[j].trim();
-                if is_table_separator_line(jt) || (jt.starts_with('|') && jt.ends_with('|')) {
+                if is_table_separator_line(jt)
+                    || (jt.starts_with('|') && jt.ends_with('|'))
+                    || is_kramdown_table_line(jt)
+                {
                     j += 1;
                 } else {
                     break;
@@ -13574,6 +13582,63 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             result.contains("<em>r\u{00e9}sum\u{00e9}</em>"),
             "Underscore emphasis with accented chars should work. Got: {}",
+            result
+        );
+    }
+
+    // ========================================================================
+    // Issue 244: GFM table without leading/trailing pipes must not deadlock
+    // ========================================================================
+
+    #[test]
+    fn test_244_gfm_table_no_leading_trailing_pipes() {
+        // Tables like `A | B\n--|--\n1 | 2` (no leading/trailing `|`)
+        // caused an infinite loop in convert_kramdown_pipe_tables because
+        // the GFM collection loop didn't match rows without `|` delimiters.
+        let input = "A | B\n--|--\n1 | 2\n";
+        let result = convert_kramdown_pipe_tables(input);
+        // Must terminate (not hang) and contain the table content
+        assert!(
+            result.contains("A") && result.contains("B"),
+            "Table content should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_244_gfm_table_no_pipes_renders_html() {
+        // The full markdown-to-HTML pipeline should produce a <table>
+        // for GFM tables without leading/trailing pipes.
+        let input = "First Header  | Second Header\n------------- | -------------\nContent Cell  | Content Cell\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<table>"),
+            "GFM table without pipe delimiters should render. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_244_gfm_table_no_pipes_with_surrounding_text() {
+        // Ensure tables preceded and followed by paragraphs work correctly.
+        let input = "Some text before.\n\nA | B\n--|--\n1 | 2\n\nSome text after.\n";
+        let result = convert_kramdown_pipe_tables(input);
+        assert!(
+            result.contains("Some text before") && result.contains("Some text after"),
+            "Surrounding text should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_244_gfm_table_no_pipes_unicode() {
+        // Tables with Unicode content and no leading/trailing pipes.
+        let input =
+            "\u{0417}\u{0430}\u{0433} | \u{0420}\u{0435}\u{0437}\n--|--\n\u{042f} | \u{0414}\n";
+        let result = convert_kramdown_pipe_tables(input);
+        assert!(
+            result.contains("\u{0417}\u{0430}\u{0433}"),
+            "Unicode table content should be preserved. Got: {}",
             result
         );
     }
