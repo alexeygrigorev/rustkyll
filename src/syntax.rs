@@ -310,12 +310,25 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
     let mut html = String::with_capacity(code.len() * 2);
     let mut parse_state = syntect::parsing::ParseState::new(syntax);
     let mut scope_stack = syntect::parsing::ScopeStack::new();
+    let is_python = lang == "python" || lang == "py";
+    let is_yaml = lang == "yaml" || lang == "yml";
+    let lines: Vec<&str> = syntect::util::LinesWithEndings::from(code).collect();
+    let mut previous_python_indent = 0usize;
+    let mut previous_python_had_unclosed_delimiter = false;
 
     // Accumulator for merging: (css_class_option, accumulated_text)
     let mut pending_class: Option<&'static str> = None;
     let mut pending_text = String::new();
 
-    for line in syntect::util::LinesWithEndings::from(code) {
+    for line in lines {
+        if is_python
+            && previous_python_had_unclosed_delimiter
+            && python_should_reset_after_unclosed_delimiter(line, previous_python_indent)
+        {
+            parse_state = syntect::parsing::ParseState::new(syntax);
+            scope_stack = syntect::parsing::ScopeStack::new();
+        }
+
         let ops = parse_state.parse_line(line, ss).ok()?;
         let mut cur_pos = 0;
 
@@ -348,16 +361,29 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
         }
 
         // Flush at end of each line to prevent merging across line boundaries.
-        // This ensures e.g. consecutive comment lines get separate spans
-        // (matching Rouge behavior) while still merging fragments within a line.
-        flush_pending(&mut html, &pending_class, &mut pending_text);
+        // Python triple-quoted strings are the exception: Rouge keeps them as a
+        // single span across embedded newlines, so we leave those open and let
+        // the next line continue the same token.
+        let keep_open_for_python_string = matches!(
+            (lang, pending_class),
+            ("python", Some("s" | "s1" | "s2" | "sd" | "sr" | "sx"))
+                | ("py", Some("s" | "s1" | "s2" | "sd" | "sr" | "sx"))
+        );
+        if !keep_open_for_python_string {
+            flush_pending(&mut html, &pending_class, &mut pending_text);
+        }
+
+        if is_python {
+            previous_python_indent = leading_indent_width(line);
+            previous_python_had_unclosed_delimiter = python_has_unclosed_delimiter(line);
+        }
     }
 
     // Flush any remaining pending text
     flush_pending(&mut html, &pending_class, &mut pending_text);
 
     // Python post-processing
-    if lang == "python" || lang == "py" {
+    if is_python {
         // Merge dotted module names in import statements.
         // Syntect splits "arize.otel" into separate tokens (arize, ., otel) but
         // Rouge keeps the whole qualified name in one <span class="nn"> span.
@@ -391,19 +417,25 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
             "<span class=\"k\">in</span>",
             "<span class=\"ow\">in</span>",
         );
+
+        html = postprocess_python_builtin_calls(&html);
+        html = html.replace("</span>]", "</span><span class=\"p\">]</span>");
+        html = html.replace("<span class=\"p\">]</span>)", "<span class=\"p\">])</span>");
     }
 
     // YAML post-processing: syntect classifies `on` as constant.language (kc)
     // since it's a YAML boolean, but Rouge treats it as `na` when used as a mapping key.
-    if lang == "yaml" || lang == "yml" {
+    if is_yaml {
         html = html.replace(
             "<span class=\"kc\">on</span><span class=\"pi\">:</span>",
             "<span class=\"na\">on</span><span class=\"pi\">:</span>",
         );
+        html = postprocess_yaml_flow_mappings(&html);
     }
 
     // Bash post-processing: Rouge classifies `install` as builtin (`nb`).
     if lang == "bash" || lang == "sh" || lang == "shell" {
+        html = postprocess_bash_prompt_lines(&html);
         html = postprocess_bash_install(&html);
     }
 
@@ -481,6 +513,157 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
     }
 
     Some(html)
+}
+
+fn postprocess_python_builtin_calls(html: &str) -> String {
+    let mut out = html.to_string();
+    for builtin in ["min", "max", "sum"] {
+        for suffix in [
+            "<span class=\"p\">()</span>",
+            "<span class=\"p\">().</span>",
+            "<span class=\"p\">(</span>",
+        ] {
+            let from = format!("<span class=\"n\">{builtin}</span>{suffix}");
+            let to = format!("<span class=\"nb\">{builtin}</span>{suffix}");
+            out = out.replace(&from, &to);
+        }
+    }
+    out
+}
+
+fn postprocess_yaml_flow_mappings(html: &str) -> String {
+    let mut out = String::with_capacity(html.len());
+
+    for line in html.split_inclusive('\n') {
+        if line.contains("<span class=\"p\">{</span>")
+            || line.contains("<span class=\"p\">}</span>")
+        {
+            let mut line = line
+                .replace("<span class=\"p\">{</span>", "<span class=\"pi\">{</span>")
+                .replace("<span class=\"p\">}</span>", "<span class=\"pi\">}</span>");
+            line = line.replace(
+                "<span class=\"pi\">{</span><span class=\"na\">",
+                "<span class=\"pi\">{</span><span class=\"nv\">",
+            );
+            line = line.replace(
+                "<span class=\"pi\">,</span> <span class=\"na\">",
+                "<span class=\"pi\">,</span> <span class=\"nv\">",
+            );
+            out.push_str(&split_yaml_flow_double_quoted_spaces(&line));
+        } else {
+            out.push_str(line);
+        }
+    }
+
+    out
+}
+
+fn split_yaml_flow_double_quoted_spaces(line: &str) -> String {
+    let prefix = "<span class=\"s2\">\"</span><span class=\"s\">";
+    let suffix = "</span>";
+    let mut out = String::with_capacity(line.len());
+    let mut rest = line;
+
+    while let Some(start) = rest.find(prefix) {
+        let (before, after_start) = rest.split_at(start);
+        out.push_str(before);
+        out.push_str(prefix);
+
+        let content_start = &after_start[prefix.len()..];
+        let Some(content_end) = content_start.find(suffix) else {
+            out.push_str(content_start);
+            return out;
+        };
+
+        let content = &content_start[..content_end];
+        if content.contains(' ') {
+            let mut parts = content.split(' ').peekable();
+            while let Some(part) = parts.next() {
+                out.push_str(part);
+                if parts.peek().is_some() {
+                    out.push_str("</span><span class=\"nv\"> </span><span class=\"s\">");
+                }
+            }
+        } else {
+            out.push_str(content);
+        }
+        out.push_str(suffix);
+        rest = &content_start[content_end + suffix.len()..];
+    }
+
+    out.push_str(rest);
+    out
+}
+
+fn leading_indent_width(line: &str) -> usize {
+    line.chars()
+        .take_while(|ch| matches!(ch, ' ' | '\t'))
+        .count()
+}
+
+fn python_should_reset_after_unclosed_delimiter(line: &str, previous_indent: usize) -> bool {
+    let trimmed = line.trim_start_matches([' ', '\t']);
+    if trimmed.is_empty() || trimmed.starts_with('#') {
+        return false;
+    }
+
+    if leading_indent_width(line) > previous_indent {
+        return false;
+    }
+
+    !matches!(
+        trimmed.chars().next(),
+        Some(')' | ']' | '}' | ',' | '.' | ':' | '+' | '-' | '*' | '/' | '%' | '&' | '|')
+    )
+}
+
+fn python_has_unclosed_delimiter(line: &str) -> bool {
+    let mut paren_depth = 0usize;
+    let mut bracket_depth = 0usize;
+    let mut brace_depth = 0usize;
+    let mut in_single = false;
+    let mut in_double = false;
+    let mut escaped = false;
+
+    for ch in line.chars() {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+
+        if in_single {
+            if ch == '\\' {
+                escaped = true;
+            } else if ch == '\'' {
+                in_single = false;
+            }
+            continue;
+        }
+
+        if in_double {
+            if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                in_double = false;
+            }
+            continue;
+        }
+
+        match ch {
+            '#' => break,
+            '\'' => in_single = true,
+            '"' => in_double = true,
+            '(' => paren_depth += 1,
+            ')' => paren_depth = paren_depth.saturating_sub(1),
+            '[' => bracket_depth += 1,
+            ']' => bracket_depth = bracket_depth.saturating_sub(1),
+            '{' => brace_depth += 1,
+            '}' => brace_depth = brace_depth.saturating_sub(1),
+            _ => {}
+        }
+    }
+
+    paren_depth > 0 || bracket_depth > 0 || brace_depth > 0
 }
 
 /// Accumulate text into the pending buffer if it has the same CSS class,
@@ -888,6 +1071,33 @@ fn postprocess_java_annotations(html: &str) -> String {
 /// Post-process Bash highlighted HTML to wrap `install` as a builtin (`nb`).
 fn postprocess_bash_install(html: &str) -> String {
     html.replace(" install ", " <span class=\"nb\">install </span>")
+}
+
+/// Post-process bare Bash prompt lines to match Rouge's prompt tokenization.
+fn postprocess_bash_prompt_lines(html: &str) -> String {
+    let mut out = String::with_capacity(html.len() + 32);
+
+    for line in html.split_inclusive('\n') {
+        let (content, trailing_newline) = match line.strip_suffix('\n') {
+            Some(content) => (content, "\n"),
+            None => (line, ""),
+        };
+
+        if let Some(rest) = content.strip_prefix("$ ") {
+            out.push_str("<span class=\"nv\">$ </span>");
+            if let Some(tail) = rest.strip_prefix("promptfoo eval ") {
+                out.push_str("promptfoo <span class=\"nb\">eval </span>");
+                out.push_str(tail);
+            } else {
+                out.push_str(rest);
+            }
+            out.push_str(trailing_newline);
+        } else {
+            out.push_str(line);
+        }
+    }
+
+    out
 }
 
 /// Post-process SQL highlighted HTML to wrap bare tokens in spans,
@@ -1647,6 +1857,16 @@ mod tests {
         assert!(
             html.contains("<span class=\"s\">\"\"\"Function"),
             "docstring should be s: {html}"
+        );
+    }
+
+    #[test]
+    fn test_python_multiline_docstring_is_one_span() {
+        let code = "\"\"\"This is my great and neat function to solve the famous\nFizz Buzz problem.\n:param num: That's the number which we want the answer for\n:return: fizz, buzz, fizzbuzz or the number itself\n\"\"\"\n";
+        let html = highlight_code("python", code).unwrap();
+        assert!(
+            html.contains("<span class=\"s\">\"\"\"This is my great and neat function to solve the famous\nFizz Buzz problem.\n:param num: That's the number which we want the answer for\n:return: fizz, buzz, fizzbuzz or the number itself\n\"\"\"</span>"),
+            "multiline Python docstrings should stay in one span like Rouge: {html}"
         );
     }
 
@@ -2489,6 +2709,33 @@ mod tests {
     }
 
     #[test]
+    fn test_issue340_yaml_flow_mapping_matches_promptfoo_snippet() {
+        let code = "# Example YAML config (pseudo)\n\
+prompts:\n\
+  - prompt1.txt\n\
+providers:\n\
+  - openai:gpt-4\n\
+tests:\n\
+  - vars: {question: \"What is 2+2?\"}\n\
+    assert:\n\
+      - type: contains\n\
+        value: \"4\"\n";
+        let html = highlight_code("yaml", code).unwrap();
+        let expected = concat!(
+            "<span class=\"na\">vars</span><span class=\"pi\">:</span> ",
+            "<span class=\"pi\">{</span><span class=\"nv\">question</span>",
+            "<span class=\"pi\">:</span> <span class=\"s2\">\"</span>",
+            "<span class=\"s\">What</span><span class=\"nv\"> </span>",
+            "<span class=\"s\">is</span><span class=\"nv\"> </span>",
+            "<span class=\"s\">2+2?\"</span><span class=\"pi\">}</span>"
+        );
+        assert!(
+            html.contains(expected),
+            "YAML flow mapping should match Rouge/Jekyll output.\nExpected to contain: {expected}\nActual: {html}"
+        );
+    }
+
+    #[test]
     fn test_ruby_class_new() {
         let html = highlight_code("ruby", "x = Class.new\n").unwrap();
         assert!(
@@ -2823,6 +3070,78 @@ mod tests {
         assert!(
             html.contains("<span class=\"k\">print</span>"),
             "Python 'print' should be k (keyword) even with CJK string: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue340_python_invalid_concat_line_recovers_return() {
+        let code = "def process_data(df):\n\
+    df = df.fillna()\n\
+    df['column_name'] = df['another_column'] * 5\n\
+    df = df.groupby('major_column').sum()\n\
+    df = pandas.concat([df.iloc[0:100], df.iloc[200:300])\n\
+    return df\n";
+        let html = highlight_code("python", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nb\">sum</span><span class=\"p\">()</span>"),
+            "Python builtin-like sum() should match Rouge/Jekyll output: {html}"
+        );
+        let invalid_line_expected = concat!(
+            "<span class=\"n\">df</span> <span class=\"o\">=</span> ",
+            "<span class=\"n\">pandas</span><span class=\"p\">.</span>",
+            "<span class=\"n\">concat</span><span class=\"p\">([</span>",
+            "<span class=\"n\">df</span><span class=\"p\">.</span>",
+            "<span class=\"n\">iloc</span><span class=\"p\">[</span>",
+            "<span class=\"mi\">0</span><span class=\"p\">:</span>",
+            "<span class=\"mi\">100</span><span class=\"p\">],</span> ",
+            "<span class=\"n\">df</span><span class=\"p\">.</span>",
+            "<span class=\"n\">iloc</span><span class=\"p\">[</span>",
+            "<span class=\"mi\">200</span><span class=\"p\">:</span>",
+            "<span class=\"mi\">300</span><span class=\"p\">])</span>"
+        );
+        assert!(
+            html.contains(invalid_line_expected),
+            "Python invalid concat line should keep the closing `])` punctuation span together.\nExpected to contain: {invalid_line_expected}\nActual: {html}"
+        );
+        let expected = "<span class=\"k\">return</span> <span class=\"n\">df</span>";
+        assert!(
+            html.contains(expected),
+            "Python highlighting should recover on the line after an unterminated '['.\nExpected to contain: {expected}\nActual: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue340_python_invalid_filter_line_recovers_next_assignment() {
+        let code = "p = numpy.percentile(df.groupby('user')['sales'].mean(), 0.95)\n\
+x = df.groupby('user')['date'].min().max()\n\
+df = df[(df['sales'] >= p) & (df['date'] > x]\n\
+u = df['user'].unique()\n";
+        let html = highlight_code("python", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nb\">min</span><span class=\"p\">().</span><span class=\"nb\">max</span><span class=\"p\">()</span>"),
+            "Python min()/max() should match Rouge/Jekyll output: {html}"
+        );
+        let expected = concat!(
+            "<span class=\"n\">x</span><span class=\"p\">]</span>\n",
+            "<span class=\"n\">u</span> <span class=\"o\">=</span> ",
+            "<span class=\"n\">df</span><span class=\"p\">[</span>",
+            "<span class=\"s\">'user'</span><span class=\"p\">].</span>",
+            "<span class=\"n\">unique</span><span class=\"p\">()</span>"
+        );
+        assert!(
+            html.contains(expected),
+            "Python highlighting should recover on the line after an unterminated '['.\nExpected to contain: {expected}\nActual: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue340_bash_promptfoo_command_matches_rouge() {
+        let html = highlight_code("bash", "$ promptfoo eval config.yaml\n").unwrap();
+        let expected =
+            "<span class=\"nv\">$ </span>promptfoo <span class=\"nb\">eval </span>config.yaml";
+        assert!(
+            html.contains(expected),
+            "Bash prompt command should match Rouge/Jekyll output.\nExpected to contain: {expected}\nActual: {html}"
         );
     }
 
