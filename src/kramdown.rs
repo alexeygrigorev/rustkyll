@@ -707,6 +707,7 @@ pub fn postprocess_with_options(html: &str, indent_lists: bool) -> String {
     // <code> tags from the source.
     let html = wrap_bare_text_in_paragraphs(&html);
     let html = wrap_standalone_comments_in_paragraphs(&html);
+    let html = wrap_marked_partial_loose_list_items(&html);
     let html = add_block_spacing(&html);
     let html = remove_ol_start_attribute(&html);
     // Issue 297: Only indent list items for kramdown mode. CommonMarkGhPages
@@ -772,6 +773,7 @@ pub fn postprocess_for_filter_with_options(html: &str, indent_lists: bool) -> St
     let html = apply_inline_attributes(&html);
     // Note: inline code classes are now added during markdown rendering
     // (in frontmatter::add_inline_code_class_to_events) rather than here.
+    let html = wrap_marked_partial_loose_list_items(&html);
     let html = remove_ol_start_attribute(&html);
     let html = add_block_spacing(&html);
     let html = if indent_lists {
@@ -2154,6 +2156,92 @@ pub fn mark_forward_ial(content: &str) -> String {
     result
 }
 
+const PARTIAL_LOOSE_ITEM_MARKER: &str = "<!-- KRMD:PARTIAL_LOOSE_ITEM -->";
+
+/// Mark simple partial-loose list items so HTML postprocessing can wrap only
+/// those `<li>` items in `<p>...</p>`.
+///
+/// This is intentionally narrow:
+/// - only partially-loose regions (`some` item gaps, not all)
+/// - only list items followed by a blank gap to another sibling item
+/// - only one-line items (no continuation lines / nested blocks)
+pub fn mark_simple_partial_loose_list_items(content: &str) -> String {
+    if !content.contains("- ") && !content.contains("* ") && !content.contains("+ ") {
+        return content.to_string();
+    }
+
+    let mut lines: Vec<String> = content.split('\n').map(ToString::to_string).collect();
+    if lines.len() < 3 {
+        return content.to_string();
+    }
+
+    let line_refs: Vec<&str> = lines.iter().map(|s| s.as_str()).collect();
+    let regions = find_list_regions(&line_refs);
+    if regions.is_empty() {
+        return content.to_string();
+    }
+
+    let mut in_code_block = false;
+
+    for region in regions {
+        if region.fully_loose {
+            continue;
+        }
+        let mut i = region.start;
+        while i < region.end {
+            let trimmed = lines[i].trim_start();
+            if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+                in_code_block = !in_code_block;
+                i += 1;
+                continue;
+            }
+            if in_code_block || !is_markdown_list_item(trimmed) {
+                i += 1;
+                continue;
+            }
+
+            let mut j = i + 1;
+            let mut has_continuation = false;
+            while j < lines.len() {
+                let next_trimmed = lines[j].trim_start();
+                if next_trimmed.is_empty() {
+                    break;
+                }
+                let indent = lines[j].len() - next_trimmed.len();
+                if indent >= 2 && !is_markdown_list_item(next_trimmed) {
+                    has_continuation = true;
+                    j += 1;
+                } else {
+                    break;
+                }
+            }
+
+            let mut blank_count = 0usize;
+            while j < lines.len() && lines[j].trim().is_empty() {
+                blank_count += 1;
+                j += 1;
+            }
+            let next_is_sibling_item =
+                j < lines.len() && is_markdown_list_item(lines[j].trim_start());
+            let has_inline_markdown_link = lines[i].contains("](");
+
+            if blank_count > 0
+                && next_is_sibling_item
+                && !has_continuation
+                && has_inline_markdown_link
+                && !lines[i].contains(PARTIAL_LOOSE_ITEM_MARKER)
+            {
+                lines[i].push(' ');
+                lines[i].push_str(PARTIAL_LOOSE_ITEM_MARKER);
+            }
+
+            i = if j > i { j } else { i + 1 };
+        }
+    }
+
+    lines.join("\n")
+}
+
 /// blank lines because kramdown also wraps all items in `<p>`.
 /// A "partially loose" list (some blanks but not all) is collapsed to tight.
 pub fn collapse_blank_lines_between_list_items(content: &str) -> String {
@@ -2241,6 +2329,65 @@ pub fn collapse_blank_lines_between_list_items(content: &str) -> String {
     }
 
     result
+}
+
+fn wrap_marked_partial_loose_list_items(html: &str) -> String {
+    if !html.contains(PARTIAL_LOOSE_ITEM_MARKER) {
+        return html.to_string();
+    }
+
+    let mut result = html.to_string();
+
+    while let Some(marker_pos) = result.find(PARTIAL_LOOSE_ITEM_MARKER) {
+        let Some(li_start) = result[..marker_pos].rfind("<li>") else {
+            result = result.replacen(PARTIAL_LOOSE_ITEM_MARKER, "", 1);
+            continue;
+        };
+        let Some(li_end_rel) = result[marker_pos..].find("</li>") else {
+            result = result.replacen(PARTIAL_LOOSE_ITEM_MARKER, "", 1);
+            continue;
+        };
+        let li_end = marker_pos + li_end_rel;
+        let inner_start = li_start + "<li>".len();
+
+        let mut inner = result[inner_start..li_end].replace(PARTIAL_LOOSE_ITEM_MARKER, "");
+        let should_wrap = is_simple_inline_list_item(inner.trim());
+        if should_wrap {
+            inner = format!("<p>{}</p>", inner.trim());
+        }
+
+        let mut rewritten = String::with_capacity(result.len() + if should_wrap { 7 } else { 0 });
+        rewritten.push_str(&result[..inner_start]);
+        rewritten.push_str(&inner);
+        rewritten.push_str(&result[li_end..]);
+        result = rewritten;
+    }
+
+    result
+}
+
+fn is_simple_inline_list_item(inner: &str) -> bool {
+    if inner.is_empty() {
+        return false;
+    }
+    if inner.contains("<p")
+        || inner.contains("<ul")
+        || inner.contains("<ol")
+        || inner.contains("<li")
+        || inner.contains("<div")
+        || inner.contains("<table")
+        || inner.contains("<blockquote")
+        || inner.contains("<pre")
+        || inner.contains("<h1")
+        || inner.contains("<h2")
+        || inner.contains("<h3")
+        || inner.contains("<h4")
+        || inner.contains("<h5")
+        || inner.contains("<h6")
+    {
+        return false;
+    }
+    true
 }
 
 /// Convert kramdown-style pipe table lines to HTML `<table>` elements.
@@ -9579,6 +9726,30 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             !html.contains("<li><p>") && !html.contains("<li>\n<p>"),
             "After collapsing blank lines, list should be tight (no <p>). Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue343_partial_loose_first_item_wrapped_only() {
+        let input = "-   First of all, you need to follow Linkedin the best professionals. [article here](https://example.com).;\n\n-   Then you should use several platforms to show yourself.\n-   You must connect to recruiters.\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+
+        assert!(
+            html.contains(
+                "<p>First of all, you need to follow Linkedin the best professionals. <a href=\"https://example.com\">article here</a>.;</p>"
+            ),
+            "First list item should get <p> wrapper in partial-loose list. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("<li>Then you should use several platforms to show yourself.</li>"),
+            "Second sibling item should remain tight (no <p>). Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("<li>You must connect to recruiters.</li>"),
+            "Third sibling item should remain tight (no <p>). Got:\n{}",
             html
         );
     }

@@ -411,6 +411,9 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // Issue 204: Escape heading markers inside list context to match kramdown.
     // In kramdown, headings after list items without a blank line are text.
     let markdown = crate::kramdown::escape_headings_in_list_context(&markdown);
+    // Issue 343: Mark simple partial-loose list items so postprocessing can
+    // wrap only those items in <p> without broad list-wide behavior changes.
+    let markdown = crate::kramdown::mark_simple_partial_loose_list_items(&markdown);
 
     // Issue 204: Collapse blank lines between list items to match kramdown's
     // tight list behavior. CommonMark makes entire list loose on any blank line.
@@ -551,6 +554,7 @@ pub fn markdown_to_html_with_options(
         markdown
     };
     let markdown = crate::kramdown::escape_headings_in_list_context(&markdown);
+    let markdown = crate::kramdown::mark_simple_partial_loose_list_items(&markdown);
     let markdown = crate::kramdown::collapse_blank_lines_between_list_items(&markdown);
     let markdown = crate::kramdown::convert_kramdown_pipe_tables(&markdown);
     let markdown = crate::kramdown::split_text_after_html_block_close(&markdown);
@@ -737,6 +741,7 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     // Issue 227: Protect math content from backslash-escape processing
     let (markdown, math_saved) = protect_math_content(&markdown);
     let markdown = crate::kramdown::escape_headings_in_list_context(&markdown);
+    let markdown = crate::kramdown::mark_simple_partial_loose_list_items(&markdown);
     let markdown = crate::kramdown::collapse_blank_lines_between_list_items(&markdown);
     // Issue 200: Convert kramdown-style pipe tables to HTML.
     let markdown = crate::kramdown::convert_kramdown_pipe_tables(&markdown);
