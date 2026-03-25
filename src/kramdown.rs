@@ -721,6 +721,10 @@ pub fn postprocess_with_options(html: &str, indent_lists: bool) -> String {
     // Issue 201: Convert bare void elements (<br>, <hr>) to XHTML-style
     // (<br />, <hr />) to match Jekyll/kramdown output.
     let html = normalize_bare_void_elements(&html);
+    // Issue 339: Escape malformed raw HTML tags that use single-quoted
+    // attributes with unescaped apostrophes. Jekyll/kramdown treats these as
+    // literal text rather than live elements.
+    let html = escape_malformed_single_quote_tags(&html);
     // Issue 270: Collapse newlines inside HTML tags to spaces, matching
     // Jekyll/kramdown behavior where raw HTML tags with multi-line attributes
     // are normalized to single-line output.
@@ -5037,6 +5041,120 @@ fn normalize_bare_void_elements(html: &str) -> String {
     result
 }
 
+/// Escape malformed raw HTML tags that contain unbalanced single quotes.
+///
+/// Jekyll/kramdown treats malformed raw HTML like:
+///
+/// ```html
+/// <canvas data-labels='["We don't self-host"]'>
+/// ```
+///
+/// as literal text, not a live element. pulldown-cmark passes it through as
+/// a real tag, so we detect tags whose raw single quotes are unbalanced and
+/// escape both the opening and matching closing tags.
+fn escape_malformed_single_quote_tags(html: &str) -> String {
+    if !html.contains('\'') {
+        return html.to_string();
+    }
+
+    let mut result = String::with_capacity(html.len() + 32);
+    let mut remaining = html;
+
+    while let Some(tag_start) = remaining.find('<') {
+        result.push_str(&remaining[..tag_start]);
+        let after_lt = &remaining[tag_start..];
+
+        let Some(tag_end_rel) = after_lt.find('>') else {
+            result.push_str(after_lt);
+            break;
+        };
+
+        let tag = &after_lt[..=tag_end_rel];
+        if let Some(tag_name) = malformed_single_quote_tag_name(tag) {
+            let closing_tag = format!("</{tag_name}>");
+            result.push_str(&escape_html_tag(tag));
+
+            let after_tag = &after_lt[tag_end_rel + 1..];
+            if let Some(close_pos) = after_tag.find(&closing_tag) {
+                result.push_str(&after_tag[..close_pos]);
+                result.push_str(&escape_html_tag(&closing_tag));
+                remaining = &after_tag[close_pos + closing_tag.len()..];
+            } else {
+                result.push_str(after_tag);
+                break;
+            }
+        } else {
+            result.push_str(tag);
+            remaining = &after_lt[tag.len()..];
+        }
+    }
+
+    if !remaining.is_empty() {
+        result.push_str(remaining);
+    }
+
+    result
+}
+
+/// Return the tag name if the tag is malformed due to unbalanced single quotes.
+fn malformed_single_quote_tag_name(tag: &str) -> Option<&str> {
+    if !tag.starts_with('<') || tag.starts_with("</") {
+        return None;
+    }
+
+    let inner = &tag[1..tag.len().saturating_sub(1)];
+    if !has_unbalanced_single_quotes(inner) {
+        return None;
+    }
+
+    let tag_name = inner
+        .split(|c: char| c.is_whitespace() || c == '/' || c == '>')
+        .next()
+        .unwrap_or("");
+    if tag_name.is_empty() {
+        None
+    } else {
+        Some(tag_name)
+    }
+}
+
+/// Check whether a tag's raw single quotes are unbalanced.
+///
+/// We count single quotes that appear outside double-quoted attribute values.
+/// A well-formed tag has an even number of such quotes. An unescaped apostrophe
+/// inside a single-quoted attribute produces an odd count.
+fn has_unbalanced_single_quotes(tag_inner: &str) -> bool {
+    let mut in_single = false;
+    let mut in_double = false;
+    let mut single_quote_count = 0usize;
+
+    for ch in tag_inner.chars() {
+        match ch {
+            '\'' if !in_double => {
+                in_single = !in_single;
+                single_quote_count += 1;
+            }
+            '"' if !in_single => in_double = !in_double,
+            _ => {}
+        }
+    }
+
+    in_single || in_double || single_quote_count % 2 == 1
+}
+
+fn escape_html_tag(tag: &str) -> String {
+    let mut escaped = String::with_capacity(tag.len() + 8);
+    escaped.push_str("&lt;");
+    escaped.push_str(tag.trim_start_matches('<'));
+    if escaped.ends_with('>') {
+        escaped.pop();
+        escaped.push_str("&gt;");
+    } else {
+        escaped.push_str("&gt;");
+    }
+    escaped
+}
+
 /// Converts only bare `<br>` to `<br />` in the full page output.
 ///
 /// Used in `normalize_html_output` which runs on the FULL rendered page
@@ -6481,6 +6599,87 @@ mod tests {
             result.contains("<a href=\"https://example.com\" target=\"_blank\">link</a>"),
             "Attribute should be on the a tag. Got: {}",
             result
+        );
+    }
+
+    #[test]
+    fn test_postprocess_escapes_malformed_single_quote_canvas() {
+        let html = r#"<figure>
+  <canvas class="ai-chart"
+          data-type="bar"
+          data-orientation="horizontal"
+          data-title="Do you use any solutions for self-hosting open-source LLMs?"
+          data-labels='["We don't self-host LLMs", "vLLM", "Self-written (custom inference solutions)"]'
+          data-values='[74.1, 9.4, 8.5]'
+          data-height="300px"
+          data-width="600px">
+  </canvas>
+  <figcaption>Majority do not self-host open-source LLMs.</figcaption>
+</figure>
+"#;
+        let result = postprocess(html);
+        assert!(
+            result.contains("&lt;canvas class=\"ai-chart\""),
+            "Malformed canvas should be escaped like Jekyll. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("&lt;/canvas&gt;"),
+            "Closing canvas tag should also be escaped. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("<canvas class=\"ai-chart\""),
+            "Malformed canvas should not remain as a live element. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_postprocess_preserves_wellformed_single_quote_canvas() {
+        let html = r#"<figure>
+  <canvas class="ai-chart"
+          data-type="bar"
+          data-title="Well formed canvas"
+          data-labels='["We do self-host LLMs", "vLLM"]'
+          data-values='[74.1, 9.4]'
+          data-height="300px"
+          data-width="600px">
+  </canvas>
+  <figcaption>Well formed canvas should stay live.</figcaption>
+</figure>
+"#;
+        let result = postprocess(html);
+        assert!(
+            result.contains("<canvas class=\"ai-chart\""),
+            "Well formed canvas should remain live. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("data-labels='[\"We do self-host LLMs\", \"vLLM\"]'"),
+            "Single-quoted attributes without apostrophes should be preserved. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("&lt;canvas"),
+            "Well formed canvas should not be escaped. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_has_unbalanced_single_quotes_detects_canvas() {
+        let tag = r#"<canvas class="ai-chart"
+          data-type="bar"
+          data-orientation="horizontal"
+          data-title="Do you use any solutions for self-hosting open-source LLMs?"
+          data-labels='["We don't self-host LLMs", "vLLM", "Self-written (custom inference solutions)"]'
+          data-values='[74.1, 9.4, 8.5]'
+          data-height="300px"
+          data-width="600px">"#;
+        assert!(
+            has_unbalanced_single_quotes(&tag[1..tag.len() - 1]),
+            "Canvas tag should be detected as malformed. Got: {tag}"
         );
     }
 
