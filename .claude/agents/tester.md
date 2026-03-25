@@ -74,6 +74,7 @@ Verify:
 - [ ] Report DOM match counts in QA log (e.g., "DTC: 764/790, baseline was 764, no regression")
 - [ ] If DOM count drops below the issue's baseline, FAIL immediately — this is a regression
 - [ ] Do NOT trust the SWE's reported DOM numbers — always verify independently
+- [ ] If a candidate fix improves the target page but regresses the repo-wide DOM baseline, FAIL the issue, require the regressive code to be reverted, and require the issue log to capture the hypothesis, target-page improvement, and repo-wide regression numbers. Do not treat that state as closure.
 
 #### DTC Build Performance Check (Mandatory for changes touching rendering pipeline)
 - [ ] Time the DTC build — must complete under 1.0 second:

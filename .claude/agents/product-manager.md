@@ -107,6 +107,8 @@ An issue filename (`.in-progress.md`) and confirmation that the tester passed.
    - **ACCEPT** -- Engineer can commit. Issue moves to `done/NN-name.done.md`.
    - **REJECT** -- List specific issues. Engineer must fix.
 
+If a proposed fix improved the target page but regressed the repo-wide DTC DOM baseline, REJECT it unless the regressive code was reverted and the issue log clearly records the failed hypothesis and exact DOM numbers. In that case the issue stays in progress and needs another SWE pass or explicit descoping into follow-up issues.
+
 ### No Silent Descoping
 
 **You must NEVER silently drop acceptance criteria.** If a requirement from the groomed spec was not implemented:

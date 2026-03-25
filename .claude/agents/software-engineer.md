@@ -95,6 +95,7 @@ uv run scripts/dom_compare.py --jekyll-dir websites/DataTalksClub/datatalksclub.
 - If targeting a specific site, also check that site
 - Report DOM counts in your log
 - If the count drops below baseline, DO NOT report the task as done — fix the regression first
+- If an experimental fix improves the target page but drops the repo-wide DOM count below baseline, revert that fix, log the failed hypothesis and exact DOM numbers in the issue file, and continue investigating the same issue. Do not leave the regressive code in place and do not treat the issue as effectively complete.
 
 ### 4c. DTC Build Performance Check
 

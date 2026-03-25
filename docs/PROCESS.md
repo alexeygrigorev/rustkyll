@@ -129,6 +129,29 @@ PM REJECT --> SWE fixes (with PM feedback)  -->  QA re-verifies  -->  PM re-revi
 
 The orchestrator's job in a rejection is to launch a new SWE agent with the rejection details, NOT to fix the code itself.
 
+### Regression-Safe Investigation Loop
+
+Some rendering issues require hypothesis testing. A candidate fix may solve the target page but still be wrong because it regresses the global DTC DOM baseline or breaks other pages.
+
+In that case, the issue is **NOT closed, NOT treated as done, and NOT silently parked**. Instead:
+
+1. SWE must revert the regressive code change before handing the issue back
+2. SWE must log the experiment in the issue file:
+   - what hypothesis was tested
+   - which targeted test failed first
+   - what local improvement was observed
+   - what repo-wide regression was introduced
+   - what was reverted
+3. The issue stays `.in-progress.md`
+4. The orchestrator launches another SWE pass on the same issue with the narrower reproduction and the failed hypothesis as evidence
+5. Only if the remaining work is now clearly a different problem should PM split a follow-up issue; otherwise keep the original issue active
+
+Examples:
+- If a `sort | reverse` fix makes the target page match Jekyll but drops DTC from `766/790` to `764/790`, revert it, log it, and keep investigating the same issue
+- If a kramdown tweak fixes one page but causes widespread regressions elsewhere, revert it, log the failed hypothesis, and continue the same issue with a narrower theory
+
+Why: a failed hypothesis is useful evidence, not completion. The issue is only done when the non-regressive fix is found or PM explicitly descopes remaining work into traceable follow-up issues.
+
 ### Issue Log (Communication via Issue File)
 
 Every agent MUST append log entries to the issue file as they work. The issue file is the single source of truth for what happened. This makes it possible to track work, debug problems, and review history.
@@ -236,6 +259,22 @@ Every issue that touches the rendering pipeline MUST track the DTC DOM baseline:
 5. **PM verifies** during acceptance — check the QA's reported number against baseline
 
 If the DOM count drops below baseline at any stage, it's a FAIL. No exceptions.
+
+### When a Candidate Fix Improves the Target Page but Fails the Baseline
+
+This is a special case of FAIL and must be handled explicitly:
+
+1. Revert the candidate fix
+2. Keep the issue `.in-progress.md`
+3. Append the exact before/after DOM numbers to the issue log
+4. Record whether the target page improved, how much the repo-wide DOM regressed, and what hypothesis was tested
+5. Launch another SWE investigation pass on the same issue unless PM determines the remaining work is truly out of scope and creates explicit follow-up issues
+
+Do **NOT**:
+- mark the issue done
+- imply the issue is resolved because the local page improved
+- drop the issue from the active queue without either another SWE pass or explicit PM descoping
+- keep the regressive code in the branch "for later"
 
 ### Why this matters
 
