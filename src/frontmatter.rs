@@ -460,6 +460,12 @@ pub fn markdown_to_html(markdown: &str) -> String {
     let mut html_output = String::new();
     html::push_html(&mut html_output, events.into_iter());
 
+    // Issue 350: Strip emphasis boundary placeholder + trailing space that was
+    // inserted by fix_kramdown_emphasis_patterns to help pulldown-cmark parse
+    // emphasis at word boundaries. The placeholder served its purpose during
+    // parsing and must not appear in the final output.
+    let html_output = strip_emphasis_boundary_placeholder(&html_output);
+
     // Restore protected quotes
     let html_output = restore_liquid_quotes(&html_output);
     let html_output = restore_consecutive_single_quotes(&html_output);
@@ -587,6 +593,9 @@ pub fn markdown_to_html_with_options(
     );
     let mut html_output = String::new();
     html::push_html(&mut html_output, events.into_iter());
+
+    // Issue 350: Strip emphasis boundary placeholder
+    let html_output = strip_emphasis_boundary_placeholder(&html_output);
 
     let html_output = restore_liquid_quotes(&html_output);
     let html_output = restore_consecutive_single_quotes(&html_output);
@@ -765,6 +774,9 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     let mut html_output = String::new();
     html::push_html(&mut html_output, events.into_iter());
 
+    // Issue 350: Strip emphasis boundary placeholder
+    let html_output = strip_emphasis_boundary_placeholder(&html_output);
+
     let html_output = restore_liquid_quotes(&html_output);
     let html_output = restore_consecutive_single_quotes(&html_output);
     let html_output = restore_math_content(&html_output, &math_saved);
@@ -823,7 +835,7 @@ fn fix_kramdown_emphasis_patterns(markdown: &str) -> String {
                 j += 1;
             }
             if j < len && j > i + 1 && chars[j] == '*' {
-                result.push('\u{200b}');
+                result.push_str(EMPHASIS_BOUNDARY_PLACEHOLDER);
                 result.push(' ');
                 for ch in &chars[i..=j] {
                     result.push(*ch);
@@ -862,6 +874,29 @@ fn normalize_zwsp_for_emphasis(markdown: &str) -> String {
     }
 
     result
+}
+
+/// Issue 350: Placeholder for the word-boundary space inserted by
+/// `fix_kramdown_emphasis_patterns`. Stripped after HTML generation so that
+/// no ZWSP or extra space leaks into the final output.
+const EMPHASIS_BOUNDARY_PLACEHOLDER: &str = "\x00EBP\x00";
+
+/// Issue 350: Strip the emphasis boundary placeholder and the trailing space
+/// that was inserted by `fix_kramdown_emphasis_patterns`. The placeholder + space
+/// was needed to make pulldown-cmark parse emphasis at word boundaries (e.g.,
+/// `word*.*`), but must not appear in the final HTML output.
+fn strip_emphasis_boundary_placeholder(html: &str) -> String {
+    if !html.contains(EMPHASIS_BOUNDARY_PLACEHOLDER) {
+        return html.to_string();
+    }
+    // The placeholder was inserted as `PLACEHOLDER + ' '` before the emphasis
+    // delimiter. After HTML generation the placeholder and space appear as text
+    // content. Strip both.
+    let without_placeholder_space =
+        html.replace(&format!("{} ", EMPHASIS_BOUNDARY_PLACEHOLDER), "");
+    // In case the space was consumed differently (e.g., at end of line),
+    // strip any remaining bare placeholders.
+    without_placeholder_space.replace(EMPHASIS_BOUNDARY_PLACEHOLDER, "")
 }
 
 /// Placeholder for consecutive single quotes used in MediaWiki-style markup.
@@ -3692,6 +3727,49 @@ Some text after.
         assert!(
             html.contains("<em>.</em>"),
             "Single-char emphasis with dot should be applied. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue350_emphasis_dot_no_zwsp() {
+        // Issue 350: fix_kramdown_emphasis_patterns inserts ZWSP before emphasis
+        // that leaks into final HTML. Jekyll produces no ZWSP for word*.*
+        let md = "straightforward*.* Even for someone";
+        let html = markdown_to_html(md);
+        assert!(
+            html.contains("<em>.</em>"),
+            "Should produce emphasis for dot. Got: {html}"
+        );
+        assert!(
+            !html.contains('\u{200b}'),
+            "Output should not contain ZWSP (U+200B). Got: {html}"
+        );
+        // Also check no extra space before <em>
+        assert!(
+            html.contains("straightforward<em>"),
+            "No extra space should appear between word and <em>. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue350_word_star_dot_star_no_zwsp() {
+        // Issue 350: generic pattern word*.* should not inject ZWSP
+        let md = "word*.* rest";
+        let html = markdown_to_html(md);
+        assert!(
+            !html.contains('\u{200b}'),
+            "word*.* should not produce ZWSP. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue350_plain_text_no_zwsp() {
+        // Issue 350: plain text without emphasis should never have ZWSP
+        let md = "Just some plain text without any emphasis markers";
+        let html = markdown_to_html(md);
+        assert!(
+            !html.contains('\u{200b}'),
+            "Plain text should not contain ZWSP. Got: {html}"
         );
     }
 
