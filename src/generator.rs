@@ -687,11 +687,11 @@ fn collection_item_to_liquid_slim(
     // Since this function builds the cross-reference representation, we use html_content
     // (rendered HTML) to match Jekyll's behavior for templates like
     // `{{ guest.content }}` which output rendered HTML in the page body.
-    // We trim leading whitespace only. Trailing newlines are preserved because
-    // Jekyll's strip_html does NOT strip them, and templates like
-    // `content | strip_html | jsonify` (podcast JSON-LD) expect the trailing \n.
-    let escaped_content =
-        crate::frontmatter::escape_quotes_in_text_nodes(item.html_content.trim_start());
+    // We trim both leading and trailing whitespace. Jekyll's `document.content`
+    // accessed via `to_liquid` (the cross-reference path) has no trailing newline.
+    // Without trimming, templates like `content | strip_html | jsonify` produce
+    // a JSON string with a trailing `\n` that doesn't match Jekyll's output.
+    let escaped_content = crate::frontmatter::escape_quotes_in_text_nodes(item.html_content.trim());
     obj.insert(
         "content".into(),
         LiquidValue::scalar(escaped_content.into_owned()),
@@ -5212,10 +5212,11 @@ defaults:
             .map(|(_, v)| v.to_kstr().to_string())
             .unwrap();
 
-        // Content should be rendered HTML (html_content), matching Jekyll behavior
+        // Content should be rendered HTML (html_content), matching Jekyll behavior.
+        // Trailing newline is trimmed to match Jekyll's to_liquid content (issue 351).
         assert_eq!(
-            content_val, "<p>Test Person is a developer.</p>\n",
-            "Collection item content should use rendered HTML, got: {:?}",
+            content_val, "<p>Test Person is a developer.</p>",
+            "Collection item content should use rendered HTML without trailing newline, got: {:?}",
             content_val
         );
     }
@@ -5302,9 +5303,10 @@ defaults:
             .map(|(_, v)| v.to_kstr().to_string())
             .unwrap();
 
+        // Trailing newline is trimmed to match Jekyll's to_liquid content (issue 351).
         assert_eq!(
-            content_val, "<p>Alexey Grigorev is the founder of DataTalks.Club</p>\n",
-            "Content should be rendered HTML with <p> wrapping, got: {:?}",
+            content_val, "<p>Alexey Grigorev is the founder of DataTalks.Club</p>",
+            "Content should be rendered HTML with <p> wrapping, no trailing newline, got: {:?}",
             content_val
         );
     }
@@ -5481,8 +5483,9 @@ defaults:
             .map(|(_, v)| v.to_kstr().to_string())
             .unwrap();
 
+        // Trailing newline is trimmed to match Jekyll's to_liquid content (issue 351).
         assert_eq!(
-            content_val, "<p>Alexey Grigorev is the founder of DataTalks.Club</p>\n",
+            content_val, "<p>Alexey Grigorev is the founder of DataTalks.Club</p>",
             "Content should be rendered HTML (html_content used directly), got: {:?}",
             content_val
         );
@@ -5514,10 +5517,113 @@ defaults:
             .map(|(_, v)| v.to_kstr().to_string())
             .unwrap();
 
+        // Trailing newline is trimmed to match Jekyll's to_liquid content (issue 351).
         assert_eq!(
-            content_val, "<p>First paragraph.</p>\n<p>Second paragraph.</p>\n",
-            "Content should be rendered HTML with paragraph tags, got: {:?}",
+            content_val, "<p>First paragraph.</p>\n<p>Second paragraph.</p>",
+            "Content should be rendered HTML with paragraph tags, no trailing newline, got: {:?}",
             content_val
+        );
+    }
+
+    // ========================================================================
+    // Issue 351: Collection item content has no trailing newline
+    // Jekyll's document.content accessed via site.<collection> in templates
+    // returns content without trailing newline. This matters for templates
+    // like `author.content | strip_html | jsonify` which produce JSON-LD.
+    // ========================================================================
+
+    #[test]
+    fn test_collection_item_content_no_trailing_newline() {
+        // Issue 351: content field must not have a trailing newline, matching
+        // Jekyll's behavior where document.content has no trailing whitespace.
+        // This is critical for `content | strip_html | jsonify` in JSON-LD
+        // author descriptions.
+        let item = CollectionItem {
+            slug: "igordemidov".to_string(),
+            url: "/people/igordemidov.html".to_string(),
+            date: None,
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("Igor Demidov".to_string()),
+                );
+                fm.insert(
+                    "short".to_string(),
+                    serde_yaml::Value::String("igordemidov".to_string()),
+                );
+                fm
+            },
+            content: "Machine Learning Engineer".to_string(),
+            html_content: "<p>Machine Learning Engineer</p>\n".to_string(),
+            excerpt: None,
+            excerpt_html: None,
+            collection_name: "people".to_string(),
+            source_path: "_people/igordemidov.md".to_string(),
+            id: "/people/igordemidov".to_string(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item, None);
+        let content_val = liquid_val
+            .as_object()
+            .unwrap()
+            .iter()
+            .find(|(k, _)| k.as_str() == "content")
+            .map(|(_, v)| v.to_kstr().to_string())
+            .unwrap();
+
+        // Content should NOT end with a trailing newline
+        assert!(
+            !content_val.ends_with('\n'),
+            "Collection item content should not have trailing newline for JSON-LD compatibility, got: {:?}",
+            content_val
+        );
+    }
+
+    #[test]
+    fn test_collection_item_content_strip_html_jsonify_no_trailing_newline() {
+        // Issue 351: Simulates the template pipeline `author.content | strip_html | jsonify`
+        // which should produce a JSON string without trailing \n in the value.
+        let item = CollectionItem {
+            slug: "haziqasajid".to_string(),
+            url: "/people/haziqasajid.html".to_string(),
+            date: None,
+            front_matter: {
+                let mut fm = HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("Haziqa Sajid".to_string()),
+                );
+                fm.insert(
+                    "short".to_string(),
+                    serde_yaml::Value::String("haziqasajid".to_string()),
+                );
+                fm
+            },
+            content: "Haziqa Sajid is a data scientist.".to_string(),
+            html_content: "<p>Haziqa Sajid is a data scientist.</p>\n".to_string(),
+            excerpt: None,
+            excerpt_html: None,
+            collection_name: "people".to_string(),
+            source_path: "_people/haziqasajid.md".to_string(),
+            id: "/people/haziqasajid".to_string(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item, None);
+        let content_val = liquid_val
+            .as_object()
+            .unwrap()
+            .iter()
+            .find(|(k, _)| k.as_str() == "content")
+            .map(|(_, v)| v.to_kstr().to_string())
+            .unwrap();
+
+        // After strip_html, the content should not contain trailing newline
+        let stripped = content_val.replace("<p>", "").replace("</p>", "");
+        assert!(
+            !stripped.ends_with('\n'),
+            "After strip_html simulation, content should not have trailing newline. Got: {:?}",
+            stripped
         );
     }
 
