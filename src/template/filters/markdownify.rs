@@ -973,4 +973,102 @@ mod tests {
             "Issue 362 regression: Sub-items should be present. Got: {html}"
         );
     }
+
+    // ========================================================================
+    // Issue 363: DTC books comment text and mixed content rendering
+    // ========================================================================
+
+    /// Issue 363 RC-A: Numbered items after <br /> from newline_to_br
+    /// rendered through the full markdownify filter pipeline.
+    #[test]
+    fn test_issue363_markdownify_reverse_numbered_after_br() {
+        let input = "great questions!<br />\nLet me start in reverse order:<br />\n4. Writing did the trick<br />\n3. Not sure<br />\n2. Communication<br />\n1. Not sure about this";
+        let result = liquid_core::call_filter!(Markdownify, input).unwrap();
+        let s = result.to_kstr().to_string();
+        assert!(
+            s.contains("<ol>"),
+            "Issue 363: markdownify should produce <ol> for reverse-numbered items. Got: {s}"
+        );
+        let li_count = s.matches("<li>").count();
+        assert_eq!(
+            li_count, 4,
+            "Issue 363: Should have 4 <li> elements. Got {li_count} in:\n{s}"
+        );
+    }
+
+    /// Issue 363 RC-A: Unicode content in reverse-numbered items through markdownify.
+    #[test]
+    fn test_issue363_markdownify_unicode_reverse_numbered() {
+        let input = "R\u{00e9}ponses:<br />\n3. R\u{00e9}ponse \u{2714}<br />\n2. Commentaire<br />\n1. Conclusion \u{1f4da}";
+        let result = liquid_core::call_filter!(Markdownify, input).unwrap();
+        let s = result.to_kstr().to_string();
+        assert!(
+            s.contains("<ol>"),
+            "Issue 363: Unicode numbered items should produce <ol>. Got: {s}"
+        );
+        assert!(
+            s.contains("R\u{00e9}ponse"),
+            "Issue 363: Accented characters preserved. Got: {s}"
+        );
+        assert!(
+            s.contains("\u{2714}"),
+            "Issue 363: Checkmark emoji preserved. Got: {s}"
+        );
+    }
+
+    /// Issue 363 RC-B: Multi-line continuation inside <li> through markdownify.
+    #[test]
+    fn test_issue363_markdownify_multiline_continuation() {
+        let input = "1. See the *Data Mesh* section<br />\nMore text<br />\n2. Answer two";
+        let result = liquid_core::call_filter!(Markdownify, input).unwrap();
+        let s = result.to_kstr().to_string();
+        assert!(
+            s.contains("<em>Data Mesh</em>"),
+            "Issue 363: <em> preserved in continuation. Got: {s}"
+        );
+        assert!(
+            s.contains("More text"),
+            "Issue 363: Continuation text preserved. Got: {s}"
+        );
+    }
+
+    /// Issue 363: Regression test -- plain markdown without <br /> still works.
+    #[test]
+    fn test_issue363_regression_plain_numbered_list() {
+        let input = "## Heading\n\n1. First\n2. Second\n3. Third\n";
+        let result = liquid_core::call_filter!(Markdownify, input).unwrap();
+        let s = result.to_kstr().to_string();
+        assert!(
+            s.contains("<h2>"),
+            "Issue 363 regression: Headings still work. Got: {s}"
+        );
+        assert!(
+            s.contains("<ol>"),
+            "Issue 363 regression: Numbered list works. Got: {s}"
+        );
+        let li_count = s.matches("<li>").count();
+        assert!(
+            li_count >= 3,
+            "Issue 363 regression: Should have 3+ <li>. Got {li_count} in:\n{s}"
+        );
+    }
+
+    /// Issue 363: Regression test -- list starting at 1 with <br /> should NOT
+    /// get extra paragraph breaks (tight list, no <p> inside <li>).
+    #[test]
+    fn test_issue363_regression_list_from_one_stays_tight() {
+        let input = "intro<br />\n1. First<br />\n2. Second<br />\n3. Third";
+        let result = liquid_core::call_filter!(Markdownify, input).unwrap();
+        let s = result.to_kstr().to_string();
+        assert!(
+            s.contains("<ol>"),
+            "Issue 363 regression: Should have <ol>. Got: {s}"
+        );
+        // Items should be tight (no <p> inside <li>)
+        let has_p_in_li = s.contains("<li>\n<p>") || s.contains("<li><p>");
+        assert!(
+            !has_p_in_li,
+            "Issue 363 regression: List from 1. should be tight (no <p> in <li>). Got:\n{s}"
+        );
+    }
 }

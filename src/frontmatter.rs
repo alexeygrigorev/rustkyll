@@ -734,6 +734,10 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     // Issue 308: Prevent fenced code blocks after <br />\n from newline_to_br.
     let markdown = escape_fenced_code_after_br(markdown);
 
+    // Issue 363: Insert paragraph break before numbered list sequences in
+    // newline_to_br output so pulldown-cmark recognizes them as ordered lists.
+    let markdown = insert_paragraph_break_before_numbered_list(&markdown);
+
     // Issue 325: Preprocess dash sequences to match kramdown's greedy behavior.
     // Kramdown processes dashes as ---=em-dash first, then --=en-dash on remainder.
     // pulldown-cmark handles ---- as two en-dashes (--+--), but kramdown handles
@@ -2102,6 +2106,97 @@ fn renest_sibling_list_into_parent_li(html: &str) -> String {
     }
 
     result
+}
+
+/// Issue 363: Insert a paragraph break before the first numbered item in a
+/// sequence of `N. text<br />\n` lines produced by `newline_to_br`.
+///
+/// Kramdown recognizes `N. text` as an ordered list item even when preceded by
+/// `<br />\n` (from `newline_to_br`). Pulldown-cmark does not -- it only starts
+/// a list from `1.` when interrupting a paragraph (CommonMark spec). By inserting
+/// a blank line before the first numbered item in a consecutive sequence, we allow
+/// pulldown-cmark to see the list start and treat all subsequent items as list items.
+///
+/// Pattern detected: `<br />\nN. ` where N is a digit sequence, preceded by
+/// non-numbered text. Only inserts a break when there are at least 2 consecutive
+/// numbered items (to avoid false positives on single `N.` in prose).
+fn insert_paragraph_break_before_numbered_list(markdown: &str) -> String {
+    if !markdown.contains("<br />\n") {
+        return markdown.to_string();
+    }
+
+    let lines: Vec<&str> = markdown.split('\n').collect();
+    if lines.len() < 2 {
+        return markdown.to_string();
+    }
+
+    // Parse the leading number from a line like `N. text` or `N.<br />`.
+    let parse_list_number = |line: &str| -> Option<u32> {
+        let trimmed = line.trim_start();
+        let mut chars = trimmed.chars().peekable();
+        let mut num_str = String::new();
+        match chars.peek() {
+            Some(c) if c.is_ascii_digit() => {}
+            _ => return None,
+        }
+        for c in chars.by_ref() {
+            if c.is_ascii_digit() {
+                num_str.push(c);
+                continue;
+            }
+            if c == '.' {
+                let rest: String = chars.collect();
+                if rest.is_empty() || rest.starts_with(' ') {
+                    return num_str.parse().ok();
+                }
+            }
+            return None;
+        }
+        None
+    };
+
+    let is_numbered_line = |line: &str| -> bool { parse_list_number(line).is_some() };
+
+    // A line has meaningful text content (not just `<br />` or empty).
+    let has_text_content = |line: &str| -> bool {
+        let trimmed = line.trim();
+        !trimmed.is_empty() && trimmed != "<br />"
+    };
+
+    let mut result_lines: Vec<String> = Vec::with_capacity(lines.len());
+    let mut i = 0;
+
+    while i < lines.len() {
+        // Check if this line starts a new numbered sequence that needs a paragraph break.
+        // Only insert a break when the first item does NOT start at 1, because
+        // CommonMark already allows `1.` to interrupt a paragraph without a blank
+        // line. Items starting at 2, 3, 4, etc. need the blank line to be
+        // recognized as a list.
+        if let Some(first_num) = parse_list_number(lines[i]) {
+            if first_num != 1
+                && i > 0
+                && lines[i - 1].ends_with("<br />")
+                && has_text_content(lines[i - 1])
+                && !is_numbered_line(lines[i - 1])
+            {
+                // Look ahead for consecutive numbered items
+                let mut j = i + 1;
+                while j < lines.len() && is_numbered_line(lines[j]) {
+                    j += 1;
+                }
+
+                if j - i >= 2 {
+                    // Insert blank line for paragraph break before the numbered sequence
+                    result_lines.push(String::new());
+                }
+            }
+        }
+
+        result_lines.push(lines[i].to_string());
+        i += 1;
+    }
+
+    result_lines.join("\n")
 }
 
 fn escape_fenced_code_after_br(markdown: &str) -> String {
@@ -5804,6 +5899,168 @@ More text.
             a_count, 1,
             "Should have exactly one <a> tag. Got {} in: {}",
             a_count, html
+        );
+    }
+
+    // ========================================================================
+    // Issue 363: DTC books comment text and mixed content rendering
+    // ========================================================================
+
+    /// Issue 363 RC-A: Reverse-numbered items (4,3,2,1) after newline_to_br
+    /// should all become <ol><li> elements, matching Jekyll/kramdown behavior.
+    /// The exact pattern from books/20220912-skills-of-successful-software-engineer.
+    #[test]
+    fn test_issue363_rc_a_reverse_numbered_items_all_in_ol() {
+        let input = "great questions!<br />\nLet me start in reverse order:<br />\n4. Writing did the trick for me.<br />\n3. I\u{2019}m not sure I understand this one<br />\n2. I would say they\u{2019}re not technical.<br />\n1. I\u{2019}m not sure I understand this question either";
+        let html = markdown_to_html_for_filter(input);
+
+        // Jekyll produces all 4 items in <ol><li>, NOT items 4,3,2 in <p>
+        assert!(
+            html.contains("<ol>"),
+            "Issue 363: Should have <ol>. Got: {html}"
+        );
+        let li_count = html.matches("<li>").count();
+        assert_eq!(
+            li_count, 4,
+            "Issue 363: Should have 4 <li> elements (items 4,3,2,1). Got {li_count} in:\n{html}"
+        );
+        // Intro text should be in <p> before the <ol>
+        assert!(
+            html.contains("<p>great questions!"),
+            "Issue 363: Intro text should be in <p>. Got: {html}"
+        );
+    }
+
+    /// Issue 363 RC-A: Two consecutive non-1 numbered items (e.g. "3. text\n2. text")
+    /// after paragraph text with <br /> should form an <ol>.
+    #[test]
+    fn test_issue363_rc_a_two_item_non_one_sequence() {
+        let input = "some context<br />\n3. Are you saying that<br />\n2. Not sure about that<br />\n1. Final point";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<ol>"),
+            "Issue 363: Should have <ol> for 3,2,1 sequence. Got: {html}"
+        );
+        let li_count = html.matches("<li>").count();
+        assert!(
+            li_count >= 3,
+            "Issue 363: Should have at least 3 <li> elements. Got {li_count} in:\n{html}"
+        );
+    }
+
+    /// Issue 363 RC-A: Unicode content in reverse-numbered items.
+    #[test]
+    fn test_issue363_rc_a_unicode_reverse_numbered() {
+        let input = "R\u{00e9}ponses:<br />\n3. R\u{00e9}ponse trois \u{2714}<br />\n2. Commentaire deux<br />\n1. Conclusion finale";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<ol>"),
+            "Issue 363: Should have <ol> for unicode numbered items. Got: {html}"
+        );
+        assert!(
+            html.contains("R\u{00e9}ponse"),
+            "Issue 363: Should preserve accented characters. Got: {html}"
+        );
+        assert!(
+            html.contains("\u{2714}"),
+            "Issue 363: Should preserve checkmark emoji. Got: {html}"
+        );
+        let li_count = html.matches("<li>").count();
+        assert!(
+            li_count >= 3,
+            "Issue 363: Should have at least 3 <li> elements. Got {li_count} in:\n{html}"
+        );
+    }
+
+    /// Issue 363 RC-A: List starting at 1. should NOT be affected by preprocessing
+    /// (1. already interrupts paragraphs in CommonMark). This is a regression test.
+    #[test]
+    fn test_issue363_rc_a_list_starting_at_one_not_affected() {
+        let input = "intro text<br />\n1. First item<br />\n2. Second item<br />\n3. Third item";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<ol>"),
+            "Issue 363: Should have <ol>. Got: {html}"
+        );
+        let li_count = html.matches("<li>").count();
+        assert!(
+            li_count >= 3,
+            "Issue 363: Should have 3 <li> elements. Got {li_count} in:\n{html}"
+        );
+        // Should NOT have <p> wrapping inside <li> (tight list)
+        // Tight list items don't have <p> inside them
+        let p_in_li = html.contains("<li>\n<p>") || html.contains("<li><p>");
+        assert!(
+            !p_in_li,
+            "Issue 363: List items should be tight (no <p> inside <li>). Got:\n{html}"
+        );
+    }
+
+    /// Issue 363 RC-A: Single numbered item should NOT trigger preprocessing.
+    #[test]
+    fn test_issue363_rc_a_single_numbered_item_no_break() {
+        let input = "context text<br />\n3. Just one numbered item here";
+        let html = markdown_to_html_for_filter(input);
+        // Single numbered item should stay in paragraph text
+        assert!(
+            html.contains("<p>"),
+            "Issue 363: Single numbered item should be in <p>. Got: {html}"
+        );
+    }
+
+    /// Issue 363 RC-B: Multi-line continuation inside <li> preserves text and <br>.
+    /// Pattern from books/20230807-driving-data-quality-with-data-contracts.
+    #[test]
+    fn test_issue363_rc_b_multiline_continuation_in_li() {
+        let input = "1. Yes, there\u{2019}s a section in chapter 2 titled<br />\n*Data Mesh and Data Contracts*<br />\nthat aims to answer that. I believe it would be very hard.<br />\n2.<br />\nThat\u{2019}s a great question!";
+        let html = markdown_to_html_for_filter(input);
+
+        assert!(
+            html.contains("<ol>"),
+            "Issue 363: Should have <ol>. Got: {html}"
+        );
+        assert!(
+            html.contains("<em>"),
+            "Issue 363: Should have <em> for *Data Mesh*. Got: {html}"
+        );
+        assert!(
+            html.contains("that aims to answer that"),
+            "Issue 363: Continuation text should be present. Got: {html}"
+        );
+    }
+
+    /// Issue 363 RC-B: <em> elements inside continuation text are preserved.
+    #[test]
+    fn test_issue363_rc_b_em_in_continuation() {
+        let input =
+            "1. See the *Data Mesh* section<br />\nMore text about contracts<br />\n2. Answer two";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<em>Data Mesh</em>"),
+            "Issue 363: Should preserve <em> in continuation. Got: {html}"
+        );
+        assert!(
+            html.contains("More text about contracts"),
+            "Issue 363: Continuation text preserved. Got: {html}"
+        );
+    }
+
+    /// Issue 363 RC-B: Unicode content in multi-line continuation.
+    #[test]
+    fn test_issue363_rc_b_unicode_continuation() {
+        let input = "1. Pr\u{00e9}sentation du *R\u{00e9}sum\u{00e9}*<br />\nTexte suppl\u{00e9}mentaire \u{1f4da}<br />\n2. Deuxi\u{00e8}me r\u{00e9}ponse";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("R\u{00e9}sum\u{00e9}"),
+            "Issue 363: Should preserve accented characters in <em>. Got: {html}"
+        );
+        assert!(
+            html.contains("\u{1f4da}"),
+            "Issue 363: Should preserve book emoji. Got: {html}"
+        );
+        assert!(
+            html.contains("Texte suppl\u{00e9}mentaire"),
+            "Issue 363: Unicode continuation text preserved. Got: {html}"
         );
     }
 }
