@@ -19,3 +19,4 @@ Format:
 | 365+372 | `7a5b0ce` | `778/790 matched, 12 files with differences, 255 total differences` |
 | 364 | `79b812d` | `780/790 matched, 10 files with differences, 230 total differences` |
 | 370 | `bd99515` | `780/790 matched, 10 files with differences, 230 total differences` |
+| 367+373 | `b184d05` | `781/790 matched, 9 files with differences, 224 total differences` |
