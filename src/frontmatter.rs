@@ -2195,11 +2195,16 @@ fn insert_paragraph_break_before_numbered_list(markdown: &str) -> String {
                 && has_text_content(lines[i - 1])
                 && !is_numbered_line(lines[i - 1])
             {
-                // Issue 370: Insert paragraph break even for a single numbered
-                // item preceded by <br /> text. Kramdown recognizes any `N. `
-                // pattern as starting an ordered list; pulldown-cmark requires
-                // a blank line before non-1 starting items.
-                result_lines.push(String::new());
+                // Look ahead for consecutive numbered items
+                let mut j = i + 1;
+                while j < lines.len() && is_numbered_line(lines[j]) {
+                    j += 1;
+                }
+
+                if j - i >= 2 {
+                    // Insert blank line for paragraph break before the numbered sequence
+                    result_lines.push(String::new());
+                }
             }
         }
 

@@ -1156,4 +1156,99 @@ mod tests {
             "Issue 365: Second heading should have id='summary-1'. Got: {html}"
         );
     }
+
+    /// Issue 370 Sub-problem A: newline_to_br | markdownify must produce <ol><li>
+    /// with continuation text INSIDE the <li>, not in a separate <p> outside.
+    /// Jekyll/kramdown produces: <ol><li><br />\nYes, there's...\n2.<br />\nThat's...</li></ol>
+    #[test]
+    fn test_issue370_numbered_list_continuation_inside_li() {
+        // Simulate newline_to_br output for:
+        // "Hey Toxicafunk,\n1. \nYes, there\u{2019}s a section titled _Data contracts_.\n2.\nThat\u{2019}s a great question!"
+        let after_newline_to_br = "Hey Toxicafunk,<br />\n1. <br />\nYes, there\u{2019}s a section titled _Data contracts and the data mesh_ that aims to answer that.<br />\nI believe it would be very hard to implement a data mesh without data contracts.<br />\n2.<br />\nThat\u{2019}s a great question!<br />\nI love this question though. Always _start with why_!";
+        let html = crate::frontmatter::markdown_to_html_for_filter(after_newline_to_br);
+        assert!(
+            html.contains("<ol>"),
+            "Issue 370: Should produce <ol> for numbered list. Got: {html}"
+        );
+        // The continuation text "Yes, there's" must be INSIDE the <li>, not in a <p> after </ol>
+        let ol_close = html.find("</ol>").expect("must have </ol>");
+        assert!(
+            html[..ol_close].contains("Data contracts and the data mesh"),
+            "Issue 370: Continuation text must be inside <ol>, not after it. Got: {html}"
+        );
+    }
+
+    /// Issue 370 Sub-problem A: text without numbered items should not get spurious <ol>.
+    #[test]
+    fn test_issue370_no_spurious_ol_without_numbers() {
+        let after_newline_to_br = "Hello,<br />\nThis is just text.<br />\nNo numbers here.";
+        let html = crate::frontmatter::markdown_to_html_for_filter(after_newline_to_br);
+        assert!(
+            !html.contains("<ol>"),
+            "Issue 370: Should not produce <ol> for non-numbered text. Got: {html}"
+        );
+    }
+
+    /// Issue 370 Sub-problem A: Unicode content (smart quotes, emoji) in numbered list.
+    #[test]
+    fn test_issue370_numbered_list_with_unicode_continuation() {
+        let after_newline_to_br = "Hey,<br />\n1. <br />\nYes\u{2019}s great \u{1F642}<br />\n2.<br />\nThat\u{2019}s awesome!";
+        let html = crate::frontmatter::markdown_to_html_for_filter(after_newline_to_br);
+        assert!(
+            html.contains("<ol>"),
+            "Issue 370: Numbered list with Unicode should produce <ol>. Got: {html}"
+        );
+        // Content must be inside the list
+        let ol_close = html.find("</ol>").expect("must have </ol>");
+        assert!(
+            html[..ol_close].contains("\u{1F642}"),
+            "Issue 370: Unicode content must be inside <ol>. Got: {html}"
+        );
+    }
+
+    /// Issue 370 Sub-problem A: three consecutive numbered items (1. 2. 3.)
+    /// from the "top 3 mistakes" thread.
+    #[test]
+    fn test_issue370_three_numbered_items_with_br() {
+        let after_newline_to_br = "Hey, good question!<br />\nI\u{2019}d say:<br />\n1. Focussing on the tech<br />\n2. Trying to apply data contracts to everything<br />\n3. Making it too complicated.<br />\nHope that helps \u{1F642}";
+        let html = crate::frontmatter::markdown_to_html_for_filter(after_newline_to_br);
+        assert!(
+            html.contains("<ol>"),
+            "Issue 370: Three numbered items should produce <ol>. Got: {html}"
+        );
+        // All three items should have their content inside <li>
+        let ol_close = html.find("</ol>").expect("must have </ol>");
+        assert!(
+            html[..ol_close].contains("Focussing on the tech"),
+            "Issue 370: Item 1 text must be inside <ol>. Got: {html}"
+        );
+        assert!(
+            html[..ol_close].contains("Trying to apply"),
+            "Issue 370: Item 2 text must be inside <ol>. Got: {html}"
+        );
+        assert!(
+            html[..ol_close].contains("Making it too complicated"),
+            "Issue 370: Item 3 text must be inside <ol>. Got: {html}"
+        );
+    }
+
+    /// Issue 370 Sub-problem B: headings from markdownify inside newline_to_br
+    /// pipeline should stay inside list context, not leak out.
+    #[test]
+    fn test_issue370_heading_inside_list_context() {
+        // Simulate text that has ### headings after newline_to_br, which
+        // should be re-nested inside list items by renest_heading_after_list.
+        let input = "- item text<br />\n### User:<br />\nmore text";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        // The heading should be inside the <li>, not outside the <ul>
+        // After renest_heading_after_list, <h3> should come before </li></ul>
+        let ul_close = html.find("</ul>").unwrap_or(html.len());
+        let h3_pos = html.find("<h3");
+        if let Some(h3) = h3_pos {
+            assert!(
+                h3 < ul_close,
+                "Issue 370: <h3> should be inside <ul>, not after it. Got: {html}"
+            );
+        }
+    }
 }
