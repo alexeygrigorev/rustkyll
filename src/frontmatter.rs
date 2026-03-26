@@ -380,10 +380,15 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // kramdown converts straight quotes to curly quotes by default.
     options.insert(Options::ENABLE_SMART_PUNCTUATION);
 
+    // Issue 364: Escape non-standard autolink URI schemes (tel:, ssh:, sip:, etc.)
+    // so pulldown-cmark doesn't treat them as CommonMark autolinks. Kramdown only
+    // autolinks http:, https:, ftp:, and mailto:.
+    let markdown = escape_non_standard_autolink_schemes(markdown);
+
     // Issue 228: Process markdown="1" attribute on HTML elements before the
     // main markdown pass. This renders markdown inside <aside markdown="1">,
     // <div markdown="1">, etc. and strips the attribute.
-    let markdown = crate::kramdown::process_markdown_attribute(markdown);
+    let markdown = crate::kramdown::process_markdown_attribute(&markdown);
 
     // Issue 301: Mark forward-direction IALs (standalone {: .class} with blank
     // lines on both sides) so apply_block_ial can detect them.
@@ -731,12 +736,23 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     options.insert(Options::ENABLE_STRIKETHROUGH);
     options.insert(Options::ENABLE_SMART_PUNCTUATION);
 
+    // Issue 364: Escape non-standard autolink URI schemes (tel:, ssh:, sip:, etc.)
+    // so pulldown-cmark doesn't treat them as CommonMark autolinks. Kramdown only
+    // autolinks http:, https:, ftp:, and mailto:.
+    let markdown = escape_non_standard_autolink_schemes(markdown);
+
     // Issue 308: Prevent fenced code blocks after <br />\n from newline_to_br.
-    let markdown = escape_fenced_code_after_br(markdown);
+    let markdown = escape_fenced_code_after_br(&markdown);
 
     // Issue 363: Insert paragraph break before numbered list sequences in
     // newline_to_br output so pulldown-cmark recognizes them as ordered lists.
     let markdown = insert_paragraph_break_before_numbered_list(&markdown);
+
+    // Issue 370: Strip <br /> from numbered list marker lines that have no
+    // other content (e.g., "1. <br />" or "2.<br />"). This allows the
+    // continuation text on the next line to be a lazy continuation of the
+    // list item, matching kramdown's behavior.
+    let markdown = strip_br_from_empty_numbered_list_markers(&markdown);
 
     // Issue 325: Preprocess dash sequences to match kramdown's greedy behavior.
     // Kramdown processes dashes as ---=em-dash first, then --=en-dash on remainder.
@@ -2179,16 +2195,11 @@ fn insert_paragraph_break_before_numbered_list(markdown: &str) -> String {
                 && has_text_content(lines[i - 1])
                 && !is_numbered_line(lines[i - 1])
             {
-                // Look ahead for consecutive numbered items
-                let mut j = i + 1;
-                while j < lines.len() && is_numbered_line(lines[j]) {
-                    j += 1;
-                }
-
-                if j - i >= 2 {
-                    // Insert blank line for paragraph break before the numbered sequence
-                    result_lines.push(String::new());
-                }
+                // Issue 370: Insert paragraph break even for a single numbered
+                // item preceded by <br /> text. Kramdown recognizes any `N. `
+                // pattern as starting an ordered list; pulldown-cmark requires
+                // a blank line before non-1 starting items.
+                result_lines.push(String::new());
             }
         }
 
@@ -2197,6 +2208,116 @@ fn insert_paragraph_break_before_numbered_list(markdown: &str) -> String {
     }
 
     result_lines.join("\n")
+}
+
+/// Issue 370: Strip `<br />` from numbered list marker lines that contain
+/// no other meaningful content in `newline_to_br` output.
+///
+/// When `newline_to_br` processes text like `1. \nYes, text...`, it produces
+/// `1. <br />\nYes, text...`. pulldown-cmark sees `1. <br />` as a list item
+/// whose content is just `<br />`, and the continuation `Yes, text...` starts
+/// a new paragraph outside the list.
+///
+/// By stripping the `<br />` from these marker-only lines, pulldown-cmark sees
+/// `1. \nYes, text...` and treats the next line as a lazy continuation of the
+/// list item, matching kramdown's behavior.
+fn strip_br_from_empty_numbered_list_markers(markdown: &str) -> String {
+    if !markdown.contains("<br />") {
+        return markdown.to_string();
+    }
+
+    let lines: Vec<&str> = markdown.split('\n').collect();
+    let mut result_lines: Vec<String> = Vec::with_capacity(lines.len());
+    let mut skip_next = false;
+
+    for i in 0..lines.len() {
+        if skip_next {
+            skip_next = false;
+            continue;
+        }
+
+        let trimmed = lines[i].trim_start();
+        // Check if this line is ONLY a numbered list marker + <br />
+        // Patterns: "1. <br />" or "2.<br />"
+        if let Some(rest) = strip_leading_number_dot(trimmed) {
+            let rest_trimmed = rest.trim();
+            if (rest_trimmed == "<br />" || rest_trimmed == "<br/>")
+                && i + 1 < lines.len()
+                && !lines[i + 1].trim().is_empty()
+            {
+                // Join the marker line with the next line's content.
+                // "1. <br />" + "Yes, text..." => "1. <br />Yes, text..."
+                // This keeps <br /> as content inside the <li> and the
+                // continuation text on the same logical line.
+                let marker_with_br = lines[i].trim_end();
+                let next_content = lines[i + 1];
+                result_lines.push(format!("{marker_with_br}{next_content}"));
+                skip_next = true;
+                continue;
+            }
+        }
+        result_lines.push(lines[i].to_string());
+    }
+
+    result_lines.join("\n")
+}
+
+/// Helper: if the line starts with `N.` (one or more digits followed by a dot),
+/// return the rest of the string after the dot. Otherwise return None.
+fn strip_leading_number_dot(s: &str) -> Option<&str> {
+    let bytes = s.as_bytes();
+    let mut i = 0;
+    if i >= bytes.len() || !bytes[i].is_ascii_digit() {
+        return None;
+    }
+    while i < bytes.len() && bytes[i].is_ascii_digit() {
+        i += 1;
+    }
+    if i >= bytes.len() || bytes[i] != b'.' {
+        return None;
+    }
+    Some(&s[i + 1..])
+}
+
+/// Issue 364: Escape non-standard autolink URI schemes to match kramdown behavior.
+///
+/// CommonMark autolinks any `<scheme:path>` where scheme matches `[a-zA-Z][a-zA-Z0-9+.-]{1,31}`.
+/// Kramdown only autolinks http:, https:, ftp:, and mailto:. All other schemes (tel:, ssh:,
+/// sip:, irc:, etc.) should be rendered as literal text with HTML-escaped angle brackets.
+///
+/// This function replaces `<` with `&lt;` for non-standard schemes so pulldown-cmark
+/// does not treat them as autolinks.
+fn escape_non_standard_autolink_schemes(markdown: &str) -> String {
+    use std::sync::LazyLock;
+
+    // Match <scheme:...> where scheme is an alphabetic start + alphanumeric/+/./- chars
+    // but NOT http, https, ftp, or mailto.
+    static RE: LazyLock<regex::Regex> = LazyLock::new(|| {
+        regex::Regex::new(r"<([a-zA-Z][a-zA-Z0-9+.\-]{0,31}):([^>\s]+)>").unwrap()
+    });
+
+    if !RE.is_match(markdown) {
+        return markdown.to_string();
+    }
+
+    RE.replace_all(markdown, |caps: &regex::Captures| {
+        let scheme = &caps[1];
+        let scheme_lower = scheme.to_ascii_lowercase();
+        match scheme_lower.as_str() {
+            "http" | "https" | "ftp" | "mailto" => {
+                // Keep these as-is so pulldown-cmark can autolink them
+                caps[0].to_string()
+            }
+            _ => {
+                // Escape the opening angle bracket so pulldown-cmark sees literal text.
+                // Also escape pipe characters so kramdown table conversion doesn't
+                // misinterpret them as table cell delimiters.
+                let path = caps[2].replace('|', "&#124;");
+                format!("&lt;{}:{}&gt;", &caps[1], path)
+            }
+        }
+    })
+    .into_owned()
 }
 
 fn escape_fenced_code_after_br(markdown: &str) -> String {
@@ -6061,6 +6182,139 @@ More text.
         assert!(
             html.contains("Texte suppl\u{00e9}mentaire"),
             "Issue 363: Unicode continuation text preserved. Got: {html}"
+        );
+    }
+
+    // Issue 364: tel: autolink suppression tests
+    #[test]
+    fn test_issue364_tel_autolink_suppressed() {
+        let html = markdown_to_html_for_filter("<tel:100-1000|100-1000>");
+        assert!(
+            !html.contains("<a href="),
+            "Issue 364: tel: should NOT be autolinked. Got: {html}"
+        );
+        assert!(
+            html.contains("&lt;tel:100-1000|100-1000&gt;"),
+            "Issue 364: tel: should be escaped as literal text. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue364_ssh_autolink_suppressed() {
+        let html = markdown_to_html_for_filter("<ssh:user@host>");
+        assert!(
+            !html.contains("<a href="),
+            "Issue 364: ssh: should NOT be autolinked. Got: {html}"
+        );
+        assert!(
+            html.contains("&lt;ssh:user@host&gt;"),
+            "Issue 364: ssh: should be escaped as literal text. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue364_sip_autolink_suppressed() {
+        let html = markdown_to_html_for_filter("<sip:1234@gateway.com>");
+        assert!(
+            !html.contains("<a href="),
+            "Issue 364: sip: should NOT be autolinked. Got: {html}"
+        );
+        assert!(
+            html.contains("&lt;sip:1234@gateway.com&gt;"),
+            "Issue 364: sip: should be escaped as literal text. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue364_irc_autolink_suppressed() {
+        let html = markdown_to_html_for_filter("<irc:chat.example.com>");
+        assert!(
+            !html.contains("<a href="),
+            "Issue 364: irc: should NOT be autolinked. Got: {html}"
+        );
+        assert!(
+            html.contains("&lt;irc:chat.example.com&gt;"),
+            "Issue 364: irc: should be escaped as literal text. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue364_http_autolink_preserved() {
+        let html = markdown_to_html_for_filter("<http://example.com>");
+        assert!(
+            html.contains(r#"<a href="http://example.com">"#),
+            "Issue 364: http: should still be autolinked. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue364_https_autolink_preserved() {
+        let html = markdown_to_html_for_filter("<https://example.com>");
+        assert!(
+            html.contains(r#"<a href="https://example.com">"#),
+            "Issue 364: https: should still be autolinked. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue364_mailto_autolink_preserved() {
+        let html = markdown_to_html_for_filter("<mailto:user@example.com>");
+        assert!(
+            html.contains(r#"<a href="mailto:user@example.com">"#),
+            "Issue 364: mailto: should still be autolinked. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue364_ftp_autolink_preserved() {
+        let html = markdown_to_html_for_filter("<ftp://files.example.com>");
+        assert!(
+            html.contains(r#"<a href="ftp://files.example.com">"#),
+            "Issue 364: ftp: should still be autolinked. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue364_pipe_in_tel_uri_literal() {
+        let html = markdown_to_html_for_filter("<tel:100-1000|100-1000>");
+        assert!(
+            html.contains("|"),
+            "Issue 364: pipe character should render literally. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue364_not_a_uri_preserved() {
+        // <not-a-uri> is not a scheme:path pattern, so it should behave as before
+        let html = markdown_to_html_for_filter("<not-a-uri>");
+        // This is not an autolink (no colon), so pulldown-cmark treats it as HTML tag
+        // or literal text. Just make sure we don't break it.
+        assert!(
+            !html.contains("<a href="),
+            "Issue 364: non-URI angle brackets should not be autolinked. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue364_non_ascii_in_tel_uri() {
+        let html = markdown_to_html_for_filter("<tel:\u{00e9}l\u{00e9}phone>");
+        assert!(
+            !html.contains("<a href="),
+            "Issue 364: non-ASCII tel: should NOT be autolinked. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue364_markdown_to_html_also_escapes() {
+        // The main markdown_to_html function should also escape non-standard autolinks
+        let html = markdown_to_html("<tel:100-1000|100-1000>\n");
+        assert!(
+            !html.contains("<a href="),
+            "Issue 364: tel: should NOT be autolinked in markdown_to_html. Got: {html}"
+        );
+        assert!(
+            html.contains("&lt;tel:100-1000|100-1000&gt;"),
+            "Issue 364: tel: should be escaped as literal text in markdown_to_html. Got: {html}"
         );
     }
 }
