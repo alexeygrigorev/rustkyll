@@ -431,7 +431,7 @@ impl LayoutEngine {
     ) -> Result<String, TemplateError> {
         // Pre-build the page Object once for reuse across content + layout renders.
         let page_obj = build_page_object(page_front_matter);
-        let (rendered_content, page_obj) =
+        let (rendered_content, page_obj): (std::borrow::Cow<'_, str>, Object) =
             if raw_content.contains("{{") || raw_content.contains("{%") {
                 let page_ctx = build_render_context_from_page_object("", page_obj.clone());
                 let rendered = self.engine.parse_and_render_with_site_overrides(
@@ -440,9 +440,9 @@ impl LayoutEngine {
                     cached_site,
                     site_overrides,
                 )?;
-                (rendered, page_obj)
+                (std::borrow::Cow::Owned(rendered), page_obj)
             } else {
-                (raw_content.to_string(), page_obj)
+                (std::borrow::Cow::Borrowed(raw_content), page_obj)
             };
         let result = self.render_with_prebuilt_page(
             layout_name,
@@ -638,7 +638,11 @@ impl LayoutEngine {
         // Many collection items (podcast, books, people) have plain HTML content
         // with no Liquid tags. Parsing plain HTML through the Liquid parser is
         // pure overhead.
-        let (rendered_content, page_obj) =
+        //
+        // Use Cow to avoid allocating a String copy when the content is plain HTML.
+        // render_with_cached_site_prebuilt takes &str, so the owned String from
+        // Liquid rendering or the borrowed reference both work without extra copies.
+        let (rendered_content, page_obj): (std::borrow::Cow<'_, str>, Object) =
             if raw_content.contains("{{") || raw_content.contains("{%") {
                 let page_ctx = build_render_context_from_page_object("", page_obj.clone());
                 let rendered = self.engine.parse_and_render_with_cached_site(
@@ -646,9 +650,9 @@ impl LayoutEngine {
                     &page_ctx,
                     cached_site,
                 )?;
-                (rendered, page_obj)
+                (std::borrow::Cow::Owned(rendered), page_obj)
             } else {
-                (raw_content.to_string(), page_obj)
+                (std::borrow::Cow::Borrowed(raw_content), page_obj)
             };
 
         let result = self.render_with_cached_site_prebuilt(

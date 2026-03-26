@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use liquid_core::model::ScalarCow;
 use liquid_core::Expression;
 use liquid_core::Result;
@@ -34,45 +36,146 @@ struct WhereExpFilter {
     args: WhereExpArgs,
 }
 
-/// Resolve a dotted path like "item.field.subfield" against
-/// a context where `var_name` is bound to `element`, and other
-/// variables come from the runtime.
-fn resolve_value(
-    path: &str,
-    var_name: &str,
-    element: &dyn ValueView,
-    runtime: &dyn Runtime,
-) -> Value {
-    let parts: Vec<&str> = path.split('.').collect();
+/// Pre-split dotted path for efficient repeated resolution.
+/// Avoids re-splitting and re-allocating on every element evaluation.
+struct ResolvedPath<'a> {
+    /// Whether the first segment matches the bound variable name.
+    is_bound: bool,
+    /// Path segments after the variable name (for bound paths), or all segments (for runtime paths).
+    segments: Vec<&'a str>,
+    /// Pre-built ScalarCow keys for runtime resolution (only populated for non-bound paths).
+    runtime_keys: Vec<ScalarCow<'a>>,
+}
 
-    if parts.is_empty() {
-        return Value::Nil;
+impl<'a> ResolvedPath<'a> {
+    fn new(path: &'a str, var_name: &str) -> Self {
+        let segments: Vec<&'a str> = path.split('.').collect();
+        if segments.is_empty() {
+            return ResolvedPath {
+                is_bound: false,
+                segments: Vec::new(),
+                runtime_keys: Vec::new(),
+            };
+        }
+        if segments[0] == var_name {
+            ResolvedPath {
+                is_bound: true,
+                segments: segments[1..].to_vec(),
+                runtime_keys: Vec::new(),
+            }
+        } else {
+            let runtime_keys = segments.iter().map(|&p| ScalarCow::new(p)).collect();
+            ResolvedPath {
+                is_bound: false,
+                segments,
+                runtime_keys,
+            }
+        }
     }
 
-    // Check if the path starts with our bound variable
-    if parts[0] == var_name {
-        // Navigate from the element
-        let mut current: &dyn ValueView = element;
-        for &part in &parts[1..] {
-            if let Some(obj) = current.as_object() {
-                if let Some(val) = obj.get(part) {
-                    current = val;
+    fn resolve(&self, element: &dyn ValueView, runtime: &dyn Runtime) -> Value {
+        if self.is_bound {
+            let mut current: &dyn ValueView = element;
+            for &part in &self.segments {
+                if let Some(obj) = current.as_object() {
+                    if let Some(val) = obj.get(part) {
+                        current = val;
+                    } else {
+                        return Value::Nil;
+                    }
                 } else {
                     return Value::Nil;
                 }
-            } else {
-                return Value::Nil;
             }
+            current.to_value()
+        } else {
+            self.resolve_runtime(runtime)
         }
-        return current.to_value();
     }
 
-    // Try resolving from the runtime context
-    let keys: Vec<ScalarCow<'_>> = parts.iter().map(|&p| ScalarCow::new(p)).collect();
-    runtime
-        .try_get(&keys)
-        .map(|v| v.to_value())
-        .unwrap_or(Value::Nil)
+    /// Resolve a non-bound path from the runtime context only.
+    /// This is used for pre-resolution of runtime variables before the element loop.
+    fn resolve_runtime(&self, runtime: &dyn Runtime) -> Value {
+        if self.runtime_keys.is_empty() {
+            Value::Nil
+        } else {
+            runtime
+                .try_get(&self.runtime_keys)
+                .map(|v| v.to_value())
+                .unwrap_or(Value::Nil)
+        }
+    }
+}
+
+/// The operator in a where_exp expression.
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum ExprOp {
+    Contains,
+    NotEqual,
+    Equal,
+    GreaterEqual,
+    LessEqual,
+    GreaterThan,
+    LessThan,
+}
+
+/// A token in the expression: either a pre-parsed literal or a variable path.
+enum ExprToken<'a> {
+    Literal(Value),
+    Path(ResolvedPath<'a>),
+}
+
+impl<'a> ExprToken<'a> {
+    fn resolve(&self, element: &dyn ValueView, runtime: &dyn Runtime) -> Value {
+        match self {
+            ExprToken::Literal(v) => v.clone(),
+            ExprToken::Path(p) => p.resolve(element, runtime),
+        }
+    }
+
+    /// Pre-resolve tokens that don't depend on the per-element bound variable.
+    /// Runtime-resolved paths (e.g., `page.short`, `site.time`) return the same
+    /// value for every element, so resolving them once before the loop avoids
+    /// redundant runtime lookups (e.g., 128,000+ lookups for DTC author pages).
+    fn pre_resolve(self, runtime: &dyn Runtime) -> ExprToken<'a> {
+        match &self {
+            ExprToken::Literal(_) => self,
+            ExprToken::Path(p) if !p.is_bound => {
+                // Not bound to the element variable -- resolve from runtime once.
+                let val = p.resolve_runtime(runtime);
+                ExprToken::Literal(val)
+            }
+            _ => self, // Bound path -- must be resolved per element.
+        }
+    }
+}
+
+/// A pre-parsed expression that can be evaluated efficiently per element.
+enum ParsedExpr<'a> {
+    /// Binary expression: lhs op rhs
+    Binary {
+        lhs: ExprToken<'a>,
+        op: ExprOp,
+        rhs: ExprToken<'a>,
+    },
+    /// Truthiness check (no operator found)
+    Truthy(ExprToken<'a>),
+}
+
+impl<'a> ParsedExpr<'a> {
+    /// Pre-resolve all non-element-bound tokens against the runtime.
+    /// This converts runtime variable lookups to cached literal values,
+    /// eliminating redundant lookups in the per-element evaluation loop.
+    fn pre_resolve(self, runtime: &dyn Runtime) -> Self {
+        match self {
+            ParsedExpr::Binary { lhs, op, rhs } => ParsedExpr::Binary {
+                lhs: lhs.pre_resolve(runtime),
+                op,
+                rhs: rhs.pre_resolve(runtime),
+            },
+            ParsedExpr::Truthy(token) => ParsedExpr::Truthy(token.pre_resolve(runtime)),
+        }
+    }
 }
 
 /// Parse a literal value from the expression (string literal, true, false, number).
@@ -103,14 +206,61 @@ fn parse_literal(s: &str) -> Option<Value> {
     None
 }
 
-/// Get a value from the expression token -- either a literal or a variable path.
-fn get_value(token: &str, var_name: &str, element: &dyn ValueView, runtime: &dyn Runtime) -> Value {
+/// Build an ExprToken from a raw string token.
+fn make_token<'a>(token: &'a str, var_name: &str) -> ExprToken<'a> {
     let token = token.trim();
     if let Some(lit) = parse_literal(token) {
-        lit
+        ExprToken::Literal(lit)
     } else {
-        resolve_value(token, var_name, element, runtime)
+        ExprToken::Path(ResolvedPath::new(token, var_name))
     }
+}
+
+/// Decode HTML entities that may appear in expressions when Liquid tags are
+/// processed after markdown-to-HTML conversion. For example, `>=` becomes
+/// `&gt;=` and `<` becomes `&lt;` in HTML.
+fn decode_html_entities(s: &str) -> Cow<'_, str> {
+    // Short-circuit: if no ampersand, nothing to decode.
+    if !s.contains('&') {
+        return Cow::Borrowed(s);
+    }
+    Cow::Owned(
+        s.replace("&gt;", ">")
+            .replace("&lt;", "<")
+            .replace("&amp;", "&")
+            .replace("&quot;", "\"")
+            .replace("&#39;", "'"),
+    )
+}
+
+/// The known operators to search for, in order. We search for the longest
+/// multi-word operators first to avoid partial matches.
+const OPERATORS: &[(&str, ExprOp)] = &[
+    (" contains ", ExprOp::Contains),
+    (" != ", ExprOp::NotEqual),
+    (" >= ", ExprOp::GreaterEqual),
+    (" <= ", ExprOp::LessEqual),
+    (" > ", ExprOp::GreaterThan),
+    (" < ", ExprOp::LessThan),
+    (" == ", ExprOp::Equal),
+];
+
+/// Parse an expression string ONCE, returning a structure that can be
+/// evaluated efficiently against many elements.
+fn parse_expression<'a>(expr: &'a str, var_name: &str) -> ParsedExpr<'a> {
+    for &(op_str, op) in OPERATORS {
+        if let Some(pos) = expr.find(op_str) {
+            let lhs_str = &expr[..pos];
+            let rhs_str = &expr[pos + op_str.len()..];
+            return ParsedExpr::Binary {
+                lhs: make_token(lhs_str, var_name),
+                op,
+                rhs: make_token(rhs_str, var_name),
+            };
+        }
+    }
+    // No operator found -- treat as truthiness check
+    ParsedExpr::Truthy(make_token(expr, var_name))
 }
 
 /// Compare two liquid values as strings for ordering.
@@ -166,73 +316,50 @@ fn values_equal(a: &Value, b: &Value) -> bool {
     a.render().to_string() == b.render().to_string()
 }
 
-/// Decode HTML entities that may appear in expressions when Liquid tags are
-/// processed after markdown-to-HTML conversion. For example, `>=` becomes
-/// `&gt;=` and `<` becomes `&lt;` in HTML.
-fn decode_html_entities(s: &str) -> String {
-    s.replace("&gt;", ">")
-        .replace("&lt;", "<")
-        .replace("&amp;", "&")
-        .replace("&quot;", "\"")
-        .replace("&#39;", "'")
-}
-
-/// Evaluate a simple expression like "item.field op value" or "item.field contains value".
-fn evaluate_expression(
-    expr: &str,
-    var_name: &str,
+/// Evaluate a pre-parsed expression against a single element.
+fn evaluate_parsed_expr(
+    parsed: &ParsedExpr<'_>,
     element: &dyn ValueView,
     runtime: &dyn Runtime,
 ) -> bool {
-    // Decode HTML entities in the expression -- when Liquid tags appear inside
-    // markdown content that was converted to HTML before Liquid processing,
-    // operators like >= and < become &gt;= and &lt;.
-    let decoded = decode_html_entities(expr);
-    let expr = decoded.trim();
-
-    // Try to find a known operator
-    let operators = [" contains ", " != ", " >= ", " <= ", " > ", " < ", " == "];
-
-    for op in &operators {
-        if let Some(pos) = expr.find(op) {
-            let lhs_str = &expr[..pos];
-            let rhs_str = &expr[pos + op.len()..];
-            let lhs = get_value(lhs_str, var_name, element, runtime);
-            let rhs = get_value(rhs_str, var_name, element, runtime);
-
-            return match op.trim() {
-                "contains" => {
-                    // Array contains element, or string contains substring
-                    if let Value::Array(arr) = &lhs {
-                        arr.iter().any(|item| values_equal(item, &rhs))
-                    } else {
-                        let lhs_str = lhs.render().to_string();
-                        let rhs_str = rhs.render().to_string();
-                        lhs_str.contains(&rhs_str)
-                    }
-                }
-                "!=" => !values_equal(&lhs, &rhs),
-                "==" => values_equal(&lhs, &rhs),
-                ">=" => compare_values(&lhs, &rhs)
+    match parsed {
+        ParsedExpr::Binary { lhs, op, rhs } => {
+            let lhs_val = lhs.resolve(element, runtime);
+            let rhs_val = rhs.resolve(element, runtime);
+            match op {
+                ExprOp::Contains => array_or_string_contains(&lhs_val, &rhs_val),
+                ExprOp::NotEqual => !values_equal(&lhs_val, &rhs_val),
+                ExprOp::Equal => values_equal(&lhs_val, &rhs_val),
+                ExprOp::GreaterEqual => compare_values(&lhs_val, &rhs_val)
                     .map(|o| o != std::cmp::Ordering::Less)
                     .unwrap_or(false),
-                "<=" => compare_values(&lhs, &rhs)
+                ExprOp::LessEqual => compare_values(&lhs_val, &rhs_val)
                     .map(|o| o != std::cmp::Ordering::Greater)
                     .unwrap_or(false),
-                ">" => compare_values(&lhs, &rhs)
+                ExprOp::GreaterThan => compare_values(&lhs_val, &rhs_val)
                     .map(|o| o == std::cmp::Ordering::Greater)
                     .unwrap_or(false),
-                "<" => compare_values(&lhs, &rhs)
+                ExprOp::LessThan => compare_values(&lhs_val, &rhs_val)
                     .map(|o| o == std::cmp::Ordering::Less)
                     .unwrap_or(false),
-                _ => false,
-            };
+            }
+        }
+        ParsedExpr::Truthy(token) => {
+            let val = token.resolve(element, runtime);
+            is_truthy(&val)
         }
     }
+}
 
-    // No operator found -- treat expression as a truthiness check
-    let val = get_value(expr, var_name, element, runtime);
-    is_truthy(&val)
+/// Check if an array contains a value, or a string contains a substring.
+fn array_or_string_contains(lhs: &Value, rhs: &Value) -> bool {
+    if let Value::Array(arr) = lhs {
+        arr.iter().any(|item| values_equal(item, rhs))
+    } else {
+        let lhs_str = lhs.render().to_string();
+        let rhs_str = rhs.render().to_string();
+        lhs_str.contains(&rhs_str)
+    }
 }
 
 impl Filter for WhereExpFilter {
@@ -250,10 +377,18 @@ impl Filter for WhereExpFilter {
             }
         };
 
+        // Decode HTML entities ONCE for the entire filter invocation,
+        // then parse the expression ONCE. This avoids re-parsing per element.
+        let decoded = decode_html_entities(&expression);
+        let decoded_trimmed = decoded.trim();
+        let parsed = parse_expression(decoded_trimmed, &var_name);
+        // Pre-resolve non-bound tokens (e.g., page.short, site.time) against
+        // the runtime ONCE, avoiding redundant lookups per element.
+        let parsed = parsed.pre_resolve(runtime);
+
         let mut result = Vec::new();
         for item in array.values() {
-            let matches = evaluate_expression(&expression, &var_name, item, runtime);
-            if matches {
+            if evaluate_parsed_expr(&parsed, item, runtime) {
                 result.push(item.to_value());
             }
         }
@@ -438,12 +573,23 @@ mod tests {
 
     #[test]
     fn test_decode_html_entities() {
-        assert_eq!(decode_html_entities("a &gt;= b"), "a >= b");
-        assert_eq!(decode_html_entities("a &lt; b"), "a < b");
-        assert_eq!(decode_html_entities("a &gt; b"), "a > b");
-        assert_eq!(decode_html_entities("a &lt;= b"), "a <= b");
-        assert_eq!(decode_html_entities("a &amp; b"), "a & b");
-        assert_eq!(decode_html_entities("no entities here"), "no entities here");
+        assert_eq!(decode_html_entities("a &gt;= b").as_ref(), "a >= b");
+        assert_eq!(decode_html_entities("a &lt; b").as_ref(), "a < b");
+        assert_eq!(decode_html_entities("a &gt; b").as_ref(), "a > b");
+        assert_eq!(decode_html_entities("a &lt;= b").as_ref(), "a <= b");
+        assert_eq!(decode_html_entities("a &amp; b").as_ref(), "a & b");
+        assert_eq!(
+            decode_html_entities("no entities here").as_ref(),
+            "no entities here"
+        );
+    }
+
+    #[test]
+    fn test_decode_html_entities_short_circuit() {
+        // Verify that strings without '&' are returned as borrowed (no allocation)
+        let input = "item.field contains value";
+        let result = decode_html_entities(input);
+        assert!(matches!(result, Cow::Borrowed(_)));
     }
 
     #[test]
@@ -590,5 +736,35 @@ mod tests {
         .unwrap();
         let arr = result.as_array().unwrap();
         assert_eq!(arr.size(), 1);
+    }
+
+    #[test]
+    fn test_parse_expression_contains() {
+        let parsed = parse_expression("item.authors contains \"alice\"", "item");
+        match &parsed {
+            ParsedExpr::Binary { op, .. } => assert_eq!(*op, ExprOp::Contains),
+            _ => panic!("expected Binary"),
+        }
+    }
+
+    #[test]
+    fn test_parse_expression_truthy() {
+        let parsed = parse_expression("item.active", "item");
+        assert!(matches!(parsed, ParsedExpr::Truthy(_)));
+    }
+
+    #[test]
+    fn test_resolved_path_bound() {
+        let path = ResolvedPath::new("item.field.sub", "item");
+        assert!(path.is_bound);
+        assert_eq!(path.segments, vec!["field", "sub"]);
+    }
+
+    #[test]
+    fn test_resolved_path_unbound() {
+        let path = ResolvedPath::new("site.posts", "item");
+        assert!(!path.is_bound);
+        assert_eq!(path.segments, vec!["site", "posts"]);
+        assert_eq!(path.runtime_keys.len(), 2);
     }
 }

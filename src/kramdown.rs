@@ -1240,6 +1240,11 @@ fn find_mixed_emphasis_span(
 pub fn process_markdown_attribute(content: &str) -> String {
     use pulldown_cmark::{html as cmark_html, Options, Parser};
 
+    // Short-circuit: if the content contains no markdown attribute at all, return as-is.
+    if !content.contains("markdown=") {
+        return content.to_string();
+    }
+
     // All recognised markdown attribute patterns and whether they mean "span" mode.
     // "1" and "block" are block mode; "span" is inline mode.
     const PATTERNS: &[(&str, bool)] = &[
@@ -1631,6 +1636,11 @@ const BLOCK_CLOSE_SPLIT_TAGS: &[&str] = &[
 /// This pre-processing step inserts a blank line between the closing HTML tag
 /// and the trailing text, so pulldown-cmark will parse the text as markdown.
 pub fn split_text_after_html_block_close(content: &str) -> String {
+    // Short-circuit: if no closing HTML tags present, nothing to split.
+    if !content.contains("</") {
+        return content.to_string();
+    }
+
     let mut result = String::with_capacity(content.len() + 64);
     let mut remaining = content;
 
@@ -2036,6 +2046,11 @@ fn convert_fenced_code_in_html_block(block: &str) -> String {
 /// Only applies to headings that appear immediately after a list item
 /// (no blank line between).
 pub fn escape_headings_in_list_context(content: &str) -> String {
+    // Short-circuit: if no heading markers (# at start of line), nothing to escape.
+    if !content.contains('#') {
+        return content.to_string();
+    }
+
     let lines: Vec<&str> = content.split('\n').collect();
     let mut result = String::with_capacity(content.len());
     let mut in_list = false;
@@ -2121,6 +2136,11 @@ pub fn escape_headings_in_list_context(content: &str) -> String {
 /// (forward IAL applies to the next block element).
 /// Transforms to: `\n\n<!-- IAL:FWD -->\n{: ...}\n\n`
 pub fn mark_forward_ial(content: &str) -> String {
+    // Short-circuit: if no IAL markers at all, return as-is.
+    if !content.contains("{:") {
+        return content.to_string();
+    }
+
     let lines: Vec<&str> = content.split('\n').collect();
     let mut result = String::with_capacity(content.len() + 64);
 
@@ -2257,6 +2277,11 @@ pub fn mark_simple_partial_loose_list_items(content: &str) -> String {
 /// pairs have blank lines between them (locally fully-loose sub-groups) keep
 /// their blank lines so pulldown-cmark renders them as loose (issue #372).
 pub fn collapse_blank_lines_between_list_items(content: &str) -> String {
+    // Short-circuit: if no list markers, nothing to collapse.
+    if !content.contains("- ") && !content.contains("* ") && !content.contains("+ ") {
+        return content.to_string();
+    }
+
     let lines: Vec<&str> = content.split('\n').collect();
     if lines.len() < 3 {
         return content.to_string();
@@ -2537,6 +2562,11 @@ fn is_simple_inline_list_item(inner: &str) -> bool {
 /// - Inside list items, the table's block boundaries are relative to the
 ///   list item content.
 pub fn convert_kramdown_pipe_tables(content: &str) -> String {
+    // Short-circuit: if no pipe character at all, no tables to convert.
+    if !content.contains('|') {
+        return content.to_string();
+    }
+
     let lines: Vec<&str> = content.split('\n').collect();
     let mut result = String::with_capacity(content.len());
     let mut i = 0;

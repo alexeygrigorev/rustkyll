@@ -953,6 +953,9 @@ fn protect_consecutive_single_quotes(input: &str) -> String {
 
 /// Restore consecutive single quote placeholders back to their original form.
 fn restore_consecutive_single_quotes(input: &str) -> String {
+    if !input.contains(SINGLE_QUOTE_3_PLACEHOLDER) && !input.contains(SINGLE_QUOTE_2_PLACEHOLDER) {
+        return input.to_string();
+    }
     let result = input.replace(SINGLE_QUOTE_3_PLACEHOLDER, "'''");
     result.replace(SINGLE_QUOTE_2_PLACEHOLDER, "''")
 }
@@ -987,6 +990,9 @@ fn protect_preexisting_curly_quotes(input: &str) -> String {
 
 /// Restore pre-existing curly quote placeholders back to their original Unicode chars.
 fn restore_preexisting_curly_quotes(input: &str) -> String {
+    if !input.contains('\x00') {
+        return input.to_string();
+    }
     input
         .replace(CURLY_LSINGLE_PLACEHOLDER, "\u{2018}")
         .replace(CURLY_RSINGLE_PLACEHOLDER, "\u{2019}")
@@ -2469,6 +2475,12 @@ fn protect_liquid_quotes(input: &str) -> String {
     // Sentinel that won't appear in normal text and won't be modified by markdown
     const QUOTE_PLACEHOLDER: &str = "\x00QUOT\x00";
 
+    // Short-circuit: if no Liquid tags or IAL markers containing quotes, nothing to protect.
+    // Check for the opening brace patterns that could contain quotes.
+    if !input.contains("{%") && !input.contains("{{") && !input.contains("{:") {
+        return input.to_string();
+    }
+
     let mut result = String::with_capacity(input.len());
     let mut remaining = input;
 
@@ -2516,6 +2528,9 @@ fn protect_liquid_quotes(input: &str) -> String {
 /// Restore placeholders back to double quotes.
 fn restore_liquid_quotes(input: &str) -> String {
     const QUOTE_PLACEHOLDER: &str = "\x00QUOT\x00";
+    if !input.contains(QUOTE_PLACEHOLDER) {
+        return input.to_string();
+    }
     input.replace(QUOTE_PLACEHOLDER, "\"")
 }
 
