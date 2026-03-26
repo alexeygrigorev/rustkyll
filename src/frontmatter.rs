@@ -430,6 +430,11 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // In kramdown, `</figure>Text with [links](url)` treats the text as a new
     // paragraph, but CommonMark treats it as part of the HTML block.
     let markdown = crate::kramdown::split_text_after_html_block_close(&markdown);
+    let markdown = rewrite_malformed_target_blank_links(&markdown);
+
+    // Issue 367: Escape asterisks/underscores inside URL-like link text so
+    // pulldown-cmark does not treat them as emphasis markers.
+    let markdown = protect_url_link_text_emphasis(&markdown);
 
     // Issue 206: Normalize zero-width spaces before emphasis markers so
     // pulldown-cmark recognizes them as word boundaries for emphasis.
@@ -569,6 +574,10 @@ pub fn markdown_to_html_with_options(
     let markdown = crate::kramdown::collapse_blank_lines_between_list_items(&markdown);
     let markdown = crate::kramdown::convert_kramdown_pipe_tables(&markdown);
     let markdown = crate::kramdown::split_text_after_html_block_close(&markdown);
+    let markdown = rewrite_malformed_target_blank_links(&markdown);
+    // Issue 367: Escape asterisks/underscores inside URL-like link text so
+    // pulldown-cmark does not treat them as emphasis markers.
+    let markdown = protect_url_link_text_emphasis(&markdown);
     let markdown = normalize_zwsp_for_emphasis(&markdown);
     let markdown = fix_kramdown_emphasis_patterns(&markdown);
     // Issue 275: Escape inner delimiters in mixed-delimiter emphasis patterns
@@ -776,6 +785,10 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     let markdown = crate::kramdown::convert_kramdown_pipe_tables(&markdown);
 
     let markdown = crate::kramdown::split_text_after_html_block_close(&markdown);
+    let markdown = rewrite_malformed_target_blank_links(&markdown);
+
+    // Issue 367: Escape asterisks/underscores inside URL-like link text
+    let markdown = protect_url_link_text_emphasis(&markdown);
 
     // Issue 198/206: Same ZWSP and emphasis handling as markdown_to_html
     let markdown = normalize_zwsp_for_emphasis(&markdown);
@@ -825,6 +838,102 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     // produce unindented <li> elements in the markdownify filter path too.
     let indent_lists = get_markdownify_indent_lists();
     crate::kramdown::postprocess_for_filter_with_options(&html_output, indent_lists)
+}
+
+/// Rewrite malformed markdown links where `{:target="_blank"}` is embedded
+/// inside the link destination.
+///
+/// Jekyll/kramdown keeps the malformed text inside `href` rather than turning it
+/// into a real `target` attribute. pulldown-cmark leaves the whole markdown
+/// sequence as plain text. Convert the malformed markdown link into raw HTML
+/// so the final output matches Jekyll's broken-but-stable behavior.
+fn rewrite_malformed_target_blank_links(markdown: &str) -> String {
+    const BROKEN_IAL: &str = r#"{:target="_blank"}"#;
+
+    if !markdown.contains(BROKEN_IAL) {
+        return markdown.to_string();
+    }
+
+    let bytes = markdown.as_bytes();
+    let mut out = String::with_capacity(markdown.len() + 64);
+    let mut last = 0usize;
+    let mut i = 0usize;
+
+    while i < bytes.len() {
+        if bytes[i] != b'[' {
+            i += 1;
+            continue;
+        }
+
+        let link_start = i;
+        let mut j = i + 1;
+        let mut text_depth = 1usize;
+        while j < bytes.len() && text_depth > 0 {
+            match bytes[j] {
+                b'\\' if j + 1 < bytes.len() => j += 2,
+                b'[' => {
+                    text_depth += 1;
+                    j += 1;
+                }
+                b']' => {
+                    text_depth -= 1;
+                    j += 1;
+                }
+                _ => j += 1,
+            }
+        }
+
+        if text_depth != 0 || j >= bytes.len() || bytes[j] != b'(' {
+            i += 1;
+            continue;
+        }
+
+        let text_start = link_start + 1;
+        let text_end = j - 1;
+        let mut k = j + 1;
+        let mut paren_depth = 1usize;
+        while k < bytes.len() && paren_depth > 0 {
+            match bytes[k] {
+                b'\\' if k + 1 < bytes.len() => k += 2,
+                b'(' => {
+                    paren_depth += 1;
+                    k += 1;
+                }
+                b')' => {
+                    paren_depth -= 1;
+                    k += 1;
+                }
+                _ => k += 1,
+            }
+        }
+
+        if paren_depth != 0 {
+            i += 1;
+            continue;
+        }
+
+        let dest_start = j + 1;
+        let dest_end = k - 1;
+        let destination = &markdown[dest_start..dest_end];
+        if !destination.contains(BROKEN_IAL) {
+            i = k;
+            continue;
+        }
+
+        out.push_str(&markdown[last..link_start]);
+        let label = &markdown[text_start..text_end];
+        let href = destination.replace('"', "&quot;");
+        out.push_str("<a href=\"");
+        out.push_str(&href);
+        out.push_str("\">");
+        out.push_str(label);
+        out.push_str("</a>");
+        last = k;
+        i = k;
+    }
+
+    out.push_str(&markdown[last..]);
+    out
 }
 
 /// Escape parenthesis-style ordered list markers to prevent pulldown-cmark
@@ -932,6 +1041,120 @@ const SINGLE_QUOTE_2_PLACEHOLDER: &str = "\x00SQ2\x00";
 /// Placeholder prefix for protected math content (Issue 227).
 const MATH_PLACEHOLDER_PREFIX: &str = "\x00MATH";
 const MATH_PLACEHOLDER_SUFFIX: &str = "MATH\x00";
+
+/// Issue 367: Escape `*` inside URL-like markdown link text and URL so
+/// pulldown-cmark and downstream emphasis fixups do not treat them as emphasis
+/// markers.
+///
+/// Matches `[text](url)` where text contains `://` (i.e. the link text itself
+/// looks like a URL). Backslash-escapes `*` within both the link text and URL.
+fn protect_url_link_text_emphasis(markdown: &str) -> String {
+    if !markdown.contains("://") {
+        return markdown.to_string();
+    }
+
+    let chars: Vec<char> = markdown.chars().collect();
+    let len = chars.len();
+    let mut result = String::with_capacity(markdown.len() + 64);
+    let mut i = 0;
+
+    while i < len {
+        if chars[i] == '[' {
+            // Try to find matching ] with bracket nesting
+            let text_start = i + 1;
+            let mut depth = 1;
+            let mut j = text_start;
+            while j < len && depth > 0 {
+                if chars[j] == '\\' && j + 1 < len {
+                    j += 2;
+                    continue;
+                }
+                if chars[j] == '[' {
+                    depth += 1;
+                } else if chars[j] == ']' {
+                    depth -= 1;
+                }
+                if depth > 0 {
+                    j += 1;
+                }
+            }
+
+            if depth == 0 {
+                let text_end = j; // position of closing ]
+                let after_bracket = j + 1;
+
+                // Check if followed by ( — inline link
+                if after_bracket < len && chars[after_bracket] == '(' {
+                    // Check if link text contains :// (URL-like) and has asterisks
+                    let has_scheme = {
+                        let mut found = false;
+                        for k in text_start..text_end.saturating_sub(2) {
+                            if chars[k] == ':'
+                                && k + 2 < text_end
+                                && chars[k + 1] == '/'
+                                && chars[k + 2] == '/'
+                            {
+                                found = true;
+                                break;
+                            }
+                        }
+                        found
+                    };
+                    let has_asterisk = chars[text_start..text_end].contains(&'*');
+
+                    if has_scheme && has_asterisk {
+                        // Escape * in the link text
+                        result.push('[');
+                        for ch in &chars[text_start..text_end] {
+                            if *ch == '*' {
+                                result.push('\\');
+                            }
+                            result.push(*ch);
+                        }
+                        result.push(']');
+
+                        // Also escape * in the URL portion (inside parentheses)
+                        // to prevent later emphasis-related preprocessing steps
+                        // (fix_kramdown_emphasis_patterns, escape_mixed_delimiter_emphasis)
+                        // from corrupting the URL.
+                        let url_start = after_bracket; // the '(' char
+                        let mut paren_depth = 1;
+                        let mut k = url_start + 1;
+                        while k < len && paren_depth > 0 {
+                            if chars[k] == '(' {
+                                paren_depth += 1;
+                            } else if chars[k] == ')' {
+                                paren_depth -= 1;
+                            }
+                            k += 1;
+                        }
+                        if paren_depth == 0 {
+                            let url_end = k; // position after closing )
+                            result.push('(');
+                            for ch in &chars[url_start + 1..url_end - 1] {
+                                if *ch == '*' {
+                                    result.push('\\');
+                                }
+                                result.push(*ch);
+                            }
+                            result.push(')');
+                            i = url_end;
+                        } else {
+                            // Unbalanced parens -- just output what we have
+                            i = after_bracket;
+                        }
+                        continue;
+                    }
+                }
+            }
+        }
+
+        result.push(chars[i]);
+        i += 1;
+    }
+
+    result
+}
 
 /// Issue 198: Protect consecutive single quotes (`''` and `'''`) from smart
 /// punctuation conversion.
@@ -1903,7 +2126,7 @@ fn preprocess_kramdown_dashes(markdown: &str) -> String {
 /// pipeline, pulldown-cmark closes the `</li>` and `</ul>/<ol>` before the heading.
 /// Kramdown keeps the heading inside the `<li>`. This function detects the pattern:
 ///
-///   `</li>\n</ul>\n\n<hN>...</hN>`  or  `</li>\n</ol>\n\n<hN>...</hN>`
+///   `</li>\n</ul>\n<hN>...</hN>`  or  `</li>\n</ol>\n<hN>...</hN>`
 ///
 /// and moves the heading back inside the list item.
 fn renest_heading_after_list(html: &str) -> String {
@@ -2610,6 +2833,56 @@ fn looks_like_html(trimmed: &str) -> bool {
 mod tests {
     use super::*;
     use serde_yaml::Value;
+
+    // ========================================================================
+    // Issue 367: protect_url_link_text_emphasis tests
+    // ========================================================================
+
+    #[test]
+    fn test_protect_url_link_text_emphasis_basic() {
+        let input = "[https://example.com/?a=1*foo*bar](https://example.com/?a=1*foo*bar)";
+        let result = protect_url_link_text_emphasis(input);
+        // * should be escaped in link text
+        assert!(
+            result.starts_with("[https://example.com/?a=1\\*foo\\*bar]"),
+            "Asterisks in URL link text should be escaped. Got: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_protect_url_link_text_emphasis_no_url() {
+        let input = "[regular *emphasis*](https://example.com)";
+        let result = protect_url_link_text_emphasis(input);
+        // No :// in link text, should be unchanged
+        assert_eq!(result, input);
+    }
+
+    #[test]
+    fn test_protect_url_link_text_emphasis_escapes_both_parts() {
+        let input = "[https://site.com/?_gl=1*abc*_ga](https://site.com/?_gl=1*abc*_ga)";
+        let result = protect_url_link_text_emphasis(input);
+        // Asterisks in link text should be escaped
+        assert!(
+            result.contains("[https://site.com/?_gl=1\\*abc\\*_ga]"),
+            "Link text asterisks should be escaped. Got: {:?}",
+            result
+        );
+        // Asterisks in URL part should also be escaped
+        assert!(
+            result.contains("(https://site.com/?_gl=1\\*abc\\*_ga)"),
+            "URL asterisks should also be escaped. Got: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_protect_url_link_text_emphasis_no_asterisk_url_unchanged() {
+        let input = "[https://site.com/page](https://site.com/page)";
+        let result = protect_url_link_text_emphasis(input);
+        // No asterisks in link text -- should be unchanged
+        assert_eq!(result, input);
+    }
 
     // ========================================================================
     // Front matter splitting tests
@@ -4195,6 +4468,36 @@ Some text after.
         assert!(
             !html.contains("{:target"),
             "IAL syntax should be consumed. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue349_malformed_wikipedia_link_matches_jekyll() {
+        let md = r#"Because all of the containers share the services of a single operating system kernel, they use fewer resources than virtual machines.” (Source [Wikipedia](https://en.wikipedia.org/wiki/Docker_(software){:target="_blank"}))"#;
+        let html = markdown_to_html(md);
+        let expected = r#"(Source <a href="https://en.wikipedia.org/wiki/Docker_(software){:target=&quot;_blank&quot;}">Wikipedia</a>)"#;
+        assert!(
+            html.contains(expected),
+            "Malformed Wikipedia link should be rewritten to match Jekyll. Expected: {expected}\nActual: {html}"
+        );
+        assert!(
+            !html.contains(r#"target="_blank""#),
+            "Malformed IAL must stay inside href rather than becoming a real target attribute. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue349_malformed_wikipedia_link_with_emphasis_tail_matches_jekyll() {
+        let md = r#"**“Docker Compose** is a tool ... (text extracted from [Wikipedia](https://en.wikipedia.org/wiki/Docker_(software){:target="_blank"})*).*"#;
+        let html = markdown_to_html(md);
+        let expected_link = r#"<a href="https://en.wikipedia.org/wiki/Docker_(software){:target=&quot;_blank&quot;}">Wikipedia</a>"#;
+        assert!(
+            html.contains(expected_link),
+            "Malformed Docker Compose paragraph link should match Jekyll. Got: {html}"
+        );
+        assert!(
+            html.contains(r#"<em>).</em>"#),
+            "Trailing emphasis tail should remain after the fixed link. Got: {html}"
         );
     }
 
@@ -6335,6 +6638,158 @@ More text.
         assert!(
             html.contains("&lt;tel:100-1000|100-1000&gt;"),
             "Issue 364: tel: should be escaped as literal text in markdown_to_html. Got: {html}"
+        );
+    }
+
+    // Issue 373: Regression tests for heading-inside-list-item behavior.
+    // The DTC book page has ### User: and ### Assistant: headings inside a
+    // bullet list context. renest_heading_after_list (issue 341) moves the
+    // first heading back inside <li>, matching kramdown. Subsequent elements
+    // stay outside the list (also matching kramdown).
+
+    #[test]
+    fn test_issue373_first_heading_renested_into_list_item() {
+        // Simulates the DTC book page: ### User: and ### Assistant: after
+        // <br /> from newline_to_br inside a bullet list.
+        let input = "- Prepare an instruction format dataset<br />\nprompt_template =<br />\n```### System: You are an expert<br />\n### User:<br />\n{}<br />\n### Assistant:<br />\nExtracted Keywords: {}```<br />\nI do this for the training";
+        let html = markdown_to_html_for_filter(input);
+        // Both headings should be present
+        assert!(
+            html.contains("<h3 id=\"user\">User:<br /></h3>"),
+            "Issue 373: User heading should be present. Got:\n{html}"
+        );
+        assert!(
+            html.contains("<h3 id=\"assistant\">Assistant:<br /></h3>"),
+            "Issue 373: Assistant heading should be present. Got:\n{html}"
+        );
+        let h3_count = html.matches("<h3").count();
+        assert!(
+            h3_count >= 2,
+            "Issue 373: Should have at least 2 <h3> tags. Got {h3_count} in:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_issue373_heading_in_list_with_unicode() {
+        // Test with Unicode/emoji content in the list item
+        let input = "- Great question! \u{1F60A}<br />\n### User:<br />\nR\u{00e9}ponse<br />\n### Assistant:<br />\nMerci beaucoup \u{2714}";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<h3 id=\"user\">User:<br /></h3>"),
+            "Issue 373: User heading should be present. Got:\n{html}"
+        );
+        assert!(
+            html.contains("\u{1F60A}"),
+            "Issue 373: Emoji should be preserved. Got:\n{html}"
+        );
+        assert!(
+            html.contains("R\u{00e9}ponse"),
+            "Issue 373: Accented chars should be preserved. Got:\n{html}"
+        );
+        assert!(
+            html.contains("\u{2714}"),
+            "Issue 373: Checkmark should be preserved. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_issue373_heading_in_code_block_not_affected() {
+        // ### inside a proper fenced code block should NOT become <h3>
+        let input = "```\n### This is not a heading\n```\n";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            !html.contains("<h3"),
+            "Issue 373: ### inside code block should stay as code. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_issue373_simple_numbered_list_not_affected() {
+        let input = "1. First item\n2. Second item\n3. Third item\n";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<ol>"),
+            "Issue 373: Simple numbered list should produce <ol>. Got:\n{html}"
+        );
+        let li_count = html.matches("<li>").count();
+        assert_eq!(
+            li_count, 3,
+            "Issue 373: Should have 3 <li>. Got {li_count} in:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_issue373_nested_bullet_list_not_affected() {
+        let input = "- outer\n  - inner\n  - inner2\n- outer2\n";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<ul>"),
+            "Issue 373: Nested list should produce <ul>. Got:\n{html}"
+        );
+        let ul_count = html.matches("<ul>").count();
+        assert!(
+            ul_count >= 1,
+            "Issue 373: Should have at least 1 <ul>. Got {ul_count} in:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_issue373_list_then_paragraph_no_heading() {
+        // A list followed by a paragraph (no heading) should work normally
+        let input = "- item one\n- item two\n\nA paragraph after the list.\n";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<ul>"),
+            "Issue 373: Should have <ul>. Got:\n{html}"
+        );
+        assert!(
+            html.contains("<p>A paragraph"),
+            "Issue 373: Paragraph should follow list. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_issue373_renest_single_heading_after_list() {
+        // Direct test of renest_heading_after_list: a single heading after
+        // </li></ul> is moved back inside the <li>.
+        let input_html =
+            "<ul>\n<li>item text\n</li>\n</ul>\n<h3 id=\"user\">User:</h3>\n<p>next</p>";
+        let result = renest_heading_after_list(input_html);
+        // The heading should be inside <li> now, before </li></ul>
+        assert!(
+            result.contains("<h3 id=\"user\">User:</h3>\n  </li>\n</ul>"),
+            "Issue 373: Single heading should be re-nested inside <li>. Got:\n{result}"
+        );
+        // The <p> after the heading stays outside (matching kramdown)
+        assert!(
+            result.contains("<p>next</p>"),
+            "Issue 373: Paragraph after heading should remain. Got:\n{result}"
+        );
+    }
+
+    #[test]
+    fn test_issue373_renest_preserves_subsequent_elements() {
+        // renest_heading_after_list only moves the first heading into <li>.
+        // Subsequent <p>, <h3>, <div> stay outside, matching kramdown.
+        let input_html = "<ul>\n<li>item text\n</li>\n</ul>\n<h3 id=\"user\">User:</h3>\n<p>{}</p>\n<h3 id=\"assistant\">Assistant:</h3>\n<div>reply</div>";
+        let result = renest_heading_after_list(input_html);
+        // First heading re-nested inside <li>
+        assert!(
+            result.contains("<h3 id=\"user\">User:</h3>\n  </li>\n</ul>"),
+            "Issue 373: First heading should be inside <li>. Got:\n{result}"
+        );
+        // Subsequent elements stay outside (matching kramdown behavior)
+        assert!(
+            result.contains("<p>{}</p>"),
+            "Issue 373: <p> should remain after list. Got:\n{result}"
+        );
+        assert!(
+            result.contains("<h3 id=\"assistant\">"),
+            "Issue 373: Second heading should remain after list. Got:\n{result}"
+        );
+        assert!(
+            result.contains("<div>reply</div>"),
+            "Issue 373: <div> should remain after list. Got:\n{result}"
         );
     }
 }

@@ -1015,6 +1015,20 @@ fn is_cjk_char(c: char) -> bool {
     || (0xFF00..=0xFFEF).contains(&cp)
 }
 
+/// Check if a char slice looks like a URL (contains "://").
+/// Used to detect URL-like link text where asterisks should be literal.
+fn text_looks_like_url(chars: &[char], start: usize, end: usize) -> bool {
+    if end < start + 3 {
+        return false;
+    }
+    for i in start..end.saturating_sub(2) {
+        if chars[i] == ':' && chars[i + 1] == '/' && chars[i + 2] == '/' {
+            return true;
+        }
+    }
+    false
+}
+
 fn parse_spans(
     chars: &[char],
     start: usize,
@@ -1023,6 +1037,12 @@ fn parse_spans(
     output: &mut String,
     in_link: bool,
 ) {
+    // When inside link text that looks like a URL, asterisks and underscores
+    // should be treated as literal characters, not emphasis markers. Kramdown
+    // treats `*` and `_` inside `[url-text](...)` as literal when the link
+    // text contains a URL scheme (e.g. `://`).
+    let suppress_url_emphasis = in_link && text_looks_like_url(chars, start, end);
+
     let mut i = start;
     while i < end {
         // Backslash escape
@@ -1304,7 +1324,8 @@ fn parse_spans(
         }
 
         // Emphasis: *, **, ***, _, __, ___
-        if (chars[i] == '*' || chars[i] == '_') && i < end {
+        // Skip emphasis when link text looks like a URL (issue 367)
+        if (chars[i] == '*' || chars[i] == '_') && i < end && !suppress_url_emphasis {
             if let Some((html, advance)) = try_parse_emphasis(chars, i, end, ctx, in_link) {
                 output.push_str(&html);
                 let mut after = i + advance;
