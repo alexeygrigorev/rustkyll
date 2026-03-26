@@ -1,31 +1,44 @@
 # rustkyll
 
-A static site generator written in Rust, designed as a drop-in replacement for Jekyll. It reads the same source files as Jekyll - Markdown with YAML front matter, Liquid templates, YAML data files, and collection directories - and produces equivalent HTML output, typically 5-50x faster.
+A fast, drop-in replacement for Jekyll, written in Rust.
 
-Quickstart - run this in your Jekyll site directory:
+rustkyll reads the same source files as Jekyll - Markdown with YAML front matter, Liquid templates, YAML data files, collections - and produces equivalent HTML output, 10-50x faster.
 
 ```
 uvx rustkyll serve
 ```
 
-Or download a binary from [GitHub Releases](https://github.com/alexeygrigorev/rustkyll/releases), rename it to `rustkyll` (or `rustkyll.exe` on Windows), and put it in your PATH (e.g. `~/bin`).
+Run this in any Jekyll site directory. That's it.
+
+## Benchmarks
+
+Tested on 50+ Jekyll sites. Here are some highlights:
+
+| Site | Pages | Jekyll | rustkyll | Speedup |
+|------|------:|-------:|---------:|--------:|
+| [DataTalksClub](https://github.com/DataTalksClub/datatalksclub.github.io) | 790 | 19.8s | 1.2s | 17x |
+| [opensource.guide](https://github.com/github/opensource.guide) | 390 | 15.6s | 0.5s | 30x |
+| [muan/site](https://github.com/muan/site) | 2,219 | 16.3s | 0.6s | 27x |
+| [large-docs-site](websites/large-docs-site) | 801 | 24.2s | 0.7s | 35x |
+| [large-blog-3000](websites/large-blog-3000) | 3,001 | 4.5s | 0.9s | 5x |
+| [al-folio](https://github.com/alshedivat/al-folio) | 60 | 17.5s | 0.1s | 117x |
+| [type-theme](https://github.com/rohanchandra/type-theme) | 8 | 2.2s | 0.02s | 104x |
+| [academicpages](https://github.com/academicpages/academicpages.github.io) | 45 | 4.6s | 0.07s | 62x |
+
+Median wall-clock time over 3 runs, clean builds, no caching. Full results in [docs/benchmark/results.md](docs/benchmark/results.md).
 
 ## Installation
 
-### Install with uv (recommended)
-
-The fastest way to install rustkyll is with [uv](https://docs.astral.sh/uv/):
+### uv (recommended)
 
 ```
-# Run without installing
 uvx rustkyll build --source /path/to/site
 
-# Or install as a global tool
+# Or install globally
 uv tool install rustkyll
-rustkyll build --source /path/to/site
 ```
 
-You can also install with pip:
+### pip
 
 ```
 pip install rustkyll
@@ -33,9 +46,7 @@ pip install rustkyll
 
 ### Pre-built binaries
 
-Download the latest release for your platform from the [GitHub Releases](https://github.com/alexeygrigorev/rustkyll/releases) page.
-
-Available binaries:
+Download from [GitHub Releases](https://github.com/alexeygrigorev/rustkyll/releases):
 
 | Platform | Binary |
 |----------|--------|
@@ -46,19 +57,7 @@ Available binaries:
 | Windows x86_64 | `rustkyll-windows-amd64.exe` |
 | Windows ARM64 | `rustkyll-windows-arm64.exe` |
 
-On Linux and macOS, make the binary executable after downloading:
-
-```
-chmod +x rustkyll-*
-```
-
 ### Build from source
-
-Prerequisites:
-
-- Rust toolchain (stable, 2021 edition or later)
-
-Clone and build:
 
 ```
 git clone https://github.com/alexeygrigorev/rustkyll.git
@@ -66,137 +65,57 @@ cd rustkyll
 cargo build --release
 ```
 
-The binary will be at `target/release/rustkyll`.
-
-Alternatively, install directly with cargo:
-
-```
-cargo install --path .
-```
-
-
 ## Usage
 
-### build
-
-Generate the static site from source files:
+### `rustkyll build`
 
 ```
 rustkyll build --source /path/to/site --destination /path/to/output
 ```
 
-For development, build and run from source:
-
-```
-cargo run --release -- build --source /path/to/site
-cargo run --release -- serve --source /path/to/site
-```
-
-The `--release` flag is important for performance — debug builds are 5-10x slower.
-
 Flags:
+- `--source` - path to Jekyll site directory (default: `.`)
+- `--destination` - output directory (default: `_site`)
+- `--incremental` - only rebuild changed pages
+- `--force` - force full rebuild, ignoring incremental manifest
 
-- `--source` - path to the Jekyll site directory (default: current directory)
-- `--destination` - output directory for generated files (default: `_site`)
-- `--incremental` - only rebuild pages whose source files have changed
-- `--force` - force a full rebuild, ignoring the incremental manifest
-
-### serve
-
-Build and serve the site locally with a development server:
+### `rustkyll serve`
 
 ```
 rustkyll serve --source /path/to/site --port 4000
 ```
 
-Flags:
+Starts a local dev server with live reload. Flags:
+- `--port` - HTTP server port (default: 4000)
+- `--livereload` / `--no-livereload` - toggle browser auto-refresh (default: on)
+- `--no-browser` - don't auto-open browser
 
-- `--source` - path to the Jekyll site directory (default: current directory)
-- `--destination` - output directory (default: `_site`)
-- `--port` - port number for the HTTP server (default: 4000)
-- `--livereload` - enable live reload in the browser when files change (default: enabled)
-- `--no-livereload` - disable live reload
-- `--no-browser` - do not open the browser automatically
+## What's supported
 
+128 of 161 Jekyll features are fully implemented. 6 more are partially supported. See [docs/jekyll-compatibility.md](docs/jekyll-compatibility.md) for the full matrix.
 
-## How It Was Built
+Core: config parsing, front matter, Markdown (GFM), layouts with inheritance, includes with parameters, permalinks, excerpts, Sass/SCSS compilation, static file copying.
 
-rustkyll was developed using an agent-driven development process. Three AI agents collaborate through a structured pipeline:
+Collections: posts, custom collections, pagination, categories, tags, `page.previous`/`page.next`, `site.related_posts`.
 
-1. Product Manager - grooms issues by adding acceptance criteria and test scenarios
-2. Software Engineer - implements code and writes tests
-3. Tester (QA) - verifies acceptance criteria, runs tests, and checks output
+Liquid: all standard tags (`for`, `if`, `unless`, `case`, `capture`, `assign`, `raw`, `comment`, `highlight`, `tablerow`, `cycle`, `increment`/`decrement`) and 60+ filters including `where`, `where_exp`, `group_by`, `group_by_exp`, `markdownify`, `slugify`, `jsonify`, `relative_url`, `absolute_url`, `date_to_xmlschema`, and all Liquid stdlib filters.
 
-The project uses a file-based issue tracker in `docs/tracker/`. Each issue is a Markdown file whose filename encodes its status:
+Plugins (built-in): jekyll-seo-tag, jekyll-feed, jekyll-sitemap, jekyll-paginate, jekyll-avatar.
 
-- `.todo.md` - not yet groomed
-- `.groomed.md` - groomed by PM, ready for engineering
-- `.in-progress.md` - engineer is working on it
-- `.done.md` - accepted and committed
+Extras: parallel page generation with rayon, live reload via WebSocket, progress bar, build timing breakdown, lenient template rendering (unknown filters warn instead of failing).
 
-The pipeline for each issue follows this flow:
+## Known limitations
 
-```
-PM grooms -> Engineer implements -> Tester verifies -> PM accepts -> committed
-```
+- No gem-based themes. Themes must be present as local layout/include files.
+- No Ruby plugin system. Only the built-in plugin equivalents listed above are supported.
+- No `{% link %}` or `{% post_url %}` tags.
+- No JSON/CSV/TSV data files. Only YAML data files are loaded.
+- Incremental builds don't track layout/include changes. Use `--force` after modifying layouts.
+- Syntax highlighting classes may differ slightly from Rouge (Jekyll uses Rouge, rustkyll uses syntect).
 
-Issues are processed in batches of two, running in parallel. If the tester finds problems, the issue goes back to the engineer. If the PM rejects, it goes back to the engineer. Only after PM acceptance is the code committed.
+## How it was built
 
-
-
-## Tested sites
-
-| Site | Pages | Jekyll | rustkyll | Speedup |
-|------|-------|--------|----------|---------|
-| [datatalksclub.github.io](https://github.com/DataTalksClub/datatalksclub.github.io) | 787 | 19.1s | 1.0s | 19x |
-| [kids-horror-stories-ru](https://github.com/alexeygrigorev/kids-horror-stories-ru) | 1344 | 5.0s | 0.6s | 9x |
-| [muan-blog](https://github.com/muan/site) | 2218 | 16.2s | 0.3s | 51x |
-| [large-docs-site](websites/large-docs-site) | 801 | 24.1s | 0.7s | 33x |
-| [large-blog-3000](websites/large-blog-3000) | 3001 | 4.5s | 1.6s | 3x |
-
-34 of 44 sites build with both tools. 21 of 22 sampled DTC pages are pixel-perfect vs Jekyll. See [docs/benchmark/results.md](docs/benchmark/results.md) for full results including structural equivalence and visual comparison.
-
-Other tested sites
-
-- [alexeygrigorev.github.io](https://github.com/alexeygrigorev/alexeygrigorev.github.io)
-- [snippets](https://github.com/alexeygrigorev/snippets)
-- [data-science-interviews](https://github.com/alexeygrigorev/data-science-interviews)
-- [mlwiki.org](https://github.com/alexeygrigorev/mlwiki.org)
-- [little-book-of-metals-ru](https://github.com/alexeygrigorev/little-book-of-metals-ru)
-- [aihero](https://github.com/alexeygrigorev/aihero)
-- [DataTalksClub/courses](https://github.com/DataTalksClub/courses)
-- [DataTalksClub/docs](https://github.com/DataTalksClub/docs)
-- [wtf-html-css](https://github.com/mdo/wtf-html-css)
-- [hyde](https://github.com/poole/hyde)
-- [opensource.guide](https://github.com/github/opensource.guide)
-- [bitcoin.org](https://github.com/bitcoin/bitcoin.org)
-- [government.github.com](https://github.com/github/government.github.com)
-- [edition-template](https://github.com/CloudCannon/edition-jekyll-template)
-- [beautiful-jekyll](https://github.com/daattali/beautiful-jekyll)
-
-
-## Jekyll Compatibility
-
-See [docs/jekyll-compatibility.md](docs/jekyll-compatibility.md) for a detailed feature-by-feature comparison between rustkyll and Jekyll.
-
-## Known Limitations
-
-- No Ruby gem theme support. Themes must be present as local layout and include files, not installed as gems.
-- No general plugin system. Supported plugins are built in: jekyll-seo-tag, jekyll-feed, jekyll-sitemap, jekyll-paginate, jekyll-avatar. Other plugins (jekyll-redirect-from, jekyll-mentions, etc.) are not available.
-- Some edge-case Liquid filters may be missing. While 60+ filters are supported, site-specific or rarely-used filters may not be recognized (unknown filters pass through with a warning).
-- Incremental builds do not track layout or include file changes. If you modify a layout or include, use `--force` to trigger a full rebuild.
-- Kramdown paragraph wrapping in list items and blockquotes may differ from Jekyll in some edge cases.
-- Syntax highlighting token classes may differ slightly from Rouge (Jekyll) since rustkyll uses syntect.
-
-
-## Project Structure
-
-```
-src/           - Rust source code
-docs/tracker/  - file-based issue tracker
-docs/plan.md   - project vision and architecture
-```
-
+rustkyll was developed entirely by AI agents - a Product Manager, Software Engineer, and Tester - collaborating through a structured pipeline. See [docs/PROCESS.md](docs/PROCESS.md) for details.
 
 ## License
 
