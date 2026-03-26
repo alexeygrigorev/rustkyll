@@ -125,24 +125,26 @@ fn test_issue367_full_oreilly_url_kramdown() {
 
 #[test]
 fn test_issue367_full_oreilly_via_markdownify() {
-    // Test through the markdownify path (frontmatter::markdown_to_html_with_options)
+    // Issue 378: The markdownify filter (markdown_to_html_for_filter) should NOT protect
+    // URL asterisks, matching Jekyll/kramdown behavior where asterisks produce <em> tags.
+    // The markdown_to_html_with_options pipeline STILL protects them (tested here).
     let input = "maybe [https://www.oreilly.com/library/view/practical-fairness/9781492075721/?_gl=1*95hemv*_ga*MTA2ODM2NTQzNi4xNjU1NjQ3NTg4*_ga_092EL089CH*MTY3MDI2NTc4Ny4zLjEuMTY3MDI2NTg2NS41Ny4wLjA](https://www.oreilly.com/library/view/practical-fairness/9781492075721/?_gl=1*95hemv*_ga*MTA2ODM2NTQzNi4xNjU1NjQ3NTg4*_ga_092EL089CH*MTY3MDI2NTc4Ny4zLjEuMTY3MDI2NTg2NS41Ny4wLjA). if you want";
-    // Test kramdown mode (add_code_classes=true)
+    // Test kramdown mode via markdown_to_html_with_options (still protects URL asterisks)
     let html =
         rustkyll::frontmatter::markdown_to_html_with_options(input, true, true, false, false);
     assert!(
         !html.contains("<em>95hemv</em>"),
-        "URL query param should not be emphasis via markdownify. Got: {:?}",
+        "URL query param should not be emphasis via markdown_to_html_with_options. Got: {:?}",
         html
     );
     assert!(
         !html.contains("<em>MTA2"),
-        "URL query param should not be emphasis via markdownify. Got: {:?}",
+        "URL query param should not be emphasis via markdown_to_html_with_options. Got: {:?}",
         html
     );
     assert!(
         html.contains("<a href="),
-        "Should parse as a link via markdownify. Got: {:?}",
+        "Should parse as a link via markdown_to_html_with_options. Got: {:?}",
         html
     );
 }

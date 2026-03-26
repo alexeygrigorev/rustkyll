@@ -787,8 +787,10 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     let markdown = crate::kramdown::split_text_after_html_block_close(&markdown);
     let markdown = rewrite_malformed_target_blank_links(&markdown);
 
-    // Issue 367: Escape asterisks/underscores inside URL-like link text
-    let markdown = protect_url_link_text_emphasis(&markdown);
+    // Issue 378: Do NOT call protect_url_link_text_emphasis here.
+    // The markdownify filter must match Jekyll/kramdown behavior where asterisks
+    // in URL link text produce <em> tags (broken links). Only the page-body
+    // pipelines (markdown_to_html, markdown_to_html_with_options) protect them.
 
     // Issue 198/206: Same ZWSP and emphasis handling as markdown_to_html
     let markdown = normalize_zwsp_for_emphasis(&markdown);
@@ -2346,6 +2348,72 @@ fn renest_leaked_paragraph_and_ol_into_bullet_item(html: &str) -> String {
     result
 }
 
+/// Issue 379: Merge consecutive same-type list elements into a single list.
+///
+/// pulldown-cmark splits numbered lists with `<br />` between items into separate
+/// `<ol>` elements, often with `start="N"` attributes on continuation items.
+/// kramdown keeps them as a single `<ol>`. This function merges them back.
+///
+/// Also handles `<ul>` for completeness, though the primary use case is `<ol>`.
+fn merge_consecutive_same_type_lists(html: &str) -> String {
+    let mut result = html.to_string();
+
+    for list_tag in &["ol", "ul"] {
+        let close_tag = format!("</{list_tag}>");
+        let open_bare = format!("<{list_tag}>");
+        let open_prefix = format!("<{list_tag} ");
+
+        // Repeatedly find and merge from the beginning. Each successful merge
+        // removes a boundary, so we restart the search from the beginning.
+        'outer: loop {
+            let mut search_from = 0;
+            loop {
+                let close_pos = match result[search_from..].find(&close_tag) {
+                    Some(p) => search_from + p,
+                    None => break 'outer,
+                };
+
+                let after_close = close_pos + close_tag.len();
+                let rest = &result[after_close..];
+
+                // Must be followed by \n\n or \n
+                let after_newlines = if rest.starts_with("\n\n") {
+                    after_close + 2
+                } else if rest.starts_with('\n') {
+                    after_close + 1
+                } else {
+                    search_from = after_close;
+                    continue;
+                };
+
+                let rest2 = &result[after_newlines..];
+                let open_end = if rest2.starts_with(&open_bare) {
+                    after_newlines + open_bare.len()
+                } else if rest2.starts_with(&open_prefix) {
+                    // Find the closing > of the opening tag (e.g., <ol start="2">)
+                    match rest2.find('>') {
+                        Some(gt) => after_newlines + gt + 1,
+                        None => {
+                            search_from = after_close;
+                            continue;
+                        }
+                    }
+                } else {
+                    search_from = after_close;
+                    continue;
+                };
+
+                // Replace </list>\n\n<list...> with just a newline (merge)
+                let new_result = format!("{}\n{}", &result[..close_pos], &result[open_end..]);
+                result = new_result;
+                continue 'outer; // restart search from beginning
+            }
+        }
+    }
+
+    result
+}
+
 /// This function detects the pattern `</li>\n</LIST1>\n\n<LIST2>` where LIST1
 /// and LIST2 are different list types (ol/ul or ul/ol) and re-nests LIST2
 /// inside the last <li> of LIST1.
@@ -2420,30 +2488,9 @@ fn renest_sibling_list_into_parent_li(html: &str) -> String {
     // Merge consecutive same-type lists: </ol>\n\n<ol> and </ul>\n\n<ul>
     // In kramdown, `1. item<br />\n2. item` produces a single <ol>.
     // pulldown-cmark splits them into separate <ol> elements.
-    for list_tag in &["ol", "ul"] {
-        loop {
-            let pattern_double = format!("</{list_tag}>\n\n<{list_tag}>");
-            let pattern_single = format!("</{list_tag}>\n<{list_tag}>");
-
-            let (pattern, found_pos) = if let Some(pos) = result.find(&pattern_double) {
-                (pattern_double.as_str(), Some(pos))
-            } else if let Some(pos) = result.find(&pattern_single) {
-                (pattern_single.as_str(), Some(pos))
-            } else {
-                ("", None)
-            };
-
-            let pos = match found_pos {
-                Some(p) => p,
-                None => break,
-            };
-
-            // Replace </list>\n\n<list> with just a newline (merge into single list)
-            let new_result = format!("{}\n{}", &result[..pos], &result[pos + pattern.len()..]);
-            result = new_result;
-            continue;
-        }
-    }
+    // Issue 379: Also handle <ol start="N"> from pulldown-cmark's numbered list
+    // continuation. When a numbered list is split, items 2+ get start="N" attrs.
+    result = merge_consecutive_same_type_lists(&result);
 
     // Handle blockquote followed by list: </blockquote>\n\n<ul> or </blockquote>\n\n<ol>
     // kramdown nests the list inside the blockquote
@@ -7121,6 +7168,118 @@ More text.
         assert!(
             html.contains("\u{00c9}tes-vous"),
             "Issue 376: Unicode text should be preserved. Got:\n{html}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 379: Consecutive same-type list merging
+    // ========================================================================
+
+    /// Issue 379: Consecutive single-item <ol> elements are merged into one.
+    #[test]
+    fn test_issue379_merge_consecutive_single_item_ol() {
+        let input = "<ol>\n<li>A</li>\n</ol>\n\n<ol>\n<li>B</li>\n</ol>";
+        let result = merge_consecutive_same_type_lists(input);
+        assert_eq!(
+            result.matches("<ol>").count(),
+            1,
+            "Issue 379: Should have 1 <ol>. Got:\n{result}"
+        );
+        assert_eq!(
+            result.matches("<li>").count(),
+            2,
+            "Issue 379: Should have 2 <li>. Got:\n{result}"
+        );
+    }
+
+    /// Issue 379: Consecutive <ol> with nested <ul> sub-items are merged.
+    #[test]
+    fn test_issue379_merge_ol_with_nested_ul() {
+        let input = "<ol>\n<li>A<ul><li>sub</li></ul></li>\n</ol>\n\n<ol>\n<li>B<ul><li>sub2</li></ul></li>\n</ol>";
+        let result = merge_consecutive_same_type_lists(input);
+        assert_eq!(
+            result.matches("<ol>").count(),
+            1,
+            "Issue 379: Should have 1 <ol> after merge. Got:\n{result}"
+        );
+    }
+
+    /// Issue 379: <ol start="N"> from pulldown-cmark continuation is merged.
+    #[test]
+    fn test_issue379_merge_ol_with_start_attribute() {
+        let input = "<ol>\n<li>one</li>\n</ol>\n\n<ol start=\"2\">\n<li>two</li>\n</ol>\n\n<ol start=\"3\">\n<li>three</li>\n</ol>";
+        let result = merge_consecutive_same_type_lists(input);
+        assert_eq!(
+            result.matches("<ol").count(),
+            1,
+            "Issue 379: Should merge ol with start attrs. Got:\n{result}"
+        );
+        assert_eq!(
+            result.matches("<li>").count(),
+            3,
+            "Issue 379: All 3 items in one ol. Got:\n{result}"
+        );
+    }
+
+    /// Issue 379: <ol> separated by <p> or other block content are NOT merged.
+    #[test]
+    fn test_issue379_no_merge_ol_separated_by_block() {
+        let input = "<ol>\n<li>A</li>\n</ol>\n<p>text</p>\n<ol>\n<li>B</li>\n</ol>";
+        let result = merge_consecutive_same_type_lists(input);
+        assert_eq!(
+            result.matches("<ol>").count(),
+            2,
+            "Issue 379: Should NOT merge ol separated by <p>. Got:\n{result}"
+        );
+    }
+
+    /// Issue 379: Full pipeline produces single <ol> for 7-item numbered list.
+    #[test]
+    fn test_issue379_full_pipeline_seven_item_list() {
+        let input = "text before<br />\n\
+            1. Item one :hammer:<br />\n\
+            - Sub A<br />\n- Sub B<br />\n\
+            2. Item two<br />\n\
+            - Sub C<br />\n- Sub D<br />\n\
+            3. Item three<br />\n- Sub E<br />\n\
+            4. Item four<br />\n- Sub F<br />\n\
+            5. Item five<br />\n- Sub G<br />\n\
+            6. Item six<br />\n- Sub H<br />\n\
+            7. Item seven<br />\n- Sub I<br />";
+        let html = markdown_to_html_for_filter(input);
+        let ol_count = html.matches("<ol>").count();
+        assert_eq!(
+            ol_count, 1,
+            "Issue 379: Should have 1 <ol>, got {}. HTML:\n{}",
+            ol_count, html
+        );
+        assert!(
+            html.contains("<li>Item one"),
+            "Issue 379: Should contain Item one. Got:\n{html}"
+        );
+        assert!(
+            html.contains("<li>Item seven"),
+            "Issue 379: Should contain Item seven. Got:\n{html}"
+        );
+    }
+
+    /// Issue 379: Unicode content in merged numbered list items.
+    #[test]
+    fn test_issue379_unicode_in_merged_ol() {
+        let input = "text<br />\n\
+            1. Pr\u{00e9}mier \u{00e9}l\u{00e9}ment<br />\n\
+            - D\u{00e9}tails<br />\n\
+            2. Deuxi\u{00e8}me<br />\n\
+            - R\u{00e9}f\u{00e9}rence<br />";
+        let html = markdown_to_html_for_filter(input);
+        let ol_count = html.matches("<ol>").count();
+        assert_eq!(
+            ol_count, 1,
+            "Issue 379: Unicode list should produce 1 <ol>. Got:\n{html}"
+        );
+        assert!(
+            html.contains("Pr\u{00e9}mier"),
+            "Issue 379: Unicode text preserved. Got:\n{html}"
         );
     }
 }
