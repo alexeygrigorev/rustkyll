@@ -16,3 +16,4 @@ Format:
 | 244 | `92bd832` | `772/790 matched, 18 files with differences, 461 total differences` |
 | 362 | `b1692a6` | `775/790 matched, 15 files with differences, 417 total differences` |
 | 363 | `da6832a` | `776/790 matched, 14 files with differences, 273 total differences` |
+| 365+372 | `7a5b0ce` | `778/790 matched, 12 files with differences, 255 total differences` |
