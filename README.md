@@ -92,24 +92,40 @@ Starts a local dev server with live reload. Flags:
 
 ## What's supported
 
-128 of 161 Jekyll features are fully implemented. 6 more are partially supported. See [docs/jekyll-compatibility.md](docs/jekyll-compatibility.md) for the full matrix.
+138 of 166 Jekyll features are fully implemented. See [docs/jekyll-compatibility.md](docs/jekyll-compatibility.md) for the full matrix.
 
-Core: config parsing, front matter, Markdown (GFM), layouts with inheritance, includes with parameters, permalinks, excerpts, Sass/SCSS compilation, static file copying.
+Core:
+- Config parsing, front matter, Markdown (GFM)
+- Layouts with inheritance, includes with parameters
+- Permalinks (named styles and custom patterns)
+- Sass/SCSS compilation, static file copying
+- YAML and JSON data files
+- Excerpts
 
-Collections: posts, custom collections, pagination, categories, tags, `page.previous`/`page.next`, `site.related_posts`.
+Collections:
+- Posts, custom collections, pagination
+- Categories, tags, `page.previous`/`page.next`
+- `site.categories`, `site.tags`, `site.related_posts`, `site.pages`
 
-Liquid: all standard tags (`for`, `if`, `unless`, `case`, `capture`, `assign`, `raw`, `comment`, `highlight`, `tablerow`, `cycle`, `increment`/`decrement`) and 60+ filters including `where`, `where_exp`, `group_by`, `group_by_exp`, `markdownify`, `slugify`, `jsonify`, `relative_url`, `absolute_url`, `date_to_xmlschema`, and all Liquid stdlib filters.
+Liquid:
+- All standard tags: `for`, `if`, `unless`, `case`, `capture`, `assign`, `raw`, `comment`, `highlight`, `tablerow`, `cycle`, `increment`/`decrement`
+- Jekyll-specific tags: `link`, `post_url`, `seo`, `avatar`, `feed_meta`
+- 70+ filters including `where`, `where_exp`, `group_by`, `group_by_exp`, `markdownify`, `slugify`, `jsonify`, `relative_url`, `absolute_url`, `sample`, `cgi_escape`, `uri_escape`, and all Liquid stdlib filters
 
-Plugins (built-in): jekyll-seo-tag, jekyll-feed, jekyll-sitemap, jekyll-paginate, jekyll-avatar.
+Plugins (built-in):
+- jekyll-seo-tag, jekyll-feed, jekyll-sitemap, jekyll-paginate, jekyll-avatar, jekyll-archives
 
-Extras: parallel page generation with rayon, live reload via WebSocket, progress bar, build timing breakdown, lenient template rendering (unknown filters warn instead of failing).
+Extras:
+- Parallel page generation with rayon
+- Live reload via WebSocket
+- Progress bar and build timing breakdown
+- Lenient template rendering (unknown filters warn instead of failing)
 
 ## Known limitations
 
 - No gem-based themes. Themes must be present as local layout/include files.
 - No Ruby plugin system. Only the built-in plugin equivalents listed above are supported.
-- No `{% link %}` or `{% post_url %}` tags.
-- No JSON/CSV/TSV data files. Only YAML data files are loaded.
+- No CSV/TSV data files. Only YAML and JSON are loaded.
 - Incremental builds don't track layout/include changes. Use `--force` after modifying layouts.
 - Syntax highlighting classes may differ slightly from Rouge (Jekyll uses Rouge, rustkyll uses syntect).
 

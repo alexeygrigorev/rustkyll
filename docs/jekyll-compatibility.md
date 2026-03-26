@@ -8,10 +8,10 @@ Status key: "yes" = fully implemented, "partial" = implemented with limitations,
 
 | Status | Count |
 |--------|-------|
-| yes    | 128   |
-| partial | 6     |
-| no     | 27    |
-| Total  | 161   |
+| yes    | 138   |
+| partial | 7     |
+| no     | 21    |
+| Total  | 166   |
 
 ---
 
@@ -76,8 +76,9 @@ Status key: "yes" = fully implemented, "partial" = implemented with limitations,
 | `{% increment %}` / `{% decrement %}` | yes | yes | Provided by liquid crate stdlib |
 | `{% seo %}` | yes | yes | `src/template/seo_tag.rs` -- generates title, meta description, Open Graph, Twitter Card, JSON-LD, canonical URL |
 | `{% avatar %}` | yes | yes | `src/template/avatar_tag.rs` -- generates GitHub avatar `<img>` with srcset |
-| `{% link %}` | yes | no | Not implemented |
-| `{% post_url %}` | yes | no | Not implemented |
+| `{% link %}` | yes | yes | `src/template/engine.rs` -- preprocessed to approximate URLs from collection/page paths |
+| `{% post_url %}` | yes | yes | `src/template/engine.rs` -- preprocessed to date-based URLs |
+| `{% feed_meta %}` | yes | yes | `src/template/feed_meta_tag.rs` -- generates `<link>` tags for Atom/RSS feeds |
 
 ### Filters (Liquid stdlib -- provided by liquid crate)
 
@@ -137,6 +138,11 @@ Status key: "yes" = fully implemented, "partial" = implemented with limitations,
 | `jsonify` | yes | yes | `src/template/filters/jsonify.rs` |
 | `markdownify` | yes | yes | `src/template/filters/markdownify.rs` |
 | `smartify` | yes | no | Not implemented |
+| `sample` | yes | yes | `src/template/filters/sample.rs` -- returns random elements from arrays |
+| `strip_index` | yes | yes | `src/template/filters/strip_index.rs` -- removes trailing `/index.html` from URLs |
+| `date_to_rfc822` | yes | yes | `src/template/filters/date_to_rfc822.rs` -- formats dates to RFC 822 |
+| `cgi_escape` | yes | yes | `src/template/filters/cgi_escape.rs` |
+| `uri_escape` | yes | yes | `src/template/filters/uri_escape.rs` |
 | `relative_url` | yes | yes | `src/template/filters/relative_url.rs` -- prepends `site.baseurl` |
 | `absolute_url` | yes | yes | `src/template/filters/absolute_url.rs` -- prepends `site.url + site.baseurl` |
 | `date_to_string` | yes | yes | `src/template/filters/date_to_string.rs` |
@@ -174,7 +180,7 @@ Status key: "yes" = fully implemented, "partial" = implemented with limitations,
 |---------|--------|----------|-------|
 | YAML data files (`_data/*.yml`) | yes | yes | `src/data.rs` -- supports `.yml` and `.yaml` extensions |
 | Nested data directories | yes | yes | `src/data.rs` -- subdirectories become nested mappings |
-| JSON data files (`_data/*.json`) | yes | no | Only YAML files are loaded |
+| JSON data files (`_data/*.json`) | yes | yes | `src/data.rs` -- JSON files loaded and converted to YAML values |
 | CSV data files (`_data/*.csv`) | yes | no | Only YAML files are loaded |
 | TSV data files (`_data/*.tsv`) | yes | no | Only YAML files are loaded |
 
@@ -186,6 +192,7 @@ Status key: "yes" = fully implemented, "partial" = implemented with limitations,
 | jekyll-feed | yes | yes | `src/feed.rs` -- generates Atom feed (feed.xml) from posts |
 | jekyll-sitemap | yes | yes | `src/sitemap.rs` -- generates sitemap.xml |
 | jekyll-avatar | yes | yes | `src/template/avatar_tag.rs` -- built-in implementation |
+| jekyll-archives | yes | yes | `src/archives.rs` -- generates archive pages for categories and tags |
 | jekyll-redirect-from | yes | no | |
 | jekyll-paginate | yes | yes | `src/pagination.rs` -- full paginator variable in templates |
 | jekyll-mentions | yes | no | |
@@ -217,7 +224,8 @@ Status key: "yes" = fully implemented, "partial" = implemented with limitations,
 | `--watch` flag | yes | partial | Built into `serve` command (file watcher triggers rebuild); not available as standalone `build --watch` |
 | `--drafts` flag | yes | no | |
 | `--config` flag | yes | no | Always reads `_config.yml` from the source directory |
-| `--verbose` / `--quiet` flags | yes | no | |
+| `--quiet` flag | yes | yes | `src/main.rs` -- suppresses progress output |
+| `--verbose` flag | yes | no | |
 | `--safe` mode | yes | no | |
 | `--version` flag | yes | yes | `src/main.rs` -- `clap` provides `--version` |
 | `--help` flag | yes | yes | `src/main.rs` -- `clap` provides `--help` |
