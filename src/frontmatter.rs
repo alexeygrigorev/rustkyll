@@ -2544,10 +2544,9 @@ fn escape_non_standard_autolink_schemes(markdown: &str) -> String {
             }
             _ => {
                 // Escape the opening angle bracket so pulldown-cmark sees literal text.
-                // Also escape pipe characters so kramdown table conversion doesn't
-                // misinterpret them as table cell delimiters.
-                let path = caps[2].replace('|', "&#124;");
-                format!("&lt;{}:{}&gt;", &caps[1], path)
+                // Do NOT escape pipe characters -- kramdown treats pipes in non-standard
+                // autolinks as table cell delimiters (issue 366).
+                format!("&lt;{}:{}&gt;", &caps[1], &caps[2])
             }
         }
     })
@@ -6511,14 +6510,17 @@ More text.
     // Issue 364: tel: autolink suppression tests
     #[test]
     fn test_issue364_tel_autolink_suppressed() {
+        // When a pipe is present in a non-standard autolink, kramdown treats the
+        // pipe as a table cell delimiter (issue 366). The angle brackets are still
+        // escaped, but the result is a table, not literal text.
         let html = markdown_to_html_for_filter("<tel:100-1000|100-1000>");
         assert!(
             !html.contains("<a href="),
             "Issue 364: tel: should NOT be autolinked. Got: {html}"
         );
         assert!(
-            html.contains("&lt;tel:100-1000|100-1000&gt;"),
-            "Issue 364: tel: should be escaped as literal text. Got: {html}"
+            html.contains("<table>"),
+            "Issue 364/366: pipe in tel: URI triggers kramdown table. Got: {html}"
         );
     }
 
@@ -6599,10 +6601,12 @@ More text.
 
     #[test]
     fn test_issue364_pipe_in_tel_uri_literal() {
+        // Issue 366: kramdown treats the pipe in <tel:100-1000|100-1000> as a table
+        // cell delimiter. The result is a table with two cells, not literal pipe text.
         let html = markdown_to_html_for_filter("<tel:100-1000|100-1000>");
         assert!(
-            html.contains("|"),
-            "Issue 364: pipe character should render literally. Got: {html}"
+            html.contains("<td>"),
+            "Issue 364/366: pipe in tel: URI creates table cells. Got: {html}"
         );
     }
 
@@ -6629,15 +6633,88 @@ More text.
 
     #[test]
     fn test_issue364_markdown_to_html_also_escapes() {
-        // The main markdown_to_html function should also escape non-standard autolinks
+        // The main markdown_to_html function should also escape non-standard autolinks.
+        // Issue 366: kramdown treats the pipe as a table cell delimiter, producing a table.
         let html = markdown_to_html("<tel:100-1000|100-1000>\n");
         assert!(
             !html.contains("<a href="),
             "Issue 364: tel: should NOT be autolinked in markdown_to_html. Got: {html}"
         );
         assert!(
-            html.contains("&lt;tel:100-1000|100-1000&gt;"),
-            "Issue 364: tel: should be escaped as literal text in markdown_to_html. Got: {html}"
+            html.contains("<table>"),
+            "Issue 364/366: pipe in tel: URI triggers kramdown table in markdown_to_html. Got: {html}"
+        );
+    }
+
+    // Issue 366: Tables inside list items / tbody placement.
+    // Kramdown does NOT protect pipes inside non-standard autolinks like <tel:...>.
+    // The pipe is treated as a table cell delimiter, producing a table.
+
+    #[test]
+    fn test_issue_366_pipe_in_non_standard_autolink_triggers_table() {
+        // <tel:100-1000|100-1000> should produce a table because kramdown sees
+        // the pipe as a cell delimiter, not as part of the URI.
+        let html = markdown_to_html_for_filter("<tel:100-1000|100-1000>");
+        assert!(
+            html.contains("<table>"),
+            "Issue 366: pipe in non-standard autolink should trigger table. Got: {html}"
+        );
+        assert!(
+            html.contains("<tbody>"),
+            "Issue 366: table should have tbody. Got: {html}"
+        );
+        assert!(
+            html.contains("<td>"),
+            "Issue 366: table should have td cells. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue_366_pipe_in_angle_brackets_table_cells() {
+        // The pipe splits the content into two cells:
+        // cell 1: &lt;tel:100-1000
+        // cell 2: 100-1000&gt;
+        let html = markdown_to_html_for_filter("<tel:100-1000|100-1000>");
+        assert!(
+            html.contains("&lt;tel:100-1000"),
+            "Issue 366: first cell should contain escaped tel: prefix. Got: {html}"
+        );
+        assert!(
+            html.contains("100-1000&gt;"),
+            "Issue 366: second cell should contain escaped closing bracket. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue_366_no_table_without_pipe() {
+        // A non-standard autolink without a pipe should NOT produce a table.
+        let html = markdown_to_html_for_filter("<ssh:user@host>");
+        assert!(
+            !html.contains("<table>"),
+            "Issue 366: no pipe means no table. Got: {html}"
+        );
+        assert!(
+            html.contains("&lt;ssh:user@host&gt;"),
+            "Issue 366: should render as escaped literal text. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue_366_normal_table_still_works() {
+        // Regular pipe tables should still work fine.
+        let input = "| Header 1 | Header 2 |\n| --- | --- |\n| Cell 1 | Cell 2 |";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<table>"),
+            "Issue 366: normal pipe tables should still work. Got: {html}"
+        );
+        assert!(
+            html.contains("Header 1"),
+            "Issue 366: table content should render. Got: {html}"
+        );
+        assert!(
+            html.contains("Cell 1"),
+            "Issue 366: table cells should render. Got: {html}"
         );
     }
 
