@@ -828,6 +828,11 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     // pulldown-cmark closes the <li> and <ul>/<ol> before the heading.
     let html_output = renest_heading_after_list(&html_output);
 
+    // Issue 377: Re-nest leaked <p> + <ol> back into the preceding empty
+    // <ul><li><br /></li></ul> block. Only fires on the specific "empty bullet"
+    // pattern from newline_to_br, not on regular <ul> lists.
+    let html_output = renest_leaked_paragraph_and_ol_into_bullet_item(&html_output);
+
     // Issue 362: Re-nest sibling lists that should be nested inside parent <li>.
     // In kramdown, when `newline_to_br | markdownify` processes text like
     // `2. text\n- bullet`, the <ul> is nested inside the <ol>'s <li>.
@@ -2196,6 +2201,151 @@ fn renest_heading_after_list(html: &str) -> String {
 /// kramdown produces:
 ///   <ol>\n  <li>text<br />\n<ul>\n  <li>sub</li>\n</ul>\n</li>\n</ol>
 ///
+/// Issue 377: Re-nest a leaked `<p>` + `<ol>` back into the preceding empty
+/// `<ul><li><br /></li></ul>` block from the `newline_to_br | markdownify` pipeline.
+///
+/// When pulldown-cmark processes `- <br />\ntext<br />\n1. First<br />`, it
+/// terminates the `<li></ul>` early and emits the text as a standalone `<p>`
+/// and the numbered list as a sibling `<ol>`.
+///
+/// This function is VERY targeted: it only fires when the `<ul>` contains a
+/// single `<li>` whose only content is `<br />` -- the signature of a
+/// `- <br />` bullet marker from `newline_to_br`. This prevents false positives
+/// on regular `<ul>` lists followed by `<p>` elements.
+///
+/// Pattern detected:
+///   `<ul>\n<li><br />\n</li>\n</ul>\n<p>TEXT<br /></p>\n<ol>...items...</ol>`
+/// Replaced with:
+///   `<ul>\n<li><br />\nTEXT<br />\n<ol>...items...</ol>\n</li>\n</ul>`
+fn renest_leaked_paragraph_and_ol_into_bullet_item(html: &str) -> String {
+    // Short-circuit: must have both empty bullet marker and <ol>
+    if !html.contains("<li><br />\n</li>\n</ul>") || !html.contains("<ol>") {
+        return html.to_string();
+    }
+
+    let mut result = html.to_string();
+
+    loop {
+        // Match the specific "empty bullet" pattern: <li><br />\n</li>\n</ul>
+        // followed by <p>TEXT<br /></p> and then <ol>
+        let empty_bullet_close = "<li><br />\n</li>\n</ul>\n<p>";
+        let pos = match result.find(empty_bullet_close) {
+            Some(p) => p,
+            None => break,
+        };
+
+        // Find the <ul> that opened this list -- look backwards from pos
+        let before = &result[..pos];
+        let ul_open = match before.rfind("<ul>") {
+            Some(p) => p,
+            None => break,
+        };
+
+        // Verify the <ul> contains only this one empty <li> -- no other <li>
+        // between <ul> and our match position
+        let between = &result[ul_open + 4..pos]; // after "<ul>\n"
+        if between.trim() != "" {
+            // There's content between <ul> and <li><br />; not a simple empty bullet
+            break;
+        }
+
+        let after_p_start = pos + empty_bullet_close.len();
+        let rest = &result[after_p_start..];
+
+        // Find the closing </p>
+        let p_close = match rest.find("</p>") {
+            Some(p) => p,
+            None => break,
+        };
+
+        let p_content = &rest[..p_close];
+
+        // The paragraph must end with <br /> (indicating it's from newline_to_br)
+        if !p_content.trim_end().ends_with("<br />") {
+            break;
+        }
+
+        // After </p>, expect \n<ol> or \n\n<ol>
+        let after_p_close = &rest[p_close + 4..]; // 4 = "</p>".len()
+        let ol_gap = if after_p_close.starts_with("\n\n<ol>") {
+            2
+        } else if after_p_close.starts_with("\n<ol>") {
+            1
+        } else {
+            0
+        };
+        if ol_gap == 0 {
+            break;
+        }
+
+        let ol_start = after_p_start + p_close + 4 + ol_gap; // position of <ol> in result
+        let ol_content_start = &result[ol_start..];
+
+        // Find matching </ol> using safe string search
+        let mut depth = 1;
+        let mut ol_end = None;
+        let mut scan = &ol_content_start[4..]; // skip past "<ol>"
+        let mut offset = ol_start + 4;
+        loop {
+            let next_open = scan.find("<ol");
+            let next_close = scan.find("</ol>");
+            match (next_open, next_close) {
+                (_, Some(close_pos)) if next_open.is_none_or(|o| close_pos <= o) => {
+                    depth -= 1;
+                    if depth == 0 {
+                        ol_end = Some(offset + close_pos + 5);
+                        break;
+                    }
+                    let advance = close_pos + 5;
+                    scan = &scan[advance..];
+                    offset += advance;
+                }
+                (Some(open_pos), _) => {
+                    depth += 1;
+                    let advance = open_pos + 3;
+                    scan = &scan[advance..];
+                    offset += advance;
+                }
+                _ => break,
+            }
+        }
+
+        let ol_end = match ol_end {
+            Some(e) => e,
+            None => break,
+        };
+
+        let consume_end = if result[ol_end..].starts_with('\n') {
+            ol_end + 1
+        } else {
+            ol_end
+        };
+
+        let ol_html = result[ol_start..ol_end].to_string();
+        let p_text = p_content.to_string();
+
+        // Build replacement:
+        // Original: <ul>\n<li><br />\n</li>\n</ul>\n<p>TEXT</p>\n<ol>...</ol>\n
+        // New:      <ul>\n<li><br />\nTEXT\n<ol>...</ol>\n</li>\n</ul>\n
+        let mut replacement = String::new();
+        replacement.push_str("<ul>\n<li><br />\n");
+        replacement.push_str(&p_text);
+        replacement.push('\n');
+        replacement.push_str(&ol_html);
+        replacement.push_str("\n</li>\n</ul>\n");
+
+        let new_result = format!(
+            "{}{}{}",
+            &result[..ul_open],
+            replacement,
+            &result[consume_end..]
+        );
+        result = new_result;
+    }
+
+    result
+}
+
 /// This function detects the pattern `</li>\n</LIST1>\n\n<LIST2>` where LIST1
 /// and LIST2 are different list types (ol/ul or ul/ol) and re-nests LIST2
 /// inside the last <li> of LIST1.
@@ -2431,8 +2581,36 @@ fn insert_paragraph_break_before_numbered_list(markdown: &str) -> String {
                 }
 
                 if j - i >= 2 {
-                    // Insert blank line for paragraph break before the numbered sequence
+                    // Multi-item sequence: always insert paragraph break
                     result_lines.push(String::new());
+                } else {
+                    // Issue 376: Single numbered item (N > 1).  Only insert
+                    // a paragraph break when no earlier line in the text is
+                    // also a numbered item.  This avoids breaking up lists
+                    // like `1. first<br />\n...text...<br />\n2. second`
+                    // where the 2. is a continuation of the list started by 1.
+                    let has_earlier_numbered = (0..i).any(|k| is_numbered_line(lines[k]));
+                    if !has_earlier_numbered {
+                        result_lines.push(String::new());
+                    }
+                }
+            }
+
+            // Issue 376 Case 2: Single numbered item (N > 1) preceded by a
+            // blank/br-only line after a text line.  The blank line acts as a
+            // paragraph separator, signaling intentional list formatting.
+            if first_num > 1
+                && i >= 2
+                && !has_text_content(lines[i - 1])
+                && has_text_content(lines[i - 2])
+                && !is_numbered_line(lines[i - 1])
+            {
+                let next_is_numbered = i + 1 < lines.len() && is_numbered_line(lines[i + 1]);
+                if !next_is_numbered {
+                    let has_earlier_numbered = (0..i).any(|k| is_numbered_line(lines[k]));
+                    if !has_earlier_numbered {
+                        result_lines.push(String::new());
+                    }
                 }
             }
         }
@@ -6440,15 +6618,16 @@ More text.
         );
     }
 
-    /// Issue 363 RC-A: Single numbered item should NOT trigger preprocessing.
+    /// Issue 363 RC-A / Issue 376: Single numbered item (N > 1) after <br />\n
+    /// now becomes an ordered list, matching kramdown behavior.
     #[test]
     fn test_issue363_rc_a_single_numbered_item_no_break() {
         let input = "context text<br />\n3. Just one numbered item here";
         let html = markdown_to_html_for_filter(input);
-        // Single numbered item should stay in paragraph text
+        // Issue 376: kramdown treats any N. at line start as a list
         assert!(
-            html.contains("<p>"),
-            "Issue 363: Single numbered item should be in <p>. Got: {html}"
+            html.contains("<ol"),
+            "Issue 376: Single numbered item should become <ol>. Got: {html}"
         );
     }
 
@@ -6790,6 +6969,158 @@ More text.
         assert!(
             result.contains("<div>reply</div>"),
             "Issue 373: <div> should remain after list. Got:\n{result}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 377: nested numbered list inside bullet context
+    // ========================================================================
+
+    #[test]
+    fn test_issue377_nested_numbered_list_inside_bullet_item() {
+        // Input from newline_to_br | markdownify pipeline:
+        // - <br />\nHere are a few tips<br />\n1. First<br />\n2. Second<br />\n3. Third<br />\n- <br />\nNext bullet
+        let input = "- <br />\nHere are a few tips<br />\n1. First<br />\n2. Second<br />\n3. Third<br />\n- <br />\nNext bullet";
+        let html = markdown_to_html_for_filter(input);
+
+        // The <ol> must be nested INSIDE the first <li>, not as a sibling of <ul>
+        assert!(
+            html.contains("<ul>") && html.contains("<ol>"),
+            "Issue 377: Should contain both <ul> and <ol>. Got:\n{html}"
+        );
+        // "Here are a few tips" must be inside the <li>, not in a standalone <p>
+        assert!(
+            !html.contains("<p>Here are a few tips"),
+            "Issue 377: 'Here are a few tips' should NOT be in a standalone <p>. Got:\n{html}"
+        );
+        // The <ol> should appear after the <ul> opening and before </ul>
+        let ul_start = html.find("<ul>").unwrap();
+        let ul_end = html.find("</ul>").unwrap();
+        let ol_start = html.find("<ol>").unwrap();
+        assert!(
+            ol_start > ul_start && ol_start < ul_end,
+            "Issue 377: <ol> must be nested inside <ul>. Got:\n{html}"
+        );
+        // "Next bullet" should be in its own <li>
+        assert!(
+            html.contains("Next bullet"),
+            "Issue 377: 'Next bullet' should be present. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_issue377_regression_numbered_list_not_in_bullet_context() {
+        // Numbered list NOT inside a bullet context should render as standalone <ol>
+        let input = "Some text<br />\n1. First item<br />\n2. Second item<br />\n";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<ol>"),
+            "Issue 377 regression: standalone numbered list should produce <ol>. Got:\n{html}"
+        );
+        // Should NOT be inside a <ul>
+        assert!(
+            !html.contains("<ul>"),
+            "Issue 377 regression: standalone numbered list should not have <ul>. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_issue377_regression_plain_bullet_list() {
+        // Plain bullet list without numbered sublist should be unchanged
+        let input = "- item one<br />\n- item two<br />\n- item three<br />\n";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<ul>"),
+            "Issue 377 regression: bullet list should produce <ul>. Got:\n{html}"
+        );
+        assert!(
+            !html.contains("<ol>"),
+            "Issue 377 regression: plain bullet list should not have <ol>. Got:\n{html}"
+        );
+        // Count <li> tags -- should be 3
+        let li_count = html.matches("<li>").count();
+        assert_eq!(
+            li_count, 3,
+            "Issue 377 regression: should have 3 list items. Got:\n{html}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 376: single numbered item not recognized as list
+    // ========================================================================
+
+    /// Issue 376: Single numbered item (N>1) preceded by `text<br />\n` should be
+    /// recognized as an ordered list, matching kramdown behavior.
+    #[test]
+    fn test_issue376_single_numbered_item_after_br() {
+        let input =
+            "(skipping 2)<br />\n3. Are you saying that Neo4J can do 6-8 hops too at reasonable speed and scale?";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<ol"),
+            "Issue 376: Single numbered item after <br /> should produce <ol>. Got:\n{html}"
+        );
+        assert!(
+            html.contains("<li>"),
+            "Issue 376: Should have <li>. Got:\n{html}"
+        );
+        assert!(
+            html.contains("Are you saying"),
+            "Issue 376: Text should be preserved. Got:\n{html}"
+        );
+    }
+
+    /// Issue 376: Also works with blank `<br />`-only line separator.
+    #[test]
+    fn test_issue376_single_numbered_item_after_blank_br_line() {
+        let input = "(skipping 2)<br />\n<br />\n3. Are you saying that Neo4J can do 6-8 hops too at reasonable speed and scale?";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<ol"),
+            "Issue 376: Single numbered item after blank <br /> line should produce <ol>. Got:\n{html}"
+        );
+    }
+
+    /// Issue 376: Multi-item numbered list still works (regression guard).
+    #[test]
+    fn test_issue376_multi_item_list_still_works() {
+        let input = "text<br />\n2. first<br />\n3. second<br />\n4. third";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<ol"),
+            "Issue 376: Multi-item list should still produce <ol>. Got:\n{html}"
+        );
+        let li_count = html.matches("<li>").count();
+        assert_eq!(
+            li_count, 3,
+            "Issue 376: Should have 3 <li>. Got {li_count} in:\n{html}"
+        );
+    }
+
+    /// Issue 376: Item starting at 1 after blank br line -- CommonMark already handles this.
+    #[test]
+    fn test_issue376_item_at_1_after_blank_br_no_double_break() {
+        let input = "text<br />\n<br />\n1. something";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<ol"),
+            "Issue 376: 1. after blank line should still become a list. Got:\n{html}"
+        );
+    }
+
+    /// Issue 376: Unicode content in single numbered item after br line.
+    #[test]
+    fn test_issue376_unicode_single_numbered_item() {
+        let input =
+            "pr\u{00e9}c\u{00e9}dent<br />\n5. \u{00c9}tes-vous s\u{00fb}r que \u{00e7}a marche?";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<ol"),
+            "Issue 376: Unicode single numbered item should produce <ol>. Got:\n{html}"
+        );
+        assert!(
+            html.contains("\u{00c9}tes-vous"),
+            "Issue 376: Unicode text should be preserved. Got:\n{html}"
         );
     }
 }
