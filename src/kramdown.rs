@@ -771,6 +771,14 @@ pub fn postprocess_for_filter_with_options(html: &str, indent_lists: bool) -> St
     // Issue 333: Fix literal underscores that should have been emphasis.
     let html = fix_literal_underscore_emphasis(&html);
     let html = apply_inline_attributes(&html);
+    // Issue 365: Add heading IDs to markdownify output, matching the main pipeline.
+    // indent_lists=true means kramdown mode, false means CommonMarkGhPages.
+    let heading_mode = if indent_lists {
+        HeadingIdMode::Kramdown
+    } else {
+        HeadingIdMode::CommonMarkGhPages
+    };
+    let html = add_heading_ids(&html, heading_mode);
     // Note: inline code classes are now added during markdown rendering
     // (in frontmatter::add_inline_code_class_to_events) rather than here.
     let html = wrap_marked_partial_loose_list_items(&html);
@@ -2244,6 +2252,10 @@ pub fn mark_simple_partial_loose_list_items(content: &str) -> String {
 
 /// blank lines because kramdown also wraps all items in `<p>`.
 /// A "partially loose" list (some blanks but not all) is collapsed to tight.
+///
+/// Exception: sub-list items at the same indent level where ALL consecutive
+/// pairs have blank lines between them (locally fully-loose sub-groups) keep
+/// their blank lines so pulldown-cmark renders them as loose (issue #372).
 pub fn collapse_blank_lines_between_list_items(content: &str) -> String {
     let lines: Vec<&str> = content.split('\n').collect();
     if lines.len() < 3 {
@@ -2252,6 +2264,11 @@ pub fn collapse_blank_lines_between_list_items(content: &str) -> String {
 
     // First pass: classify list regions
     let regions = find_list_regions(&lines);
+
+    // Second pass: find line indices that are part of locally fully-loose
+    // indented sub-groups within partial-loose regions. These items should
+    // keep their blank lines so pulldown-cmark wraps them in <p>.
+    let locally_loose_lines = find_locally_loose_subgroup_lines(&lines, &regions);
 
     let mut result = String::with_capacity(content.len());
     let mut in_code_block = false;
@@ -2310,8 +2327,12 @@ pub fn collapse_blank_lines_between_list_items(content: &str) -> String {
             if blank_count > 0 && j < lines.len() {
                 let nt = lines[j].trim_start();
                 if is_markdown_list_item(nt) {
-                    i = j;
-                    continue;
+                    // Preserve blank lines for locally fully-loose sub-groups
+                    // so pulldown-cmark renders them as loose list items.
+                    if !locally_loose_lines.contains(&i) {
+                        i = j;
+                        continue;
+                    }
                 }
             }
 
@@ -2325,6 +2346,114 @@ pub fn collapse_blank_lines_between_list_items(content: &str) -> String {
             }
             result.push_str(line);
             i += 1;
+        }
+    }
+
+    result
+}
+
+/// Find line indices of items that belong to locally fully-loose sub-groups
+/// within partial-loose regions. A sub-group is locally fully-loose when:
+/// - 2+ consecutive items at the same indent level (indent > 0)
+/// - ALL consecutive pairs within the group have blank lines between them
+/// - no items have continuation lines
+fn find_locally_loose_subgroup_lines(
+    lines: &[&str],
+    regions: &[ListRegion],
+) -> std::collections::HashSet<usize> {
+    let mut result = std::collections::HashSet::new();
+
+    for region in regions {
+        if region.fully_loose {
+            continue;
+        }
+
+        // Collect items in this region with their properties
+        struct SubItem {
+            line_idx: usize,
+            indent: usize,
+            has_blank_after_to_sibling: bool,
+            has_continuation: bool,
+        }
+        let mut items: Vec<SubItem> = Vec::new();
+
+        let mut in_code = false;
+        let mut i = region.start;
+        while i < region.end {
+            let trimmed = lines[i].trim_start();
+            if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+                in_code = !in_code;
+                i += 1;
+                continue;
+            }
+            if in_code || !is_markdown_list_item(trimmed) {
+                i += 1;
+                continue;
+            }
+
+            let indent = lines[i].len() - trimmed.len();
+
+            let mut j = i + 1;
+            let mut has_continuation = false;
+            while j < lines.len() {
+                let nt = lines[j].trim_start();
+                if nt.is_empty() {
+                    break;
+                }
+                let ind = lines[j].len() - nt.len();
+                if ind >= 2 && !is_markdown_list_item(nt) {
+                    has_continuation = true;
+                    j += 1;
+                } else {
+                    break;
+                }
+            }
+
+            let mut blank_count = 0;
+            while j < lines.len() && lines[j].trim().is_empty() {
+                blank_count += 1;
+                j += 1;
+            }
+            let next_is_sibling = j < lines.len() && is_markdown_list_item(lines[j].trim_start());
+
+            items.push(SubItem {
+                line_idx: i,
+                indent,
+                has_blank_after_to_sibling: blank_count > 0 && next_is_sibling,
+                has_continuation,
+            });
+
+            i = if j > i { j } else { i + 1 };
+        }
+
+        // Find contiguous groups at the same indent level (indent > 0)
+        // where ALL consecutive pairs have blank lines
+        let mut g = 0;
+        while g < items.len() {
+            if items[g].indent == 0 {
+                g += 1;
+                continue;
+            }
+            let group_indent = items[g].indent;
+            let group_start = g;
+            let mut g_end = g;
+            // Extend group: consecutive items at same indent, all with blanks between them
+            while g_end + 1 < items.len()
+                && items[g_end + 1].indent == group_indent
+                && items[g_end].has_blank_after_to_sibling
+                && !items[g_end].has_continuation
+            {
+                g_end += 1;
+            }
+
+            let group_len = g_end - group_start + 1;
+            if group_len >= 2 && !items[g_end].has_continuation {
+                // Mark all items in this group
+                for item in items.iter().take(g_end + 1).skip(group_start) {
+                    result.insert(item.line_idx);
+                }
+            }
+            g = g_end + 1;
         }
     }
 
@@ -2350,7 +2479,10 @@ fn wrap_marked_partial_loose_list_items(html: &str) -> String {
         let li_end = marker_pos + li_end_rel;
         let inner_start = li_start + "<li>".len();
 
-        let mut inner = result[inner_start..li_end].replace(PARTIAL_LOOSE_ITEM_MARKER, "");
+        let space_marker = format!(" {}", PARTIAL_LOOSE_ITEM_MARKER);
+        let mut inner = result[inner_start..li_end]
+            .replace(&space_marker, "")
+            .replace(PARTIAL_LOOSE_ITEM_MARKER, "");
         let should_wrap = is_simple_inline_list_item(inner.trim());
         if should_wrap {
             inner = format!("<p>{}</p>", inner.trim());
@@ -9758,6 +9890,58 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             html.contains("<li>You must connect to recruiters.</li>"),
             "Third sibling item should remain tight (no <p>). Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue372_nested_sublist_plain_text_loose() {
+        // Sub-list items separated by blank lines should be loose (wrapped in <p>)
+        let input = "- **Malignant:** ALL-related cells, categorized into three subtypes:\n  - Early Pre-B\n\n  - Pre-B\n\n  - Pro-B\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<p>Early Pre-B</p>"),
+            "Sub-list item 'Early Pre-B' should be wrapped in <p>. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("<p>Pre-B</p>"),
+            "Sub-list item 'Pre-B' should be wrapped in <p>. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("<p>Pro-B</p>"),
+            "Sub-list item 'Pro-B' should be wrapped in <p>. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue372_nested_sublist_bold_text_loose() {
+        // Sub-list items with inline bold, separated by blank lines, should be loose
+        let input =
+            "- Techniques applied:\n  - **Rotations**\n\n  - **Flips**\n\n  - **Brightness**\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<p><strong>Rotations</strong></p>"),
+            "Sub-list item with bold should be wrapped in <p>. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("<p><strong>Flips</strong></p>"),
+            "Sub-list item with bold should be wrapped in <p>. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue372_nested_sublist_tight_no_wrapping() {
+        // Sub-list items NOT separated by blank lines should remain tight
+        let input = "- Parent item:\n  - Sub item A\n  - Sub item B\n  - Sub item C\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<li><p>Sub item"),
+            "Tight sub-list items should NOT be wrapped in <p>. Got:\n{}",
             html
         );
     }

@@ -682,7 +682,7 @@ mod tests {
         let input = "## Heading\n\nSome **bold** text.\n\n- item1\n- item2\n";
         let html = crate::frontmatter::markdown_to_html_for_filter(input);
         assert!(
-            html.contains("<h2>"),
+            html.contains("<h2"),
             "Regression: Headings still work. Got: {html}"
         );
         assert!(
@@ -1039,7 +1039,7 @@ mod tests {
         let result = liquid_core::call_filter!(Markdownify, input).unwrap();
         let s = result.to_kstr().to_string();
         assert!(
-            s.contains("<h2>"),
+            s.contains("<h2"),
             "Issue 363 regression: Headings still work. Got: {s}"
         );
         assert!(
@@ -1069,6 +1069,91 @@ mod tests {
         assert!(
             !has_p_in_li,
             "Issue 363 regression: List from 1. should be tight (no <p> in <li>). Got:\n{s}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 365: Heading IDs in markdownify output
+    // ========================================================================
+
+    /// Issue 365: markdownify should generate heading IDs matching kramdown slugify rules
+    #[test]
+    fn test_issue365_markdownify_heading_id_h1() {
+        let input = "# Then do your stuff with the pos tags\n";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains(r#"id="then-do-your-stuff-with-the-pos-tags""#),
+            "Issue 365: h1 should have id attribute. Got: {html}"
+        );
+    }
+
+    /// Issue 365: h3 heading ID
+    #[test]
+    fn test_issue365_markdownify_heading_id_h3() {
+        let input = "### User\n";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains(r#"id="user""#),
+            "Issue 365: h3 should have id attribute. Got: {html}"
+        );
+    }
+
+    /// Issue 365: h2 heading ID
+    #[test]
+    fn test_issue365_markdownify_heading_id_h2() {
+        let input = "## Hello World\n";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains(r#"id="hello-world""#),
+            "Issue 365: h2 should have id='hello-world'. Got: {html}"
+        );
+    }
+
+    /// Issue 365: No heading means no id attributes on non-heading elements
+    #[test]
+    fn test_issue365_markdownify_no_heading_no_id() {
+        let input = "Just a paragraph with **bold** text.\n";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            !html.contains("id="),
+            "Issue 365: No heading means no id attributes. Got: {html}"
+        );
+    }
+
+    /// Issue 365: Special characters in heading IDs
+    #[test]
+    fn test_issue365_markdownify_heading_special_chars() {
+        let input = "## It's a \"test\" & more!\n";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("id="),
+            "Issue 365: Heading with special chars should have id. Got: {html}"
+        );
+    }
+
+    /// Issue 365: Unicode content in heading IDs
+    #[test]
+    fn test_issue365_markdownify_heading_unicode() {
+        let input = "## Cafe et Resume\n";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains(r#"id="cafe-et-resume""#),
+            "Issue 365: Unicode heading should have id. Got: {html}"
+        );
+    }
+
+    /// Issue 365: Duplicate heading IDs get dedup suffix
+    #[test]
+    fn test_issue365_markdownify_duplicate_heading_ids() {
+        let input = "## Summary\n\nSome text.\n\n## Summary\n";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains(r#"id="summary""#),
+            "Issue 365: First heading should have id='summary'. Got: {html}"
+        );
+        assert!(
+            html.contains(r#"id="summary-1""#),
+            "Issue 365: Second heading should have id='summary-1'. Got: {html}"
         );
     }
 }
