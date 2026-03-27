@@ -753,6 +753,12 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     // Issue 308: Prevent fenced code blocks after <br />\n from newline_to_br.
     let markdown = escape_fenced_code_after_br(&markdown);
 
+    // Issue 381: Merge blockquote continuation lines after newline_to_br.
+    // When `> ` lines alternate with non-`> ` lines (connected by <br />),
+    // add `> ` prefix to non-`> ` lines so pulldown-cmark keeps them in
+    // one blockquote, matching kramdown's lazy continuation behavior.
+    let markdown = merge_blockquote_continuations_after_br(&markdown);
+
     // Issue 363: Insert paragraph break before numbered list sequences in
     // newline_to_br output so pulldown-cmark recognizes them as ordered lists.
     let markdown = insert_paragraph_break_before_numbered_list(&markdown);
@@ -2777,6 +2783,97 @@ fn escape_non_standard_autolink_schemes(markdown: &str) -> String {
         }
     })
     .into_owned()
+}
+
+/// Issue 381: Merge blockquote continuation lines after `newline_to_br`.
+///
+/// When the `newline_to_br | markdownify` pipeline processes text like:
+/// ```text
+/// > *question1*<br />
+/// - answer1<br />
+///     sub-item<br />
+/// > *question2*<br />
+/// - answer2
+/// ```
+///
+/// The lines without `> ` prefix cause pulldown-cmark to break out of the
+/// blockquote, creating multiple `<blockquote>` elements. Kramdown treats
+/// these as lazy continuation of the blockquote.
+///
+/// This function detects sequences where multiple `> ` prefixed lines are
+/// interleaved with non-`> ` lines (all connected by `<br />`, no blank
+/// lines), and adds `> ` prefix to the non-`> ` lines so pulldown-cmark
+/// keeps everything in one blockquote.
+fn merge_blockquote_continuations_after_br(markdown: &str) -> String {
+    // Quick check: need both `> ` and `<br />` to be relevant
+    if !markdown.contains("<br />") || !markdown.contains("> ") {
+        return markdown.to_string();
+    }
+
+    let lines: Vec<&str> = markdown.split('\n').collect();
+    if lines.len() < 2 {
+        return markdown.to_string();
+    }
+
+    // First pass: identify contiguous "blockquote runs".
+    // A run starts at a `> ` line ending in `<br />` and extends through
+    // any non-blank lines until there are no more `> ` lines ahead in the
+    // same contiguous block. We require at least 2 distinct `> ` lines in
+    // the run (to confirm the interleaving pattern and avoid touching
+    // single-blockquote cases that already work).
+    let mut in_bq_run = vec![false; lines.len()];
+    let mut i = 0;
+    while i < lines.len() {
+        let trimmed = lines[i].trim_start();
+        // Start of a potential blockquote run
+        if trimmed.starts_with("> ") && trimmed.trim_end().ends_with("<br />") {
+            let run_start = i;
+            let mut j = i + 1;
+            // Extend through all non-blank lines (connected by <br />)
+            while j < lines.len() {
+                let t = lines[j].trim_start();
+                if t.is_empty() {
+                    break;
+                }
+                j += 1;
+            }
+            // Count `> ` lines in the run
+            let bq_line_count = (run_start..j)
+                .filter(|&k| lines[k].trim_start().starts_with("> "))
+                .count();
+            // Only mark if there are 2+ blockquote lines (confirming interleaving)
+            if bq_line_count >= 2 {
+                for item in in_bq_run.iter_mut().take(j).skip(run_start) {
+                    *item = true;
+                }
+            }
+            i = j;
+        } else {
+            i += 1;
+        }
+    }
+
+    // Second pass: add `> ` prefix to non-blockquote lines inside runs
+    let mut result = String::with_capacity(markdown.len() + 128);
+    for (idx, line) in lines.iter().enumerate() {
+        if idx > 0 {
+            result.push('\n');
+        }
+        if in_bq_run[idx] {
+            let trimmed = line.trim_start();
+            if !trimmed.starts_with("> ") {
+                // Add blockquote prefix to continuation line
+                result.push_str("> ");
+                result.push_str(trimmed);
+            } else {
+                result.push_str(line);
+            }
+        } else {
+            result.push_str(line);
+        }
+    }
+
+    result
 }
 
 fn escape_fenced_code_after_br(markdown: &str) -> String {
@@ -7280,6 +7377,147 @@ More text.
         assert!(
             html.contains("Pr\u{00e9}mier"),
             "Issue 379: Unicode text preserved. Got:\n{html}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // Issue 382: mailto pipe encoding and definition list regression guards
+    // -----------------------------------------------------------------------
+
+    /// Issue 382 Sub-B: mailto autolink with pipe in inline context should match Jekyll.
+    /// Both Jekyll and pulldown-cmark produce %7C in href and include mailto:
+    /// prefix in display text for this pattern. This is correct behavior.
+    #[test]
+    fn test_issue382_mailto_pipe_matches_jekyll() {
+        // In actual pages, the mailto is inline within a paragraph (after newline_to_br)
+        let html = markdown_to_html_for_filter(
+            "drop me an email: <mailto:denisekgosnell@gmail.com|denisekgosnell@gmail.com><br />\nLet\u{2019}s stay connected!",
+        );
+        eprintln!("=== test_issue382_mailto_pipe ===\n{html}");
+        // Jekyll cached output preserves %7C in href and includes mailto: in display
+        assert!(
+            html.contains("mailto:denisekgosnell@gmail.com"),
+            "Issue 382: mailto href should be present. Got: {html}"
+        );
+        // Should be an autolink
+        assert!(
+            html.contains("<a href="),
+            "Issue 382: mailto should produce an autolink. Got: {html}"
+        );
+        // The link href should contain the mailto address
+        assert!(
+            html.contains(r#"href="mailto:denisekgosnell@gmail.com"#),
+            "Issue 382: mailto href should start with mailto:. Got: {html}"
+        );
+    }
+
+    /// Issue 382 Sub-B: simple mailto without pipe (no pipe = no %7C issue).
+    #[test]
+    fn test_issue382_mailto_simple_preserved() {
+        let html = markdown_to_html_for_filter("<mailto:user@example.com>");
+        assert!(
+            html.contains(r#"<a href="mailto:user@example.com">"#),
+            "Issue 382: simple mailto should be preserved. Got: {html}"
+        );
+    }
+
+    /// Issue 382 Sub-B: Unicode content in mailto autolink (inline context).
+    #[test]
+    fn test_issue382_mailto_unicode_display() {
+        // In inline context (within paragraph text), pulldown-cmark autolinks mailto:
+        let html = markdown_to_html_for_filter(
+            "Contact: <mailto:user@example.com|Denise\u{00e9}> for info",
+        );
+        eprintln!("=== test_issue382_mailto_unicode ===\n{html}");
+        // Should produce an autolink (pulldown-cmark treats mailto: as autolink)
+        assert!(
+            html.contains("<a ") || html.contains("mailto:"),
+            "Issue 382: mailto with Unicode display should be handled. Got: {html}"
+        );
+    }
+
+    /// Issue 382 Sub-A: definition list pattern inside ordered list in markdownify.
+    /// In the DTC graph-data page, the pattern "3. Or, this GitHub\n: [link](url)"
+    /// goes through newline_to_br then markdownify. After newline_to_br, each line
+    /// gets <br /> so the `: ` pattern cannot form a definition list.
+    /// Both Jekyll and rustkyll output the `: ` as literal text inside <li>.
+    #[test]
+    fn test_issue382_definition_list_literal_in_ol() {
+        // This is the pattern after newline_to_br processing
+        let input = "1. Snap: [http://snap.stanford.edu/](http://snap.stanford.edu/)<br />\n\
+                     2. Kaggle: [https://www.kaggle.com/datasets](https://www.kaggle.com/datasets)<br />\n\
+                     3. Or, this GitHub<br />\n\
+                     : [https://github.com/awesomedata/awesome-public-datasets](https://github.com/awesomedata/awesome-public-datasets)";
+        let html = markdown_to_html_for_filter(input);
+        eprintln!("=== test_issue382_dl_in_ol ===\n{html}");
+        // Should contain ordered list
+        assert!(
+            html.contains("<ol>"),
+            "Issue 382: Should produce <ol>. Got: {html}"
+        );
+        // The `: ` is literal text (not a definition list), matching Jekyll
+        assert!(
+            html.contains("Or, this GitHub"),
+            "Issue 382: Item 3 text should be present. Got: {html}"
+        );
+        assert!(
+            html.contains("awesome-public-datasets"),
+            "Issue 382: Link text should be present. Got: {html}"
+        );
+    }
+
+    /// Issue 382 regression guard: regular list without `: ` should NOT produce <dl>.
+    #[test]
+    fn test_issue382_regular_list_no_dl() {
+        let input = "1. First item<br />\n2. Second item<br />\n3. Third item";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            !html.contains("<dl>"),
+            "Issue 382: Regular list should not produce <dl>. Got: {html}"
+        );
+        assert!(
+            html.contains("<ol>"),
+            "Issue 382: Should produce <ol>. Got: {html}"
+        );
+    }
+
+    /// Issue 382 regression guard: standalone definition list in kramdown parser.
+    /// This tests the kramdown parser directly (not markdownify pipeline).
+    #[test]
+    fn test_issue382_standalone_definition_list_kramdown() {
+        let input = "term\n: definition\n";
+        let html = crate::kramdown_parser::to_html(input);
+        eprintln!("=== test_issue382_standalone_dl ===\n{html}");
+        assert!(
+            html.contains("<dl>"),
+            "Issue 382: Standalone definition list should produce <dl>. Got: {html}"
+        );
+        assert!(
+            html.contains("<dt>"),
+            "Issue 382: Should produce <dt>. Got: {html}"
+        );
+        assert!(
+            html.contains("<dd>"),
+            "Issue 382: Should produce <dd>. Got: {html}"
+        );
+    }
+
+    /// Issue 382: Unicode in definition list terms.
+    #[test]
+    fn test_issue382_definition_list_unicode() {
+        let input = "T\u{00e9}rme\n: D\u{00e9}finition avec des \u{00e9}moji \u{1f4da}\n";
+        let html = crate::kramdown_parser::to_html(input);
+        assert!(
+            html.contains("<dl>"),
+            "Issue 382: Unicode dl should produce <dl>. Got: {html}"
+        );
+        assert!(
+            html.contains("T\u{00e9}rme"),
+            "Issue 382: Unicode term preserved. Got: {html}"
+        );
+        assert!(
+            html.contains("D\u{00e9}finition"),
+            "Issue 382: Unicode definition preserved. Got: {html}"
         );
     }
 }

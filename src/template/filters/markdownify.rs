@@ -1251,4 +1251,92 @@ mod tests {
             );
         }
     }
+
+    /// Issue 381: Multiple blockquote-prefixed lines interleaved with list items
+    /// should produce ONE <blockquote> element, not multiple.
+    #[test]
+    fn test_issue381_blockquote_splitting_multiple_sections() {
+        let input = "> *Is there any tool comparable to dbt?*<br />\n\
+                     - Matilion is a tool<br />\n\
+                     - An alternative to dbt<br />\n\
+                     > *Have you tested dbt vault?*<br />\n\
+                     - Nope<br />\n\
+                     > *Some database are supported*<br />\n\
+                     - The adapters for BigQuery";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        let bq_count = html.matches("<blockquote>").count();
+        assert_eq!(
+            bq_count, 1,
+            "Issue 381: Should have exactly 1 <blockquote>, got {bq_count}. HTML:\n{html}"
+        );
+        assert!(
+            html.contains("<ul>"),
+            "Issue 381: Should have <ul>. Got: {html}"
+        );
+        let bq_end = html.find("</blockquote>").expect("must have </blockquote>");
+        let ul_open = html.find("<ul>").expect("must have <ul>");
+        assert!(
+            ul_open < bq_end,
+            "Issue 381: <ul> must appear before </blockquote>. Got:\n{html}"
+        );
+        assert!(
+            html.contains("<em>"),
+            "Issue 381: Should have <em>. Got: {html}"
+        );
+    }
+
+    /// Issue 381: Realistic test matching the actual iobruno reply pattern
+    /// with sub-items (non-list-marker lines between blockquote sections).
+    #[test]
+    fn test_issue381_realistic_iobruno_pattern() {
+        let text = "Shalltear  I'd like to add a few points here:\n\
+            > *Is there any tool comparable to dbt?*\n\
+            - Matilion is more of fully-fledged ETL / ELT tool\n\
+            - An alternative to dbt\n\
+                \u{25E6} It used to support\n\
+                \u{25E6} Otherwise\n\
+                \u{25E6} Also\n\
+                \u{25E6} But, honestly?\n\
+            > *Have you tested dbt vault?*\n\
+            - Nope\n\
+            > *Some database are supported*\n\
+            - The adapters\n\
+            - I'd advise\n\
+            - If you're on AWS\n\
+            > *Can you say anything*\n\
+            I think\n\
+            > *Since version 1.3*\n\
+            - When you're dealing\n\
+            - When your datalake\n\
+            - TL;DR";
+        let after_n2br = text.replace('\n', "<br />\n");
+        let html = crate::frontmatter::markdown_to_html_for_filter(&after_n2br);
+        let bq_count = html.matches("<blockquote>").count();
+        assert_eq!(
+            bq_count, 1,
+            "Issue 381: Should have 1 blockquote, got {bq_count}. HTML:\n{html}"
+        );
+    }
+
+    /// Issue 381: Simple blockquote preserved (regression guard).
+    #[test]
+    fn test_issue381_simple_blockquote_preserved() {
+        let input = "> Simple quoted text";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        let bq_count = html.matches("<blockquote>").count();
+        assert_eq!(bq_count, 1, "Issue 381: Simple blockquote. Got: {html}");
+    }
+
+    /// Issue 381: Blockquote with list inside (regression guard for #362).
+    #[test]
+    fn test_issue381_regression_guard_362() {
+        let input = "> Some quoted text\n>\n> - item one\n> - item two";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        let bq_count = html.matches("<blockquote>").count();
+        assert_eq!(bq_count, 1, "Issue 381: Regression guard #362. Got: {html}");
+        assert!(
+            html.contains("<ul>"),
+            "Issue 381: Regression guard #362 <ul>. Got: {html}"
+        );
+    }
 }
