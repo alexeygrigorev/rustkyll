@@ -24,3 +24,18 @@ extra blockquote diffs but could not address the emphasis diffs.
 ## Baseline
 
 - DTC DOM: 782/790
+
+## Resolution
+
+Resolved by prior emphasis boundary work (issues 206, 350, and related
+`fix_kramdown_emphasis_patterns` fixes). The analytics-engineering page now has
+only 1 diff (the common href attribute difference shared across nearly all pages).
+Both Jekyll and rustkyll produce identical output for `sh*t` text -- literal with
+no emphasis tags. Regression tests added in issue #389.
+
+## Log
+
+### [SWE] 2026-03-27
+- Confirmed already fixed by prior emphasis work
+- Closed as part of issue #389 (regression tests added there)
+- Renamed to .done.md
