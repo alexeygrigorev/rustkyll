@@ -2491,3 +2491,403 @@ fn test_issue323_long_cyrillic_path_and_fragment() {
         "Long Cyrillic link should render as <a>. Got: {html}"
     );
 }
+
+// ===========================================================================
+// GFM paragraph interruption option tests (issue #391)
+// ===========================================================================
+
+#[test]
+fn test_gfm_paragraph_interruption_option_parsing_true() {
+    let content = "gfm_paragraph_interruption: true\n";
+    let opts = Options::parse_options_str(content).unwrap();
+    assert!(
+        opts.gfm_paragraph_interruption,
+        "Option should be true when set explicitly"
+    );
+}
+
+#[test]
+fn test_gfm_paragraph_interruption_option_parsing_default() {
+    let content = "auto_ids: true\n";
+    let opts = Options::parse_options_str(content).unwrap();
+    assert!(
+        !opts.gfm_paragraph_interruption,
+        "Option should default to false"
+    );
+}
+
+#[test]
+fn test_gfm_paragraph_interruption_default_false() {
+    let opts = Options::default();
+    assert!(!opts.gfm_paragraph_interruption, "Default should be false");
+}
+
+#[test]
+fn test_gfm_disabled_unordered_list_does_not_interrupt() {
+    // Default kramdown: list does NOT interrupt paragraph
+    let input = "Some text\n- list item\n";
+    let html = super::to_html(input);
+    // Should be a single paragraph containing both lines
+    assert!(
+        html.contains("<p>") && !html.contains("<ul>"),
+        "With default options, list should NOT interrupt paragraph. Got: {html}"
+    );
+}
+
+#[test]
+fn test_gfm_disabled_ordered_list_does_not_interrupt() {
+    let input = "Some text\n1. ordered\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<p>") && !html.contains("<ol>"),
+        "With default options, ordered list should NOT interrupt paragraph. Got: {html}"
+    );
+}
+
+#[test]
+fn test_gfm_enabled_dash_list_interrupts_paragraph() {
+    let mut opts = Options::default();
+    opts.gfm_paragraph_interruption = true;
+    let input = "Some text\n- list item\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("<p>Some text</p>") && html.contains("<ul>"),
+        "With GFM mode, dash list should interrupt paragraph. Got: {html}"
+    );
+}
+
+#[test]
+fn test_gfm_enabled_asterisk_list_interrupts_paragraph() {
+    let mut opts = Options::default();
+    opts.gfm_paragraph_interruption = true;
+    let input = "Some text\n* list item\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("<p>Some text</p>") && html.contains("<ul>"),
+        "With GFM mode, asterisk list should interrupt paragraph. Got: {html}"
+    );
+}
+
+#[test]
+fn test_gfm_enabled_plus_list_interrupts_paragraph() {
+    let mut opts = Options::default();
+    opts.gfm_paragraph_interruption = true;
+    let input = "Some text\n+ list item\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("<p>Some text</p>") && html.contains("<ul>"),
+        "With GFM mode, plus list should interrupt paragraph. Got: {html}"
+    );
+}
+
+#[test]
+fn test_gfm_enabled_ordered_list_interrupts_paragraph() {
+    let mut opts = Options::default();
+    opts.gfm_paragraph_interruption = true;
+    let input = "Some text\n1. ordered\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("<p>Some text</p>") && html.contains("<ol>"),
+        "With GFM mode, ordered list should interrupt paragraph. Got: {html}"
+    );
+}
+
+#[test]
+fn test_gfm_enabled_hr_interrupts_paragraph() {
+    let mut opts = Options::default();
+    opts.gfm_paragraph_interruption = true;
+    // Use *** (not ---) because --- after text is a setext heading underline, not an HR
+    let input = "Some text\n***\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("<p>Some text</p>") && html.contains("<hr"),
+        "With GFM mode, HR (***) should interrupt paragraph. Got: {html}"
+    );
+}
+
+#[test]
+fn test_gfm_enabled_setext_dash_not_hr() {
+    // --- after text is a setext heading underline, NOT an HR, even in GFM mode
+    let mut opts = Options::default();
+    opts.gfm_paragraph_interruption = true;
+    let input = "Some text\n---\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("<h2>"),
+        "--- after text should be setext heading, not HR, even in GFM mode. Got: {html}"
+    );
+}
+
+#[test]
+fn test_gfm_enabled_list_at_start_works_same_as_default() {
+    // A list at the start (no preceding paragraph) should work the same in both modes
+    let mut opts = Options::default();
+    opts.gfm_paragraph_interruption = true;
+    let input = "- list item\n";
+    let html_gfm = super::to_html_with_options(input, &opts);
+    let html_default = super::to_html(input);
+    assert!(
+        html_gfm.contains("<ul>") && html_default.contains("<ul>"),
+        "List at start should produce <ul> in both modes. GFM: {html_gfm}, Default: {html_default}"
+    );
+}
+
+#[test]
+fn test_gfm_enabled_blank_line_before_list_works_same() {
+    // Blank line already separates, both modes should produce paragraph + list
+    let mut opts = Options::default();
+    opts.gfm_paragraph_interruption = true;
+    let input = "Some text\n\n- list item\n";
+    let html_gfm = super::to_html_with_options(input, &opts);
+    let html_default = super::to_html(input);
+    assert!(
+        html_gfm.contains("<p>") && html_gfm.contains("<ul>"),
+        "GFM with blank line: should have paragraph + list. Got: {html_gfm}"
+    );
+    assert!(
+        html_default.contains("<p>") && html_default.contains("<ul>"),
+        "Default with blank line: should have paragraph + list. Got: {html_default}"
+    );
+}
+
+#[test]
+fn test_gfm_enabled_indented_code_does_not_interrupt() {
+    // Indented code should NOT interrupt paragraphs even in GFM mode
+    let mut opts = Options::default();
+    opts.gfm_paragraph_interruption = true;
+    let input = "Some text\n    indented code\n";
+    let html = super::to_html_with_options(input, &opts);
+    // Should remain part of paragraph, not become a code block
+    assert!(
+        !html.contains("<pre>") && !html.contains("<code>"),
+        "Indented code should NOT interrupt paragraph in GFM mode. Got: {html}"
+    );
+}
+
+#[test]
+fn test_gfm_enabled_unicode_text_with_list_interruption() {
+    let mut opts = Options::default();
+    opts.gfm_paragraph_interruption = true;
+    let input = "Текст на кирилица\n- елемент от списък\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("<p>Текст на кирилица</p>") && html.contains("<ul>"),
+        "Unicode text with GFM list interruption should work. Got: {html}"
+    );
+}
+
+// ---- tight_lists option tests ----
+
+#[test]
+fn test_tight_lists_option_default_is_false() {
+    let opts = Options::default();
+    assert!(!opts.tight_lists, "tight_lists should default to false");
+}
+
+#[test]
+fn test_tight_lists_option_parse_true() {
+    let opts = Options::parse_options_str("tight_lists: true").unwrap();
+    assert!(opts.tight_lists, "tight_lists should be true when parsed");
+}
+
+#[test]
+fn test_tight_lists_option_parse_false() {
+    let opts = Options::parse_options_str("tight_lists: false").unwrap();
+    assert!(!opts.tight_lists, "tight_lists should be false when parsed");
+}
+
+#[test]
+fn test_tight_lists_single_item_ul() {
+    let mut opts = Options::default();
+    opts.tight_lists = true;
+    let input = "- hello\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("<li>hello</li>"),
+        "tight_lists should produce <li>hello</li>, got: {html}"
+    );
+    assert!(
+        !html.contains("<p>"),
+        "tight_lists should not produce <p> wrapper, got: {html}"
+    );
+}
+
+#[test]
+fn test_tight_lists_multi_item_ul() {
+    let mut opts = Options::default();
+    opts.tight_lists = true;
+    let input = "- a\n- b\n- c\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("<li>a</li>"),
+        "tight multi-item list should have <li>a</li>, got: {html}"
+    );
+    assert!(
+        html.contains("<li>b</li>"),
+        "tight multi-item list should have <li>b</li>, got: {html}"
+    );
+    assert!(
+        html.contains("<li>c</li>"),
+        "tight multi-item list should have <li>c</li>, got: {html}"
+    );
+    assert!(
+        !html.contains("<p>"),
+        "tight multi-item list should not have <p>, got: {html}"
+    );
+}
+
+#[test]
+fn test_tight_lists_single_item_ol() {
+    let mut opts = Options::default();
+    opts.tight_lists = true;
+    let input = "1. hello\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("<li>hello</li>"),
+        "tight ol should produce <li>hello</li>, got: {html}"
+    );
+    assert!(
+        !html.contains("<p>"),
+        "tight ol should not produce <p>, got: {html}"
+    );
+}
+
+#[test]
+fn test_tight_lists_inline_formatting() {
+    let mut opts = Options::default();
+    opts.tight_lists = true;
+    let input = "- **bold** and *italic*\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("<strong>bold</strong>") && html.contains("<em>italic</em>"),
+        "tight list with inline formatting should render emphasis, got: {html}"
+    );
+    assert!(
+        !html.contains("<p>"),
+        "tight list with inline formatting should not have <p>, got: {html}"
+    );
+}
+
+#[test]
+fn test_tight_lists_br_content() {
+    let mut opts = Options::default();
+    opts.tight_lists = true;
+    let input = "- line1<br />line2\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("<br />") || html.contains("<br/>"),
+        "tight list with br should contain br tag, got: {html}"
+    );
+    assert!(
+        !html.contains("<p>"),
+        "tight list with br should not have <p>, got: {html}"
+    );
+}
+
+#[test]
+fn test_tight_lists_multi_paragraph_stays_loose() {
+    let mut opts = Options::default();
+    opts.tight_lists = true;
+    // Two paragraphs in one list item (blank line between items makes them loose with multi-paragraphs)
+    let input = "- first paragraph\n\n  second paragraph\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("<p>"),
+        "multi-paragraph list item should still have <p> even with tight_lists, got: {html}"
+    );
+}
+
+#[test]
+fn test_tight_lists_default_unchanged() {
+    // Default (tight_lists: false) should produce identical output to tight_lists: true
+    // for simple list items (no Paragraph children in AST).
+    // For loose items (blank-line separated), default should keep <p> wrappers.
+    let input = "- first\n\n- second\n";
+    let html_default = super::to_html(input);
+    assert!(
+        html_default.contains("<p>first</p>") && html_default.contains("<p>second</p>"),
+        "default (loose) list with blank lines should have <p> wrappers, got: {html_default}"
+    );
+}
+
+#[test]
+fn test_tight_lists_default_multi_item_unchanged() {
+    // Simple items without blank lines already render without <p> in default mode.
+    // Verify that tight_lists: false and tight_lists: true produce the same output
+    // for simple items (no Paragraph children).
+    let input = "- a\n- b\n- c\n";
+    let html_default = super::to_html(input);
+    let mut opts = Options::default();
+    opts.tight_lists = true;
+    let html_tight = super::to_html_with_options(input, &opts);
+    assert_eq!(
+        html_default, html_tight,
+        "simple items should render the same regardless of tight_lists"
+    );
+}
+
+#[test]
+fn test_tight_lists_code_block_unaffected() {
+    let mut opts = Options::default();
+    opts.tight_lists = true;
+    let input = "- item\n\n      code block\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("<code>") || html.contains("<pre>"),
+        "code block in list item should still render as code, got: {html}"
+    );
+}
+
+#[test]
+fn test_tight_lists_nested_list_unaffected() {
+    let mut opts = Options::default();
+    opts.tight_lists = true;
+    let input = "- item\n  - nested\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("<ul>") && html.matches("<ul>").count() >= 2,
+        "nested list should still render, got: {html}"
+    );
+}
+
+#[test]
+fn test_tight_lists_blank_separated_items() {
+    // Blank-line-separated items create Paragraph children in AST.
+    // With tight_lists: true, single-paragraph items should still be tight.
+    let mut opts = Options::default();
+    opts.tight_lists = true;
+    let input = "- first\n\n- second\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("<li>first</li>"),
+        "tight list with blank-separated items should have <li>first</li>, got: {html}"
+    );
+    assert!(
+        html.contains("<li>second</li>"),
+        "tight list with blank-separated items should have <li>second</li>, got: {html}"
+    );
+    assert!(
+        !html.contains("<p>"),
+        "tight list with blank-separated items should not have <p>, got: {html}"
+    );
+}
+
+#[test]
+fn test_tight_lists_unicode_content() {
+    let mut opts = Options::default();
+    opts.tight_lists = true;
+    let input = "- привет мир\n- こんにちは\n";
+    let html = super::to_html_with_options(input, &opts);
+    assert!(
+        html.contains("<li>привет мир</li>"),
+        "tight list with Cyrillic should work, got: {html}"
+    );
+    assert!(
+        html.contains("<li>こんにちは</li>"),
+        "tight list with Japanese should work, got: {html}"
+    );
+    assert!(
+        !html.contains("<p>"),
+        "tight list with unicode should not have <p>, got: {html}"
+    );
+}

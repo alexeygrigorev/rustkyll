@@ -1213,8 +1213,9 @@ fn parse_paragraph_with_lazy(
         }
 
         // Non-lazy: check if this line would start a new block
-        // Note: In kramdown, HRs and list markers do NOT interrupt paragraphs.
+        // Note: In standard kramdown, HRs and list markers do NOT interrupt paragraphs.
         // They only start at the beginning of a block context (after blank/EOB).
+        // In GFM mode (gfm_paragraph_interruption), list markers and HRs DO interrupt.
         if !para_lines.is_empty() {
             if try_parse_atx_header(line, options).is_some() {
                 break;
@@ -1224,6 +1225,15 @@ fn parse_paragraph_with_lazy(
             }
             if try_parse_fenced_code(lines, *pos).is_some() {
                 break;
+            }
+            // GFM mode: list markers and horizontal rules interrupt paragraphs
+            if options.gfm_paragraph_interruption {
+                if is_list_start(line) {
+                    break;
+                }
+                if is_horizontal_rule(line) && !is_setext_underline(line) {
+                    break;
+                }
             }
             // Table line or separator breaks a paragraph, unless previous line
             // has an unbalanced backtick (multi-line code span continuation)

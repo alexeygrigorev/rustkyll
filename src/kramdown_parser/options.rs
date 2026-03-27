@@ -90,6 +90,16 @@ pub struct Options {
 
     // CJK
     pub remove_line_breaks_for_cjk: bool,
+
+    // GFM compatibility
+    /// When true, list markers and horizontal rules interrupt paragraphs (GFM behavior).
+    /// When false (default), a blank line is required before lists/HRs (standard kramdown).
+    pub gfm_paragraph_interruption: bool,
+
+    // List rendering
+    /// When true, single-paragraph list items render without `<p>` wrapper (tight lists).
+    /// When false (default), list items with paragraph children render with `<p>` tags (loose).
+    pub tight_lists: bool,
 }
 
 impl Default for Options {
@@ -124,6 +134,8 @@ impl Default for Options {
             link_defs: HashMap::new(),
             toc_levels: "1..6".to_string(),
             remove_line_breaks_for_cjk: false,
+            gfm_paragraph_interruption: false,
+            tight_lists: false,
         }
     }
 }
@@ -252,6 +264,10 @@ impl Options {
                 "remove_line_breaks_for_cjk" => {
                     opts.remove_line_breaks_for_cjk = Self::parse_bool(&val)
                 }
+                "gfm_paragraph_interruption" => {
+                    opts.gfm_paragraph_interruption = Self::parse_bool(&val)
+                }
+                "tight_lists" => opts.tight_lists = Self::parse_bool(&val),
                 "smart_quotes" => {
                     // Can be YAML array [lsquo, rsquo, ldquo, rdquo] or
                     // comma-separated string apos,apos,quot,quot

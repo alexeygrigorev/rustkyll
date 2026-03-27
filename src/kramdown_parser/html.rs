@@ -1021,6 +1021,25 @@ fn convert_list_item(
             }
         }
         output.push_str("</li>\n");
+    } else if options.tight_lists && is_single_paragraph_item(&elem.children) {
+        // Tight list mode: single-paragraph item renders inline without <p> wrapper.
+        // Find the single Paragraph child and render its text content directly.
+        let para = elem
+            .children
+            .iter()
+            .find(|c| c.element_type == ElementType::Paragraph)
+            .expect("is_single_paragraph_item guarantees a Paragraph child");
+        let text = get_element_text_from_children(&para.children);
+        let text = text.trim_end().to_string();
+        if !text.is_empty() {
+            let processed = span_parser::spans_to_html(&text, ctx);
+            output.push_str(&processed);
+        } else {
+            for child in &para.children {
+                convert_element(child, output, options, 0, ctx);
+            }
+        }
+        output.push_str("</li>\n");
     } else {
         // Check if first child is text (mixed mode)
         let first_is_text = elem
@@ -1047,6 +1066,20 @@ fn convert_list_item(
             output.push_str("</li>\n");
         }
     }
+}
+
+/// Check if a list item's children consist of exactly one Paragraph
+/// (plus optional Blank/Eob elements). Used for tight list rendering.
+fn is_single_paragraph_item(children: &[Element]) -> bool {
+    let mut para_count = 0;
+    for child in children {
+        match child.element_type {
+            ElementType::Paragraph => para_count += 1,
+            ElementType::Blank | ElementType::Eob => {}
+            _ => return false, // Non-paragraph block child -> not a simple single-paragraph item
+        }
+    }
+    para_count == 1
 }
 
 /// Get text from a list of children elements (for simple list items).
