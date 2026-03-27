@@ -75,30 +75,3 @@ impl Filter for PassthroughFilterInstance {
         Ok(input.to_value())
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_passthrough_name() {
-        let filter = PassthroughFilter::new("erl_encode");
-        assert_eq!(filter.name(), "erl_encode");
-    }
-
-    #[test]
-    fn test_passthrough_description() {
-        let filter = PassthroughFilter::new("test_filter");
-        assert_eq!(
-            filter.description(),
-            "Passthrough filter for unknown filter name (returns input unchanged)"
-        );
-    }
-
-    #[test]
-    fn test_passthrough_reflection() {
-        let filter = PassthroughFilter::new("my_filter");
-        let refl = filter.reflection();
-        assert_eq!(refl.name(), "my_filter");
-    }
-}

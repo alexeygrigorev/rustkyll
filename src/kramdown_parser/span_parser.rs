@@ -1999,13 +1999,11 @@ fn try_parse_html_span(
             .unwrap_or(inner.len());
         let tag_name_raw = &inner[..tag_name_end];
         let tag_name = tag_name_raw.to_lowercase();
-        // XML tags are: namespaced (contains ':') or unknown tags with mixed case.
-        // Known HTML tags like <sPAn> are treated as regular HTML and normalized.
-        let has_mixed_case = tag_name_raw.chars().any(|c| c.is_uppercase());
-        let is_known_html = is_valid_span_tag(&tag_name)
-            || is_valid_block_tag(&tag_name)
-            || is_void_element(&tag_name);
-        let is_xml_tag = tag_name_raw.contains(':') || (has_mixed_case && !is_known_html);
+        // XML namespace tags have the form `prefix:localname` where both parts are
+        // valid XML names (alphabetic). This distinguishes `<xml:lang>` (valid XML)
+        // from URI schemes like `<tel:100>` or `<ftp://...>`.
+        // Unknown tags with mixed case (e.g. <TensorFlow>) are NOT treated as XML.
+        let is_xml_tag = is_valid_xml_namespace_prefix(tag_name_raw);
 
         if tag_name.is_empty() {
             return None;
@@ -2024,9 +2022,9 @@ fn try_parse_html_span(
             return None;
         }
 
-        // Must be a valid HTML tag or XML namespaced tag (contains :)
+        // Must be a valid HTML tag or a valid XML namespaced tag
         let is_known_tag = is_valid_span_tag(&tag_name) || is_valid_block_tag(&tag_name);
-        if !is_known_tag && !tag_name_raw.contains(':') && !is_xml_tag {
+        if !is_known_tag && !is_xml_tag {
             return None;
         }
 
@@ -2384,6 +2382,38 @@ fn is_block_level_tag(tag: &str) -> bool {
 fn is_also_span_tag(_tag: &str) -> bool {
     // Tags that can appear both as block and span
     false
+}
+
+/// Check if a tag name is a valid XML namespace-prefixed tag.
+/// Valid: `xml:lang`, `xsl:template`, `custom:widget` (prefix:localname, both alphabetic start).
+/// Invalid: `tel:100` (digit after colon), `ssh:user@host` (@ after colon), `ftp://` (// after colon).
+fn is_valid_xml_namespace_prefix(tag_name: &str) -> bool {
+    if let Some(colon_pos) = tag_name.find(':') {
+        let prefix = &tag_name[..colon_pos];
+        let local = &tag_name[colon_pos + 1..];
+        // Both prefix and localname must be non-empty
+        if prefix.is_empty() || local.is_empty() {
+            return false;
+        }
+        // Prefix must be all ASCII alphabetic
+        if !prefix.chars().all(|c| c.is_ascii_alphabetic()) {
+            return false;
+        }
+        // Localname must start with an ASCII letter (rejects digits, @, /)
+        if !local.starts_with(|c: char| c.is_ascii_alphabetic()) {
+            return false;
+        }
+        // Localname must only contain valid XML name characters
+        if !local
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.')
+        {
+            return false;
+        }
+        true
+    } else {
+        false
+    }
 }
 
 fn is_void_element(tag: &str) -> bool {

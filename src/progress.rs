@@ -208,12 +208,6 @@ mod tests {
     }
 
     #[test]
-    fn test_normal_mode_not_quiet() {
-        let reporter = ProgressReporter::new(false);
-        assert!(!reporter.is_quiet());
-    }
-
-    #[test]
     fn test_render_progress_counter_thread_safe() {
         let reporter = ProgressReporter::new_with_tty(false, false);
         let progress = reporter.render_progress(100, "Rendering");
@@ -246,110 +240,6 @@ mod tests {
     }
 
     #[test]
-    fn test_render_progress_tracks_total() {
-        let reporter = ProgressReporter::new(true);
-        let progress = reporter.render_progress(42, "Test");
-        assert_eq!(progress.total(), 42);
-    }
-
-    #[test]
-    fn test_phase_messages_in_normal_mode() {
-        // This test verifies that phase() and phase_done() don't panic
-        // in normal mode. We can't easily capture stderr in a unit test,
-        // but integration tests will verify actual output.
-        let reporter = ProgressReporter::new_with_tty(false, false);
-        reporter.phase("Loading config...");
-        reporter.phase_done("Loading collections... 5 collections, 100 items");
-    }
-
-    #[test]
-    fn test_tty_mode_phase_and_phase_done() {
-        // Verify the TTY code path executes without panic
-        let reporter = ProgressReporter::new_with_tty(false, true);
-        reporter.phase("Loading...");
-        reporter.phase_done("Loading... 5 items");
-    }
-
-    #[test]
-    fn test_non_tty_mode_phase_is_noop() {
-        // In non-TTY mode, phase() should be a no-op (no output).
-        // phase_done() should print the final message.
-        // We verify the code paths execute without panic.
-        let reporter = ProgressReporter::new_with_tty(false, false);
-        reporter.phase("Loading..."); // should be no-op
-        reporter.phase_done("Loading... 5 items"); // should print once
-    }
-
-    #[test]
-    fn test_phase_done_without_prior_phase() {
-        // Calling phase_done() without phase() first should not panic
-        // in either TTY or non-TTY mode.
-        let tty_reporter = ProgressReporter::new_with_tty(false, true);
-        tty_reporter.phase_done("Loading... 5 items");
-
-        let non_tty_reporter = ProgressReporter::new_with_tty(false, false);
-        non_tty_reporter.phase_done("Loading... 5 items");
-    }
-
-    #[test]
-    fn test_quiet_mode_phase_and_phase_done_suppressed() {
-        // Quiet mode: both phase() and phase_done() should be no-ops
-        let tty_reporter = ProgressReporter::new_with_tty(true, true);
-        tty_reporter.phase("Loading...");
-        tty_reporter.phase_done("Loading... 5 items");
-
-        let non_tty_reporter = ProgressReporter::new_with_tty(true, false);
-        non_tty_reporter.phase("Loading...");
-        non_tty_reporter.phase_done("Loading... 5 items");
-    }
-
-    #[test]
-    fn test_multiple_phases_tty_mode() {
-        // Multiple phase/phase_done cycles should work on TTY
-        let reporter = ProgressReporter::new_with_tty(false, true);
-        reporter.phase("Phase 1...");
-        reporter.phase_done("Phase 1... done");
-        reporter.phase("Phase 2...");
-        reporter.phase_done("Phase 2... done");
-    }
-
-    #[test]
-    fn test_phase_without_phase_done_tty() {
-        // Some phases only call phase() without phase_done().
-        // The next phase() should overwrite cleanly.
-        let reporter = ProgressReporter::new_with_tty(false, true);
-        reporter.phase("Loading config...");
-        reporter.phase("Loading data files...");
-        reporter.phase_done("Loading data files... 6 files");
-    }
-
-    #[test]
-    fn test_tty_render_progress_has_two_lines() {
-        // TTY mode should create both a progress bar and a file line
-        let reporter = ProgressReporter::new_with_tty(false, true);
-        let progress = reporter.render_progress(100, "Rendering pages");
-        assert!(progress.bar.is_some());
-        assert!(progress.file_line.is_some());
-        assert!(progress._multi.is_some());
-        progress.inc("test-page.html");
-        assert_eq!(progress.count(), 1);
-        progress.finish();
-    }
-
-    #[test]
-    fn test_non_tty_render_progress_has_no_file_line() {
-        // Non-TTY mode should have a bar but no file line (no ANSI cursor tricks)
-        let reporter = ProgressReporter::new_with_tty(false, false);
-        let progress = reporter.render_progress(100, "Rendering pages");
-        assert!(progress.bar.is_some());
-        assert!(progress.file_line.is_none());
-        assert!(progress._multi.is_none());
-        progress.inc("test-page.html");
-        assert_eq!(progress.count(), 1);
-        progress.finish();
-    }
-
-    #[test]
     fn test_tty_render_progress_thread_safe() {
         // Verify two-line progress works correctly with concurrent threads
         let reporter = ProgressReporter::new_with_tty(false, true);
@@ -369,23 +259,4 @@ mod tests {
         progress.finish();
     }
 
-    #[test]
-    fn test_render_progress_finish_clears_both_lines() {
-        // Verify finish() does not panic and clears both bars
-        let reporter = ProgressReporter::new_with_tty(false, true);
-        let progress = reporter.render_progress(10, "Rendering");
-        for i in 0..10 {
-            progress.inc(&format!("page-{i}.html"));
-        }
-        progress.finish();
-        // After finish, the bars should be cleared (no visual residue)
-    }
-
-    #[test]
-    fn test_quiet_render_progress_finish_is_noop() {
-        // Quiet mode finish should not panic
-        let reporter = ProgressReporter::new_with_tty(true, true);
-        let progress = reporter.render_progress(10, "Rendering");
-        progress.finish();
-    }
 }

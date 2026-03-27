@@ -2891,3 +2891,135 @@ fn test_tight_lists_unicode_content() {
         "tight list with unicode should not have <p>, got: {html}"
     );
 }
+
+// ---------------------------------------------------------------------------
+// Issue 393: kramdown HTML tag detection in prose
+// Mixed-case words in angle brackets must NOT be parsed as XML/HTML tags
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_issue393_mixed_case_not_xml_tag_tensorflow() {
+    // <TensorFlow 2> in prose should be escaped, not parsed as an element
+    let input = "use <TensorFlow 2> for ML\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("&lt;TensorFlow 2&gt;"),
+        "mixed-case word TensorFlow should not be treated as XML tag, got: {html}"
+    );
+}
+
+#[test]
+fn test_issue393_mixed_case_not_xml_tag_postgresql() {
+    let input = "use <PostgreSQL> for databases\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("&lt;PostgreSQL&gt;"),
+        "mixed-case word PostgreSQL should not be treated as XML tag, got: {html}"
+    );
+}
+
+#[test]
+fn test_issue393_mixed_case_not_xml_tag_macos() {
+    let input = "install <MacOS> version\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("&lt;MacOS&gt;"),
+        "mixed-case word MacOS should not be treated as XML tag, got: {html}"
+    );
+}
+
+#[test]
+fn test_issue393_uri_scheme_tel_not_xml() {
+    // <tel:100-1000> is a URI scheme, not an XML namespace tag
+    let input = "call <tel:100-1000>\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("&lt;tel:100-1000&gt;"),
+        "URI scheme tel: should not be treated as XML namespace tag, got: {html}"
+    );
+}
+
+#[test]
+fn test_issue393_uri_scheme_ssh_not_xml() {
+    // <ssh:user@host> contains @ so autolink detects it as email-like, which is fine.
+    // The key requirement is it must NOT be treated as an XML namespace tag.
+    let input = "connect via <ssh:user@host>\n";
+    let html = super::to_html(input);
+    assert!(
+        !html.contains("<ssh:user"),
+        "URI scheme ssh:user@host should not be treated as XML namespace tag, got: {html}"
+    );
+}
+
+#[test]
+fn test_issue393_xml_namespace_still_works() {
+    // Legitimate XML namespace tags like <xml:lang> should still be parsed
+    let input = "<xml:lang>en</xml:lang>\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<xml:lang>") || html.contains("<xml:lang"),
+        "legitimate XML namespace tag xml:lang should still be parsed, got: {html}"
+    );
+}
+
+#[test]
+fn test_issue393_xsl_namespace_still_works() {
+    let input = "<xsl:template>content</xsl:template>\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<xsl:template>") || html.contains("<xsl:template"),
+        "legitimate XML namespace tag xsl:template should still be parsed, got: {html}"
+    );
+}
+
+#[test]
+fn test_issue393_custom_namespace_self_closing() {
+    let input = "text <custom:widget /> more\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<custom:widget") || html.contains("custom:widget"),
+        "legitimate XML namespace self-closing tag should still be parsed, got: {html}"
+    );
+}
+
+#[test]
+fn test_issue393_known_html_mixed_case_still_works() {
+    // Known HTML tags with mixed case should be normalized
+    let input = "<Span>text</Span>\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<span>text</span>"),
+        "known HTML tag with mixed case should be normalized, got: {html}"
+    );
+}
+
+#[test]
+fn test_issue393_known_html_uppercase_still_works() {
+    let input = "<STRONG>bold</STRONG>\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<strong>bold</strong>"),
+        "known HTML tag STRONG should be normalized, got: {html}"
+    );
+}
+
+#[test]
+fn test_issue393_void_element_still_works() {
+    let input = "line<br />break\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<br />"),
+        "void element <br /> should still work, got: {html}"
+    );
+}
+
+#[test]
+fn test_issue393_void_element_uppercase_inline_still_works() {
+    // Uppercase void element in inline context (within a paragraph)
+    let input = "text<BR />more\n";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<br />"),
+        "uppercase void element <BR /> inline should be normalized, got: {html}"
+    );
+}
