@@ -258,5 +258,4 @@ mod tests {
         assert_eq!(progress.count(), 100);
         progress.finish();
     }
-
 }

@@ -750,6 +750,35 @@ fn build_related_posts(
         .collect()
 }
 
+/// Extract the text content of the first `<h1>` tag from HTML.
+///
+/// Jekyll auto-extracts the page title from the first H1 when frontmatter
+/// has no `title` field. This function replicates that behavior using a
+/// simple regex, stripping any inner HTML tags to return plain text.
+fn extract_title_from_h1(html: &str) -> Option<String> {
+    use regex::Regex;
+    use std::sync::OnceLock;
+
+    static H1_RE: OnceLock<Regex> = OnceLock::new();
+    let re = H1_RE.get_or_init(|| Regex::new(r"(?is)<h1[^>]*>(.*?)</h1>").unwrap());
+
+    static TAG_RE: OnceLock<Regex> = OnceLock::new();
+    let tag_re = TAG_RE.get_or_init(|| Regex::new(r"<[^>]+>").unwrap());
+
+    re.captures(html).map(|caps| {
+        let inner = caps.get(1).unwrap().as_str();
+        let text = tag_re.replace_all(inner, "");
+        // Decode common HTML entities
+        let text = text
+            .replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", "\"")
+            .replace("&#39;", "'");
+        text.trim().to_string()
+    })
+}
+
 /// Convert a standalone `Page` to a Liquid `Value` object.
 ///
 /// Exposes front matter fields, `title`, `url`, and `content`,
@@ -784,6 +813,14 @@ fn page_to_liquid(page: &Page) -> LiquidValue {
 
     // page.path -- the relative source path (e.g. "index.md" or "books.md")
     obj.insert("path".into(), LiquidValue::scalar(page.source_path.clone()));
+
+    // Jekyll auto-extracts the page title from the first <h1> when frontmatter
+    // has no `title` field. Only set if frontmatter didn't already provide one.
+    if !page.front_matter.contains_key("title") {
+        if let Some(h1_title) = extract_title_from_h1(&page.html_content) {
+            obj.insert("title".into(), LiquidValue::scalar(h1_title));
+        }
+    }
 
     LiquidValue::Object(obj)
 }
@@ -7719,6 +7756,127 @@ defaults:
             }
         } else {
             panic!("github should be an Object");
+        }
+    }
+
+    // ========================================================================
+    // Unit: extract_title_from_h1
+    // ========================================================================
+
+    #[test]
+    fn test_extract_title_from_h1_simple() {
+        let html = "<h1>My Title</h1><p>some content</p>";
+        assert_eq!(extract_title_from_h1(html), Some("My Title".to_string()));
+    }
+
+    #[test]
+    fn test_extract_title_from_h1_with_inline_formatting() {
+        // H1 with inner tags should return text only
+        let html = "<h1><strong>Bold</strong> Title</h1>";
+        assert_eq!(extract_title_from_h1(html), Some("Bold Title".to_string()));
+    }
+
+    #[test]
+    fn test_extract_title_from_h1_no_h1() {
+        let html = "<h2>Only H2</h2><p>content</p>";
+        assert_eq!(extract_title_from_h1(html), None);
+    }
+
+    #[test]
+    fn test_extract_title_from_h1_multiple_h1s_uses_first() {
+        let html = "<h1>First</h1><h1>Second</h1>";
+        assert_eq!(extract_title_from_h1(html), Some("First".to_string()));
+    }
+
+    #[test]
+    fn test_extract_title_from_h1_with_id_attribute() {
+        let html = r#"<h1 id="my-title">My Title</h1>"#;
+        assert_eq!(extract_title_from_h1(html), Some("My Title".to_string()));
+    }
+
+    #[test]
+    fn test_extract_title_from_h1_unicode() {
+        let html = "<h1>Часть 1: Введение</h1>";
+        assert_eq!(
+            extract_title_from_h1(html),
+            Some("Часть 1: Введение".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_title_from_h1_trims_whitespace() {
+        let html = "<h1>  Spaced Title  </h1>";
+        assert_eq!(
+            extract_title_from_h1(html),
+            Some("Spaced Title".to_string())
+        );
+    }
+
+    // ========================================================================
+    // Unit: page_to_liquid title extraction
+    // ========================================================================
+
+    #[test]
+    fn test_page_to_liquid_no_frontmatter_title_extracts_from_h1() {
+        let page = Page {
+            slug: "test".to_string(),
+            front_matter: std::collections::HashMap::new(),
+            content: "# My Title\nSome text".to_string(),
+            html_content: "<h1>My Title</h1>\n<p>Some text</p>".to_string(),
+            url: "/test/".to_string(),
+            source_path: "test.md".to_string(),
+        };
+        let val = page_to_liquid(&page);
+        if let LiquidValue::Object(obj) = val {
+            let title = obj.get("title").expect("should have title from H1");
+            assert_eq!(title.to_kstr().as_str(), "My Title");
+        } else {
+            panic!("Expected Object");
+        }
+    }
+
+    #[test]
+    fn test_page_to_liquid_frontmatter_title_takes_precedence() {
+        let mut fm = std::collections::HashMap::new();
+        fm.insert(
+            "title".to_string(),
+            serde_yaml::Value::String("Explicit".to_string()),
+        );
+        let page = Page {
+            slug: "test".to_string(),
+            front_matter: fm,
+            content: "# Different".to_string(),
+            html_content: "<h1>Different</h1>".to_string(),
+            url: "/test/".to_string(),
+            source_path: "test.md".to_string(),
+        };
+        let val = page_to_liquid(&page);
+        if let LiquidValue::Object(obj) = val {
+            let title = obj.get("title").expect("should have title");
+            assert_eq!(title.to_kstr().as_str(), "Explicit");
+        } else {
+            panic!("Expected Object");
+        }
+    }
+
+    #[test]
+    fn test_page_to_liquid_no_h1_no_title() {
+        let page = Page {
+            slug: "test".to_string(),
+            front_matter: std::collections::HashMap::new(),
+            content: "Some text".to_string(),
+            html_content: "<p>Some text</p>".to_string(),
+            url: "/test/".to_string(),
+            source_path: "test.md".to_string(),
+        };
+        let val = page_to_liquid(&page);
+        if let LiquidValue::Object(obj) = val {
+            assert!(
+                obj.get("title").is_none(),
+                "should not have title when no H1 and no frontmatter"
+            );
+        } else {
+            panic!("Expected Object");
         }
     }
 }
