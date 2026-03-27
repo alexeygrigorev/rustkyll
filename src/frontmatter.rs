@@ -848,11 +848,21 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     // pattern from newline_to_br, not on regular <ul> lists.
     let html_output = renest_leaked_paragraph_and_ol_into_bullet_item(&html_output);
 
+    // Issue 387: Re-nest leaked <p> + continuation <ul> back into the preceding
+    // empty bullet <li>. Handles the <p>TEXT<br /></p> + <ul> pattern that #377
+    // missed (it only handled <p> + <ol>).
+    let html_output = renest_leaked_paragraph_and_ul_into_bullet_item(&html_output);
+
     // Issue 362: Re-nest sibling lists that should be nested inside parent <li>.
     // In kramdown, when `newline_to_br | markdownify` processes text like
     // `2. text\n- bullet`, the <ul> is nested inside the <ol>'s <li>.
     // pulldown-cmark promotes the <ul> to a sibling of the <ol>.
     let html_output = renest_sibling_list_into_parent_li(&html_output);
+
+    // Issue 386: Convert kramdown definition list patterns to <dl><dt><dd>.
+    // After pulldown-cmark, patterns like `term<br />\n: definition` appear as
+    // literal text inside <li> or <p> tags. Convert them to proper <dl> elements.
+    let html_output = convert_definition_list_in_html(&html_output);
 
     // Issue 314: Use the global indent_lists flag so CommonMark sites
     // produce unindented <li> elements in the markdownify filter path too.
@@ -2462,6 +2472,134 @@ fn renest_leaked_paragraph_and_ol_into_bullet_item(html: &str) -> String {
     result
 }
 
+/// Issue 387: Re-nest leaked `<p>` text + continuation `<ul>` back into empty
+/// bullet `<li>` items and merge them into a single `<ul>`.
+///
+/// When `newline_to_br | markdownify` processes `- \nText A\n- \nText B`, pulldown-cmark
+/// produces separate `<ul><li><br /></li></ul><p>Text A<br /></p><ul><li><br /></li></ul>...`
+/// blocks. Jekyll/kramdown keeps these as a single `<ul>` with text inside each `<li>`.
+///
+/// This function identifies the "empty bullet" signature `<li><br />\n</li>\n</ul>` followed
+/// by `<p>TEXT<br /></p>`, and collapses consecutive occurrences into one `<ul>`.
+fn renest_leaked_paragraph_and_ul_into_bullet_item(html: &str) -> String {
+    let empty_bullet_sig = "<li><br />\n</li>\n</ul>";
+
+    // Short-circuit: must have the empty bullet marker
+    if !html.contains(empty_bullet_sig) {
+        return html.to_string();
+    }
+
+    let mut result = html.to_string();
+
+    loop {
+        // Look for the pattern: <ul>\n<li><br />\n</li>\n</ul>\n<p>TEXT<br /></p>
+        let empty_bullet_close = "<li><br />\n</li>\n</ul>\n<p>";
+        let pos = match result.find(empty_bullet_close) {
+            Some(p) => p,
+            None => break,
+        };
+
+        // Find the <ul> that opened this list -- look backwards from pos
+        let before = &result[..pos];
+        let ul_open = match before.rfind("<ul>") {
+            Some(p) => p,
+            None => break,
+        };
+
+        // Verify the <ul> contains only this one empty <li>
+        let between = &result[ul_open + 4..pos];
+        if !between.trim().is_empty() {
+            break;
+        }
+
+        let after_p_start = pos + empty_bullet_close.len();
+        let rest = &result[after_p_start..];
+
+        // Find the closing </p>
+        let p_close = match rest.find("</p>") {
+            Some(p) => p,
+            None => break,
+        };
+
+        let p_content = &rest[..p_close];
+
+        // The paragraph must end with <br /> (confirming newline_to_br origin)
+        if !p_content.trim_end().ends_with("<br />") {
+            break;
+        }
+
+        let after_p_close = &rest[p_close + 4..]; // skip "</p>"
+
+        // After </p>, check what follows:
+        // Case 1: \n<ul>\n<li><br />\n</li> -- another empty bullet (continuation)
+        // Case 2: \n (end of sequence, or something else)
+        // We only consume the <p>TEXT</p> part and check for continuation
+        let next_is_empty_bullet_ul = after_p_close.starts_with("\n<ul>\n<li><br />\n</li>\n</ul>");
+
+        // Determine how much to consume after </p>
+        let consume_end_abs = if next_is_empty_bullet_ul {
+            // Consume the </p>\n<ul>\n<li><br />\n</li>\n</ul>
+            // We'll merge: put text in first <li>, then let next iteration handle the rest
+            // Actually, just consume up to end of </p> and a trailing \n
+            let abs_p_close = after_p_start + p_close + 4; // position after </p>
+            if result[abs_p_close..].starts_with('\n') {
+                abs_p_close + 1
+            } else {
+                abs_p_close
+            }
+        } else {
+            // No continuation empty bullet -- consume </p> and trailing \n
+            let abs_p_close = after_p_start + p_close + 4;
+            if result[abs_p_close..].starts_with('\n') {
+                abs_p_close + 1
+            } else {
+                abs_p_close
+            }
+        };
+
+        let p_text = p_content.to_string();
+
+        // Build replacement:
+        // Original: <ul>\n<li><br />\n</li>\n</ul>\n<p>TEXT<br /></p>\n
+        // New:      <ul>\n<li><br />\nTEXT<br />\n</li>\n</ul>\n
+        // (If there's a continuation empty-bullet <ul>, the next loop iteration picks it up
+        //  because we leave it in place and our new </li>\n</ul>\n is followed by it)
+        let mut replacement = String::new();
+        replacement.push_str("<ul>\n<li><br />\n");
+        replacement.push_str(&p_text);
+        replacement.push_str("\n</li>\n</ul>\n");
+
+        let new_result = format!(
+            "{}{}{}",
+            &result[..ul_open],
+            replacement,
+            &result[consume_end_abs..]
+        );
+        result = new_result;
+    }
+
+    // Now merge consecutive <ul> blocks that resulted from the above transformation.
+    // Pattern: </li>\n</ul>\n<ul>\n<li> should become </li>\n<li>
+    // But ONLY when preceded by our transformed empty-bullet items.
+    // Use a targeted merge: </li>\n</ul>\n<ul>\n<li><br />\n
+    loop {
+        let merge_pattern = "</li>\n</ul>\n<ul>\n<li><br />\n";
+        let pos = match result.find(merge_pattern) {
+            Some(p) => p,
+            None => break,
+        };
+        // Replace with just </li>\n<li><br />\n (merge the two <ul> blocks)
+        let new_result = format!(
+            "{}</li>\n<li><br />\n{}",
+            &result[..pos],
+            &result[pos + merge_pattern.len()..]
+        );
+        result = new_result;
+    }
+
+    result
+}
+
 /// Issue 379: Merge consecutive same-type list elements into a single list.
 ///
 /// pulldown-cmark splits numbered lists with `<br />` between items into separate
@@ -2661,6 +2799,101 @@ fn renest_sibling_list_into_parent_li(html: &str) -> String {
         }
     }
 
+    result
+}
+
+/// Issue 386: Convert kramdown definition list patterns in HTML output.
+///
+/// After pulldown-cmark rendering, patterns like `term<br />\n: definition`
+/// appear as literal text inside `<li>` or `<p>` tags. This function detects
+/// the `<br />\n: ` marker and rewrites the containing element to use
+/// `<dl><dt><dd>` structure, matching kramdown/Jekyll behavior.
+///
+/// Only triggers when a line starts with `: ` (colon + space) after a `<br />`
+/// line break -- this is the exact kramdown definition list syntax.
+fn convert_definition_list_in_html(html: &str) -> String {
+    // Quick check: the pattern requires "<br />\n: " to be present
+    if !html.contains("<br />\n: ") {
+        return html.to_string();
+    }
+
+    let mut result = String::with_capacity(html.len() + 64);
+    let mut remaining = html;
+
+    while let Some(br_pos) = remaining.find("<br />\n: ") {
+        // Find the start of the containing element (<li> or <p>)
+        let before_br = &remaining[..br_pos];
+
+        // Look for the nearest opening <li> or <p> tag before this position
+        let li_start = before_br.rfind("<li>");
+        let p_start = before_br.rfind("<p>");
+
+        // Pick the closest opening tag
+        let (tag_name, tag_start) = match (li_start, p_start) {
+            (Some(li), Some(p)) => {
+                if li > p {
+                    ("li", li)
+                } else {
+                    ("p", p)
+                }
+            }
+            (Some(li), None) => ("li", li),
+            (None, Some(p)) => ("p", p),
+            (None, None) => {
+                // No containing element found; skip this occurrence
+                result.push_str(&remaining[..br_pos + "<br />\n: ".len()]);
+                remaining = &remaining[br_pos + "<br />\n: ".len()..];
+                continue;
+            }
+        };
+
+        // Make sure there's no intervening close tag between tag_start and br_pos
+        // that would mean this <br /> is in a different element
+        let close_tag = format!("</{tag_name}>");
+        let between = &remaining[tag_start..br_pos];
+        if between.contains(&close_tag) {
+            // The <br /> is not in the same element; skip
+            result.push_str(&remaining[..br_pos + "<br />\n: ".len()]);
+            remaining = &remaining[br_pos + "<br />\n: ".len()..];
+            continue;
+        }
+
+        // Extract the term: content between the opening tag and <br />
+        let open_tag_end = tag_start + format!("<{tag_name}>").len();
+        let term = remaining[open_tag_end..br_pos].trim();
+
+        // Find the end of the definition: up to the closing tag
+        let def_start = br_pos + "<br />\n: ".len();
+        let after_def = &remaining[def_start..];
+        let close_pos = match after_def.find(&close_tag) {
+            Some(p) => p,
+            None => {
+                // No closing tag; skip
+                result.push_str(&remaining[..def_start]);
+                remaining = &remaining[def_start..];
+                continue;
+            }
+        };
+
+        let definition = &after_def[..close_pos];
+
+        // Build the replacement: wrap in <dl><dt><dd>
+        // Keep the containing element (<li> or <p>) but replace its content
+        let open_tag = &remaining[tag_start..open_tag_end];
+        result.push_str(&remaining[..tag_start]);
+        result.push_str(open_tag);
+        result.push_str("\n<dl>\n  <dt>");
+        result.push_str(term);
+        result.push_str("<br /></dt>\n  <dd>");
+        result.push_str(definition);
+        result.push_str("</dd>\n</dl>\n");
+        result.push_str(&close_tag);
+
+        let consumed_end = def_start + close_pos + close_tag.len();
+        remaining = &remaining[consumed_end..];
+    }
+
+    result.push_str(remaining);
     result
 }
 
@@ -7735,6 +7968,125 @@ More text.
         assert!(
             html.contains("D\u{00e9}finition"),
             "Issue 382: Unicode definition preserved. Got: {html}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 387: text + continuation <ul> re-nesting
+    // ========================================================================
+
+    #[test]
+    fn test_issue387_text_and_continuation_ul_renesting() {
+        // Input simulates: "- \nManaging expectations is tricky...<br />\n- \nRegarding career..."
+        // After newline_to_br | markdownify, produces empty bullet <ul> + leaked <p> + continuation <ul>
+        let input = "- <br />\nManaging expectations is tricky...<br />\n- <br />\nRegarding career...<br />\n";
+        let html = markdown_to_html_for_filter(input);
+
+        // "Managing expectations" must be inside a <li>, not in a standalone <p>
+        assert!(
+            !html.contains("<p>Managing expectations"),
+            "Issue 387: 'Managing expectations' should NOT be in a standalone <p>. Got:\n{html}"
+        );
+        // "Regarding career" must be inside a <li>, not in a standalone <p>
+        assert!(
+            !html.contains("<p>Regarding career"),
+            "Issue 387: 'Regarding career' should NOT be in a standalone <p>. Got:\n{html}"
+        );
+        // Both texts should be inside <li> elements
+        assert!(
+            html.contains("Managing expectations"),
+            "Issue 387: 'Managing expectations' should be present. Got:\n{html}"
+        );
+        assert!(
+            html.contains("Regarding career"),
+            "Issue 387: 'Regarding career' should be present. Got:\n{html}"
+        );
+        // Should produce a single <ul>, not multiple
+        let ul_count = html.matches("<ul>").count();
+        assert_eq!(
+            ul_count, 1,
+            "Issue 387: Should have a single <ul>, not {ul_count}. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_issue387_chained_empty_bullet_continuations() {
+        // Simulates 3 consecutive "- \n" bullets with text between them
+        let input = "- <br />\nText A<br />\n- <br />\nText B<br />\n- <br />\nText C<br />\n";
+        let html = markdown_to_html_for_filter(input);
+
+        // All three texts should be in <li> items, not standalone <p>
+        for text in &["Text A", "Text B", "Text C"] {
+            assert!(
+                !html.contains(&format!("<p>{text}")),
+                "Issue 387: '{text}' should NOT be in a standalone <p>. Got:\n{html}"
+            );
+            assert!(
+                html.contains(text),
+                "Issue 387: '{text}' should be present. Got:\n{html}"
+            );
+        }
+        // Single <ul>
+        let ul_count = html.matches("<ul>").count();
+        assert_eq!(
+            ul_count, 1,
+            "Issue 387: Should have a single <ul> for chained bullets. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_issue387_regression_p_ul_not_preceded_by_empty_bullet() {
+        // Normal HTML: <p> + <ul> not preceded by empty bullet should be untouched
+        let input = "Some paragraph\n\n- normal item\n- another item\n";
+        let html = markdown_to_html_for_filter(input);
+
+        // Should have both <p> and <ul> as siblings (normal structure)
+        assert!(
+            html.contains("<p>Some paragraph</p>"),
+            "Issue 387 regression: paragraph should remain. Got:\n{html}"
+        );
+        assert!(
+            html.contains("<ul>"),
+            "Issue 387 regression: list should remain. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_issue387_regression_existing_377_ol_pattern_still_works() {
+        // Existing #377 pattern: empty bullet + <p> + <ol>
+        let input = "- <br />\nHere are a few tips<br />\n1. First<br />\n2. Second<br />\n3. Third<br />\n";
+        let html = markdown_to_html_for_filter(input);
+
+        // The <ol> must be nested inside the <li>
+        assert!(
+            !html.contains("<p>Here are a few tips"),
+            "Issue 387 regression (#377): 'Here are a few tips' should NOT be in standalone <p>. Got:\n{html}"
+        );
+        let ul_start = html.find("<ul>").unwrap();
+        let ul_end = html.find("</ul>").unwrap();
+        let ol_start = html.find("<ol>").unwrap();
+        assert!(
+            ol_start > ul_start && ol_start < ul_end,
+            "Issue 387 regression (#377): <ol> must be nested inside <ul>. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_issue387_regression_regular_ul_untouched() {
+        // Plain bullet list without empty-bullet signature
+        let input = "- item one\n- item two\n- item three\n";
+        let html = markdown_to_html_for_filter(input);
+
+        let li_count = html.matches("<li>").count();
+        assert_eq!(
+            li_count, 3,
+            "Issue 387 regression: should have 3 list items. Got:\n{html}"
+        );
+        // Single <ul>
+        let ul_count = html.matches("<ul>").count();
+        assert_eq!(
+            ul_count, 1,
+            "Issue 387 regression: should have 1 <ul>. Got:\n{html}"
         );
     }
 }
