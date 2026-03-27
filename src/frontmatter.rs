@@ -487,6 +487,9 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // to match Jekyll/kramdown behavior.
     let html_output = decode_pulldown_url_encoding(&html_output);
 
+    // Issue 384: Strip mailto: prefix from autolink display text
+    let html_output = strip_mailto_from_display_text(&html_output);
+
     // Issue 313: Restore non-ASCII characters in URLs
     let html_output = restore_non_ascii_in_urls(&html_output, &url_non_ascii_saved);
 
@@ -618,6 +621,8 @@ pub fn markdown_to_html_with_options(
     let html_output =
         restore_math_content_impl(&html_output, &math_saved, enable_smart_punctuation);
     let html_output = decode_pulldown_url_encoding(&html_output);
+    // Issue 384: Strip mailto: prefix from autolink display text
+    let html_output = strip_mailto_from_display_text(&html_output);
     // Issue 313: Restore non-ASCII characters in URLs
     let html_output = restore_non_ascii_in_urls(&html_output, &url_non_ascii_saved);
     // Issue 211: Fix smart quote directions to match kramdown
@@ -822,6 +827,8 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     let html_output = restore_consecutive_single_quotes(&html_output);
     let html_output = restore_math_content(&html_output, &math_saved);
     let html_output = decode_pulldown_url_encoding(&html_output);
+    // Issue 384: Strip mailto: prefix from autolink display text
+    let html_output = strip_mailto_from_display_text(&html_output);
     // Issue 313: Restore non-ASCII characters in URLs
     let html_output = restore_non_ascii_in_urls(&html_output, &url_non_ascii_saved);
     // Issue 211: Fix smart quote directions to match kramdown
@@ -1626,6 +1633,7 @@ fn decode_pulldown_url_encoding(html: &str) -> String {
 ///
 /// Decodes:
 /// - `]` (0x5D) back to literal `]` (pulldown-cmark encodes this)
+/// - `|` (0x7C) back to literal `|` (pulldown-cmark encodes this, issue 384)
 ///
 /// Preserves encoding for:
 /// - Non-ASCII bytes (> 0x7F) -- cannot distinguish pulldown-cmark encoding
@@ -1649,7 +1657,8 @@ fn decode_url_for_jekyll_compat(url: &str) -> String {
             if let (Some(h), Some(l)) = (hi, lo) {
                 let byte_val = (h << 4) | l;
                 // Decode ] (0x5D) which pulldown-cmark encodes.
-                if byte_val == b']' {
+                // Decode | (0x7C) which pulldown-cmark encodes (issue 384).
+                if byte_val == b']' || byte_val == b'|' {
                     decoded.push(byte_val);
                     i += 3;
                     continue;
@@ -1679,6 +1688,59 @@ fn hex_val(b: u8) -> Option<u8> {
         b'A'..=b'F' => Some(b - b'A' + 10),
         _ => None,
     }
+}
+
+/// Issue 384: Strip `mailto:` prefix from the display text of mailto autolinks.
+///
+/// Jekyll/kramdown strips the `mailto:` scheme prefix from autolink display text,
+/// but pulldown-cmark includes it. This post-processing step matches Jekyll behavior.
+///
+/// Transforms: `<a href="mailto:user@example.com">mailto:user@example.com</a>`
+/// Into:       `<a href="mailto:user@example.com">user@example.com</a>`
+fn strip_mailto_from_display_text(html: &str) -> String {
+    // Pattern: <a href="mailto:...">mailto:...</a>
+    // We need to find cases where display text starts with "mailto:" and strip it.
+    // Only strip when the href is also a mailto: link (autolink pattern).
+    if !html.contains("mailto:") {
+        return html.to_string();
+    }
+
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+
+    while !remaining.is_empty() {
+        // Look for <a href="mailto:
+        if let Some(pos) = remaining.find(r#"<a href="mailto:"#) {
+            result.push_str(&remaining[..pos]);
+            let tag_start = &remaining[pos..];
+
+            // Find the closing > of the opening <a> tag
+            if let Some(tag_end) = tag_start.find('>') {
+                let after_tag = &tag_start[tag_end + 1..];
+                // Check if display text starts with "mailto:"
+                if after_tag.starts_with("mailto:") {
+                    // Find the closing </a>
+                    if let Some(close_pos) = after_tag.find("</a>") {
+                        // Write the <a ...> tag as-is
+                        result.push_str(&tag_start[..tag_end + 1]);
+                        // Strip "mailto:" (7 chars) from display text
+                        result.push_str(&after_tag[7..close_pos]);
+                        result.push_str("</a>");
+                        remaining = &after_tag[close_pos + 4..];
+                        continue;
+                    }
+                }
+            }
+            // No match for the pattern, just copy the <a and move on
+            result.push_str(&tag_start[..1]);
+            remaining = &tag_start[1..];
+        } else {
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    result
 }
 
 /// Issue 294: Wrap bare http/https URLs in angle brackets so pulldown-cmark
@@ -2157,40 +2219,86 @@ fn renest_heading_after_list(html: &str) -> String {
             let close_li_list = format!("</li>\n</{list_tag}>\n<h");
             if let Some(pos) = result.find(&close_li_list) {
                 let after_list_close = pos + format!("</li>\n</{list_tag}>\n").len();
-                let heading_start = &result[after_list_close..];
 
-                // Find the end of the heading tag (e.g., </h1>\n or </h1> at end)
-                if let Some(heading_end_offset) = heading_start.find("</h") {
-                    let after_close_tag = &heading_start[heading_end_offset..];
-                    if let Some(gt_pos) = after_close_tag.find('>') {
-                        let full_heading_end = after_list_close + heading_end_offset + gt_pos + 1;
-                        let heading_html = &result[after_list_close..full_heading_end];
+                // Issue 385: Collect ALL consecutive block elements (<h>, <p>)
+                // that follow the list close, not just the first heading.
+                // In kramdown, when headings appear inside a list item, all
+                // subsequent block content until a non-block element (like <div>,
+                // another <ul>, or end of content) stays inside the <li>.
+                let mut consume_cursor = after_list_close;
+                let mut collected_elements = Vec::new();
 
-                        // Build the replacement: heading inside li, then close li and list
-                        let mut replacement = String::new();
-                        replacement.push_str("\n    ");
-                        replacement.push_str(heading_html);
-                        replacement.push_str("\n  </li>\n</");
-                        replacement.push_str(list_tag);
-                        replacement.push('>');
+                // First element must be a heading (already matched by pattern)
+                loop {
+                    let remaining = &result[consume_cursor..];
 
-                        // Check if there's a trailing newline after the heading
-                        let consume_end = if result[full_heading_end..].starts_with('\n') {
-                            full_heading_end + 1
-                        } else {
-                            full_heading_end
-                        };
+                    // Skip blank lines between block elements
+                    let trimmed = remaining.trim_start_matches('\n');
+                    let skipped_newlines = remaining.len() - trimmed.len();
+                    let check_pos = consume_cursor + skipped_newlines;
+                    let check_remaining = &result[check_pos..];
 
-                        let new_result = format!(
-                            "{}{}{}",
-                            &result[..pos],
-                            replacement,
-                            &result[consume_end..]
-                        );
-                        result = new_result;
-                        continue; // Check for more occurrences
+                    if check_remaining.starts_with("<h") {
+                        // Heading element: find its closing tag
+                        if let Some(close_offset) = check_remaining.find("</h") {
+                            let after_close = &check_remaining[close_offset..];
+                            if let Some(gt_pos) = after_close.find('>') {
+                                let element_end = check_pos + close_offset + gt_pos + 1;
+                                let element_html = &result[check_pos..element_end];
+                                collected_elements.push(element_html.to_string());
+                                consume_cursor = element_end;
+                                // Skip trailing newline
+                                if result[consume_cursor..].starts_with('\n') {
+                                    consume_cursor += 1;
+                                }
+                                continue;
+                            }
+                        }
+                        break;
+                    } else if check_remaining.starts_with("<p>")
+                        || check_remaining.starts_with("<p ")
+                    {
+                        // Paragraph element: find its closing tag
+                        if let Some(close_offset) = check_remaining.find("</p>") {
+                            let element_end = check_pos + close_offset + 4; // 4 = "</p>".len()
+                            let element_html = &result[check_pos..element_end];
+                            collected_elements.push(element_html.to_string());
+                            consume_cursor = element_end;
+                            // Skip trailing newline
+                            if result[consume_cursor..].starts_with('\n') {
+                                consume_cursor += 1;
+                            }
+                            continue;
+                        }
+                        break;
+                    } else {
+                        // Not a heading or paragraph -- stop collecting
+                        break;
                     }
                 }
+
+                if collected_elements.is_empty() {
+                    break;
+                }
+
+                // Build replacement: all collected elements inside li
+                let mut replacement = String::new();
+                for element in &collected_elements {
+                    replacement.push_str("\n    ");
+                    replacement.push_str(element);
+                }
+                replacement.push_str("\n  </li>\n</");
+                replacement.push_str(list_tag);
+                replacement.push('>');
+
+                let new_result = format!(
+                    "{}{}{}",
+                    &result[..pos],
+                    replacement,
+                    &result[consume_cursor..]
+                );
+                result = new_result;
+                continue; // Check for more occurrences
             }
             break;
         }
@@ -7073,46 +7181,53 @@ More text.
 
     #[test]
     fn test_issue373_renest_single_heading_after_list() {
-        // Direct test of renest_heading_after_list: a single heading after
-        // </li></ul> is moved back inside the <li>.
+        // Direct test of renest_heading_after_list: a heading and following <p>
+        // after </li></ul> are both moved back inside the <li>.
         let input_html =
             "<ul>\n<li>item text\n</li>\n</ul>\n<h3 id=\"user\">User:</h3>\n<p>next</p>";
         let result = renest_heading_after_list(input_html);
-        // The heading should be inside <li> now, before </li></ul>
+        // Issue 385: Both the heading and following <p> should be re-nested
+        // inside <li>, matching kramdown behavior.
         assert!(
-            result.contains("<h3 id=\"user\">User:</h3>\n  </li>\n</ul>"),
-            "Issue 373: Single heading should be re-nested inside <li>. Got:\n{result}"
+            result.contains("<h3 id=\"user\">User:</h3>"),
+            "Issue 373: Heading should be re-nested inside <li>. Got:\n{result}"
         );
-        // The <p> after the heading stays outside (matching kramdown)
         assert!(
-            result.contains("<p>next</p>"),
-            "Issue 373: Paragraph after heading should remain. Got:\n{result}"
+            result.contains("<p>next</p>\n  </li>\n</ul>"),
+            "Issue 385: <p> after heading should also be re-nested inside <li>. Got:\n{result}"
         );
     }
 
     #[test]
     fn test_issue373_renest_preserves_subsequent_elements() {
-        // renest_heading_after_list only moves the first heading into <li>.
-        // Subsequent <p>, <h3>, <div> stay outside, matching kramdown.
+        // Issue 385: renest_heading_after_list moves ALL consecutive <h> and <p>
+        // elements into <li>. Only non-heading/paragraph elements (<div>) stay outside.
         let input_html = "<ul>\n<li>item text\n</li>\n</ul>\n<h3 id=\"user\">User:</h3>\n<p>{}</p>\n<h3 id=\"assistant\">Assistant:</h3>\n<div>reply</div>";
         let result = renest_heading_after_list(input_html);
-        // First heading re-nested inside <li>
+        // All headings and paragraphs re-nested inside <li>
         assert!(
-            result.contains("<h3 id=\"user\">User:</h3>\n  </li>\n</ul>"),
+            result.contains("<h3 id=\"user\">User:</h3>"),
             "Issue 373: First heading should be inside <li>. Got:\n{result}"
         );
-        // Subsequent elements stay outside (matching kramdown behavior)
         assert!(
             result.contains("<p>{}</p>"),
-            "Issue 373: <p> should remain after list. Got:\n{result}"
+            "Issue 385: <p> between headings should be inside <li>. Got:\n{result}"
         );
         assert!(
-            result.contains("<h3 id=\"assistant\">"),
-            "Issue 373: Second heading should remain after list. Got:\n{result}"
+            result.contains("<h3 id=\"assistant\">Assistant:</h3>"),
+            "Issue 385: Second heading should be inside <li>. Got:\n{result}"
         );
+        // <div> stays outside -- it's not a heading or paragraph
         assert!(
-            result.contains("<div>reply</div>"),
-            "Issue 373: <div> should remain after list. Got:\n{result}"
+            result.contains("</ul>") && result.contains("<div>reply</div>"),
+            "Issue 373: <div> should remain after list close. Got:\n{result}"
+        );
+        // Verify <div> is AFTER </ul>, not inside <li>
+        let ul_close = result.find("</ul>").unwrap();
+        let div_pos = result.find("<div>reply</div>").unwrap();
+        assert!(
+            div_pos > ul_close,
+            "Issue 373: <div> should be after </ul>. Got:\n{result}"
         );
     }
 
@@ -7384,9 +7499,8 @@ More text.
     // Issue 382: mailto pipe encoding and definition list regression guards
     // -----------------------------------------------------------------------
 
-    /// Issue 382 Sub-B: mailto autolink with pipe in inline context should match Jekyll.
-    /// Both Jekyll and pulldown-cmark produce %7C in href and include mailto:
-    /// prefix in display text for this pattern. This is correct behavior.
+    /// Issue 382/384: mailto autolink with pipe in inline context should match Jekyll.
+    /// Jekyll uses literal `|` in href (not %7C) and strips `mailto:` from display text.
     #[test]
     fn test_issue382_mailto_pipe_matches_jekyll() {
         // In actual pages, the mailto is inline within a paragraph (after newline_to_br)
@@ -7394,30 +7508,133 @@ More text.
             "drop me an email: <mailto:denisekgosnell@gmail.com|denisekgosnell@gmail.com><br />\nLet\u{2019}s stay connected!",
         );
         eprintln!("=== test_issue382_mailto_pipe ===\n{html}");
-        // Jekyll cached output preserves %7C in href and includes mailto: in display
+        // Issue 384 Bug 1: href should contain literal | not %7C
         assert!(
-            html.contains("mailto:denisekgosnell@gmail.com"),
-            "Issue 382: mailto href should be present. Got: {html}"
+            html.contains(r#"href="mailto:denisekgosnell@gmail.com|denisekgosnell@gmail.com""#),
+            "Issue 384: mailto href should contain literal pipe, not %7C. Got: {html}"
         );
-        // Should be an autolink
+        // Issue 384 Bug 2: display text should NOT include mailto: prefix
         assert!(
-            html.contains("<a href="),
-            "Issue 382: mailto should produce an autolink. Got: {html}"
-        );
-        // The link href should contain the mailto address
-        assert!(
-            html.contains(r#"href="mailto:denisekgosnell@gmail.com"#),
-            "Issue 382: mailto href should start with mailto:. Got: {html}"
+            html.contains(">denisekgosnell@gmail.com|denisekgosnell@gmail.com</a>"),
+            "Issue 384: display text should not include mailto: prefix. Got: {html}"
         );
     }
 
     /// Issue 382 Sub-B: simple mailto without pipe (no pipe = no %7C issue).
+    /// Issue 384: display text should strip mailto: prefix.
     #[test]
     fn test_issue382_mailto_simple_preserved() {
         let html = markdown_to_html_for_filter("<mailto:user@example.com>");
         assert!(
             html.contains(r#"<a href="mailto:user@example.com">"#),
             "Issue 382: simple mailto should be preserved. Got: {html}"
+        );
+        // Issue 384: display text should NOT include mailto: prefix
+        assert!(
+            html.contains(">user@example.com</a>"),
+            "Issue 384: simple mailto display text should strip mailto: prefix. Got: {html}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // Issue 384: decode_url_for_jekyll_compat pipe decoding tests
+    // -----------------------------------------------------------------------
+
+    /// Issue 384: %7C in URL should be decoded to literal |
+    #[test]
+    fn test_issue384_decode_url_pipe() {
+        let result = decode_url_for_jekyll_compat("mailto:a@b.com%7Ca@b.com");
+        assert_eq!(result, "mailto:a@b.com|a@b.com");
+    }
+
+    /// Issue 384: %7C alongside %5D and %3E all decode correctly
+    #[test]
+    fn test_issue384_decode_url_pipe_with_others() {
+        let result = decode_url_for_jekyll_compat("http://example.com/%5D%7C%3E");
+        assert_eq!(result, "http://example.com/]|&gt;");
+    }
+
+    /// Issue 384: URL with no percent-encoding returns unchanged
+    #[test]
+    fn test_issue384_decode_url_no_encoding() {
+        let result = decode_url_for_jekyll_compat("http://example.com/page");
+        assert_eq!(result, "http://example.com/page");
+    }
+
+    /// Issue 384: %20 (space) should NOT be decoded
+    #[test]
+    fn test_issue384_decode_url_space_preserved() {
+        let result = decode_url_for_jekyll_compat("http://example.com/my%20page%7Ctest");
+        assert_eq!(result, "http://example.com/my%20page|test");
+    }
+
+    // -----------------------------------------------------------------------
+    // Issue 384: mailto display text stripping tests
+    // -----------------------------------------------------------------------
+
+    /// Issue 384: mailto display text with pipe should strip mailto: prefix
+    #[test]
+    fn test_issue384_strip_mailto_display_pipe() {
+        let input = r#"<a href="mailto:a@b.com|a@b.com">mailto:a@b.com|a@b.com</a>"#;
+        let result = strip_mailto_from_display_text(input);
+        assert_eq!(
+            result,
+            r#"<a href="mailto:a@b.com|a@b.com">a@b.com|a@b.com</a>"#
+        );
+    }
+
+    /// Issue 384: simple mailto display text should strip mailto: prefix
+    #[test]
+    fn test_issue384_strip_mailto_display_simple() {
+        let input = r#"<a href="mailto:user@example.com">mailto:user@example.com</a>"#;
+        let result = strip_mailto_from_display_text(input);
+        assert_eq!(
+            result,
+            r#"<a href="mailto:user@example.com">user@example.com</a>"#
+        );
+    }
+
+    /// Issue 384: non-mailto links should not be affected
+    #[test]
+    fn test_issue384_strip_mailto_display_non_mailto() {
+        let input = r#"<a href="http://example.com">http://example.com</a>"#;
+        let result = strip_mailto_from_display_text(input);
+        assert_eq!(result, input);
+    }
+
+    /// Issue 384: integration test - markdownify with mailto pipe in inline context
+    /// Uses the same inline context as the real DTC graph-data page (after newline_to_br)
+    #[test]
+    fn test_issue384_markdownify_mailto_pipe_integration() {
+        // Real page context: inline after text with <br />, which prevents table parsing
+        let html = markdown_to_html_for_filter(
+            "drop me an email: <mailto:denisekgosnell@gmail.com|denisekgosnell@gmail.com><br />\nMore text here",
+        );
+        eprintln!("=== test_issue384_integration ===\n{html}");
+        // href should contain literal pipe
+        assert!(
+            html.contains(r#"href="mailto:denisekgosnell@gmail.com|denisekgosnell@gmail.com""#),
+            "Issue 384: href should have literal pipe. Got: {html}"
+        );
+        // display text should NOT have mailto: prefix
+        assert!(
+            html.contains(">denisekgosnell@gmail.com|denisekgosnell@gmail.com</a>"),
+            "Issue 384: display should not have mailto: prefix. Got: {html}"
+        );
+    }
+
+    /// Issue 384: integration test - simple mailto autolink
+    #[test]
+    fn test_issue384_markdownify_simple_mailto_integration() {
+        let html = markdown_to_html_for_filter("<mailto:user@example.com>");
+        eprintln!("=== test_issue384_simple_mailto ===\n{html}");
+        assert!(
+            html.contains(r#"href="mailto:user@example.com""#),
+            "Issue 384: simple mailto href correct. Got: {html}"
+        );
+        assert!(
+            html.contains(">user@example.com</a>"),
+            "Issue 384: simple mailto display should strip mailto:. Got: {html}"
         );
     }
 
