@@ -20,3 +20,7 @@ Format:
 | 364 | `79b812d` | `780/790 matched, 10 files with differences, 230 total differences` |
 | 370 | `bd99515` | `780/790 matched, 10 files with differences, 230 total differences` |
 | 367+373 | `b184d05` | `781/790 matched, 9 files with differences, 224 total differences` |
+| 378+379 | `a2c1429` | `782/790 matched (old cache)` |
+| 381+382 | `a08886f` | `783/790 matched (old cache)` |
+| 384+385 | `8f5ba9f` | `786/790 matched, 4 files with differences, 338 total differences (new Jekyll cache)` |
+| 386+387 | `a7f64a5` | `786/790 matched (new cache baseline)` |
