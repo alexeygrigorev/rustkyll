@@ -451,6 +451,9 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
         html = postprocess_bash_wrap_bare_flags_after_continuation(&html);
         html = postprocess_bash_env_var_assignments(&html);
         html = postprocess_bash_flag_argument_scope(&html);
+        html = postprocess_bash_n_to_nv_uppercase(&html);
+        html = postprocess_bash_var_substitution(&html);
+        html = postprocess_bash_line_continuation_se(&html);
     }
 
     // SQL post-processing: Rouge wraps every token in SQL in a span.
@@ -1585,6 +1588,71 @@ fn find_var_end(bytes: &[u8]) -> Option<usize> {
     Some(bytes.len())
 }
 
+/// Post-process Bash highlighted HTML to remap `<span class="n">UPPER_CASE</span>`
+/// to `<span class="nv">UPPER_CASE</span>` for all-uppercase variable names.
+/// Only matches names that are all uppercase letters, digits, and underscores.
+fn postprocess_bash_n_to_nv_uppercase(html: &str) -> String {
+    let n_open = "<span class=\"n\">";
+    let nv_open = "<span class=\"nv\">";
+    let close_tag = "</span>";
+
+    let mut result = String::with_capacity(html.len() + 64);
+    let mut rest = html;
+
+    while let Some(pos) = rest.find(n_open) {
+        result.push_str(&rest[..pos]);
+        let after_open = &rest[pos + n_open.len()..];
+        if let Some(close_pos) = after_open.find(close_tag) {
+            let content = &after_open[..close_pos];
+            // Check if content is all uppercase + digits + underscores, starting with uppercase
+            if !content.is_empty()
+                && content.as_bytes()[0].is_ascii_uppercase()
+                && content
+                    .bytes()
+                    .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_')
+            {
+                result.push_str(nv_open);
+            } else {
+                result.push_str(n_open);
+            }
+            result.push_str(content);
+            result.push_str(close_tag);
+            rest = &after_open[close_pos + close_tag.len()..];
+        } else {
+            result.push_str(&rest[pos..]);
+            rest = "";
+        }
+    }
+    result.push_str(rest);
+    result
+}
+
+/// Post-process Bash highlighted HTML to remap `${` and `}` braces in
+/// variable substitutions from class `p` to class `k`, matching Rouge.
+/// Pattern: `<span class="p">${</span>...<span class="p">}</span>`
+fn postprocess_bash_var_substitution(html: &str) -> String {
+    // Remap <span class="p">${</span> to <span class="k">${</span>
+    let html = html.replace("<span class=\"p\">${</span>", "<span class=\"k\">${</span>");
+    // Remap the closing <span class="p">}</span> ONLY when it follows a </span>
+    // that ends a variable name span (to avoid remapping arbitrary `}` punctuation).
+    // Pattern: </span><span class="p">}</span>  ->  </span><span class="k">}</span>
+    html.replace(
+        "</span><span class=\"p\">}</span>",
+        "</span><span class=\"k\">}</span>",
+    )
+}
+
+/// Post-process Bash highlighted HTML to remap line continuation
+/// `<span class="p">\<newline></span>` to `<span class="se">\</span><newline>`.
+/// Rouge classifies the backslash as `se` (string escape) and keeps the newline
+/// outside the span.
+fn postprocess_bash_line_continuation_se(html: &str) -> String {
+    html.replace(
+        "<span class=\"p\">\\\n</span>",
+        "<span class=\"se\">\\</span>\n",
+    )
+}
+
 /// Post-process SQL highlighted HTML to wrap bare tokens in spans,
 /// matching Rouge's behavior where every token gets a span class.
 fn postprocess_sql_highlighting(html: &str) -> String {
@@ -2662,14 +2730,14 @@ mod tests {
     }
 
     #[test]
-    fn test_regression_bash_line_continuation_is_p() {
+    fn test_regression_bash_line_continuation_is_se() {
         // From blog/ml-deployment-lambda.html
-        // Single backslash + newline (line continuation) is `p` in Rouge.
+        // Single backslash + newline (line continuation) is `se` in Rouge/Jekyll.
         let code = "curl -XPOST http://example.com \\\n    -d '{\"data\":\".10\"}'\n";
         let html = highlight_code("bash", code).unwrap();
         assert!(
-            html.contains("<span class=\"p\">\\"),
-            "bash line continuation (single \\) should be p: {html}"
+            html.contains("<span class=\"se\">\\</span>"),
+            "bash line continuation (single \\) should be se: {html}"
         );
     }
 
@@ -4183,6 +4251,105 @@ u = df['user'].unique()\n";
         assert!(
             html.contains(r#"<span class="nt">--network</span><span class="o">=</span>pg-network"#),
             "Full bash highlight: --network should be nt and pg-network should be bare.\nActual: {html}"
+        );
+    }
+
+    // === Issue 414: Bash n -> nv for uppercase variable names ===
+
+    #[test]
+    fn test_issue414_bash_n_to_nv_uppercase_var() {
+        // In bash, <span class="n">DOCKER_IMAGE</span> should become <span class="nv">DOCKER_IMAGE</span>
+        let code = "echo ${DOCKER_IMAGE}\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains(r#"<span class="nv">DOCKER_IMAGE</span>"#),
+            "Uppercase var name should be nv, not n.\nActual: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue414_bash_n_to_nv_no_lowercase() {
+        // Lowercase names should NOT be remapped
+        let code = "echo ${filename}\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            !html.contains(r#"<span class="nv">filename</span>"#),
+            "Lowercase var name should NOT be remapped to nv.\nActual: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue414_bash_n_to_nv_mixed_case_no_remap() {
+        // Mixed case like DockerImage should NOT be remapped
+        let input = r#"<span class="n">DockerImage</span>"#;
+        let result = postprocess_bash_n_to_nv_uppercase(input);
+        assert!(
+            result.contains(r#"<span class="n">DockerImage</span>"#),
+            "Mixed-case name should NOT be remapped.\nActual: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue414_bash_n_to_nv_with_digits() {
+        let input = r#"<span class="n">AWS_REGION_2</span>"#;
+        let result = postprocess_bash_n_to_nv_uppercase(input);
+        assert!(
+            result.contains(r#"<span class="nv">AWS_REGION_2</span>"#),
+            "Uppercase var with digits should be nv.\nActual: {result}"
+        );
+    }
+
+    // === Issue 413: Bash ${VAR} substitution classes ===
+
+    #[test]
+    fn test_issue413_bash_var_substitution_braces() {
+        // Jekyll: <span class="k">${</span><span class="nv">DOCKER_IMAGE</span><span class="k">}</span>
+        // Rustkyll before fix: <span class="p">${</span><span class="n">DOCKER_IMAGE</span><span class="p">}</span>
+        let code = "docker build -t ${DOCKER_IMAGE} .\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains(r#"<span class="k">${</span>"#),
+            "${{ should have class k, not p.\nActual: {html}"
+        );
+        assert!(
+            html.contains(r#"<span class="k">}</span>"#),
+            "}} should have class k, not p.\nActual: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue413_bash_var_substitution_unit() {
+        let input = r#"<span class="p">${</span><span class="nv">DOCKER_IMAGE</span><span class="p">}</span>"#;
+        let result = postprocess_bash_var_substitution(input);
+        assert_eq!(
+            result,
+            r#"<span class="k">${</span><span class="nv">DOCKER_IMAGE</span><span class="k">}</span>"#,
+            "Should remap p to k for ${{}} braces.\nActual: {result}"
+        );
+    }
+
+    // === Issue 415: Bash line continuation -> se ===
+
+    #[test]
+    fn test_issue415_bash_line_continuation_is_se() {
+        // Jekyll: <span class="se">\</span>\n
+        // Rustkyll before fix: <span class="p">\<newline></span>
+        let code = "curl -XPOST http://example.com \\\n    -d 'data'\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains(r#"<span class="se">\</span>"#),
+            "Line continuation (single \\) should be se.\nActual: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue415_bash_line_continuation_unit() {
+        let input = "<span class=\"p\">\\\n</span>";
+        let result = postprocess_bash_line_continuation_se(input);
+        assert_eq!(
+            result,
+            "<span class=\"se\">\\</span>\n",
+            "Should remap p to se for line continuation and move newline outside.\nActual: {result}"
         );
     }
 }
