@@ -629,6 +629,8 @@ fn build_site(
     // Process all collections in parallel to maximize thread utilization.
     // Each collection's items are also processed in parallel internally (nested par_iter).
     // This avoids idle threads between sequential collection processing.
+    // Cache of rendered content for posts with Liquid tags (avoids redundant re-render for feed).
+    let rendered_content_cache: HashMap<String, String>;
     {
         use std::sync::Mutex;
 
@@ -700,11 +702,15 @@ fn build_site(
             }
         });
 
+        // Collect rendered content cache for feed optimization
+        let mut cache = HashMap::new();
         for result in results.into_inner().unwrap() {
             let result = result?;
             summary.collection_pages += result.generated;
             summary.errors.extend(result.errors);
+            cache.extend(result.rendered_content);
         }
+        rendered_content_cache = cache;
     }
 
     // 10. Generate standalone pages (avoid cloning: pass slice directly)
@@ -846,65 +852,16 @@ fn build_site(
     progress.phase_done(&format!("Copying static files... {} files", static_count));
     summary.timing.static_files = phase_start.elapsed();
 
-    // 12. Re-render post html_content through Liquid+markdown so feed entries
-    //     contain fully rendered HTML instead of raw Liquid tags.
-    // Re-render posts with Liquid tags in parallel for feed content.
+    // 12. Update post html_content with rendered content from generation cache.
+    // During generation, posts with Liquid tags had their content rendered through
+    // Liquid+markdown. The intermediate HTML was cached to avoid this redundant
+    // re-render step (which previously took ~0.14s for DTC).
     if let Some(posts) = collections.get_mut("posts") {
-        use rayon::prelude::*;
-        posts.par_iter_mut().for_each(|item| {
-            // Only re-render if the raw content contains Liquid tags
-            if item.content.contains("{{") || item.content.contains("{%") {
-                let mut page_fm = item.front_matter.clone();
-                page_fm
-                    .entry("url".to_string())
-                    .or_insert_with(|| serde_yaml::Value::String(item.url.clone()));
-                if !page_fm.contains_key("date") {
-                    if let Some(ref date) = item.date {
-                        page_fm.insert("date".to_string(), serde_yaml::Value::String(date.clone()));
-                    }
-                }
-
-                match layout_engine.render_markdown_content_with_cached_site(
-                    &item.content,
-                    &page_fm,
-                    &cached_site,
-                ) {
-                    Ok(rendered) => {
-                        item.html_content = rendered;
-                    }
-                    Err(e) => {
-                        eprintln!(
-                            "Warning: failed to render Liquid in post '{}': {}",
-                            item.source_path, e
-                        );
-                        item.html_content = strip_liquid_tags(&item.html_content);
-                    }
-                }
-            }
-        });
-    }
-
-    /// Strip raw Liquid tags from content so they don't leak into the feed.
-    /// Removes `{% ... %}` and `{{ ... }}` blocks.
-    fn strip_liquid_tags(content: &str) -> String {
-        let mut result = content.to_string();
-        // Remove {% ... %} blocks (including multiline)
-        while let Some(start) = result.find("{%") {
-            if let Some(end) = result[start..].find("%}") {
-                result.replace_range(start..start + end + 2, "");
-            } else {
-                break;
+        for item in posts.iter_mut() {
+            if let Some(rendered) = rendered_content_cache.get(&item.source_path) {
+                item.html_content = rendered.clone();
             }
         }
-        // Remove {{ ... }} blocks
-        while let Some(start) = result.find("{{") {
-            if let Some(end) = result[start..].find("}}") {
-                result.replace_range(start..start + end + 2, "");
-            } else {
-                break;
-            }
-        }
-        result
     }
 
     // 13. Generate sitemap.xml and feed.xml
