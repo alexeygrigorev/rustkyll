@@ -133,6 +133,7 @@ When the engineer applies fixes:
 ## When to Fail vs Pass
 
 ### Always fail
+- **DTC DOM regression** — if the DTC DOM count dropped below the issue's baseline, fail immediately. Use `bash scripts/recount-all-dom.sh --site DataTalksClub/datatalksclub.github.io` to verify (not manual dom_compare.py). This is the #1 blocker, regardless of which site the issue targets.
 - Missing tests
 - Tests fail
 - Core acceptance criteria not met

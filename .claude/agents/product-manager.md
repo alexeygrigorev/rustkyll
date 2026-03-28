@@ -120,6 +120,7 @@ You must explicitly list what is being descoped and why, and create the follow-u
 
 ### When to Reject
 
+- **DTC DOM regression** — if any change regressed the DTC DOM count below the issue's baseline, REJECT unconditionally. This applies to ALL issues, even those targeting other sites. DTC is the primary site and its DOM baseline is sacrosanct. Verify with `bash scripts/recount-all-dom.sh --site DataTalksClub/datatalksclub.github.io`.
 - Tests pass but don't actually validate the correctness of the output
 - Generated HTML is malformed, missing content, or has broken links
 - Engineer claims something works but the output shows otherwise
