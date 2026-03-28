@@ -29,3 +29,7 @@ Format:
 | 391+392 | `470840c` | `786/790 matched (kramdown parser prerequisites, no DOM change)` |
 | 393 | `e4fa468` | `786/790 matched (kramdown HTML tag detection, no DOM change)` |
 | 395 | `72d57f8` | `786/790 matched (H1 title auto-extraction, no DOM change)` |
+| 397 | `252aad3` | `786/790 matched (Liquid false==nil fix, choosealicense 72/72)` |
+| 396 | `0611865` | `786/790 matched (HTML attr newline normalization, mojombo 17/17)` |
+| 402 | `e044c52` | `786/790 matched (URL asterisk protection in markdownify, reliable-ML 17→2 diffs)` |
+| 364 | `0db0b97` | `787/790 matched, 3 files with differences (NLP transformers 3→0 diffs)` |
