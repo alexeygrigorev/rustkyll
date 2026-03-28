@@ -457,6 +457,7 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
         html = postprocess_bash_var_eq_unwrap_s(&html);
         html = postprocess_bash_angle_bracket_placeholders(&html);
         html = postprocess_bash_json_braces(&html);
+        html = postprocess_bash_json_string_escapes(&html);
     }
 
     // SQL post-processing: Rouge wraps every token in SQL in a span.
@@ -1804,6 +1805,68 @@ fn postprocess_bash_json_braces(html: &str) -> String {
         } else {
             result.push(bytes[i] as char);
             i += 1;
+        }
+    }
+    result
+}
+
+/// Post-process bash s2 spans to split `\"` escape sequences into separate
+/// `<span class="se">` spans, matching Jekyll/Rouge tokenization.
+///
+/// Rouge breaks `"{\"prediction\": \"1\"}"` into alternating spans:
+///   `<span class="s2">"{</span><span class="se">\"</span><span class="s2">prediction</span>...`
+///
+/// Syntect keeps the entire string as one `<span class="s2">` span.
+/// This function splits any `s2` span containing `\"` into the Rouge pattern.
+fn postprocess_bash_json_string_escapes(html: &str) -> String {
+    let s2_open = "<span class=\"s2\">";
+    let span_close = "</span>";
+    let mut result = String::with_capacity(html.len() + html.len() / 8);
+    let mut remaining = html;
+
+    while !remaining.is_empty() {
+        // Find next s2 span
+        if let Some(start) = remaining.find(s2_open) {
+            // Copy everything before this span
+            result.push_str(&remaining[..start]);
+            let after_open = &remaining[start + s2_open.len()..];
+
+            // Find the closing </span>
+            if let Some(close_pos) = after_open.find(span_close) {
+                let content = &after_open[..close_pos];
+
+                // Only process if content contains \"
+                if content.contains("\\\"") {
+                    // Split content at each \" and emit alternating s2/se spans
+                    let parts: Vec<&str> = content.split("\\\"").collect();
+                    for (i, part) in parts.iter().enumerate() {
+                        if !part.is_empty() {
+                            result.push_str(s2_open);
+                            result.push_str(part);
+                            result.push_str(span_close);
+                        }
+                        // Emit se span for \" between parts (not after last)
+                        if i < parts.len() - 1 {
+                            result.push_str("<span class=\"se\">\\\"</span>");
+                        }
+                    }
+                } else {
+                    // No escapes; emit unchanged
+                    result.push_str(s2_open);
+                    result.push_str(content);
+                    result.push_str(span_close);
+                }
+
+                remaining = &after_open[close_pos + span_close.len()..];
+            } else {
+                // No closing tag found; emit as-is
+                result.push_str(&remaining[start..]);
+                break;
+            }
+        } else {
+            // No more s2 spans
+            result.push_str(remaining);
+            break;
         }
     }
     result
@@ -4752,5 +4815,65 @@ u = df['user'].unique()\n";
         let input = r#"<span class="nv">$ </span>echo hello"#;
         let result = postprocess_bash_json_braces(input);
         assert_eq!(result, input, "Input without braces should be unchanged");
+    }
+
+    #[test]
+    fn test_issue420_bash_json_string_escape_tokenization() {
+        // Jekyll/Rouge splits \" escape sequences inside bash double-quoted strings
+        // into separate <span class="se"> spans, with surrounding text in <span class="s2">.
+        // Input bash code: {"statusCode": 200, "body": "{\"prediction\": \"1\"}"}
+        let code = "{\"statusCode\": 200, \"body\": \"{\\\"prediction\\\": \\\"1\\\"}\"}\n";
+        let html = highlight_code("bash", code).unwrap();
+
+        // The inner string "{\"prediction\": \"1\"}" should be split into
+        // alternating s2 and se spans, matching Jekyll/Rouge output:
+        // <span class="s2">"{</span><span class="se">\"</span><span class="s2">prediction</span>
+        // <span class="se">\"</span><span class="s2">: </span><span class="se">\"</span>
+        // <span class="s2">1</span><span class="se">\"</span><span class="s2">}"</span>
+        assert!(
+            html.contains(r#"<span class="se">\"</span>"#),
+            "escaped quotes in bash strings should be split into se spans: {html}"
+        );
+        assert!(
+            html.contains(r#"<span class="s2">prediction</span>"#),
+            "text between escapes should stay in s2 spans: {html}"
+        );
+        // The outer strings without escapes should remain unchanged
+        assert!(
+            html.contains(r#"<span class="s2">"statusCode"</span>"#),
+            "strings without escapes should remain as s2: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue420_bash_string_no_escape_unchanged() {
+        // Bash strings without escape sequences should not be modified
+        let code = "echo \"hello world\"\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains(r#"<span class="s2">"hello world"</span>"#),
+            "strings without escapes should be unchanged: {html}"
+        );
+        assert!(
+            !html.contains(r#"<span class="se">"#),
+            "no se spans should appear for non-escaped strings: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue420_bash_simple_json_output() {
+        // Simple JSON without escapes: {"prediction": 1}
+        let code = "{\"prediction\": 1}\n";
+        let html = highlight_code("bash", code).unwrap();
+        // No escape sequences, so no se spans
+        assert!(
+            !html.contains(r#"<span class="se">"#),
+            "no se spans for simple JSON: {html}"
+        );
+        // Braces should be wrapped as operators (from issue 419)
+        assert!(
+            html.contains(r#"<span class="o">{</span>"#),
+            "braces should be operator spans: {html}"
+        );
     }
 }
