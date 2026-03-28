@@ -4639,6 +4639,7 @@ fn wrap_bare_text_in_paragraphs(html: &str) -> String {
         "dd",
         "dt",
         "script",
+        "iframe", // Issue 449: iframe is a container block element
     ];
 
     /// Block-level tags (includes void/self-closing like hr).
@@ -4680,6 +4681,8 @@ fn wrap_bare_text_in_paragraphs(html: &str) -> String {
         "dt",
         "p",
         "script",
+        "iframe", // Issue 449: iframe is block-level
+        "img",    // Issue 449: standalone img is block-level
     ];
 
     let lines: Vec<&str> = html.split('\n').collect();
@@ -13993,6 +13996,88 @@ by <a href="/people/author.html">Author Name</a>
             result.contains("\u{0417}\u{0430}\u{0433}"),
             "Unicode table content should be preserved. Got: {}",
             result
+        );
+    }
+
+    // Issue 449: Unwrap block-level elements (iframe, img) from <p> tags
+    #[test]
+    fn test_unwrap_iframe_from_p_tag() {
+        let input = r#"
+<iframe width="240" height="140" src="https://www.youtube.com/embed/test" frameborder="0" allowfullscreen></iframe>
+
+Some text after.
+"#;
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<p><iframe"),
+            "iframe should not be wrapped in <p> tags. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<iframe width="),
+            "iframe should be present in output. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_unwrap_img_with_style_from_p_tag() {
+        let input = r#"
+<img src="https://example.com/photo.jpg" alt="Photo" style="max-height: 20em; display: block;">
+
+Some text after.
+"#;
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<p><img"),
+            "standalone img with style should not be wrapped in <p> tags. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<img src="),
+            "img should be present in output. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_markdown_img_stays_in_p_tag() {
+        // Markdown image syntax should remain wrapped in <p>
+        let input = "![Photo](/images/photo.jpg)\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<p><img"),
+            "markdown image syntax should stay wrapped in <p>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_unwrap_img_with_width_from_p_tag() {
+        let input = r#"
+<img src="https://example.com/photo.gif" alt="Animation" width="100%">
+
+Some text after.
+"#;
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<p><img"),
+            "standalone img with width should not be wrapped in <p> tags. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_unwrap_does_not_affect_img_inside_link() {
+        // <p><a><img></a></p> should stay as-is (the <p> wraps the <a>, not just <img>)
+        let input = r#"
+<p><a href="big.jpg"><img src="thumb.jpg" alt="photo"></a></p>
+"#;
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<p><a href="),
+            "p wrapping a link+img should be preserved. Got: {}",
+            html
         );
     }
 }
