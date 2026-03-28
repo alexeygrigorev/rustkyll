@@ -71,7 +71,8 @@ Verify:
   ```
 - [ ] Compare the DOM match count against the **baseline recorded in the issue file** (not the SWE's reported number)
 - [ ] If the issue targets a specific site, also build and compare that site
-- [ ] Report DOM match counts in QA log (e.g., "DTC: 764/790, baseline was 764, no regression")
+- [ ] DTC DOM must be **790/790 with 0 total diffs** (100% match). Any drop is an automatic FAIL.
+- [ ] Report DOM match counts in QA log (e.g., "DTC: 790/790, 0 diffs, no regression")
 - [ ] If DOM count drops below the issue's baseline, FAIL immediately — this is a regression
 - [ ] Do NOT trust the SWE's reported DOM numbers — always verify independently
 - [ ] If a candidate fix improves the target page but regresses the repo-wide DOM baseline, FAIL the issue, require the regressive code to be reverted, and require the issue log to capture the hypothesis, target-page improvement, and repo-wide regression numbers. Do not treat that state as closure.

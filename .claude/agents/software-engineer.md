@@ -91,7 +91,7 @@ IMPORTANT: You must compare against the **baseline DOM count specified in the is
 uv run scripts/dom_compare.py --jekyll-dir websites/DataTalksClub/datatalksclub.github.io/_site_jekyll_cached --rustkyll-dir /tmp/dtc_swe_check 2>&1 | tail -1
 ```
 
-- DTC DOM match count must NOT decrease from the baseline in the issue file
+- DTC DOM must be **790/790 with 0 total diffs** (100% match). Any drop is an automatic failure — fix the regression before reporting done.
 - If targeting a specific site, also check that site
 - Report DOM counts in your log
 - If the count drops below baseline, DO NOT report the task as done — fix the regression first
