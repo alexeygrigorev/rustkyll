@@ -227,7 +227,10 @@ pub fn build_site_context(
     // on repository_url without listing any plugin or github config.
     let is_github_pages = site_dir
         .map(|d| {
-            d.file_name()
+            // Canonicalize to resolve "." to the actual directory name
+            let resolved = d.canonicalize().unwrap_or_else(|_| d.to_path_buf());
+            resolved
+                .file_name()
                 .map(|n| n.to_string_lossy().ends_with(".github.io"))
                 .unwrap_or(false)
         })
