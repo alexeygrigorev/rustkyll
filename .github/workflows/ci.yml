@@ -66,14 +66,13 @@ jobs:
 
       - name: Clone DTC site (shallow)
         run: |
-          git clone --depth 1 https://github.com/DataTalksClub/datatalksclub.github.io.git \
-            dtc-site
+          git clone --depth 1 https://github.com/DataTalksClub/datatalksclub.github.io.git
 
       - name: Cache Ruby gems
         uses: actions/cache@v4
         with:
           path: vendor/bundle
-          key: ${{ runner.os }}-gems-dtc-${{ hashFiles('dtc-site/Gemfile.lock') }}
+          key: ${{ runner.os }}-gems-dtc-${{ hashFiles('datatalksclub.github.io/Gemfile.lock') }}
           restore-keys: |
             ${{ runner.os }}-gems-dtc-
 
@@ -82,13 +81,13 @@ jobs:
 
       - name: Bundle install for DTC site
         run: |
-          cd dtc-site
+          cd datatalksclub.github.io
           bundle config set --local path '${{ github.workspace }}/vendor/bundle'
           bundle install --jobs 4 --retry 3
 
       - name: Build DTC with Jekyll
         run: |
-          cd dtc-site
+          cd datatalksclub.github.io
           bundle exec jekyll build
 
       - name: Build rustkyll (release)
@@ -96,7 +95,7 @@ jobs:
 
       - name: Build DTC with rustkyll
         run: |
-          cd dtc-site
+          cd datatalksclub.github.io
           ../target/release/rustkyll build --destination ../dtc-rustkyll-output
 
       - name: Install uv
@@ -105,7 +104,7 @@ jobs:
       - name: Run DOM comparison
         run: |
           uv run scripts/dom_compare.py \
-            --jekyll-dir dtc-site/_site \
+            --jekyll-dir datatalksclub.github.io/_site \
             --rustkyll-dir dtc-rustkyll-output \
             --output dom-report.txt \
             2>&1 | tee dom-output.txt
