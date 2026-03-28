@@ -745,6 +745,116 @@ impl LayoutEngine {
         })
     }
 
+    /// Like `render_markdown_page_with_cached_site` but also returns the
+    /// intermediate HTML content (post-Liquid, post-markdown, pre-layout).
+    /// This allows callers to cache the rendered content for reuse in feeds
+    /// without redundant Liquid+markdown re-processing.
+    ///
+    /// Returns `(layout_wrapped_html, intermediate_html_content)`.
+    pub fn render_markdown_page_with_content_capture(
+        &self,
+        layout_name: &str,
+        raw_content: &str,
+        page_front_matter: &FrontMatter,
+        cached_site: &CachedSiteContext,
+    ) -> Result<(String, String), TemplateError> {
+        let page_obj = build_page_object(page_front_matter);
+        let (after_liquid, page_obj) = if raw_content.contains("{{") || raw_content.contains("{%") {
+            let page_ctx = build_render_context_from_page_object("", page_obj.clone());
+            let rendered = self.engine.parse_and_render_with_cached_site(
+                raw_content,
+                &page_ctx,
+                cached_site,
+            )?;
+            (rendered, page_obj)
+        } else {
+            (raw_content.to_string(), page_obj)
+        };
+
+        let dedented = crate::frontmatter::dedent_html_lines(&after_liquid);
+        let marked = crate::kramdown::mark_existing_html_headings(&dedented);
+        let collapsed = crate::kramdown::collapse_blank_lines_in_html_blocks(&marked);
+        let html_content = crate::frontmatter::markdown_to_html_with_options(
+            &collapsed,
+            self.use_kramdown_code_classes,
+            self.use_kramdown_code_classes,
+            self.enable_hardbreaks,
+            self.enable_autolink,
+        );
+        let html_content = crate::kramdown::remove_heading_markers(&html_content);
+
+        // Save the intermediate content for feed reuse
+        let intermediate = html_content.clone();
+
+        let result = self.render_with_cached_site_prebuilt(
+            layout_name,
+            &html_content,
+            page_obj,
+            cached_site,
+        )?;
+        let normalized = crate::kramdown::normalize_html_output_owned(result);
+        let final_html = if self.enable_hardbreaks {
+            crate::frontmatter::normalize_br_to_html5(&normalized)
+        } else {
+            normalized
+        };
+        Ok((final_html, intermediate))
+    }
+
+    /// Like `render_markdown_page_with_site_overrides` but also returns the
+    /// intermediate HTML content for feed caching.
+    pub fn render_markdown_page_with_site_overrides_and_capture(
+        &self,
+        layout_name: &str,
+        raw_content: &str,
+        page_front_matter: &FrontMatter,
+        cached_site: &CachedSiteContext,
+        site_overrides: &HashMap<String, super::engine::LenientValue>,
+    ) -> Result<(String, String), TemplateError> {
+        let page_obj = build_page_object(page_front_matter);
+        let (after_liquid, page_obj) = if raw_content.contains("{{") || raw_content.contains("{%") {
+            let page_ctx = build_render_context_from_page_object("", page_obj.clone());
+            let rendered = self.engine.parse_and_render_with_site_overrides(
+                raw_content,
+                &page_ctx,
+                cached_site,
+                site_overrides,
+            )?;
+            (rendered, page_obj)
+        } else {
+            (raw_content.to_string(), page_obj)
+        };
+
+        let dedented = crate::frontmatter::dedent_html_lines(&after_liquid);
+        let marked = crate::kramdown::mark_existing_html_headings(&dedented);
+        let collapsed = crate::kramdown::collapse_blank_lines_in_html_blocks(&marked);
+        let html_content = crate::frontmatter::markdown_to_html_with_options(
+            &collapsed,
+            self.use_kramdown_code_classes,
+            self.use_kramdown_code_classes,
+            self.enable_hardbreaks,
+            self.enable_autolink,
+        );
+        let html_content = crate::kramdown::remove_heading_markers(&html_content);
+
+        let intermediate = html_content.clone();
+
+        let result = self.render_with_prebuilt_page(
+            layout_name,
+            &html_content,
+            page_obj,
+            cached_site,
+            site_overrides,
+        )?;
+        let normalized = crate::kramdown::normalize_html_output_owned(result);
+        let final_html = if self.enable_hardbreaks {
+            crate::frontmatter::normalize_br_to_html5(&normalized)
+        } else {
+            normalized
+        };
+        Ok((final_html, intermediate))
+    }
+
     /// Render raw (non-markdown) content through the Liquid engine WITHOUT
     /// wrapping in any layout. Used for files like `podcast.xml` that have
     /// `layout: null` in their front matter -- they contain Liquid tags that
@@ -3990,6 +4100,112 @@ mod tests {
             result.contains("base:nav=false"),
             "Base layout should see nav_enabled=false, got: {}",
             result
+        );
+    }
+
+    // ========================================================================
+    // Performance: content capture for feed optimization
+    // ========================================================================
+
+    #[test]
+    fn test_render_markdown_page_with_content_capture() {
+        // Verify that render_markdown_page_with_content_capture returns both
+        // the layout-wrapped HTML and the intermediate markdown-rendered content.
+        // The intermediate content should match what render_markdown_content_with_cached_site produces.
+        let layouts = {
+            let mut map = HashMap::new();
+            map.insert(
+                "post".to_string(),
+                Layout {
+                    source: "<article>{{ content }}</article>".to_string(),
+                    parent_layout: None,
+                    front_matter: HashMap::new(),
+                },
+            );
+            map
+        };
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+        let cached_site = crate::template::engine::CachedSiteContext::new(&liquid::Object::new());
+
+        let raw_md = "# Hello\n\nThis is a **test** post.";
+        let mut fm = HashMap::new();
+        fm.insert(
+            "title".to_string(),
+            serde_yaml::Value::String("Test".to_string()),
+        );
+
+        // Get the capture result
+        let (final_html, intermediate) = engine
+            .render_markdown_page_with_content_capture("post", raw_md, &fm, &cached_site)
+            .unwrap();
+
+        // The intermediate should contain rendered markdown (no layout)
+        assert!(
+            intermediate.contains("<h1"),
+            "Intermediate should contain rendered heading, got: {}",
+            intermediate
+        );
+        assert!(
+            intermediate.contains("<strong>test</strong>"),
+            "Intermediate should contain bold text, got: {}",
+            intermediate
+        );
+
+        // The final HTML should wrap in the layout
+        assert!(
+            final_html.contains("<article>"),
+            "Final HTML should contain layout wrapper, got: {}",
+            final_html
+        );
+        assert!(
+            final_html.contains("<h1"),
+            "Final HTML should contain heading inside layout, got: {}",
+            final_html
+        );
+    }
+
+    #[test]
+    fn test_content_capture_matches_content_only_render() {
+        // Verify that the intermediate content from capture matches what
+        // render_markdown_content_with_cached_site produces.
+        let layouts = {
+            let mut map = HashMap::new();
+            map.insert(
+                "post".to_string(),
+                Layout {
+                    source: "<div>{{ content }}</div>".to_string(),
+                    parent_layout: None,
+                    front_matter: HashMap::new(),
+                },
+            );
+            map
+        };
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+        let cached_site = crate::template::engine::CachedSiteContext::new(&liquid::Object::new());
+
+        let raw_md = "Some *italic* and **bold** text.\n\n- item 1\n- item 2";
+        let mut fm = HashMap::new();
+        fm.insert(
+            "title".to_string(),
+            serde_yaml::Value::String("Test".to_string()),
+        );
+
+        // Get capture result
+        let (_final_html, intermediate) = engine
+            .render_markdown_page_with_content_capture("post", raw_md, &fm, &cached_site)
+            .unwrap();
+
+        // Get content-only result (what the feed re-render used to produce)
+        let content_only = engine
+            .render_markdown_content_with_cached_site(raw_md, &fm, &cached_site)
+            .unwrap();
+
+        // They should match
+        assert_eq!(
+            intermediate, content_only,
+            "Capture intermediate should match content-only render"
         );
     }
 }
