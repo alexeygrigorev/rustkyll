@@ -448,6 +448,7 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
         html = postprocess_bash_local(&html);
         html = postprocess_bash_split_merged_nt_flags(&html);
         html = postprocess_bash_wrap_bare_flags_after_continuation(&html);
+        html = postprocess_bash_env_var_assignments(&html);
     }
 
     // SQL post-processing: Rouge wraps every token in SQL in a span.
@@ -1312,6 +1313,132 @@ fn wrap_flags_in_text(text: &str) -> String {
         chars.next();
     }
     result
+}
+
+/// Post-process Bash highlighted HTML to wrap bare `UPPER_CASE_VAR=` patterns
+/// with `<span class="nv">VAR</span><span class="o">=</span>`, and bare `-e` flags
+/// preceding them with `<span class="nt">-e</span>`.
+///
+/// This matches Rouge/Jekyll behavior for `docker run -e VAR="val"` patterns.
+fn postprocess_bash_env_var_assignments(html: &str) -> String {
+    let mut result = String::with_capacity(html.len() + 128);
+    let mut rest = html;
+
+    while !rest.is_empty() {
+        // Skip over existing <span>...</span> regions
+        if rest.starts_with("<span") {
+            if let Some(close) = rest.find("</span>") {
+                let end = close + "</span>".len();
+                result.push_str(&rest[..end]);
+                rest = &rest[end..];
+                continue;
+            } else {
+                // Unclosed span, push everything
+                result.push_str(rest);
+                break;
+            }
+        }
+
+        // Find the next span tag
+        let next_span = rest.find("<span");
+        let bare_end = next_span.unwrap_or(rest.len());
+        let bare_text = &rest[..bare_end];
+
+        // Process bare text for VAR= patterns (with optional -e prefix)
+        result.push_str(&wrap_env_var_assignments(bare_text));
+
+        rest = &rest[bare_end..];
+    }
+
+    result
+}
+
+/// In a bare text segment (no HTML tags), find and wrap:
+/// - `-e VAR=` -> `<span class="nt">-e</span> <span class="nv">VAR</span><span class="o">=</span>`
+/// - standalone `VAR=` -> `<span class="nv">VAR</span><span class="o">=</span>`
+///
+/// Only matches uppercase variable names: `[A-Z][A-Z0-9_]*=`
+fn wrap_env_var_assignments(text: &str) -> String {
+    let mut result = String::with_capacity(text.len() + 64);
+    let mut search_from = 0;
+    let bytes = text.as_bytes();
+
+    while search_from < bytes.len() {
+        // Look for uppercase letter that could start a variable name
+        if let Some(rel_pos) = find_uppercase_start(&bytes[search_from..]) {
+            let var_start = search_from + rel_pos;
+
+            // Find the end of the uppercase var name (must end with =)
+            if let Some(var_end) = find_var_end(&bytes[var_start..]) {
+                let abs_var_end = var_start + var_end;
+                // Verify it ends with = (the byte at var_end is =)
+                if abs_var_end < bytes.len() && bytes[abs_var_end] == b'=' {
+                    let var_name = &text[var_start..abs_var_end];
+
+                    // Check if preceded by "-e " and wrap that too
+                    let emit_start = if var_start >= 3 && &text[var_start - 3..var_start] == "-e " {
+                        // Check the -e is not already inside a span (look for > before -e)
+                        let e_start = var_start - 3;
+                        let before_e = &text[search_from..e_start];
+                        result.push_str(before_e);
+                        result.push_str("<span class=\"nt\">-e</span> ");
+                        abs_var_end
+                    } else {
+                        result.push_str(&text[search_from..var_start]);
+                        abs_var_end
+                    };
+
+                    result.push_str("<span class=\"nv\">");
+                    result.push_str(var_name);
+                    result.push_str("</span><span class=\"o\">=</span>");
+                    search_from = emit_start + 1; // skip past the =
+                    let _ = emit_start; // suppress warning
+                    continue;
+                }
+            }
+        }
+
+        // No more patterns found in remaining text
+        result.push_str(&text[search_from..]);
+        break;
+    }
+
+    result
+}
+
+/// Find the first uppercase ASCII letter in a byte slice, returning its offset.
+/// Only matches positions that are at a word boundary (preceded by whitespace,
+/// start of string, or `>`).
+fn find_uppercase_start(bytes: &[u8]) -> Option<usize> {
+    for (i, &b) in bytes.iter().enumerate() {
+        if b.is_ascii_uppercase() {
+            // Check word boundary
+            let at_boundary = i == 0
+                || bytes[i - 1] == b' '
+                || bytes[i - 1] == b'\n'
+                || bytes[i - 1] == b'\t'
+                || bytes[i - 1] == b'>';
+            if at_boundary {
+                return Some(i);
+            }
+        }
+    }
+    None
+}
+
+/// Starting from an uppercase letter, find the end of a `[A-Z][A-Z0-9_]*` sequence.
+/// Returns the offset of the first non-matching character. The caller checks if
+/// that character is `=`.
+fn find_var_end(bytes: &[u8]) -> Option<usize> {
+    if bytes.is_empty() || !bytes[0].is_ascii_uppercase() {
+        return None;
+    }
+    for (i, &b) in bytes.iter().enumerate().skip(1) {
+        if !(b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_') {
+            return Some(i);
+        }
+    }
+    Some(bytes.len())
 }
 
 /// Post-process SQL highlighted HTML to wrap bare tokens in spans,
@@ -3669,6 +3796,101 @@ u = df['user'].unique()\n";
         assert!(
             html.contains("<span class="),
             "Java with Unicode string should produce highlighted output: {html}"
+        );
+    }
+
+    // ── Issue 407: Bash env var assignment highlighting ──
+
+    #[test]
+    fn test_issue407_bash_env_var_assignment_nv_o() {
+        // Simulate what syntect produces: bare VAR= followed by an s2 string span
+        let input = "  -e POSTGRES_USER=<span class=\"s2\">\"root\"</span>";
+        let result = postprocess_bash_env_var_assignments(input);
+        assert!(
+            result.contains("<span class=\"nv\">POSTGRES_USER</span><span class=\"o\">=</span><span class=\"s2\">\"root\"</span>"),
+            "Bare UPPER_CASE_VAR= should be wrapped with nv and o spans.\nActual: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue407_bash_env_var_with_e_flag() {
+        // Full pattern: -e FLAG followed by VAR=
+        let input = "  -e POSTGRES_USER=<span class=\"s2\">\"root\"</span> <span class=\"se\">\\\\</span>\n  -e POSTGRES_PASSWORD=<span class=\"s2\">\"root\"</span>";
+        let result = postprocess_bash_env_var_assignments(input);
+        assert!(
+            result.contains("<span class=\"nv\">POSTGRES_USER</span><span class=\"o\">=</span>"),
+            "First VAR= should be wrapped.\nActual: {result}"
+        );
+        assert!(
+            result
+                .contains("<span class=\"nv\">POSTGRES_PASSWORD</span><span class=\"o\">=</span>"),
+            "Second VAR= should be wrapped.\nActual: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue407_already_wrapped_not_doubled() {
+        let input = "<span class=\"nv\">POSTGRES_USER</span><span class=\"o\">=</span><span class=\"s2\">\"root\"</span>";
+        let result = postprocess_bash_env_var_assignments(input);
+        assert_eq!(
+            result, input,
+            "Already-wrapped variables should not be double-wrapped."
+        );
+    }
+
+    #[test]
+    fn test_issue407_lowercase_not_matched() {
+        let input = "  foo=bar";
+        let result = postprocess_bash_env_var_assignments(input);
+        assert_eq!(
+            result, input,
+            "Lowercase variable names should not be wrapped."
+        );
+    }
+
+    #[test]
+    fn test_issue407_unicode_value() {
+        let input = "  -e MY_VAR=<span class=\"s2\">\"\u{00e9}t\u{00e9}\"</span>";
+        let result = postprocess_bash_env_var_assignments(input);
+        assert!(
+            result.contains("<span class=\"nv\">MY_VAR</span><span class=\"o\">=</span>"),
+            "Env var with Unicode value should be wrapped.\nActual: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue407_bare_e_flag_wrapped() {
+        // The -e flag should also be wrapped as nt when bare
+        let input = "  -e POSTGRES_USER=<span class=\"s2\">\"root\"</span>";
+        let result = postprocess_bash_env_var_assignments(input);
+        assert!(
+            result.contains("<span class=\"nt\">-e</span>"),
+            "Bare -e flag should be wrapped as nt.\nActual: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue407_var_inside_span_not_touched() {
+        // YAML-style: the entire VAR=val is already inside a span
+        let input = "<span class=\"s\">POSTGRES_USER=root</span>";
+        let result = postprocess_bash_env_var_assignments(input);
+        assert_eq!(
+            result, input,
+            "VAR= inside an existing span should not be touched."
+        );
+    }
+
+    #[test]
+    fn test_issue407_full_highlight_integration() {
+        let code = "docker run -it \\\n  -e POSTGRES_USER=\"root\" \\\n  -e POSTGRES_PASSWORD=\"root\" \\\n  postgres:13\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nv\">POSTGRES_USER</span><span class=\"o\">=</span>"),
+            "Full bash highlight should wrap POSTGRES_USER.\nActual: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nv\">POSTGRES_PASSWORD</span><span class=\"o\">=</span>"),
+            "Full bash highlight should wrap POSTGRES_PASSWORD.\nActual: {html}"
         );
     }
 }
