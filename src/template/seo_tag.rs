@@ -393,32 +393,18 @@ impl Renderable for SeoRenderable {
             _ => None,
         };
 
-        // Output canonical URL. When site_url is set, use the full absolute URL.
-        // When site_url is empty/missing, fall back to just the page path (relative URL),
-        // matching jekyll-seo-tag behavior which always outputs canonical/og:url.
-        {
-            let canonical = if let Some(ref url) = canonical_url {
-                Some(url.clone())
-            } else {
-                // No site_url: use page_url directly as relative canonical
-                page_url.as_ref().map(|p| {
-                    if p.starts_with('/') {
-                        p.clone()
-                    } else {
-                        format!("/{}", p)
-                    }
-                })
-            };
-            if let Some(ref url) = canonical {
-                output.push_str(&format!(
-                    "<link rel=\"canonical\" href=\"{}\" />\n",
-                    html_escape(url)
-                ));
-                output.push_str(&format!(
-                    "<meta property=\"og:url\" content=\"{}\" />\n",
-                    html_escape(url)
-                ));
-            }
+        // Output canonical URL only when site_url is set.
+        // Jekyll's jekyll-seo-tag does NOT emit <link rel="canonical"> or
+        // <meta property="og:url"> when site.url is absent.
+        if let Some(ref url) = canonical_url {
+            output.push_str(&format!(
+                "<link rel=\"canonical\" href=\"{}\" />\n",
+                html_escape(url)
+            ));
+            output.push_str(&format!(
+                "<meta property=\"og:url\" content=\"{}\" />\n",
+                html_escape(url)
+            ));
         }
 
         // 8. og:site_name
@@ -602,8 +588,7 @@ impl Renderable for SeoRenderable {
         output.push_str("<script type=\"application/ld+json\">\n");
         output.push('{');
         output.push_str(&jsonld_fields.join(","));
-        output.push_str("}\n");
-        output.push_str("</script>\n");
+        output.push_str("}</script>\n");
 
         output.push_str("<!-- End Jekyll SEO tag -->\n");
 
@@ -2275,7 +2260,8 @@ mod tests {
 
     #[test]
     fn test_jsonld_compact_single_line() {
-        // JSON-LD should be compact single-line (no internal newlines)
+        // JSON-LD should be compact single-line (no internal newlines),
+        // with }</script> on the same line (matching Jekyll's jekyll-seo-tag output)
         let eng = engine();
         let ctx = make_context(
             Some("My Page"),
@@ -2297,10 +2283,10 @@ mod tests {
         let after_tag = out[ld_start..].find('\n').unwrap() + ld_start + 1;
         let script_end = out[after_tag..].find('\n').unwrap() + after_tag;
         let json_line = &out[after_tag..script_end];
-        // Should start with { and end with }
+        // Should start with { and end with }</script> (Jekyll format)
         assert!(
-            json_line.starts_with('{') && json_line.ends_with('}'),
-            "JSON-LD should be on a single line: {}",
+            json_line.starts_with('{') && json_line.ends_with("}</script>"),
+            "JSON-LD should be on a single line ending with '</script>': {}",
             json_line
         );
         // Should not contain internal newlines
@@ -2457,7 +2443,8 @@ mod tests {
 
     #[test]
     fn test_jsonld_script_tag_format() {
-        // <script> tag on its own line, JSON on next line, </script> on its own line
+        // <script> tag on its own line, JSON on next line, }</script> together
+        // (matching Jekyll's jekyll-seo-tag output format)
         let eng = engine();
         let ctx = make_context(
             Some("Test"),
@@ -2478,8 +2465,8 @@ mod tests {
             out
         );
         assert!(
-            out.contains("}\n</script>"),
-            "JSON closing brace and script tag should be on separate lines. Got: {}",
+            out.contains("}</script>"),
+            "JSON closing brace and script closing tag should be on the same line. Got: {}",
             out
         );
     }
@@ -3726,6 +3713,152 @@ mod tests {
         assert!(
             out.contains("\u{2019}"),
             "Should contain smart apostrophe with Unicode content. Got:\n{}",
+            out
+        );
+    }
+
+    // ========================================================================
+    // Issue 425E: GitHub Pages theme SEO tag fixes
+    // ========================================================================
+
+    #[test]
+    fn test_no_canonical_without_site_url() {
+        // When site.url is not set, Jekyll's jekyll-seo-tag does NOT emit
+        // <link rel="canonical"> or <meta property="og:url">
+        let eng = engine();
+        let ctx = make_context(
+            Some("Cayman theme"),
+            Some("Cayman theme"),
+            None,
+            Some("Cayman is a clean, responsive theme for GitHub Pages."),
+            None, // no site_url
+            Some("/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            !out.contains("rel=\"canonical\""),
+            "Should NOT emit canonical link when site.url is absent. Got:\n{}",
+            out
+        );
+        assert!(
+            !out.contains("og:url"),
+            "Should NOT emit og:url when site.url is absent. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_no_canonical_without_site_url_subpage() {
+        // Same for non-homepage pages
+        let eng = engine();
+        let ctx = make_context(
+            Some("Another page"),
+            Some("Architect theme"),
+            None,
+            Some("Architect is a theme for GitHub Pages."),
+            None, // no site_url
+            Some("/another-page.html"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            !out.contains("rel=\"canonical\""),
+            "Should NOT emit canonical link when site.url is absent on subpage. Got:\n{}",
+            out
+        );
+        assert!(
+            !out.contains("og:url"),
+            "Should NOT emit og:url when site.url is absent on subpage. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_jsonld_script_closing_no_newline() {
+        // Jekyll puts }</script> on the same line (no newline before </script>)
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Page"),
+            Some("My Site"),
+            None,
+            Some("A description"),
+            None,
+            Some("/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("}</script>"),
+            "JSON-LD closing should be on the same line as closing brace. Got:\n{}",
+            out
+        );
+        assert!(
+            !out.contains("}\n</script>"),
+            "Should NOT have newline between '}}' and '</script>'. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_canonical_emitted_with_site_url() {
+        // When site.url IS set, canonical and og:url should still be emitted
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Page"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/about"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("rel=\"canonical\""),
+            "Should emit canonical when site.url is set. Got:\n{}",
+            out
+        );
+        assert!(
+            out.contains("og:url"),
+            "Should emit og:url when site.url is set. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_jsonld_url_uses_page_url_when_no_site_url() {
+        // JSON-LD url field should still use page_url even without site.url
+        // (Jekyll does include url in JSON-LD even without site.url)
+        let eng = engine();
+        let ctx = make_context(
+            Some("Cayman theme"),
+            Some("Cayman theme"),
+            None,
+            Some("A theme for GitHub Pages."),
+            None, // no site_url
+            Some("/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"url\":\"/\""),
+            "JSON-LD should still include url field from page_url when no site.url. Got:\n{}",
             out
         );
     }
