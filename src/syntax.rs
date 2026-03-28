@@ -446,6 +446,8 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
         html = postprocess_bash_prompt_lines(&html);
         html = postprocess_bash_install(&html);
         html = postprocess_bash_local(&html);
+        html = postprocess_bash_split_merged_nt_flags(&html);
+        html = postprocess_bash_wrap_bare_flags_after_continuation(&html);
     }
 
     // SQL post-processing: Rouge wraps every token in SQL in a span.
@@ -1168,6 +1170,148 @@ fn postprocess_bash_prompt_lines(html: &str) -> String {
     }
 
     out
+}
+
+/// Split merged `<span class="nt">` spans that contain multiple space-separated flags.
+/// E.g. `<span class="nt">-it --rm</span>` -> `<span class="nt">-it</span> <span class="nt">--rm</span>`
+fn postprocess_bash_split_merged_nt_flags(html: &str) -> String {
+    let open_tag = "<span class=\"nt\">";
+    let close_tag = "</span>";
+    let mut result = String::with_capacity(html.len() + 64);
+    let mut rest = html;
+
+    while let Some(start) = rest.find(open_tag) {
+        result.push_str(&rest[..start]);
+        let after_open = &rest[start + open_tag.len()..];
+        if let Some(close_pos) = after_open.find(close_tag) {
+            let content = &after_open[..close_pos];
+            // Only split if content has spaces and all parts look like flags (-x or --word)
+            let parts: Vec<&str> = content.split(' ').collect();
+            if parts.len() > 1 && parts.iter().all(|p| p.starts_with('-')) {
+                for (i, part) in parts.iter().enumerate() {
+                    if i > 0 {
+                        result.push(' ');
+                    }
+                    result.push_str(open_tag);
+                    result.push_str(part);
+                    result.push_str(close_tag);
+                }
+            } else {
+                // Single flag or non-flag content: keep as-is
+                result.push_str(open_tag);
+                result.push_str(content);
+                result.push_str(close_tag);
+            }
+            rest = &after_open[close_pos + close_tag.len()..];
+        } else {
+            // Unclosed span, push the rest and break
+            result.push_str(&rest[start..]);
+            rest = "";
+        }
+    }
+    result.push_str(rest);
+    result
+}
+
+/// Wrap bare flags (`-x` or `--word`) that appear after line continuation markers.
+/// Handles both `<span class="se">\\</span>\n` (escaped backslash) and
+/// `<span class="p">\n</span>` (line continuation) patterns.
+fn postprocess_bash_wrap_bare_flags_after_continuation(html: &str) -> String {
+    // Pattern: after a line continuation + newline, bare flags on the next line
+    // need to be wrapped in <span class="nt">...</span>.
+    // We look for the escaped-backslash continuation: <span class="se">\\</span>\n
+    let se_marker = "<span class=\"se\">\\\\</span>\n";
+
+    let mut result = String::with_capacity(html.len() + 128);
+    let mut rest = html;
+
+    while let Some(pos) = rest.find(se_marker) {
+        let marker_end = pos + se_marker.len();
+        result.push_str(&rest[..marker_end]);
+        rest = &rest[marker_end..];
+
+        // Now process the text segment after the continuation until the next tag or newline.
+        // We need to wrap bare flags in this segment.
+        rest = wrap_bare_flags_in_segment(rest, &mut result);
+    }
+    result.push_str(rest);
+    result
+}
+
+/// Given text starting after a continuation marker, wrap bare flags in the leading
+/// text (before any existing span) with `<span class="nt">...</span>`.
+/// Returns the remaining unconsumed portion of the input.
+fn wrap_bare_flags_in_segment<'a>(input: &'a str, out: &mut String) -> &'a str {
+    let rest = input;
+
+    // Find the next span tag or end of line
+    let next_tag = rest.find("<span");
+    let next_newline = rest.find('\n');
+
+    // Determine the end of the bare text region
+    let bare_end = match (next_tag, next_newline) {
+        (Some(t), Some(n)) => t.min(n),
+        (Some(t), None) => t,
+        (None, Some(n)) => n,
+        (None, None) => rest.len(),
+    };
+
+    if bare_end == 0 {
+        // No bare text to process
+        return rest;
+    }
+
+    let bare_text = &rest[..bare_end];
+    // Wrap any bare flags in this text segment
+    out.push_str(&wrap_flags_in_text(bare_text));
+    &rest[bare_end..]
+}
+
+/// Wrap bare flags (tokens starting with `-`) in a text segment.
+/// Flags are words matching `-[a-zA-Z]` or `--[a-zA-Z]`.
+/// Already-wrapped flags (preceded by `class="nt">`) are skipped.
+fn wrap_flags_in_text(text: &str) -> String {
+    let mut result = String::with_capacity(text.len() + 64);
+    let mut chars = text.char_indices().peekable();
+
+    while let Some(&(i, _)) = chars.peek() {
+        // Check if current position starts a flag pattern
+        if text[i..].starts_with("--")
+            || (text[i..].starts_with('-')
+                && text.len() > i + 1
+                && text.as_bytes()[i + 1].is_ascii_alphabetic())
+        {
+            // Check it's at a word boundary (start of string or preceded by whitespace)
+            let at_boundary = i == 0 || text.as_bytes()[i - 1].is_ascii_whitespace();
+            if at_boundary {
+                // Find end of flag (until space, newline, <, or end)
+                let flag_start = i;
+                let mut flag_end = i;
+                for (j, c) in chars.clone() {
+                    if c == ' ' || c == '\n' || c == '<' || c == '=' {
+                        flag_end = j;
+                        break;
+                    }
+                    flag_end = j + c.len_utf8();
+                }
+                let flag = &text[flag_start..flag_end];
+                result.push_str("<span class=\"nt\">");
+                result.push_str(flag);
+                result.push_str("</span>");
+                // Advance chars past the flag
+                while let Some(&(j, _)) = chars.peek() {
+                    if j >= flag_end {
+                        break;
+                    }
+                    chars.next();
+                }
+                continue;
+            }
+        }
+        result.push(text[i..].chars().next().unwrap());
+        chars.next();
+    }
+    result
 }
 
 /// Post-process SQL highlighted HTML to wrap bare tokens in spans,
@@ -2542,6 +2686,125 @@ mod tests {
         assert!(
             !html.contains("<span class=\"nb\"><span class=\"nb\">local</span></span>"),
             "`local` should not be double-wrapped. Got: {html}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 406: Bash continuation flag splitting
+    // ========================================================================
+
+    #[test]
+    fn test_issue406_split_merged_nt_spans_two_flags() {
+        // When syntect emits `-it --rm` in a single nt span, we should split them
+        let code = "docker run -it --rm\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nt\">-it</span> <span class=\"nt\">--rm</span>"),
+            "merged nt spans should be split into separate flags. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue406_split_merged_nt_spans_three_flags() {
+        // Three flags in a single nt span
+        let code = "docker run -e -v -p\n";
+        let html = highlight_code("bash", code).unwrap();
+        // Each flag should be individually wrapped
+        assert!(
+            html.contains("<span class=\"nt\">-e</span>"),
+            "flag -e should be individually wrapped. Got: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nt\">-v</span>"),
+            "flag -v should be individually wrapped. Got: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nt\">-p</span>"),
+            "flag -p should be individually wrapped. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue406_single_flag_nt_unchanged() {
+        // A single flag in an nt span should remain unchanged
+        let code = "docker run --name foo\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nt\">--name</span>"),
+            "single flag nt span should remain unchanged. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue406_bare_flags_after_escaped_backslash_continuation() {
+        // Flags on continuation lines after `\\` should be wrapped in nt spans
+        let code = "docker run -it \\\\\n  --rm --name postgresql \\\\\n  -e POSTGRES_USER \\\\\n  -v path:/path \\\\\n  -p 5432:5432\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nt\">--rm</span>"),
+            "bare --rm after continuation should be wrapped in nt. Got: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nt\">--name</span>"),
+            "bare --name after continuation should be wrapped in nt. Got: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nt\">-e</span>"),
+            "bare -e after continuation should be wrapped in nt. Got: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nt\">-v</span>"),
+            "bare -v after continuation should be wrapped in nt. Got: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nt\">-p</span>"),
+            "bare -p after continuation should be wrapped in nt. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue406_bare_flags_after_single_backslash_continuation() {
+        // Flags on continuation lines after single `\` (line continuation)
+        let code = "docker run -it \\\n  --rm --name postgresql \\\n  -e POSTGRES_USER\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nt\">--rm</span>"),
+            "bare --rm after single \\ continuation should be wrapped in nt. Got: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nt\">--name</span>"),
+            "bare --name after single \\ continuation should be wrapped in nt. Got: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nt\">-e</span>"),
+            "bare -e after single \\ continuation should be wrapped in nt. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue406_no_wrap_non_flag_bare_words() {
+        // Non-flag words should not be wrapped, only flags starting with -
+        let code = "docker run -it \\\\\n  postgresql --name foo\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nt\">--name</span>"),
+            "--name should be wrapped. Got: {html}"
+        );
+        // postgresql should NOT be wrapped in nt
+        assert!(
+            !html.contains("<span class=\"nt\">postgresql</span>"),
+            "non-flag word 'postgresql' should not be wrapped in nt. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue406_no_double_wrap_already_wrapped_flags() {
+        // Flags already wrapped should not be double-wrapped
+        let code = "docker run --name foo\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            !html.contains("<span class=\"nt\"><span class=\"nt\">--name</span></span>"),
+            "already-wrapped flags should not be double-wrapped. Got: {html}"
         );
     }
 
