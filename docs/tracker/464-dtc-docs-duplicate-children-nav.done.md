@@ -29,3 +29,19 @@ Find and fix the duplicate injection. Either:
 ## Baseline
 
 DTC 790/790. DTC docs 48/57. Target: 57/57.
+
+## Log
+
+### [SWE] 2026-03-28
+
+- Root cause confirmed: `_layouts/default.html` line 32 includes `children_nav.html` via Liquid,
+  AND `inject_children_nav()` in generator.rs also injects the same HTML before `</main>`.
+  Both fire for pages with `has_children: true` and `has_toc != false`.
+- TDD: wrote `test_inject_children_nav_skipped_when_already_present` -- FAILS with 2 occurrences
+- Fix: added early-return guard at top of `inject_children_nav()` that checks if
+  `<h2 class="text-delta">Table of contents</h2>` is already in the HTML
+- Test now PASSES (1 occurrence only)
+- All 7 inject_children_nav tests pass, all 3419 tests pass, 0 failures
+- Clippy clean, fmt clean
+- DOM results: DTC 790/790 (no regression), DTC docs 57/57 (improved from 48/57)
+- Files modified: src/generator.rs

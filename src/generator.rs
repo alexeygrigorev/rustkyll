@@ -1096,6 +1096,13 @@ fn inject_children_nav(
     all_pages: &[crate::collection::Page],
     config: Option<&SiteConfig>,
 ) -> String {
+    // Issue 464: If the Liquid template already rendered children_nav.html,
+    // the HTML already contains the "Table of contents" heading. Skip injection
+    // to avoid duplication.
+    if html.contains("<h2 class=\"text-delta\">Table of contents</h2>") {
+        return html.to_string();
+    }
+
     // Check has_children: true
     let has_children = page_fm
         .get("has_children")
@@ -7069,6 +7076,45 @@ defaults:
             result.contains("Einfuhrung"),
             "Should contain Unicode child title. Got: {}",
             result
+        );
+    }
+
+    #[test]
+    fn test_inject_children_nav_skipped_when_already_present() {
+        // Issue 464: When the Liquid template already rendered children_nav.html,
+        // the HTML already contains the "Table of contents" section. The
+        // inject_children_nav function must detect this and skip injection to
+        // avoid duplication.
+        let html = r#"<main>
+<h1>Activities</h1>
+<hr><h2 class="text-delta">Table of contents</h2><ul><li> <a href="/activities/podcast/">Podcast</a><li> <a href="/activities/events/">Events</a></ul>
+</main>"#;
+        let mut parent_fm: HashMap<String, serde_yaml::Value> = HashMap::new();
+        parent_fm.insert(
+            "title".into(),
+            serde_yaml::Value::String("Activities".into()),
+        );
+        parent_fm.insert("has_children".into(), serde_yaml::Value::Bool(true));
+
+        let pages = vec![
+            make_page("Activities", "/activities/", None, Some(1)),
+            make_page(
+                "Podcast",
+                "/activities/podcast/",
+                Some("Activities"),
+                Some(1),
+            ),
+            make_page("Events", "/activities/events/", Some("Activities"), Some(2)),
+        ];
+
+        let result = inject_children_nav(html, &parent_fm, &pages, None);
+
+        // Count occurrences of "Table of contents" -- should be exactly 1
+        let count = result.matches("Table of contents").count();
+        assert_eq!(
+            count, 1,
+            "Should not duplicate children nav when already present. Found {} occurrences in: {}",
+            count, result
         );
     }
 
