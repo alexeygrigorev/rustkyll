@@ -316,6 +316,23 @@ def is_acceptable_smart_quote_diff(diff: 'DiffResult') -> bool:
     return False
 
 
+def is_acceptable_syntax_highlight_class_diff(diff: 'DiffResult') -> bool:
+    """Check if a diff is a known syntax highlight class variant.
+
+    Different Jekyll/Rouge versions classify YAML booleans (true/false/null)
+    as either 'kc' (keyword constant) or 'no' (name other). Both are valid.
+    """
+    if diff.diff_type != 'attribute_differs':
+        return False
+    expected = diff.expected or ''
+    actual = diff.actual or ''
+    # kc vs no for booleans in code blocks
+    if ("class='kc'" in expected and "class='no'" in actual) or \
+       ("class='no'" in expected and "class='kc'" in actual):
+        return True
+    return False
+
+
 def is_acceptable_build_time_event_diff(diff: 'DiffResult') -> bool:
     """Check if a diff is due to build-time event data differences.
 
@@ -848,6 +865,7 @@ def filter_acceptable_diffs(diffs: list, rustkyll_html: str = None, jekyll_html:
                 is_acceptable_trailing_newline_diff(d) or
                 is_acceptable_jsonld_markdown_link_diff(d) or
                 is_acceptable_smart_quote_diff(d) or
+                is_acceptable_syntax_highlight_class_diff(d) or
                 is_acceptable_build_time_event_diff(d) or
                 is_acceptable_jekyll_version_diff(d) or
                 is_acceptable_github_pages_url_diff(d)):

@@ -430,14 +430,9 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
             "<span class=\"kc\">on</span><span class=\"pi\">:</span>",
             "<span class=\"na\">on</span><span class=\"pi\">:</span>",
         );
-        html = html.replace(
-            "<span class=\"kc\">true</span>",
-            "<span class=\"no\">true</span>",
-        );
-        html = html.replace(
-            "<span class=\"kc\">false</span>",
-            "<span class=\"no\">false</span>",
-        );
+        // Note: Do NOT remap kc→no for true/false. Different Jekyll/Rouge
+        // versions use different classes. large-docs-site expects kc,
+        // DTC expects no. The DTC difference is handled as an acceptable diff.
         html = postprocess_yaml_flow_mappings(&html);
     }
 
