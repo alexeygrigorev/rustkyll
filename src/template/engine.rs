@@ -766,6 +766,8 @@ impl TemplateEngine {
             // Lenient join: strings pass through unchanged (Issue 328)
             // Must come after with_stdlib() to override the strict join
             .filter(filters::Join)
+            // Render YAML mapping values like Jekyll/Ruby hash strings (Issue 348)
+            .filter(filters::RenderMapping)
     }
 
     /// Create a `TemplateEngine` from a pre-built `liquid::Parser`.
@@ -829,6 +831,9 @@ impl TemplateEngine {
         // Jekyll allows parenthesized expressions but Liquid crate does not.
         // (Issue 328)
         let preprocessed = preprocess_parenthesized_assign(&preprocessed);
+        // Rewrite bare `{{ expr }}` to `{{ expr | render_mapping }}` so YAML
+        // mapping values render as Ruby-style hash strings (Issue 348).
+        let preprocessed = preprocess_bare_output_render_mapping(&preprocessed);
         let template_str = &preprocessed;
         loop {
             let parser_guard = self
@@ -1662,6 +1667,80 @@ fn load_includes_recursive(
     Ok(())
 }
 
+/// Pre-process bare `{{ expr }}` output tags to apply `render_mapping`.
+///
+/// In Jekyll/Ruby Liquid, rendering a Hash (YAML mapping) via `{{ hash }}`
+/// produces a Ruby-style hash string `{"key"=>"value"}`. The Rust `liquid`
+/// crate instead concatenates all values. To match Jekyll, we append
+/// `| render_mapping` to bare output tags that have no filters. The
+/// `render_mapping` filter is a no-op for non-object values.
+///
+/// Only output tags (`{{ ... }}`) without any existing `|` filter pipe are
+/// rewritten. Tags inside `{% %}` blocks are not affected.
+fn preprocess_bare_output_render_mapping(template: &str) -> String {
+    // Fast path: if there's no `{{` at all, nothing to do.
+    if !template.contains("{{") {
+        return template.to_string();
+    }
+
+    let mut result = String::with_capacity(template.len() + 64);
+    let mut remaining = template;
+
+    while !remaining.is_empty() {
+        if let Some(start) = remaining.find("{{") {
+            // Copy everything before the tag
+            result.push_str(&remaining[..start]);
+
+            let after_open = &remaining[start + 2..];
+            if let Some(end_rel) = after_open.find("}}") {
+                let inner = &after_open[..end_rel];
+
+                // Strip whitespace-control dashes and whitespace to get the
+                // bare expression for checking whether a filter pipe exists.
+                let expr = inner
+                    .trim()
+                    .trim_start_matches('-')
+                    .trim_end_matches('-')
+                    .trim();
+
+                // Only add render_mapping if there's no existing filter pipe
+                // and the expression is non-empty
+                if !expr.is_empty() && !expr.contains('|') {
+                    // Insert `| render_mapping` before the closing braces,
+                    // preserving any whitespace-control dashes.
+                    let trimmed_end = inner.trim_end();
+                    if let Some(without_dash) = trimmed_end.strip_suffix('-') {
+                        result.push_str("{{");
+                        result.push_str(without_dash);
+                        result.push_str(" | render_mapping -}}");
+                    } else {
+                        result.push_str("{{");
+                        result.push_str(inner);
+                        result.push_str(" | render_mapping }}");
+                    }
+                } else {
+                    // Has a filter or is empty -- keep as-is
+                    result.push_str("{{");
+                    result.push_str(inner);
+                    result.push_str("}}");
+                }
+
+                remaining = &after_open[end_rel + 2..];
+            } else {
+                // No matching `}}`, copy the rest as-is
+                result.push_str(&remaining[start..]);
+                break;
+            }
+        } else {
+            // No more `{{`, copy the rest
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    result
+}
+
 /// Build an `EagerCompiler<InMemorySource>` from a map of partial names to content.
 ///
 /// Each partial's content is pre-processed with the same pipeline as templates:
@@ -1679,6 +1758,7 @@ fn build_partials(includes: &HashMap<String, String>) -> EagerCompiler<InMemoryS
         let preprocessed = preprocess_nested_braces(&preprocessed);
         let preprocessed = preprocess_for_loop_filters(&preprocessed);
         let preprocessed = preprocess_parenthesized_assign(&preprocessed);
+        let preprocessed = preprocess_bare_output_render_mapping(&preprocessed);
         partials.add(name.clone(), preprocessed);
     }
     partials
@@ -5261,5 +5341,124 @@ title: "Test Book"
         let template = "{% for name in __names | sort %}{{ name }},{% endfor %}";
         let output = eng.parse_and_render(template, &ctx).unwrap();
         assert_eq!(output, "apple,banana,cherry,");
+    }
+
+    // ========================================================================
+    // Issue 348: Malformed frontmatter description renders as Ruby-style hash
+    // ========================================================================
+
+    #[test]
+    fn test_issue348_malformed_frontmatter_description_renders_like_jekyll_hash() {
+        // When YAML parses `description:` with a colon-space in the indented text,
+        // it becomes a mapping. Jekyll renders this as a Ruby hash string.
+        let eng = engine();
+        let mut page = liquid::Object::new();
+        let mut desc_obj = liquid::Object::new();
+        desc_obj.insert(
+            "Learn containerized ML deployment on AWS Lambda".into(),
+            LiquidValue::scalar(
+                "build, train, and serve with Docker, ECR, and SAM, plus CI/CD via GitHub Actions. Follow this proven guide.",
+            ),
+        );
+        // Simulate __key_order that rustkyll's YAML parser adds
+        desc_obj.insert(
+            "__key_order".into(),
+            LiquidValue::Array(vec![LiquidValue::scalar(
+                "Learn containerized ML deployment on AWS Lambda",
+            )]),
+        );
+        page.insert("description".into(), LiquidValue::Object(desc_obj));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+
+        let template = r#"<meta name="description" content="{{ page.description }}">"#;
+        let output = eng.parse_and_render(template, &ctx).unwrap();
+
+        // Jekyll renders mappings as Ruby hash strings
+        let expected = r#"<meta name="description" content="{"Learn containerized ML deployment on AWS Lambda"=>"build, train, and serve with Docker, ECR, and SAM, plus CI/CD via GitHub Actions. Follow this proven guide."}">"#;
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn test_issue348_malformed_frontmatter_description_jsonify_stays_object() {
+        // The jsonify filter should render the mapping as a JSON object, not a string.
+        let eng = engine();
+        let mut page = liquid::Object::new();
+        let mut desc_obj = liquid::Object::new();
+        desc_obj.insert(
+            "Learn containerized ML deployment on AWS Lambda".into(),
+            LiquidValue::scalar(
+                "build, train, and serve with Docker, ECR, and SAM, plus CI/CD via GitHub Actions. Follow this proven guide.",
+            ),
+        );
+        desc_obj.insert(
+            "__key_order".into(),
+            LiquidValue::Array(vec![LiquidValue::scalar(
+                "Learn containerized ML deployment on AWS Lambda",
+            )]),
+        );
+        page.insert("description".into(), LiquidValue::Object(desc_obj));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+
+        let template = r#"{{ page.description | jsonify }}"#;
+        let output = eng.parse_and_render(template, &ctx).unwrap();
+
+        // jsonify renders the mapping as a JSON object
+        assert!(
+            output.contains("\"Learn containerized ML deployment on AWS Lambda\""),
+            "jsonify output should contain the key: {output}"
+        );
+        assert!(
+            output.starts_with('{'),
+            "jsonify output should be a JSON object: {output}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 399: for-loop over Object with __key_order uses insertion order
+    // ========================================================================
+
+    #[test]
+    fn test_for_loop_object_with_key_order_iterates_in_order() {
+        let eng = engine();
+
+        // Build an Object with __key_order in non-alphabetical order
+        let mut cats = Object::new();
+        cats.insert(
+            "__key_order".into(),
+            LiquidValue::Array(vec![
+                LiquidValue::scalar("zebra"),
+                LiquidValue::scalar("apple"),
+                LiquidValue::scalar("middle"),
+            ]),
+        );
+        cats.insert(
+            "zebra".into(),
+            LiquidValue::Array(vec![LiquidValue::scalar("z1")]),
+        );
+        cats.insert(
+            "apple".into(),
+            LiquidValue::Array(vec![LiquidValue::scalar("a1")]),
+        );
+        cats.insert(
+            "middle".into(),
+            LiquidValue::Array(vec![LiquidValue::scalar("m1")]),
+        );
+
+        let mut site = Object::new();
+        site.insert("categories".into(), LiquidValue::Object(cats));
+
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+
+        let template =
+            "{% for cat in site.categories %}{{ cat[0] }},{% endfor %}";
+        let output = eng.parse_and_render(template, &ctx).unwrap();
+
+        assert_eq!(
+            output, "zebra,apple,middle,",
+            "For-loop over Object with __key_order should iterate in specified order, not alphabetical"
+        );
     }
 }
