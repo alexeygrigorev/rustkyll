@@ -329,6 +329,9 @@ impl<O: ObjectView> fmt::Display for ObjectSource<'_, O> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{{")?;
         for (k, v) in self.s.iter() {
+            if k == "__key_order" {
+                continue;
+            }
             write!(f, r#""{}": {}, "#, k, v.render())?;
         }
         write!(f, "}}")?;
@@ -352,6 +355,9 @@ impl<'s, O: ObjectView> ObjectRender<'s, O> {
 impl<O: ObjectView> fmt::Display for ObjectRender<'_, O> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (k, v) in self.s.iter() {
+            if k == "__key_order" {
+                continue;
+            }
             write!(f, "{}{}", k, v.render())?;
         }
         Ok(())
@@ -370,5 +376,41 @@ mod test {
         println!("{}", object.source());
         let view: &dyn ValueView = object.as_value();
         println!("{}", view.source());
+    }
+
+    #[test]
+    fn test_object_render_hides_key_order() {
+        let mut obj = Object::new();
+        obj.insert("name".into(), Value::scalar("Alice"));
+        obj.insert("email".into(), Value::scalar("alice@example.com"));
+        obj.insert(
+            "__key_order".into(),
+            Value::Array(vec![Value::scalar("name"), Value::scalar("email")]),
+        );
+        let rendered = format!("{}", obj.render());
+        assert!(
+            !rendered.contains("__key_order"),
+            "__key_order should not appear in render output. Got: {}",
+            rendered
+        );
+        assert!(rendered.contains("name"));
+        assert!(rendered.contains("Alice"));
+    }
+
+    #[test]
+    fn test_object_source_hides_key_order() {
+        let mut obj = Object::new();
+        obj.insert("name".into(), Value::scalar("Alice"));
+        obj.insert(
+            "__key_order".into(),
+            Value::Array(vec![Value::scalar("name")]),
+        );
+        let source = format!("{}", obj.source());
+        assert!(
+            !source.contains("__key_order"),
+            "__key_order should not appear in source output. Got: {}",
+            source
+        );
+        assert!(source.contains("name"));
     }
 }
