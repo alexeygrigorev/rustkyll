@@ -80,6 +80,29 @@ fn expand_date_only_string(s: &str) -> String {
     expand_date_only_string_with_tz(s, None)
 }
 
+/// Normalize an ISO 8601 / RFC 3339 datetime string to Jekyll's format.
+///
+/// Jekyll renders dates with timezone as `"YYYY-MM-DD HH:MM:SS +HHMM"` (space-separated,
+/// no colon in the offset). This function converts formats like:
+/// - `"2024-11-23T20:16:52+08:00"` -> `"2024-11-23 20:16:52 +0800"`
+/// - `"2024-01-15T14:30:00Z"` -> `"2024-01-15 14:30:00 +0000"`
+/// - `"2024-06-15T10:00:00-05:00"` -> `"2024-06-15 10:00:00 -0500"`
+///
+/// Returns `None` if the string doesn't match a recognized ISO 8601 format with timezone.
+fn normalize_iso8601_date_with_tz(s: &str) -> Option<String> {
+    // Try RFC 3339 (e.g. "2024-11-23T20:16:52+08:00" or "2024-01-15T14:30:00Z")
+    let dt = chrono::DateTime::parse_from_rfc3339(s).ok()?;
+    let total_secs = dt.offset().local_minus_utc();
+    let sign = if total_secs >= 0 { '+' } else { '-' };
+    let abs_secs = total_secs.unsigned_abs();
+    let hours = abs_secs / 3600;
+    let minutes = (abs_secs % 3600) / 60;
+    Some(format!(
+        "{} {sign}{hours:02}{minutes:02}",
+        dt.format("%Y-%m-%d %H:%M:%S")
+    ))
+}
+
 pub(crate) fn expand_date_only_string_with_tz(s: &str, site_tz: Option<chrono_tz::Tz>) -> String {
     // Try to parse as a date or date+time that needs expansion to full datetime.
     // Already-complete datetimes (with timezone offset) pass through unchanged.
@@ -140,6 +163,12 @@ pub(crate) fn expand_date_only_string_with_tz(s: &str, site_tz: Option<chrono_tz
         }
         format!("{date_str} +0000")
     } else {
+        // Try to normalize ISO 8601 / RFC 3339 dates that already have timezone info.
+        // Jekyll renders these as "YYYY-MM-DD HH:MM:SS +HHMM" (space-separated, no colon).
+        // e.g. "2024-11-23T20:16:52+08:00" -> "2024-11-23 20:16:52 +0800"
+        if let Some(normalized) = normalize_iso8601_date_with_tz(s) {
+            return normalized;
+        }
         s.to_string()
     }
 }
@@ -728,6 +757,38 @@ title: Not a date
         // Already-formatted dates should pass through unchanged
         let result = expand_date_only_string_with_tz("2018-06-04 00:00:00 +0800", None);
         assert_eq!(result, "2018-06-04 00:00:00 +0800");
+    }
+
+    // ========================================================================
+    // Timezone offset format normalization (muan-blog datetime attributes)
+    // Jekyll normalizes ISO 8601 dates like "2024-11-23T20:16:52+08:00" to
+    // "2024-11-23 20:16:52 +0800" (space-separated, no colon in offset).
+    // ========================================================================
+
+    #[test]
+    fn test_date_normalization_iso8601_with_colon_tz() {
+        // RFC 3339 / ISO 8601 date with colon in timezone offset
+        let result = expand_date_only_string_with_tz("2024-11-23T20:16:52+08:00", None);
+        assert_eq!(result, "2024-11-23 20:16:52 +0800");
+    }
+
+    #[test]
+    fn test_date_normalization_iso8601_utc_offset() {
+        let result = expand_date_only_string_with_tz("2024-01-15T14:30:00+00:00", None);
+        assert_eq!(result, "2024-01-15 14:30:00 +0000");
+    }
+
+    #[test]
+    fn test_date_normalization_iso8601_negative_offset() {
+        let result = expand_date_only_string_with_tz("2024-06-15T10:00:00-05:00", None);
+        assert_eq!(result, "2024-06-15 10:00:00 -0500");
+    }
+
+    #[test]
+    fn test_date_normalization_iso8601_z_suffix() {
+        // Z suffix means UTC
+        let result = expand_date_only_string_with_tz("2024-01-15T14:30:00Z", None);
+        assert_eq!(result, "2024-01-15 14:30:00 +0000");
     }
 
     // ========================================================================
