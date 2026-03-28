@@ -56,11 +56,65 @@ impl Expression {
         let val = match self {
             Expression::Literal(ref x) => ValueCow::Borrowed(x),
             Expression::Variable(ref x) => {
-                let path = x.evaluate(runtime)?;
-                runtime.get(&path)?
+                // When a variable index evaluates to nil (e.g. site[page.collection]
+                // where page.collection is nil), fall back to try_evaluate which
+                // returns None gracefully, and treat None as Nil.
+                // This matches Jekyll/Ruby Liquid behavior.
+                match x.evaluate(runtime) {
+                    Ok(path) => match runtime.get(&path) {
+                        Ok(v) => v,
+                        Err(_) => self
+                            .try_evaluate(runtime)
+                            .unwrap_or_else(|| ValueCow::Owned(Value::Nil)),
+                    },
+                    Err(_) => self
+                        .try_evaluate(runtime)
+                        .unwrap_or_else(|| ValueCow::Owned(Value::Nil)),
+                }
             }
         };
         Ok(val)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::model::{Object, ValueViewCmp};
+
+    use super::super::RuntimeBuilder;
+    use super::super::StackFrame;
+
+    #[test]
+    fn evaluate_nil_bracket_index_returns_nil() {
+        // Simulates site[page.collection] where page.collection is nil.
+        // In Jekyll/Ruby Liquid, this returns nil instead of erroring.
+        let globals: Object = serde_yaml::from_str(
+            r#"
+site:
+  posts:
+    - title: "Hello"
+page: {}
+"#,
+        )
+        .unwrap();
+
+        // Build a Variable for site[page.collection]
+        // "site" with index expression Variable("page.collection")
+        let page_collection = Variable::with_literal("page").push_literal("collection");
+        let mut var = Variable::with_literal("site");
+        var.extend(vec![Expression::Variable(page_collection)]);
+
+        let expr = Expression::Variable(var);
+
+        let runtime = RuntimeBuilder::new().build();
+        let runtime = StackFrame::new(&runtime, &globals);
+
+        // Should return nil, not error
+        let result = expr.evaluate(&runtime);
+        assert!(result.is_ok(), "Expected Ok, got error: {:?}", result.err());
+        let val = result.unwrap();
+        assert_eq!(val, ValueViewCmp::new(&Value::Nil));
     }
 }
 
