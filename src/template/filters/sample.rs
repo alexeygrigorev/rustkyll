@@ -5,8 +5,11 @@ use liquid_core::{
     Display_filter, Filter, FilterParameters, FilterReflection, FromFilterParameters, ParseFilter,
 };
 use liquid_core::{Value, ValueView};
+use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
-use rand::thread_rng;
+use rand::SeedableRng;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 
 #[derive(Debug, FilterParameters)]
 struct SampleArgs {
@@ -40,6 +43,20 @@ struct SampleFilter {
     args: SampleArgs,
 }
 
+/// Build a deterministic RNG seeded from the array content.
+///
+/// This ensures that `sample` produces the same output for the same input
+/// across multiple builds, making static site generation reproducible.
+/// The seed is derived from a hash of each element's string representation.
+fn deterministic_rng(items: &[Value]) -> StdRng {
+    let mut hasher = DefaultHasher::new();
+    items.len().hash(&mut hasher);
+    for item in items {
+        item.to_kstr().as_str().hash(&mut hasher);
+    }
+    StdRng::seed_from_u64(hasher.finish())
+}
+
 impl Filter for SampleFilter {
     fn evaluate(&self, input: &dyn ValueView, runtime: &dyn Runtime) -> Result<Value> {
         let args = self.args.evaluate(runtime)?;
@@ -62,8 +79,9 @@ impl Filter for SampleFilter {
                 return Ok(Value::Array(vec![]));
             }
             let take = std::cmp::min(n, items.len());
+            let mut rng = deterministic_rng(&items);
             let mut shuffled = items;
-            shuffled.shuffle(&mut thread_rng());
+            shuffled.shuffle(&mut rng);
             shuffled.truncate(take);
             Ok(Value::Array(shuffled))
         } else {
@@ -74,7 +92,8 @@ impl Filter for SampleFilter {
                 }
                 return Ok(Value::Nil);
             }
-            let chosen = items.choose(&mut thread_rng()).unwrap().clone();
+            let mut rng = deterministic_rng(&items);
+            let chosen = items.choose(&mut rng).unwrap().clone();
             Ok(chosen)
         }
     }
@@ -297,5 +316,61 @@ mod tests {
         let mut expected: Vec<String> = items.iter().map(|v| v.to_kstr().to_string()).collect();
         expected.sort();
         assert_eq!(got, expected);
+    }
+
+    // ---- determinism ----
+
+    #[test]
+    fn test_sample_deterministic_across_calls() {
+        // The sample filter must produce the same output for the same input
+        // across multiple calls, ensuring reproducible builds.
+        let items = vec![
+            Value::scalar("alpha"),
+            Value::scalar("bravo"),
+            Value::scalar("charlie"),
+            Value::scalar("delta"),
+            Value::scalar("echo"),
+            Value::scalar("foxtrot"),
+        ];
+
+        let result1 = sample_with_n(Value::Array(items.clone()), 4);
+        let result2 = sample_with_n(Value::Array(items.clone()), 4);
+
+        let order1: Vec<String> = result1
+            .as_array()
+            .unwrap()
+            .values()
+            .map(|v| v.to_kstr().to_string())
+            .collect();
+        let order2: Vec<String> = result2
+            .as_array()
+            .unwrap()
+            .values()
+            .map(|v| v.to_kstr().to_string())
+            .collect();
+
+        assert_eq!(
+            order1, order2,
+            "sample must be deterministic: got {order1:?} vs {order2:?}"
+        );
+    }
+
+    #[test]
+    fn test_sample_no_arg_deterministic() {
+        // Even sample with no argument should be deterministic for the same input
+        let items = vec![
+            Value::scalar("one"),
+            Value::scalar("two"),
+            Value::scalar("three"),
+        ];
+
+        let result1 = sample_no_arg(Value::Array(items.clone()));
+        let result2 = sample_no_arg(Value::Array(items.clone()));
+
+        assert_eq!(
+            result1.to_kstr().to_string(),
+            result2.to_kstr().to_string(),
+            "sample (no arg) must be deterministic"
+        );
     }
 }
