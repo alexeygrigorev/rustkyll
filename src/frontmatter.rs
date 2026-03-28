@@ -504,6 +504,7 @@ pub fn markdown_to_html(markdown: &str) -> String {
 
     // Restore pre-existing curly quotes after direction fix
     let html_output = restore_preexisting_curly_quotes(&html_output);
+    let html_output = convert_pipe_markers_to_tables(&html_output);
 
     // Apply kramdown compatibility post-processing
     let html_output = crate::kramdown::postprocess(&html_output);
@@ -870,6 +871,7 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     // After pulldown-cmark, patterns like `term<br />\n: definition` appear as
     // literal text inside <li> or <p> tags. Convert them to proper <dl> elements.
     let html_output = convert_definition_list_in_html(&html_output);
+    let html_output = convert_pipe_markers_to_tables(&html_output);
 
     // Issue 314: Use the global indent_lists flag so CommonMark sites
     // produce unindented <li> elements in the markdownify filter path too.
@@ -3238,12 +3240,92 @@ fn escape_non_standard_autolink_schemes(markdown: &str) -> String {
                 // Escape the opening angle bracket so pulldown-cmark sees literal text.
                 // Also escape pipe characters so kramdown table conversion doesn't
                 // misinterpret them as table cell delimiters.
-                let path = caps[2].replace('|', "&#124;");
+                let path = caps[2].replace('|', "RKPIPEMARK");
                 format!("&lt;{}:{}&gt;", &caps[1], path)
             }
         }
     })
     .into_owned()
+}
+
+/// Convert RKPIPEMARK markers in HTML into kramdown-style tables.
+///
+/// Kramdown treats `|` as a table cell delimiter in single-line list items
+/// but NOT in multi-line list items (those with continuation text after `<br />`).
+/// This function finds RKPIPEMARK markers placed by `escape_non_standard_autolink_schemes`
+/// and converts single-line items into `<table><tbody><tr><td>` structures.
+fn convert_pipe_markers_to_tables(html: &str) -> String {
+    const MARKER: &str = "RKPIPEMARK";
+    if !html.contains(MARKER) {
+        return html.to_string();
+    }
+    let mut result = String::with_capacity(html.len() + 128);
+    let mut remaining = html;
+    while let Some(marker_pos) = remaining.find(MARKER) {
+        let before = &remaining[..marker_pos];
+        let after = &remaining[marker_pos + MARKER.len()..];
+        let (tag, tag_start) = if let Some(p) = before.rfind("<li>") {
+            ("li", p)
+        } else if let Some(p) = before.rfind("<li ") {
+            ("li", p)
+        } else if let Some(p) = before.rfind("<p>") {
+            ("p", p)
+        } else if let Some(p) = before.rfind("<p ") {
+            ("p", p)
+        } else {
+            result.push_str(before);
+            result.push('|');
+            remaining = after;
+            continue;
+        };
+        let close_tag = if tag == "li" { "</li>" } else { "</p>" };
+        let content_start = match remaining[tag_start..].find('>') {
+            Some(p) => tag_start + p + 1,
+            None => {
+                result.push_str(before);
+                result.push('|');
+                remaining = after;
+                continue;
+            }
+        };
+        let close_pos = match after.find(close_tag) {
+            Some(p) => marker_pos + MARKER.len() + p,
+            None => {
+                result.push_str(before);
+                result.push('|');
+                remaining = after;
+                continue;
+            }
+        };
+        let inner = &remaining[content_start..close_pos];
+        let after_close = &remaining[close_pos + close_tag.len()..];
+        let pipe_offset = marker_pos - content_start;
+        let cell2_content = &inner[pipe_offset + MARKER.len()..];
+        // Multi-line check: if content after marker has a newline followed by
+        // non-empty text, kramdown does NOT create a table.
+        let has_continuation = cell2_content
+            .find('\n')
+            .map(|nl| !cell2_content[nl + 1..].trim().is_empty())
+            .unwrap_or(false);
+        if has_continuation {
+            result.push_str(before);
+            result.push('|');
+            remaining = after;
+            continue;
+        }
+        let cell1 = &inner[..pipe_offset];
+        result.push_str(&remaining[..tag_start]);
+        result.push_str(&remaining[tag_start..content_start]);
+        result.push_str("\n<table>\n<tbody>\n<tr>\n<td>");
+        result.push_str(cell1);
+        result.push_str("</td>\n<td>");
+        result.push_str(cell2_content);
+        result.push_str("</td>\n</tr>\n</tbody>\n</table>\n");
+        result.push_str(close_tag);
+        remaining = after_close;
+    }
+    result.push_str(remaining);
+    result
 }
 
 /// Issue 381: Merge blockquote continuation lines after `newline_to_br`.
@@ -7384,16 +7466,24 @@ More text.
     }
 
     #[test]
-    fn test_issue364_pipe_in_tel_uri_literal() {
-        // Pipe in tel: URI should be escaped, not produce a table
+    fn test_issue364_pipe_in_tel_produces_table() {
+        // Kramdown treats | in single-line context as table delimiter
         let html = markdown_to_html_for_filter("<tel:100-1000|100-1000>");
         assert!(
-            html.contains("&#124;") || html.contains("|"),
-            "Issue 364: pipe should appear in output (escaped or literal). Got: {html}"
+            html.contains("<table>"),
+            "pipe in tel: should produce table. Got: {html}"
         );
+        assert!(html.contains("<td>"), "table should have td. Got: {html}");
+    }
+
+    #[test]
+    fn test_issue364_pipe_multiline_no_table() {
+        // Multi-line list item: kramdown does NOT create a table
+        let input = "- text <tel:100-1000|100-1000> more<br />\ncont line";
+        let html = markdown_to_html_for_filter(input);
         assert!(
             !html.contains("<table>"),
-            "Issue 364: pipe in tel: URI should NOT produce a table. Got: {html}"
+            "multi-line should not produce table. Got: {html}"
         );
     }
 
@@ -7420,15 +7510,15 @@ More text.
 
     #[test]
     fn test_issue364_markdown_to_html_also_escapes() {
-        // The main markdown_to_html function should also escape non-standard autolinks
+        // markdown_to_html also creates table from pipe in non-standard autolink
         let html = markdown_to_html("<tel:100-1000|100-1000>\n");
         assert!(
             !html.contains("<a href="),
-            "Issue 364: tel: should NOT be autolinked in markdown_to_html. Got: {html}"
+            "tel: should NOT be autolinked. Got: {html}"
         );
         assert!(
-            html.contains("&lt;tel:100-1000|100-1000&gt;"),
-            "Issue 364: tel: should be escaped as literal text in markdown_to_html. Got: {html}"
+            html.contains("<table>"),
+            "pipe in tel: should produce table. Got: {html}"
         );
     }
 
