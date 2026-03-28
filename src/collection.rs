@@ -72,6 +72,102 @@ pub struct CollectionItem {
     pub id: String,
 }
 
+/// Pre-render `{% highlight lang %}...{% endhighlight %}` blocks in markdown content
+/// before markdown conversion. Jekyll processes Liquid tags before markdown, but
+/// rustkyll pre-computes `html_content` before the Liquid engine runs. This function
+/// handles just the highlight blocks so they produce proper `<figure>` HTML instead
+/// of being mangled by the markdown parser into `<p>` tags.
+fn pre_render_highlight_blocks(content: &str) -> String {
+    // Fast path: no highlight tags present
+    if !content.contains("{% highlight") {
+        return content.to_string();
+    }
+
+    let mut result = String::with_capacity(content.len());
+    let mut remaining = content;
+
+    while let Some(start_pos) = remaining.find("{% highlight ") {
+        // Push everything before the tag
+        result.push_str(&remaining[..start_pos]);
+
+        let after_open = &remaining[start_pos + "{% highlight ".len()..];
+
+        // Find the closing %} of the opening tag
+        if let Some(close_pct) = after_open.find("%}") {
+            let tag_args = after_open[..close_pct].trim();
+            // Extract language (first word, ignore linenos and other params)
+            let lang = tag_args.split_whitespace().next().unwrap_or("text");
+
+            let after_open_tag = &after_open[close_pct + 2..];
+
+            // Find the matching {% endhighlight %}
+            if let Some(end_pos) = after_open_tag.find("{% endhighlight %}") {
+                let body = &after_open_tag[..end_pos];
+                // Strip leading/trailing newline matching Jekyll behavior
+                let body = body.strip_prefix('\n').unwrap_or(body);
+                let body = body.strip_suffix('\n').unwrap_or(body);
+
+                // Render the highlight block using the same logic as the Liquid tag.
+                // The output is embedded in markdown, so we must avoid blank lines
+                // inside the <figure> block. CommonMark type-6 HTML blocks end at
+                // blank lines, which would cause the markdown parser to wrap
+                // subsequent content in <p> tags. Collapse \n\n to \n.
+                let escaped_lang = html_escape_highlight(lang);
+                let mut figure = format!(
+                    "<figure class=\"highlight\"><pre><code class=\"language-{}\" data-lang=\"{}\">",
+                    escaped_lang, escaped_lang
+                );
+                if let Some(highlighted) = crate::syntax::highlight_code(lang, body) {
+                    figure.push_str(&highlighted);
+                } else {
+                    figure.push_str(&html_escape_highlight(body));
+                }
+                figure.push_str("</code></pre></figure>");
+                // Collapse blank lines so markdown parser treats entire figure as
+                // one HTML block (CommonMark type-6 blocks end at blank lines).
+                // Handle both LF (\n\n) and CRLF (\r\n\r\n) line endings.
+                while figure.contains("\r\n\r\n") {
+                    figure = figure.replace("\r\n\r\n", "\r\n");
+                }
+                while figure.contains("\n\n") {
+                    figure = figure.replace("\n\n", "\n");
+                }
+                result.push_str(&figure);
+
+                remaining = &after_open_tag[end_pos + "{% endhighlight %}".len()..];
+            } else {
+                // No matching endhighlight, keep as-is
+                result.push_str(
+                    &remaining[start_pos..start_pos + "{% highlight ".len() + close_pct + 2],
+                );
+                remaining = after_open_tag;
+            }
+        } else {
+            // No closing %}, keep as-is
+            result.push_str(&remaining[start_pos..]);
+            remaining = "";
+        }
+    }
+
+    result.push_str(remaining);
+    result
+}
+
+/// HTML-escape for highlight pre-rendering (same logic as highlight_tag.rs).
+fn html_escape_highlight(s: &str) -> String {
+    let mut result = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '&' => result.push_str("&amp;"),
+            '<' => result.push_str("&lt;"),
+            '>' => result.push_str("&gt;"),
+            '"' => result.push_str("&quot;"),
+            _ => result.push(c),
+        }
+    }
+    result
+}
+
 /// Regex-free post filename parsing. Extracts date and slug from `YYYY-MM-DD-title.md`.
 ///
 /// Returns `(Option<date_string>, slug)`.
@@ -769,8 +865,11 @@ fn process_collection_file(
     let url = crate::template::filters::relative_url::encode_url_path(&url);
 
     let html_content = if is_markdown {
+        // Pre-render {% highlight %}...{% endhighlight %} blocks before markdown
+        // conversion, matching Jekyll's Liquid-before-markdown order of operations.
+        let preprocessed = pre_render_highlight_blocks(&doc.content);
         frontmatter::markdown_to_html_with_options(
-            &doc.content,
+            &preprocessed,
             add_code_classes,
             add_code_classes,
             enable_hardbreaks,
@@ -1174,8 +1273,11 @@ fn load_pages_recursive(
         let enable_autolink = config.has_commonmark_autolink();
 
         let html_content = if is_markdown {
+            // Pre-render {% highlight %}...{% endhighlight %} blocks before markdown
+            // conversion, matching Jekyll's Liquid-before-markdown order of operations.
+            let preprocessed = pre_render_highlight_blocks(&doc.content);
             frontmatter::markdown_to_html_with_options(
-                &doc.content,
+                &preprocessed,
                 add_code_classes,
                 add_code_classes,
                 enable_hardbreaks,
@@ -3675,5 +3777,258 @@ mod tests {
                 "data-translator-role-and-data-strategy"
             ]
         );
+    }
+
+    #[test]
+    fn test_pre_render_highlight_blocks_basic() {
+        let input = "Some text\n\n{% highlight js %}\nvar x = 1;\n{% endhighlight %}\n\nMore text";
+        let result = pre_render_highlight_blocks(input);
+        assert!(
+            result.contains("<figure class=\"highlight\">"),
+            "Expected <figure class=\"highlight\"> in output, got: {result}"
+        );
+        assert!(
+            !result.contains("{% highlight"),
+            "Liquid highlight tag should be replaced, got: {result}"
+        );
+        assert!(
+            !result.contains("{% endhighlight"),
+            "Liquid endhighlight tag should be replaced, got: {result}"
+        );
+        assert!(
+            result.contains("Some text"),
+            "Surrounding text should be preserved"
+        );
+        assert!(
+            result.contains("More text"),
+            "Surrounding text should be preserved"
+        );
+    }
+
+    #[test]
+    fn test_pre_render_highlight_blocks_no_tags() {
+        let input = "No highlight tags here";
+        let result = pre_render_highlight_blocks(input);
+        assert_eq!(
+            result, input,
+            "Content without highlight tags should be unchanged"
+        );
+    }
+
+    #[test]
+    fn test_pre_render_highlight_blocks_linenos() {
+        let input = "{% highlight ruby linenos %}\nputs 'hi'\n{% endhighlight %}";
+        let result = pre_render_highlight_blocks(input);
+        assert!(
+            result.contains("<figure class=\"highlight\">"),
+            "Should handle linenos parameter, got: {result}"
+        );
+        assert!(
+            result.contains("language-ruby"),
+            "Should use ruby language, got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_pre_render_highlight_no_blank_lines_in_figure() {
+        // Code with blank lines should produce figure output with no blank lines
+        let input = "Before\n\n{% highlight js %}\n// comment 1\n\n// comment 2\nvar x;\n\nadder();\n{% endhighlight %}\n\nAfter";
+        let result = pre_render_highlight_blocks(input);
+        // Find the figure block
+        let fig_start = result.find("<figure").expect("must have figure");
+        let fig_end = result[fig_start..]
+            .find("</figure>")
+            .expect("must have /figure");
+        let figure_block = &result[fig_start..fig_start + fig_end + "</figure>".len()];
+        assert!(
+            !figure_block.contains("\n\n"),
+            "Figure block should not contain blank lines, got: {}",
+            figure_block
+        );
+    }
+
+    #[test]
+    fn test_pre_render_then_markdown_no_p_in_figure() {
+        // The preprocessed content goes through markdown; verify no <p> inside figure
+        // Use the exact lanyon content: multiple blank lines inside the highlight block
+        let input = "Cum sociis natoque penatibus et magnis dis `code element` montes, nascetur ridiculus mus.\n\n{% highlight js %}\n// Example can be run directly in your JavaScript console\n\n// Create a function that takes two arguments and returns the sum of those arguments\nvar adder = new Function(\"a\", \"b\", \"return a + b\");\n\n// Call the function\nadder(2, 6);\n// > 8\n{% endhighlight %}\n\nAenean lacinia bibendum nulla sed consectetur.";
+        let preprocessed = pre_render_highlight_blocks(input);
+        // Verify preprocessed content has no blank lines in figure block
+        if let Some(fig_start) = preprocessed.find("<figure") {
+            if let Some(fig_end) = preprocessed[fig_start..].find("</figure>") {
+                let block = &preprocessed[fig_start..fig_start + fig_end + "</figure>".len()];
+                assert!(
+                    !block.contains("\n\n"),
+                    "preprocessed figure has blank LF lines"
+                );
+                assert!(
+                    !block.contains("\r\n\r\n"),
+                    "preprocessed figure has blank CRLF lines"
+                );
+            }
+        }
+        // Use the same options as collection loading (add_code_classes=true for kramdown)
+        let html = crate::frontmatter::markdown_to_html_with_options(
+            &preprocessed,
+            true,
+            true,
+            false,
+            false,
+        );
+        let fig_start = html.find("<figure").expect("must have figure");
+        let fig_end = html[fig_start..]
+            .find("</figure>")
+            .expect("must have /figure");
+        let figure_block = &html[fig_start..fig_start + fig_end + "</figure>".len()];
+        assert!(
+            !figure_block.contains("<p>"),
+            "No <p> tags should appear inside <figure> after markdown conversion, got: {}",
+            figure_block
+        );
+    }
+
+    #[test]
+    fn test_pre_render_highlight_blocks_unicode() {
+        let input = "{% highlight python %}\nx = \"cafe\\u0301\"\n{% endhighlight %}";
+        let result = pre_render_highlight_blocks(input);
+        assert!(
+            result.contains("<figure class=\"highlight\">"),
+            "Should handle unicode content, got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_collection_item_html_content_processes_highlight() {
+        use tempfile::TempDir;
+
+        let tmp = TempDir::new().unwrap();
+        let site = tmp.path();
+
+        std::fs::write(
+            site.join("_config.yml"),
+            "collections:\n  posts:\n    output: true\n",
+        )
+        .unwrap();
+
+        let posts_dir = site.join("_posts");
+        std::fs::create_dir_all(&posts_dir).unwrap();
+        std::fs::write(
+            posts_dir.join("2020-04-02-example.md"),
+            "---\nlayout: post\ntitle: Example\n---\n\nSome text\n\n{% highlight js %}\nvar x = 1;\n{% endhighlight %}\n\nMore text\n",
+        )
+        .unwrap();
+
+        let config = crate::config::SiteConfig::from_file(&site.join("_config.yml")).unwrap();
+        let (items, errors) = load_collection("posts", site, &config).unwrap();
+        assert!(errors.is_empty(), "Unexpected errors: {:?}", errors);
+        assert_eq!(items.len(), 1);
+
+        let item = &items[0];
+        assert!(
+            item.html_content.contains("<figure class=\"highlight\">"),
+            "html_content should have processed highlight tags, got: {}",
+            item.html_content
+        );
+        assert!(
+            !item.html_content.contains("{% highlight"),
+            "html_content should not contain raw Liquid tags, got: {}",
+            item.html_content
+        );
+        // The <figure> block must not have <p> tags inside (markdown parser artifact)
+        let fig_start = item.html_content.find("<figure").expect("must have figure");
+        let fig_end = item.html_content[fig_start..]
+            .find("</figure>")
+            .expect("must have /figure");
+        let figure_block = &item.html_content[fig_start..fig_start + fig_end + "</figure>".len()];
+        assert!(
+            !figure_block.contains("<p>"),
+            "No <p> tags should appear inside <figure> block, got: {}",
+            figure_block
+        );
+    }
+
+    #[test]
+    fn test_collection_item_html_content_highlight_with_blank_lines() {
+        // Test with code that has blank lines (like the lanyon example)
+        use tempfile::TempDir;
+
+        let tmp = TempDir::new().unwrap();
+        let site = tmp.path();
+
+        std::fs::write(
+            site.join("_config.yml"),
+            "collections:\n  posts:\n    output: true\n",
+        )
+        .unwrap();
+
+        let posts_dir = site.join("_posts");
+        std::fs::create_dir_all(&posts_dir).unwrap();
+        std::fs::write(
+            posts_dir.join("2020-04-02-example.md"),
+            "---\nlayout: post\ntitle: Example\n---\n\nBefore code\n\n{% highlight js %}\n// Comment 1\n\n// Comment 2\nvar x = 1;\n\nadder(2, 6);\n{% endhighlight %}\n\nAfter code\n",
+        )
+        .unwrap();
+
+        let config = crate::config::SiteConfig::from_file(&site.join("_config.yml")).unwrap();
+        let (items, errors) = load_collection("posts", site, &config).unwrap();
+        assert!(errors.is_empty(), "Unexpected errors: {:?}", errors);
+        assert_eq!(items.len(), 1);
+
+        let item = &items[0];
+        assert!(
+            item.html_content.contains("<figure class=\"highlight\">"),
+            "html_content should have processed highlight tags, got: {}",
+            item.html_content
+        );
+        // No <p> inside the figure block
+        let fig_start = item.html_content.find("<figure").expect("must have figure");
+        let fig_end = item.html_content[fig_start..]
+            .find("</figure>")
+            .expect("must have /figure");
+        let figure_block = &item.html_content[fig_start..fig_start + fig_end + "</figure>".len()];
+        assert!(
+            !figure_block.contains("<p>"),
+            "No <p> tags should appear inside <figure> block with blank lines, got: {}",
+            figure_block
+        );
+    }
+
+    #[test]
+    fn test_lanyon_example_content_html_content() {
+        let lanyon_path = std::path::Path::new("websites/lanyon");
+        assert!(
+            lanyon_path.exists(),
+            "lanyon website must exist at websites/lanyon"
+        );
+        let config =
+            crate::config::SiteConfig::from_file(&lanyon_path.join("_config.yml")).unwrap();
+        let (items, errors) = load_collection("posts", lanyon_path, &config).unwrap();
+        assert!(errors.is_empty(), "Unexpected errors: {:?}", errors);
+        let example = items
+            .iter()
+            .find(|i| i.slug == "example-content")
+            .expect("example-content post should exist");
+        assert!(
+            example
+                .html_content
+                .contains("<figure class=\"highlight\">"),
+            "html_content should have processed highlight tags"
+        );
+        assert!(
+            !example.html_content.contains("{% highlight"),
+            "html_content should not contain raw Liquid tags"
+        );
+        // Check for <p> inside figure
+        if let Some(fig_start) = example.html_content.find("<figure") {
+            if let Some(fig_end) = example.html_content[fig_start..].find("</figure>") {
+                let figure_block =
+                    &example.html_content[fig_start..fig_start + fig_end + "</figure>".len()];
+                assert!(
+                    !figure_block.contains("<p>"),
+                    "No <p> tags should appear inside <figure> block, got: {}",
+                    figure_block
+                );
+            }
+        }
     }
 }
