@@ -450,6 +450,7 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
         html = postprocess_bash_split_merged_nt_flags(&html);
         html = postprocess_bash_wrap_bare_flags_after_continuation(&html);
         html = postprocess_bash_env_var_assignments(&html);
+        html = postprocess_bash_flag_argument_scope(&html);
     }
 
     // SQL post-processing: Rouge wraps every token in SQL in a span.
@@ -1367,6 +1368,95 @@ fn wrap_flags_in_text(text: &str) -> String {
         chars.next();
     }
     result
+}
+
+/// Post-process Bash highlighted HTML to fix flag argument scope.
+///
+/// 1. Remap `<span class="n">--flag</span>` to `<span class="nt">--flag</span>` when the
+///    content starts with `--` (syntect gives these class `n` but Rouge uses `nt`).
+/// 2. Unwrap `<span class="s">VALUE</span>` to bare `VALUE` when it immediately follows
+///    a `</span><span class="o">=</span>` sequence preceded by a flag (class `nt`),
+///    and the value is a single word (no spaces). This matches Rouge/Jekyll behavior.
+fn postprocess_bash_flag_argument_scope(html: &str) -> String {
+    // Pass 1: remap <span class="n">--xxx</span> to <span class="nt">--xxx</span>
+    let n_open = "<span class=\"n\">";
+    let nt_open = "<span class=\"nt\">";
+    let close_tag = "</span>";
+
+    let mut result = String::with_capacity(html.len() + 64);
+    let mut rest = html;
+
+    while let Some(pos) = rest.find(n_open) {
+        result.push_str(&rest[..pos]);
+        let after_open = &rest[pos + n_open.len()..];
+        if let Some(close_pos) = after_open.find(close_tag) {
+            let content = &after_open[..close_pos];
+            if content.starts_with("--") && !content.contains(' ') {
+                // Remap n -> nt for flag-like content
+                result.push_str(nt_open);
+            } else {
+                result.push_str(n_open);
+            }
+            result.push_str(content);
+            result.push_str(close_tag);
+            rest = &after_open[close_pos + close_tag.len()..];
+        } else {
+            result.push_str(&rest[pos..]);
+            rest = "";
+        }
+    }
+    result.push_str(rest);
+
+    // Pass 2: unwrap <span class="s">VALUE</span> after flag=
+    // Pattern: <span class="nt">--FLAG</span><span class="o">=</span><span class="s">VALUE</span>
+    let flag_eq_prefix = r#"</span><span class="o">=</span><span class="s">"#;
+    let mut pass2 = String::with_capacity(result.len());
+    let mut rest2 = result.as_str();
+
+    while let Some(pos) = rest2.find(flag_eq_prefix) {
+        // Check that the preceding span was class "nt" (a flag)
+        let before = &rest2[..pos];
+        let is_after_flag = before.ends_with(|_: char| false)
+            || before
+                .rfind("<span class=\"nt\">")
+                .map(|nt_pos| {
+                    // Make sure the nt span ends right at `pos` (i.e., pos is where </span> starts
+                    // for the nt span). The `pos` here points to `</span><span class="o">=...`
+                    // so the nt span's closing </span> starts at `pos`.
+                    let after_nt_open = &before[nt_pos + "<span class=\"nt\">".len()..];
+                    // Check content between nt open and pos ends with the content (no other spans)
+                    !after_nt_open.contains("</span>") && after_nt_open.starts_with('-')
+                })
+                .unwrap_or(false);
+
+        if is_after_flag {
+            // Find the value inside <span class="s">VALUE</span>
+            let after_prefix = &rest2[pos + flag_eq_prefix.len()..];
+            if let Some(close_pos) = after_prefix.find(close_tag) {
+                let value = &after_prefix[..close_pos];
+                // Only unwrap single-word values (no spaces)
+                if !value.contains(' ') {
+                    // Write everything up to the flag_eq_prefix, but replace s span with bare text
+                    result_push_unwrapped(&mut pass2, &rest2[..pos], value);
+                    rest2 = &after_prefix[close_pos + close_tag.len()..];
+                    continue;
+                }
+            }
+        }
+
+        // No match or multi-word value: copy up to and including the prefix
+        pass2.push_str(&rest2[..pos + flag_eq_prefix.len()]);
+        rest2 = &rest2[pos + flag_eq_prefix.len()..];
+    }
+    pass2.push_str(rest2);
+    pass2
+}
+
+/// Helper: push the before-flag part + </span><span class="o">=</span> + bare value
+fn result_push_unwrapped(out: &mut String, before: &str, value: &str) {
+    out.push_str(before);
+    out.push_str(r#"</span><span class="o">=</span>"#);
+    out.push_str(value);
 }
 
 /// Post-process Bash highlighted HTML to wrap bare `UPPER_CASE_VAR=` patterns
@@ -4017,6 +4107,82 @@ u = df['user'].unique()\n";
         assert!(
             html.contains("<span class=\"nv\">POSTGRES_PASSWORD</span><span class=\"o\">=</span>"),
             "Full bash highlight should wrap POSTGRES_PASSWORD.\nActual: {html}"
+        );
+    }
+
+    // ── Issue 412: Bash flag name class + flag argument unwrapping ──
+
+    #[test]
+    fn test_issue412_n_class_flag_becomes_nt() {
+        // <span class="n">--network</span> should become <span class="nt">--network</span>
+        let input = r#"<span class="n">--network</span><span class="o">=</span><span class="s">pg-network</span>"#;
+        let result = postprocess_bash_flag_argument_scope(input);
+        assert!(
+            result.contains(r#"<span class="nt">--network</span>"#),
+            "Flag --network in class 'n' should be remapped to class 'nt'.\nActual: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue412_unwrap_s_after_flag_equals() {
+        // <span class="nt">--network</span><span class="o">=</span><span class="s">pg-network</span>
+        // should unwrap <span class="s">pg-network</span> to bare pg-network
+        let input = r#"<span class="nt">--network</span><span class="o">=</span><span class="s">pg-network</span> <span class="se">\\</span>"#;
+        let result = postprocess_bash_flag_argument_scope(input);
+        assert!(
+            result.contains(r#"<span class="nt">--network</span><span class="o">=</span>pg-network <span class="se">\\</span>"#),
+            "Value after --flag= should be bare text, not wrapped in <span class='s'>.\nActual: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue412_combined_n_to_nt_and_unwrap() {
+        // Full pattern from the issue
+        let input = r#"<span class="n">--network</span><span class="o">=</span><span class="s">pg-network</span> <span class="se">\\</span>"#;
+        let result = postprocess_bash_flag_argument_scope(input);
+        assert_eq!(
+            result,
+            r#"<span class="nt">--network</span><span class="o">=</span>pg-network <span class="se">\\</span>"#,
+            "Both remap n->nt and unwrap s should happen."
+        );
+    }
+
+    #[test]
+    fn test_issue412_no_unwrap_non_flag_n() {
+        // <span class="n">somevar</span> should NOT be remapped (not a flag)
+        let input = r#"<span class="n">somevar</span>"#;
+        let result = postprocess_bash_flag_argument_scope(input);
+        assert_eq!(result, input, "Non-flag 'n' spans should not be changed.");
+    }
+
+    #[test]
+    fn test_issue412_no_unwrap_s_without_flag_context() {
+        // <span class="s">pg-network</span> without a preceding flag= should not be unwrapped
+        let input = r#"<span class="s">pg-network</span>"#;
+        let result = postprocess_bash_flag_argument_scope(input);
+        assert_eq!(
+            result, input,
+            "Standalone s spans not after a flag should not be unwrapped."
+        );
+    }
+
+    #[test]
+    fn test_issue412_unicode_flag_value() {
+        let input = r#"<span class="nt">--name</span><span class="o">=</span><span class="s">données</span>"#;
+        let result = postprocess_bash_flag_argument_scope(input);
+        assert!(
+            result.contains(r#"<span class="o">=</span>données"#),
+            "Unicode value after flag= should be unwrapped.\nActual: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue412_full_highlight_integration() {
+        let code = "docker run -it --rm \\\n  -p 5432:5432 \\\n  --network=pg-network \\\n  --name pg-database \\\n  postgres:13\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains(r#"<span class="nt">--network</span><span class="o">=</span>pg-network"#),
+            "Full bash highlight: --network should be nt and pg-network should be bare.\nActual: {html}"
         );
     }
 }
