@@ -315,8 +315,11 @@ pub fn build_site_context(
         normalize_arrays(LiquidValue::Array(related_posts)),
     );
 
-    // site.pages -- standalone page objects
-    let pages_arr: Vec<LiquidValue> = pages.iter().map(page_to_liquid).collect();
+    // site.pages -- standalone page objects (with config defaults merged)
+    let pages_arr: Vec<LiquidValue> = pages
+        .iter()
+        .map(|p| page_to_liquid_with_config_defaults(p, config))
+        .collect();
     site.insert(
         "pages".into(),
         normalize_arrays(LiquidValue::Array(pages_arr)),
@@ -330,7 +333,7 @@ pub fn build_site_context(
             let url = &p.url;
             url.ends_with(".html") || url.ends_with(".htm") || url.ends_with('/')
         })
-        .map(page_to_liquid)
+        .map(|p| page_to_liquid_with_config_defaults(p, config))
         .collect();
     site.insert(
         "html_pages".into(),
@@ -779,6 +782,35 @@ fn extract_title_from_h1(html: &str) -> Option<String> {
     })
 }
 
+/// Convert a standalone `Page` to a Liquid `Value` object, merging config defaults.
+///
+/// Config defaults are applied as a base layer: the page's own front matter
+/// values always win over defaults. This matches Jekyll's behavior where
+/// `_config.yml` defaults are merged into page objects before rendering.
+fn page_to_liquid_with_config_defaults(page: &Page, config: &SiteConfig) -> LiquidValue {
+    let defaults = config.defaults_for_page(&page.source_path);
+    if defaults.is_empty() {
+        return page_to_liquid(page);
+    }
+    // Merge defaults as base layer, frontmatter wins
+    let mut merged_fm = std::collections::HashMap::new();
+    for (k, v) in &defaults {
+        merged_fm.insert(k.clone(), v.clone());
+    }
+    for (k, v) in &page.front_matter {
+        merged_fm.insert(k.clone(), v.clone());
+    }
+    let merged_page = Page {
+        slug: page.slug.clone(),
+        front_matter: merged_fm,
+        content: page.content.clone(),
+        html_content: page.html_content.clone(),
+        url: page.url.clone(),
+        source_path: page.source_path.clone(),
+    };
+    page_to_liquid(&merged_page)
+}
+
 /// Convert a standalone `Page` to a Liquid `Value` object.
 ///
 /// Exposes front matter fields, `title`, `url`, and `content`,
@@ -906,6 +938,11 @@ fn build_categories_and_tags_from_liquid(
     // the fix for issue 269 (insertion-order iteration) will need a different
     // approach if this causes DOM regressions.
     let mut categories_obj = Object::new();
+    // Build __key_order from IndexMap iteration order (first-encounter order)
+    let cat_key_order: Vec<LiquidValue> = categories
+        .keys()
+        .map(|k| LiquidValue::scalar(k.clone()))
+        .collect();
     for (k, mut v) in categories {
         // Jekyll lists posts within each category in reverse chronological
         // order (newest first), matching site.posts. Since posts are iterated
@@ -913,12 +950,23 @@ fn build_categories_and_tags_from_liquid(
         v.reverse();
         categories_obj.insert(k.into(), LiquidValue::Array(v));
     }
+    if !cat_key_order.is_empty() {
+        categories_obj.insert("__key_order".into(), LiquidValue::Array(cat_key_order));
+    }
 
     let mut tags_obj = Object::new();
+    // Build __key_order from IndexMap iteration order (first-encounter order)
+    let tag_key_order: Vec<LiquidValue> = tags
+        .keys()
+        .map(|k| LiquidValue::scalar(k.clone()))
+        .collect();
     for (k, mut v) in tags {
         // Same reverse-chronological ordering for tags.
         v.reverse();
         tags_obj.insert(k.into(), LiquidValue::Array(v));
+    }
+    if !tag_key_order.is_empty() {
+        tags_obj.insert("__key_order".into(), LiquidValue::Array(tag_key_order));
     }
 
     (
@@ -957,15 +1005,29 @@ fn build_categories_and_tags(
     }
 
     let mut categories_obj = Object::new();
+    let cat_key_order: Vec<LiquidValue> = categories
+        .keys()
+        .map(|k| LiquidValue::scalar(k.clone()))
+        .collect();
     for (k, mut v) in categories {
         v.reverse();
         categories_obj.insert(k.into(), LiquidValue::Array(v));
     }
+    if !cat_key_order.is_empty() {
+        categories_obj.insert("__key_order".into(), LiquidValue::Array(cat_key_order));
+    }
 
     let mut tags_obj = Object::new();
+    let tag_key_order: Vec<LiquidValue> = tags
+        .keys()
+        .map(|k| LiquidValue::scalar(k.clone()))
+        .collect();
     for (k, mut v) in tags {
         v.reverse();
         tags_obj.insert(k.into(), LiquidValue::Array(v));
+    }
+    if !tag_key_order.is_empty() {
+        tags_obj.insert("__key_order".into(), LiquidValue::Array(tag_key_order));
     }
 
     (
@@ -7443,7 +7505,11 @@ defaults:
 
         let categories = ctx.get("categories").expect("should have categories");
         if let LiquidValue::Object(cats) = categories {
-            let keys: Vec<String> = cats.keys().map(|k| k.to_string()).collect();
+            let keys: Vec<String> = cats
+                .keys()
+                .map(|k| k.to_string())
+                .filter(|k| k != "__key_order")
+                .collect();
             assert_eq!(
                 keys,
                 vec!["apple", "middle", "zebra"],
@@ -7521,7 +7587,11 @@ defaults:
 
         let tags = ctx.get("tags").expect("should have tags");
         if let LiquidValue::Object(tag_obj) = tags {
-            let keys: Vec<String> = tag_obj.keys().map(|k| k.to_string()).collect();
+            let keys: Vec<String> = tag_obj
+                .keys()
+                .map(|k| k.to_string())
+                .filter(|k| k != "__key_order")
+                .collect();
             assert_eq!(
                 keys,
                 vec!["alpha", "bravo", "zulu"],
@@ -7600,7 +7670,11 @@ defaults:
 
         let categories = ctx.get("categories").expect("should have categories");
         if let LiquidValue::Object(cats) = categories {
-            let keys: Vec<String> = cats.keys().map(|k| k.to_string()).collect();
+            let keys: Vec<String> = cats
+                .keys()
+                .map(|k| k.to_string())
+                .filter(|k| k != "__key_order")
+                .collect();
             assert_eq!(
                 keys,
                 vec!["alpha", "beta"],
@@ -7646,7 +7720,11 @@ defaults:
 
         let categories = ctx.get("categories").expect("should have categories");
         if let LiquidValue::Object(cats) = categories {
-            let keys: Vec<String> = cats.keys().map(|k| k.to_string()).collect();
+            let keys: Vec<String> = cats
+                .keys()
+                .map(|k| k.to_string())
+                .filter(|k| k != "__key_order")
+                .collect();
             assert_eq!(keys, vec!["solo"]);
         } else {
             panic!("Expected categories to be an object");
@@ -7877,6 +7955,411 @@ defaults:
             );
         } else {
             panic!("Expected Object");
+        }
+    }
+
+    // ========================================================================
+    // Issue 401: Config defaults applied to site.pages
+    // ========================================================================
+
+    #[test]
+    fn test_issue401_config_defaults_applied_to_site_pages() {
+        // Path-scoped default title should appear in site.pages page objects
+        let yaml = r#"
+defaults:
+  - scope:
+      path: "части"
+    values:
+      title: "История металлургии"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let page = Page {
+            slug: "readme".to_string(),
+            front_matter: std::collections::HashMap::new(),
+            content: "".to_string(),
+            html_content: "".to_string(),
+            url: "/части/readme/".to_string(),
+            source_path: "части/README.md".to_string(),
+        };
+        let collections = HashMap::new();
+        let data = std::collections::BTreeMap::new();
+        let ctx = build_site_context(&config, &collections, &data, None, &[page]);
+        let pages = ctx.get("pages").expect("should have pages");
+        if let LiquidValue::Array(arr) = pages {
+            assert_eq!(arr.len(), 1);
+            if let LiquidValue::Object(obj) = &arr[0] {
+                let title = obj
+                    .get("title")
+                    .expect("page should have title from config defaults");
+                assert_eq!(
+                    title.to_kstr().as_str(),
+                    "История металлургии",
+                    "Config default title should be applied to page"
+                );
+            } else {
+                panic!("Expected Object in pages array");
+            }
+        } else {
+            panic!("Expected Array for pages");
+        }
+    }
+
+    #[test]
+    fn test_issue401_config_defaults_do_not_override_frontmatter_title() {
+        // Frontmatter title must win over config defaults
+        let yaml = r#"
+defaults:
+  - scope:
+      path: ""
+    values:
+      title: "Default Title"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let mut fm = std::collections::HashMap::new();
+        fm.insert(
+            "title".to_string(),
+            serde_yaml::Value::String("Explicit Title".to_string()),
+        );
+        let page = Page {
+            slug: "test".to_string(),
+            front_matter: fm,
+            content: "".to_string(),
+            html_content: "".to_string(),
+            url: "/test/".to_string(),
+            source_path: "test.md".to_string(),
+        };
+        let collections = HashMap::new();
+        let data = std::collections::BTreeMap::new();
+        let ctx = build_site_context(&config, &collections, &data, None, &[page]);
+        let pages = ctx.get("pages").expect("should have pages");
+        if let LiquidValue::Array(arr) = pages {
+            if let LiquidValue::Object(obj) = &arr[0] {
+                let title = obj.get("title").expect("should have title");
+                assert_eq!(
+                    title.to_kstr().as_str(),
+                    "Explicit Title",
+                    "Frontmatter title should override config default"
+                );
+            } else {
+                panic!("Expected Object");
+            }
+        } else {
+            panic!("Expected Array");
+        }
+    }
+
+    #[test]
+    fn test_issue401_config_defaults_type_pages_scoping() {
+        // type: "posts" scope should NOT apply to pages
+        let yaml = r#"
+defaults:
+  - scope:
+      type: "posts"
+    values:
+      title: "Post Default"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let page = Page {
+            slug: "test".to_string(),
+            front_matter: std::collections::HashMap::new(),
+            content: "".to_string(),
+            html_content: "".to_string(),
+            url: "/test/".to_string(),
+            source_path: "test.md".to_string(),
+        };
+        let collections = HashMap::new();
+        let data = std::collections::BTreeMap::new();
+        let ctx = build_site_context(&config, &collections, &data, None, &[page]);
+        let pages = ctx.get("pages").expect("should have pages");
+        if let LiquidValue::Array(arr) = pages {
+            if let LiquidValue::Object(obj) = &arr[0] {
+                assert!(
+                    obj.get("title").is_none(),
+                    "posts-scoped defaults should NOT apply to pages"
+                );
+            } else {
+                panic!("Expected Object");
+            }
+        } else {
+            panic!("Expected Array");
+        }
+    }
+
+    #[test]
+    fn test_issue401_config_defaults_multiple_merge_correctly() {
+        // Multiple defaults should merge, with more specific winning
+        let yaml = r#"
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: "default"
+      sidebar: true
+  - scope:
+      path: "docs"
+    values:
+      layout: "doc"
+      toc: true
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let page = Page {
+            slug: "intro".to_string(),
+            front_matter: std::collections::HashMap::new(),
+            content: "".to_string(),
+            html_content: "".to_string(),
+            url: "/docs/intro/".to_string(),
+            source_path: "docs/intro.md".to_string(),
+        };
+        let collections = HashMap::new();
+        let data = std::collections::BTreeMap::new();
+        let ctx = build_site_context(&config, &collections, &data, None, &[page]);
+        let pages = ctx.get("pages").expect("should have pages");
+        if let LiquidValue::Array(arr) = pages {
+            if let LiquidValue::Object(obj) = &arr[0] {
+                // More specific "docs" path wins for layout
+                assert_eq!(
+                    obj.get("layout")
+                        .expect("should have layout")
+                        .to_kstr()
+                        .as_str(),
+                    "doc"
+                );
+                // toc from more specific scope
+                assert_eq!(
+                    obj.get("toc").expect("should have toc").to_kstr().as_str(),
+                    "true"
+                );
+                // sidebar inherited from less specific scope
+                assert_eq!(
+                    obj.get("sidebar")
+                        .expect("should have sidebar")
+                        .to_kstr()
+                        .as_str(),
+                    "true"
+                );
+            } else {
+                panic!("Expected Object");
+            }
+        } else {
+            panic!("Expected Array");
+        }
+    }
+
+    #[test]
+    fn test_issue401_config_defaults_unicode_titles() {
+        // Unicode (Cyrillic) titles from config defaults should be preserved
+        let yaml = r#"
+defaults:
+  - scope:
+      path: "часть_2"
+      type: "pages"
+    values:
+      title: "Основы металлургии"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let page = Page {
+            slug: "readme".to_string(),
+            front_matter: std::collections::HashMap::new(),
+            content: "".to_string(),
+            html_content: "".to_string(),
+            url: "/часть_2/readme/".to_string(),
+            source_path: "часть_2/README.md".to_string(),
+        };
+        let collections = HashMap::new();
+        let data = std::collections::BTreeMap::new();
+        let ctx = build_site_context(&config, &collections, &data, None, &[page]);
+        let pages = ctx.get("pages").expect("should have pages");
+        if let LiquidValue::Array(arr) = pages {
+            if let LiquidValue::Object(obj) = &arr[0] {
+                let title = obj
+                    .get("title")
+                    .expect("should have Cyrillic title from defaults");
+                assert_eq!(title.to_kstr().as_str(), "Основы металлургии");
+            } else {
+                panic!("Expected Object");
+            }
+        } else {
+            panic!("Expected Array");
+        }
+    }
+
+    // ========================================================================
+    // Issue 399: Category/tag iteration order (__key_order metadata)
+    // ========================================================================
+
+    /// Helper to create a minimal CollectionItem for category/tag testing.
+    fn make_cat_tag_post(
+        slug: &str,
+        date: &str,
+        categories: Vec<&str>,
+        tags: Vec<&str>,
+    ) -> CollectionItem {
+        let mut fm = std::collections::HashMap::new();
+        if !categories.is_empty() {
+            let cats: Vec<serde_yaml::Value> = categories
+                .iter()
+                .map(|c| serde_yaml::Value::String(c.to_string()))
+                .collect();
+            fm.insert("categories".to_string(), serde_yaml::Value::Sequence(cats));
+        }
+        if !tags.is_empty() {
+            let tag_vals: Vec<serde_yaml::Value> = tags
+                .iter()
+                .map(|t| serde_yaml::Value::String(t.to_string()))
+                .collect();
+            fm.insert("tags".to_string(), serde_yaml::Value::Sequence(tag_vals));
+        }
+        CollectionItem {
+            slug: slug.to_string(),
+            front_matter: fm,
+            content: String::new(),
+            html_content: String::new(),
+            url: format!("/posts/{}/", slug),
+            date: Some(date.to_string()),
+            source_path: format!("_posts/{}-{}.md", date, slug),
+            id: format!("/posts/{}", slug),
+            collection_name: "posts".to_string(),
+            excerpt: None,
+            excerpt_html: None,
+        }
+    }
+
+    #[test]
+    fn test_issue399_categories_key_order_metadata() {
+        // Categories should have __key_order with first-encounter order
+        let posts = vec![
+            make_cat_tag_post("p1", "2024-01-01", vec!["Technology"], vec![]),
+            make_cat_tag_post("p2", "2024-01-02", vec!["Science"], vec![]),
+            make_cat_tag_post("p3", "2024-01-03", vec!["Technology"], vec![]),
+            make_cat_tag_post("p4", "2024-01-04", vec!["Travel"], vec![]),
+        ];
+        let liquid_posts: Vec<LiquidValue> = posts
+            .iter()
+            .map(|p| collection_item_to_liquid_ultra_slim(p, None))
+            .collect();
+        let (cats, _tags) = build_categories_and_tags_from_liquid(&posts, &liquid_posts, None);
+        if let LiquidValue::Object(obj) = &cats {
+            let key_order = obj
+                .get("__key_order")
+                .expect("categories should have __key_order metadata");
+            if let LiquidValue::Array(arr) = key_order {
+                let keys: Vec<String> = arr.iter().map(|v| v.to_kstr().to_string()).collect();
+                assert_eq!(
+                    keys,
+                    vec!["Technology", "Science", "Travel"],
+                    "categories __key_order should be first-encounter order"
+                );
+            } else {
+                panic!("__key_order should be an Array");
+            }
+        } else {
+            panic!("categories should be an Object");
+        }
+    }
+
+    #[test]
+    fn test_issue399_tags_key_order_metadata() {
+        // Tags should also have __key_order
+        let posts = vec![
+            make_cat_tag_post("p1", "2024-01-01", vec![], vec!["rust"]),
+            make_cat_tag_post("p2", "2024-01-02", vec![], vec!["python", "ml"]),
+            make_cat_tag_post("p3", "2024-01-03", vec![], vec!["rust"]),
+        ];
+        let liquid_posts: Vec<LiquidValue> = posts
+            .iter()
+            .map(|p| collection_item_to_liquid_ultra_slim(p, None))
+            .collect();
+        let (_cats, tags) = build_categories_and_tags_from_liquid(&posts, &liquid_posts, None);
+        if let LiquidValue::Object(obj) = &tags {
+            let key_order = obj
+                .get("__key_order")
+                .expect("tags should have __key_order metadata");
+            if let LiquidValue::Array(arr) = key_order {
+                let keys: Vec<String> = arr.iter().map(|v| v.to_kstr().to_string()).collect();
+                assert_eq!(
+                    keys,
+                    vec!["rust", "python", "ml"],
+                    "tags __key_order should be first-encounter order"
+                );
+            } else {
+                panic!("__key_order should be an Array");
+            }
+        } else {
+            panic!("tags should be an Object");
+        }
+    }
+
+    #[test]
+    fn test_issue399_categories_key_order_with_duplicates() {
+        // Duplicate categories should only appear once (at first encounter)
+        let posts = vec![
+            make_cat_tag_post("p1", "2024-01-01", vec!["A", "B"], vec![]),
+            make_cat_tag_post("p2", "2024-01-02", vec!["B", "C"], vec![]),
+            make_cat_tag_post("p3", "2024-01-03", vec!["A", "C", "D"], vec![]),
+        ];
+        let liquid_posts: Vec<LiquidValue> = posts
+            .iter()
+            .map(|p| collection_item_to_liquid_ultra_slim(p, None))
+            .collect();
+        let (cats, _tags) = build_categories_and_tags_from_liquid(&posts, &liquid_posts, None);
+        if let LiquidValue::Object(obj) = &cats {
+            let key_order = obj
+                .get("__key_order")
+                .expect("categories should have __key_order metadata");
+            if let LiquidValue::Array(arr) = key_order {
+                let keys: Vec<String> = arr.iter().map(|v| v.to_kstr().to_string()).collect();
+                assert_eq!(
+                    keys,
+                    vec!["A", "B", "C", "D"],
+                    "each category should appear once at first encounter position"
+                );
+            } else {
+                panic!("__key_order should be an Array");
+            }
+        } else {
+            panic!("categories should be an Object");
+        }
+    }
+
+    #[test]
+    fn test_issue399_categories_reverse_chronological_within_category() {
+        // Posts within each category should be in reverse chronological order
+        let posts = vec![
+            make_cat_tag_post("old", "2024-01-01", vec!["Tech"], vec![]),
+            make_cat_tag_post("mid", "2024-06-01", vec!["Tech"], vec![]),
+            make_cat_tag_post("new", "2024-12-01", vec!["Tech"], vec![]),
+        ];
+        let liquid_posts: Vec<LiquidValue> = posts
+            .iter()
+            .map(|p| collection_item_to_liquid_ultra_slim(p, None))
+            .collect();
+        let (cats, _tags) = build_categories_and_tags_from_liquid(&posts, &liquid_posts, None);
+        if let LiquidValue::Object(obj) = &cats {
+            let tech = obj.get("Tech").expect("should have Tech category");
+            if let LiquidValue::Array(arr) = tech {
+                assert_eq!(arr.len(), 3);
+                // First should be newest (reverse chrono)
+                let first_url = arr[0]
+                    .as_object()
+                    .unwrap()
+                    .get("slug")
+                    .unwrap()
+                    .to_kstr()
+                    .to_string();
+                let last_url = arr[2]
+                    .as_object()
+                    .unwrap()
+                    .get("slug")
+                    .unwrap()
+                    .to_kstr()
+                    .to_string();
+                assert_eq!(first_url, "new", "newest post should be first");
+                assert_eq!(last_url, "old", "oldest post should be last");
+            } else {
+                panic!("Expected Array for Tech category");
+            }
+        } else {
+            panic!("categories should be an Object");
         }
     }
 }
