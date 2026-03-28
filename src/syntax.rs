@@ -454,6 +454,7 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
         html = postprocess_bash_n_to_nv_uppercase(&html);
         html = postprocess_bash_var_substitution(&html);
         html = postprocess_bash_line_continuation_se(&html);
+        html = postprocess_bash_var_eq_unwrap_s(&html);
     }
 
     // SQL post-processing: Rouge wraps every token in SQL in a span.
@@ -1651,6 +1652,49 @@ fn postprocess_bash_line_continuation_se(html: &str) -> String {
         "<span class=\"p\">\\\n</span>",
         "<span class=\"se\">\\</span>\n",
     )
+}
+
+/// Post-process Bash highlighted HTML to unwrap `<span class="s">VALUE</span>`
+/// after `<span class="o">=</span>` when the value is a single unquoted word.
+/// This matches Rouge/Jekyll behavior where `VAR=value` leaves the value as bare text.
+///
+/// Only unwraps when:
+/// - The span class is exactly `s` (not `s1`, `s2`, etc.)
+/// - The value is a single word (no spaces)
+/// - The value does NOT start with a quote character (`"`, `'`, or `&quot;`)
+fn postprocess_bash_var_eq_unwrap_s(html: &str) -> String {
+    let eq_span = r#"<span class="o">=</span>"#;
+    let s_open = r#"<span class="s">"#;
+    let close_tag = "</span>";
+    let pattern = format!("{}{}", eq_span, s_open);
+
+    let mut result = String::with_capacity(html.len());
+    let mut rest = html;
+
+    while let Some(pos) = rest.find(&pattern) {
+        let after_pattern = &rest[pos + pattern.len()..];
+        if let Some(close_pos) = after_pattern.find(close_tag) {
+            let value = &after_pattern[..close_pos];
+            // Only unwrap single-word, unquoted values
+            if !value.contains(' ')
+                && !value.starts_with('"')
+                && !value.starts_with('\'')
+                && !value.starts_with("&quot;")
+            {
+                // Write everything up to the pattern, then eq_span + bare value
+                result.push_str(&rest[..pos]);
+                result.push_str(eq_span);
+                result.push_str(value);
+                rest = &after_pattern[close_pos + close_tag.len()..];
+                continue;
+            }
+        }
+        // No match: copy up to and including the pattern
+        result.push_str(&rest[..pos + pattern.len()]);
+        rest = &rest[pos + pattern.len()..];
+    }
+    result.push_str(rest);
+    result
 }
 
 /// Post-process SQL highlighted HTML to wrap bare tokens in spans,
@@ -4350,6 +4394,92 @@ u = df['user'].unique()\n";
             result,
             "<span class=\"se\">\\</span>\n",
             "Should remap p to se for line continuation and move newline outside.\nActual: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue416_bash_var_assignment_unwrap_s() {
+        // DOCKER_IMAGE=serverless-ml should NOT have <span class="s"> around the value
+        let code = "DOCKER_IMAGE=serverless-ml\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            !html.contains(r#"<span class="s">serverless-ml</span>"#),
+            "Unquoted value after VAR= should not be wrapped in s span.\nActual: {html}"
+        );
+        assert!(
+            html.contains(r#"<span class="o">=</span>serverless-ml"#),
+            "Unquoted value after VAR= should be bare text.\nActual: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue416_bash_var_assignment_unwrap_unit() {
+        // Unit test for the postprocessing function
+        let input = r#"<span class="nv">DOCKER_IMAGE</span><span class="o">=</span><span class="s">serverless-ml</span>"#;
+        let result = postprocess_bash_var_eq_unwrap_s(input);
+        assert_eq!(
+            result, r#"<span class="nv">DOCKER_IMAGE</span><span class="o">=</span>serverless-ml"#,
+            "Should unwrap s span after = for single-word unquoted value.\nActual: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue416_bash_var_assignment_no_unwrap_quoted() {
+        // Quoted values should NOT be unwrapped
+        let input =
+            r#"<span class="nv">VAR</span><span class="o">=</span><span class="s">"hello"</span>"#;
+        let result = postprocess_bash_var_eq_unwrap_s(input);
+        assert_eq!(
+            result, input,
+            "Quoted value should not be unwrapped.\nActual: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue416_bash_var_assignment_no_unwrap_s2() {
+        // s2 class should NOT be unwrapped (only exact "s")
+        let input =
+            r#"<span class="nv">VAR</span><span class="o">=</span><span class="s2">value</span>"#;
+        let result = postprocess_bash_var_eq_unwrap_s(input);
+        assert_eq!(
+            result, input,
+            "s2 span should not be unwrapped.\nActual: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue416_bash_var_assignment_no_unwrap_spaces() {
+        // Values with spaces should NOT be unwrapped
+        let input = r#"<span class="nv">VAR</span><span class="o">=</span><span class="s">hello world</span>"#;
+        let result = postprocess_bash_var_eq_unwrap_s(input);
+        assert_eq!(
+            result, input,
+            "Multi-word value should not be unwrapped.\nActual: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue416_bash_var_assignment_no_unwrap_html_quote() {
+        // Values starting with &quot; should NOT be unwrapped
+        let input = r#"<span class="nv">VAR</span><span class="o">=</span><span class="s">&quot;val&quot;</span>"#;
+        let result = postprocess_bash_var_eq_unwrap_s(input);
+        assert_eq!(
+            result, input,
+            "HTML-quoted value should not be unwrapped.\nActual: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue416_bash_var_assignment_multiple() {
+        // Multiple VAR= on different lines
+        let input = r#"<span class="nv">A</span><span class="o">=</span><span class="s">foo</span>
+<span class="nv">B</span><span class="o">=</span><span class="s">bar</span>"#;
+        let expected = r#"<span class="nv">A</span><span class="o">=</span>foo
+<span class="nv">B</span><span class="o">=</span>bar"#;
+        let result = postprocess_bash_var_eq_unwrap_s(input);
+        assert_eq!(
+            result, expected,
+            "Should unwrap both s spans.\nActual: {result}"
         );
     }
 }
