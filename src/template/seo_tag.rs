@@ -135,6 +135,43 @@ fn get_nested_str(runtime: &dyn Runtime, parts: &[&str]) -> Option<String> {
     }
 }
 
+/// Resolve an author name from a Liquid runtime value.
+///
+/// Jekyll's `jekyll-seo-tag` handles two cases:
+/// - author is a string: use it directly
+/// - author is a Hash/Object: extract the "name" field
+///
+/// `prefix` should be `&["page", "author"]` or `&["site", "author"]`.
+fn get_author_name(runtime: &dyn Runtime, prefix: &[&str]) -> Option<String> {
+    if prefix.is_empty() {
+        return None;
+    }
+    let path: Vec<liquid_core::model::ScalarCow<'_>> = prefix
+        .iter()
+        .map(|p| liquid_core::model::ScalarCow::new(*p))
+        .collect();
+    let val = runtime.try_get(&path)?;
+
+    // If the value is an object (Hash), extract the "name" field
+    if let Some(obj) = val.as_object() {
+        let name_val = obj.get("name")?;
+        let s = name_val.to_kstr().to_string();
+        if s.is_empty() {
+            None
+        } else {
+            Some(s)
+        }
+    } else {
+        // Otherwise treat as scalar string
+        let s = val.to_kstr().to_string();
+        if s.is_empty() {
+            None
+        } else {
+            Some(s)
+        }
+    }
+}
+
 /// Compute the absolute URL for an image path.
 fn absolute_image_url(img: &str, site_url: &Option<String>) -> String {
     if img.starts_with("http://") || img.starts_with("https://") {
@@ -198,8 +235,8 @@ impl Renderable for SeoRenderable {
         let site_locale = get_nested_str(runtime, &["site", "locale"]);
         let twitter_username = get_nested_str(runtime, &["site", "twitter", "username"]);
         let facebook_publisher = get_nested_str(runtime, &["site", "facebook", "publisher"]);
-        let page_author = get_nested_str(runtime, &["page", "author"]);
-        let site_author = get_nested_str(runtime, &["site", "author"]);
+        let page_author = get_author_name(runtime, &["page", "author"]);
+        let site_author = get_author_name(runtime, &["site", "author"]);
         let site_logo = get_nested_str(runtime, &["site", "logo"]);
 
         // Compute page_title for og:title (page title alone, falling back to site title)
@@ -3859,6 +3896,173 @@ mod tests {
         assert!(
             out.contains("\"url\":\"/\""),
             "JSON-LD should still include url field from page_url when no site.url. Got:\n{}",
+            out
+        );
+    }
+
+    // ========================================================================
+    // Issue 440: Complex author objects (map with name/email/twitter)
+    // ========================================================================
+
+    #[test]
+    fn test_author_string_renders_meta_tag() {
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("My Page"),
+            Some("My Site"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        // Set site.author as a plain string
+        if let Value::Object(ref mut site) = ctx["site"] {
+            site.insert("author".into(), Value::scalar("Jane Doe".to_string()));
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<meta name=\"author\" content=\"Jane Doe\" />"),
+            "String author should render as meta tag. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_author_object_extracts_name() {
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("My Page"),
+            Some("My Site"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        // Set site.author as an object with name, email, twitter
+        let mut author_obj = Object::new();
+        author_obj.insert("name".into(), Value::scalar("John Smith".to_string()));
+        author_obj.insert(
+            "email".into(),
+            Value::scalar("john@example.com".to_string()),
+        );
+        author_obj.insert("twitter".into(), Value::scalar("johnsmith".to_string()));
+        if let Value::Object(ref mut site) = ctx["site"] {
+            site.insert("author".into(), Value::Object(author_obj));
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<meta name=\"author\" content=\"John Smith\" />"),
+            "Object author should extract 'name' field for meta tag. Got:\n{}",
+            out
+        );
+        // Should NOT contain the serialized map representation
+        assert!(
+            !out.contains("email"),
+            "Author meta tag should not contain email field. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_author_object_empty_name_no_meta_tag() {
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("My Page"),
+            Some("My Site"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        // Set site.author as an object with empty name (like so-simple-theme)
+        let mut author_obj = Object::new();
+        author_obj.insert("name".into(), Value::scalar("".to_string()));
+        author_obj.insert("email".into(), Value::scalar("".to_string()));
+        if let Value::Object(ref mut site) = ctx["site"] {
+            site.insert("author".into(), Value::Object(author_obj));
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            !out.contains("meta name=\"author\""),
+            "Empty author name should not produce meta tag. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_author_object_in_jsonld() {
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("My Page"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/post"),
+            None,
+            Some("2024-01-15"),
+            None,
+            None,
+        );
+        // Set site.author as an object
+        let mut author_obj = Object::new();
+        author_obj.insert("name".into(), Value::scalar("John Smith".to_string()));
+        author_obj.insert(
+            "email".into(),
+            Value::scalar("john@example.com".to_string()),
+        );
+        if let Value::Object(ref mut site) = ctx["site"] {
+            site.insert("author".into(), Value::Object(author_obj));
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"author\":{\"@type\":\"Person\",\"name\":\"John Smith\"}"),
+            "JSON-LD should use author name from object. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_page_author_object_overrides_site_author() {
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("My Page"),
+            Some("My Site"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        // Set page.author as an object
+        let mut page_author = Object::new();
+        page_author.insert("name".into(), Value::scalar("Page Author".to_string()));
+        if let Value::Object(ref mut page) = ctx["page"] {
+            page.insert("author".into(), Value::Object(page_author));
+        }
+        // Set site.author as a string
+        if let Value::Object(ref mut site) = ctx["site"] {
+            site.insert("author".into(), Value::scalar("Site Author".to_string()));
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<meta name=\"author\" content=\"Page Author\" />"),
+            "Page author object should override site author. Got:\n{}",
             out
         );
     }
