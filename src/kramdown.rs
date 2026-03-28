@@ -5221,15 +5221,86 @@ fn is_void_element(tag_name: &str) -> bool {
 // ============================================================================
 // 8b. Normalize bare void elements to XHTML-style (Issue 201)
 // ============================================================================
-/// Collapse newlines inside HTML tags to spaces.
+/// Collapse newlines inside HTML tags to spaces, but only for inline HTML.
 ///
 /// Jekyll/kramdown normalizes raw HTML tags that span multiple lines into
-/// single-line tags. For example:
-///   `<img alt="Creative\nCommons License" ...>` becomes
-///   `<img alt="Creative Commons License" ...>`
+/// single-line tags when they appear as **inline** HTML (e.g. inside `<p>`).
+/// Block-level HTML (like `<figure>`, `<div>`) is passed through verbatim
+/// and newlines in attributes are preserved.
 ///
-/// This only modifies content inside `<...>` (HTML tags), not text between tags.
+/// For example, inline HTML:
+///   `<p><img alt="Creative\nCommons License" ...></p>` becomes
+///   `<p><img alt="Creative Commons License" ...></p>`
+///
+/// But block-level HTML is unchanged:
+///   `<figure>\n<img alt="ML Zoomcamp \nleaderboard..." />\n</figure>`
+///
+/// The heuristic: only normalize tags that appear inside `<p>...</p>`.
 fn normalize_newlines_in_html_tags(html: &str) -> String {
+    if !html.contains('\n') {
+        return html.to_string();
+    }
+
+    // Find all <p>...</p> regions first, then only normalize within those.
+    let mut result = String::with_capacity(html.len());
+    let bytes = html.as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
+
+    while i < len {
+        // Look for <p> or <p ...> opening tag
+        if i + 2 < len && bytes[i] == b'<' && bytes[i + 1] == b'p' {
+            // Check it's actually <p> or <p ...> (not <pre>, <param>, etc.)
+            let after_p = if i + 2 < len { bytes[i + 2] } else { 0 };
+            if after_p == b'>' || after_p == b' ' || after_p == b'\n' {
+                // Find the matching </p>
+                if let Some(close_pos) = find_closing_p_tag(html, i) {
+                    let end = close_pos + 4; // </p> is 4 bytes
+                    let p_content = &html[i..end];
+                    let normalized = normalize_newlines_in_tags_unconditionally(p_content);
+                    result.push_str(&normalized);
+                    i = end;
+                    continue;
+                }
+            }
+        }
+        // Advance by one character (handling multi-byte UTF-8)
+        let ch = html[i..].chars().next().unwrap();
+        result.push(ch);
+        i += ch.len_utf8();
+    }
+
+    result
+}
+
+/// Find the position of the closing `</p>` tag matching an opening `<p>` at `start`.
+/// Returns the byte offset of the `<` in `</p>`, or None if not found.
+fn find_closing_p_tag(html: &str, start: usize) -> Option<usize> {
+    let bytes = html.as_bytes();
+    let mut i = start + 1;
+    // Skip past the opening <p> or <p ...>
+    while i < bytes.len() && bytes[i] != b'>' {
+        i += 1;
+    }
+    if i >= bytes.len() {
+        return None;
+    }
+    i += 1; // skip '>'
+
+    // Find </p> -- HTML <p> cannot nest so no depth tracking needed
+    while i + 3 < bytes.len() {
+        if bytes[i] == b'<' && bytes[i + 1] == b'/' && bytes[i + 2] == b'p' && bytes[i + 3] == b'>'
+        {
+            return Some(i);
+        }
+        i += 1;
+    }
+    None
+}
+
+/// Normalize ALL newlines inside HTML tags to spaces (both inside and outside quotes).
+/// Used only for inline HTML content within `<p>` elements.
+fn normalize_newlines_in_tags_unconditionally(html: &str) -> String {
     if !html.contains('\n') {
         return html.to_string();
     }
@@ -5244,10 +5315,11 @@ fn normalize_newlines_in_html_tags(html: &str) -> String {
                 if ch == q {
                     inside_quote = None;
                 }
-                // Preserve newlines inside quoted attribute values.
-                // Jekyll/kramdown only normalizes newlines between attributes
-                // (e.g., between src="..." and alt="..."), not within values.
-                result.push(ch);
+                if ch == '\n' {
+                    result.push(' ');
+                } else {
+                    result.push(ch);
+                }
             } else if ch == '"' || ch == '\'' {
                 inside_quote = Some(ch);
                 result.push(ch);
