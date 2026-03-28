@@ -24,3 +24,8 @@ Format:
 | 381+382 | `a08886f` | `783/790 matched (old cache)` |
 | 384+385 | `8f5ba9f` | `786/790 matched, 4 files with differences, 338 total differences (new Jekyll cache)` |
 | 386+387 | `a7f64a5` | `786/790 matched (new cache baseline)` |
+| 388+389 | `07133b8` | `786/790 matched` |
+| 390 | `892845f` | `786/790 matched (intraword emphasis rewrite, no DOM change)` |
+| 391+392 | `470840c` | `786/790 matched (kramdown parser prerequisites, no DOM change)` |
+| 393 | `e4fa468` | `786/790 matched (kramdown HTML tag detection, no DOM change)` |
+| 395 | `72d57f8` | `786/790 matched (H1 title auto-extraction, no DOM change)` |
