@@ -455,6 +455,7 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
         html = postprocess_bash_var_substitution(&html);
         html = postprocess_bash_line_continuation_se(&html);
         html = postprocess_bash_var_eq_unwrap_s(&html);
+        html = postprocess_bash_angle_bracket_placeholders(&html);
     }
 
     // SQL post-processing: Rouge wraps every token in SQL in a span.
@@ -1699,6 +1700,48 @@ fn postprocess_bash_var_eq_unwrap_s(html: &str) -> String {
         // No match: copy up to and including the pattern
         result.push_str(&rest[..pos + pattern.len()]);
         rest = &rest[pos + pattern.len()..];
+    }
+    result.push_str(rest);
+    result
+}
+
+/// Post-process bash highlighted HTML to unwrap angle-bracket placeholders.
+/// Syntect wraps `<` and `>` as `<span class="o">&lt;</span>` and
+/// `<span class="o">&gt;</span>`, but Jekyll/Rouge leaves them as plain
+/// `&lt;placeholder-name&gt;`.  We match the pattern where a `<` operator span
+/// is followed by word/hyphen/underscore text and then a `>` operator span,
+/// and collapse the three pieces into a single HTML-entity sequence.
+fn postprocess_bash_angle_bracket_placeholders(html: &str) -> String {
+    let lt_span = r#"<span class="o">&lt;</span>"#;
+    let gt_span = r#"<span class="o">&gt;</span>"#;
+
+    let mut result = String::with_capacity(html.len());
+    let mut rest = html;
+
+    while let Some(lt_pos) = rest.find(lt_span) {
+        let after_lt = &rest[lt_pos + lt_span.len()..];
+        // Check if the text between < and > is a simple placeholder name
+        // (word chars, hyphens, underscores, dots, slashes -- no spaces or HTML tags)
+        if let Some(gt_pos) = after_lt.find(gt_span) {
+            let between = &after_lt[..gt_pos];
+            let is_placeholder = !between.is_empty()
+                && !between.contains('<')
+                && !between.contains(' ')
+                && between
+                    .chars()
+                    .all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.' || c == '/');
+            if is_placeholder {
+                result.push_str(&rest[..lt_pos]);
+                result.push_str("&lt;");
+                result.push_str(between);
+                result.push_str("&gt;");
+                rest = &after_lt[gt_pos + gt_span.len()..];
+                continue;
+            }
+        }
+        // Not a placeholder pattern -- copy past this lt_span and continue
+        result.push_str(&rest[..lt_pos + lt_span.len()]);
+        rest = &rest[lt_pos + lt_span.len()..];
     }
     result.push_str(rest);
     result
@@ -4548,6 +4591,37 @@ u = df['user'].unique()\n";
             count, 2,
             "Should not double-wrap already-wrapped prompt.\nActual: {result}"
         );
+    }
+
+    #[test]
+    fn test_issue418_bash_angle_bracket_placeholder_unwrap() {
+        // Syntect wraps < and > as operators in bash; Jekyll leaves them as plain &lt; &gt;
+        let input = r#"docker build ./<span class="o">&lt;</span>path-to-Dockerfile<span class="o">&gt;</span>"#;
+        let result = postprocess_bash_angle_bracket_placeholders(input);
+        assert_eq!(
+            result, r#"docker build ./&lt;path-to-Dockerfile&gt;"#,
+            "Angle bracket placeholders should be unwrapped from operator spans"
+        );
+    }
+
+    #[test]
+    fn test_issue418_bash_angle_bracket_placeholder_stack_name() {
+        let input = r#"aws cloudformation delete-stack <span class="nt">--stack-name</span> <span class="o">&lt;</span>stack-name<span class="o">&gt;</span>"#;
+        let result = postprocess_bash_angle_bracket_placeholders(input);
+        assert_eq!(
+            result,
+            r#"aws cloudformation delete-stack <span class="nt">--stack-name</span> &lt;stack-name&gt;"#,
+            "Angle bracket placeholder after flag should be unwrapped"
+        );
+    }
+
+    #[test]
+    fn test_issue418_bash_angle_bracket_real_operators_preserved() {
+        // Real operators like > for redirection should NOT be affected
+        // because they don't match the placeholder pattern (word chars between < >)
+        let input = r#"echo hello <span class="o">&gt;</span> file.txt"#;
+        let result = postprocess_bash_angle_bracket_placeholders(input);
+        assert_eq!(result, input, "Lone > redirect should not be affected");
     }
 
     #[test]
