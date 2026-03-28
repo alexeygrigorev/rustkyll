@@ -5452,8 +5452,7 @@ title: "Test Book"
         let mut ctx = Object::new();
         ctx.insert("site".into(), LiquidValue::Object(site));
 
-        let template =
-            "{% for cat in site.categories %}{{ cat[0] }},{% endfor %}";
+        let template = "{% for cat in site.categories %}{{ cat[0] }},{% endfor %}";
         let output = eng.parse_and_render(template, &ctx).unwrap();
 
         assert_eq!(
