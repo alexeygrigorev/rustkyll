@@ -44,3 +44,99 @@ jobs:
 
       - name: cargo fmt --check
         run: cargo fmt --check
+
+  dom-check:
+    name: DTC DOM Regression Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry and target
+        uses: Swatinem/rust-cache@v2
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+
+      - name: Clone DTC site (shallow)
+        run: |
+          git clone --depth 1 https://github.com/DataTalksClub/datatalksclub.github.io.git \
+            dtc-site
+
+      - name: Cache Ruby gems
+        uses: actions/cache@v4
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-gems-dtc-${{ hashFiles('dtc-site/Gemfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-gems-dtc-
+
+      - name: Install Jekyll and Bundler
+        run: gem install bundler jekyll
+
+      - name: Bundle install for DTC site
+        run: |
+          cd dtc-site
+          bundle config set --local path '${{ github.workspace }}/vendor/bundle'
+          bundle install --jobs 4 --retry 3
+
+      - name: Build DTC with Jekyll
+        run: |
+          cd dtc-site
+          bundle exec jekyll build
+
+      - name: Build rustkyll (release)
+        run: cargo build --release --verbose
+
+      - name: Build DTC with rustkyll
+        run: |
+          ./target/release/rustkyll build --source dtc-site --destination dtc-rustkyll-output
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Run DOM comparison
+        run: |
+          uv run scripts/dom_compare.py \
+            --jekyll-dir dtc-site/_site \
+            --rustkyll-dir dtc-rustkyll-output \
+            --output dom-report.txt \
+            2>&1 | tee dom-output.txt
+
+      - name: Assert 790/790 matched and 0 diffs
+        run: |
+          SUMMARY=$(grep '^Summary:' dom-output.txt)
+          echo "DOM comparison result: $SUMMARY"
+
+          MATCHED=$(echo "$SUMMARY" | sed 's/Summary: \([0-9]*\) files matched.*/\1/')
+          DIFFS=$(echo "$SUMMARY" | sed 's/.*matched, [0-9]* files with differences, \([0-9]*\) total differences.*/\1/')
+
+          echo "Matched: $MATCHED"
+          echo "Total diffs: $DIFFS"
+
+          if [ "$MATCHED" -lt 790 ]; then
+            echo "FAIL: Matched file count ($MATCHED) is below 790"
+            exit 1
+          fi
+
+          if [ "$DIFFS" -ne 0 ]; then
+            echo "FAIL: Total differences ($DIFFS) is not 0"
+            exit 1
+          fi
+
+          echo "PASS: $MATCHED files matched, 0 total differences"
+
+      - name: Upload DOM report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dom-report
+          path: |
+            dom-report.txt
+            dom-output.txt
