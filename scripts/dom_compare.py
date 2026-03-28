@@ -257,13 +257,17 @@ def is_acceptable_trailing_newline_diff(diff: 'DiffResult') -> bool:
 
 
 def is_acceptable_jsonld_markdown_link_diff(diff: 'DiffResult') -> bool:
-    """Check if a JSON-LD diff is due to markdown link syntax in descriptions.
+    """Check if a JSON-LD diff is due to markdown link syntax or smart quotes in descriptions.
 
     Jekyll's document.content for cross-referenced collection items returns raw
     markdown (preserving [text](url) link syntax), while rustkyll uses rendered HTML
     (which converts links to <a> tags, then strip_html removes them leaving just the
     text). This is caused by Jekyll's rendering order (blog posts are rendered before
     people items, so content is still raw markdown). These diffs are acceptable.
+
+    Additionally, the rendering order means Jekyll may have straight apostrophes
+    (U+0027) where rustkyll has smart apostrophes (U+2019) from pulldown-cmark's
+    smart punctuation. This is also a rendering-order artifact and acceptable.
     """
     import re
     if diff.diff_type != 'jsonld_value_differs':
@@ -274,8 +278,15 @@ def is_acceptable_jsonld_markdown_link_diff(diff: 'DiffResult') -> bool:
     actual = diff.actual or ''
     # Strip markdown links [text](url) -> text from the expected (Jekyll) value
     expected_stripped = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', expected)
+    # Normalize smart quotes to straight quotes (rendering-order artifact)
+    QUOTE_MAP = str.maketrans({
+        '\u2018': "'", '\u2019': "'",  # left/right single curly -> straight
+        '\u201c': '"', '\u201d': '"',  # left/right double curly -> straight
+    })
+    expected_normalized = expected_stripped.translate(QUOTE_MAP)
+    actual_normalized = actual.translate(QUOTE_MAP)
     # Also strip trailing whitespace from both
-    if expected_stripped.rstrip() == actual.rstrip() and expected != actual:
+    if expected_normalized.rstrip() == actual_normalized.rstrip() and expected != actual:
         return True
     return False
 

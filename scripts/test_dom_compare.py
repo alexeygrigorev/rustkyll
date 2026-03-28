@@ -25,6 +25,7 @@ from dom_compare import (
     is_acceptable_jekyll_math_bug_diff,
     is_acceptable_jekyll_version_diff,
     is_acceptable_github_pages_url_diff,
+    is_acceptable_jsonld_markdown_link_diff,
     is_acceptable_sexagesimal_diff,
     is_acceptable_trailing_newline_diff,
     normalize_text,
@@ -1538,6 +1539,77 @@ class TestFilterIntegrationWithNewFilters(unittest.TestCase):
         remaining, accepted = filter_acceptable_diffs(diffs)
         self.assertEqual(len(remaining), 1)
         self.assertEqual(len(accepted), 0)
+
+
+class TestJsonldSmartQuoteFilter(unittest.TestCase):
+    """Issue 422: JSON-LD smart quote differences in author descriptions."""
+
+    def test_smart_quote_only_diff_accepted(self):
+        """Smart quote difference in JSON-LD description should be accepted.
+
+        Jekyll's rendering order causes posts to be rendered before people,
+        so author.content has raw markdown (straight apostrophes U+0027).
+        Rustkyll always uses rendered HTML (smart apostrophes U+2019).
+        """
+        diff = DiffResult(
+            "body > script > jsonld.@graph[0].author[0].description",
+            "jsonld_value_differs",
+            "She's proficient in data platforms",  # Jekyll: straight U+0027
+            "She\u2019s proficient in data platforms",  # Rustkyll: smart U+2019
+        )
+        self.assertTrue(is_acceptable_jsonld_markdown_link_diff(diff))
+
+    def test_smart_quote_with_markdown_link_diff_accepted(self):
+        """Combined markdown link + smart quote diff should be accepted."""
+        diff = DiffResult(
+            "body > script > jsonld.@graph[0].author[0].description",
+            "jsonld_value_differs",
+            "He's the founder of [Company](https://example.com).",  # Jekyll: raw md
+            "He\u2019s the founder of Company.",  # Rustkyll: rendered + stripped
+        )
+        self.assertTrue(is_acceptable_jsonld_markdown_link_diff(diff))
+
+    def test_non_description_not_filtered(self):
+        """Smart quote diffs in non-description JSON-LD fields are not filtered."""
+        diff = DiffResult(
+            "body > script > jsonld.@graph[0].name",
+            "jsonld_value_differs",
+            "She's Company",
+            "She\u2019s Company",
+        )
+        self.assertFalse(is_acceptable_jsonld_markdown_link_diff(diff))
+
+    def test_real_content_diff_not_filtered(self):
+        """Genuine content differences should not be filtered."""
+        diff = DiffResult(
+            "body > script > jsonld.@graph[0].author[0].description",
+            "jsonld_value_differs",
+            "Alice is a data scientist.",
+            "Bob is a data scientist.",
+        )
+        self.assertFalse(is_acceptable_jsonld_markdown_link_diff(diff))
+
+    def test_sejalvaidya_exact_diff_accepted(self):
+        """The exact diff from the DTC ml-deployment-lambda page should be accepted."""
+        expected = (
+            "Sejal Vaidya is an experienced data engineer with more than "
+            "10 years of experience in software development.\n"
+            "She's proficient in data platforms, infrastructure, and cloud "
+            "architecture, and\nshe's intere"
+        )
+        actual = (
+            "Sejal Vaidya is an experienced data engineer with more than "
+            "10 years of experience in software development.\n"
+            "She\u2019s proficient in data platforms, infrastructure, and cloud "
+            "architecture, and\nshe\u2019s intere"
+        )
+        diff = DiffResult(
+            "body > script > jsonld.@graph[0].author[0].description",
+            "jsonld_value_differs",
+            expected,
+            actual,
+        )
+        self.assertTrue(is_acceptable_jsonld_markdown_link_diff(diff))
 
 
 if __name__ == "__main__":

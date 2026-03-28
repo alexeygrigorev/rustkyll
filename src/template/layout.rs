@@ -3673,6 +3673,57 @@ mod tests {
     }
 
     // ========================================================================
+    // Issue 422: JSON-LD smart quotes in author description
+    // ========================================================================
+
+    #[test]
+    fn test_issue422_multiline_author_content_smart_quotes_preserved() {
+        // Issue 422: Rustkyll's kramdown rendering (via pulldown-cmark) produces smart
+        // apostrophes (U+2019) in collection item content. Jekyll's rendering order
+        // means posts are rendered before people, so author.content in post templates
+        // has raw markdown (straight apostrophes). Podcast templates render after people,
+        // so guest.content has rendered HTML (smart apostrophes).
+        //
+        // This test verifies that our pipeline correctly produces smart apostrophes in
+        // rendered HTML content, which matches Jekyll for the podcast path. The post-path
+        // difference (straight vs smart) is handled by the DOM comparison filter
+        // (is_acceptable_jsonld_markdown_link_diff) since it's a rendering-order artifact.
+        let markdown = "Sejal Vaidya is an experienced data engineer with more than 10 years of experience in software development.\nShe's proficient in data platforms, infrastructure, and cloud architecture, and\nshe's interested in machine learning engineering and MLOps.";
+        let html_content =
+            crate::frontmatter::markdown_to_html_with_options(markdown, true, true, false, false);
+
+        // Verify html_content has smart quotes from pulldown-cmark
+        assert!(
+            html_content.contains('\u{2019}'),
+            "html_content from markdown_to_html should have smart apostrophe U+2019, got: {:?}",
+            html_content
+        );
+
+        // Simulate what generator.rs does (escape_quotes_in_text_nodes + trim)
+        let escaped = crate::frontmatter::escape_quotes_in_text_nodes(html_content.trim());
+
+        // Pass through strip_html | jsonify (matching DTC layout templates)
+        let engine = crate::template::TemplateEngine::new().unwrap();
+        let mut author = liquid::Object::new();
+        author.insert(
+            "content".into(),
+            liquid::model::Value::scalar(escaped.into_owned()),
+        );
+        let mut ctx = liquid::Object::new();
+        ctx.insert("author".into(), liquid::model::Value::Object(author));
+        let output = engine
+            .parse_and_render("{{ author.content | strip_html | jsonify }}", &ctx)
+            .unwrap();
+
+        // Smart apostrophes should survive the pipeline
+        assert!(
+            output.contains("She\u{2019}s"),
+            "strip_html | jsonify should preserve smart apostrophe She\u{2019}s, got: {}",
+            output
+        );
+    }
+
+    // ========================================================================
     // Issue 319: Layout front matter as layout.* template variables
     // ========================================================================
 
