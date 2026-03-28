@@ -91,10 +91,6 @@ pub struct GenerationResult {
     pub skipped: usize,
     /// Non-fatal errors encountered during generation.
     pub errors: Vec<String>,
-    /// Rendered HTML content for markdown items that had Liquid tags processed.
-    /// Maps source_path -> rendered HTML (post-Liquid, post-markdown, pre-layout).
-    /// Used to avoid redundant Liquid+markdown re-rendering for feed content.
-    pub rendered_content: HashMap<String, String>,
 }
 
 /// Build a Liquid `Object` representing the `site` namespace.
@@ -1546,11 +1542,7 @@ pub fn generate_collection_pages_cached_with_progress(
         generated: 0,
         skipped: 0,
         errors: Vec::new(),
-        rendered_content: HashMap::new(),
     });
-
-    // Determine if this is the posts collection (for feed content caching)
-    let capture_rendered_content = collection_type == "posts";
 
     // Hoist timezone resolution out of the per-page loop (same for all pages).
     let site_tz = get_config_timezone(config);
@@ -1582,14 +1574,6 @@ pub fn generate_collection_pages_cached_with_progress(
         normalize_fm_to_array(&mut page_fm, "tags");
 
         page_fm.insert("url".into(), serde_yaml::Value::String(item.url.clone()));
-
-        // page.id -- Jekyll sets document.id for all collection items
-        // (e.g., "/2020/02/26/flake-it-till-you-make-it" for posts).
-        // Templates like beautiful-jekyll use `{% if page.id %}` to distinguish
-        // posts from standalone pages.
-        if !item.id.is_empty() {
-            page_fm.insert("id".into(), serde_yaml::Value::String(item.id.clone()));
-        }
 
         // page.path -- relative source path including collection directory prefix
         // (e.g., "_licenses/mit.txt"). Needed by github_edit_link tag to build
@@ -1675,10 +1659,6 @@ pub fn generate_collection_pages_cached_with_progress(
 
         // Determine HTML output: render through layout if available,
         // otherwise output raw content (Jekyll outputs items without layout too).
-        //
-        // For posts with Liquid+markdown content, use the "capture" variants that
-        // return both the layout-wrapped HTML and the intermediate rendered content.
-        // This avoids a redundant Liquid+markdown re-render for feed generation.
         let html_result = if let Some(ref layout) = layout_name {
             // Jekyll processes Liquid first, then markdown for ALL markdown-sourced files.
             let is_markdown_source =
@@ -1686,32 +1666,13 @@ pub fn generate_collection_pages_cached_with_progress(
             let has_liquid_tags = item.content.contains("{{") || item.content.contains("{%");
             if !site_overrides.is_empty() {
                 if is_markdown_source && has_liquid_tags {
-                    if capture_rendered_content {
-                        layout_engine
-                            .render_markdown_page_with_site_overrides_and_capture(
-                                layout,
-                                &item.content,
-                                &page_fm,
-                                cached_site,
-                                &site_overrides,
-                            )
-                            .map(|(html, content)| {
-                                result
-                                    .lock()
-                                    .unwrap()
-                                    .rendered_content
-                                    .insert(item.source_path.clone(), content);
-                                html
-                            })
-                    } else {
-                        layout_engine.render_markdown_page_with_site_overrides(
-                            layout,
-                            &item.content,
-                            &page_fm,
-                            cached_site,
-                            &site_overrides,
-                        )
-                    }
+                    layout_engine.render_markdown_page_with_site_overrides(
+                        layout,
+                        &item.content,
+                        &page_fm,
+                        cached_site,
+                        &site_overrides,
+                    )
                 } else {
                     layout_engine.render_page_with_site_overrides(
                         layout,
@@ -1722,30 +1683,12 @@ pub fn generate_collection_pages_cached_with_progress(
                     )
                 }
             } else if is_markdown_source && has_liquid_tags {
-                if capture_rendered_content {
-                    layout_engine
-                        .render_markdown_page_with_content_capture(
-                            layout,
-                            &item.content,
-                            &page_fm,
-                            cached_site,
-                        )
-                        .map(|(html, content)| {
-                            result
-                                .lock()
-                                .unwrap()
-                                .rendered_content
-                                .insert(item.source_path.clone(), content);
-                            html
-                        })
-                } else {
-                    layout_engine.render_markdown_page_with_cached_site(
-                        layout,
-                        &item.content,
-                        &page_fm,
-                        cached_site,
-                    )
-                }
+                layout_engine.render_markdown_page_with_cached_site(
+                    layout,
+                    &item.content,
+                    &page_fm,
+                    cached_site,
+                )
             } else {
                 layout_engine.render_page_with_cached_site(
                     layout,
@@ -1930,7 +1873,6 @@ pub fn generate_pages_cached_with_config_and_progress(
         generated: 0,
         skipped: 0,
         errors: Vec::new(),
-        rendered_content: HashMap::new(),
     });
 
     pages.par_iter().for_each(|page| {
