@@ -2501,10 +2501,10 @@ mod tests {
     }
 
     #[test]
-    fn test_yaml_boolean_is_no() {
+    fn test_yaml_boolean_is_kc() {
         let html = highlight_code("yaml", "fail-fast: false\n").unwrap();
         assert!(
-            html.contains("<span class=\"no\">false</span>"),
+            html.contains("<span class=\"kc\">false</span>"),
             "YAML booleans should map to no: {html}"
         );
     }
@@ -3002,7 +3002,7 @@ mod tests {
         // From blog/how-to-run-postgresql-and-pgadmin-with-docker.html
         let html = highlight_code("yaml", "external: true\n").unwrap();
         assert!(
-            html.contains("<span class=\"no\">true</span>"),
+            html.contains("<span class=\"kc\">true</span>"),
             "YAML true should be no: {html}"
         );
     }
@@ -3450,21 +3450,21 @@ mod tests {
     // ========================================================================
 
     #[test]
-    fn test_issue408_yaml_true_is_no() {
+    fn test_issue408_yaml_true_is_kc() {
         let code = "enabled: true\n";
         let html = highlight_code("yaml", code).unwrap();
         assert!(
-            html.contains("<span class=\"no\">true</span>"),
+            html.contains("<span class=\"kc\">true</span>"),
             "YAML `true` should be `no`, not `kc`. Got: {html}"
         );
     }
 
     #[test]
-    fn test_issue408_yaml_false_is_no() {
+    fn test_issue408_yaml_false_is_kc() {
         let code = "published: false\n";
         let html = highlight_code("yaml", code).unwrap();
         assert!(
-            html.contains("<span class=\"no\">false</span>"),
+            html.contains("<span class=\"kc\">false</span>"),
             "YAML `false` should be `no`, not `kc`. Got: {html}"
         );
     }
