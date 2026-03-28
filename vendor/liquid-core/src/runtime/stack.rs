@@ -64,7 +64,14 @@ impl<P: super::Runtime, O: ObjectView> super::Runtime for StackFrame<P, O> {
         let key = key.to_kstr();
         let data = &self.data;
         if data.contains_key(key.as_str()) {
-            crate::model::find(data.as_value(), path).map(|v| v.into_owned().into())
+            // Return the borrowed ValueCow directly instead of converting to
+            // owned via into_owned(). For StackFrame (unlike GlobalFrame or
+            // IndexFrame which use RefCell), data is directly owned by &self,
+            // so the borrow is valid for the return lifetime. This avoids
+            // expensive to_value() cloning of large collections (e.g.,
+            // site.people with 428 items), enabling pointer-stable references
+            // that downstream filters can use for caching.
+            crate::model::find(data.as_value(), path)
         } else {
             self.parent.get(path)
         }
