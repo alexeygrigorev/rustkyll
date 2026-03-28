@@ -458,6 +458,7 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
         html = postprocess_bash_angle_bracket_placeholders(&html);
         html = postprocess_bash_json_braces(&html);
         html = postprocess_bash_json_string_escapes(&html);
+        html = postprocess_bash_bracket_and_pipe(&html);
     }
 
     // SQL post-processing: Rouge wraps every token in SQL in a span.
@@ -1870,6 +1871,17 @@ fn postprocess_bash_json_string_escapes(html: &str) -> String {
         }
     }
     result
+}
+
+/// Post-process bash highlighted HTML to fix bracket and pipe operator classes.
+///
+/// Rouge/Jekyll classifies `[` as operator (`o`) and leaves `]` and `|` as bare
+/// text in bash blocks. Syntect classifies `[`/`]` as keyword (`k`) and `|` as
+/// operator-word (`ow`). This function remaps to match Jekyll output.
+fn postprocess_bash_bracket_and_pipe(html: &str) -> String {
+    html.replace(r#"<span class="k">[</span>"#, r#"<span class="o">[</span>"#)
+        .replace(r#"<span class="k">]</span>"#, "]")
+        .replace(r#"<span class="ow">|</span>"#, "|")
 }
 
 /// Post-process SQL highlighted HTML to wrap bare tokens in spans,
@@ -4874,6 +4886,48 @@ u = df['user'].unique()\n";
         assert!(
             html.contains(r#"<span class="o">{</span>"#),
             "braces should be operator spans: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue421_bash_bracket_class_remap() {
+        // `docker [run|exec] ${DOCKER_IMAGE}` — `[` should be class `o`, not `k`
+        let code = "docker [run|exec] ${DOCKER_IMAGE}\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains(r#"<span class="o">[</span>"#),
+            "open bracket should be class 'o' in bash: {html}"
+        );
+        // `]` should be bare text (not wrapped in a span), matching Jekyll/Rouge
+        assert!(
+            !html.contains(r#"<span class="k">]</span>"#),
+            "close bracket should not be class 'k' in bash: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue421_bash_bracket_preserves_variable_expansion() {
+        // `${DOCKER_IMAGE}` — `${` and `}` must stay class `k`
+        let code = "echo ${DOCKER_IMAGE}\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains(r#"<span class="k">${</span>"#),
+            "variable expansion open should remain class 'k': {html}"
+        );
+        assert!(
+            html.contains(r#"<span class="k">}</span>"#),
+            "variable expansion close should remain class 'k': {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue421_bash_pipe_class_remap() {
+        // `aws ecr get-login-password | \` — `|` should be bare text, not class `ow`
+        let code = "aws ecr get-login-password | \\\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            !html.contains(r#"<span class="ow">|</span>"#),
+            "pipe should not be class 'ow' in bash: {html}"
         );
     }
 }
