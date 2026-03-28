@@ -446,6 +446,7 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
         html = postprocess_bash_prompt_lines(&html);
         html = postprocess_bash_install(&html);
         html = postprocess_bash_local(&html);
+        html = postprocess_bash_export(&html);
         html = postprocess_bash_split_merged_nt_flags(&html);
         html = postprocess_bash_wrap_bare_flags_after_continuation(&html);
         html = postprocess_bash_env_var_assignments(&html);
@@ -1144,6 +1145,59 @@ fn replace_bare_local(text: &str) -> String {
     }
     out.push_str(&text[search_from..]);
     out
+}
+
+/// Post-process Bash highlighted HTML to classify `export` as a builtin (`nb`).
+/// Syntect classifies it as keyword (`k`). Also remaps the variable name span
+/// from `n` (name) to `nv` (name.variable) and unwraps the value span `s` (string)
+/// so the output matches Rouge: `<span class="nb">export</span> <span class="nv">VAR</span><span class="o">=</span>value`
+fn postprocess_bash_export(html: &str) -> String {
+    // Step 1: remap <span class="k">export</span> to <span class="nb">export</span>
+    let html = html.replace(
+        "<span class=\"k\">export</span>",
+        "<span class=\"nb\">export</span>",
+    );
+
+    // Step 2: After `<span class="nb">export</span> `, remap <span class="n">VAR</span>
+    // to <span class="nv">VAR</span> and unwrap <span class="s">value</span> after =
+    let export_prefix = "<span class=\"nb\">export</span> ";
+    let mut result = String::with_capacity(html.len() + 64);
+    let mut rest = html.as_str();
+
+    while let Some(pos) = rest.find(export_prefix) {
+        result.push_str(&rest[..pos + export_prefix.len()]);
+        rest = &rest[pos + export_prefix.len()..];
+
+        // Check if followed by <span class="n">VARNAME</span>
+        let n_open = "<span class=\"n\">";
+        if rest.starts_with(n_open) {
+            // Remap n -> nv
+            result.push_str("<span class=\"nv\">");
+            rest = &rest[n_open.len()..];
+            // Copy through to </span>
+            if let Some(close_pos) = rest.find("</span>") {
+                let end = close_pos + "</span>".len();
+                result.push_str(&rest[..end]);
+                rest = &rest[end..];
+
+                // Check if followed by <span class="o">=</span><span class="s">value</span>
+                let eq_span = "<span class=\"o\">=</span>";
+                let s_open = "<span class=\"s\">";
+                let eq_s = format!("{}{}", eq_span, s_open);
+                if rest.starts_with(&eq_s) {
+                    result.push_str(eq_span);
+                    rest = &rest[eq_s.len()..];
+                    // Unwrap the <span class="s"> -- copy contents, skip closing </span>
+                    if let Some(close_pos) = rest.find("</span>") {
+                        result.push_str(&rest[..close_pos]);
+                        rest = &rest[close_pos + "</span>".len()..];
+                    }
+                }
+            }
+        }
+    }
+    result.push_str(rest);
+    result
 }
 
 /// Post-process bare Bash prompt lines to match Rouge's prompt tokenization.
@@ -2813,6 +2867,78 @@ mod tests {
         assert!(
             !html.contains("<span class=\"nb\"><span class=\"nb\">local</span></span>"),
             "`local` should not be double-wrapped. Got: {html}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 410: Bash `export` builtin classification
+    // ========================================================================
+
+    #[test]
+    fn test_issue410_bash_export_builtin_is_nb() {
+        let code = "export FOO=bar\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nb\">export</span>"),
+            "Bash `export` should be classified as `nb` (builtin). Got: {html}"
+        );
+        assert!(
+            !html.contains("<span class=\"k\">export</span>"),
+            "Bash `export` should NOT be classified as `k` (keyword). Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue410_bash_export_var_assignment_wrapped() {
+        let code = "export FOO=bar\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nv\">FOO</span><span class=\"o\">=</span>"),
+            "Variable name after `export` should be wrapped with nv/o. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue410_bash_export_full_line() {
+        let code = "export AWS_REGION=eu-central-1\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nb\">export</span> <span class=\"nv\">AWS_REGION</span><span class=\"o\">=</span>eu-central-1"),
+            "Full `export VAR=val` line should match Rouge output. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue410_bash_export_multiple_lines() {
+        let code = "export AWS_REGION=eu-central-1\nexport AWS_ACCOUNT=PUT_VALUE_HERE\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nb\">export</span> <span class=\"nv\">AWS_REGION</span><span class=\"o\">=</span>eu-central-1"),
+            "First export line should be correct. Got: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"nb\">export</span> <span class=\"nv\">AWS_ACCOUNT</span><span class=\"o\">=</span>PUT_VALUE_HERE"),
+            "Second export line should be correct. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue410_bash_export_not_in_identifier() {
+        let code = "exported_data=1\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            !html.contains("<span class=\"nb\">export</span>"),
+            "`export` inside identifier should NOT be wrapped. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue410_bash_export_not_double_wrapped() {
+        let code = "export VAR=1\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            !html.contains("<span class=\"nb\"><span class=\"nb\">export</span></span>"),
+            "`export` should not be double-wrapped. Got: {html}"
         );
     }
 
