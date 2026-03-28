@@ -456,6 +456,7 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
         html = postprocess_bash_line_continuation_se(&html);
         html = postprocess_bash_var_eq_unwrap_s(&html);
         html = postprocess_bash_angle_bracket_placeholders(&html);
+        html = postprocess_bash_json_braces(&html);
     }
 
     // SQL post-processing: Rouge wraps every token in SQL in a span.
@@ -1744,6 +1745,67 @@ fn postprocess_bash_angle_bracket_placeholders(html: &str) -> String {
         rest = &rest[lt_pos + lt_span.len()..];
     }
     result.push_str(rest);
+    result
+}
+
+/// Post-process bash highlighted HTML to wrap bare `{` and `}` as
+/// `<span class="o">` (operator), matching Rouge/Jekyll behavior for JSON
+/// output in bash code blocks.
+///
+/// Only wraps braces that appear as bare text (not already inside a span,
+/// not preceded by `$` which would indicate `${VAR}` expansion).
+fn postprocess_bash_json_braces(html: &str) -> String {
+    // Walk the HTML character by character, tracking span depth.
+    // Only wrap { and } that appear at span depth 0 (bare text, not inside
+    // any <span> element) and not inside an HTML tag.
+    let mut result = String::with_capacity(html.len() + 64);
+    let bytes = html.as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
+    let mut span_depth: i32 = 0;
+
+    while i < len {
+        // Check for <span or </span> tag starts
+        if bytes[i] == b'<' && i + 5 < len {
+            if html[i..].starts_with("<span ") || html[i..].starts_with("<span>") {
+                // Opening span tag -- find its end and copy it through
+                span_depth += 1;
+                if let Some(gt) = html[i..].find('>') {
+                    result.push_str(&html[i..i + gt + 1]);
+                    i += gt + 1;
+                } else {
+                    result.push('<');
+                    i += 1;
+                }
+                continue;
+            } else if html[i..].starts_with("</span>") {
+                span_depth -= 1;
+                result.push_str("</span>");
+                i += 7;
+                continue;
+            }
+        }
+
+        // Check for other HTML tags (like <code>, etc.) -- pass through
+        if bytes[i] == b'<' {
+            if let Some(gt) = html[i..].find('>') {
+                result.push_str(&html[i..i + gt + 1]);
+                i += gt + 1;
+                continue;
+            }
+        }
+
+        // Now we're in text content
+        if (bytes[i] == b'{' || bytes[i] == b'}') && span_depth == 0 {
+            result.push_str("<span class=\"o\">");
+            result.push(bytes[i] as char);
+            result.push_str("</span>");
+            i += 1;
+        } else {
+            result.push(bytes[i] as char);
+            i += 1;
+        }
+    }
     result
 }
 
@@ -4636,5 +4698,59 @@ u = df['user'].unique()\n";
             result.starts_with(" <span class=\"nv\">$ </span>"),
             "Unit: leading space should be preserved.\nActual: {result}"
         );
+    }
+
+    #[test]
+    fn test_issue419_bash_json_braces_wrapped_as_operator() {
+        // Bare { and } in bash JSON output should be wrapped with class="o"
+        let input = r#"{<span class="s2">"statusCode"</span>: 200, <span class="s2">"body"</span>: <span class="s2">"{\"prediction\": \"1\"}"</span>}"#;
+        let result = postprocess_bash_json_braces(input);
+        assert_eq!(
+            result,
+            r#"<span class="o">{</span><span class="s2">"statusCode"</span>: 200, <span class="s2">"body"</span>: <span class="s2">"{\"prediction\": \"1\"}"</span><span class="o">}</span>"#,
+            "Bare JSON braces should be wrapped as operator spans"
+        );
+    }
+
+    #[test]
+    fn test_issue419_bash_json_braces_simple() {
+        // Simple JSON output: {"prediction": 1}
+        let input = r#"{<span class="s2">"prediction"</span>: 1}"#;
+        let result = postprocess_bash_json_braces(input);
+        assert_eq!(
+            result,
+            r#"<span class="o">{</span><span class="s2">"prediction"</span>: 1<span class="o">}</span>"#,
+            "Simple JSON braces should be wrapped as operator spans"
+        );
+    }
+
+    #[test]
+    fn test_issue419_bash_json_braces_no_double_wrap() {
+        // Already wrapped braces should not be double-wrapped
+        let input = r#"<span class="o">{</span>foo<span class="o">}</span>"#;
+        let result = postprocess_bash_json_braces(input);
+        assert_eq!(
+            result, input,
+            "Already wrapped braces should not be touched"
+        );
+    }
+
+    #[test]
+    fn test_issue419_bash_json_braces_skip_dollar_brace() {
+        // ${VAR} pattern should not be affected ($ precedes the {)
+        let input = r#"<span class="p">${</span><span class="n">DOCKER_IMAGE</span><span class="p">}</span>"#;
+        let result = postprocess_bash_json_braces(input);
+        assert_eq!(
+            result, input,
+            "Dollar-brace variables should not be affected"
+        );
+    }
+
+    #[test]
+    fn test_issue419_bash_json_braces_no_braces() {
+        // No braces at all
+        let input = r#"<span class="nv">$ </span>echo hello"#;
+        let result = postprocess_bash_json_braces(input);
+        assert_eq!(result, input, "Input without braces should be unchanged");
     }
 }
