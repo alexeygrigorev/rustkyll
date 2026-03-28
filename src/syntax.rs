@@ -430,6 +430,14 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
             "<span class=\"kc\">on</span><span class=\"pi\">:</span>",
             "<span class=\"na\">on</span><span class=\"pi\">:</span>",
         );
+        html = html.replace(
+            "<span class=\"kc\">true</span>",
+            "<span class=\"no\">true</span>",
+        );
+        html = html.replace(
+            "<span class=\"kc\">false</span>",
+            "<span class=\"no\">false</span>",
+        );
         html = postprocess_yaml_flow_mappings(&html);
     }
 
@@ -437,6 +445,7 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
     if lang == "bash" || lang == "sh" || lang == "shell" {
         html = postprocess_bash_prompt_lines(&html);
         html = postprocess_bash_install(&html);
+        html = postprocess_bash_local(&html);
     }
 
     // SQL post-processing: Rouge wraps every token in SQL in a span.
@@ -1071,6 +1080,67 @@ fn postprocess_java_annotations(html: &str) -> String {
 /// Post-process Bash highlighted HTML to wrap `install` as a builtin (`nb`).
 fn postprocess_bash_install(html: &str) -> String {
     html.replace(" install ", " <span class=\"nb\">install </span>")
+}
+
+/// Post-process Bash highlighted HTML to classify `local` as a builtin (`nb`).
+/// Syntect may classify it as keyword (`k`) or leave it bare.
+fn postprocess_bash_local(html: &str) -> String {
+    // Case 1: syntect already wrapped it as keyword `k` -- remap to `nb`
+    let result = html.replace(
+        "<span class=\"k\">local</span>",
+        "<span class=\"nb\">local</span>",
+    );
+    // Case 2: bare `local` not inside a span, as a whole word only.
+    // Walk through the HTML, skipping <span>...</span> regions, and replace
+    // whole-word `local` in bare text segments.
+    let mut out = String::with_capacity(result.len() + 64);
+    let mut rest = result.as_str();
+    while !rest.is_empty() {
+        if let Some(span_start) = rest.find("<span") {
+            let before_span = &rest[..span_start];
+            out.push_str(&replace_bare_local(before_span));
+            if let Some(close) = rest[span_start..].find("</span>") {
+                let end = span_start + close + "</span>".len();
+                out.push_str(&rest[span_start..end]);
+                rest = &rest[end..];
+            } else {
+                out.push_str(&rest[span_start..]);
+                break;
+            }
+        } else {
+            out.push_str(&replace_bare_local(rest));
+            break;
+        }
+    }
+    out
+}
+
+/// Replace whole-word `local` in a bare text segment (no HTML tags).
+fn replace_bare_local(text: &str) -> String {
+    let keyword = "local";
+    let replacement = "<span class=\"nb\">local</span>";
+    let mut out = String::with_capacity(text.len() + 64);
+    let mut search_from = 0;
+    while let Some(pos) = text[search_from..].find(keyword) {
+        let abs_pos = search_from + pos;
+        let end_pos = abs_pos + keyword.len();
+        // Check word boundaries
+        let before_ok = abs_pos == 0
+            || !text.as_bytes()[abs_pos - 1].is_ascii_alphanumeric()
+                && text.as_bytes()[abs_pos - 1] != b'_';
+        let after_ok = end_pos == text.len()
+            || !text.as_bytes()[end_pos].is_ascii_alphanumeric()
+                && text.as_bytes()[end_pos] != b'_';
+        out.push_str(&text[search_from..abs_pos]);
+        if before_ok && after_ok {
+            out.push_str(replacement);
+        } else {
+            out.push_str(keyword);
+        }
+        search_from = end_pos;
+    }
+    out.push_str(&text[search_from..]);
+    out
 }
 
 /// Post-process bare Bash prompt lines to match Rouge's prompt tokenization.
@@ -1722,11 +1792,11 @@ mod tests {
     }
 
     #[test]
-    fn test_yaml_boolean_is_kc() {
+    fn test_yaml_boolean_is_no() {
         let html = highlight_code("yaml", "fail-fast: false\n").unwrap();
         assert!(
-            html.contains("<span class=\"kc\">false</span>"),
-            "YAML booleans should map to kc: {html}"
+            html.contains("<span class=\"no\">false</span>"),
+            "YAML booleans should map to no: {html}"
         );
     }
 
@@ -2223,8 +2293,8 @@ mod tests {
         // From blog/how-to-run-postgresql-and-pgadmin-with-docker.html
         let html = highlight_code("yaml", "external: true\n").unwrap();
         assert!(
-            html.contains("<span class=\"kc\">true</span>"),
-            "YAML true should be kc: {html}"
+            html.contains("<span class=\"no\">true</span>"),
+            "YAML true should be no: {html}"
         );
     }
 
@@ -2427,6 +2497,86 @@ mod tests {
         assert!(
             html.contains("<span class=\"nb\">install </span>"),
             "Bash `install` should be classified as `nb` (builtin). Got: {html}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 404: Bash `local` builtin should use class `nb`
+    // ========================================================================
+
+    #[test]
+    fn test_issue404_bash_local_builtin_is_nb() {
+        let code = "local var=\"hello\"\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nb\">local</span>"),
+            "Bash `local` should be classified as `nb` (builtin). Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue404_bash_local_trailing_is_nb() {
+        let code = "docker volume create -d local\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nb\">local</span>"),
+            "Trailing `local` should be classified as `nb`. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue404_bash_local_not_in_identifier() {
+        let code = "echo postgres_volume_local\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            !html.contains("<span class=\"nb\">local</span>"),
+            "`local` inside identifier should NOT be wrapped. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue404_bash_local_not_double_wrapped() {
+        // If `local` is already inside a span, it should not be double-wrapped
+        let code = "local var=\"hello\"\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            !html.contains("<span class=\"nb\"><span class=\"nb\">local</span></span>"),
+            "`local` should not be double-wrapped. Got: {html}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 408: YAML boolean `true`/`false` should use class `no`
+    // ========================================================================
+
+    #[test]
+    fn test_issue408_yaml_true_is_no() {
+        let code = "enabled: true\n";
+        let html = highlight_code("yaml", code).unwrap();
+        assert!(
+            html.contains("<span class=\"no\">true</span>"),
+            "YAML `true` should be `no`, not `kc`. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue408_yaml_false_is_no() {
+        let code = "published: false\n";
+        let html = highlight_code("yaml", code).unwrap();
+        assert!(
+            html.contains("<span class=\"no\">false</span>"),
+            "YAML `false` should be `no`, not `kc`. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue408_json_true_unchanged() {
+        // JSON booleans should NOT be affected -- they should stay `kc`
+        let code = "{\"active\": true}\n";
+        let html = highlight_code("json", code).unwrap();
+        assert!(
+            html.contains("<span class=\"kc\">true</span>"),
+            "JSON `true` should remain `kc`. Got: {html}"
         );
     }
 
