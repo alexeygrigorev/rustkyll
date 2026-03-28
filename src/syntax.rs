@@ -1215,7 +1215,14 @@ fn postprocess_bash_prompt_lines(html: &str) -> String {
             None => (line, ""),
         };
 
-        if let Some(rest) = content.strip_prefix("$ ") {
+        // Find "$ " at line start, optionally preceded by whitespace.
+        // Skip if already wrapped in a span (don't double-wrap).
+        let trimmed = content.trim_start();
+        let leading_ws = &content[..content.len() - trimmed.len()];
+
+        if trimmed.starts_with("$ ") && !trimmed.starts_with("<span") {
+            let rest = &trimmed[2..]; // after "$ "
+            out.push_str(leading_ws);
             out.push_str("<span class=\"nv\">$ </span>");
             if let Some(tail) = rest.strip_prefix("promptfoo eval ") {
                 out.push_str("promptfoo <span class=\"nb\">eval </span>");
@@ -4480,6 +4487,80 @@ u = df['user'].unique()\n";
         assert_eq!(
             result, expected,
             "Should unwrap both s spans.\nActual: {result}"
+        );
+    }
+
+    // ── Issue 417: Bash $ prompt with leading whitespace should get nv class ──
+
+    #[test]
+    fn test_issue417_bash_prompt_leading_space() {
+        // " $ docker build" — leading space before $ prompt
+        let code = " $ docker build -t myimage .\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nv\">$ </span>"),
+            "Leading-space $ prompt should be wrapped as nv.\nActual: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue417_bash_prompt_no_leading_space() {
+        // Already works: "$ docker run" at absolute line start
+        let code = "$ docker run myimage\n";
+        let html = highlight_code("bash", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nv\">$ </span>"),
+            "Bare $ prompt should be wrapped as nv.\nActual: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue417_bash_prompt_not_var_substitution() {
+        // $HOME should NOT get nv wrapping as prompt
+        let code = "echo $HOME\n";
+        let html = highlight_code("bash", code).unwrap();
+        // $HOME is a variable, not a prompt — it should NOT start with nv $ prompt
+        let nv_prompt_count = html.matches("<span class=\"nv\">$ </span>").count();
+        assert_eq!(
+            nv_prompt_count, 0,
+            "$HOME should not be treated as a $ prompt.\nActual: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue417_bash_prompt_multiline() {
+        let code = "$ sam build\n$ sam deploy\n";
+        let html = highlight_code("bash", code).unwrap();
+        let count = html.matches("<span class=\"nv\">$ </span>").count();
+        assert_eq!(
+            count, 2,
+            "Both $ prompts should be wrapped.\nActual: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue417_bash_prompt_no_double_wrap() {
+        // If already wrapped, don't double-wrap
+        let input = "<span class=\"nv\">$ </span>docker run\n$ ls\n";
+        let result = postprocess_bash_prompt_lines(input);
+        let count = result.matches("<span class=\"nv\">$ </span>").count();
+        assert_eq!(
+            count, 2,
+            "Should not double-wrap already-wrapped prompt.\nActual: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue417_bash_prompt_leading_spaces_unit() {
+        let input = " $ docker build -t myimage\n";
+        let result = postprocess_bash_prompt_lines(input);
+        assert!(
+            result.contains("<span class=\"nv\">$ </span>"),
+            "Unit: leading-space $ should be wrapped.\nActual: {result}"
+        );
+        assert!(
+            result.starts_with(" <span class=\"nv\">$ </span>"),
+            "Unit: leading space should be preserved.\nActual: {result}"
         );
     }
 }
