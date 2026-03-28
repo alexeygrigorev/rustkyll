@@ -29,6 +29,10 @@ Format:
 | 391+392 | `470840c` | `786/790 matched (kramdown parser prerequisites, no DOM change)` |
 | 393 | `e4fa468` | `786/790 matched (kramdown HTML tag detection, no DOM change)` |
 | 395 | `72d57f8` | `786/790 matched (H1 title auto-extraction, no DOM change)` |
+| 348+397+396+402+364 | `786d2f0..0db0b97` | `788/790 matched (multiple fixes, new Jekyll cache)` |
+| 399+401 | `af14e5c` | `788/790 matched (category sort + config defaults)` |
+| 404-421 | `23b96c8..896adf4` | `789/790 matched (bash syntax highlighting micro-fixes)` |
+| 422+423 | `973a611` | **`790/790 matched — 100% DTC DOM`** |
 | 397 | `252aad3` | `786/790 matched (Liquid false==nil fix, choosealicense 72/72)` |
 | 396 | `0611865` | `786/790 matched (HTML attr newline normalization, mojombo 17/17)` |
 | 402 | `e044c52` | `786/790 matched (URL asterisk protection in markdownify, reliable-ML 17→2 diffs)` |
