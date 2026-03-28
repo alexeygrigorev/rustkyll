@@ -4478,6 +4478,8 @@ fn is_rouge_recognized_language(lang: &str) -> bool {
             | "fsharp"
             | "batchfile"
             | "powershell"
+            | "docker"
+            | "dockerfile"
     )
 }
 
@@ -4528,7 +4530,15 @@ fn wrap_fenced_code_blocks(html: &str) -> String {
                 // Try syntax highlighting for non-plaintext languages
                 let raw_code = html_unescape(code_content);
                 let highlighted = if lang != "plaintext" {
-                    crate::syntax::highlight_code(&lang, &raw_code)
+                    crate::syntax::highlight_code(&lang, &raw_code).or_else(|| {
+                        // Fallback: Docker/Dockerfile highlighting (Rouge recognizes
+                        // these but syntect has no grammar for them)
+                        if lang == "docker" || lang == "dockerfile" {
+                            crate::docker_highlight::highlight_docker(&raw_code)
+                        } else {
+                            None
+                        }
+                    })
                 } else {
                     None
                 };
@@ -13912,6 +13922,63 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             result.contains("Some text before") && result.contains("Some text after"),
             "Surrounding text should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_423_docker_code_block_gets_div_wrapper() {
+        // Issue 423: Docker code blocks should get the div wrapper and syntax spans
+        let html =
+            "<pre><code class=\"language-docker\">FROM base\nCOPY app.py ./\n</code></pre>\n";
+        let result = wrap_fenced_code_blocks(html);
+        assert!(
+            result.contains("<div class=\"language-docker highlighter-rouge\">"),
+            "Docker code block should get language-docker wrapper. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<span class=\"k\">FROM</span>"),
+            "Docker code block should have highlighted FROM keyword. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<span class=\"k\">COPY</span>"),
+            "Docker code block should have highlighted COPY keyword. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_423_dockerfile_code_block_gets_div_wrapper() {
+        // Issue 423: Dockerfile code blocks also get the wrapper
+        let html =
+            "<pre><code class=\"language-dockerfile\">RUN pip install flask\n</code></pre>\n";
+        let result = wrap_fenced_code_blocks(html);
+        assert!(
+            result.contains("<div class=\"language-dockerfile highlighter-rouge\">"),
+            "Dockerfile code block should get wrapper. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<span class=\"k\">RUN </span>"),
+            "Dockerfile code block should have highlighted RUN keyword. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_423_docker_full_block_matches_jekyll() {
+        // Verify exact match with Jekyll output for the first Docker block
+        // from ml-deployment-lambda
+        let html = "<pre><code class=\"language-docker\">FROM public.ecr.aws/lambda/python:3.8 as base\n\nFROM base AS train\nCOPY requirements.txt .\nRUN pip install -r requirements.txt\nENV MODEL_LOCAL_PATH=pickled_model.pkl\nCOPY train.py .\nRUN python3 train.py\n</code></pre>\n";
+        let result = wrap_fenced_code_blocks(html);
+
+        let expected_content = "<span class=\"k\">FROM</span><span class=\"w\"> </span><span class=\"s\">public.ecr.aws/lambda/python:3.8</span><span class=\"w\"> </span><span class=\"k\">as</span><span class=\"w\"> </span><span class=\"s\">base</span>\n\n<span class=\"k\">FROM</span><span class=\"w\"> </span><span class=\"s\">base</span><span class=\"w\"> </span><span class=\"k\">AS</span><span class=\"w\"> </span><span class=\"s\">train</span>\n<span class=\"k\">COPY</span><span class=\"s\"> requirements.txt .</span>\n<span class=\"k\">RUN </span>pip <span class=\"nb\">install</span> <span class=\"nt\">-r</span> requirements.txt\n<span class=\"k\">ENV</span><span class=\"s\"> MODEL_LOCAL_PATH=pickled_model.pkl</span>\n<span class=\"k\">COPY</span><span class=\"s\"> train.py .</span>\n<span class=\"k\">RUN </span>python3 train.py\n";
+        assert!(
+            result.contains(expected_content),
+            "Docker block should match Jekyll output.\nExpected to contain: {}\nGot: {}",
+            expected_content,
             result
         );
     }
