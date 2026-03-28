@@ -125,9 +125,8 @@ fn test_issue367_full_oreilly_url_kramdown() {
 
 #[test]
 fn test_issue367_full_oreilly_via_markdownify() {
-    // Issue 378: The markdownify filter (markdown_to_html_for_filter) should NOT protect
-    // URL asterisks, matching Jekyll/kramdown behavior where asterisks produce <em> tags.
-    // The markdown_to_html_with_options pipeline STILL protects them (tested here).
+    // All pipelines protect URL asterisks in [url](url) link text, matching Jekyll/kramdown
+    // behavior where the link structure is parsed first. This test verifies markdown_to_html_with_options.
     let input = "maybe [https://www.oreilly.com/library/view/practical-fairness/9781492075721/?_gl=1*95hemv*_ga*MTA2ODM2NTQzNi4xNjU1NjQ3NTg4*_ga_092EL089CH*MTY3MDI2NTc4Ny4zLjEuMTY3MDI2NTg2NS41Ny4wLjA](https://www.oreilly.com/library/view/practical-fairness/9781492075721/?_gl=1*95hemv*_ga*MTA2ODM2NTQzNi4xNjU1NjQ3NTg4*_ga_092EL089CH*MTY3MDI2NTc4Ny4zLjEuMTY3MDI2NTg2NS41Ny4wLjA). if you want";
     // Test kramdown mode via markdown_to_html_with_options (still protects URL asterisks)
     let html =

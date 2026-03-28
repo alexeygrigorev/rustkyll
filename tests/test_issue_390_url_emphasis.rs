@@ -7,7 +7,7 @@
 /// The correct behavior is to leave `*` in URLs as literal characters.
 /// This test captures the current (incorrect) behavior so we can track
 /// progress toward fixing it.
-use rustkyll::frontmatter::{markdown_to_html_for_filter, markdown_to_html};
+use rustkyll::frontmatter::{markdown_to_html, markdown_to_html_for_filter};
 
 #[test]
 fn test_issue390_url_with_asterisks_in_link_text_markdownify() {
@@ -16,20 +16,11 @@ fn test_issue390_url_with_asterisks_in_link_text_markdownify() {
     let input = "[https://example.com/?_gl=1*abc*_ga*123](https://example.com/?_gl=1*abc*_ga*123)";
     let result = markdown_to_html_for_filter(input);
 
-    // KNOWN BUG: Both parsers treat *abc* as emphasis inside the link text.
-    // The correct output would be a clean <a> tag with literal * in text.
-    // This test documents the current behavior so we can detect when it's fixed.
-    //
-    // When this test starts failing because the output is now a clean <a> tag,
-    // that means the parser was fixed — update the assertion to expect the
-    // correct output.
-    let has_em = result.contains("<em>");
-    let has_link = result.contains("<a ");
-
-    // At minimum, the URL in href should be intact
+    // protect_url_link_text_emphasis escapes asterisks in URL-like link text,
+    // so pulldown-cmark produces a proper <a> link (matching Jekyll/kramdown).
     assert!(
-        has_link || has_em,
-        "URL with asterisks should produce some output: got '{}'",
+        result.contains("<a "),
+        "Markdownify should produce a link for URL with asterisks: got '{}'",
         result
     );
 }

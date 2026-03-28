@@ -798,10 +798,10 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     let markdown = crate::kramdown::split_text_after_html_block_close(&markdown);
     let markdown = rewrite_malformed_target_blank_links(&markdown);
 
-    // Issue 378: Do NOT call protect_url_link_text_emphasis here.
-    // The markdownify filter must match Jekyll/kramdown behavior where asterisks
-    // in URL link text produce <em> tags (broken links). Only the page-body
-    // pipelines (markdown_to_html, markdown_to_html_with_options) protect them.
+    // Issue 367/402: Protect asterisks inside URL-like link text so pulldown-cmark
+    // does not treat them as emphasis markers. Jekyll/kramdown parses [url](url)
+    // as a proper <a> link even when the URL contains asterisks in query params.
+    let markdown = protect_url_link_text_emphasis(&markdown);
 
     // Issue 198/206: Same ZWSP and emphasis handling as markdown_to_html
     let markdown = normalize_zwsp_for_emphasis(&markdown);
