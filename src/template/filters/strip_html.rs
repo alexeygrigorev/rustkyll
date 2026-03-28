@@ -182,4 +182,20 @@ mod tests {
                 .unwrap();
         assert_eq!(result.to_kstr(), "Hello");
     }
+
+    // ========================================================================
+    // Issue 447: strip_html preserves HTML entities (matching Jekyll)
+    // ========================================================================
+
+    #[test]
+    fn test_issue447_entities_preserved_after_strip() {
+        // Jekyll's strip_html preserves HTML entities like &quot;, &amp; etc.
+        // The entities are part of the text content and are not decoded.
+        let input = "<p>White Noise</p>\n<details>&quot;I'm scheduled to die.&quot;</details>";
+        let result = liquid_core::call_filter!(StripHtml, input).unwrap();
+        assert_eq!(
+            result.to_kstr(),
+            "White Noise\n&quot;I'm scheduled to die.&quot;"
+        );
+    }
 }

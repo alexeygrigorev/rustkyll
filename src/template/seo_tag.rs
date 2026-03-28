@@ -117,6 +117,17 @@ fn html_escape_content(s: &str) -> String {
         .replace('>', "&gt;")
 }
 
+/// Decode `&quot;` entities back to literal double quotes.
+///
+/// When content passes through markdown rendering and then `strip_html_tags`,
+/// `&quot;` entities survive as literal text. Jekyll's markdown renderer
+/// doesn't produce `&quot;` inside raw HTML blocks, so we decode them to
+/// match Jekyll's effective output. Other entities (`&amp;`, `&lt;`, `&gt;`)
+/// are preserved as Jekyll's `strip_html` does.
+fn html_unescape(s: &str) -> String {
+    s.replace("&quot;", "\"").replace("&#34;", "\"")
+}
+
 /// Get a nested value like "site.twitter.username" by traversing objects.
 fn get_nested_str(runtime: &dyn Runtime, parts: &[&str]) -> Option<String> {
     if parts.is_empty() {
@@ -324,7 +335,7 @@ impl Renderable for SeoRenderable {
         let content_snippet =
             if page_description.is_none() && page_excerpt.is_none() && site_description.is_none() {
                 page_content.as_deref().and_then(|c| {
-                    let stripped = strip_html_tags(c);
+                    let stripped = html_unescape(&strip_html_tags(c));
                     let trimmed = stripped.trim().replace('\n', " ");
                     // Collapse multiple spaces
                     let mut prev_space = false;
@@ -370,7 +381,7 @@ impl Renderable for SeoRenderable {
         // Strip HTML tags from description (Jekyll's SEO tag always does this),
         // collapse multiple whitespace to single space, and apply smartify.
         let stripped_description = raw_description.map(|d| {
-            let stripped = strip_html_tags(d);
+            let stripped = html_unescape(&strip_html_tags(d));
             // Collapse multiple whitespace to single space
             let mut prev_space = false;
             let collapsed: String = stripped
@@ -4063,6 +4074,62 @@ mod tests {
         assert!(
             out.contains("<meta name=\"author\" content=\"Page Author\" />"),
             "Page author object should override site author. Got:\n{}",
+            out
+        );
+    }
+
+    // ========================================================================
+    // Issue 447: Meta tag content with HTML entities should be unescaped
+    // ========================================================================
+
+    #[test]
+    fn test_issue447_meta_description_unescapes_html_entities_from_excerpt() {
+        // When page.excerpt contains HTML with &quot; entities (from markdown
+        // rendering of raw HTML tags like <details>), the meta description
+        // should decode them back to literal characters, matching Jekyll output.
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        let mut site = Object::new();
+
+        page.insert("title".into(), Value::scalar("Test".to_string()));
+        // Excerpt HTML with &quot; entities (as produced by our markdown renderer)
+        page.insert(
+            "excerpt".into(),
+            Value::scalar(
+                "<p>White Noise</p>\n<details>&quot;I'm scheduled to die.&quot;</details>"
+                    .to_string(),
+            ),
+        );
+        page.insert("url".into(), Value::scalar("/notes/test".to_string()));
+        site.insert("title".into(), Value::scalar("My Site".to_string()));
+        site.insert(
+            "url".into(),
+            Value::scalar("https://example.com".to_string()),
+        );
+
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+
+        // The &quot; should be decoded to literal " then smartified to curly quotes
+        // \u{201c} = left double quotation mark, \u{201d} = right double quotation mark
+        // \u{2019} = right single quotation mark (smart apostrophe)
+        assert!(
+            out.contains("\u{201c}I\u{2019}m scheduled to die.\u{201d}"),
+            "Meta description should have smartified quotes (decoded from &quot;), got:\n{}",
+            out
+        );
+        // Should NOT contain &quot; or &amp;quot;
+        assert!(
+            !out.contains("&quot;"),
+            "Meta description should not contain &quot; entity, got:\n{}",
+            out
+        );
+        assert!(
+            !out.contains("&amp;quot;"),
+            "Meta description should not contain &amp;quot; double-escaped entity, got:\n{}",
             out
         );
     }

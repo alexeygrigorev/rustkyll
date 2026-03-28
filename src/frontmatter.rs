@@ -330,13 +330,22 @@ pub fn escape_quotes_in_text_nodes(html: &str) -> std::borrow::Cow<'_, str> {
     if !html.contains('"') {
         return std::borrow::Cow::Borrowed(html);
     }
-    let mut result = String::with_capacity(html.len());
+
+    // Issue 447: Pre-protect quotes inside raw <details> blocks (those without
+    // <p> tags, indicating inline HTML passthrough). Jekyll's CommonMark preserves
+    // literal quotes in such blocks; <details> blocks WITH <p> tags were markdown-
+    // rendered and Jekyll escapes quotes inside those. We use a private-use
+    // character as a temporary placeholder.
+    let (html_cow, has_raw_details) = protect_raw_details_quotes(html);
+    let html_ref: &str = &html_cow;
+
+    let mut result = String::with_capacity(html_ref.len());
     let mut in_tag = false;
     let mut in_script = false;
     let mut in_style = false;
-    let bytes = html.as_bytes();
+    let bytes = html_ref.as_bytes();
 
-    for (byte_pos, ch) in html.char_indices() {
+    for (byte_pos, ch) in html_ref.char_indices() {
         match ch {
             '<' => {
                 in_tag = true;
@@ -366,7 +375,85 @@ pub fn escape_quotes_in_text_nodes(html: &str) -> std::borrow::Cow<'_, str> {
             }
         }
     }
+
+    // Restore protected quotes from raw <details> blocks
+    if has_raw_details {
+        result = result.replace(RAW_DETAILS_QUOTE_PLACEHOLDER, "\"");
+    }
+
     std::borrow::Cow::Owned(result)
+}
+
+/// Placeholder for quotes inside raw `<details>` blocks.
+/// Uses a Unicode private-use character that won't appear in normal HTML.
+const RAW_DETAILS_QUOTE_PLACEHOLDER: &str = "\u{F8FF}";
+
+/// Issue 447: Protect quotes inside raw `<details>` blocks from escaping.
+///
+/// A "raw" `<details>` block is one that contains NO `<p>` tags, meaning its
+/// content was passed through as inline HTML without markdown rendering.
+/// Jekyll's CommonMark preserves literal `"` in such blocks.
+///
+/// `<details>` blocks WITH `<p>` tags have been markdown-rendered, and Jekyll
+/// escapes quotes inside those (so we should too).
+fn protect_raw_details_quotes(html: &str) -> (String, bool) {
+    if !html.contains("<details") {
+        return (html.to_string(), false);
+    }
+
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+    let mut found_raw = false;
+
+    while !remaining.is_empty() {
+        if let Some(start) = remaining.find("<details") {
+            if let Some(end_offset) = remaining[start..].find("</details>") {
+                let end = start + end_offset + "</details>".len();
+                result.push_str(&remaining[..start]);
+
+                let block = &remaining[start..end];
+                // Only protect quotes in blocks WITHOUT <p> tags (raw inline HTML).
+                // Check for <p> or <p with attributes.
+                if !block.contains("<p>") && !block.contains("<p ") {
+                    found_raw = true;
+                    // Replace " with placeholder, but only in text nodes (not in tag attributes)
+                    let mut block_result = String::with_capacity(block.len());
+                    let mut in_block_tag = false;
+                    for ch in block.chars() {
+                        match ch {
+                            '<' => {
+                                in_block_tag = true;
+                                block_result.push(ch);
+                            }
+                            '>' => {
+                                in_block_tag = false;
+                                block_result.push(ch);
+                            }
+                            '"' if !in_block_tag => {
+                                block_result.push_str(RAW_DETAILS_QUOTE_PLACEHOLDER);
+                            }
+                            _ => {
+                                block_result.push(ch);
+                            }
+                        }
+                    }
+                    result.push_str(&block_result);
+                } else {
+                    result.push_str(block);
+                }
+
+                remaining = &remaining[end..];
+            } else {
+                result.push_str(remaining);
+                break;
+            }
+        } else {
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    (result, found_raw)
 }
 
 /// Supports headings, paragraphs, links, images, bold/italic, blockquotes,
@@ -6310,6 +6397,57 @@ More text.
         assert_eq!(
             result,
             "<meta content=\"test\"><p>&quot;Email Mu-An&quot;</p>"
+        );
+    }
+
+    // ========================================================================
+    // Issue 447: escape_quotes_in_text_nodes skips raw <details> blocks
+    // ========================================================================
+
+    #[test]
+    fn test_issue447_escape_quotes_skips_raw_details_content() {
+        // Raw <details> blocks (no <p> inside) should preserve literal quotes.
+        // This matches Jekyll's CommonMark behavior for inline HTML passthrough.
+        let input = "<details>\"I'm tentatively scheduled to die.\"</details>";
+        let result = escape_quotes_in_text_nodes(input);
+        assert_eq!(
+            result,
+            "<details>\"I'm tentatively scheduled to die.\"</details>"
+        );
+    }
+
+    #[test]
+    fn test_issue447_escape_quotes_in_rendered_details() {
+        // <details> blocks WITH <p> tags (markdown-rendered) should still
+        // escape quotes, matching Jekyll's behavior for these cases.
+        let input = "<details><summary>Warning</summary>\n<p>\"save\" someone</p>\n</details>";
+        let result = escape_quotes_in_text_nodes(input);
+        assert!(
+            result.contains("&quot;save&quot;"),
+            "Markdown-rendered details should escape quotes. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue447_escape_quotes_details_with_surrounding_text() {
+        // Quotes in <p> should still be escaped, raw <details> should not
+        let input = "<p>\"outside\"</p>\n<details>\"inside\"</details>";
+        let result = escape_quotes_in_text_nodes(input);
+        assert_eq!(
+            result,
+            "<p>&quot;outside&quot;</p>\n<details>\"inside\"</details>"
+        );
+    }
+
+    #[test]
+    fn test_issue447_escape_quotes_raw_details_with_summary() {
+        // Raw details block with summary but no <p> tags
+        let input = "<details><summary>\"summary\"</summary>\"body\"</details>";
+        let result = escape_quotes_in_text_nodes(input);
+        assert_eq!(
+            result,
+            "<details><summary>\"summary\"</summary>\"body\"</details>"
         );
     }
 
