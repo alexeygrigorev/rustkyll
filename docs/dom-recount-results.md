@@ -1,6 +1,6 @@
 # DOM Comparison Results
 
-Generated: 2026-03-28 07:52 UTC
+Generated: 2026-03-28 10:20 UTC
 
 rustkyll version: rustkyll 0.3.0
 
@@ -27,12 +27,12 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
 
 | Site | DOM Match | File Match | Liquid Leaks |
 |------|-----------|------------|-------------|
-| DataTalksClub/datatalksclub.github.io | 789/790 (100%) | 790/790 | 1 |
+| DataTalksClub/datatalksclub.github.io | 788/790 (100%) | 790/790 | 1 |
 
 ## Summary
 
 - Sites compared: 1
-- Total DOM matches: 789 / 790
+- Total DOM matches: 788 / 790
 
 ## Diff Categories by Site
 
@@ -40,8 +40,10 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
 
 ```
       7 attribute_differs
+      6 text_differs
+      4 expected_text_got_element
       2 tag_name_differs
-      1 expected_element_got_text
+      1 extra_element
 ```
 
 

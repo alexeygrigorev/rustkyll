@@ -9,17 +9,29 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/DataTalksClub/datatalksclu
 Rustkyll directory: /home/alexey/git/rustkyl/websites/DataTalksClub/datatalksclub.github.io/_site_rustkyll_recount
 Common HTML files:  790
 
-DIFF blog/ml-deployment-lambda.html (148 differences)
+DIFF blog/how-to-run-postgresql-and-pgadmin-with-docker.html (24 differences)
+  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nt'", actual: "class='n'"
+  body > div > div > div > div > div > div > pre > code: expected_text_got_element - expected: 'pg-network', actual: '<span>'
+  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='se'", actual: "class='s'"
+  body > div > div > div > div > div > div > pre > code > span: text_differs - expected: '\\\\', actual: 'pg-network'
+  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nt'", actual: "class='se'"
+  body > div > div > div > div > div > div > pre > code > span: text_differs - expected: '--name', actual: '\\\\'
+  body > div > div > div > div > div > div > pre > code: expected_text_got_element - expected: 'pg-database', actual: '<span>'
+  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='se'", actual: "class='nt'"
+  body > div > div > div > div > div > div > pre > code > span: text_differs - expected: '\\\\', actual: '--name'
+  body > div > div > div > div > div > div > pre > code: text_differs - expected: 'postgres:13', actual: 'pg-database'
+  ... and 14 more differences
+DIFF blog/ml-deployment-lambda.html (132 differences)
   body > div > div > div > div > child[46]: tag_name_differs - expected: 'div', actual: 'pre'
   body > div > div > div > div > child[56]: tag_name_differs - expected: 'div', actual: 'pre'
-  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='k'"
   body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nv'", actual: "class='n'"
-  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='k'"
-  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nv'", actual: "class='n'"
-  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nv'", actual: "class='n'"
-  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nv'", actual: "class='n'"
-  body > div > div > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '$ docker build'
-  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nv'", actual: "class='nt'"
-  ... and 138 more differences
+  body > div > div > div > div > div > div > pre > code: expected_text_got_element - expected: 'PUT_VALUE_HERE', actual: '<span>'
+  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nv'", actual: "class='s'"
+  body > div > div > div > div > div > div > pre > code > span: text_differs - expected: 'DOCKER_IMAGE', actual: 'PUT_VALUE_HERE'
+  body > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='n'"
+  body > div > div > div > div > div > div > pre > code > span: text_differs - expected: '=', actual: 'DOCKER_IMAGE'
+  body > div > div > div > div > div > div > pre > code: expected_text_got_element - expected: 'serverless-ml', actual: '<span>'
+  body > div > div > div > div > div > div > pre > code > span: extra_element - expected: '(none)', actual: '<span>'
+  ... and 122 more differences
 
-Summary: 789 files matched, 1 files with differences, 148 total differences (904 acceptable diffs filtered out)
+Summary: 788 files matched, 2 files with differences, 156 total differences (904 acceptable diffs filtered out)
