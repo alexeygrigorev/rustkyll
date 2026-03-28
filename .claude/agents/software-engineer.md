@@ -175,7 +175,7 @@ git commit -m "Implement issue NN: short description"
 
 ## Rules
 
-- **ZERO DTC REGRESSION.** Every change, regardless of which site it targets, must not regress the DTC site DOM count. Always verify with `bash scripts/recount-all-dom.sh --site DataTalksClub/datatalksclub.github.io` (not manual dom_compare.py — the recount script properly sets the working directory). If DTC DOM drops even by 1 page below the issue's baseline, REVERT your change immediately and log the failed approach.
+- **ZERO DTC REGRESSION.** Every change, regardless of which site it targets, must not regress the DTC site DOM count OR total diff count. Always verify with `bash scripts/recount-all-dom.sh --site DataTalksClub/datatalksclub.github.io` (not manual dom_compare.py — the recount script properly sets the working directory). Check BOTH the page count (e.g., 788/790) AND the total differences number from the summary line. If either metric worsens below the issue's baseline, REVERT your change immediately and log the failed approach.
 - Do NOT commit until PM accepts
 - Implement exactly what the issue asks for -- no extra features
 - Every issue must include tests
