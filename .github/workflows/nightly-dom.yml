@@ -1,0 +1,86 @@
+name: Nightly DOM Baseline Check
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  dom-check-all-sites:
+    name: DOM Baseline Check (All Sites)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry and target
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build rustkyll (release)
+        run: cargo build --release --verbose
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      # The websites/ directory is gitignored and not available in CI.
+      # Clone the DTC site (the most critical site) for nightly checking.
+      # Other sites require their Jekyll cached output which lives locally.
+      - name: Set up websites directory
+        run: |
+          mkdir -p websites/DataTalksClub
+
+      - name: Clone DTC main site (shallow)
+        run: |
+          git clone --depth 1 \
+            https://github.com/DataTalksClub/datatalksclub.github.io.git \
+            websites/DataTalksClub/datatalksclub.github.io
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+
+      - name: Cache Ruby gems
+        uses: actions/cache@v4
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-gems-nightly-${{ hashFiles('websites/DataTalksClub/datatalksclub.github.io/Gemfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-gems-nightly-
+
+      - name: Install Jekyll and Bundler
+        run: gem install bundler jekyll
+
+      - name: Build DTC with Jekyll (creates _site_jekyll_cached)
+        run: |
+          cd websites/DataTalksClub/datatalksclub.github.io
+          bundle config set --local path '${{ github.workspace }}/vendor/bundle'
+          bundle install --jobs 4 --retry 3
+          bundle exec jekyll build
+          # Rename _site to _site_jekyll_cached so ci-dom-check.py finds it
+          mv _site _site_jekyll_cached
+
+      - name: Run DOM baseline check
+        run: |
+          uv run scripts/ci-dom-check.py \
+            --rustkyll-bin target/release/rustkyll \
+            --websites-dir websites \
+            --baselines docs/dom-baselines.json \
+            --output dom-nightly-report.txt \
+            --sites DataTalksClub/datatalksclub.github.io
+
+      - name: Upload DOM report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-dom-report
+          path: |
+            dom-nightly-report.txt
+            dom-report-*.txt
