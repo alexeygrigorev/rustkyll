@@ -521,6 +521,8 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // D5: Enable smart punctuation to match kramdown's smart quote behavior.
     // kramdown converts straight quotes to curly quotes by default.
     options.insert(Options::ENABLE_SMART_PUNCTUATION);
+    // Issue 503: Enable footnotes so [^1] references and [^1]: definitions are processed.
+    options.insert(Options::ENABLE_FOOTNOTES);
 
     // Issue 364: Escape non-standard autolink URI schemes (tel:, ssh:, sip:, etc.)
     // so pulldown-cmark doesn't treat them as CommonMark autolinks. Kramdown only
@@ -612,6 +614,9 @@ pub fn markdown_to_html(markdown: &str) -> String {
     let mut html_output = String::new();
     html::push_html(&mut html_output, events.into_iter());
 
+    // Issue 503: Convert pulldown-cmark footnotes to kramdown-style HTML
+    let html_output = convert_footnotes_to_kramdown(&html_output);
+
     // Issue 350: Strip emphasis boundary placeholder + trailing space that was
     // inserted by fix_kramdown_emphasis_patterns to help pulldown-cmark parse
     // emphasis at word boundaries. The placeholder served its purpose during
@@ -682,6 +687,8 @@ pub fn markdown_to_html_with_options(
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TABLES);
     options.insert(Options::ENABLE_STRIKETHROUGH);
+    // Issue 503: Enable footnotes so [^1] references and [^1]: definitions are processed.
+    options.insert(Options::ENABLE_FOOTNOTES);
     // Issue 220: Only enable smart punctuation for kramdown sites.
     // CommonMarkGhPages does not enable smart punctuation by default.
     if enable_smart_punctuation {
@@ -753,6 +760,9 @@ pub fn markdown_to_html_with_options(
     );
     let mut html_output = String::new();
     html::push_html(&mut html_output, events.into_iter());
+
+    // Issue 503: Convert pulldown-cmark footnotes to kramdown-style HTML
+    let html_output = convert_footnotes_to_kramdown(&html_output);
 
     // Issue 350: Strip emphasis boundary placeholder
     let html_output = strip_emphasis_boundary_placeholder(&html_output);
@@ -892,6 +902,8 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     options.insert(Options::ENABLE_TABLES);
     options.insert(Options::ENABLE_STRIKETHROUGH);
     options.insert(Options::ENABLE_SMART_PUNCTUATION);
+    // Issue 503: Enable footnotes so [^1] references and [^1]: definitions are processed.
+    options.insert(Options::ENABLE_FOOTNOTES);
 
     // Issue 364: Escape non-standard autolink URI schemes (tel:, ssh:, sip:, etc.)
     // so pulldown-cmark doesn't treat them as CommonMark autolinks. Kramdown only
@@ -975,6 +987,9 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     );
     let mut html_output = String::new();
     html::push_html(&mut html_output, events.into_iter());
+
+    // Issue 503: Convert pulldown-cmark footnotes to kramdown-style HTML
+    let html_output = convert_footnotes_to_kramdown(&html_output);
 
     // Issue 350: Strip emphasis boundary placeholder
     let html_output = strip_emphasis_boundary_placeholder(&html_output);
@@ -1209,6 +1224,81 @@ fn normalize_zwsp_for_emphasis(markdown: &str) -> String {
 /// `fix_kramdown_emphasis_patterns`. Stripped after HTML generation so that
 /// no ZWSP or extra space leaks into the final output.
 const EMPHASIS_BOUNDARY_PLACEHOLDER: &str = "\x00EBP\x00";
+
+/// Issue 503: Convert pulldown-cmark footnote HTML to kramdown-style footnote HTML.
+///
+/// pulldown-cmark generates:
+///   Reference: `<sup class="footnote-reference"><a href="#NAME">NUM</a></sup>`
+///   Definition: `<div class="footnote-definition" id="NAME"><sup class="footnote-definition-label">NUM</sup>\n<p>text</p>\n\n</div>`
+///
+/// kramdown generates:
+///   Reference: `<sup id="fnref:NAME"><a href="#fn:NAME" class="footnote" rel="footnote" role="doc-noteref">NUM</a></sup>`
+///   Section: `<div class="footnotes" role="doc-endnotes"><ol><li id="fn:NAME"><p>text <a href="#fnref:NAME" class="reversefootnote" role="doc-backlink">&#8617;</a></p></li></ol></div>`
+fn convert_footnotes_to_kramdown(html: &str) -> String {
+    // Quick check: if no footnote references, nothing to do
+    if !html.contains("class=\"footnote-reference\"") {
+        return html.to_string();
+    }
+
+    // Convert inline references
+    let ref_re = regex::Regex::new(
+        r##"<sup class="footnote-reference"><a href="#([^"]+)">(\d+)</a></sup>"##,
+    )
+    .unwrap();
+
+    let mut result = ref_re.replace_all(html, |caps: &regex::Captures| {
+        let name = &caps[1];
+        let num = &caps[2];
+        format!(
+            r##"<sup id="fnref:{name}"><a href="#fn:{name}" class="footnote" rel="footnote" role="doc-noteref">{num}</a></sup>"##
+        )
+    }).to_string();
+
+    // Extract footnote definitions and build kramdown-style footnotes section
+    let def_re = regex::Regex::new(
+        r##"(?s)<div class="footnote-definition" id="([^"]+)"><sup class="footnote-definition-label">\d+</sup>\s*\n?(.*?)\n*</div>"##
+    ).unwrap();
+
+    let mut footnotes: Vec<(String, String)> = Vec::new();
+    for caps in def_re.captures_iter(&result) {
+        let name = caps[1].to_string();
+        let content = caps[2].trim().to_string();
+        footnotes.push((name, content));
+    }
+
+    if footnotes.is_empty() {
+        return result;
+    }
+
+    // Remove footnote definition divs from the output
+    result = def_re.replace_all(&result, "").to_string();
+
+    // Remove trailing whitespace/newlines left after removing definitions
+    result = result.trim_end().to_string();
+
+    // Build kramdown-style footnotes section
+    let mut section = String::from("\n<div class=\"footnotes\" role=\"doc-endnotes\">\n  <ol>\n");
+    for (name, content) in &footnotes {
+        // If content is wrapped in <p>...</p>, insert backlink before closing </p>
+        let li_content = if let Some(stripped) = content.strip_suffix("</p>") {
+            format!(
+                "{} <a href=\"#fnref:{}\" class=\"reversefootnote\" role=\"doc-backlink\">&#8617;</a></p>",
+                stripped, name
+            )
+        } else {
+            // No <p> wrapping -- wrap it ourselves
+            format!(
+                "<p>{} <a href=\"#fnref:{}\" class=\"reversefootnote\" role=\"doc-backlink\">&#8617;</a></p>",
+                content, name
+            )
+        };
+        section.push_str(&format!("    <li id=\"fn:{}\">{}</li>\n", name, li_content));
+    }
+    section.push_str("  </ol>\n</div>\n");
+
+    result.push_str(&section);
+    result
+}
 
 /// Issue 350: Strip the emphasis boundary placeholder and the trailing space
 /// that was inserted by `fix_kramdown_emphasis_patterns`. The placeholder + space
@@ -8702,10 +8792,10 @@ More text.
     /// Issue 503: Markdown with no footnotes should produce no footnotes div.
     #[test]
     fn test_issue503_no_footnotes() {
-        let md = "Just regular text with no footnotes.";
+        let md = "Just regular text here.";
         let html = markdown_to_html(md);
         assert!(
-            !html.contains("footnotes"),
+            !html.contains(r#"class="footnotes""#),
             "Should not contain footnotes div when no footnotes. Got:\n{html}"
         );
     }
