@@ -146,6 +146,39 @@ fn get_nested_str(runtime: &dyn Runtime, parts: &[&str]) -> Option<String> {
     }
 }
 
+/// Get `site.social.links` as a Vec<String> from the runtime.
+fn get_social_links(runtime: &dyn Runtime) -> Vec<String> {
+    let path: Vec<liquid_core::model::ScalarCow<'_>> = ["site", "social", "links"]
+        .iter()
+        .map(|p| liquid_core::model::ScalarCow::new(*p))
+        .collect();
+    let val = match runtime.try_get(&path) {
+        Some(v) => v,
+        None => return Vec::new(),
+    };
+    if let Some(arr) = val.as_array() {
+        (0..arr.size())
+            .filter_map(|i| {
+                let item = arr.get(i)?;
+                let s = item.to_kstr().to_string();
+                if s.is_empty() {
+                    None
+                } else {
+                    Some(s)
+                }
+            })
+            .collect()
+    } else {
+        // Single string value
+        let s = val.to_kstr().to_string();
+        if s.is_empty() {
+            Vec::new()
+        } else {
+            vec![s]
+        }
+    }
+}
+
 /// Like [`get_nested_str`] but returns `Some("")` when the value exists as an
 /// explicitly empty string, instead of collapsing it to `None`.
 ///
@@ -392,6 +425,8 @@ impl Renderable for SeoRenderable {
         let page_author = get_author_name(runtime, &["page", "author"]);
         let site_author = get_author_name(runtime, &["site", "author"]);
         let site_logo = get_nested_str(runtime, &["site", "logo"]);
+        let social_name = get_nested_str(runtime, &["site", "social", "name"]);
+        let social_links = get_social_links(runtime);
 
         // Compute page_title for og:title (page title alone, falling back to site title)
         let og_page_title = page_title.as_deref().or(site_title.as_deref());
@@ -786,10 +821,14 @@ impl Renderable for SeoRenderable {
             .map(is_homepage_or_about_url)
             .unwrap_or(false);
 
-        let schema_type = if page_date.is_some() {
-            "BlogPosting"
-        } else if is_homepage_or_about {
+        // Jekyll's SEO tag checks homepage_or_about BEFORE date:
+        // 1. homepage/about -> WebSite (even if page has a date)
+        // 2. page with date -> BlogPosting
+        // 3. otherwise -> WebPage
+        let schema_type = if is_homepage_or_about {
             "WebSite"
+        } else if page_date.is_some() {
+            "BlogPosting"
         } else {
             "WebPage"
         };
@@ -801,9 +840,11 @@ impl Renderable for SeoRenderable {
         jsonld_fields.push("\"@context\":\"https://schema.org\"".to_string());
         jsonld_fields.push(format!("\"@type\":\"{}\"", schema_type));
 
-        // name field: jekyll-seo-tag only includes name for homepage/about pages
+        // name field: jekyll-seo-tag only includes name for homepage/about pages.
+        // Priority: site.social.name > author name > site.title
         if is_homepage_or_about {
-            if let Some(name) = site_title.as_deref() {
+            let jsonld_name = social_name.as_deref().or(author).or(site_title.as_deref());
+            if let Some(name) = jsonld_name {
                 jsonld_fields.push(format!("\"name\":\"{}\"", json_escape(&html_escape(name))));
             }
         }
@@ -893,6 +934,16 @@ impl Renderable for SeoRenderable {
                 json_escape(&absolute_logo),
                 name_part
             ));
+        }
+
+        // sameAs field: from site.social.links array (only for WebSite type,
+        // matching Jekyll's behavior which only emits sameAs on homepage/about)
+        if schema_type == "WebSite" && !social_links.is_empty() {
+            let links_json: Vec<String> = social_links
+                .iter()
+                .map(|l| format!("\"{}\"", json_escape(l)))
+                .collect();
+            jsonld_fields.push(format!("\"sameAs\":[{}]", links_json.join(",")));
         }
 
         // Sort fields after @context and @type alphabetically (matching Jekyll's
@@ -4811,6 +4862,263 @@ mod tests {
             !out.contains("google-site-verification"),
             "Should not emit google-site-verification when not configured. Got: {}",
             out
+        );
+    }
+
+    // ========================================================================
+    // Issue 515: JSON-LD @type, name, sameAs fixes
+    // ========================================================================
+
+    /// Helper: extract JSON-LD block from SEO output
+    fn extract_jsonld(output: &str) -> &str {
+        let start = output
+            .find("application/ld+json")
+            .expect("should have json-ld");
+        let block = &output[start..];
+        let end = block.find("</script>").expect("should have closing script");
+        &block[..end]
+    }
+
+    #[test]
+    fn test_515_about_page_with_date_is_website_not_blogposting() {
+        // Jekyll checks homepage_or_about BEFORE date: /about/ with a date -> WebSite
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("About"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/about/"),
+            None,
+            Some("2024-01-15"),
+            None,
+            None,
+        );
+        // Set page.collection = "tabs" (non-post collection, like chirpy)
+        if let Some(Value::Object(ref mut page)) = ctx.get_mut("page").cloned() {
+            page.insert("collection".into(), Value::scalar("tabs".to_string()));
+            ctx.insert("page".into(), Value::Object(page.clone()));
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"@type\":\"WebSite\""),
+            "About page with date should be WebSite (homepage_or_about priority), got: {}",
+            out
+        );
+        // WebSite should NOT have mainEntityOfPage
+        let jsonld = extract_jsonld(&out);
+        assert!(
+            !jsonld.contains("mainEntityOfPage"),
+            "WebSite should not have mainEntityOfPage. Got: {}",
+            jsonld
+        );
+    }
+
+    #[test]
+    fn test_515_homepage_with_date_is_website() {
+        // Homepage (/) with date should still be WebSite, not BlogPosting
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Site"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/"),
+            None,
+            Some("2024-01-15"),
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"@type\":\"WebSite\""),
+            "Homepage with date should be WebSite, got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_515_nonabout_page_with_date_is_blogposting() {
+        // Non-homepage/about page with date -> BlogPosting (regardless of collection)
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("Archives"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/archives/"),
+            None,
+            Some("2024-01-15"),
+            None,
+            None,
+        );
+        if let Some(Value::Object(ref mut page)) = ctx.get_mut("page").cloned() {
+            page.insert("collection".into(), Value::scalar("tabs".to_string()));
+            ctx.insert("page".into(), Value::Object(page.clone()));
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"@type\":\"BlogPosting\""),
+            "Non-about page with date should be BlogPosting, got: {}",
+            out
+        );
+        // BlogPosting should have mainEntityOfPage
+        let jsonld = extract_jsonld(&out);
+        assert!(
+            jsonld.contains("mainEntityOfPage"),
+            "BlogPosting should have mainEntityOfPage. Got: {}",
+            jsonld
+        );
+    }
+
+    #[test]
+    fn test_515_social_name_in_jsonld() {
+        // site.social.name should be used for JSON-LD name on homepage
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("My Site"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        // Add site.social.name
+        if let Some(Value::Object(ref mut site)) = ctx.get_mut("site").cloned() {
+            let mut social = Object::new();
+            social.insert("name".into(), Value::scalar("John Doe".to_string()));
+            site.insert("social".into(), Value::Object(social));
+            ctx.insert("site".into(), Value::Object(site.clone()));
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        let jsonld = extract_jsonld(&out);
+        assert!(
+            jsonld.contains("\"name\":\"John Doe\""),
+            "JSON-LD name should use site.social.name. Got: {}",
+            jsonld
+        );
+    }
+
+    #[test]
+    fn test_515_social_name_fallback_to_author() {
+        // When site.social.name absent, fall back to author name
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("My Site"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        if let Some(Value::Object(ref mut site)) = ctx.get_mut("site").cloned() {
+            site.insert("author".into(), Value::scalar("Jane Smith".to_string()));
+            ctx.insert("site".into(), Value::Object(site.clone()));
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        let jsonld = extract_jsonld(&out);
+        assert!(
+            jsonld.contains("\"name\":\"Jane Smith\""),
+            "JSON-LD name should fall back to author. Got: {}",
+            jsonld
+        );
+    }
+
+    #[test]
+    fn test_515_social_name_fallback_to_site_title() {
+        // When both social.name and author absent, fall back to site.title
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Blog"),
+            Some("My Blog"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        let jsonld = extract_jsonld(&out);
+        assert!(
+            jsonld.contains("\"name\":\"My Blog\""),
+            "JSON-LD name should fall back to site.title. Got: {}",
+            jsonld
+        );
+    }
+
+    #[test]
+    fn test_515_sameas_from_social_links() {
+        // site.social.links should emit sameAs array
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("My Site"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        if let Some(Value::Object(ref mut site)) = ctx.get_mut("site").cloned() {
+            let mut social = Object::new();
+            social.insert("name".into(), Value::scalar("John Doe".to_string()));
+            let links = Value::Array(vec![
+                Value::scalar("https://twitter.com/user".to_string()),
+                Value::scalar("https://github.com/user".to_string()),
+            ]);
+            social.insert("links".into(), links);
+            site.insert("social".into(), Value::Object(social));
+            ctx.insert("site".into(), Value::Object(site.clone()));
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        let jsonld = extract_jsonld(&out);
+        assert!(
+            jsonld
+                .contains("\"sameAs\":[\"https://twitter.com/user\",\"https://github.com/user\"]"),
+            "JSON-LD should include sameAs from site.social.links. Got: {}",
+            jsonld
+        );
+    }
+
+    #[test]
+    fn test_515_no_sameas_without_social_links() {
+        // When site.social.links is absent, no sameAs field
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Site"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        let jsonld = extract_jsonld(&out);
+        assert!(
+            !jsonld.contains("sameAs"),
+            "JSON-LD should not include sameAs without social links. Got: {}",
+            jsonld
         );
     }
 }
