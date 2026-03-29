@@ -262,6 +262,12 @@ fn get_author_name(runtime: &dyn Runtime, prefix: &[&str]) -> Option<String> {
         .collect();
     let val = runtime.try_get(&path)?;
 
+    // If the value is an array (multiple authors), Jekyll suppresses the
+    // author meta tag entirely -- return None (issue #533).
+    if val.as_array().is_some() {
+        return None;
+    }
+
     // If the value is an object (Hash), extract the "name" field
     if let Some(obj) = val.as_object() {
         let name_val = obj.get("name")?;
@@ -299,6 +305,11 @@ fn get_author_twitter(runtime: &dyn Runtime, prefix: &[&str]) -> Option<String> 
         .map(|p| liquid_core::model::ScalarCow::new(*p))
         .collect();
     let val = runtime.try_get(&path)?;
+
+    // Array authors: suppress twitter creator (issue #533)
+    if val.as_array().is_some() {
+        return None;
+    }
 
     if let Some(obj) = val.as_object() {
         // Object: check "twitter" field first, then fall back to "name"
@@ -4447,6 +4458,110 @@ mod tests {
         assert!(
             out.contains("<meta name=\"author\" content=\"Page Author\" />"),
             "Page author object should override site author. Got:\n{}",
+            out
+        );
+    }
+
+    // ========================================================================
+    // Issue 533: Multi-author array handling
+    // ========================================================================
+
+    #[test]
+    fn test_533_multi_author_array_no_meta_tag() {
+        // When page.author is an array, Jekyll does NOT emit <meta name="author">
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("My Page"),
+            Some("My Site"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        // Set page.author as an array of strings
+        if let Value::Object(ref mut page) = ctx["page"] {
+            page.insert(
+                "author".into(),
+                Value::Array(vec![
+                    Value::scalar("Bart Simpson".to_string()),
+                    Value::scalar("Nelson Mandela Muntz".to_string()),
+                ]),
+            );
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            !out.contains("meta name=\"author\""),
+            "Array author should NOT produce meta author tag. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_533_multi_author_array_no_jsonld_author() {
+        // When page.author is an array, Jekyll does NOT include author in JSON-LD
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("My Page"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/post"),
+            None,
+            Some("2024-01-15"),
+            None,
+            None,
+        );
+        // Set page.author as an array
+        if let Value::Object(ref mut page) = ctx["page"] {
+            page.insert(
+                "author".into(),
+                Value::Array(vec![
+                    Value::scalar("Bart Simpson".to_string()),
+                    Value::scalar("Nelson Mandela Muntz".to_string()),
+                ]),
+            );
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            !out.contains("\"author\":{\"@type\":\"Person\""),
+            "Array author should NOT produce JSON-LD author field. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_533_single_author_string_still_works() {
+        // Single string author should still work as before
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("My Page"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/post"),
+            None,
+            Some("2024-01-15"),
+            None,
+            None,
+        );
+        if let Value::Object(ref mut page) = ctx["page"] {
+            page.insert("author".into(), Value::scalar("Jane Doe".to_string()));
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<meta name=\"author\" content=\"Jane Doe\" />"),
+            "Single string author should still render meta tag. Got:\n{}",
+            out
+        );
+        assert!(
+            out.contains("\"author\":{\"@type\":\"Person\",\"name\":\"Jane Doe\"}"),
+            "Single string author should still render JSON-LD author. Got:\n{}",
             out
         );
     }
