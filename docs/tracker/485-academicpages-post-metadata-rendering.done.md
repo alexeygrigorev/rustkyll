@@ -114,3 +114,34 @@ The single post pages (blog-post-1, -2, -3) each show the pattern twice: once in
 ## Dependencies
 
 None (this is a rendering correctness fix).
+
+## Log
+
+### [SWE] 2026-03-29
+
+#### Bug 1 Fix: Config defaults applied to collection items in site context
+
+- Root cause: `collection_item_to_liquid_slim()` and `collection_item_to_liquid_ultra_slim()` in `src/generator.rs` did not apply `_config.yml` defaults when building the Liquid objects for `site.posts`, `site.categories`, etc. So `read_time: true` (set via defaults for posts in academicpages) was not available on `post` objects in site-level iteration.
+- TDD: Wrote 3 failing tests first (`test_issue485_config_defaults_applied_to_site_posts`, `test_issue485_config_defaults_do_not_override_post_frontmatter`, `test_issue485_portfolio_items_have_backfilled_date`) -- confirmed they failed before implementation.
+- Fix: Added `config: &SiteConfig` parameter to `collection_item_to_liquid_slim()` and `collection_item_to_liquid_ultra_slim()`. Applied config defaults as a base layer before copying front matter fields (front matter values override defaults). Updated all callers including `build_site_context`, `build_related_posts`, `build_categories_and_tags_from_liquid`, and related-posts construction in `generate_collection_pages`.
+- After fix: All 5 issue-specific tests pass; full suite passes (3107+ tests, 0 failures).
+
+#### Bug 2 Investigation: Portfolio dates
+
+- Investigated whether portfolio items should have dates suppressed in the site-level Liquid context.
+- Fresh Jekyll build confirms portfolio items DO have `page__date` blocks with the build timestamp (same as rustkyll). The issue description was based on stale cached Jekyll output.
+- Verified by running `bundle exec jekyll build` on academicpages and checking `_site/portfolio/index.html`: it contains `page__date` blocks.
+- Updated the Jekyll cache for academicpages with the fresh build.
+- Conclusion: Bug 2 is NOT a bug -- rustkyll already matches Jekyll behavior for portfolio dates.
+
+#### Results
+
+- Build: `cargo build` passes
+- Clippy: `cargo clippy -- -D warnings` passes
+- Format: `cargo fmt --check` passes
+- Tests: 3107 lib tests + 277 integration tests, 0 failures
+- DTC DOM: 790/790 (no regression)
+- academicpages DOM: 27/45 (no regression; per-page diff counts improved significantly for affected pages but they still have pre-existing tag ordering and excerpt rendering diffs)
+- Post pages: `page__meta` with `fa-clock` read-time block now renders correctly
+- Archive pages (tags, year-archive): read-time `page__meta` blocks now render correctly
+- Files modified: `src/generator.rs`
