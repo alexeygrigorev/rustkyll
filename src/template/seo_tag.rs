@@ -171,6 +171,47 @@ fn get_nested_str_allow_empty_non_nil(runtime: &dyn Runtime, parts: &[&str]) -> 
     Some(val.to_kstr().to_string())
 }
 
+/// Extract image URL (and optional alt text) from a Liquid runtime value.
+///
+/// Jekyll's `jekyll-seo-tag` handles two cases for `page.image`:
+/// - image is a string: use it directly as the URL
+/// - image is a Hash/Object: extract `.path` (or `.src`) for the URL,
+///   and `.alt` for alt text
+///
+/// Returns `(image_url, optional_alt)`.
+fn get_image_info(runtime: &dyn Runtime, prefix: &[&str]) -> Option<(String, Option<String>)> {
+    if prefix.is_empty() {
+        return None;
+    }
+    let path: Vec<liquid_core::model::ScalarCow<'_>> = prefix
+        .iter()
+        .map(|p| liquid_core::model::ScalarCow::new(*p))
+        .collect();
+    let val = runtime.try_get(&path)?;
+
+    if let Some(obj) = val.as_object() {
+        // Hash case: extract "path" (or "src") for the URL
+        let url = obj
+            .get("path")
+            .or_else(|| obj.get("src"))
+            .map(|v| v.to_kstr().to_string())
+            .filter(|s| !s.is_empty());
+        let alt = obj
+            .get("alt")
+            .map(|v| v.to_kstr().to_string())
+            .filter(|s| !s.is_empty());
+        url.map(|u| (u, alt))
+    } else {
+        // Scalar string case
+        let s = val.to_kstr().to_string();
+        if s.is_empty() {
+            None
+        } else {
+            Some((s, None))
+        }
+    }
+}
+
 /// Resolve an author name from a Liquid runtime value.
 ///
 /// Jekyll's `jekyll-seo-tag` handles two cases:
@@ -324,7 +365,10 @@ impl Renderable for SeoRenderable {
         // empty strings, but check that the value is not nil (truly absent).
         let site_url = get_nested_str_allow_empty_non_nil(runtime, &["site", "url"]);
         let page_url = get_nested_str(runtime, &["page", "url"]);
-        let page_image = get_nested_str(runtime, &["page", "image"]);
+        let (page_image, page_image_alt) = match get_image_info(runtime, &["page", "image"]) {
+            Some((url, alt)) => (Some(url), alt),
+            None => (None, None),
+        };
         let page_date = get_nested_str(runtime, &["page", "date"]);
         // Jekyll sets page.date on ALL documents (collection items) even without
         // an explicit date, falling back to the site build time. Detect collection
@@ -574,6 +618,14 @@ impl Renderable for SeoRenderable {
             output.push_str(&format!(
                 "<meta property=\"og:image\" content=\"{}\" />\n",
                 html_escape(&absolute_img)
+            ));
+        }
+
+        // 9b. og:image:alt (when page.image is a hash with an alt key)
+        if let Some(ref alt) = page_image_alt {
+            output.push_str(&format!(
+                "<meta property=\"og:image:alt\" content=\"{}\" />\n",
+                html_escape(alt)
             ));
         }
 
@@ -4606,6 +4658,134 @@ mod tests {
         assert!(
             out.contains("<meta name=\"google-site-verification\" content=\"abc123def456\" />"),
             "Should emit google-site-verification meta tag. Got: {}",
+            out
+        );
+    }
+
+    /// Helper to build a context where `page.image` is a hash/object (e.g.
+    /// `{path: "/img/test.png", alt: "Alt text"}`).
+    fn make_context_with_hash_image(
+        site_url: Option<&str>,
+        image_fields: &[(&str, &str)],
+    ) -> Object {
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        let mut site = Object::new();
+
+        if let Some(u) = site_url {
+            site.insert("url".into(), Value::scalar(u.to_string()));
+        }
+
+        let mut image_obj = Object::new();
+        for (k, v) in image_fields {
+            image_obj.insert(k.to_string().into(), Value::scalar(v.to_string()));
+        }
+        page.insert("image".into(), Value::Object(image_obj));
+
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+        ctx
+    }
+
+    #[test]
+    fn test_og_image_hash_extracts_path() {
+        let eng = engine();
+        let ctx = make_context_with_hash_image(
+            Some("https://example.com"),
+            &[
+                ("path", "/commons/devices-mockup.png"),
+                ("lqip", "data:image/webp;base64,UklGR"),
+                ("alt", "Responsive rendering"),
+            ],
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<meta property=\"og:image\" content=\"https://example.com/commons/devices-mockup.png\" />"),
+            "og:image should contain only the path, not the full hash. Got: {}",
+            out
+        );
+        // Must NOT contain lqip data in og:image
+        assert!(
+            !out.contains("UklGR"),
+            "og:image should not contain lqip data. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_og_image_hash_emits_alt() {
+        let eng = engine();
+        let ctx = make_context_with_hash_image(
+            Some("https://example.com"),
+            &[("path", "/img/test.png"), ("alt", "Test image description")],
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<meta property=\"og:image:alt\" content=\"Test image description\" />"),
+            "Should emit og:image:alt when hash has alt key. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_og_image_hash_no_alt_key() {
+        let eng = engine();
+        let ctx =
+            make_context_with_hash_image(Some("https://example.com"), &[("path", "/img/test.png")]);
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains(
+                "<meta property=\"og:image\" content=\"https://example.com/img/test.png\" />"
+            ),
+            "og:image should work with path-only hash. Got: {}",
+            out
+        );
+        assert!(
+            !out.contains("og:image:alt"),
+            "Should not emit og:image:alt when no alt key. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_twitter_image_hash_extracts_path() {
+        let eng = engine();
+        let ctx = make_context_with_hash_image(
+            Some("https://example.com"),
+            &[("path", "/img/test.png"), ("alt", "Alt text")],
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains(
+                "<meta property=\"twitter:image\" content=\"https://example.com/img/test.png\" />"
+            ),
+            "twitter:image should extract path from hash. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_og_image_string_unchanged() {
+        // Existing behavior: string page.image works as before
+        let eng = engine();
+        let ctx = make_context(
+            None,
+            None,
+            None,
+            None,
+            Some("https://example.com"),
+            None,
+            Some("/img/cover.png"),
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains(
+                "<meta property=\"og:image\" content=\"https://example.com/img/cover.png\" />"
+            ),
+            "String page.image should work as before. Got: {}",
             out
         );
     }
