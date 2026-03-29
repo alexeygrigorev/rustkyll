@@ -5888,73 +5888,22 @@ fn indent_list_items(html: &str) -> String {
         result.push_str(&remaining[..list_pos]);
         remaining = &remaining[list_pos..];
 
-        // Find the list tag (first 4 or 5 chars)
+        // Find the list tag
         let tag_end = remaining.find('\n').unwrap_or(remaining.len());
         let list_tag = &remaining[..tag_end];
-        let close_tag = if list_tag.starts_with("<ul") {
-            "</ul>"
-        } else {
-            "</ol>"
-        };
+        let is_ul = list_tag.starts_with("<ul");
 
-        // Find the matching close tag
-        if let Some(close_pos) = remaining.find(close_tag) {
+        // Find the matching close tag by tracking nesting depth
+        let close_tag = if is_ul { "</ul>" } else { "</ol>" };
+        let open_tag = if is_ul { "<ul>" } else { "<ol>" };
+        if let Some(close_pos) = find_matching_close_tag(remaining, open_tag, close_tag) {
             let list_content = &remaining[tag_end + 1..close_pos];
 
-            // Check if this is a loose list (contains <p> inside <li>)
-            let is_loose = list_content.contains("<li>\n<p>");
-
-            if is_loose {
-                result.push_str(list_tag);
-                result.push('\n');
-                // Indent each line of content by 2 spaces, and content inside <li> by 4.
-                // Skip blank lines inside <li> (added by add_block_spacing after </p>).
-                let mut in_li = false;
-                let lines: Vec<&str> = list_content.lines().collect();
-                for line in lines.iter() {
-                    if *line == "<li>" {
-                        result.push_str("  <li>\n");
-                        in_li = true;
-                    } else if *line == "</li>" {
-                        result.push_str("  </li>\n");
-                        in_li = false;
-                    } else if in_li && line.is_empty() {
-                        // Skip blank lines inside <li> -- kramdown doesn't have them
-                        continue;
-                    } else if in_li && !line.is_empty() {
-                        result.push_str("    ");
-                        result.push_str(line);
-                        result.push('\n');
-                    } else if !line.is_empty() {
-                        result.push_str(line);
-                        result.push('\n');
-                    } else if !in_li {
-                        // Blank line outside <li> -- preserve
-                        result.push('\n');
-                    }
-                }
-                let _ = lines; // suppress unused warning
-                result.push_str(close_tag);
-                remaining = &remaining[close_pos + close_tag.len()..];
-            } else {
-                // Tight list: kramdown indents <li> items by 2 spaces.
-                result.push_str(list_tag);
-                result.push('\n');
-                for line in list_content.lines() {
-                    if line.starts_with("<li>") || line.starts_with("</li>") {
-                        result.push_str("  ");
-                        result.push_str(line);
-                        result.push('\n');
-                    } else if !line.is_empty() {
-                        result.push_str(line);
-                        result.push('\n');
-                    } else {
-                        result.push('\n');
-                    }
-                }
-                result.push_str(close_tag);
-                remaining = &remaining[close_pos + close_tag.len()..];
-            }
+            result.push_str(list_tag);
+            result.push('\n');
+            indent_list_content(&mut result, list_content, 0);
+            result.push_str(close_tag);
+            remaining = &remaining[close_pos + close_tag.len()..];
         } else {
             // No matching close tag, copy as-is
             result.push_str(remaining);
@@ -5963,6 +5912,191 @@ fn indent_list_items(html: &str) -> String {
     }
 
     result
+}
+
+/// Find the position of the matching close tag, accounting for nesting.
+fn find_matching_close_tag(html: &str, open_tag: &str, close_tag: &str) -> Option<usize> {
+    let mut depth = 0;
+    let mut pos = 0;
+    let bytes = html.as_bytes();
+    let open_bytes = open_tag.as_bytes();
+    let close_bytes = close_tag.as_bytes();
+    while pos < bytes.len() {
+        if bytes[pos..].starts_with(open_bytes) {
+            depth += 1;
+            pos += open_bytes.len();
+        } else if bytes[pos..].starts_with(close_bytes) {
+            depth -= 1;
+            if depth == 0 {
+                return Some(pos);
+            }
+            pos += close_bytes.len();
+        } else {
+            pos += 1;
+        }
+    }
+    None
+}
+
+/// Indent list content lines with proper nesting depth.
+/// `base_depth` is the nesting level (0 = top-level list).
+fn indent_list_content(result: &mut String, content: &str, base_depth: usize) {
+    let indent = "  ".repeat(base_depth + 1); // 2 spaces per level, +1 for being inside a list
+    let inner_indent = "  ".repeat(base_depth + 2); // content inside <li> in loose lists
+
+    // Check if this is a loose list (contains <p> inside <li>)
+    let is_loose = content.contains("<li>\n<p>");
+
+    let lines: Vec<&str> = content.lines().collect();
+    let mut i = 0;
+    while i < lines.len() {
+        let line = lines[i];
+
+        if is_loose {
+            if line == "<li>" {
+                result.push_str(&indent);
+                result.push_str("<li>\n");
+                // Process content inside this <li> until </li>
+                i += 1;
+                while i < lines.len() && lines[i] != "</li>" {
+                    let inner_line = lines[i];
+                    if inner_line.is_empty() {
+                        // Skip blank lines inside <li> -- kramdown doesn't have them
+                        i += 1;
+                        continue;
+                    }
+                    // Check for nested list start
+                    if inner_line == "<ul>" || inner_line == "<ol>" {
+                        let nested_close = if inner_line == "<ul>" {
+                            "</ul>"
+                        } else {
+                            "</ol>"
+                        };
+                        // Collect the nested list content
+                        let (nested_content, end_idx) =
+                            collect_nested_list_lines(&lines, i, inner_line, nested_close);
+                        result.push_str(&inner_indent);
+                        result.push_str(inner_line);
+                        result.push('\n');
+                        indent_list_content(result, &nested_content, base_depth + 2);
+                        result.push_str(&inner_indent);
+                        result.push_str(nested_close);
+                        result.push('\n');
+                        i = end_idx + 1;
+                        continue;
+                    }
+                    result.push_str(&inner_indent);
+                    result.push_str(inner_line);
+                    result.push('\n');
+                    i += 1;
+                }
+                if i < lines.len() && lines[i] == "</li>" {
+                    result.push_str(&indent);
+                    result.push_str("</li>\n");
+                }
+            } else if line.is_empty() {
+                // Blank line outside <li> -- preserve
+                result.push('\n');
+            } else if !line.is_empty() {
+                result.push_str(line);
+                result.push('\n');
+            }
+        } else {
+            // Tight list
+            if line.starts_with("<li>") {
+                // Check if this is a multi-line <li> (not self-closing on same line
+                // with </li>). Look for a nested list inside.
+                let has_close_on_same_line = line.contains("</li>");
+                if has_close_on_same_line {
+                    // Simple single-line <li>content</li>
+                    result.push_str(&indent);
+                    result.push_str(line);
+                    result.push('\n');
+                } else {
+                    // Multi-line <li> -- may contain nested list
+                    result.push_str(&indent);
+                    result.push_str(line);
+                    result.push('\n');
+                    i += 1;
+                    while i < lines.len() {
+                        let inner_line = lines[i];
+                        if inner_line == "</li>" {
+                            result.push_str(&indent);
+                            result.push_str("</li>\n");
+                            break;
+                        }
+                        // Check for nested list start
+                        if inner_line == "<ul>" || inner_line == "<ol>" {
+                            let nested_close = if inner_line == "<ul>" {
+                                "</ul>"
+                            } else {
+                                "</ol>"
+                            };
+                            let (nested_content, end_idx) =
+                                collect_nested_list_lines(&lines, i, inner_line, nested_close);
+                            result.push_str(&inner_indent);
+                            result.push_str(inner_line);
+                            result.push('\n');
+                            indent_list_content(result, &nested_content, base_depth + 2);
+                            result.push_str(&inner_indent);
+                            result.push_str(nested_close);
+                            result.push('\n');
+                            i = end_idx + 1;
+                            continue;
+                        }
+                        if inner_line.is_empty() {
+                            // Skip blank lines inside <li> -- kramdown doesn't have them
+                            i += 1;
+                            continue;
+                        }
+                        result.push_str(&inner_indent);
+                        result.push_str(inner_line);
+                        result.push('\n');
+                        i += 1;
+                    }
+                }
+            } else if line.starts_with("</li>") {
+                result.push_str(&indent);
+                result.push_str(line);
+                result.push('\n');
+            } else if !line.is_empty() {
+                result.push_str(line);
+                result.push('\n');
+            } else {
+                result.push('\n');
+            }
+        }
+        i += 1;
+    }
+}
+
+/// Collect lines for a nested list (from open tag to matching close tag),
+/// returning the content between tags and the index of the close tag line.
+fn collect_nested_list_lines(
+    lines: &[&str],
+    start: usize,
+    open_tag: &str,
+    close_tag: &str,
+) -> (String, usize) {
+    let mut depth = 1;
+    let mut i = start + 1; // skip the open tag line
+    let mut content = String::new();
+    while i < lines.len() {
+        if lines[i] == open_tag {
+            depth += 1;
+        } else if lines[i] == close_tag {
+            depth -= 1;
+            if depth == 0 {
+                return (content, i);
+            }
+        }
+        if !content.is_empty() {
+            content.push('\n');
+        }
+        content.push_str(lines[i]);
+        i += 1;
+    }
+    (content, i.saturating_sub(1))
 }
 
 // ============================================================================
@@ -10104,6 +10238,89 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             result.contains("  <li>Item one</li>"),
             "Tight list <li> should be indented by 2 spaces (matches Jekyll). Got:\n{}",
+            result
+        );
+    }
+
+    // =========================================================================
+    // Issue 536: Nested list indentation tests
+    // =========================================================================
+
+    #[test]
+    fn test_issue536_tight_list_with_nested_ul_indentation() {
+        // pulldown-cmark produces nested <ul> inside <li> for tight lists,
+        // but indent_list_items must indent the inner <ul> to match Jekyll.
+        // Jekyll output:
+        //   <li>Fifth item, nested!
+        //     <ul>
+        //       <li>So la ti do</li>
+        //     </ul>
+        //   </li>
+        let input = "<ul>\n<li>First</li>\n<li>Fifth item, nested!\n<ul>\n<li>So la ti do</li>\n<li>Ba-da-bing!</li>\n</ul>\n</li>\n</ul>\n";
+        let result = indent_list_items(input);
+        assert!(
+            result.contains("  <li>Fifth item, nested!\n    <ul>\n      <li>So la ti do</li>\n      <li>Ba-da-bing!</li>\n    </ul>\n  </li>"),
+            "Nested <ul> should be indented inside <li> to match Jekyll. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue536_ordered_list_with_nested_ul_indentation() {
+        // Ordered list with nested unordered sublist.
+        let input = "<ol>\n<li>First item</li>\n<li>Fifth item, nested!\n<ul>\n<li>So la ti do</li>\n<li>Ba-da-bing!</li>\n</ul>\n</li>\n</ol>\n";
+        let result = indent_list_items(input);
+        assert!(
+            result.contains("  <li>Fifth item, nested!\n    <ul>\n      <li>So la ti do</li>\n      <li>Ba-da-bing!</li>\n    </ul>\n  </li>"),
+            "Nested <ul> inside <ol> should be indented to match Jekyll. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue536_three_level_nesting() {
+        // Three levels of nesting should all be properly indented.
+        let input = "<ul>\n<li>Level 1\n<ul>\n<li>Level 2\n<ul>\n<li>Level 3</li>\n</ul>\n</li>\n</ul>\n</li>\n</ul>\n";
+        let result = indent_list_items(input);
+        assert!(
+            result.contains("      <li>Level 2\n        <ul>\n          <li>Level 3</li>\n        </ul>\n      </li>"),
+            "Three levels of nesting should be properly indented. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue536_nested_list_unicode() {
+        let input = "<ul>\n<li>\u{041f}\u{0435}\u{0440}\u{0432}\u{044b}\u{0439}\n<ul>\n<li>\u{0412}\u{043b}\u{043e}\u{0436}\u{0435}\u{043d}\u{043d}\u{044b}\u{0439}</li>\n</ul>\n</li>\n</ul>\n";
+        let result = indent_list_items(input);
+        assert!(
+            result.contains("    <ul>\n      <li>\u{0412}\u{043b}\u{043e}\u{0436}\u{0435}\u{043d}\u{043d}\u{044b}\u{0439}</li>\n    </ul>"),
+            "Unicode nested list should be properly indented. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue536_e2e_unordered_nested_list() {
+        // End-to-end test: markdown with nested unordered list should produce
+        // properly indented HTML matching Jekyll.
+        let md = "- First item\n- Fifth item, nested!\n  - So la ti do\n  - Ba-da-bing!\n  - Ba-da-boom!\n";
+        let result = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            result.contains("  <li>Fifth item, nested!\n    <ul>\n      <li>So la ti do</li>"),
+            "E2E nested unordered list should have proper indentation. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue536_e2e_ordered_with_nested_unordered() {
+        // End-to-end: ordered list with 2-space indented sublist
+        let md = "1. First item\n2. Fifth item, nested!\n  - So la ti do\n  - Ba-da-bing!\n";
+        let result = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            result.contains("  <li>Fifth item, nested!\n    <ul>\n      <li>So la ti do</li>"),
+            "E2E ordered+nested unordered should have proper indentation. Got:\n{}",
             result
         );
     }
