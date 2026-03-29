@@ -582,6 +582,8 @@ pub fn markdown_to_html(markdown: &str) -> String {
     options.insert(Options::ENABLE_SMART_PUNCTUATION);
     // Issue 503: Enable footnotes so [^1] references and [^1]: definitions are processed.
     options.insert(Options::ENABLE_FOOTNOTES);
+    // Issue 535: Enable GFM task list checkboxes (- [ ] / - [x]).
+    options.insert(Options::ENABLE_TASKLISTS);
 
     // Issue 364: Escape non-standard autolink URI schemes (tel:, ssh:, sip:, etc.)
     // so pulldown-cmark doesn't treat them as CommonMark autolinks. Kramdown only
@@ -715,6 +717,10 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // Apply kramdown compatibility post-processing
     let html_output = crate::kramdown::postprocess(&html_output);
 
+    // Issue 535: Convert pulldown-cmark task list HTML to Jekyll/kramdown-style HTML.
+    // Must run after postprocess which adds list indentation.
+    let html_output = convert_tasklist_to_kramdown(&html_output);
+
     // Issue 329: Restore <details> blocks after all processing
     restore_details_blocks(&html_output, &details_saved)
 }
@@ -748,6 +754,8 @@ pub fn markdown_to_html_with_options(
     options.insert(Options::ENABLE_STRIKETHROUGH);
     // Issue 503: Enable footnotes so [^1] references and [^1]: definitions are processed.
     options.insert(Options::ENABLE_FOOTNOTES);
+    // Issue 535: Enable GFM task list checkboxes (- [ ] / - [x]).
+    options.insert(Options::ENABLE_TASKLISTS);
     // Issue 220: Only enable smart punctuation for kramdown sites.
     // CommonMarkGhPages does not enable smart punctuation by default.
     if enable_smart_punctuation {
@@ -851,6 +859,9 @@ pub fn markdown_to_html_with_options(
     // Issue 297: Use add_code_classes as kramdown mode indicator.
     // When true (kramdown), indent list items. When false (CommonMarkGhPages), do not.
     let html_output = crate::kramdown::postprocess_with_options(&html_output, add_code_classes);
+    // Issue 535: Convert pulldown-cmark task list HTML to Jekyll/kramdown-style HTML.
+    // Must run after postprocess which adds list indentation.
+    let html_output = convert_tasklist_to_kramdown(&html_output);
     // Issue 329: Restore <details> blocks after all processing
     let html_output = restore_details_blocks(&html_output, &details_saved);
     // Issue 330: Fix inline content in <details> blocks for CommonMarkGhPages
@@ -963,6 +974,8 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     options.insert(Options::ENABLE_SMART_PUNCTUATION);
     // Issue 503: Enable footnotes so [^1] references and [^1]: definitions are processed.
     options.insert(Options::ENABLE_FOOTNOTES);
+    // Issue 535: Enable GFM task list checkboxes (- [ ] / - [x]).
+    options.insert(Options::ENABLE_TASKLISTS);
 
     // Issue 364: Escape non-standard autolink URI schemes (tel:, ssh:, sip:, etc.)
     // so pulldown-cmark doesn't treat them as CommonMark autolinks. Kramdown only
@@ -1105,7 +1118,12 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     // Issue 314: Use the global indent_lists flag so CommonMark sites
     // produce unindented <li> elements in the markdownify filter path too.
     let indent_lists = get_markdownify_indent_lists();
-    crate::kramdown::postprocess_for_filter_with_options(&html_output, indent_lists)
+    let html_output =
+        crate::kramdown::postprocess_for_filter_with_options(&html_output, indent_lists);
+
+    // Issue 535: Convert pulldown-cmark task list HTML to Jekyll/kramdown-style HTML.
+    // Must run after postprocess which adds list indentation.
+    convert_tasklist_to_kramdown(&html_output)
 }
 
 /// Rewrite malformed markdown links where `{:target="_blank"}` is embedded
@@ -1283,6 +1301,58 @@ fn normalize_zwsp_for_emphasis(markdown: &str) -> String {
 /// `fix_kramdown_emphasis_patterns`. Stripped after HTML generation so that
 /// no ZWSP or extra space leaks into the final output.
 const EMPHASIS_BOUNDARY_PLACEHOLDER: &str = "\x00EBP\x00";
+
+/// Issue 535: Convert pulldown-cmark task list HTML to Jekyll/kramdown-style HTML.
+///
+/// pulldown-cmark generates:
+///   `<li><input disabled type="checkbox"/>` (unchecked)
+///   `<li><input disabled type="checkbox" checked/>` (checked)
+///
+/// Jekyll/kramdown generates:
+///   `<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" />` (unchecked)
+///   `<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />` (checked)
+///   Parent `<ul>` gets `class="task-list"`.
+fn convert_tasklist_to_kramdown(html: &str) -> String {
+    // Quick check: if no task list markers present, return as-is
+    if !html.contains(r#"<input disabled type="checkbox""#) {
+        return html.to_string();
+    }
+
+    let mut result = html.to_string();
+
+    // Convert checked checkbox: <input disabled type="checkbox" checked/>
+    result = result.replace(
+        r#"<input disabled type="checkbox" checked/>"#,
+        r#"<input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />"#,
+    );
+
+    // Convert unchecked checkbox: <input disabled type="checkbox"/>
+    result = result.replace(
+        r#"<input disabled type="checkbox"/>"#,
+        r#"<input type="checkbox" class="task-list-item-checkbox" disabled="disabled" />"#,
+    );
+
+    // Add class="task-list-item" to <li> elements containing a checkbox.
+    // pulldown-cmark puts the checkbox right after <li>.
+    result = result.replace(
+        r#"<li><input type="checkbox" class="task-list-item-checkbox""#,
+        r#"<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox""#,
+    );
+
+    // Add class="task-list" to <ul> elements that contain task list items.
+    // We look for <ul>\n followed by a task-list-item <li>.
+    result = result.replace(
+        "<ul>\n<li class=\"task-list-item\">",
+        "<ul class=\"task-list\">\n<li class=\"task-list-item\">",
+    );
+    // Also handle indented variant (e.g., from add_block_spacing)
+    result = result.replace(
+        "<ul>\n  <li class=\"task-list-item\">",
+        "<ul class=\"task-list\">\n  <li class=\"task-list-item\">",
+    );
+
+    result
+}
 
 /// Issue 503: Convert pulldown-cmark footnote HTML to kramdown-style footnote HTML.
 ///
@@ -9001,6 +9071,101 @@ More text.
         assert!(
             html.contains(r#"<div class="footnotes""#),
             "markdown_to_html_with_options should produce footnotes section. Got:\n{html}"
+        );
+    }
+
+    // === Issue 535: Task list checkbox rendering ===
+
+    #[test]
+    fn test_task_list_unchecked() {
+        let md = "- [ ] Milk\n";
+        let html = markdown_to_html(md);
+        assert!(
+            html.contains(
+                r#"<input type="checkbox" class="task-list-item-checkbox" disabled="disabled""#
+            ),
+            "Unchecked task list item should render as checkbox input. Got:\n{html}"
+        );
+        assert!(
+            !html.contains("checked"),
+            "Unchecked task list item should NOT have checked attribute. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_task_list_checked() {
+        let md = "- [x] Cookies\n";
+        let html = markdown_to_html(md);
+        assert!(
+            html.contains(r#"checked="checked""#),
+            "Checked task list item should have checked=\"checked\" attribute. Got:\n{html}"
+        );
+        assert!(
+            html.contains(r#"class="task-list-item-checkbox""#),
+            "Checked task list item should have task-list-item-checkbox class. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_task_list_classes() {
+        let md = "- [ ] Milk\n- [x] Cookies\n";
+        let html = markdown_to_html(md);
+        assert!(
+            html.contains(r#"class="task-list"#),
+            "Parent <ul> should have class=\"task-list\". Got:\n{html}"
+        );
+        assert!(
+            html.contains(r#"class="task-list-item"#),
+            "Parent <li> should have class=\"task-list-item\". Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_task_list_mixed_with_regular() {
+        let md = "- [ ] Task item\n- Regular item\n";
+        let html = markdown_to_html(md);
+        assert!(
+            html.contains(r#"<input type="checkbox""#),
+            "Task list item should render as checkbox. Got:\n{html}"
+        );
+        // Regular item should not have a checkbox
+        assert!(
+            html.contains("Regular item"),
+            "Regular item should still appear. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_task_list_nested() {
+        let md = "- [x] Cookies\n  - [x] Classic Choco-chip\n";
+        let html = markdown_to_html(md);
+        // Both items should have checkboxes
+        let checkbox_count = html.matches(r#"type="checkbox""#).count();
+        assert!(
+            checkbox_count >= 2,
+            "Nested task list should have at least 2 checkboxes. Got {checkbox_count} in:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_task_list_with_options() {
+        // markdown_to_html_with_options should also support task lists
+        let md = "- [ ] Unchecked\n- [x] Checked\n";
+        let html = markdown_to_html_with_options(md, true, true, false, false);
+        assert!(
+            html.contains(r#"type="checkbox""#),
+            "markdown_to_html_with_options should support task lists. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_task_list_for_filter() {
+        // markdown_to_html_for_filter should also support task lists
+        let md = "- [ ] Unchecked\n- [x] Checked\n";
+        let html = markdown_to_html_for_filter(md);
+        assert!(
+            html.contains(r#"type="checkbox""#),
+            "markdown_to_html_for_filter should support task lists. Got:\n{html}"
         );
     }
 }
