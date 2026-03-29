@@ -668,15 +668,25 @@ impl TemplateEngine {
     /// `TemplateError::ParseError` if the parser fails to build.
     pub fn with_includes(includes_dir: &Path) -> Result<Self, TemplateError> {
         let partials_map = load_includes(includes_dir)?;
+        // Pre-discover unknown filters in includes so they are registered
+        // as passthrough stubs BEFORE building the parser with partials.
+        // The EagerCompiler defers partial parse errors to render time, so
+        // without this pre-scan, unknown filters in includes silently break
+        // every layout that chains through those includes.
+        let passthrough_set = Self::discover_unknown_filters_in_includes(&partials_map)?;
         let partials = build_partials(&partials_map);
-        let parser = Self::builder()
+        let mut builder = Self::builder()
             .tag(super::include_tag::LenientIncludeTag)
             .tag(super::include_tag::LenientIncludeCachedTag)
             .tag(super::seo_tag::SeoTag)
             .tag(super::avatar_tag::AvatarTag)
             .block(super::highlight_tag::HighlightBlock)
             .tag(super::feed_meta_tag::FeedMetaTag)
-            .tag(super::noop_tags::GithubEditLinkTag)
+            .tag(super::noop_tags::GithubEditLinkTag);
+        for name in &passthrough_set {
+            builder = builder.filter(filters::passthrough::PassthroughFilter::new(name.clone()));
+        }
+        let parser = builder
             .partials(partials)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
@@ -684,7 +694,7 @@ impl TemplateEngine {
             parser: RwLock::new(parser),
             includes: Some(partials_map),
             has_include_tag: true,
-            passthrough_filters: RwLock::new(HashSet::new()),
+            passthrough_filters: RwLock::new(passthrough_set),
         })
     }
 
@@ -696,15 +706,20 @@ impl TemplateEngine {
     ///
     /// Returns `TemplateError::ParseError` if the parser fails to build.
     pub fn with_includes_map(includes: &HashMap<String, String>) -> Result<Self, TemplateError> {
+        let passthrough_set = Self::discover_unknown_filters_in_includes(includes)?;
         let partials = build_partials(includes);
-        let parser = Self::builder()
+        let mut builder = Self::builder()
             .tag(super::include_tag::LenientIncludeTag)
             .tag(super::include_tag::LenientIncludeCachedTag)
             .tag(super::seo_tag::SeoTag)
             .tag(super::avatar_tag::AvatarTag)
             .block(super::highlight_tag::HighlightBlock)
             .tag(super::feed_meta_tag::FeedMetaTag)
-            .tag(super::noop_tags::GithubEditLinkTag)
+            .tag(super::noop_tags::GithubEditLinkTag);
+        for name in &passthrough_set {
+            builder = builder.filter(filters::passthrough::PassthroughFilter::new(name.clone()));
+        }
+        let parser = builder
             .partials(partials)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
@@ -712,7 +727,7 @@ impl TemplateEngine {
             parser: RwLock::new(parser),
             includes: Some(includes.clone()),
             has_include_tag: true,
-            passthrough_filters: RwLock::new(HashSet::new()),
+            passthrough_filters: RwLock::new(passthrough_set),
         })
     }
 
@@ -784,6 +799,84 @@ impl TemplateEngine {
             .filter(filters::RenderMapping)
     }
 
+    /// Pre-scan include sources to discover unknown Liquid filter names.
+    ///
+    /// Extracts all `| filter_name` patterns from include sources using regex,
+    /// then tests each candidate with a temporary parser. Any that fail to
+    /// parse (unknown to the liquid engine) are returned for passthrough
+    /// registration.
+    ///
+    /// Returns the set of passthrough filter names that were discovered.
+    fn discover_unknown_filters_in_includes(
+        includes: &HashMap<String, String>,
+    ) -> Result<HashSet<String>, TemplateError> {
+        // Step 1: Extract all candidate filter names from include sources.
+        // Pattern: `| word` where word is [a-z_][a-z0-9_]*
+        let mut candidates: HashSet<String> = HashSet::new();
+        for source in includes.values() {
+            // Find all `| filter_name` patterns (inside {{ }} or {% %} tags)
+            let bytes = source.as_bytes();
+            let len = bytes.len();
+            let mut i = 0;
+            while i < len {
+                if bytes[i] == b'|' {
+                    // Skip whitespace after pipe
+                    let mut j = i + 1;
+                    while j < len && bytes[j] == b' ' {
+                        j += 1;
+                    }
+                    // Extract word: [a-z_][a-z0-9_]*
+                    if j < len && (bytes[j].is_ascii_lowercase() || bytes[j] == b'_') {
+                        let start = j;
+                        while j < len
+                            && (bytes[j].is_ascii_lowercase()
+                                || bytes[j].is_ascii_digit()
+                                || bytes[j] == b'_')
+                        {
+                            j += 1;
+                        }
+                        let name = &source[start..j];
+                        candidates.insert(name.to_string());
+                    }
+                }
+                i += 1;
+            }
+        }
+
+        // Also extract from layout sources that get preprocessed later
+        // (not needed here since layouts are compiled separately).
+
+        // Step 2: Test each candidate with a temporary parser.
+        let parser = Self::builder()
+            .tag(super::include_tag::LenientIncludeTag)
+            .tag(super::include_tag::LenientIncludeCachedTag)
+            .tag(super::seo_tag::SeoTag)
+            .tag(super::avatar_tag::AvatarTag)
+            .block(super::highlight_tag::HighlightBlock)
+            .tag(super::feed_meta_tag::FeedMetaTag)
+            .tag(super::noop_tags::GithubEditLinkTag)
+            .build()
+            .map_err(|e| TemplateError::ParseError(e.to_string()))?;
+
+        let mut passthrough_names: HashSet<String> = HashSet::new();
+        for name in &candidates {
+            // Try parsing a simple template using this filter
+            let test_template = format!("{{{{ x | {} }}}}", name);
+            if let Err(e) = parser.parse(&test_template) {
+                let err_str = e.to_string();
+                if err_str.contains("Unknown filter") || err_str.contains("FilterChain") {
+                    eprintln!(
+                        "Warning: unknown filter '{}' in include, registering passthrough",
+                        name
+                    );
+                    passthrough_names.insert(name.clone());
+                }
+            }
+        }
+
+        Ok(passthrough_names)
+    }
+
     /// Create a `TemplateEngine` from a pre-built `liquid::Parser`.
     ///
     /// Useful when you've customized the parser builder with additional filters.
@@ -832,6 +925,10 @@ impl TemplateEngine {
         // treats it as false. We rewrite `VAR == false` to
         // `VAR == false and VAR != nil` so nil doesn't match false.
         let preprocessed = preprocess_nil_eq_false(&preprocessed);
+        // Pre-process filter chains in if/elsif/unless conditions.
+        // Jekyll allows `{% if x and y | default: false %}` but Rust liquid
+        // does not. We extract filter chains into preceding assigns.
+        let preprocessed = preprocess_if_condition_filters(&preprocessed);
         // Pre-process `{{var}}` inside `{% %}` tags. Some themes use
         // `{% if {{include.url}} %}` which is non-standard but tolerated by
         // Jekyll. We strip the inner `{{` / `}}` so the Liquid parser sees
@@ -1359,6 +1456,196 @@ fn preprocess_nil_eq_false(template: &str) -> String {
     let result = EQ_FALSE_RE.replace_all(template, "$1 == false and $1 != nil");
     let result = NEQ_FALSE_RE.replace_all(&result, "$1 != false or $1 == nil");
     result.into_owned()
+}
+
+/// Pre-process filter chains in `{% if/elsif/unless %}` conditions.
+///
+/// Jekyll (Ruby Liquid) allows filter chains in conditional expressions:
+///   `{% if site.x and page.y | default: false %}`
+/// The Rust liquid crate does not support filters in conditions. We rewrite
+/// these by extracting the filter chain into a preceding `{% assign %}`:
+///   `{% assign __if_filter_N = page.y | default: false %}{% if site.x and __if_filter_N %}`
+///
+/// Only conditions containing a `|` pipe are rewritten.
+fn preprocess_if_condition_filters(template: &str) -> String {
+    // Fast path: if no `if ` or `unless `, nothing to do.
+    if !template.contains("if ") && !template.contains("unless ") {
+        return template.to_string();
+    }
+
+    let mut result = String::with_capacity(template.len());
+    let mut remaining = template;
+    let mut counter = 0u32;
+
+    while let Some(start) = remaining.find("{%") {
+        result.push_str(&remaining[..start]);
+
+        let after_open = &remaining[start + 2..];
+        if let Some(end_offset) = after_open.find("%}") {
+            let tag_inner = &after_open[..end_offset];
+            let tag_end = start + 2 + end_offset + 2;
+
+            let trimmed = tag_inner.trim();
+            // Detect leading/trailing whitespace-control dashes
+            let has_leading_dash = trimmed.starts_with('-');
+            let content = if has_leading_dash {
+                trimmed[1..].trim_start()
+            } else {
+                trimmed
+            };
+            let has_trailing_dash = content.ends_with('-');
+            let content = if has_trailing_dash {
+                content[..content.len() - 1].trim_end()
+            } else {
+                content
+            };
+
+            let is_conditional = content.starts_with("if ")
+                || content.starts_with("elsif ")
+                || content.starts_with("unless ");
+
+            if is_conditional && content.contains('|') {
+                // Check if the pipe is inside a string literal (skip those)
+                if let Some(rewritten) = rewrite_condition_filter_chain(content, &mut counter) {
+                    let ld = if has_leading_dash { "-" } else { "" };
+                    let td = if has_trailing_dash { "-" } else { "" };
+                    result.push_str(&rewritten.prefix_assigns);
+                    result.push_str(&format!("{{% {}{}{} %}}", ld, rewritten.condition, td));
+                    remaining = &remaining[tag_end..];
+                    continue;
+                }
+            }
+
+            // No rewrite needed -- emit original tag
+            result.push_str(&remaining[start..tag_end]);
+            remaining = &remaining[tag_end..];
+        } else {
+            // Unclosed tag -- emit rest as-is
+            result.push_str(&remaining[start..]);
+            remaining = "";
+        }
+    }
+    result.push_str(remaining);
+    result
+}
+
+struct ConditionRewrite {
+    prefix_assigns: String,
+    condition: String,
+}
+
+/// Try to rewrite a conditional expression that contains filter chains.
+///
+/// Splits on `and`/`or` keywords and checks each operand for `|` pipes.
+/// Filter-chain operands are replaced with temporary variables, and
+/// `{% assign %}` tags are prepended.
+fn rewrite_condition_filter_chain(content: &str, counter: &mut u32) -> Option<ConditionRewrite> {
+    // Find the keyword (if/elsif/unless) and the condition body
+    let (keyword, body) = if let Some(rest) = content.strip_prefix("if ") {
+        ("if", rest.trim())
+    } else if let Some(rest) = content.strip_prefix("elsif ") {
+        ("elsif", rest.trim())
+    } else if let Some(rest) = content.strip_prefix("unless ") {
+        ("unless", rest.trim())
+    } else {
+        return None;
+    };
+
+    // Check if there's actually a pipe in the body (outside of string literals)
+    if !has_pipe_outside_strings(body) {
+        return None;
+    }
+
+    // Split the body into tokens by `and`/`or` while preserving them.
+    // We need to find filter chains (operands with `|`) and extract them.
+    let mut prefix_assigns = String::new();
+    let mut new_body = String::new();
+
+    // Simple tokenization: split on ` and ` and ` or ` boundaries
+    let mut remaining = body;
+    let mut first = true;
+
+    loop {
+        let (operand, connector, rest) = split_next_logical_op(remaining);
+        let operand_trimmed = operand.trim();
+
+        if !first {
+            new_body.push(' ');
+        }
+        first = false;
+
+        if has_pipe_outside_strings(operand_trimmed) {
+            // This operand has a filter chain -- extract it
+            *counter += 1;
+            let var_name = format!("__if_filter_{}", counter);
+            prefix_assigns.push_str(&format!(
+                "{{% assign {} = {} %}}",
+                var_name, operand_trimmed
+            ));
+            new_body.push_str(&var_name);
+        } else {
+            new_body.push_str(operand_trimmed);
+        }
+
+        if let Some(conn) = connector {
+            new_body.push_str(&format!(" {}", conn));
+            remaining = rest;
+        } else {
+            break;
+        }
+    }
+
+    Some(ConditionRewrite {
+        prefix_assigns,
+        condition: format!("{} {}", keyword, new_body),
+    })
+}
+
+/// Check if a string contains `|` outside of quoted strings.
+fn has_pipe_outside_strings(s: &str) -> bool {
+    let mut in_single_quote = false;
+    let mut in_double_quote = false;
+    for ch in s.chars() {
+        match ch {
+            '\'' if !in_double_quote => in_single_quote = !in_single_quote,
+            '"' if !in_single_quote => in_double_quote = !in_double_quote,
+            '|' if !in_single_quote && !in_double_quote => return true,
+            _ => {}
+        }
+    }
+    false
+}
+
+/// Split a condition string on the next ` and ` or ` or ` boundary.
+///
+/// Returns (operand, connector, rest). If no connector is found,
+/// returns (full_string, None, "").
+fn split_next_logical_op(s: &str) -> (&str, Option<&str>, &str) {
+    // Find the first ` and ` or ` or ` that's not inside quotes
+    let bytes = s.as_bytes();
+    let len = bytes.len();
+    let mut in_single_quote = false;
+    let mut in_double_quote = false;
+    let mut i = 0;
+
+    while i < len {
+        match bytes[i] {
+            b'\'' if !in_double_quote => in_single_quote = !in_single_quote,
+            b'"' if !in_single_quote => in_double_quote = !in_double_quote,
+            b' ' if !in_single_quote && !in_double_quote => {
+                // Check for ` and ` or ` or `
+                if i + 5 <= len && &s[i..i + 5] == " and " {
+                    return (&s[..i], Some("and"), &s[i + 5..]);
+                }
+                if i + 4 <= len && &s[i..i + 4] == " or " {
+                    return (&s[..i], Some("or"), &s[i + 4..]);
+                }
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    (s, None, "")
 }
 
 /// Pre-process `{% for var in expr | filter %}` to extract the filter chain.
@@ -1962,6 +2249,7 @@ fn build_partials(includes: &HashMap<String, String>) -> EagerCompiler<InMemoryS
         let preprocessed = preprocess_jekyll_tags(&preprocessed);
         let preprocessed = preprocess_nil_contains(&preprocessed);
         let preprocessed = preprocess_nil_eq_false(&preprocessed);
+        let preprocessed = preprocess_if_condition_filters(&preprocessed);
         let preprocessed = preprocess_nested_braces(&preprocessed);
         let preprocessed = preprocess_for_loop_filters(&preprocessed);
         let preprocessed = preprocess_parenthesized_assign(&preprocessed);
@@ -5430,6 +5718,104 @@ title: "Test Book"
             output.contains("for name in __for_name"),
             "For loop should use temp var: {}",
             output
+        );
+    }
+
+    // ========================================================================
+    // preprocess_if_condition_filters
+    // ========================================================================
+
+    #[test]
+    fn test_preprocess_if_condition_filters_basic() {
+        let input = "{% if site.touchpoints.active and page.survey | default: false %}yes{% endif %}";
+        let output = preprocess_if_condition_filters(input);
+        assert!(
+            output.contains("assign __if_filter_"),
+            "Should extract filter chain into assign: {}",
+            output
+        );
+        assert!(
+            output.contains("| default: false"),
+            "Filter chain should be in the assign: {}",
+            output
+        );
+        assert!(
+            !output.contains("and page.survey | default"),
+            "Original filter chain should not be in the if condition: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_if_condition_filters_no_change_without_pipe() {
+        let input = "{% if site.active and page.survey %}yes{% endif %}";
+        let output = preprocess_if_condition_filters(input);
+        assert_eq!(output, input, "Should not change conditions without pipes");
+    }
+
+    #[test]
+    fn test_preprocess_if_condition_filters_preserves_whitespace_control() {
+        let input = "{%- if x and y | default: false -%}yes{%- endif -%}";
+        let output = preprocess_if_condition_filters(input);
+        assert!(
+            output.contains("{%-"),
+            "Should preserve leading dash: {}",
+            output
+        );
+        assert!(
+            output.contains("-%}"),
+            "Should preserve trailing dash: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_preprocess_if_condition_filters_string_pipe_ignored() {
+        // Pipes inside string literals should not be treated as filter separators
+        let input = r#"{% if page.title == "Hello | World" %}yes{% endif %}"#;
+        let output = preprocess_if_condition_filters(input);
+        assert_eq!(
+            output, input,
+            "Pipes inside strings should not trigger rewrite"
+        );
+    }
+
+    // ========================================================================
+    // discover_unknown_filters_in_includes
+    // ========================================================================
+
+    #[test]
+    fn test_discover_unknown_filters_in_includes() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "test.html".to_string(),
+            "{{ x | resolve_permalink }}".to_string(),
+        );
+        let result = TemplateEngine::discover_unknown_filters_in_includes(&includes).unwrap();
+        assert!(
+            result.contains("resolve_permalink"),
+            "Should discover resolve_permalink as unknown: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_discover_known_filters_not_flagged() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "test.html".to_string(),
+            "{{ x | slugify | prepend: 'a' }}".to_string(),
+        );
+        let result = TemplateEngine::discover_unknown_filters_in_includes(&includes).unwrap();
+        assert!(
+            !result.contains("slugify"),
+            "Known filter slugify should not be flagged: {:?}",
+            result
+        );
+        assert!(
+            !result.contains("prepend"),
+            "Known filter prepend should not be flagged: {:?}",
+            result
         );
     }
 

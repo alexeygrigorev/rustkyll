@@ -698,8 +698,10 @@ impl InvalidLiquidToken<'_> {
         self.parse_pair(&mut tag_block.iter)
     }
 
-    /// Tries to parse this as valid liquid, which will inevitably raise an error.
-    /// This is needed in order to raise the correct error message.
+    /// Tries to parse this as valid liquid. If the invalid content looks like
+    /// a tag (starts with `{%`), it is silently treated as a no-op renderable
+    /// so that unknown custom tags with non-standard syntax don't break the build.
+    /// Otherwise, re-parses strictly to produce a proper error message.
     fn parse_pair(
         self,
         next_elements: &mut dyn Iterator<Item = Pair>,
@@ -707,6 +709,30 @@ impl InvalidLiquidToken<'_> {
         use pest::error::LineColLocation;
 
         let invalid_token_span = self.element.as_span();
+        let invalid_text = invalid_token_span.as_str();
+
+        // If the invalid token starts with `{%`, it's likely an unknown tag
+        // with non-standard syntax (e.g., `~` in arguments). Silently skip it
+        // by consuming remaining InvalidLiquid tokens that are part of the same
+        // tag (up to the closing `%}`), and return a no-op renderable.
+        if invalid_text == "{" || invalid_text == "%" {
+            // Consume tokens until we find the end of the tag (`%}`)
+            let mut found_tag_end = false;
+            for element in &mut *next_elements {
+                let span_text = element.as_span().as_str();
+                if span_text.contains("%}") || span_text.contains("-%}") {
+                    found_tag_end = true;
+                    break;
+                }
+                if element.as_rule() != Rule::InvalidLiquid {
+                    break;
+                }
+            }
+            if found_tag_end || invalid_text == "%" {
+                return Ok(Box::new(UnknownTagRenderable));
+            }
+        }
+
         let invalid_token_position = invalid_token_span.start_pos();
         let (offset_l, offset_c) = invalid_token_position.line_col();
         let offset_l = offset_l - 1;

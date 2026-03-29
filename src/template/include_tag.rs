@@ -413,6 +413,7 @@ fn unescape_include_params(params: &str) -> String {
 pub fn preprocess_include_paths(template: &str) -> String {
     let mut result = String::with_capacity(template.len());
     let mut remaining = template;
+    let mut dynamic_counter: u32 = 0;
 
     while let Some(start) = remaining.find("{%") {
         // Copy everything up to this tag
@@ -448,26 +449,17 @@ pub fn preprocess_include_paths(template: &str) -> String {
                 let after_include = after_tag_name.trim_start();
 
                 // Handle dynamic/interpolated include paths that contain {{ expr }}.
-                // This covers three patterns:
+                // This covers patterns with one or more interpolations:
                 //   1. Fully dynamic:    {% include {{ expr }} %}
                 //   2. Suffix only:      {% include {{ expr }}.html %}
                 //   3. Interpolated:     {% include prefix/{{ expr }}.suffix %}
+                //   4. Multi-interp:     {% include prefix/{{ a }}.{{ b | default: 'html' }} %}
                 // All are rewritten to use the DYNAMIC_INCLUDE_SENTINEL with
                 // appropriate prepend/append filters for any literal prefix/suffix.
+                // Multi-interpolation paths extract extra expressions into preceding
+                // assigns to avoid filter chains in the include tag itself.
                 if let Some(open_pos) = after_include.find("{{") {
-                    if let Some(close_pos) = after_include.find("}}") {
-                        let prefix = &after_include[..open_pos];
-                        let inner_expr = after_include[open_pos + 2..close_pos].trim();
-                        let after_braces = &after_include[close_pos + 2..];
-
-                        // The suffix is the literal text immediately after }}
-                        // up to the first whitespace (or end of string).
-                        // Everything after the suffix is params / rest.
-                        let suffix_end =
-                            after_braces.find([' ', '\t']).unwrap_or(after_braces.len());
-                        let suffix = &after_braces[..suffix_end];
-                        let rest_after_path = after_braces[suffix_end..].trim_start();
-
+                    if let Some(_close_pos) = after_include.find("}}") {
                         // Preserve original whitespace-control markers
                         let orig_tag = &remaining[start..tag_end];
                         let open_marker = if orig_tag.starts_with("{%-") {
@@ -481,26 +473,26 @@ pub fn preprocess_include_paths(template: &str) -> String {
                             "%}"
                         };
 
-                        // Build the rewritten expression: inner_expr with
-                        // optional prepend (for prefix) and append (for suffix).
-                        let mut expr = inner_expr.to_string();
-                        if !prefix.is_empty() {
-                            expr.push_str(&format!(r#" | prepend: "{}""#, prefix));
-                        }
-                        if !suffix.is_empty() {
-                            expr.push_str(&format!(r#" | append: "{}""#, suffix));
-                        }
+                        // Parse all segments: alternating literal and {{ expr }} parts.
+                        // We stop at the first whitespace that's outside all {{ }}.
+                        let (prefix_assigns, main_expr, rest_after_path) =
+                            build_multi_interp_include(
+                                after_include,
+                                open_pos,
+                                &mut dynamic_counter,
+                            );
 
+                        result.push_str(&prefix_assigns);
                         result.push_str(open_marker);
                         result.push(' ');
                         result.push_str(tag_name);
                         result.push(' ');
                         result.push_str(DYNAMIC_INCLUDE_SENTINEL);
                         result.push(' ');
-                        result.push_str(&expr);
+                        result.push_str(&main_expr);
                         if !rest_after_path.is_empty() {
                             result.push(' ');
-                            result.push_str(rest_after_path);
+                            result.push_str(&rest_after_path);
                         }
                         result.push(' ');
                         result.push_str(close_marker);
@@ -577,6 +569,166 @@ pub fn preprocess_include_paths(template: &str) -> String {
 
     result.push_str(remaining);
     result
+}
+
+/// Build a multi-interpolation include expression.
+///
+/// Given an include argument like `code/components/{{ a }}.{{ b | default: 'html' }}`,
+/// this function:
+/// 1. Extracts all `{{ expr }}` interpolations and literal segments
+/// 2. For any interpolation with filter chains (like `b | default: 'html'`),
+///    generates a preceding `{% assign %}` and uses the temp variable
+/// 3. Builds a single expression using `prepend:` and `append:` filters
+///
+/// Returns (prefix_assigns, main_expression, rest_params).
+fn build_multi_interp_include(
+    after_include: &str,
+    _first_open_pos: usize,
+    counter: &mut u32,
+) -> (String, String, String) {
+    let mut prefix_assigns = String::new();
+    let mut segments: Vec<IncludeSegment> = Vec::new();
+    let mut pos = 0;
+
+    // Parse segments: alternating literal and {{ expr }}
+    let path_end = find_include_path_end(after_include);
+    let path_str = &after_include[..path_end];
+    let rest_after_path = after_include[path_end..].trim_start().to_string();
+
+    while pos < path_str.len() {
+        if let Some(open) = path_str[pos..].find("{{") {
+            let open_abs = pos + open;
+            // Literal segment before {{
+            if open_abs > pos {
+                segments.push(IncludeSegment::Literal(path_str[pos..open_abs].to_string()));
+            }
+            // Find matching }}
+            if let Some(close) = path_str[open_abs + 2..].find("}}") {
+                let close_abs = open_abs + 2 + close;
+                let inner = path_str[open_abs + 2..close_abs].trim().to_string();
+                segments.push(IncludeSegment::Expr(inner));
+                pos = close_abs + 2;
+            } else {
+                // No closing }} -- treat rest as literal
+                segments.push(IncludeSegment::Literal(path_str[pos..].to_string()));
+                break;
+            }
+        } else {
+            // No more {{ -- rest is literal
+            if pos < path_str.len() {
+                segments.push(IncludeSegment::Literal(path_str[pos..].to_string()));
+            }
+            break;
+        }
+    }
+
+    if segments.is_empty() {
+        return (String::new(), String::new(), rest_after_path);
+    }
+
+    // For expressions that contain `|` (filter chains), extract into assigns.
+    for seg in &mut segments {
+        if let IncludeSegment::Expr(ref expr) = seg {
+            if expr.contains('|') {
+                *counter += 1;
+                let var_name = format!("__dyn_inc_{}", counter);
+                prefix_assigns.push_str(&format!("{{% assign {} = {} %}}", var_name, expr));
+                *seg = IncludeSegment::Expr(var_name);
+            }
+        }
+    }
+
+    // Build the main expression.
+    // Strategy: use the first expression as the base, then prepend/append literals
+    // and subsequent expressions.
+    let first_expr_idx = segments
+        .iter()
+        .position(|s| matches!(s, IncludeSegment::Expr(_)));
+
+    let main_expr = if let Some(idx) = first_expr_idx {
+        let mut expr = match &segments[idx] {
+            IncludeSegment::Expr(e) => e.clone(),
+            _ => unreachable!(),
+        };
+
+        // Prepend literals before the first expression
+        let prefix: String = segments[..idx]
+            .iter()
+            .map(|s| match s {
+                IncludeSegment::Literal(l) => l.as_str(),
+                _ => "",
+            })
+            .collect();
+        if !prefix.is_empty() {
+            expr.push_str(&format!(r#" | prepend: "{}""#, prefix));
+        }
+
+        // Append everything after the first expression
+        for seg in &segments[idx + 1..] {
+            match seg {
+                IncludeSegment::Literal(l) => {
+                    expr.push_str(&format!(r#" | append: "{}""#, l));
+                }
+                IncludeSegment::Expr(e) => {
+                    // For subsequent expressions, we need to use append with a variable.
+                    // Unfortunately, Liquid doesn't support `| append: var` directly
+                    // in the same way. We'll use a workaround: pre-compute the suffix
+                    // into a variable and append it.
+                    *counter += 1;
+                    let suffix_var = format!("__dyn_inc_{}", counter);
+                    // Build the suffix expression: this expr + any following literals
+                    prefix_assigns.push_str(&format!("{{% assign {} = {} %}}", suffix_var, e));
+                    expr.push_str(&format!(r#" | append: {}"#, suffix_var));
+                }
+            }
+        }
+
+        expr
+    } else {
+        // No expressions, only literals -- shouldn't happen for dynamic includes
+        let _literal: String = segments
+            .iter()
+            .map(|s| match s {
+                IncludeSegment::Literal(l) => l.as_str(),
+                _ => "",
+            })
+            .collect::<String>();
+        // Return as a literal path expression
+        format!(r#""{}""#, _literal)
+    };
+
+    (prefix_assigns, main_expr, rest_after_path)
+}
+
+/// Find the end of the include path in the arguments string.
+///
+/// The path ends at the first whitespace that's outside all `{{ }}` pairs.
+fn find_include_path_end(s: &str) -> usize {
+    let mut depth: u32 = 0;
+    let bytes = s.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if i + 1 < bytes.len() && bytes[i] == b'{' && bytes[i + 1] == b'{' {
+            depth += 1;
+            i += 2;
+            continue;
+        }
+        if i + 1 < bytes.len() && bytes[i] == b'}' && bytes[i + 1] == b'}' {
+            depth = depth.saturating_sub(1);
+            i += 2;
+            continue;
+        }
+        if depth == 0 && (bytes[i] == b' ' || bytes[i] == b'\t') {
+            return i;
+        }
+        i += 1;
+    }
+    s.len()
+}
+
+enum IncludeSegment {
+    Literal(String),
+    Expr(String),
 }
 
 #[cfg(test)]
@@ -1193,6 +1345,46 @@ mod tests {
             !output2.contains(DYNAMIC_INCLUDE_SENTINEL),
             "Should NOT contain dynamic sentinel for literal paths, got: {}",
             output2
+        );
+    }
+
+    #[test]
+    fn test_multi_interp_include_filter_chain_extracted() {
+        // Multi-interpolation include with filter chain should extract into assign
+        let input =
+            r#"{% include code/components/{{ include.component }}.{{ include.language | default: 'html' }} %}"#;
+        let output = preprocess_include_paths(input);
+        assert!(
+            output.contains("assign __dyn_inc_"),
+            "Should extract filter chain into assign: {}",
+            output
+        );
+        assert!(
+            output.contains("| default: 'html'"),
+            "Filter chain should be in the assign: {}",
+            output
+        );
+        assert!(
+            output.contains(DYNAMIC_INCLUDE_SENTINEL),
+            "Should use dynamic include sentinel: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_single_interp_include_no_extra_assign() {
+        // Single interpolation without filter chain should not generate assign
+        let input = r#"{% include {{ include.component }}.html %}"#;
+        let output = preprocess_include_paths(input);
+        assert!(
+            !output.contains("assign __dyn_inc_"),
+            "No assign needed for simple interpolation: {}",
+            output
+        );
+        assert!(
+            output.contains(DYNAMIC_INCLUDE_SENTINEL),
+            "Should use dynamic include sentinel: {}",
+            output
         );
     }
 }
