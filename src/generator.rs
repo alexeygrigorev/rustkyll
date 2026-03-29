@@ -1037,17 +1037,6 @@ fn page_to_liquid(page: &Page) -> LiquidValue {
         }
     }
 
-    // Jekyll defaults `tags` and `categories` to empty arrays when not set in
-    // frontmatter. Templates like taglogic.html iterate `{% for tag in page.tags %}`
-    // and expect an array, not nil. Without this, the for-loop errors on pages
-    // that don't have tags/categories in their frontmatter.
-    if !obj.contains_key("tags") {
-        obj.insert("tags".into(), LiquidValue::Array(vec![]));
-    }
-    if !obj.contains_key("categories") {
-        obj.insert("categories".into(), LiquidValue::Array(vec![]));
-    }
-
     LiquidValue::Object(obj)
 }
 
