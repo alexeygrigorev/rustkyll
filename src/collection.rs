@@ -4005,13 +4005,8 @@ mod tests {
             "---\ntitle: Example\n---\n\nSome text.\n\n{% highlight ruby %}\ndef foo\n  42\nend\n{% endhighlight %}\n\nMore text.\n",
         )
         .unwrap();
-        std::fs::write(
-            dir.path().join("_config.yml"),
-            "title: Test\n",
-        )
-        .unwrap();
-        let config =
-            crate::config::SiteConfig::from_file(&dir.path().join("_config.yml")).unwrap();
+        std::fs::write(dir.path().join("_config.yml"), "title: Test\n").unwrap();
+        let config = crate::config::SiteConfig::from_file(&dir.path().join("_config.yml")).unwrap();
         let (items, errors) = load_collection("posts", dir.path(), &config).unwrap();
         assert!(errors.is_empty(), "Unexpected errors: {:?}", errors);
         assert_eq!(items.len(), 1);
