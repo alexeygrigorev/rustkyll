@@ -926,22 +926,27 @@ fn process_collection_file(
     };
 
     // Compute Jekyll-compatible document.id.
+    // Jekyll: Document#id = File.join(File.dirname(url), slug)
     // For non-post collections: /<collection>/<raw_stem> (preserves spaces from filename).
-    // For posts: /<YYYY>/<MM>/<DD>/<raw_slug> (date-based path).
+    // For posts: dirname(url) + raw_slug (respects permalink pattern).
     let id = if is_posts {
-        if let Some(ref d) = date {
-            let date_part = &d[..std::cmp::min(10, d.len())];
-            let parts: Vec<&str> = date_part.split('-').collect();
-            if parts.len() >= 3 {
-                let (_, raw_slug) = parse_post_filename(&filename);
-                format!("/{}/{}/{}/{}", parts[0], parts[1], parts[2], raw_slug)
+        let (_, raw_slug) = parse_post_filename(&filename);
+        // Get the directory portion of the resolved URL, matching Jekyll's
+        // File.dirname(url). For `/blog/my-post.html` -> `/blog`.
+        // For `/stories/my-post` -> `/stories`.
+        let url_dir = if let Some(pos) = url.rfind('/') {
+            if pos == 0 {
+                "/".to_string()
             } else {
-                let base = url.trim_end_matches(".html").trim_start_matches('/');
-                format!("/{}", base)
+                url[..pos].to_string()
             }
         } else {
-            let base = url.trim_end_matches(".html").trim_start_matches('/');
-            format!("/{}", base)
+            "/".to_string()
+        };
+        if url_dir == "/" {
+            format!("/{}", raw_slug)
+        } else {
+            format!("{}/{}", url_dir, raw_slug)
         }
     } else {
         // For non-post collections, id preserves raw filename (including spaces)
@@ -2562,10 +2567,12 @@ mod tests {
         assert_eq!(item.id, "/podcast/hybrid search");
     }
 
-    /// For post collections, the id uses the date-based path format
-    /// (e.g. `/2024/01/15/my-post`).
+    /// For post collections, the id uses dirname(url) + slug, matching
+    /// Jekyll's `Document#id = File.join(File.dirname(url), slug)`.
+    /// With permalink `/blog/:title.html`, url = `/blog/my-post.html`,
+    /// dirname = `/blog`, so id = `/blog/my-post`.
     #[test]
-    fn test_post_item_id_uses_date_path() {
+    fn test_post_item_id_uses_url_dirname_and_slug() {
         use tempfile::TempDir;
 
         let tmp = TempDir::new().unwrap();
@@ -2587,6 +2594,96 @@ mod tests {
         assert_eq!(items.len(), 1);
 
         let item = &items[0];
+        // dirname of /blog/my-post.html is /blog, slug is my-post
+        assert_eq!(item.id, "/blog/my-post");
+    }
+
+    /// With permalink `/stories/:title`, url = `/stories/my-post`,
+    /// dirname = `/stories`, so id = `/stories/my-post`.
+    #[test]
+    fn test_post_item_id_uses_permalink_based_path() {
+        use tempfile::TempDir;
+
+        let tmp = TempDir::new().unwrap();
+        let site = tmp.path();
+
+        std::fs::write(site.join("_config.yml"), "permalink: /stories/:title\n").unwrap();
+
+        let posts_dir = site.join("_posts");
+        std::fs::create_dir_all(&posts_dir).unwrap();
+        std::fs::write(
+            posts_dir.join("2013-10-14-canadian-web-experience-toolkit.md"),
+            "---\ntitle: Canadian Web Experience Toolkit\n---\nContent\n",
+        )
+        .unwrap();
+
+        let config = crate::config::SiteConfig::from_file(&site.join("_config.yml")).unwrap();
+        let (items, errors) = load_collection("posts", site, &config).unwrap();
+        assert!(errors.is_empty(), "Unexpected errors: {:?}", errors);
+        assert_eq!(items.len(), 1);
+
+        let item = &items[0];
+        assert_eq!(item.id, "/stories/canadian-web-experience-toolkit");
+    }
+
+    /// With permalink `/:year/:month/:title`, url = `/2024/01/my-post`,
+    /// dirname = `/2024/01`, so id = `/2024/01/my-post`.
+    #[test]
+    fn test_post_item_id_year_month_title_permalink() {
+        use tempfile::TempDir;
+
+        let tmp = TempDir::new().unwrap();
+        let site = tmp.path();
+
+        std::fs::write(
+            site.join("_config.yml"),
+            "permalink: /:year/:month/:title\n",
+        )
+        .unwrap();
+
+        let posts_dir = site.join("_posts");
+        std::fs::create_dir_all(&posts_dir).unwrap();
+        std::fs::write(
+            posts_dir.join("2024-01-15-my-post.md"),
+            "---\ntitle: My Post\n---\nContent\n",
+        )
+        .unwrap();
+
+        let config = crate::config::SiteConfig::from_file(&site.join("_config.yml")).unwrap();
+        let (items, errors) = load_collection("posts", site, &config).unwrap();
+        assert!(errors.is_empty(), "Unexpected errors: {:?}", errors);
+        assert_eq!(items.len(), 1);
+
+        let item = &items[0];
+        assert_eq!(item.id, "/2024/01/my-post");
+    }
+
+    /// Default permalink produces date-based id (unchanged behavior).
+    #[test]
+    fn test_post_item_id_default_permalink() {
+        use tempfile::TempDir;
+
+        let tmp = TempDir::new().unwrap();
+        let site = tmp.path();
+
+        std::fs::write(site.join("_config.yml"), "\n").unwrap();
+
+        let posts_dir = site.join("_posts");
+        std::fs::create_dir_all(&posts_dir).unwrap();
+        std::fs::write(
+            posts_dir.join("2024-01-15-my-post.md"),
+            "---\ntitle: My Post\n---\nContent\n",
+        )
+        .unwrap();
+
+        let config = crate::config::SiteConfig::from_file(&site.join("_config.yml")).unwrap();
+        let (items, errors) = load_collection("posts", site, &config).unwrap();
+        assert!(errors.is_empty(), "Unexpected errors: {:?}", errors);
+        assert_eq!(items.len(), 1);
+
+        let item = &items[0];
+        // Default permalink: /:categories/:year/:month/:day/:title:output_ext
+        // url = /2024/01/15/my-post.html, dirname = /2024/01/15, slug = my-post
         assert_eq!(item.id, "/2024/01/15/my-post");
     }
 
