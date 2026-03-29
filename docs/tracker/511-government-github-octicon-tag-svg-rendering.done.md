@@ -60,3 +60,18 @@ The SVG path data for common octicons can be embedded as a static lookup table. 
 ## Dependencies
 
 - None (independent of other government-github issues)
+
+## Log
+
+### [SWE] 2026-03-29
+
+- **TDD step 1**: Wrote 14 unit tests for octicon rendering (mark-github, check, book exact match against Jekyll cached output; width-first vs height-first dimension ordering; unknown icon graceful degradation; preprocessing with non-octicon tags; whitespace control markers; unicode surroundings; default dimensions; all 13 government-github icons)
+- **TDD step 2**: Tests initially FAILED because the Liquid tag approach could not parse `key:value` syntax -- the Liquid tokenizer splits `height:24` incorrectly
+- **TDD step 3**: Switched to preprocessing approach (like gist_tag.rs). Created `src/template/octicon_tag.rs` with `preprocess_octicon_tags()` that replaces `{% octicon ... %}` with inline SVG HTML before the Liquid parser sees it. Added preprocessing call in `engine.rs` parse() and build_partials() functions.
+- **TDD step 4**: All 14 octicon tests PASS. Full test suite passes (3203 tests, 0 failures).
+- Clippy clean, fmt clean
+- **DOM verification**:
+  - DTC: 790/790 (no regression)
+  - government-github: 10/21 (up from 5/21, +5 pages matching)
+- **Files created**: `src/template/octicon_tag.rs`
+- **Files modified**: `src/template/mod.rs` (added module), `src/template/engine.rs` (added preprocessing call in parse() and build_partials(), updated existing octicon test expectation)

@@ -914,6 +914,10 @@ impl TemplateEngine {
         // the Liquid parser does not support. These are replaced with their
         // approximate URL output.
         let preprocessed = preprocess_jekyll_tags(&preprocessed);
+        // Pre-process {% octicon %} tags (jekyll-octicons plugin). These use
+        // key:value syntax (e.g., height:24) that the Liquid parser cannot
+        // handle. Replace with inline SVG HTML.
+        let preprocessed = super::octicon_tag::preprocess_octicon_tags(&preprocessed);
         // Pre-process `contains` in if/elsif conditions to add nil guards.
         // Jekyll treats `nil contains "x"` as false, but the liquid crate
         // raises an error. We rewrite `EXPR contains "STR"` to
@@ -2247,6 +2251,7 @@ fn build_partials(includes: &HashMap<String, String>) -> EagerCompiler<InMemoryS
         let preprocessed = super::include_tag::preprocess_include_paths(content);
         let preprocessed = preprocess_capture_tags(&preprocessed);
         let preprocessed = preprocess_jekyll_tags(&preprocessed);
+        let preprocessed = super::octicon_tag::preprocess_octicon_tags(&preprocessed);
         let preprocessed = preprocess_nil_contains(&preprocessed);
         let preprocessed = preprocess_nil_eq_false(&preprocessed);
         let preprocessed = preprocess_if_condition_filters(&preprocessed);
@@ -5222,7 +5227,21 @@ title: "Test Book"
                 &ctx,
             )
             .unwrap();
-        assert_eq!(out, "<a></a>");
+        assert!(
+            out.starts_with("<a><svg"),
+            "octicon should render SVG inside anchor: {}",
+            out
+        );
+        assert!(
+            out.ends_with("</svg></a>"),
+            "SVG should close before anchor: {}",
+            out
+        );
+        assert!(
+            out.contains("octicon-mark-github"),
+            "Should have octicon class: {}",
+            out
+        );
     }
 
     // ========================================================================
@@ -5727,7 +5746,8 @@ title: "Test Book"
 
     #[test]
     fn test_preprocess_if_condition_filters_basic() {
-        let input = "{% if site.touchpoints.active and page.survey | default: false %}yes{% endif %}";
+        let input =
+            "{% if site.touchpoints.active and page.survey | default: false %}yes{% endif %}";
         let output = preprocess_if_condition_filters(input);
         assert!(
             output.contains("assign __if_filter_"),
