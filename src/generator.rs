@@ -1760,8 +1760,13 @@ pub fn generate_collection_pages_cached_with_progress(
             .entry("collection".into())
             .or_insert_with(|| serde_yaml::Value::String(item.collection_name.clone()));
 
-        // Also ensure date is in front matter if available (needed for posts)
-        if !page_fm.contains_key("date") {
+        // Also ensure date is in front matter if available (needed for posts).
+        // Issue 474: Only inject the backfilled date for posts. Non-post collections
+        // should have page.date = nil when no explicit date was set, matching Jekyll's
+        // behavior where DocumentDrop#date returns nil for non-post items without
+        // explicit dates. The item.date field is still set (for cross-page iteration
+        // via site.collection | map: "date") but should not leak into page.date.
+        if is_posts_collection && !page_fm.contains_key("date") {
             if let Some(ref date) = item.date {
                 page_fm.insert("date".to_string(), serde_yaml::Value::String(date.clone()));
             }
@@ -8917,5 +8922,270 @@ defaults:
             !result.unwrap().contains('\n'),
             "compressed style should produce single-line CSS"
         );
+    }
+
+    // Issue 485: Config defaults applied to collection items in site context
+    #[test]
+    fn test_issue485_config_defaults_applied_to_site_posts() {
+        // Config defaults (e.g., read_time: true for posts) should be available
+        // on post objects in site.posts so that templates like
+        // `{% if post.read_time %}` evaluate correctly.
+        let yaml = r#"
+defaults:
+  - scope:
+      path: ""
+      type: posts
+    values:
+      read_time: true
+      author_profile: true
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let item = CollectionItem {
+            slug: "test-post".to_string(),
+            front_matter: {
+                let mut fm = std::collections::HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("Test Post".to_string()),
+                );
+                fm
+            },
+            content: "Hello world".to_string(),
+            html_content: "<p>Hello world</p>".to_string(),
+            excerpt: None,
+            excerpt_html: None,
+            url: "/2024/01/01/test-post/".to_string(),
+            date: Some("2024-01-01".to_string()),
+            collection_name: "posts".to_string(),
+            source_path: "_posts/2024-01-01-test-post.md".to_string(),
+            id: "/2024/01/01/test-post".to_string(),
+        };
+        let mut collections = HashMap::new();
+        collections.insert("posts".to_string(), vec![item]);
+        let data = std::collections::BTreeMap::new();
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
+        let posts = ctx.get("posts").expect("should have posts");
+        if let LiquidValue::Array(arr) = posts {
+            assert_eq!(arr.len(), 1);
+            if let LiquidValue::Object(obj) = &arr[0] {
+                let read_time = obj
+                    .get("read_time")
+                    .expect("post should have read_time from config defaults");
+                assert_eq!(
+                    read_time.to_kstr().as_str(),
+                    "true",
+                    "read_time should be true from config defaults"
+                );
+            } else {
+                panic!("Expected Object in posts array");
+            }
+        } else {
+            panic!("Expected Array for posts");
+        }
+    }
+
+    #[test]
+    fn test_issue485_config_defaults_do_not_override_post_frontmatter() {
+        // Post front matter values must win over config defaults
+        let yaml = r#"
+defaults:
+  - scope:
+      path: ""
+      type: posts
+    values:
+      read_time: true
+      share: true
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let item = CollectionItem {
+            slug: "test-post".to_string(),
+            front_matter: {
+                let mut fm = std::collections::HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("My Post".to_string()),
+                );
+                fm.insert(
+                    "share".to_string(),
+                    serde_yaml::Value::Bool(false),
+                );
+                fm
+            },
+            content: "".to_string(),
+            html_content: "".to_string(),
+            excerpt: None,
+            excerpt_html: None,
+            url: "/2024/01/01/test-post/".to_string(),
+            date: Some("2024-01-01".to_string()),
+            collection_name: "posts".to_string(),
+            source_path: "_posts/2024-01-01-test-post.md".to_string(),
+            id: "/2024/01/01/test-post".to_string(),
+        };
+        let mut collections = HashMap::new();
+        collections.insert("posts".to_string(), vec![item]);
+        let data = std::collections::BTreeMap::new();
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
+        let posts = ctx.get("posts").expect("should have posts");
+        if let LiquidValue::Array(arr) = posts {
+            if let LiquidValue::Object(obj) = &arr[0] {
+                // share should be false (from frontmatter), not true (from defaults)
+                let share = obj.get("share").expect("should have share");
+                assert_eq!(
+                    share.to_kstr().as_str(),
+                    "false",
+                    "Frontmatter share=false should override config default share=true"
+                );
+                // read_time should come from defaults since not in frontmatter
+                let read_time = obj.get("read_time").expect("should have read_time");
+                assert_eq!(
+                    read_time.to_kstr().as_str(),
+                    "true",
+                    "read_time should come from config defaults"
+                );
+            } else {
+                panic!("Expected Object");
+            }
+        } else {
+            panic!("Expected Array");
+        }
+    }
+
+    #[test]
+    fn test_issue485_portfolio_items_no_spurious_date() {
+        // Portfolio items without explicit date in frontmatter should NOT
+        // have a date in the Liquid context (post.date should be falsy).
+        let config = SiteConfig::from_yaml_str("").unwrap();
+        let item = CollectionItem {
+            slug: "portfolio-1".to_string(),
+            front_matter: {
+                let mut fm = std::collections::HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("Portfolio Item 1".to_string()),
+                );
+                fm
+            },
+            content: "Description".to_string(),
+            html_content: "<p>Description</p>".to_string(),
+            excerpt: None,
+            excerpt_html: None,
+            url: "/portfolio/portfolio-1/".to_string(),
+            // item.date is set by backfill_default_dates (build_time)
+            date: Some("2024-03-29".to_string()),
+            collection_name: "portfolio".to_string(),
+            source_path: "_portfolio/portfolio-1.md".to_string(),
+            id: "/portfolio/portfolio-1".to_string(),
+        };
+        let mut collections = HashMap::new();
+        collections.insert("portfolio".to_string(), vec![item]);
+        let data = std::collections::BTreeMap::new();
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
+        let portfolio = ctx.get("portfolio").expect("should have portfolio");
+        if let LiquidValue::Array(arr) = portfolio {
+            assert_eq!(arr.len(), 1);
+            if let LiquidValue::Object(obj) = &arr[0] {
+                // Portfolio items should NOT have a date in Liquid context
+                assert!(
+                    obj.get("date").is_none(),
+                    "Portfolio item without explicit date should not have date in Liquid context, but got: {:?}",
+                    obj.get("date")
+                );
+            } else {
+                panic!("Expected Object");
+            }
+        } else {
+            panic!("Expected Array");
+        }
+    }
+
+    #[test]
+    fn test_issue485_post_items_keep_date() {
+        // Post items should still have their date in the Liquid context
+        let config = SiteConfig::from_yaml_str("").unwrap();
+        let item = CollectionItem {
+            slug: "test-post".to_string(),
+            front_matter: {
+                let mut fm = std::collections::HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("Test".to_string()),
+                );
+                fm
+            },
+            content: "".to_string(),
+            html_content: "".to_string(),
+            excerpt: None,
+            excerpt_html: None,
+            url: "/2024/01/01/test-post/".to_string(),
+            date: Some("2024-01-01".to_string()),
+            collection_name: "posts".to_string(),
+            source_path: "_posts/2024-01-01-test-post.md".to_string(),
+            id: "/2024/01/01/test-post".to_string(),
+        };
+        let mut collections = HashMap::new();
+        collections.insert("posts".to_string(), vec![item]);
+        let data = std::collections::BTreeMap::new();
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
+        let posts = ctx.get("posts").expect("should have posts");
+        if let LiquidValue::Array(arr) = posts {
+            if let LiquidValue::Object(obj) = &arr[0] {
+                assert!(
+                    obj.get("date").is_some(),
+                    "Post items should have date in Liquid context"
+                );
+            } else {
+                panic!("Expected Object");
+            }
+        } else {
+            panic!("Expected Array");
+        }
+    }
+
+    #[test]
+    fn test_issue485_non_post_with_explicit_date_keeps_it() {
+        // Non-post collection items that have an explicit date in front matter
+        // should still have it in the Liquid context.
+        let config = SiteConfig::from_yaml_str("").unwrap();
+        let item = CollectionItem {
+            slug: "talk-1".to_string(),
+            front_matter: {
+                let mut fm = std::collections::HashMap::new();
+                fm.insert(
+                    "title".to_string(),
+                    serde_yaml::Value::String("My Talk".to_string()),
+                );
+                fm.insert(
+                    "date".to_string(),
+                    serde_yaml::Value::String("2024-06-15".to_string()),
+                );
+                fm
+            },
+            content: "".to_string(),
+            html_content: "".to_string(),
+            excerpt: None,
+            excerpt_html: None,
+            url: "/talks/talk-1/".to_string(),
+            date: Some("2024-06-15".to_string()),
+            collection_name: "talks".to_string(),
+            source_path: "_talks/talk-1.md".to_string(),
+            id: "/talks/talk-1".to_string(),
+        };
+        let mut collections = HashMap::new();
+        collections.insert("talks".to_string(), vec![item]);
+        let data = std::collections::BTreeMap::new();
+        let ctx = build_site_context(&config, &collections, &data, None, &[]);
+        let talks = ctx.get("talks").expect("should have talks");
+        if let LiquidValue::Array(arr) = talks {
+            if let LiquidValue::Object(obj) = &arr[0] {
+                assert!(
+                    obj.get("date").is_some(),
+                    "Non-post item with explicit date should keep it in Liquid context"
+                );
+            } else {
+                panic!("Expected Object");
+            }
+        } else {
+            panic!("Expected Array");
+        }
     }
 }

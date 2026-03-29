@@ -3005,7 +3005,9 @@ mod tests {
             Some(build_time)
         );
         assert!(
-            !collections["portfolio"][0].front_matter.contains_key("date"),
+            !collections["portfolio"][0]
+                .front_matter
+                .contains_key("date"),
             "Portfolio page.date should remain nil (no front_matter date)"
         );
     }
