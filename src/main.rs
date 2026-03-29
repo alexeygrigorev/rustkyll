@@ -487,6 +487,13 @@ fn build_site(
     // Collect static file paths first so they can be exposed as site.static_files
     let static_file_paths = static_files::collect_static_files(source, &config)?;
 
+    // Set permalink patterns BEFORE building layout engine, because
+    // preprocess_jekyll_tags (called during include partial compilation)
+    // needs the permalink style to resolve {% link %} tags correctly.
+    let expanded_permalink = rustkyll::collection::expand_permalink_style(&config.permalink);
+    rustkyll::frontmatter::set_post_permalink_pattern(expanded_permalink);
+    rustkyll::collection::set_page_permalink_style(&config.permalink);
+
     // Build site context and load layouts in parallel since they are independent.
     progress.phase("Building site context...");
     let phase_start_context = Instant::now();
@@ -550,11 +557,6 @@ fn build_site(
 
     // Also enable autolink in the markdownify filter for CommonMark sites.
     rustkyll::frontmatter::set_markdownify_autolink(has_autolink);
-
-    // Set post permalink pattern for {% link _posts/... %} resolution.
-    // Expand named styles (e.g., "date" -> "/:categories/:year/:month/:day/:title.html")
-    let expanded_permalink = rustkyll::collection::expand_permalink_style(&config.permalink);
-    rustkyll::frontmatter::set_post_permalink_pattern(expanded_permalink);
 
     // 7b. Pre-render collection items that contain Liquid tags (e.g.,
     // `{% include links.html %}` in posts). This ensures `item.html_content`

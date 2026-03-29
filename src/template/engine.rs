@@ -1267,16 +1267,19 @@ fn preprocess_jekyll_tags(template: &str) -> String {
                         path
                     };
                     // For collection docs: strip .md or .html extension entirely
-                    // For root pages: convert .md to .html, keep .html as-is
+                    // For root pages: use permalink-style suffix (.html or /)
+                    let link_suffix = crate::collection::get_link_tag_suffix();
                     let url_path = if let Some(stem) = url_path.strip_suffix(".md") {
                         if is_collection {
                             format!("/{}", stem)
                         } else {
-                            format!("/{}.html", stem)
+                            format!("/{}{}", stem, link_suffix)
                         }
                     } else if let Some(stem) = url_path.strip_suffix(".html") {
                         if is_collection {
                             format!("/{}", stem)
+                        } else if link_suffix == "/" {
+                            format!("/{}/", stem)
                         } else {
                             format!("/{}", url_path)
                         }
@@ -4797,6 +4800,76 @@ title: "Test Book"
         // Non-ASCII: collection doc with .html extension and German name
         let result = preprocess_jekyll_tags("{% link _pages/\u{00fc}ber-uns.html %}");
         assert_eq!(result, "/pages/\u{00fc}ber-uns");
+    }
+
+    // ========================================================================
+    // Issue 502: link tag respects permalink: pretty
+    // ========================================================================
+
+    #[test]
+    fn test_link_tag_pretty_permalink_md_page() {
+        // When permalink is "pretty", {% link docs/config.md %} -> /docs/config/
+        crate::collection::set_page_permalink_style("pretty");
+        let result = preprocess_jekyll_tags(r#"{% link docs/configuration.md %}"#);
+        assert_eq!(result, "/docs/configuration/");
+        // Reset to default
+        crate::collection::set_page_permalink_style("");
+    }
+
+    #[test]
+    fn test_link_tag_pretty_permalink_md_root() {
+        // Root-level .md page with pretty permalink
+        crate::collection::set_page_permalink_style("pretty");
+        let result = preprocess_jekyll_tags(r#"{% link about.md %}"#);
+        assert_eq!(result, "/about/");
+        crate::collection::set_page_permalink_style("");
+    }
+
+    #[test]
+    fn test_link_tag_pretty_permalink_html_page() {
+        // .html page with pretty permalink -> /path/
+        crate::collection::set_page_permalink_style("pretty");
+        let result = preprocess_jekyll_tags(r#"{% link CHANGELOG.html %}"#);
+        assert_eq!(result, "/CHANGELOG/");
+        crate::collection::set_page_permalink_style("");
+    }
+
+    #[test]
+    fn test_link_tag_pretty_permalink_with_anchor() {
+        // Anchor after link tag (common pattern: {% link page.md %}#section)
+        crate::collection::set_page_permalink_style("pretty");
+        let result =
+            preprocess_jekyll_tags(r#"<a href="{% link docs/configuration.md %}#aux-links">x</a>"#);
+        assert_eq!(result, r#"<a href="/docs/configuration/#aux-links">x</a>"#);
+        crate::collection::set_page_permalink_style("");
+    }
+
+    #[test]
+    fn test_link_tag_default_permalink_keeps_html() {
+        // Default (date) permalink -> .html as before
+        crate::collection::set_page_permalink_style("date");
+        let result = preprocess_jekyll_tags(r#"{% link docs/configuration.md %}"#);
+        assert_eq!(result, "/docs/configuration.html");
+        crate::collection::set_page_permalink_style("");
+    }
+
+    #[test]
+    fn test_link_tag_collection_unaffected_by_pretty() {
+        // Collection docs still get extensionless URLs regardless of permalink
+        crate::collection::set_page_permalink_style("pretty");
+        let result = preprocess_jekyll_tags(r#"{% link _pages/banners.md %}"#);
+        assert_eq!(result, "/pages/banners");
+        crate::collection::set_page_permalink_style("");
+    }
+
+    #[test]
+    fn test_link_tag_pretty_permalink_unicode_page() {
+        // Unicode page with pretty permalink
+        crate::collection::set_page_permalink_style("pretty");
+        let result =
+            preprocess_jekyll_tags("{% link \u{0447}\u{0430}\u{0441}\u{0442}\u{044c}.md %}");
+        assert_eq!(result, "/\u{0447}\u{0430}\u{0441}\u{0442}\u{044c}/");
+        crate::collection::set_page_permalink_style("");
     }
 
     // ========================================================================

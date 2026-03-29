@@ -1,10 +1,35 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 use rayon::prelude::*;
 
 use crate::config::SiteConfig;
 use crate::frontmatter::{self, FrontMatter};
+
+/// Global permalink style for standalone pages. Used by `{% link %}` tag
+/// preprocessing to generate correct URLs (pretty = `/`, default = `.html`).
+static PAGE_PERMALINK_STYLE: Mutex<String> = Mutex::new(String::new());
+
+/// Set the global page permalink style. Must be called before any template
+/// preprocessing occurs (typically from `main.rs` after loading config).
+pub fn set_page_permalink_style(style: &str) {
+    if let Ok(mut guard) = PAGE_PERMALINK_STYLE.lock() {
+        *guard = style.to_string();
+    }
+}
+
+/// Get the URL suffix for the `{% link %}` tag based on the globally configured
+/// page permalink style. Returns `"/"` for pretty permalinks, `".html"` otherwise.
+pub fn get_link_tag_suffix() -> &'static str {
+    let style = PAGE_PERMALINK_STYLE
+        .lock()
+        .ok()
+        .filter(|s| !s.is_empty())
+        .map(|s| s.clone())
+        .unwrap_or_default();
+    page_url_suffix(&style)
+}
 
 /// Errors that can occur when loading collections.
 #[derive(Debug, thiserror::Error)]

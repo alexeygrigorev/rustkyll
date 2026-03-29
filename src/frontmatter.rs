@@ -8615,4 +8615,113 @@ More text.
             "iframe should be preserved. Got:\n{html}"
         );
     }
+
+    // ========================================================================
+    // Issue 503: Kramdown footnote rendering tests
+    // ========================================================================
+
+    /// Issue 503: Basic footnote reference and definition should produce kramdown-style HTML.
+    #[test]
+    fn test_issue503_basic_footnote() {
+        let md = "Some text[^1]\n\n[^1]: Footnote text here.";
+        let html = markdown_to_html(md);
+        // Should contain sup with fnref id
+        assert!(
+            html.contains(r#"<sup id="fnref:1">"#),
+            "Should contain <sup id=\"fnref:1\">. Got:\n{html}"
+        );
+        // Should contain link to footnote
+        assert!(
+            html.contains(r##"href="#fn:1""##),
+            "Should contain href=\"#fn:1\". Got:\n{html}"
+        );
+        // Should contain footnotes div
+        assert!(
+            html.contains(r#"<div class="footnotes""#),
+            "Should contain <div class=\"footnotes\">. Got:\n{html}"
+        );
+        // Should contain footnote li with id
+        assert!(
+            html.contains(r#"id="fn:1""#),
+            "Should contain id=\"fn:1\" in footnote list. Got:\n{html}"
+        );
+        // Should contain backlink
+        assert!(
+            html.contains("&#8617;"),
+            "Should contain backlink character. Got:\n{html}"
+        );
+        // Footnote definition should NOT appear as body text
+        assert!(
+            !html.contains("[^1]: Footnote text"),
+            "Footnote definition should not appear as literal text. Got:\n{html}"
+        );
+    }
+
+    /// Issue 503: Named footnotes (e.g., [^postfix]) should work correctly.
+    #[test]
+    fn test_issue503_named_footnote() {
+        let md = "Some text[^postfix]\n\n[^postfix]: Named footnote text.";
+        let html = markdown_to_html(md);
+        assert!(
+            html.contains(r#"id="fnref:postfix""#),
+            "Should contain id=\"fnref:postfix\". Got:\n{html}"
+        );
+        assert!(
+            html.contains(r##"href="#fn:postfix""##),
+            "Should contain href=\"#fn:postfix\". Got:\n{html}"
+        );
+        assert!(
+            html.contains(r#"id="fn:postfix"#),
+            "Should contain id=\"fn:postfix\" in footnote list. Got:\n{html}"
+        );
+    }
+
+    /// Issue 503: Multiple footnotes should all be rendered.
+    #[test]
+    fn test_issue503_multiple_footnotes() {
+        let md = "First[^1] and second[^2].\n\n[^1]: First footnote.\n[^2]: Second footnote.";
+        let html = markdown_to_html(md);
+        assert!(
+            html.contains(r#"id="fnref:1""#),
+            "Should contain fnref:1. Got:\n{html}"
+        );
+        assert!(
+            html.contains(r#"id="fnref:2""#),
+            "Should contain fnref:2. Got:\n{html}"
+        );
+        assert!(
+            html.contains(r#"id="fn:1""#),
+            "Should contain fn:1 in footnotes. Got:\n{html}"
+        );
+        assert!(
+            html.contains(r#"id="fn:2""#),
+            "Should contain fn:2 in footnotes. Got:\n{html}"
+        );
+    }
+
+    /// Issue 503: Markdown with no footnotes should produce no footnotes div.
+    #[test]
+    fn test_issue503_no_footnotes() {
+        let md = "Just regular text with no footnotes.";
+        let html = markdown_to_html(md);
+        assert!(
+            !html.contains("footnotes"),
+            "Should not contain footnotes div when no footnotes. Got:\n{html}"
+        );
+    }
+
+    /// Issue 503: Footnotes in markdown_to_html_with_options should also work.
+    #[test]
+    fn test_issue503_footnotes_with_options() {
+        let md = "Some text[^1]\n\n[^1]: Footnote text.";
+        let html = markdown_to_html_with_options(md, true, true, false, false);
+        assert!(
+            html.contains(r#"<sup id="fnref:1">"#),
+            "markdown_to_html_with_options should support footnotes. Got:\n{html}"
+        );
+        assert!(
+            html.contains(r#"<div class="footnotes""#),
+            "markdown_to_html_with_options should produce footnotes section. Got:\n{html}"
+        );
+    }
 }
