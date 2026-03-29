@@ -3882,8 +3882,9 @@ fn apply_attributes_to_last_tag(html: &mut String, attr_str: &str) -> bool {
     // Find the last closing tag in html, then find its matching opening tag
     // We look for the last `</tagname>` and then find `<tagname` before it
     if let Some(close_tag_end) = html.rfind('>') {
-        // Check if this is a closing tag (</...>)
         let before_close = &html[..=close_tag_end];
+
+        // First try: closing tag (</tagname>)
         if let Some(close_tag_start) = before_close.rfind("</") {
             let tag_name = html[close_tag_start + 2..close_tag_end].to_string();
 
@@ -3901,6 +3902,19 @@ fn apply_attributes_to_last_tag(html: &mut String, attr_str: &str) -> bool {
             if let Some(open_pos) = find_last_opening_tag(search_area, &tag_name) {
                 insert_attributes_at(html, open_pos, &attrs);
                 return true;
+            }
+        }
+
+        // Second try: self-closing/void element (e.g., <img ... /> or <br />).
+        // Check if the last `>` is from a self-closing tag ending with `/>`.
+        if close_tag_end >= 1 && html.as_bytes()[close_tag_end - 1] == b'/' {
+            // Find the opening `<` for this self-closing tag
+            if let Some(open_lt) = html[..close_tag_end].rfind('<') {
+                // Verify it's not a closing tag
+                if open_lt + 1 < html.len() && html.as_bytes()[open_lt + 1] != b'/' {
+                    insert_attributes_at(html, open_lt, &attrs);
+                    return true;
+                }
             }
         }
     }
@@ -3954,8 +3968,10 @@ fn insert_attributes_at(html: &mut String, open_pos: usize, attrs: &[(String, St
             }
         }
 
-        // Handle classes: append to existing or create new class attribute
+        // Handle classes: sort alphabetically (matching kramdown behavior)
+        // and append to existing or create new class attribute
         if !classes.is_empty() {
+            classes.sort_unstable();
             let merged = classes.join(" ");
             if let Some(class_start) = existing_tag.find("class=\"") {
                 // Append to existing class attribute
@@ -3965,7 +3981,18 @@ fn insert_attributes_at(html: &mut String, open_pos: usize, attrs: &[(String, St
                     html.insert_str(insert_pos, &format!(" {}", merged));
                     // Recalculate gt_pos since we inserted before it
                     let new_gt_pos = gt_pos + merged.len() + 1;
-                    html.insert_str(new_gt_pos, &other_attrs);
+                    // For self-closing tags, insert before ` />`
+                    let adj_pos = if new_gt_pos >= 2
+                        && html.as_bytes()[new_gt_pos - 1] == b'/'
+                        && html.as_bytes()[new_gt_pos - 2] == b' '
+                    {
+                        new_gt_pos - 2
+                    } else if new_gt_pos >= 1 && html.as_bytes()[new_gt_pos - 1] == b'/' {
+                        new_gt_pos - 1
+                    } else {
+                        new_gt_pos
+                    };
+                    html.insert_str(adj_pos, &other_attrs);
                     return;
                 }
             } else {
@@ -3973,8 +4000,20 @@ fn insert_attributes_at(html: &mut String, open_pos: usize, attrs: &[(String, St
             }
         }
 
-        // Insert before the `>`
-        html.insert_str(gt_pos, &other_attrs);
+        // Insert before the `>` (or before ` />` for self-closing tags)
+        let insert_pos = if gt_pos >= 2
+            && html.as_bytes()[gt_pos - 1] == b'/'
+            && html.as_bytes()[gt_pos - 2] == b' '
+        {
+            // Self-closing tag with space: `<img ... />`  -> insert before ` />`
+            gt_pos - 2
+        } else if gt_pos >= 1 && html.as_bytes()[gt_pos - 1] == b'/' {
+            // Self-closing tag without space: `<br/>`  -> insert before `/>`
+            gt_pos - 1
+        } else {
+            gt_pos
+        };
+        html.insert_str(insert_pos, &other_attrs);
     }
 }
 
@@ -3991,7 +4030,10 @@ fn parse_ial_attributes(attr_str: &str) -> Vec<(String, String)> {
     // plain text, not kramdown syntax.
     let decoded = html_unescape(attr_str);
     let mut attrs = Vec::new();
-    let mut remaining = decoded.trim();
+    // Strip optional trailing colon (kramdown allows `{: .class :}`)
+    let trimmed = decoded.trim();
+    let trimmed = trimmed.strip_suffix(':').unwrap_or(trimmed).trim();
+    let mut remaining: &str = trimmed;
 
     while !remaining.is_empty() {
         remaining = remaining.trim_start();
@@ -4000,14 +4042,18 @@ fn parse_ial_attributes(attr_str: &str) -> Vec<(String, String)> {
         }
 
         if remaining.starts_with('.') {
-            // Class shorthand
+            // Class shorthand -- kramdown supports dot-concatenated classes:
+            // `.class1.class2` means two separate classes.
             remaining = &remaining[1..];
             let end = remaining
                 .find(|c: char| c.is_whitespace() || c == '}')
                 .unwrap_or(remaining.len());
-            let class_name = &remaining[..end];
-            if !class_name.is_empty() {
-                attrs.push(("class".to_string(), class_name.to_string()));
+            let class_token = &remaining[..end];
+            // Split on '.' to handle concatenated classes like "mx-auto.d-block"
+            for part in class_token.split('.') {
+                if !part.is_empty() {
+                    attrs.push(("class".to_string(), part.to_string()));
+                }
             }
             remaining = &remaining[end..];
         } else if remaining.starts_with('#') {
@@ -14185,6 +14231,95 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             result.contains("</blockquote>"),
             "Normal blockquotes should still work. Got:\n{}",
+            result
+        );
+    }
+
+    // --- Issue 496: Kramdown inline attribute lists ---
+
+    #[test]
+    fn test_parse_ial_trailing_colon() {
+        // Kramdown allows optional trailing colon: {: .class :}
+        let attrs = parse_ial_attributes(".mx-auto.d-block :");
+        // Should parse as two classes: mx-auto and d-block
+        assert_eq!(
+            attrs,
+            vec![
+                ("class".into(), "mx-auto".into()),
+                ("class".into(), "d-block".into()),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_parse_ial_dot_concatenated_classes() {
+        // .class1.class2 means two separate classes in kramdown
+        let attrs = parse_ial_attributes(".mx-auto.d-block");
+        assert_eq!(
+            attrs,
+            vec![
+                ("class".into(), "mx-auto".into()),
+                ("class".into(), "d-block".into()),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_parse_ial_dot_concatenated_three_classes() {
+        let attrs = parse_ial_attributes(".a.b.c");
+        assert_eq!(
+            attrs,
+            vec![
+                ("class".into(), "a".into()),
+                ("class".into(), "b".into()),
+                ("class".into(), "c".into()),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_inline_ial_on_img_element() {
+        // After markdown rendering, img with IAL looks like:
+        // <p><img src="url" alt="img" />{: .mx-auto.d-block :}</p>
+        let html = "<p><img src=\"url\" alt=\"Crepe\" />{: .mx-auto.d-block :}</p>";
+        let result = apply_inline_attributes(html);
+        assert!(
+            result.contains("class=\"d-block mx-auto\""),
+            "Should apply sorted classes to img. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("{:"),
+            "IAL text should be removed. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_inline_ial_on_img_classes_sorted() {
+        // Jekyll sorts IAL classes alphabetically
+        let html = "<p><img src=\"url\" alt=\"img\" />{: .mx-auto.d-block :}</p>";
+        let result = apply_inline_attributes(html);
+        assert!(
+            result.contains("class=\"d-block mx-auto\""),
+            "Classes should be sorted alphabetically. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_block_ial_with_trailing_colon() {
+        // Block-level IAL with trailing colon
+        let html = "<h1>Title</h1>\n<p>{: .fs-9 :}</p>";
+        let result = apply_block_ial(html);
+        assert!(
+            result.contains("class=\"fs-9\""),
+            "Should apply class to heading. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("{:"),
+            "IAL paragraph should be removed. Got: {}",
             result
         );
     }
