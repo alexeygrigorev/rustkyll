@@ -348,6 +348,16 @@ fn build_site(
         collection::backfill_default_dates(items, &build_time, is_posts);
     }
 
+    // Issue 354: Filter out future-dated posts (Jekyll defaults to future: false)
+    let allow_future = config
+        .extras
+        .get("future")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    if let Some(posts) = collections.get_mut("posts") {
+        collection::filter_future_posts(posts, allow_future);
+    }
+
     let total_items: usize = collections.values().map(|v| v.len()).sum();
     progress.phase_done(&format!(
         "Loading collections... {} collections, {} items",

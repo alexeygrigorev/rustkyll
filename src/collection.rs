@@ -290,7 +290,13 @@ pub fn generate_url_with_context(pattern: &str, ctx: &PermalinkContext) -> Strin
         .map(|d| d.to_string())
         .unwrap_or_default();
 
-    let categories_str = ctx.categories.join("/");
+    // Jekyll always lowercases categories in URLs (Issue 354)
+    let categories_str = ctx
+        .categories
+        .iter()
+        .map(|c| c.to_lowercase())
+        .collect::<Vec<_>>()
+        .join("/");
     let path_str = ctx.source_path_stem.as_deref().unwrap_or(&ctx.title);
 
     let mut url = expanded
@@ -480,6 +486,34 @@ pub fn backfill_default_dates(
             }
         }
     }
+}
+
+/// Filter out future-dated posts when `future` is not enabled.
+///
+/// Jekyll defaults to `future: false`, meaning posts with dates after the
+/// current build time are excluded from the site. When `allow_future` is
+/// true (from `future: true` in `_config.yml`), no filtering is done.
+///
+/// Only the date portion (YYYY-MM-DD) is compared, matching Jekyll's behavior.
+pub fn filter_future_posts(items: &mut Vec<CollectionItem>, allow_future: bool) {
+    if allow_future {
+        return;
+    }
+    let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
+    items.retain(|item| {
+        if let Some(ref date) = item.date {
+            // Compare only the date portion (first 10 chars: YYYY-MM-DD)
+            let date_part = if date.len() >= 10 {
+                &date[..10]
+            } else {
+                date.as_str()
+            };
+            date_part <= today.as_str()
+        } else {
+            // Items without dates are always included
+            true
+        }
+    });
 }
 
 /// Returns true if the filename should be skipped (starts with `_`).
@@ -4186,5 +4220,149 @@ mod tests {
                 );
             }
         }
+    }
+
+    // ========================================================================
+    // Unit: Category URL lowercasing (Issue 354)
+    // ========================================================================
+
+    #[test]
+    fn test_category_url_lowercased_edge_case() {
+        let ctx = PermalinkContext {
+            collection: "posts".to_string(),
+            title: "my-post".to_string(),
+            date: Some("2009-05-15".to_string()),
+            categories: vec!["Edge Case".to_string()],
+            ..Default::default()
+        };
+        let url = generate_url_with_context("/:categories/:year/:month/:day/:title.html", &ctx);
+        assert_eq!(
+            url, "/edge case/2009/05/15/my-post.html",
+            "Jekyll lowercases categories in URLs"
+        );
+    }
+
+    #[test]
+    fn test_category_url_lowercased_markup() {
+        let ctx = PermalinkContext {
+            collection: "posts".to_string(),
+            title: "my-post".to_string(),
+            date: Some("2013-08-17".to_string()),
+            categories: vec!["Markup".to_string()],
+            ..Default::default()
+        };
+        let url = generate_url_with_context("/:categories/:year/:month/:day/:title.html", &ctx);
+        assert_eq!(
+            url, "/markup/2013/08/17/my-post.html",
+            "Jekyll lowercases categories in URLs"
+        );
+    }
+
+    #[test]
+    fn test_multiple_categories_all_lowercased() {
+        let ctx = PermalinkContext {
+            collection: "posts".to_string(),
+            title: "hello".to_string(),
+            categories: vec!["Foo".to_string(), "Bar Baz".to_string()],
+            ..Default::default()
+        };
+        let url = generate_url_with_context("/:categories/:title/", &ctx);
+        assert_eq!(
+            url, "/foo/bar baz/hello/",
+            "All categories must be lowercased in URLs"
+        );
+    }
+
+    #[test]
+    fn test_already_lowercase_categories_unchanged() {
+        let ctx = PermalinkContext {
+            collection: "posts".to_string(),
+            title: "hello".to_string(),
+            categories: vec!["tech".to_string()],
+            ..Default::default()
+        };
+        let url = generate_url_with_context("/:categories/:title/", &ctx);
+        assert_eq!(url, "/tech/hello/");
+    }
+
+    // ========================================================================
+    // Unit: Future-date post filtering (Issue 354)
+    // ========================================================================
+
+    #[test]
+    fn test_filter_future_posts_excludes_future() {
+        let mut items = vec![
+            CollectionItem {
+                slug: "past-post".to_string(),
+                date: Some("2020-01-01".to_string()),
+                url: "/2020/01/01/past-post.html".to_string(),
+                front_matter: FrontMatter::new(),
+                content: String::new(),
+                html_content: String::new(),
+                excerpt: None,
+                excerpt_html: None,
+                source_path: String::new(),
+                collection_name: "posts".to_string(),
+                id: "/posts/past-post".to_string(),
+            },
+            CollectionItem {
+                slug: "future-post".to_string(),
+                date: Some("9999-12-31".to_string()),
+                url: "/9999/12/31/future-post.html".to_string(),
+                front_matter: FrontMatter::new(),
+                content: String::new(),
+                html_content: String::new(),
+                excerpt: None,
+                excerpt_html: None,
+                source_path: String::new(),
+                collection_name: "posts".to_string(),
+                id: "/posts/future-post".to_string(),
+            },
+        ];
+        filter_future_posts(&mut items, false);
+        assert_eq!(items.len(), 1, "Future post should be excluded");
+        assert_eq!(items[0].slug, "past-post");
+    }
+
+    #[test]
+    fn test_filter_future_posts_includes_when_future_true() {
+        let mut items = vec![CollectionItem {
+            slug: "future-post".to_string(),
+            date: Some("9999-12-31".to_string()),
+            url: "/9999/12/31/future-post.html".to_string(),
+            front_matter: FrontMatter::new(),
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            excerpt_html: None,
+            source_path: String::new(),
+            collection_name: "posts".to_string(),
+            id: "/posts/future-post".to_string(),
+        }];
+        filter_future_posts(&mut items, true);
+        assert_eq!(
+            items.len(),
+            1,
+            "Future post should be included when future=true"
+        );
+    }
+
+    #[test]
+    fn test_filter_future_posts_keeps_past_posts() {
+        let mut items = vec![CollectionItem {
+            slug: "yesterday".to_string(),
+            date: Some("2020-06-15".to_string()),
+            url: "/2020/06/15/yesterday.html".to_string(),
+            front_matter: FrontMatter::new(),
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            excerpt_html: None,
+            source_path: String::new(),
+            collection_name: "posts".to_string(),
+            id: "/posts/yesterday".to_string(),
+        }];
+        filter_future_posts(&mut items, false);
+        assert_eq!(items.len(), 1, "Past posts should always be included");
     }
 }

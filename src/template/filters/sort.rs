@@ -144,10 +144,9 @@ impl Filter for SortFilter {
                         get_property(b, prop.as_str()),
                     )
                 });
-            } else {
-                // No items have the property -- sort by value directly
-                sorted.sort_by(|a, b| nil_safe_compare(a, b));
             }
+            // When no items have the property, preserve original order
+            // (matching Jekyll/Ruby's sort_by behavior with nil keys)
         } else {
             // No property -- sort scalars directly, no tiebreak needed
             sorted.sort_by(|a, b| nil_safe_compare(a, b));
