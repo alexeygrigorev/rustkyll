@@ -2161,6 +2161,55 @@ fn find_word_or(inner: &str) -> Option<usize> {
     None
 }
 
+/// Find the start of a `{% raw %}` tag (with whitespace/dash variants).
+/// Returns `(offset, length)` if found.
+fn find_raw_tag(s: &str) -> Option<(usize, usize)> {
+    // Match: {%- raw -%}, {% raw %}, {%- raw %}, {% raw -%}, etc.
+    let patterns = [
+        "{%- raw -%}",
+        "{%- raw %}",
+        "{% raw -%}",
+        "{% raw %}",
+        "{%-raw-%}",
+        "{%-raw%}",
+        "{%raw-%}",
+        "{%raw%}",
+    ];
+    let mut best: Option<(usize, usize)> = None;
+    for pat in &patterns {
+        if let Some(pos) = s.find(pat) {
+            if best.is_none() || pos < best.unwrap().0 {
+                best = Some((pos, pat.len()));
+            }
+        }
+    }
+    best
+}
+
+/// Find the start of a `{% endraw %}` tag (with whitespace/dash variants).
+/// Returns `(offset, length)` if found.
+fn find_endraw_tag(s: &str) -> Option<(usize, usize)> {
+    let patterns = [
+        "{%- endraw -%}",
+        "{%- endraw %}",
+        "{% endraw -%}",
+        "{% endraw %}",
+        "{%-endraw-%}",
+        "{%-endraw%}",
+        "{%endraw-%}",
+        "{%endraw%}",
+    ];
+    let mut best: Option<(usize, usize)> = None;
+    for pat in &patterns {
+        if let Some(pos) = s.find(pat) {
+            if best.is_none() || pos < best.unwrap().0 {
+                best = Some((pos, pat.len()));
+            }
+        }
+    }
+    best
+}
+
 /// Pre-process bare `{{ expr }}` output tags to apply `render_mapping`.
 ///
 /// In Jekyll/Ruby Liquid, rendering a Hash (YAML mapping) via `{{ hash }}`
@@ -2171,6 +2220,7 @@ fn find_word_or(inner: &str) -> Option<usize> {
 ///
 /// Only output tags (`{{ ... }}`) without any existing `|` filter pipe are
 /// rewritten. Tags inside `{% %}` blocks are not affected.
+/// Content inside `{% raw %}...{% endraw %}` blocks is left untouched.
 fn preprocess_bare_output_render_mapping(template: &str) -> String {
     // Fast path: if there's no `{{` at all, nothing to do.
     if !template.contains("{{") {
@@ -2179,8 +2229,51 @@ fn preprocess_bare_output_render_mapping(template: &str) -> String {
 
     let mut result = String::with_capacity(template.len() + 64);
     let mut remaining = template;
+    let mut in_raw = false;
 
     while !remaining.is_empty() {
+        // Check for {% raw %} / {% endraw %} before looking for {{ }}
+        if !in_raw {
+            if let Some(raw_start) = find_raw_tag(remaining) {
+                // Check if {{ appears before {% raw %}
+                if let Some(dbl_start) = remaining.find("{{") {
+                    if dbl_start < raw_start.0 {
+                        // Process {{ before the raw block
+                        result.push_str(&remaining[..dbl_start]);
+                        remaining = &remaining[dbl_start..];
+                        // Fall through to {{ processing below
+                    } else {
+                        // Copy up to and including {% raw %}
+                        let end_of_raw_tag = raw_start.0 + raw_start.1;
+                        result.push_str(&remaining[..end_of_raw_tag]);
+                        remaining = &remaining[end_of_raw_tag..];
+                        in_raw = true;
+                        continue;
+                    }
+                } else {
+                    // No {{ at all, copy rest
+                    result.push_str(remaining);
+                    break;
+                }
+            }
+        }
+
+        if in_raw {
+            // Inside {% raw %} block -- look for {% endraw %} and copy
+            // everything as-is without modifying {{ }} tags.
+            if let Some(endraw) = find_endraw_tag(remaining) {
+                let end_of_endraw = endraw.0 + endraw.1;
+                result.push_str(&remaining[..end_of_endraw]);
+                remaining = &remaining[end_of_endraw..];
+                in_raw = false;
+            } else {
+                // No {% endraw %} found, copy the rest as-is
+                result.push_str(remaining);
+                break;
+            }
+            continue;
+        }
+
         if let Some(start) = remaining.find("{{") {
             // Copy everything before the tag
             result.push_str(&remaining[..start]);
@@ -2463,6 +2556,53 @@ mod tests {
             .parse_and_render("{% for item in items %}{{ item }}{% endfor %}", &ctx)
             .unwrap();
         assert_eq!(output, "");
+    }
+
+    #[test]
+    fn test_for_loop_over_nil_variable() {
+        // Jekyll silently skips for loops over nil/undefined variables.
+        // This is common in templates like taglogic.html where
+        // {% for tag in page.tags %} may encounter pages without tags.
+        let eng = engine();
+        let ctx = Object::new(); // no "items" defined
+        let result = eng.parse_and_render(
+            "before{% for item in items %}{{ item }}{% endfor %}after",
+            &ctx,
+        );
+        // Should succeed and produce "beforeafter" (loop body skipped)
+        assert!(
+            result.is_ok(),
+            "for loop over nil should not error, got: {:?}",
+            result.err()
+        );
+        assert_eq!(result.unwrap(), "beforeafter");
+    }
+
+    #[test]
+    fn test_for_loop_over_nil_nested_property() {
+        // When iterating site.pages in a for loop, accessing page.tags
+        // where tags is not set should silently skip the inner loop.
+        let eng = engine();
+        let mut page_obj = Object::new();
+        page_obj.insert("title".into(), LiquidValue::scalar("Test Page"));
+        // No "tags" key in page_obj
+
+        let pages = LiquidValue::Array(vec![LiquidValue::Object(page_obj)]);
+        let mut site = Object::new();
+        site.insert("pages".into(), pages);
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+
+        let result = eng.parse_and_render(
+            "{% for page in site.pages %}{% for tag in page.tags %}{{ tag }}{% endfor %}{% endfor %}",
+            &ctx,
+        );
+        assert!(
+            result.is_ok(),
+            "nested for loop over nil property should not error, got: {:?}",
+            result.err()
+        );
+        assert_eq!(result.unwrap(), "");
     }
 
     // ========================================================================
@@ -5727,7 +5867,8 @@ title: "Test Book"
 
     #[test]
     fn test_preprocess_if_condition_filters_basic() {
-        let input = "{% if site.touchpoints.active and page.survey | default: false %}yes{% endif %}";
+        let input =
+            "{% if site.touchpoints.active and page.survey | default: false %}yes{% endif %}";
         let output = preprocess_if_condition_filters(input);
         assert!(
             output.contains("assign __if_filter_"),

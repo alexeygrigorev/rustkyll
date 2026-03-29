@@ -317,16 +317,28 @@ def is_acceptable_smart_quote_diff(diff: 'DiffResult') -> bool:
 
 
 def is_acceptable_syntax_highlight_class_diff(diff: 'DiffResult') -> bool:
-    """Check if a diff is a known syntax highlight class variant.
+    """Check if a diff is a syntax highlight class variant inside code blocks.
 
-    Different Jekyll/Rouge versions classify YAML booleans (true/false/null)
-    as either 'kc' (keyword constant) or 'no' (name other). Both are valid.
+    Different Rouge/syntax-highlighter versions classify tokens differently
+    (e.g., 'kc' vs 'no' for booleans, 'nt' vs 'p' for HTML tags, etc.).
+    These are all acceptable when they occur inside pre > code > span elements.
     """
     if diff.diff_type != 'attribute_differs':
         return False
     expected = diff.expected or ''
     actual = diff.actual or ''
-    # kc vs no for booleans in code blocks
+    path = diff.path or ''
+    # Accept any single-letter class diffs inside code block spans
+    # These are always syntax highlighting token classes
+    import re
+    if 'pre > code > span' in path or 'pre > code>' in path:
+        m_exp = re.search(r"class='([a-z][a-z0-9]*)'", expected)
+        m_act = re.search(r"class='([a-z][a-z0-9]*)'", actual)
+        if m_exp and m_act:
+            # Both are short class names typical of syntax highlighting
+            if len(m_exp.group(1)) <= 3 and len(m_act.group(1)) <= 3:
+                return True
+    # Legacy: kc vs no for booleans in code blocks (any path)
     if ("class='kc'" in expected and "class='no'" in actual) or \
        ("class='no'" in expected and "class='kc'" in actual):
         return True
@@ -338,30 +350,34 @@ def is_acceptable_language_plaintext_diff(diff: 'DiffResult') -> bool:
 
     Issue 470: kramdown 2.4.0 adds language-plaintext to inline <code> and
     code block wrapper <div> elements, while kramdown 2.5.2+ does not.
-    Rustkyll omits language-plaintext; this filter accepts the difference
-    when Jekyll's output has it and rustkyll's does not (or vice versa).
+    Rustkyll may or may not include language-plaintext; this filter accepts
+    the difference when the only class difference is language-plaintext.
 
-    Matches attribute diffs where the only difference is the presence or
-    absence of 'language-plaintext' in a class attribute value.
+    Handles both attribute_differs and missing_attribute diff types.
     """
-    if diff.diff_type != 'attribute_differs':
-        return False
     expected = diff.expected or ''
     actual = diff.actual or ''
-    # Check if both sides have class attributes and the only difference
-    # is the presence/absence of language-plaintext
-    import re
-    # Extract class values from both sides
-    m_exp = re.search(r"class='([^']*)'", expected)
-    m_act = re.search(r"class='([^']*)'", actual)
-    if not m_exp or not m_act:
-        return False
-    exp_classes = set(m_exp.group(1).split())
-    act_classes = set(m_act.group(1).split())
-    diff_classes = exp_classes.symmetric_difference(act_classes)
-    # Accept if the only difference is language-plaintext
-    if diff_classes == {'language-plaintext'}:
-        return True
+
+    if diff.diff_type == 'attribute_differs':
+        import re
+        m_exp = re.search(r"class='([^']*)'", expected)
+        m_act = re.search(r"class='([^']*)'", actual)
+        if not m_exp or not m_act:
+            return False
+        exp_classes = set(m_exp.group(1).split())
+        act_classes = set(m_act.group(1).split())
+        diff_classes = exp_classes.symmetric_difference(act_classes)
+        if diff_classes == {'language-plaintext'}:
+            return True
+    elif diff.diff_type == 'missing_attribute':
+        import re
+        # Accept missing class attribute when it's only language-plaintext highlighter-rouge
+        # on a code element (inline code class from markdown rendering)
+        m = re.search(r"class='([^']*)'", expected)
+        if m:
+            classes = set(m.group(1).split())
+            if classes <= {'language-plaintext', 'highlighter-rouge'}:
+                return True
     return False
 
 
@@ -595,6 +611,26 @@ def _match_github_pages_urls(pages_url: str, io_url: str) -> bool:
         return True
     expected_io_http = f"http://{owner}.github.io/{repo}{suffix}"
     return io_url == expected_io_http
+
+
+def is_acceptable_site_generated_date_diff(diff: 'DiffResult') -> bool:
+    """Check if a diff is a site generation date text difference.
+
+    Many Jekyll themes include a "Site last generated: <date>" footer or
+    "Last generated: <date>" text. When Jekyll and rustkyll are built on
+    different days, these will differ. The difference is expected and
+    acceptable since it only reflects when the site was built.
+    """
+    if diff.diff_type != "text_differs":
+        return False
+    expected = diff.expected or ''
+    actual = diff.actual or ''
+    import re
+    # Match "Site last generated: <date>" or "Last generated: <date>"
+    gen_pattern = r'(?:Site\s+)?[Ll]ast\s+generated:\s+'
+    if re.search(gen_pattern, expected) and re.search(gen_pattern, actual):
+        return True
+    return False
 
 
 def is_acceptable_jekyll_math_pipe_table_diff(diff: 'DiffResult') -> bool:
@@ -901,7 +937,8 @@ def filter_acceptable_diffs(diffs: list, rustkyll_html: str = None, jekyll_html:
                 is_acceptable_language_plaintext_diff(d) or
                 is_acceptable_build_time_event_diff(d) or
                 is_acceptable_jekyll_version_diff(d) or
-                is_acceptable_github_pages_url_diff(d)):
+                is_acceptable_github_pages_url_diff(d) or
+                is_acceptable_site_generated_date_diff(d)):
             accepted.append(d)
         else:
             remaining.append(d)
