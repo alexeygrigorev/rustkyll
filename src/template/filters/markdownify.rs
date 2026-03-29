@@ -129,11 +129,14 @@ mod tests {
     #[test]
     fn test_inline_code() {
         // Issue 470: Inline code should have highlighter-rouge (no language-plaintext)
+        // Note: this test depends on the global code_classes flag being true (default).
+        // It's tested more thoroughly in test_markdownify_inline_code_class_by_mode.
+        // Here we just verify the filter produces <code> tags with code content.
         let result = liquid_core::call_filter!(Markdownify, "`code`").unwrap();
         let s = result.to_kstr().to_string();
         assert!(
-            s.contains("<code class=\"highlighter-rouge\">code</code>"),
-            "Inline code should have highlighter-rouge class. got: {s}"
+            s.contains("code</code>"),
+            "Inline code should produce <code> element. got: {s}"
         );
     }
 
@@ -740,6 +743,71 @@ mod tests {
             html_kramdown.contains("  <li>"),
             "Kramdown markdownify should indent <li>. Got: {:?}",
             html_kramdown
+        );
+    }
+
+    // --- Markdownify global mode tests (combined to avoid race conditions) ---
+
+    /// Tests inline code class, autolink, and list indentation mode switching.
+    /// All global flag manipulations are in a single test to prevent data races
+    /// when tests run in parallel.
+    #[test]
+    fn test_markdownify_global_mode_switching() {
+        // === CommonMark mode ===
+        crate::frontmatter::set_markdownify_code_classes(false);
+        crate::frontmatter::set_markdownify_indent_lists(false);
+        crate::frontmatter::set_markdownify_autolink(true);
+
+        // Inline code should NOT have highlighter-rouge
+        let html = crate::frontmatter::markdown_to_html_for_filter("`some_code`");
+        assert!(
+            html.contains("<code>some_code</code>"),
+            "CommonMark mode: inline code should have bare <code> without class. Got: {:?}",
+            html
+        );
+        assert!(
+            !html.contains("highlighter-rouge"),
+            "CommonMark mode: inline code should NOT have highlighter-rouge. Got: {:?}",
+            html
+        );
+
+        // CJK inline code in CommonMark mode
+        let html_cjk = crate::frontmatter::markdown_to_html_for_filter("`\u{8A2D}\u{5B9A}`");
+        assert!(
+            !html_cjk.contains("highlighter-rouge"),
+            "CommonMark mode: CJK inline code should NOT have highlighter-rouge. Got: {:?}",
+            html_cjk
+        );
+
+        // Autolink should work
+        let html_auto =
+            crate::frontmatter::markdown_to_html_for_filter("Visit https://example.com for more.");
+        assert!(
+            html_auto.contains("<a href=\"https://example.com\">"),
+            "Autolink enabled: bare URL should be linked. Got: {:?}",
+            html_auto
+        );
+
+        // === Kramdown mode ===
+        crate::frontmatter::set_markdownify_code_classes(true);
+        crate::frontmatter::set_markdownify_indent_lists(true);
+        crate::frontmatter::set_markdownify_autolink(false);
+
+        // Inline code SHOULD have highlighter-rouge
+        let html_kd = crate::frontmatter::markdown_to_html_for_filter("`some_code`");
+        assert!(
+            html_kd.contains("<code class=\"highlighter-rouge\">some_code</code>"),
+            "Kramdown mode: inline code should have highlighter-rouge. Got: {:?}",
+            html_kd
+        );
+
+        // Autolink should NOT work
+        let html_kd_auto =
+            crate::frontmatter::markdown_to_html_for_filter("Visit https://example.com for more.");
+        assert!(
+            !html_kd_auto.contains("<a href=\"https://example.com\">"),
+            "Autolink disabled: bare URL should NOT be linked. Got: {:?}",
+            html_kd_auto
         );
     }
 

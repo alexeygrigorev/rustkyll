@@ -48,10 +48,12 @@ impl ParseBlock for HighlightBlock {
             TryMatchToken::Fails(token) => token.as_str().to_owned(),
         };
 
-        // Accept and ignore optional `linenos` parameter.
+        // Check for optional `linenos` parameter.
+        let mut linenos = false;
         while let Ok(next) = arguments.expect_next("") {
-            // Consume any remaining tokens (e.g., "linenos") silently.
-            let _ = next;
+            if next.as_str() == "linenos" {
+                linenos = true;
+            }
         }
 
         arguments.expect_nothing()?;
@@ -63,7 +65,11 @@ impl ParseBlock for HighlightBlock {
         // handled instead of closing on the inner {% endhighlight %}.
         let body = _block.escape_liquid(true)?.to_owned();
 
-        Ok(Box::new(Highlight { lang, body }))
+        Ok(Box::new(Highlight {
+            lang,
+            body,
+            linenos,
+        }))
     }
 
     fn reflection(&self) -> &dyn BlockReflection {
@@ -75,6 +81,7 @@ impl ParseBlock for HighlightBlock {
 struct Highlight {
     lang: String,
     body: String,
+    linenos: bool,
 }
 
 /// HTML-escape a string: replace `&`, `<`, `>`, and `"`.
@@ -103,11 +110,36 @@ impl Renderable for Highlight {
         )
         .replace("Failed to render")?;
 
-        // Try syntect-based syntax highlighting; fall back to plain HTML escaping.
-        if let Some(highlighted) = crate::syntax::highlight_code(&self.lang, &self.body) {
-            write!(writer, "{}", highlighted).replace("Failed to render")?;
+        // Get the highlighted or escaped content.
+        let content =
+            if let Some(highlighted) = crate::syntax::highlight_code(&self.lang, &self.body) {
+                highlighted
+            } else {
+                html_escape(&self.body)
+            };
+
+        if self.linenos {
+            // Count lines in the original body, stripping leading/trailing
+            // whitespace that escape_liquid may capture around the code block.
+            let trimmed_body = self.body.trim();
+            let line_count = trimmed_body.lines().count().max(1);
+            let mut line_numbers = String::new();
+            for i in 1..=line_count {
+                line_numbers.push_str(&i.to_string());
+                line_numbers.push('\n');
+            }
+
+            write!(
+                writer,
+                "<table class=\"rouge-table\"><tbody><tr>\
+                 <td class=\"gutter gl\"><pre class=\"lineno\">{}</pre></td>\
+                 <td class=\"code\"><pre>{}</pre></td>\
+                 </tr></tbody></table>",
+                line_numbers, content
+            )
+            .replace("Failed to render")?;
         } else {
-            write!(writer, "{}", html_escape(&self.body)).replace("Failed to render")?;
+            write!(writer, "{}", content).replace("Failed to render")?;
         }
 
         write!(writer, "</code></pre></figure>").replace("Failed to render")?;
@@ -276,15 +308,48 @@ mod tests {
     }
 
     #[test]
-    fn test_highlight_linenos_ignored() {
-        let output = render("{% highlight ruby linenos %}puts \"hi\"{% endhighlight %}");
+    fn test_highlight_linenos_table_structure() {
+        let output =
+            render("{% highlight ruby linenos %}puts \"hi\"\nputs \"bye\"{% endhighlight %}");
+        // linenos should produce a <table class="rouge-table"> inside the <code>
+        assert!(
+            output.contains("<table class=\"rouge-table\">"),
+            "Expected rouge-table for linenos, got: {output}"
+        );
+        assert!(
+            output.contains("<td class=\"gutter gl\">"),
+            "Expected gutter column for linenos, got: {output}"
+        );
+        assert!(
+            output.contains("<pre class=\"lineno\">"),
+            "Expected lineno pre element, got: {output}"
+        );
+        assert!(
+            output.contains("<td class=\"code\">"),
+            "Expected code column for linenos, got: {output}"
+        );
+        // Line numbers should be present
+        assert!(
+            output.contains("1\n2\n"),
+            "Expected line numbers 1 and 2, got: {output}"
+        );
+        // Should still have the figure wrapper
         assert!(
             output.starts_with("<figure class=\"highlight\"><pre><code class=\"language-ruby\" data-lang=\"ruby\">"),
             "Expected figure wrapper with ruby, got: {output}"
         );
+    }
+
+    #[test]
+    fn test_highlight_linenos_single_line() {
+        let output = render("{% highlight python linenos %}x = 1{% endhighlight %}");
         assert!(
-            output.ends_with("</code></pre></figure>"),
-            "Expected closing wrapper, got: {output}"
+            output.contains("<table class=\"rouge-table\">"),
+            "Expected rouge-table for single-line linenos, got: {output}"
+        );
+        assert!(
+            output.contains("1\n</pre>"),
+            "Expected single line number, got: {output}"
         );
     }
 

@@ -1,7 +1,30 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 
 use pulldown_cmark::{html, Event, Options, Parser};
+
+/// Global permalink pattern for posts. Used by `{% link _posts/... %}` tag
+/// preprocessing to generate correct URLs. Defaults to `/:categories/:year/:month/:day/:title.html`.
+static POST_PERMALINK_PATTERN: Mutex<String> = Mutex::new(String::new());
+
+/// Set the global post permalink pattern. Must be called before any template
+/// preprocessing occurs (typically from `main.rs` after loading config).
+pub fn set_post_permalink_pattern(pattern: &str) {
+    if let Ok(mut guard) = POST_PERMALINK_PATTERN.lock() {
+        *guard = pattern.to_string();
+    }
+}
+
+/// Get the global post permalink pattern.
+pub fn get_post_permalink_pattern() -> String {
+    POST_PERMALINK_PATTERN
+        .lock()
+        .ok()
+        .filter(|s| !s.is_empty())
+        .map(|s| s.clone())
+        .unwrap_or_else(|| "/:categories/:year/:month/:day/:title.html".to_string())
+}
 
 /// Global flag controlling whether the `markdownify` filter should indent list
 /// items. Set to `true` for kramdown sites (default), `false` for CommonMark
@@ -10,6 +33,11 @@ use pulldown_cmark::{html, Event, Options, Parser};
 /// This is set once from `main.rs` before rendering begins. The markdownify
 /// filter reads it via `get_markdownify_indent_lists()`.
 static MARKDOWNIFY_INDENT_LISTS: AtomicBool = AtomicBool::new(true);
+
+/// Global flag controlling whether the `markdownify` filter should add
+/// `class="highlighter-rouge"` to inline `<code>` elements.
+/// True for kramdown sites (default), false for CommonMark/CommonMarkGhPages.
+static MARKDOWNIFY_CODE_CLASSES: AtomicBool = AtomicBool::new(true);
 
 /// Set whether the `markdownify` filter should indent list items.
 ///
@@ -21,6 +49,35 @@ pub fn set_markdownify_indent_lists(indent: bool) {
 /// Get whether the `markdownify` filter should indent list items.
 pub fn get_markdownify_indent_lists() -> bool {
     MARKDOWNIFY_INDENT_LISTS.load(Ordering::Relaxed)
+}
+
+/// Set whether the `markdownify` filter should add `highlighter-rouge`
+/// class to inline `<code>` elements.
+///
+/// Call this from `main.rs` with `false` for CommonMarkGhPages sites.
+pub fn set_markdownify_code_classes(add_classes: bool) {
+    MARKDOWNIFY_CODE_CLASSES.store(add_classes, Ordering::Relaxed);
+}
+
+/// Get whether the `markdownify` filter should add `highlighter-rouge`
+/// class to inline `<code>` elements.
+pub fn get_markdownify_code_classes() -> bool {
+    MARKDOWNIFY_CODE_CLASSES.load(Ordering::Relaxed)
+}
+
+/// Global flag controlling whether the `markdownify` filter should
+/// auto-link bare URLs. True for CommonMark sites with autolink extension,
+/// false by default (kramdown doesn't auto-link in markdownify).
+static MARKDOWNIFY_AUTOLINK: AtomicBool = AtomicBool::new(false);
+
+/// Set whether the `markdownify` filter should auto-link bare URLs.
+pub fn set_markdownify_autolink(enabled: bool) {
+    MARKDOWNIFY_AUTOLINK.store(enabled, Ordering::Relaxed);
+}
+
+/// Get whether the `markdownify` filter should auto-link bare URLs.
+pub fn get_markdownify_autolink() -> bool {
+    MARKDOWNIFY_AUTOLINK.load(Ordering::Relaxed)
 }
 
 /// Errors that can occur when parsing a document.
@@ -896,13 +953,26 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     let markdown = crate::kramdown::escape_mixed_delimiter_emphasis(&markdown);
     let markdown = protect_consecutive_single_quotes(&markdown);
 
+    // Auto-link bare URLs if the site enables the autolink extension.
+    let markdown = if get_markdownify_autolink() {
+        autolink_bare_urls(&markdown)
+    } else {
+        markdown
+    };
+
     let protected = protect_liquid_quotes(&markdown);
 
     // Issue 313: Protect non-ASCII characters in markdown link/image URLs
     let (protected, url_non_ascii_saved) = protect_non_ascii_in_link_urls(&protected);
 
     let parser = Parser::new_ext(&protected, options);
-    let events = add_inline_code_class_to_events(parser.into_offset_iter(), &protected);
+    let add_code_classes = get_markdownify_code_classes();
+    let events = add_inline_code_class_to_events_impl(
+        parser.into_offset_iter(),
+        &protected,
+        add_code_classes,
+        false,
+    );
     let mut html_output = String::new();
     html::push_html(&mut html_output, events.into_iter());
 
