@@ -303,10 +303,14 @@ impl Renderable for LenientInclude {
             // This way, accessing include.missing_param returns Nil instead of erroring.
             let mut params = HashMap::new();
             for (id, val) in &self.vars {
+                // Use evaluate() which returns Nil for missing variables,
+                // falling back to Nil if even that fails. Jekyll's include
+                // tag silently passes Nil for undefined variable parameters
+                // (e.g., target=layout.header when layout.header is nil).
                 let value = val
-                    .try_evaluate(runtime)
-                    .ok_or_else(|| Error::with_msg("failed to evaluate value"))?
-                    .into_owned();
+                    .evaluate(runtime)
+                    .map(|v| v.into_owned())
+                    .unwrap_or(Value::Nil);
                 params.insert(id.to_string(), value);
             }
 
@@ -317,9 +321,13 @@ impl Renderable for LenientInclude {
             pass_through.insert("include".into(), &lenient_params);
 
             let scope = StackFrame::new(runtime, &pass_through);
+            // Strip leading "/" from include paths. Jekyll resolves includes
+            // relative to _includes/ regardless of leading slash. Some themes
+            // (e.g., minimal-mistakes) use {% include /path/to/file.html %}.
+            let resolved_name = name.strip_prefix('/').unwrap_or(&name);
             let partial = scope
                 .partials()
-                .get(&name)
+                .get(resolved_name)
                 .trace_with(|| format!("{{% include {} %}}", self.partial).into())?;
 
             partial
@@ -501,9 +509,12 @@ pub fn preprocess_include_paths(template: &str) -> String {
                     }
                 }
 
-                // Extract the path (first "word" up to space or end)
+                // Extract the path (first "word" up to whitespace or end).
+                // Include newline/carriage-return so multiline include tags
+                // (where parameters start on the next line) don't embed the
+                // newline in the path.
                 let path_end = after_include
-                    .find([' ', '\t'])
+                    .find([' ', '\t', '\n', '\r'])
                     .unwrap_or(after_include.len());
                 let path = &after_include[..path_end];
                 let rest_after_path = &after_include[path_end..];

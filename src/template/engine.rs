@@ -831,6 +831,13 @@ impl TemplateEngine {
         // Jekyll allows parenthesized expressions but Liquid crate does not.
         // (Issue 328)
         let preprocessed = preprocess_parenthesized_assign(&preprocessed);
+        // Strip stray `}` inside `{% assign ... %}` tags. Some themes
+        // (e.g., text-theme) have a typo `{% assign x = y } %}` where the
+        // `}` causes a parse error. Jekyll ignores it. (Issue 441)
+        let preprocessed = preprocess_stray_brace_in_tags(&preprocessed);
+        // Rewrite `{{ a or b }}` to `{{ a | default: b }}` to match Jekyll's
+        // `or` operator in output tags. (Issue 441)
+        let preprocessed = preprocess_output_or(&preprocessed);
         // Rewrite bare `{{ expr }}` to `{{ expr | render_mapping }}` so YAML
         // mapping values render as Ruby-style hash strings (Issue 348).
         let preprocessed = preprocess_bare_output_render_mapping(&preprocessed);
@@ -1667,6 +1674,140 @@ fn load_includes_recursive(
     Ok(())
 }
 
+/// Strip stray `}` inside `{% %}` tags.
+///
+/// Some themes have typos like `{% assign x = y | filter } %}` where
+/// a stray `}` appears before the closing `%}`. Jekyll's parser ignores
+/// the extra brace, but the Rust `liquid` crate rejects it. This function
+/// removes `}` that appears at the end of a tag body (before optional
+/// whitespace-control `-` and the closing `%}`).
+fn preprocess_stray_brace_in_tags(template: &str) -> String {
+    if !template.contains("%}") {
+        return template.to_string();
+    }
+
+    let mut result = String::with_capacity(template.len());
+    let mut remaining = template;
+
+    while let Some(start) = remaining.find("{%") {
+        result.push_str(&remaining[..start]);
+
+        let after_open = &remaining[start + 2..];
+        if let Some(end_offset) = after_open.find("%}") {
+            let tag_inner = &after_open[..end_offset];
+            let tag_end = start + 2 + end_offset + 2;
+
+            // Check if tag inner has a stray } at the end (before optional dash).
+            // We look for the content part (strip leading/trailing dash + whitespace)
+            // and check if it ends with ` }`.
+            let content = tag_inner.trim();
+            let content = content.strip_prefix('-').unwrap_or(content).trim();
+            let content = content.strip_suffix('-').unwrap_or(content).trim();
+            if (content.ends_with(" }") || content.ends_with("\t}")) && !content.trim().is_empty() {
+                // Find the position of the stray `}` in the original tag_inner.
+                // It's the last `}` before the trailing dash (if any).
+                let inner_trimmed = tag_inner.trim_end();
+                let inner_no_dash = inner_trimmed
+                    .strip_suffix('-')
+                    .unwrap_or(inner_trimmed)
+                    .trim_end();
+                if let Some(brace_rel) = inner_no_dash.rfind('}') {
+                    // Rebuild: tag_inner with the stray } removed
+                    result.push_str("{%");
+                    result.push_str(&tag_inner[..brace_rel]);
+                    result.push_str(&tag_inner[brace_rel + 1..]);
+                    result.push_str("%}");
+                    remaining = &remaining[tag_end..];
+                    continue;
+                }
+            }
+
+            // No stray brace, copy as-is
+            result.push_str(&remaining[start..tag_end]);
+            remaining = &remaining[tag_end..];
+        } else {
+            result.push_str(&remaining[start..]);
+            remaining = "";
+        }
+    }
+
+    result.push_str(remaining);
+    result
+}
+
+/// Pre-process `{{ a or b }}` output tags to `{{ a | default: b }}`.
+///
+/// Jekyll/Ruby Liquid supports the `or` operator inside output tags as a
+/// fallback mechanism: if `a` is nil/false, `b` is rendered instead. The
+/// Rust `liquid` crate does not support `or` in output expressions, so we
+/// rewrite it to use the `default` filter which achieves the same result.
+///
+/// Only rewrites `or` inside `{{ }}` output tags, not inside `{% %}` control
+/// tags (where `or` is a valid boolean operator handled by the parser).
+fn preprocess_output_or(template: &str) -> String {
+    // Fast path: skip if no output tags at all
+    if !template.contains("{{") {
+        return template.to_string();
+    }
+
+    let mut result = String::with_capacity(template.len());
+    let mut remaining = template;
+
+    while !remaining.is_empty() {
+        if let Some(start) = remaining.find("{{") {
+            result.push_str(&remaining[..start]);
+
+            let after_open = &remaining[start + 2..];
+            if let Some(end_rel) = after_open.find("}}") {
+                let inner = &after_open[..end_rel];
+                let tag_end = start + 2 + end_rel + 2;
+
+                // Check for ` or ` surrounded by whitespace (word boundary).
+                // Only rewrite if there's no existing `|` filter (to avoid
+                // interfering with filter chains that happen to contain "or").
+                if let Some(or_pos) = find_word_or(inner) {
+                    let lhs = inner[..or_pos].trim();
+                    let rhs = inner[or_pos + 3..].trim(); // skip " or"
+                    result.push_str("{{ ");
+                    result.push_str(lhs);
+                    result.push_str(" | default: ");
+                    result.push_str(rhs);
+                    result.push_str(" }}");
+                } else {
+                    result.push_str(&remaining[start..tag_end]);
+                }
+
+                remaining = &remaining[tag_end..];
+            } else {
+                result.push_str(&remaining[start..]);
+                remaining = "";
+            }
+        } else {
+            result.push_str(remaining);
+            remaining = "";
+        }
+    }
+
+    result
+}
+
+/// Find ` or ` as a word boundary inside an output tag expression.
+/// Returns the byte offset of the space before `or`, or None.
+/// Only matches when `or` is surrounded by whitespace (not part of a word).
+fn find_word_or(inner: &str) -> Option<usize> {
+    let bytes = inner.as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
+    while i + 3 < len {
+        if bytes[i] == b' ' && bytes[i + 1] == b'o' && bytes[i + 2] == b'r' && bytes[i + 3] == b' '
+        {
+            return Some(i);
+        }
+        i += 1;
+    }
+    None
+}
+
 /// Pre-process bare `{{ expr }}` output tags to apply `render_mapping`.
 ///
 /// In Jekyll/Ruby Liquid, rendering a Hash (YAML mapping) via `{{ hash }}`
@@ -1758,6 +1899,8 @@ fn build_partials(includes: &HashMap<String, String>) -> EagerCompiler<InMemoryS
         let preprocessed = preprocess_nested_braces(&preprocessed);
         let preprocessed = preprocess_for_loop_filters(&preprocessed);
         let preprocessed = preprocess_parenthesized_assign(&preprocessed);
+        let preprocessed = preprocess_stray_brace_in_tags(&preprocessed);
+        let preprocessed = preprocess_output_or(&preprocessed);
         let preprocessed = preprocess_bare_output_render_mapping(&preprocessed);
         partials.add(name.clone(), preprocessed);
     }
@@ -5459,5 +5602,148 @@ title: "Test Book"
             output, "zebra,apple,middle,",
             "For-loop over Object with __key_order should iterate in specified order, not alphabetical"
         );
+    }
+
+    // ========================================================================
+    // Issue 441: Liquid rendering failures for theme sites
+    // ========================================================================
+
+    #[test]
+    fn test_include_with_undefined_variable_param_renders_nil() {
+        // text-theme passes undefined nested variable references as include
+        // parameters (e.g., target=layout.header where layout.header is nil).
+        // The include tag should treat these as Nil, not error.
+        let mut includes = HashMap::new();
+        includes.insert(
+            "test.html".to_string(),
+            "param={{ include.target }}".to_string(),
+        );
+        let eng = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        // layout.header is completely missing -> should render as nil (empty)
+        let result = eng.parse_and_render(r#"{% include test.html target=layout.header %}"#, &ctx);
+        assert!(
+            result.is_ok(),
+            "Include with undefined variable param should not error, got: {:?}",
+            result.err()
+        );
+    }
+
+    #[test]
+    fn test_include_with_leading_slash_resolves() {
+        // minimal-mistakes uses {% include /comments-providers/scripts.html %}
+        // where the registered partial is "comments-providers/scripts.html".
+        // The leading slash should be stripped for resolution.
+        let mut includes = HashMap::new();
+        includes.insert(
+            "comments-providers/scripts.html".to_string(),
+            "FOUND".to_string(),
+        );
+        let eng = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let result =
+            eng.parse_and_render(r#"{% include "/comments-providers/scripts.html" %}"#, &ctx);
+        assert!(
+            result.is_ok(),
+            "Include with leading slash should resolve, got: {:?}",
+            result.err()
+        );
+        assert_eq!(result.unwrap(), "FOUND");
+    }
+
+    #[test]
+    fn test_output_or_operator_preprocessed() {
+        // hydeout uses {{ page.guid or page.id }} which Jekyll supports.
+        // The `or` should be preprocessed to use `default` filter.
+        let eng = engine();
+        let mut page = Object::new();
+        page.insert("id".into(), LiquidValue::scalar("post-123"));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        // page.guid is nil, so page.id should be used via default
+        let result = eng.parse_and_render("{{ page.guid or page.id | render_mapping }}", &ctx);
+        assert!(
+            result.is_ok(),
+            "Output tag with 'or' should render, got: {:?}",
+            result.err()
+        );
+        assert_eq!(result.unwrap(), "post-123");
+    }
+
+    #[test]
+    fn test_multiline_include_path_resolves() {
+        // text-theme uses multiline include tags where the path is followed
+        // by a newline before parameters. The path should not include the newline.
+        let mut includes = HashMap::new();
+        includes.insert("snippets/prepend-path.html".to_string(), "OK".to_string());
+        let eng = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let result = eng.parse_and_render(
+            "{%- include snippets/prepend-path.html\n  path=something -%}",
+            &ctx,
+        );
+        assert!(
+            result.is_ok(),
+            "Multiline include should resolve, got: {:?}",
+            result.err()
+        );
+        assert_eq!(result.unwrap(), "OK");
+    }
+
+    #[test]
+    fn test_stray_brace_in_assign_tag() {
+        // text-theme has a typo: {% assign x = y | url_encode } -%}
+        // The stray } before -%} should be stripped during preprocessing.
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("tag".into(), LiquidValue::scalar("hello world"));
+        let result = eng.parse_and_render(
+            "{%- assign encoded = tag | url_encode } -%}{{ encoded }}",
+            &ctx,
+        );
+        assert!(
+            result.is_ok(),
+            "Stray brace in assign tag should not error, got: {:?}",
+            result.err()
+        );
+        assert_eq!(result.unwrap(), "hello+world");
+    }
+
+    #[test]
+    fn test_case_with_else_default_branch() {
+        // text-theme uses {% case %}...{% else %}...{% else %}...{% endcase %}
+        // The else branch should work as the default case.
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("x".into(), LiquidValue::scalar("unknown"));
+        let result = eng.parse_and_render(
+            "{% case x %}{% when 'a' %}A{% when 'b' %}B{% else %}DEFAULT{% endcase %}",
+            &ctx,
+        );
+        assert!(
+            result.is_ok(),
+            "Case with else should render, got: {:?}",
+            result.err()
+        );
+        assert_eq!(result.unwrap(), "DEFAULT");
+    }
+
+    #[test]
+    fn test_case_with_multiple_else_branches() {
+        // text-theme has duplicate {% else %} inside {% case %}.
+        // Should parse and render the first else body.
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("x".into(), LiquidValue::scalar("unknown"));
+        let result = eng.parse_and_render(
+            "{% case x %}{% when 'a' %}A{% else %}FIRST{% else %}{% endcase %}",
+            &ctx,
+        );
+        assert!(
+            result.is_ok(),
+            "Case with multiple else should render, got: {:?}",
+            result.err()
+        );
+        assert_eq!(result.unwrap(), "FIRST");
     }
 }

@@ -68,7 +68,23 @@ impl ParseBlock for CaseBlock {
                     "else" => {
                         // no more arguments should be supplied, trying to supply them is an error
                         tag.tokens().expect_nothing()?;
-                        else_block = Some(tokens.parse_all(options)?);
+                        // Manually parse tokens until end, gracefully handling
+                        // any subsequent {% else %} blocks (Jekyll compatibility).
+                        // The first else body is kept; additional else blocks are
+                        // silently ignored (their content is discarded).
+                        let mut else_items = Vec::new();
+                        while let Some(inner) = tokens.next()? {
+                            match inner {
+                                BlockElement::Tag(mut inner_tag) if inner_tag.name() == "else" => {
+                                    // Duplicate {% else %} -- ignore its tokens.
+                                    let _ = inner_tag.tokens().expect_nothing();
+                                }
+                                other => {
+                                    else_items.push(other.parse(&mut tokens, options)?);
+                                }
+                            }
+                        }
+                        else_block = Some(else_items);
                         break;
                     }
                     _ => current_block.push(tag.parse(&mut tokens, options)?),
@@ -253,7 +269,10 @@ mod test {
     }
 
     #[test]
-    fn multiple_else_blocks_is_an_error() {
+    fn multiple_else_blocks_accepted_first_wins() {
+        // Jekyll's Liquid accepts multiple {% else %} in a case block;
+        // the first else body is used as the default, subsequent else blocks
+        // are silently ignored.
         let text = concat!(
             "{% case x %}",
             "{% when 2 %}",
@@ -261,11 +280,19 @@ mod test {
             "{% else %}",
             "else #1",
             "{% else %}",
-            "else # 2",
             "{% endcase %}"
         );
         let options = options();
-        let template = parser::parse(text, &options).map(Template::new);
-        assert!(template.is_err());
+        let template = parser::parse(text, &options)
+            .map(Template::new)
+            .expect("Multiple else blocks should parse without error");
+
+        let runtime = RuntimeBuilder::new().build();
+        runtime.set_global("x".into(), Value::scalar("nope"));
+        assert_eq!(
+            template.render(&runtime).unwrap(),
+            "else #1",
+            "First else body should be used as default"
+        );
     }
 }
