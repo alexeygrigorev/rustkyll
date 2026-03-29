@@ -1369,6 +1369,17 @@ pub fn process_markdown_attribute(content: &str) -> String {
             rendered_inner
         };
 
+        // Issue 505: Apply block-level IALs that pulldown-cmark merged into
+        // paragraph text. pulldown-cmark doesn't understand kramdown IALs, so
+        // `{: .class }` on the line after a paragraph gets merged as literal
+        // text inside the `<p>`. We apply them here before the content is
+        // placed into the container element.
+        let rendered_inner = {
+            let mut html = rendered_inner;
+            apply_merged_ial(&mut html);
+            html
+        };
+
         // Issue 320: Mark headings generated inside markdown="1" blocks
         // so that add_heading_ids uses basic_generate_id (ASCII-only) instead
         // of GFM slugify. This matches kramdown's behavior where content inside
@@ -11595,6 +11606,116 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             result.contains("<p>Paragraph</p>"),
             "Paragraph should be rendered. Got: {}",
+            result
+        );
+    }
+
+    // ========================================================================
+    // Issue 505: Block IAL class application in markdown="1" contexts
+    // ========================================================================
+
+    #[test]
+    fn test_505_block_ial_single_class_in_markdown1_div() {
+        // A paragraph followed by {: .label } inside markdown="1" div
+        // should apply the class to the <p> element.
+        let input =
+            "<div class=\"code-example\" markdown=\"1\">\nDefault label\n{: .label }\n</div>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            result.contains("<p class=\"label\">Default label</p>"),
+            "Block IAL should apply class to paragraph. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("{: .label }"),
+            "Block IAL text should be removed. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_505_block_ial_multiple_classes_in_markdown1_div() {
+        // Multiple classes: {: .label .label-blue }
+        let input = "<div class=\"code-example\" markdown=\"1\">\nBlue label\n{: .label .label-blue }\n</div>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            result.contains("class=\"label label-blue\""),
+            "Block IAL should apply multiple classes. Got: {}",
+            result
+        );
+        assert!(
+            result.contains(">Blue label</p>"),
+            "Paragraph text should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_505_block_ial_multiple_paragraphs_in_markdown1_div() {
+        // Multiple paragraphs each with their own IAL
+        let input = "<div class=\"code-example\" markdown=\"1\">\nDefault label\n{: .label }\n\nBlue label\n{: .label .label-blue }\n\nStable\n{: .label .label-green }\n</div>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            result.contains("<p class=\"label\">Default label</p>"),
+            "First paragraph should have class 'label'. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<p class=\"label label-blue\">Blue label</p>"),
+            "Second paragraph should have classes 'label label-blue'. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<p class=\"label label-green\">Stable</p>"),
+            "Third paragraph should have classes 'label label-green'. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_505_block_ial_id_in_markdown1_div() {
+        // IAL with id: {: #my-id }
+        let input = "<div markdown=\"1\">\nSome text\n{: #my-id }\n</div>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            result.contains("id=\"my-id\""),
+            "Block IAL should apply id. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_505_block_ial_unicode_in_markdown1_div() {
+        // Unicode content followed by IAL
+        let input =
+            "<div markdown=\"1\">\n\u{4F60}\u{597D}\u{4E16}\u{754C}\n{: .highlight }\n</div>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            result.contains("class=\"highlight\""),
+            "Block IAL should work with Unicode content. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("\u{4F60}\u{597D}\u{4E16}\u{754C}"),
+            "Unicode content should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_505_block_ial_div_does_not_get_inner_classes() {
+        // The div wrapper should NOT get the IAL classes -- they belong on the inner <p> elements
+        let input =
+            "<div class=\"code-example\" markdown=\"1\">\nDefault label\n{: .label }\n</div>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            result.contains("<div class=\"code-example\">"),
+            "Div should keep its original class, not get IAL classes. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("code-example label\""),
+            "Div should NOT get the label class. Got: {}",
             result
         );
     }
