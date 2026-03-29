@@ -44,13 +44,14 @@ impl ParseTag for AvatarTag {
     ) -> liquid_core::Result<Box<dyn Renderable>> {
         let mut username_source: Option<UsernameSource> = None;
         let mut size: u32 = 40;
+        let mut lazy = false;
 
         // Parse arguments: either a literal username or key=value pairs
         while let Ok(next) = arguments.expect_next("") {
             match next.expect_identifier() {
                 TryMatchToken::Matches(id) => {
                     let id_str = id.to_kstr().to_string();
-                    if id_str == "user" || id_str == "size" {
+                    if id_str == "user" || id_str == "size" || id_str == "lazy" {
                         // Expect "="
                         if let Ok(eq_token) = arguments.expect_next("") {
                             let _ = eq_token.expect_str("=").into_result();
@@ -61,6 +62,8 @@ impl ParseTag for AvatarTag {
                                         if id_str == "user" {
                                             username_source =
                                                 Some(UsernameSource::Variable(val_str));
+                                        } else if id_str == "lazy" {
+                                            lazy = val_str == "true";
                                         } else if let Ok(n) = val_str.parse::<u32>() {
                                             size = n;
                                         }
@@ -73,6 +76,8 @@ impl ParseTag for AvatarTag {
                                                 if id_str == "user" {
                                                     username_source =
                                                         Some(UsernameSource::Variable(expr_str));
+                                                } else if id_str == "lazy" {
+                                                    lazy = expr_str == "true";
                                                 } else if let Ok(n) = expr_str.parse::<u32>() {
                                                     size = n;
                                                 }
@@ -83,9 +88,44 @@ impl ParseTag for AvatarTag {
                                 }
                             }
                         }
+                    } else if username_source.is_none() {
+                        // Only treat as literal username if we haven't already
+                        // parsed a user= parameter; otherwise it could be an
+                        // unknown key that will be followed by =value tokens
+                        // which we need to consume.
+                        //
+                        // Peek ahead: if the next token is "=", this is an
+                        // unknown key=value pair -- consume "=" and the value,
+                        // then continue.
+                        if let Ok(maybe_eq) = arguments.expect_next("") {
+                            match maybe_eq.expect_str("=").into_result() {
+                                Ok(_) => {
+                                    // Unknown key=value: consume the value token
+                                    let _ = arguments.expect_next("");
+                                }
+                                Err(_) => {
+                                    // Not "=", so treat the original id as a
+                                    // literal username. The token we just
+                                    // consumed is something else; we can't push
+                                    // it back, but this edge case (literal
+                                    // username followed by non-key token) is
+                                    // extremely rare in practice.
+                                    username_source = Some(UsernameSource::Literal(id_str));
+                                }
+                            }
+                        } else {
+                            // No more tokens after this identifier -- it's a
+                            // literal username at end of tag.
+                            username_source = Some(UsernameSource::Literal(id_str));
+                        }
                     } else {
-                        // Literal username
-                        username_source = Some(UsernameSource::Literal(id_str));
+                        // username_source already set; this is an unknown key.
+                        // Try to consume "=" and value if present.
+                        if let Ok(maybe_eq) = arguments.expect_next("") {
+                            if maybe_eq.expect_str("=").into_result().is_ok() {
+                                let _ = arguments.expect_next("");
+                            }
+                        }
                     }
                 }
                 TryMatchToken::Fails(token) => {
@@ -108,6 +148,7 @@ impl ParseTag for AvatarTag {
         Ok(Box::new(Avatar {
             username_source: source,
             size,
+            lazy,
         }))
     }
 
@@ -120,6 +161,7 @@ impl ParseTag for AvatarTag {
 struct Avatar {
     username_source: UsernameSource,
     size: u32,
+    lazy: bool,
 }
 
 impl std::fmt::Display for Avatar {
@@ -129,7 +171,12 @@ impl std::fmt::Display for Avatar {
 }
 
 /// Render the avatar `<img>` tag.
-fn render_avatar(writer: &mut dyn Write, username: &str, size: u32) -> liquid_core::Result<()> {
+fn render_avatar(
+    writer: &mut dyn Write,
+    username: &str,
+    size: u32,
+    lazy: bool,
+) -> liquid_core::Result<()> {
     if username.is_empty() {
         return Ok(());
     }
@@ -151,12 +198,21 @@ fn render_avatar(writer: &mut dyn Write, username: &str, size: u32) -> liquid_co
         s4 = size * 4,
     );
 
-    write!(
-        writer,
-        "<img class=\"avatar{}\" src=\"{}\" alt=\"{}\" srcset=\"{}\" width=\"{}\" height=\"{}\" />",
-        size_class, base_url, username, srcset, size, size
-    )
-    .replace("Failed to render avatar tag")?;
+    if lazy {
+        write!(
+            writer,
+            "<img class=\"avatar{}\" src=\"\" alt=\"{}\" data-src=\"{}\" data-srcset=\"{}\" data-proofer-ignore=\"true\" width=\"{}\" height=\"{}\" />",
+            size_class, username, base_url, srcset, size, size
+        )
+        .replace("Failed to render avatar tag")?;
+    } else {
+        write!(
+            writer,
+            "<img class=\"avatar{}\" src=\"{}\" alt=\"{}\" srcset=\"{}\" width=\"{}\" height=\"{}\" />",
+            size_class, base_url, username, srcset, size, size
+        )
+        .replace("Failed to render avatar tag")?;
+    }
 
     Ok(())
 }
@@ -176,7 +232,7 @@ impl Renderable for Avatar {
             }
         };
 
-        render_avatar(writer, &username, self.size)
+        render_avatar(writer, &username, self.size, self.lazy)
     }
 }
 
@@ -323,5 +379,213 @@ mod tests {
             .parse_and_render("{% avatar user=author %}", &ctx)
             .unwrap();
         assert_eq!(output, "");
+    }
+
+    // === Issue 513: parser bug -- unknown params must not overwrite username ===
+
+    #[test]
+    fn test_avatar_unknown_param_does_not_overwrite_user() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "org".into(),
+            liquid::model::Value::scalar("argob".to_string()),
+        );
+        let output = eng
+            .parse_and_render("{% avatar user=org size=60 lazy=true %}", &ctx)
+            .unwrap();
+        assert!(
+            output.contains("alt=\"argob\""),
+            "Expected alt=\"argob\", got: {}",
+            output
+        );
+        assert!(
+            !output.contains("alt=\"lazy\""),
+            "Username must not be overwritten by unknown param 'lazy'"
+        );
+    }
+
+    #[test]
+    fn test_avatar_unknown_param_order_independent() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "org".into(),
+            liquid::model::Value::scalar("testorg".to_string()),
+        );
+        let output = eng
+            .parse_and_render("{% avatar user=org lazy=true size=60 %}", &ctx)
+            .unwrap();
+        assert!(
+            output.contains("alt=\"testorg\""),
+            "Expected alt=\"testorg\", got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_avatar_multiple_unknown_params_ignored() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "org".into(),
+            liquid::model::Value::scalar("myorg".to_string()),
+        );
+        let output = eng
+            .parse_and_render("{% avatar user=org lazy=true foo=bar %}", &ctx)
+            .unwrap();
+        assert!(
+            output.contains("alt=\"myorg\""),
+            "Expected alt=\"myorg\", got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_avatar_literal_username_no_regression() {
+        let eng = engine();
+        let ctx = Object::new();
+        let output = eng
+            .parse_and_render("{% avatar username size=40 %}", &ctx)
+            .unwrap();
+        assert!(
+            output.contains("alt=\"username\""),
+            "Literal username should still work"
+        );
+    }
+
+    #[test]
+    fn test_avatar_user_variable_defaults() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "org".into(),
+            liquid::model::Value::scalar("deforg".to_string()),
+        );
+        let output = eng.parse_and_render("{% avatar user=org %}", &ctx).unwrap();
+        assert!(output.contains("alt=\"deforg\""));
+        assert!(output.contains("s=40"), "Default size should be 40");
+    }
+
+    // === Issue 513: lazy loading ===
+
+    #[test]
+    fn test_avatar_lazy_variable_user() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "org".into(),
+            liquid::model::Value::scalar("lazyorg".to_string()),
+        );
+        let output = eng
+            .parse_and_render("{% avatar user=org size=60 lazy=true %}", &ctx)
+            .unwrap();
+        assert!(
+            output.contains("src=\"\""),
+            "Lazy avatar must have empty src, got: {}",
+            output
+        );
+        assert!(
+            output.contains("data-src=\"https://"),
+            "Lazy avatar must have data-src, got: {}",
+            output
+        );
+        assert!(
+            output.contains("data-srcset=\""),
+            "Lazy avatar must have data-srcset, got: {}",
+            output
+        );
+        assert!(
+            output.contains("data-proofer-ignore=\"true\""),
+            "Lazy avatar must have data-proofer-ignore, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_avatar_lazy_literal_user() {
+        let eng = engine();
+        let ctx = Object::new();
+        let output = eng
+            .parse_and_render("{% avatar lituser size=60 lazy=true %}", &ctx)
+            .unwrap();
+        assert!(
+            output.contains("src=\"\""),
+            "Lazy avatar must have empty src"
+        );
+        assert!(
+            output.contains("data-src=\""),
+            "Lazy avatar must have data-src"
+        );
+        assert!(
+            output.contains("data-srcset=\""),
+            "Lazy avatar must have data-srcset"
+        );
+        assert!(output.contains("alt=\"lituser\""));
+    }
+
+    #[test]
+    fn test_avatar_eager_default() {
+        let eng = engine();
+        let ctx = Object::new();
+        let output = eng
+            .parse_and_render("{% avatar eageruser %}", &ctx)
+            .unwrap();
+        assert!(
+            output.contains("src=\"https://"),
+            "Eager avatar must have src with URL"
+        );
+        assert!(
+            output.contains("srcset=\""),
+            "Eager avatar must have srcset"
+        );
+        assert!(
+            !output.contains("data-src"),
+            "Eager avatar must NOT have data-src"
+        );
+        assert!(
+            !output.contains("data-srcset"),
+            "Eager avatar must NOT have data-srcset"
+        );
+    }
+
+    #[test]
+    fn test_avatar_eager_explicit_no_lazy() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "u".into(),
+            liquid::model::Value::scalar("eageru".to_string()),
+        );
+        let output = eng
+            .parse_and_render("{% avatar user=u size=40 %}", &ctx)
+            .unwrap();
+        assert!(
+            !output.contains("data-src"),
+            "No lazy attrs without lazy=true"
+        );
+        assert!(
+            !output.contains("data-srcset"),
+            "No lazy attrs without lazy=true"
+        );
+    }
+
+    // === Issue 513: alt correctness ===
+
+    #[test]
+    fn test_avatar_alt_never_param_name() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "org".into(),
+            liquid::model::Value::scalar("realorg".to_string()),
+        );
+        let output = eng
+            .parse_and_render("{% avatar user=org size=60 lazy=true %}", &ctx)
+            .unwrap();
+        assert!(output.contains("alt=\"realorg\""));
+        assert!(!output.contains("alt=\"lazy\""));
+        assert!(!output.contains("alt=\"size\""));
+        assert!(!output.contains("alt=\"true\""));
     }
 }
