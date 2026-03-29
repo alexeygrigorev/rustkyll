@@ -2186,8 +2186,141 @@ fn preprocess_bare_output_render_mapping(template: &str) -> String {
         return template.to_string();
     }
 
+    // Split the template into protected (code/raw) and unprotected segments.
+    // Only unprotected segments get `| render_mapping` injected.
+    let segments = split_protected_segments(template);
     let mut result = String::with_capacity(template.len() + 64);
-    let mut remaining = template;
+
+    for (text, protected) in &segments {
+        if *protected {
+            result.push_str(text);
+        } else {
+            result.push_str(&inject_render_mapping(text));
+        }
+    }
+
+    result
+}
+
+/// Split a template into segments, marking fenced code blocks (`\`\`\`` / `~~~`),
+/// `{% raw %}...{% endraw %}` blocks, and `{% highlight %}...{% endhighlight %}`
+/// blocks as protected. Returns `(text, is_protected)` pairs.
+fn split_protected_segments(template: &str) -> Vec<(&str, bool)> {
+    let mut segments: Vec<(&str, bool)> = Vec::new();
+    let bytes = template.as_bytes();
+    let len = bytes.len();
+    let mut pos = 0;
+    let mut unprotected_start = 0;
+
+    while pos < len {
+        // Check for {% raw %} blocks
+        if bytes[pos] == b'{' && template[pos..].starts_with("{%") {
+            if let Some(tag_end) = template[pos..].find("%}") {
+                let tag_inner = template[pos + 2..pos + tag_end].trim();
+                if tag_inner == "raw" {
+                    // Found {% raw %}, look for {% endraw %}
+                    let block_start = pos;
+                    let after_tag = pos + tag_end + 2;
+                    if let Some(end_offset) = template[after_tag..].find("{% endraw %}") {
+                        let block_end = after_tag + end_offset + "{% endraw %}".len();
+                        if unprotected_start < block_start {
+                            segments.push((&template[unprotected_start..block_start], false));
+                        }
+                        segments.push((&template[block_start..block_end], true));
+                        pos = block_end;
+                        unprotected_start = pos;
+                        continue;
+                    }
+                } else if tag_inner.starts_with("highlight") {
+                    // Found {% highlight ... %}, look for {% endhighlight %}
+                    let block_start = pos;
+                    let after_tag = pos + tag_end + 2;
+                    if let Some(end_offset) = template[after_tag..].find("{% endhighlight %}") {
+                        let block_end = after_tag + end_offset + "{% endhighlight %}".len();
+                        if unprotected_start < block_start {
+                            segments.push((&template[unprotected_start..block_start], false));
+                        }
+                        segments.push((&template[block_start..block_end], true));
+                        pos = block_end;
+                        unprotected_start = pos;
+                        continue;
+                    }
+                }
+            }
+        }
+
+        // Check for fenced code blocks (``` or ~~~) at start of line
+        if (pos == 0 || bytes[pos - 1] == b'\n')
+            && pos + 3 <= len
+            && (template[pos..].starts_with("```") || template[pos..].starts_with("~~~"))
+        {
+            let fence_char = bytes[pos];
+            // Count fence characters
+            let mut fence_len = 0;
+            while pos + fence_len < len && bytes[pos + fence_len] == fence_char {
+                fence_len += 1;
+            }
+            if fence_len >= 3 {
+                let block_start = pos;
+                // Skip to end of opening fence line
+                let line_end = template[pos + fence_len..]
+                    .find('\n')
+                    .map(|i| pos + fence_len + i + 1)
+                    .unwrap_or(len);
+                // Look for matching closing fence
+                let mut search_pos = line_end;
+                let mut found_end = None;
+                while search_pos < len {
+                    if bytes[search_pos] == fence_char {
+                        let mut close_len = 0;
+                        while search_pos + close_len < len
+                            && bytes[search_pos + close_len] == fence_char
+                        {
+                            close_len += 1;
+                        }
+                        if close_len >= fence_len {
+                            // Found closing fence; include to end of line
+                            let close_line_end = template[search_pos + close_len..]
+                                .find('\n')
+                                .map(|i| search_pos + close_len + i + 1)
+                                .unwrap_or(search_pos + close_len);
+                            found_end = Some(close_line_end);
+                            break;
+                        }
+                    }
+                    // Advance to next line
+                    if let Some(nl) = template[search_pos..].find('\n') {
+                        search_pos += nl + 1;
+                    } else {
+                        break;
+                    }
+                }
+                if let Some(block_end) = found_end {
+                    if unprotected_start < block_start {
+                        segments.push((&template[unprotected_start..block_start], false));
+                    }
+                    segments.push((&template[block_start..block_end], true));
+                    pos = block_end;
+                    unprotected_start = pos;
+                    continue;
+                }
+            }
+        }
+
+        pos += 1;
+    }
+
+    if unprotected_start < len {
+        segments.push((&template[unprotected_start..], false));
+    }
+
+    segments
+}
+
+/// Apply `| render_mapping` to bare `{{ expr }}` output tags in a text segment.
+fn inject_render_mapping(text: &str) -> String {
+    let mut result = String::with_capacity(text.len() + 32);
+    let mut remaining = text;
 
     while !remaining.is_empty() {
         if let Some(start) = remaining.find("{{") {
@@ -6475,6 +6608,97 @@ title: "Test Book"
             output.trim(),
             "",
             "Sidebar should NOT render when layout.nav_enabled is false"
+        );
+    }
+
+    // ========================================================================
+    // Issue 523: render_mapping must not leak into code blocks or raw blocks
+    // ========================================================================
+
+    #[test]
+    fn test_issue523_render_mapping_skips_fenced_code_blocks() {
+        // Fenced code blocks (```) should not have render_mapping injected
+        let input = "{{ title | render_mapping }}\n```\n{{ page.title }}\n```\n{{ footer | render_mapping }}";
+        let result = preprocess_bare_output_render_mapping(input);
+        // The code block interior should be untouched
+        assert!(
+            result.contains("```\n{{ page.title }}\n```"),
+            "render_mapping leaked into fenced code block. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue523_render_mapping_skips_tilde_fenced_code_blocks() {
+        let input = "~~~\n{{ page.title }}\n~~~\n{{ outside }}";
+        let result = preprocess_bare_output_render_mapping(input);
+        assert!(
+            result.contains("~~~\n{{ page.title }}\n~~~"),
+            "render_mapping leaked into tilde-fenced code block. Got: {}",
+            result
+        );
+        // Outside the fence should still get render_mapping
+        assert!(
+            result.contains("outside") && result.contains("render_mapping"),
+            "render_mapping not applied outside fence. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue523_render_mapping_skips_raw_blocks() {
+        let input = "{% raw %}{{ page.title }}{% endraw %}";
+        let result = preprocess_bare_output_render_mapping(input);
+        assert!(
+            result.contains("{% raw %}{{ page.title }}{% endraw %}"),
+            "render_mapping leaked into raw block. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue523_render_mapping_skips_highlight_blocks() {
+        let input = "{% highlight html %}{{ page.title }}{% endhighlight %}";
+        let result = preprocess_bare_output_render_mapping(input);
+        assert!(
+            result.contains("{% highlight html %}{{ page.title }}{% endhighlight %}"),
+            "render_mapping leaked into highlight block. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue523_render_mapping_applied_outside_code_blocks() {
+        let input = "{{ normal_var }}\n```\n{{ code_var }}\n```\n{{ another_var }}";
+        let result = preprocess_bare_output_render_mapping(input);
+        assert!(
+            result.contains("normal_var") && result.contains("| render_mapping"),
+            "render_mapping not applied before code block. Got: {}",
+            result
+        );
+        // Verify outside-code variables get render_mapping while code_var does not
+        assert!(
+            !result.contains("code_var | render_mapping")
+                && !result.contains("code_var  | render_mapping"),
+            "render_mapping leaked into code block. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("```\n{{ code_var }}\n```"),
+            "render_mapping leaked into code block. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue523_render_mapping_fenced_with_language() {
+        // Fenced code blocks with language annotation
+        let input = "```liquid\n{{ page.title }}\n```";
+        let result = preprocess_bare_output_render_mapping(input);
+        assert!(
+            result.contains("```liquid\n{{ page.title }}\n```"),
+            "render_mapping leaked into fenced code block with language. Got: {}",
+            result
         );
     }
 
