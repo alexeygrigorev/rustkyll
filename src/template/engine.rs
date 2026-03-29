@@ -1266,18 +1266,44 @@ fn preprocess_jekyll_tags(template: &str) -> String {
                     } else {
                         path
                     };
-                    // For collection docs: strip .md or .html extension entirely
+
+                    // Extract collection name for looking up collection-specific suffix.
+                    // E.g., from "docs/variables" extract "docs".
+                    let collection_suffix = if is_collection {
+                        let coll_name = url_path.split('/').next().unwrap_or("");
+                        crate::collection::get_collection_link_suffix(coll_name)
+                    } else {
+                        None
+                    };
+
+                    // For collection docs: strip .md or .html extension, then apply
+                    // collection-specific suffix (trailing slash) if configured.
                     // For root pages: use permalink-style suffix (.html or /)
                     let link_suffix = crate::collection::get_link_tag_suffix();
                     let url_path = if let Some(stem) = url_path.strip_suffix(".md") {
                         if is_collection {
-                            format!("/{}", stem)
+                            // Check for index files: _docs/index.md -> /docs/
+                            let basename = stem.rsplit('/').next().unwrap_or(stem);
+                            if basename == "index" {
+                                let dir = &stem[..stem.len() - "index".len()];
+                                format!("/{}", dir)
+                            } else {
+                                let suffix = collection_suffix.unwrap_or("");
+                                format!("/{}{}", stem, suffix)
+                            }
                         } else {
                             format!("/{}{}", stem, link_suffix)
                         }
                     } else if let Some(stem) = url_path.strip_suffix(".html") {
                         if is_collection {
-                            format!("/{}", stem)
+                            let basename = stem.rsplit('/').next().unwrap_or(stem);
+                            if basename == "index" {
+                                let dir = &stem[..stem.len() - "index".len()];
+                                format!("/{}", dir)
+                            } else {
+                                let suffix = collection_suffix.unwrap_or("");
+                                format!("/{}{}", stem, suffix)
+                            }
                         } else if link_suffix == "/" {
                             format!("/{}/", stem)
                         } else {
@@ -5007,6 +5033,67 @@ title: "Test Book"
             preprocess_jekyll_tags("{% link \u{0447}\u{0430}\u{0441}\u{0442}\u{044c}.md %}");
         assert_eq!(result, "/\u{0447}\u{0430}\u{0441}\u{0442}\u{044c}/");
         crate::collection::set_page_permalink_style("");
+    }
+
+    // ========================================================================
+    // Issue 527: collection link tags respect collection permalink trailing slash
+    // ========================================================================
+
+    #[test]
+    fn test_link_tag_collection_with_trailing_slash_permalink() {
+        // When collection "docs" has permalink ending in /, {% link _docs/variables.md %} -> /docs/variables/
+        crate::collection::set_collection_permalink_suffix("docs", "/");
+        let result = preprocess_jekyll_tags(r#"{% link _docs/variables.md %}"#);
+        assert_eq!(result, "/docs/variables/");
+        crate::collection::clear_collection_permalink_suffixes();
+    }
+
+    #[test]
+    fn test_link_tag_collection_without_trailing_slash_permalink() {
+        // When collection "docs" has no trailing slash, {% link _docs/variables.md %} -> /docs/variables
+        crate::collection::set_collection_permalink_suffix("docs", "");
+        let result = preprocess_jekyll_tags(r#"{% link _docs/variables.md %}"#);
+        assert_eq!(result, "/docs/variables");
+        crate::collection::clear_collection_permalink_suffixes();
+    }
+
+    #[test]
+    fn test_link_tag_collection_index_becomes_directory() {
+        // {% link _docs/index.md %} -> /docs/ (not /docs/index or /docs/index/)
+        crate::collection::set_collection_permalink_suffix("docs", "/");
+        let result = preprocess_jekyll_tags(r#"{% link _docs/index.md %}"#);
+        assert_eq!(result, "/docs/");
+        crate::collection::clear_collection_permalink_suffixes();
+    }
+
+    #[test]
+    fn test_link_tag_collection_trailing_slash_html_extension() {
+        // .html files in collection with trailing slash permalink
+        crate::collection::set_collection_permalink_suffix("docs", "/");
+        let result = preprocess_jekyll_tags(r#"{% link _docs/datafiles.html %}"#);
+        assert_eq!(result, "/docs/datafiles/");
+        crate::collection::clear_collection_permalink_suffixes();
+    }
+
+    #[test]
+    fn test_link_tag_collection_no_config_falls_back_to_extensionless() {
+        // No collection config set -> falls back to extensionless (existing behavior)
+        crate::collection::clear_collection_permalink_suffixes();
+        let result = preprocess_jekyll_tags(r#"{% link _pages/banners.md %}"#);
+        assert_eq!(result, "/pages/banners");
+    }
+
+    #[test]
+    fn test_link_tag_collection_unicode_with_trailing_slash() {
+        // Unicode collection doc with trailing slash permalink
+        crate::collection::set_collection_permalink_suffix("docs", "/");
+        let result =
+            preprocess_jekyll_tags("{% link _docs/\u{0443}\u{0441}\u{0442}\u{0430}\u{043d}\u{043e}\u{0432}\u{043a}\u{0430}.md %}");
+        assert_eq!(
+            result,
+            "/docs/\u{0443}\u{0441}\u{0442}\u{0430}\u{043d}\u{043e}\u{0432}\u{043a}\u{0430}/"
+        );
+        crate::collection::clear_collection_permalink_suffixes();
     }
 
     // ========================================================================

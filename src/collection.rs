@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -10,6 +11,13 @@ use crate::frontmatter::{self, FrontMatter};
 /// Global permalink style for standalone pages. Used by `{% link %}` tag
 /// preprocessing to generate correct URLs (pretty = `/`, default = `.html`).
 static PAGE_PERMALINK_STYLE: Mutex<String> = Mutex::new(String::new());
+
+/// Per-collection URL suffix for `{% link %}` tag preprocessing.
+/// Maps collection name (e.g., "docs") to its URL suffix ("/" or "").
+/// When a collection's permalink pattern ends with `/`, links to its documents
+/// should include a trailing slash.
+static COLLECTION_PERMALINK_SUFFIXES: Mutex<Option<HashMap<String, &'static str>>> =
+    Mutex::new(None);
 
 /// Set the global page permalink style. Must be called before any template
 /// preprocessing occurs (typically from `main.rs` after loading config).
@@ -29,6 +37,33 @@ pub fn get_link_tag_suffix() -> &'static str {
         .map(|s| s.clone())
         .unwrap_or_default();
     page_url_suffix(&style)
+}
+
+/// Set the URL suffix for a specific collection's `{% link %}` tag resolution.
+/// `suffix` should be `"/"` when the collection permalink ends with `/`,
+/// or `""` otherwise (extensionless).
+pub fn set_collection_permalink_suffix(collection_name: &str, suffix: &'static str) {
+    if let Ok(mut guard) = COLLECTION_PERMALINK_SUFFIXES.lock() {
+        let map = guard.get_or_insert_with(HashMap::new);
+        map.insert(collection_name.to_string(), suffix);
+    }
+}
+
+/// Get the URL suffix for a collection's `{% link %}` tag, or `None` if no
+/// collection-specific suffix has been configured (falls back to extensionless).
+pub fn get_collection_link_suffix(collection_name: &str) -> Option<&'static str> {
+    COLLECTION_PERMALINK_SUFFIXES.lock().ok().and_then(|guard| {
+        guard
+            .as_ref()
+            .and_then(|map| map.get(collection_name).copied())
+    })
+}
+
+/// Clear all collection permalink suffixes (used in tests).
+pub fn clear_collection_permalink_suffixes() {
+    if let Ok(mut guard) = COLLECTION_PERMALINK_SUFFIXES.lock() {
+        *guard = None;
+    }
 }
 
 /// Errors that can occur when loading collections.

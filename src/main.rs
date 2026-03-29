@@ -494,6 +494,14 @@ fn build_site(
     rustkyll::frontmatter::set_post_permalink_pattern(expanded_permalink);
     rustkyll::collection::set_page_permalink_style(&config.permalink);
 
+    // Set collection-specific permalink suffixes so {% link _docs/file.md %} can
+    // produce trailing slashes when the collection's permalink ends with `/`.
+    for (name, coll_cfg) in &config.collections {
+        let expanded = rustkyll::collection::expand_permalink_style(&coll_cfg.permalink);
+        let suffix = if expanded.ends_with('/') { "/" } else { "" };
+        rustkyll::collection::set_collection_permalink_suffix(name, suffix);
+    }
+
     // Build site context and load layouts in parallel since they are independent.
     progress.phase("Building site context...");
     let phase_start_context = Instant::now();
