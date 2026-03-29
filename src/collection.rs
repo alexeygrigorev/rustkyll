@@ -453,19 +453,31 @@ pub fn build_timestamp(site_tz: Option<chrono_tz::Tz>) -> String {
 /// Jekyll gives every collection item a `date` -- when no explicit date is
 /// specified in front matter or the filename, it defaults to the build
 /// timestamp (`site.time`).  This function replicates that behaviour so
-/// that template expressions like `{{ page.date }}` produce a value even
-/// for items without an explicit date (e.g. podcast episodes).
+/// that collection iteration (e.g. `site.podcast | map: "date"`) produces
+/// a value even for items without an explicit date.
 ///
 /// The same `build_time` string should be used for every item within a
 /// single build to match Jekyll's semantics.
-pub fn backfill_default_dates(items: &mut [CollectionItem], build_time: &str) {
+///
+/// When `set_frontmatter` is true, the backfilled date is also written to
+/// `item.front_matter["date"]`, making it visible as `page.date` in
+/// templates.  Jekyll only does this for posts; non-post collections have
+/// `page.date = nil` unless explicitly set in front matter or filename.
+/// (Issue 474)
+pub fn backfill_default_dates(
+    items: &mut [CollectionItem],
+    build_time: &str,
+    set_frontmatter: bool,
+) {
     for item in items.iter_mut() {
         if item.date.is_none() {
             item.date = Some(build_time.to_string());
-            // Also add to front matter so that `page.date` is available in templates
-            item.front_matter
-                .entry("date".to_string())
-                .or_insert_with(|| serde_yaml::Value::String(build_time.to_string()));
+            if set_frontmatter {
+                // Also add to front matter so that `page.date` is available in templates
+                item.front_matter
+                    .entry("date".to_string())
+                    .or_insert_with(|| serde_yaml::Value::String(build_time.to_string()));
+            }
         }
     }
 }
@@ -2769,7 +2781,7 @@ mod tests {
         }];
 
         let build_time = "2026-03-15 10:30:00 +0000";
-        backfill_default_dates(&mut items, build_time);
+        backfill_default_dates(&mut items, build_time, true);
 
         assert_eq!(items[0].date.as_deref(), Some(build_time));
         // Also check front matter
@@ -2803,7 +2815,7 @@ mod tests {
         }];
 
         let build_time = "2026-03-15 10:30:00 +0000";
-        backfill_default_dates(&mut items, build_time);
+        backfill_default_dates(&mut items, build_time, true);
 
         // Should keep the original date
         assert_eq!(items[0].date.as_deref(), Some("2024-01-15"));
@@ -2853,10 +2865,149 @@ mod tests {
         ];
 
         let build_time = "2026-03-15 10:30:00 +0000";
-        backfill_default_dates(&mut items, build_time);
+        backfill_default_dates(&mut items, build_time, true);
 
         assert_eq!(items[0].date.as_deref(), Some("2023-06-01"));
         assert_eq!(items[1].date.as_deref(), Some(build_time));
+    }
+
+    // ========================================================================
+    // Issue 474: non-post collections get item.date but NOT front_matter date
+    // ========================================================================
+
+    #[test]
+    fn test_backfill_non_post_sets_item_date_but_not_frontmatter() {
+        // Non-post collections (portfolio, talks, etc.) should get item.date
+        // backfilled (for `site.collection | map: "date"` to work) but NOT
+        // front_matter["date"] (so `page.date` remains nil in templates).
+        let mut items = vec![CollectionItem {
+            slug: "portfolio-1".to_string(),
+            front_matter: FrontMatter::new(),
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            excerpt_html: None,
+            url: "/portfolio/portfolio-1.html".to_string(),
+            date: None,
+            collection_name: "portfolio".to_string(),
+            source_path: "portfolio-1.md".to_string(),
+            id: "/portfolio/portfolio-1".to_string(),
+        }];
+
+        let build_time = "2026-03-15 10:30:00 +0000";
+        // set_frontmatter=false for non-post collections
+        backfill_default_dates(&mut items, build_time, false);
+
+        // item.date should be set (for map: "date" in cross-page iteration)
+        assert_eq!(
+            items[0].date.as_deref(),
+            Some(build_time),
+            "item.date should be backfilled for non-post collections"
+        );
+
+        // front_matter should NOT have "date" (page.date remains nil)
+        assert!(
+            !items[0].front_matter.contains_key("date"),
+            "Non-post items should not have 'date' in front matter (page.date = nil)"
+        );
+    }
+
+    #[test]
+    fn test_backfill_posts_sets_both_item_date_and_frontmatter() {
+        // Posts should get both item.date and front_matter["date"] backfilled
+        let mut items = vec![CollectionItem {
+            slug: "my-post".to_string(),
+            front_matter: FrontMatter::new(),
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            excerpt_html: None,
+            url: "/posts/my-post.html".to_string(),
+            date: None,
+            collection_name: "posts".to_string(),
+            source_path: "my-post.md".to_string(),
+            id: "/posts/my-post".to_string(),
+        }];
+
+        let build_time = "2026-03-15 10:30:00 +0000";
+        // set_frontmatter=true for posts
+        backfill_default_dates(&mut items, build_time, true);
+
+        // item.date should be set
+        assert_eq!(items[0].date.as_deref(), Some(build_time));
+
+        // front_matter should ALSO have "date" (page.date is truthy)
+        let fm_date = items[0]
+            .front_matter
+            .get("date")
+            .and_then(|v| v.as_str())
+            .unwrap();
+        assert_eq!(fm_date, build_time);
+    }
+
+    #[test]
+    fn test_backfill_simulates_main_loop_posts_vs_portfolio() {
+        // Simulate the main.rs loop: posts get set_frontmatter=true,
+        // other collections get set_frontmatter=false
+        use std::collections::HashMap;
+
+        let build_time = "2026-03-15 10:30:00 +0000";
+
+        let mut collections: HashMap<String, Vec<CollectionItem>> = HashMap::new();
+
+        collections.insert(
+            "posts".to_string(),
+            vec![CollectionItem {
+                slug: "my-post".to_string(),
+                front_matter: FrontMatter::new(),
+                content: String::new(),
+                html_content: String::new(),
+                excerpt: None,
+                excerpt_html: None,
+                url: "/posts/my-post.html".to_string(),
+                date: None,
+                collection_name: "posts".to_string(),
+                source_path: "my-post.md".to_string(),
+                id: "/posts/my-post".to_string(),
+            }],
+        );
+
+        collections.insert(
+            "portfolio".to_string(),
+            vec![CollectionItem {
+                slug: "portfolio-1".to_string(),
+                front_matter: FrontMatter::new(),
+                content: String::new(),
+                html_content: String::new(),
+                excerpt: None,
+                excerpt_html: None,
+                url: "/portfolio/portfolio-1.html".to_string(),
+                date: None,
+                collection_name: "portfolio".to_string(),
+                source_path: "portfolio-1.md".to_string(),
+                id: "/portfolio/portfolio-1".to_string(),
+            }],
+        );
+
+        // Apply backfill like main.rs does
+        for (name, items) in collections.iter_mut() {
+            let is_posts = name == "posts";
+            backfill_default_dates(items, build_time, is_posts);
+        }
+
+        // Posts: both item.date and front_matter["date"] are set
+        assert_eq!(collections["posts"][0].date.as_deref(), Some(build_time));
+        assert!(collections["posts"][0].front_matter.contains_key("date"));
+
+        // Portfolio: item.date is set but front_matter["date"] is NOT
+        assert_eq!(
+            collections["portfolio"][0].date.as_deref(),
+            Some(build_time)
+        );
+        assert!(
+            !collections["portfolio"][0].front_matter.contains_key("date"),
+            "Portfolio page.date should remain nil (no front_matter date)"
+        );
     }
 
     // ========================================================================

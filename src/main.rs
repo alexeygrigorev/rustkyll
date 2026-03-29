@@ -340,8 +340,12 @@ fn build_site(
                 .and_then(|name| name.parse::<chrono_tz::Tz>().ok())
         });
     let build_time = collection::build_timestamp(site_tz);
-    for items in collections.values_mut() {
-        collection::backfill_default_dates(items, &build_time);
+    // Issue 474: Jekyll lazily assigns site.time as the default date for all
+    // collection documents, but only exposes it as page.date (in front matter)
+    // for posts. Non-post items have page.date = nil unless explicitly set.
+    for (name, items) in collections.iter_mut() {
+        let is_posts = name == "posts";
+        collection::backfill_default_dates(items, &build_time, is_posts);
     }
 
     let total_items: usize = collections.values().map(|v| v.len()).sum();
