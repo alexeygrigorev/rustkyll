@@ -146,6 +146,31 @@ fn get_nested_str(runtime: &dyn Runtime, parts: &[&str]) -> Option<String> {
     }
 }
 
+/// Like [`get_nested_str`] but returns `Some("")` when the value exists as an
+/// explicitly empty string, instead of collapsing it to `None`.
+///
+/// Crucially, this function distinguishes between a key that is genuinely
+/// absent (returns `None`) and one that is present with an empty value
+/// (returns `Some("")`).  The lenient Liquid runtime returns a nil sentinel
+/// for missing keys; we detect this via `is_nil()`.
+///
+/// Jekyll treats `url: ""` in `_config.yml` as a *present but empty* URL,
+/// still emitting canonical links with just the page path.
+fn get_nested_str_allow_empty_non_nil(runtime: &dyn Runtime, parts: &[&str]) -> Option<String> {
+    if parts.is_empty() {
+        return None;
+    }
+    let path: Vec<liquid_core::model::ScalarCow<'_>> = parts
+        .iter()
+        .map(|p| liquid_core::model::ScalarCow::new(*p))
+        .collect();
+    let val = runtime.try_get(&path)?;
+    if val.is_nil() {
+        return None;
+    }
+    Some(val.to_kstr().to_string())
+}
+
 /// Resolve an author name from a Liquid runtime value.
 ///
 /// Jekyll's `jekyll-seo-tag` handles two cases:
@@ -292,7 +317,12 @@ impl Renderable for SeoRenderable {
         let site_description = get_nested_str(runtime, &["site", "description"]);
         let page_content = get_nested_str(runtime, &["page", "content"])
             .or_else(|| get_nested_str(runtime, &["content"]));
-        let site_url = get_nested_str(runtime, &["site", "url"]);
+        // Jekyll's jekyll-seo-tag treats `url: ""` as a valid (empty) URL
+        // and still emits canonical/og:url with just the page path.  But when
+        // site.url is genuinely absent (key not in _config.yml), it skips them.
+        // Use get_nested_str_allow_empty which returns Some("") for explicitly
+        // empty strings, but check that the value is not nil (truly absent).
+        let site_url = get_nested_str_allow_empty_non_nil(runtime, &["site", "url"]);
         let page_url = get_nested_str(runtime, &["page", "url"]);
         let page_image = get_nested_str(runtime, &["page", "image"]);
         let page_date = get_nested_str(runtime, &["page", "date"]);

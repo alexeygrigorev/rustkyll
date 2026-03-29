@@ -57,6 +57,12 @@ impl Filter for DateFilter {
         let result = if s.eq_ignore_ascii_case("now") || s.eq_ignore_ascii_case("today") {
             safe_chrono_format(&chrono::Local::now().naive_local().format(&format_str))
                 .unwrap_or_else(|| s.to_string())
+        } else if format_str.contains("%s") {
+            // %s (Unix epoch seconds) is special: it requires the true UTC instant,
+            // not the naive local time. parse_date_string_with_tz strips timezone
+            // info via naive_local(), which would make %s compute the wrong epoch.
+            // Use the timezone-aware DateTime directly when available.
+            format_with_epoch_aware(s, &format_str, site_tz).unwrap_or_else(|| s.to_string())
         } else if let Some(dt) = parse_date_string_with_tz(s, site_tz) {
             safe_chrono_format(&dt.format(&format_str)).unwrap_or_else(|| s.to_string())
         } else {
@@ -66,6 +72,27 @@ impl Filter for DateFilter {
 
         Ok(Value::scalar(result))
     }
+}
+
+/// Format a date string using a format that contains `%s` (Unix epoch seconds).
+///
+/// When the input has an explicit timezone offset, we must use the timezone-aware
+/// `DateTime<FixedOffset>` so that `%s` computes the correct epoch. For naive
+/// datetimes (no timezone), we treat them as UTC per Ruby YAML convention.
+fn format_with_epoch_aware(
+    s: &str,
+    format_str: &str,
+    _site_tz: Option<chrono_tz::Tz>,
+) -> Option<String> {
+    // Try timezone-aware formats first
+    if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(s) {
+        return safe_chrono_format(&dt.format(format_str));
+    }
+    if let Ok(dt) = chrono::DateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S %z") {
+        return safe_chrono_format(&dt.format(format_str));
+    }
+    // For naive datetimes, fall back to the standard path (treats as UTC)
+    parse_date_string_with_tz(s, _site_tz).and_then(|dt| safe_chrono_format(&dt.format(format_str)))
 }
 
 #[cfg(test)]
@@ -154,5 +181,27 @@ mod tests {
     fn test_date_format_textual_month() {
         let result = liquid_core::call_filter!(Date, "2023/7/11 15:27", "%B").unwrap();
         assert_eq!(result.to_kstr(), "July");
+    }
+
+    // Chirpy: %s (Unix epoch seconds) must use UTC conversion for timezone-aware dates
+    #[test]
+    fn test_epoch_seconds_utc_positive_offset() {
+        // 2019-08-11 00:34:00 +0800 = 2019-08-10 16:34:00 UTC = 1565454840
+        let result = liquid_core::call_filter!(Date, "2019-08-11 00:34:00 +0800", "%s").unwrap();
+        assert_eq!(result.to_kstr(), "1565454840");
+    }
+
+    #[test]
+    fn test_epoch_seconds_utc_zero_offset() {
+        // 2019-08-10 16:34:00 +0000 = 1565454840
+        let result = liquid_core::call_filter!(Date, "2019-08-10 16:34:00 +0000", "%s").unwrap();
+        assert_eq!(result.to_kstr(), "1565454840");
+    }
+
+    #[test]
+    fn test_epoch_seconds_naive_datetime() {
+        // Naive datetime treated as UTC: 2019-08-10 16:34:00 = 1565454840
+        let result = liquid_core::call_filter!(Date, "2019-08-10 16:34:00", "%s").unwrap();
+        assert_eq!(result.to_kstr(), "1565454840");
     }
 }

@@ -130,9 +130,10 @@ pub fn get_system_timezone() -> Option<String> {
 /// Returns a `NaiveDateTime` on success, `None` if no format matches.
 ///
 /// Uses `naive_local()` (not `naive_utc()`) for timezone-aware dates so that
-/// the date portion is preserved as written in the front matter. Jekyll's
-/// `date` filter formats dates in their original timezone without converting,
-/// so `2023-10-11 00:00:00 +0200` should remain Oct 11.
+/// the date portion is preserved as written in the front matter.  Date-only
+/// strings like `2023-12-11` get expanded to `2023-12-11 00:00:00 +HHMM`
+/// using the site/system timezone before reaching filters; using `naive_local()`
+/// strips the offset while keeping the local date intact.
 ///
 /// For dates WITHOUT timezone (NaiveDateTime), the datetime is returned as-is.
 /// This matches Jekyll's `date` filter which formats UTC timestamps without

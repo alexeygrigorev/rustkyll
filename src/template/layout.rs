@@ -215,18 +215,36 @@ impl LayoutEngine {
         page_front_matter: &FrontMatter,
         site_context: &Object,
     ) -> Result<String, TemplateError> {
+        self.render_chained(layout_name, content, page_front_matter, site_context, None)
+    }
+
+    /// Internal render with layout chaining support.
+    ///
+    /// `child_layout_name` tracks the previous (inner) layout in the chain so
+    /// that the parent layout sees the child's front matter as `layout.*`,
+    /// matching Jekyll's behavior.
+    fn render_chained(
+        &self,
+        layout_name: &str,
+        content: &str,
+        page_front_matter: &FrontMatter,
+        site_context: &Object,
+        child_layout_name: Option<&str>,
+    ) -> Result<String, TemplateError> {
         let layout = self
             .layouts
             .get(layout_name)
             .ok_or_else(|| TemplateError::LayoutNotFound(layout_name.to_string()))?;
 
         let mut ctx = build_render_context(content, page_front_matter, site_context);
-        // Jekyll exposes layout front matter as layout.* in templates
+        // Jekyll exposes the child layout's front matter as layout.* in the
+        // parent layout.  On the first call (no child), use the current layout.
+        let layout_obj_key = child_layout_name.unwrap_or(layout_name);
         ctx.insert(
             "layout".into(),
             LiquidValue::Object(
                 self.layout_objects
-                    .get(layout_name)
+                    .get(layout_obj_key)
                     .cloned()
                     .unwrap_or_default(),
             ),
@@ -241,7 +259,13 @@ impl LayoutEngine {
 
         // Support layout chaining: if the layout specifies a parent layout, wrap again
         if let Some(ref parent_name) = layout.parent_layout {
-            self.render(parent_name, &result, page_front_matter, site_context)
+            self.render_chained(
+                parent_name,
+                &result,
+                page_front_matter,
+                site_context,
+                Some(layout_name),
+            )
         } else {
             Ok(result)
         }
@@ -305,16 +329,23 @@ impl LayoutEngine {
         cached_site: &CachedSiteContext,
     ) -> Result<String, TemplateError> {
         let page_obj = build_page_object(page_front_matter);
-        self.render_with_cached_site_prebuilt(layout_name, content, page_obj, cached_site)
+        self.render_with_cached_site_prebuilt(layout_name, content, page_obj, cached_site, None)
     }
 
     /// Like render_with_cached_site but takes ownership of a pre-built page Object.
+    ///
+    /// `child_layout_name` is the layout that was rendered in the previous step of
+    /// the chain.  In Jekyll the `layout` Liquid variable inside a parent layout
+    /// exposes the **child** layout's front matter, not the current layout's own
+    /// front matter.  On the very first call (page -> innermost layout) there is
+    /// no child yet, so we pass `None` and fall back to the current layout.
     fn render_with_cached_site_prebuilt(
         &self,
         layout_name: &str,
         content: &str,
         page_obj: Object,
         cached_site: &CachedSiteContext,
+        child_layout_name: Option<&str>,
     ) -> Result<String, TemplateError> {
         let layout = self
             .layouts
@@ -328,11 +359,15 @@ impl LayoutEngine {
             None
         };
         let mut ctx = build_render_context_from_page_object(content, page_obj);
+        // Jekyll exposes the child layout's front matter as the `layout` variable
+        // inside a parent layout.  When there is no child (first call), use the
+        // current layout's own front matter.
+        let layout_obj_key = child_layout_name.unwrap_or(layout_name);
         ctx.insert(
             "layout".into(),
             LiquidValue::Object(
                 self.layout_objects
-                    .get(layout_name)
+                    .get(layout_obj_key)
                     .cloned()
                     .unwrap_or_default(),
             ),
@@ -352,6 +387,7 @@ impl LayoutEngine {
                 &result,
                 page_obj_for_chaining.unwrap(),
                 cached_site,
+                Some(layout_name),
             )
         } else {
             Ok(result)
@@ -371,6 +407,7 @@ impl LayoutEngine {
         page_obj: Object,
         cached_site: &CachedSiteContext,
         site_overrides: &HashMap<String, super::engine::LenientValue>,
+        child_layout_name: Option<&str>,
     ) -> Result<String, TemplateError> {
         let layout = self
             .layouts
@@ -384,11 +421,12 @@ impl LayoutEngine {
             None
         };
         let mut ctx = build_render_context_from_page_object(content, page_obj);
+        let layout_obj_key = child_layout_name.unwrap_or(layout_name);
         ctx.insert(
             "layout".into(),
             LiquidValue::Object(
                 self.layout_objects
-                    .get(layout_name)
+                    .get(layout_obj_key)
                     .cloned()
                     .unwrap_or_default(),
             ),
@@ -411,6 +449,7 @@ impl LayoutEngine {
                 page_obj_for_chaining.unwrap(),
                 cached_site,
                 site_overrides,
+                Some(layout_name),
             )
         } else {
             Ok(result)
@@ -450,6 +489,7 @@ impl LayoutEngine {
             page_obj,
             cached_site,
             site_overrides,
+            None,
         )?;
         let normalized = crate::kramdown::normalize_html_output_owned(result);
         Ok(if self.enable_hardbreaks {
@@ -502,6 +542,7 @@ impl LayoutEngine {
             page_obj,
             cached_site,
             site_overrides,
+            None,
         )?;
         let normalized = crate::kramdown::normalize_html_output_owned(result);
         Ok(if self.enable_hardbreaks {
@@ -660,6 +701,7 @@ impl LayoutEngine {
             &rendered_content,
             page_obj,
             cached_site,
+            None,
         )?;
         // D2, D3, D12: Normalize boolean attributes and void elements
         let normalized = crate::kramdown::normalize_html_output_owned(result);
@@ -735,6 +777,7 @@ impl LayoutEngine {
             &html_content,
             page_obj,
             cached_site,
+            None,
         )?;
         // D2, D3, D12: Normalize boolean attributes and void elements
         let normalized = crate::kramdown::normalize_html_output_owned(result);
@@ -791,6 +834,7 @@ impl LayoutEngine {
             &html_content,
             page_obj,
             cached_site,
+            None,
         )?;
         let normalized = crate::kramdown::normalize_html_output_owned(result);
         let final_html = if self.enable_hardbreaks {
@@ -845,6 +889,7 @@ impl LayoutEngine {
             page_obj,
             cached_site,
             site_overrides,
+            None,
         )?;
         let normalized = crate::kramdown::normalize_html_output_owned(result);
         let final_html = if self.enable_hardbreaks {
@@ -1048,9 +1093,12 @@ fn extract_layout_front_matter(
                 for (key, value) in fm {
                     if key == "layout" {
                         parent_layout = value.as_str().map(|s| s.to_string());
-                    } else {
-                        front_matter.insert(key, value);
                     }
+                    // Include ALL keys (including `layout`) in the front matter.
+                    // Jekyll's Layout#to_liquid exposes every front matter key,
+                    // and themes like chirpy check `layout.layout` to detect
+                    // layout chaining (e.g., `layout.layout == 'default'`).
+                    front_matter.insert(key, value);
                 }
             }
 
@@ -1124,6 +1172,10 @@ pub fn build_render_context(
     // Insert content (the body HTML used by {{ content }} in layouts)
     ctx.insert("content".into(), content_val);
 
+    // Expose `jekyll.environment` so templates like compress.html can check it.
+    // Jekyll defaults to "development" when JEKYLL_ENV is not set.
+    inject_jekyll_object(&mut ctx);
+
     ctx
 }
 
@@ -1136,6 +1188,20 @@ pub fn build_render_context(
 pub fn build_render_context_page_only(content: &str, page_front_matter: &FrontMatter) -> Object {
     let page = build_page_object(page_front_matter);
     build_render_context_from_page_object(content, page)
+}
+
+/// Inject the `jekyll` object into a render context.
+///
+/// Jekyll exposes `jekyll.environment` (and `jekyll.version`) as Liquid
+/// globals. The environment defaults to `"development"` unless the
+/// `JEKYLL_ENV` environment variable is set. Many themes (e.g. chirpy's
+/// `compress.html` layout) check `jekyll.environment` to conditionally
+/// skip HTML compression in development mode.
+fn inject_jekyll_object(ctx: &mut Object) {
+    let env = std::env::var("JEKYLL_ENV").unwrap_or_else(|_| "development".to_string());
+    let mut jekyll = Object::new();
+    jekyll.insert("environment".into(), LiquidValue::scalar(env));
+    ctx.insert("jekyll".into(), LiquidValue::Object(jekyll));
 }
 
 /// Pre-build the Liquid `Object` representing the `page` namespace from front matter.
@@ -1180,6 +1246,10 @@ pub fn build_render_context_from_page_object(content: &str, mut page: Object) ->
     ctx.insert("page".into(), LiquidValue::Object(page));
 
     ctx.insert("content".into(), content_val);
+
+    // Expose `jekyll.environment` so templates like compress.html can check it.
+    // Jekyll defaults to "development" when JEKYLL_ENV is not set.
+    inject_jekyll_object(&mut ctx);
 
     ctx
 }
@@ -3848,10 +3918,11 @@ mod tests {
         assert_eq!(seq.len(), 2);
         assert_eq!(seq[0].as_str().unwrap(), "/a.css");
         assert_eq!(seq[1].as_str().unwrap(), "/b.css");
-        // The `layout` key itself should NOT be in the front_matter map
+        // The `layout` key IS included in the front_matter map (Jekyll exposes
+        // it as `layout.layout` in templates, used by themes like chirpy).
         assert!(
-            !fm.contains_key("layout"),
-            "layout key should be excluded from front_matter"
+            fm.contains_key("layout"),
+            "layout key should be present in front_matter"
         );
     }
 
@@ -3912,10 +3983,10 @@ mod tests {
         let source = "---\nlayout: default\n---\n<html></html>";
         let (parent, fm, _body) = extract_layout_front_matter(source);
         assert_eq!(parent, Some("default".to_string()));
-        assert!(
-            fm.is_empty(),
-            "Only layout key means empty front_matter map"
-        );
+        // The `layout` key is now included in front_matter (Jekyll exposes it
+        // as `layout.layout` in parent layout templates).
+        assert_eq!(fm.len(), 1);
+        assert_eq!(fm.get("layout").and_then(|v| v.as_str()), Some("default"));
     }
 
     #[test]
@@ -4059,8 +4130,12 @@ mod tests {
     fn test_layout_chaining_front_matter() {
         // Inner layout "post" has author_profile: true, chains to "base"
         // Base layout "base" has nav_enabled: false
-        // When rendering through "post", layout.author_profile should be true at post level,
-        // and layout.nav_enabled should be false at base level
+        //
+        // Jekyll behavior: in the parent layout, `layout` refers to the CHILD
+        // layout's front matter, not the current layout's own front matter.
+        // So when "base" renders wrapping "post"'s output, `layout` is "post"'s
+        // front matter.  This means `layout.nav_enabled` is nil in "base",
+        // and `layout.author_profile` is true.
         let mut layouts = HashMap::new();
         layouts.insert(
             "post".to_string(),
@@ -4077,7 +4152,7 @@ mod tests {
         layouts.insert(
             "base".to_string(),
             Layout {
-                source: "base:nav={{ layout.nav_enabled }}|{{ content }}".to_string(),
+                source: "base:nav={{ layout.nav_enabled }}|author={{ layout.author_profile }}|{{ content }}".to_string(),
                 parent_layout: None,
                 front_matter: {
                     let mut fm = HashMap::new();
@@ -4096,9 +4171,101 @@ mod tests {
             "Post layout should see author_profile=true, got: {}",
             result
         );
+        // In the parent "base" layout, `layout` is "post"'s front matter,
+        // so nav_enabled is absent (nil -> empty string in Liquid).
         assert!(
-            result.contains("base:nav=false"),
-            "Base layout should see nav_enabled=false, got: {}",
+            result.contains("base:nav=|"),
+            "Base layout should see nav_enabled as nil (from post's front matter), got: {}",
+            result
+        );
+        // The parent "base" can still see the child layout's author_profile
+        assert!(
+            result.contains("author=true"),
+            "Base layout should see author_profile=true from child, got: {}",
+            result
+        );
+    }
+
+    // ========================================================================
+    // Chirpy: jekyll.environment exposed in render context
+    // ========================================================================
+
+    #[test]
+    fn test_jekyll_environment_in_context() {
+        // Templates like chirpy's compress.html check jekyll.environment
+        // to conditionally skip HTML compression in development mode.
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "test".to_string(),
+            Layout {
+                source: "env={{ jekyll.environment }}".to_string(),
+                parent_layout: None,
+                front_matter: HashMap::new(),
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+        let fm = FrontMatter::new();
+        let site = Object::new();
+        let result = engine.render("test", "body", &fm, &site).unwrap();
+        // Default JEKYLL_ENV is "development"
+        assert!(
+            result.contains("env=development"),
+            "Should expose jekyll.environment=development, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_layout_layout_key_accessible() {
+        // Chirpy checks `layout.layout` in default.html to detect layout chaining.
+        // The `layout` key from the layout's own front matter must be accessible.
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "post".to_string(),
+            Layout {
+                source: "inner:layout.layout={{ layout.layout }}|{{ content }}".to_string(),
+                parent_layout: Some("default".to_string()),
+                front_matter: {
+                    let mut fm = HashMap::new();
+                    fm.insert(
+                        "layout".to_string(),
+                        serde_yaml::Value::String("default".to_string()),
+                    );
+                    fm
+                },
+            },
+        );
+        layouts.insert(
+            "default".to_string(),
+            Layout {
+                source: "outer:layout.layout={{ layout.layout }}|{{ content }}".to_string(),
+                parent_layout: None,
+                front_matter: {
+                    let mut fm = HashMap::new();
+                    fm.insert(
+                        "layout".to_string(),
+                        serde_yaml::Value::String("compress".to_string()),
+                    );
+                    fm
+                },
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+        let fm = FrontMatter::new();
+        let site = Object::new();
+        let result = engine.render("post", "body", &fm, &site).unwrap();
+        // In "post" layout, layout.layout should be "default" (post's own front matter)
+        assert!(
+            result.contains("inner:layout.layout=default"),
+            "Inner layout should see layout.layout=default, got: {}",
+            result
+        );
+        // In "default" layout, layout.layout should be "default" (from child "post"'s fm)
+        assert!(
+            result.contains("outer:layout.layout=default"),
+            "Outer layout should see child's layout.layout=default, got: {}",
             result
         );
     }
