@@ -333,6 +333,38 @@ def is_acceptable_syntax_highlight_class_diff(diff: 'DiffResult') -> bool:
     return False
 
 
+def is_acceptable_language_plaintext_diff(diff: 'DiffResult') -> bool:
+    """Check if a diff is due to language-plaintext class presence/absence.
+
+    Issue 470: kramdown 2.4.0 adds language-plaintext to inline <code> and
+    code block wrapper <div> elements, while kramdown 2.5.2+ does not.
+    Rustkyll omits language-plaintext; this filter accepts the difference
+    when Jekyll's output has it and rustkyll's does not (or vice versa).
+
+    Matches attribute diffs where the only difference is the presence or
+    absence of 'language-plaintext' in a class attribute value.
+    """
+    if diff.diff_type != 'attribute_differs':
+        return False
+    expected = diff.expected or ''
+    actual = diff.actual or ''
+    # Check if both sides have class attributes and the only difference
+    # is the presence/absence of language-plaintext
+    import re
+    # Extract class values from both sides
+    m_exp = re.search(r"class='([^']*)'", expected)
+    m_act = re.search(r"class='([^']*)'", actual)
+    if not m_exp or not m_act:
+        return False
+    exp_classes = set(m_exp.group(1).split())
+    act_classes = set(m_act.group(1).split())
+    diff_classes = exp_classes.symmetric_difference(act_classes)
+    # Accept if the only difference is language-plaintext
+    if diff_classes == {'language-plaintext'}:
+        return True
+    return False
+
+
 def is_acceptable_build_time_event_diff(diff: 'DiffResult') -> bool:
     """Check if a diff is due to build-time event data differences.
 
@@ -866,6 +898,7 @@ def filter_acceptable_diffs(diffs: list, rustkyll_html: str = None, jekyll_html:
                 is_acceptable_jsonld_markdown_link_diff(d) or
                 is_acceptable_smart_quote_diff(d) or
                 is_acceptable_syntax_highlight_class_diff(d) or
+                is_acceptable_language_plaintext_diff(d) or
                 is_acceptable_build_time_event_diff(d) or
                 is_acceptable_jekyll_version_diff(d) or
                 is_acceptable_github_pages_url_diff(d)):

@@ -183,7 +183,7 @@ pub fn parse_document(input: &str) -> Result<Document, ParseError> {
 /// Convert a markdown string to HTML.
 ///
 /// Transform pulldown-cmark events so that inline `Code` spans are emitted
-/// with `class="language-plaintext highlighter-rouge"`, matching kramdown behavior.
+/// with `class="highlighter-rouge"`, matching kramdown behavior.
 ///
 /// Raw HTML `<code>` tags (passed through as `Html`/`InlineHtml` events) are
 /// left untouched -- Jekyll/kramdown only adds the class to markdown-rendered
@@ -198,7 +198,7 @@ fn add_inline_code_class_to_events<'a>(
 /// Implementation of inline code class transformation with configurable behavior.
 ///
 /// When `add_code_classes` is true (kramdown mode), inline `Code` spans get
-/// `class="language-plaintext highlighter-rouge"`. When false (CommonMark mode),
+/// `class="highlighter-rouge"`. When false (CommonMark mode),
 /// inline code is left as bare `<code>` elements.
 ///
 /// When `hardbreaks` is true (CommonMarkGhPages HARDBREAKS option), every
@@ -216,9 +216,7 @@ fn add_inline_code_class_to_events_impl<'a>(
                 // Emit raw HTML instead of the Code event so that push_html
                 // produces <code class="...">text</code> rather than bare <code>.
                 let escaped = html_escape_for_code(&text);
-                let html = format!(
-                    "<code class=\"language-plaintext highlighter-rouge\">{escaped}</code>"
-                );
+                let html = format!("<code class=\"highlighter-rouge\">{escaped}</code>");
                 events.push(Event::InlineHtml(html.into()));
             }
             Event::SoftBreak if hardbreaks => {
@@ -604,7 +602,7 @@ pub fn markdown_to_html(markdown: &str) -> String {
 /// and hard breaks behavior.
 ///
 /// When `add_code_classes` is true (kramdown mode, the default), inline backtick
-/// code gets `class="language-plaintext highlighter-rouge"`. When false (CommonMark
+/// code gets `class="highlighter-rouge"`. When false (CommonMark
 /// mode), inline code is rendered as bare `<code>` elements.
 ///
 /// When `enable_smart_punctuation` is true (kramdown mode), straight quotes are
@@ -5031,13 +5029,11 @@ Some text after.
 
     #[test]
     fn test_issue176_backtick_code_gets_class() {
-        // Markdown backtick inline code should get language-plaintext class
+        // Markdown backtick inline code should get highlighter-rouge class
         let html = markdown_to_html("Use `pip install` to install.\n");
         assert!(
-            html.contains(
-                "<code class=\"language-plaintext highlighter-rouge\">pip install</code>"
-            ),
-            "Backtick inline code should get language-plaintext class. Got: {}",
+            html.contains("<code class=\"highlighter-rouge\">pip install</code>"),
+            "Backtick inline code should get highlighter-rouge class. Got: {}",
             html
         );
     }
@@ -5066,7 +5062,7 @@ Some text after.
         let html = markdown_to_html(input);
         // Backtick code gets class
         assert!(
-            html.contains("<code class=\"language-plaintext highlighter-rouge\">pip</code>"),
+            html.contains("<code class=\"highlighter-rouge\">pip</code>"),
             "Backtick code should have class. Got: {}",
             html
         );
@@ -5083,7 +5079,7 @@ Some text after.
         // markdownify filter should also add classes to backtick code
         let html = markdown_to_html_for_filter("Use `code` here\n");
         assert!(
-            html.contains("<code class=\"language-plaintext highlighter-rouge\">code</code>"),
+            html.contains("<code class=\"highlighter-rouge\">code</code>"),
             "markdownify backtick code should have class. Got: {}",
             html
         );
@@ -5129,7 +5125,7 @@ Some text after.
 
     #[test]
     fn test_issue216_kramdown_keeps_inline_code_class() {
-        // Default (kramdown) mode should still add the class
+        // Default (kramdown) mode should still add the highlighter-rouge class
         let html = markdown_to_html_with_options(
             "Use `pip install` to set up.\n",
             true,
@@ -5138,10 +5134,8 @@ Some text after.
             false,
         );
         assert!(
-            html.contains(
-                "<code class=\"language-plaintext highlighter-rouge\">pip install</code>"
-            ),
-            "Kramdown mode should add language-plaintext class. Got: {}",
+            html.contains("<code class=\"highlighter-rouge\">pip install</code>"),
+            "Kramdown mode should add highlighter-rouge class. Got: {}",
             html
         );
     }
@@ -5172,6 +5166,92 @@ Some text after.
         assert!(
             html.contains("language-python"),
             "Fenced code blocks should keep language class even in CommonMark mode. Got: {}",
+            html
+        );
+    }
+
+    // ========================================================================
+    // Issue 470: Inline code should NOT have language-plaintext class
+    // ========================================================================
+
+    #[test]
+    fn test_issue470_kramdown_inline_code_no_language_plaintext() {
+        // kramdown mode inline code should have highlighter-rouge but NOT language-plaintext
+        let html = markdown_to_html("Use `pip install` to install.\n");
+        assert!(
+            html.contains("<code class=\"highlighter-rouge\">pip install</code>"),
+            "Kramdown inline code should have highlighter-rouge without language-plaintext. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains("language-plaintext"),
+            "Kramdown inline code should NOT have language-plaintext. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue470_kramdown_with_options_inline_code_no_language_plaintext() {
+        // markdown_to_html_with_options in kramdown mode should also NOT add language-plaintext
+        let html = markdown_to_html_with_options(
+            "Use `pip install` to set up.\n",
+            true,
+            true,
+            false,
+            false,
+        );
+        assert!(
+            html.contains("<code class=\"highlighter-rouge\">pip install</code>"),
+            "Kramdown mode (with_options) should have highlighter-rouge without language-plaintext. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue470_commonmark_inline_code_bare() {
+        // CommonMark mode: inline code should have bare <code> with no class
+        let html = markdown_to_html_with_options(
+            "Use `pip install` to set up.\n",
+            false,
+            true,
+            false,
+            false,
+        );
+        assert!(
+            html.contains("<code>pip install</code>"),
+            "CommonMark mode should produce bare <code> tags. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains("highlighter-rouge"),
+            "CommonMark mode should NOT have highlighter-rouge. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue470_markdownify_inline_code_no_language_plaintext() {
+        // markdownify filter should also NOT add language-plaintext
+        let html = markdown_to_html_for_filter("Use `code` here\n");
+        assert!(
+            html.contains("<code class=\"highlighter-rouge\">code</code>"),
+            "markdownify backtick code should have highlighter-rouge without language-plaintext. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains("language-plaintext"),
+            "markdownify should NOT have language-plaintext. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue470_unicode_inline_code_no_language_plaintext() {
+        // Non-ASCII content in inline code should also NOT get language-plaintext
+        let html = markdown_to_html("Use `einrichten` to configure.\n");
+        assert!(
+            html.contains("<code class=\"highlighter-rouge\">einrichten</code>"),
+            "Unicode inline code should have highlighter-rouge without language-plaintext. Got: {}",
             html
         );
     }
