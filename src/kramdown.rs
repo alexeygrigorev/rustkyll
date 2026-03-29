@@ -689,6 +689,7 @@ pub fn postprocess_with_options(html: &str, indent_lists: bool) -> String {
         html
     };
     let html = strip_paragraphs_in_html_blocks(&html);
+    let html = unwrap_block_elements_from_p(&html);
     let html = encode_bare_ampersands(&html);
     // Issue 330: Use different heading ID generation for kramdown vs CommonMarkGhPages.
     // indent_lists=true means kramdown mode, false means CommonMarkGhPages.
@@ -3337,6 +3338,71 @@ fn strip_p_in_tag(html: &str, tag: &str) -> String {
     result
 }
 
+/// Unwrap block-level HTML elements that pulldown-cmark erroneously wraps in
+/// `<p>` tags. For example, `<p><noscript>...</noscript>\n</p>` becomes
+/// `<noscript>...</noscript>`.
+///
+/// This happens when raw HTML block elements (like `<noscript>`) appear in
+/// markdown content after Liquid preprocessing (e.g., from `{% gist %}` tags).
+/// pulldown-cmark does not recognize all HTML5 block elements and wraps them
+/// in paragraph tags.
+fn unwrap_block_elements_from_p(html: &str) -> String {
+    /// Block-level tags that should never appear inside `<p>`.
+    const UNWRAP_TAGS: &[&str] = &["noscript"];
+
+    let mut result = html.to_string();
+    for &tag in UNWRAP_TAGS {
+        let open_tag = format!("<{}", tag);
+        let close_tag = format!("</{}>", tag);
+        let mut search_from = 0;
+        loop {
+            // Find `<p>` followed by our block tag
+            let haystack = &result[search_from..];
+            let Some(rel_pos) = haystack.find("<p>") else {
+                break;
+            };
+            let p_pos = search_from + rel_pos;
+            let after_p_start = p_pos + 3; // len("<p>")
+            let after_p = &result[after_p_start..];
+
+            // Check if immediately followed by our block tag (no whitespace)
+            if !after_p.starts_with(&open_tag) {
+                search_from = after_p_start;
+                continue;
+            }
+
+            // Find the closing tag
+            let Some(close_rel) = after_p.find(&close_tag) else {
+                search_from = after_p_start;
+                continue;
+            };
+            let close_end = after_p_start + close_rel + close_tag.len();
+            let after_close = &result[close_end..];
+
+            // Check for </p> after the close tag (with optional newline)
+            let trimmed = after_close.trim_start_matches('\n');
+            if !trimmed.starts_with("</p>") {
+                search_from = after_p_start;
+                continue;
+            }
+            let p_close_end = result.len() - trimmed.len() + 4; // len("</p>")
+
+            // Extract the block content (without the <p>...</p> wrapper)
+            // Also collapse any newline before the closing tag that pulldown-cmark inserts
+            let block_content =
+                result[after_p_start..close_end].replace(&format!("\n{}", close_tag), &close_tag);
+            result = format!(
+                "{}{}{}",
+                &result[..p_pos],
+                &block_content,
+                &result[p_close_end..]
+            );
+            // Don't advance search_from -- there may be more instances
+        }
+    }
+    result
+}
+
 /// Find the position of the matching closing tag, handling nesting.
 /// Returns the byte offset within `inner` where the closing tag starts.
 fn find_matching_close(inner: &str, tag: &str) -> Option<usize> {
@@ -4689,6 +4755,7 @@ fn wrap_bare_text_in_paragraphs(html: &str) -> String {
         "dd",
         "dt",
         "script",
+        "noscript",
     ];
 
     /// Block-level tags (includes void/self-closing like hr).
@@ -4730,6 +4797,7 @@ fn wrap_bare_text_in_paragraphs(html: &str) -> String {
         "dt",
         "p",
         "script",
+        "noscript",
     ];
 
     let lines: Vec<&str> = html.split('\n').collect();
@@ -5124,6 +5192,12 @@ fn add_block_spacing(html: &str) -> String {
                 if result.ends_with("</code></pre>") || result.ends_with("</pre></div>") {
                     continue; // Skip spacing -- keep tags on same line
                 }
+            }
+
+            // Do NOT add spacing after </pre> when immediately followed by </noscript>.
+            // The gist tag produces <noscript><pre>...</pre></noscript> as a single unit.
+            if remaining.starts_with("</noscript>") && result.ends_with("</pre>") {
+                continue;
             }
 
             // Add extra newline if not already followed by two newlines,
@@ -14320,6 +14394,63 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             !result.contains("{:"),
             "IAL paragraph should be removed. Got: {}",
+            result
+        );
+    }
+
+    // --- Gist noscript unwrap tests ---
+
+    #[test]
+    fn test_unwrap_noscript_from_p() {
+        let input = "<p><noscript><pre>400: Invalid request</pre>\n</noscript></p>";
+        let result = unwrap_block_elements_from_p(input);
+        assert_eq!(
+            result, "<noscript><pre>400: Invalid request</pre></noscript>",
+            "noscript should be unwrapped from p tags"
+        );
+    }
+
+    #[test]
+    fn test_unwrap_noscript_preserves_surrounding() {
+        let input = "<p>before</p>\n<p><noscript><pre>400</pre>\n</noscript></p>\n<p>after</p>";
+        let result = unwrap_block_elements_from_p(input);
+        assert!(
+            result.contains("<p>before</p>"),
+            "content before should be preserved: {}",
+            result
+        );
+        assert!(
+            result.contains("<p>after</p>"),
+            "content after should be preserved: {}",
+            result
+        );
+        assert!(
+            !result.contains("<p><noscript>"),
+            "noscript should not be inside p: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_unwrap_noscript_no_false_positive() {
+        // Normal <p> tags should not be affected
+        let input = "<p>Hello world</p>";
+        let result = unwrap_block_elements_from_p(input);
+        assert_eq!(result, input, "normal p tags should be unchanged");
+    }
+
+    #[test]
+    fn test_unwrap_noscript_unicode_content() {
+        let input = "<p><noscript><pre>Fehler: Ung\u{00fc}ltig</pre>\n</noscript></p>";
+        let result = unwrap_block_elements_from_p(input);
+        assert!(
+            result.contains("Ung\u{00fc}ltig"),
+            "unicode content should be preserved: {}",
+            result
+        );
+        assert!(
+            !result.contains("<p><noscript>"),
+            "noscript should be unwrapped: {}",
             result
         );
     }

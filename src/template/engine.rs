@@ -1151,32 +1151,39 @@ fn preprocess_jekyll_tags(template: &str) -> String {
             {
                 // {% link _pages/file.md %} -> /pages/file (collection) or /file.html (root)
                 let path = path.trim().trim_matches('"').trim_matches('\'');
-                // Check if the path starts with _ (collection document)
-                let is_collection = path.starts_with('_');
-                // Strip leading underscore-prefixed directory (e.g., _pages/ -> pages/)
-                let url_path = if let Some(stripped) = path.strip_prefix('_') {
-                    stripped
+
+                // Special handling for _posts/: resolve using the permalink pattern
+                if let Some(post_path) = path.strip_prefix("_posts/") {
+                    let url_path = resolve_link_post_url(post_path);
+                    result.push_str(&url_path);
                 } else {
-                    path
-                };
-                // For collection docs: strip .md or .html extension entirely
-                // For root pages: convert .md to .html, keep .html as-is
-                let url_path = if let Some(stem) = url_path.strip_suffix(".md") {
-                    if is_collection {
-                        format!("/{}", stem)
+                    // Check if the path starts with _ (collection document)
+                    let is_collection = path.starts_with('_');
+                    // Strip leading underscore-prefixed directory (e.g., _pages/ -> pages/)
+                    let url_path = if let Some(stripped) = path.strip_prefix('_') {
+                        stripped
                     } else {
-                        format!("/{}.html", stem)
-                    }
-                } else if let Some(stem) = url_path.strip_suffix(".html") {
-                    if is_collection {
-                        format!("/{}", stem)
+                        path
+                    };
+                    // For collection docs: strip .md or .html extension entirely
+                    // For root pages: convert .md to .html, keep .html as-is
+                    let url_path = if let Some(stem) = url_path.strip_suffix(".md") {
+                        if is_collection {
+                            format!("/{}", stem)
+                        } else {
+                            format!("/{}.html", stem)
+                        }
+                    } else if let Some(stem) = url_path.strip_suffix(".html") {
+                        if is_collection {
+                            format!("/{}", stem)
+                        } else {
+                            format!("/{}", url_path)
+                        }
                     } else {
                         format!("/{}", url_path)
-                    }
-                } else {
-                    format!("/{}", url_path)
-                };
-                result.push_str(&url_path);
+                    };
+                    result.push_str(&url_path);
+                }
             } else if let Some(slug) = trimmed
                 .strip_prefix("post_url")
                 .filter(|rest| rest.starts_with(char::is_whitespace))
@@ -1197,8 +1204,14 @@ fn preprocess_jekyll_tags(template: &str) -> String {
                     // Fallback: just use slug as path
                     result.push_str(&format!("/{}", slug));
                 }
+            } else if let Some(args) = trimmed
+                .strip_prefix("gist")
+                .filter(|rest| rest.is_empty() || rest.starts_with(char::is_whitespace))
+            {
+                // {% gist 5555251 gist.md %} -> <noscript>...<script>...
+                result.push_str(&super::gist_tag::render_gist(args));
             } else {
-                // Not a link/post_url tag, keep original
+                // Not a link/post_url/gist tag, keep original
                 result.push_str(&remaining[start..tag_end]);
             }
 
@@ -1211,6 +1224,45 @@ fn preprocess_jekyll_tags(template: &str) -> String {
 
     result.push_str(remaining);
     result
+}
+
+/// Resolve a `{% link _posts/YYYY-MM-DD-title.md %}` to its URL using the
+/// global post permalink pattern. Extracts date and title from the filename
+/// and substitutes them into the pattern.
+fn resolve_link_post_url(post_filename: &str) -> String {
+    // Strip .md or .html extension
+    let stem = post_filename
+        .strip_suffix(".md")
+        .or_else(|| post_filename.strip_suffix(".html"))
+        .unwrap_or(post_filename);
+
+    // Parse YYYY-MM-DD-title format
+    if stem.len() > 10
+        && stem.as_bytes().get(4) == Some(&b'-')
+        && stem.as_bytes().get(7) == Some(&b'-')
+    {
+        let year = &stem[0..4];
+        let month = &stem[5..7];
+        let day = &stem[8..10];
+        let title = &stem[11..];
+
+        let pattern = crate::frontmatter::get_post_permalink_pattern();
+        // Apply the permalink pattern
+        let url = pattern
+            .replace(":year", year)
+            .replace(":month", month)
+            .replace(":day", day)
+            .replace(":title", title)
+            .replace(":categories", ""); // no category info available here
+
+        // Clean up double slashes from empty :categories
+        // Remove trailing .html if the pattern includes it but the result
+        // shouldn't have it (e.g., /posts/:title doesn't end with .html)
+        url.replace("//", "/")
+    } else {
+        // Fallback: strip extension and use as-is
+        format!("/posts/{}", stem)
+    }
 }
 
 /// Pre-process Liquid templates to add nil guards around `contains` operators.
@@ -4401,6 +4453,30 @@ title: "Test Book"
         // Nested paths within collection
         let result = preprocess_jekyll_tags(r#"{% link _notes/2018/my-note.md %}"#);
         assert_eq!(result, "/notes/2018/my-note");
+    }
+
+    #[test]
+    fn test_link_tag_posts_uses_permalink_pattern() {
+        // Test /posts/:title pattern (like muan-blog)
+        crate::frontmatter::set_post_permalink_pattern("/posts/:title");
+        let result = preprocess_jekyll_tags(r#"{% link _posts/2020-06-06-reparations.md %}"#);
+        assert_eq!(result, "/posts/reparations");
+
+        // Also test with a different post
+        let result2 = preprocess_jekyll_tags(r#"{% link _posts/2024-11-02-javascript.md %}"#);
+        assert_eq!(result2, "/posts/javascript");
+
+        // Test date-based permalink pattern
+        crate::frontmatter::set_post_permalink_pattern(
+            "/:categories/:year/:month/:day/:title.html",
+        );
+        let result3 = preprocess_jekyll_tags(r#"{% link _posts/2024-11-02-javascript.md %}"#);
+        assert_eq!(result3, "/2024/11/02/javascript.html");
+
+        // Restore default-like pattern to avoid affecting other tests
+        crate::frontmatter::set_post_permalink_pattern(
+            "/:categories/:year/:month/:day/:title.html",
+        );
     }
 
     // ========================================================================

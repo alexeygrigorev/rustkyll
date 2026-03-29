@@ -15,6 +15,7 @@ pub mod engine;
 pub mod error;
 pub mod feed_meta_tag;
 pub mod filters;
+pub mod gist_tag;
 pub mod highlight_tag;
 pub mod include_tag;
 pub mod layout;

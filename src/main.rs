@@ -492,11 +492,24 @@ fn build_site(
     // CommonMark sites should NOT indent <li> elements in the markdownify path.
     rustkyll::frontmatter::set_markdownify_indent_lists(is_kramdown);
 
+    // Set markdownify inline code class mode.
+    // CommonMark sites should NOT add highlighter-rouge class to inline <code>.
+    rustkyll::frontmatter::set_markdownify_code_classes(is_kramdown);
+
     // Issue 223: Enable HARDBREAKS if the site config has commonmark.options: ["HARDBREAKS"]
     layout_engine.set_hardbreaks(config.has_commonmark_hardbreaks());
 
     // Issue 294: Enable autolink if the site config has commonmark.extensions: ["autolink"]
-    layout_engine.set_autolink(config.has_commonmark_autolink());
+    let has_autolink = config.has_commonmark_autolink();
+    layout_engine.set_autolink(has_autolink);
+
+    // Also enable autolink in the markdownify filter for CommonMark sites.
+    rustkyll::frontmatter::set_markdownify_autolink(has_autolink);
+
+    // Set post permalink pattern for {% link _posts/... %} resolution.
+    // Expand named styles (e.g., "date" -> "/:categories/:year/:month/:day/:title.html")
+    let expanded_permalink = rustkyll::collection::expand_permalink_style(&config.permalink);
+    rustkyll::frontmatter::set_post_permalink_pattern(expanded_permalink);
 
     // 7b. Pre-render collection items that contain Liquid tags (e.g.,
     // `{% include links.html %}` in posts). This ensures `item.html_content`
@@ -727,6 +740,17 @@ fn build_site(
         rendered_content_cache = cache;
     }
 
+    // 9b. Update post html_content with rendered content from generation cache.
+    // Must happen BEFORE pagination (step 10b) so that paginator.posts has
+    // the Liquid-processed content (e.g., {% gist %} tags rendered to HTML).
+    if let Some(posts) = collections.get_mut("posts") {
+        for item in posts.iter_mut() {
+            if let Some(rendered) = rendered_content_cache.get(&item.source_path) {
+                item.html_content = rendered.clone();
+            }
+        }
+    }
+
     // 10. Generate standalone pages (avoid cloning: pass slice directly)
     // When pagination is enabled, skip the index page from normal rendering
     // because it will be rendered with the paginator variable in step 10b.
@@ -867,17 +891,7 @@ fn build_site(
     progress.phase_done(&format!("Copying static files... {} files", static_count));
     summary.timing.static_files = phase_start.elapsed();
 
-    // 12. Update post html_content with rendered content from generation cache.
-    // During generation, posts with Liquid tags had their content rendered through
-    // Liquid+markdown. The intermediate HTML was cached to avoid this redundant
-    // re-render step (which previously took ~0.14s for DTC).
-    if let Some(posts) = collections.get_mut("posts") {
-        for item in posts.iter_mut() {
-            if let Some(rendered) = rendered_content_cache.get(&item.source_path) {
-                item.html_content = rendered.clone();
-            }
-        }
-    }
+    // 12. (moved to step 9b -- post html_content is already updated before pagination)
 
     // 13. Generate sitemap.xml and feed.xml
     progress.phase("Generating sitemap...");
