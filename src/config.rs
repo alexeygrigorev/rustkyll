@@ -182,6 +182,78 @@ impl Default for SiteConfig {
     }
 }
 
+/// Check whether a scope path matches an item path.
+///
+/// Jekyll uses `File.fnmatch` with `FNM_PATHNAME` for defaults path matching.
+/// If the scope path contains glob metacharacters (`*`, `?`, `[`), it is
+/// treated as a glob pattern where `*` matches any characters except `/`.
+/// Otherwise, the scope path is treated as a prefix (the original behavior).
+fn scope_path_matches(scope_path: &str, item_path: &str) -> bool {
+    if scope_path.is_empty() {
+        return true;
+    }
+    if scope_path.contains('*') || scope_path.contains('?') || scope_path.contains('[') {
+        fnmatch_pathname(scope_path, item_path)
+    } else {
+        item_path.starts_with(scope_path)
+    }
+}
+
+/// Simple fnmatch implementation with FNM_PATHNAME semantics.
+///
+/// `*` matches zero or more characters except `/`.
+/// `?` matches exactly one character except `/`.
+/// All other characters match literally.
+fn fnmatch_pathname(pattern: &str, text: &str) -> bool {
+    let pat: Vec<char> = pattern.chars().collect();
+    let txt: Vec<char> = text.chars().collect();
+    fnmatch_rec(&pat, &txt)
+}
+
+fn fnmatch_rec(pat: &[char], txt: &[char]) -> bool {
+    match (pat.first(), txt.first()) {
+        (None, None) => true,
+        (None, Some(_)) => false,
+        (Some('*'), _) => {
+            // Try matching zero characters, then one, two, etc. (but not across '/')
+            // First, skip consecutive stars
+            let rest_pat = &pat[1..];
+            // Match zero characters
+            if fnmatch_rec(rest_pat, txt) {
+                return true;
+            }
+            // Match one or more characters (not '/')
+            for i in 0..txt.len() {
+                if txt[i] == '/' {
+                    break;
+                }
+                if fnmatch_rec(rest_pat, &txt[i + 1..]) {
+                    return true;
+                }
+            }
+            false
+        }
+        (Some('?'), Some(c)) => {
+            if *c == '/' {
+                false
+            } else {
+                fnmatch_rec(&pat[1..], &txt[1..])
+            }
+        }
+        (Some(p), Some(t)) => {
+            if p == t {
+                fnmatch_rec(&pat[1..], &txt[1..])
+            } else {
+                false
+            }
+        }
+        (Some(_), None) => {
+            // Pattern remaining but text exhausted -- only match if rest is all stars
+            pat.iter().all(|c| *c == '*')
+        }
+    }
+}
+
 /// Compute a specificity score for a default scope, matching Jekyll's behavior.
 ///
 /// Jekyll applies defaults from least specific to most specific, so that more
@@ -263,8 +335,8 @@ impl SiteConfig {
                 continue;
             }
 
-            // Empty path matches everything; non-empty path is a prefix match
-            if !default.scope.path.is_empty() && !item_path.starts_with(&default.scope.path) {
+            // Empty path matches everything; non-empty path uses prefix or glob match
+            if !scope_path_matches(&default.scope.path, item_path) {
                 continue;
             }
 
@@ -308,8 +380,8 @@ impl SiteConfig {
                 continue;
             }
 
-            // Empty path matches everything; non-empty path is a prefix match
-            if !default.scope.path.is_empty() && !item_path.starts_with(&default.scope.path) {
+            // Empty path matches everything; non-empty path uses prefix or glob match
+            if !scope_path_matches(&default.scope.path, item_path) {
                 continue;
             }
 
@@ -1649,6 +1721,118 @@ markdown: CommonMarkGhPages
             !config.has_commonmark_autolink(),
             "Should return false when markdown defaults to kramdown"
         );
+    }
+
+    // ========================================================================
+    // Issue 498: Glob patterns in defaults path scope
+    // ========================================================================
+
+    #[test]
+    fn test_scope_path_glob_single_star_matches_page() {
+        let yaml = r#"
+defaults:
+  - scope:
+      path: "snippets/*/*.md"
+      type: "pages"
+    values:
+      layout: "snippet"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let defaults = config.defaults_for_page("snippets/ai/toyaikit-loop.md");
+        assert_eq!(
+            defaults.get("layout").and_then(|v| v.as_str()),
+            Some("snippet"),
+            "glob pattern snippets/*/*.md should match snippets/ai/toyaikit-loop.md"
+        );
+    }
+
+    #[test]
+    fn test_scope_path_glob_readme_overrides_generic() {
+        let yaml = r#"
+defaults:
+  - scope:
+      path: "snippets/*/*.md"
+      type: "pages"
+    values:
+      layout: "snippet"
+  - scope:
+      path: "snippets/*/README.md"
+      type: "pages"
+    values:
+      layout: "category"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        // README.md should get category layout (more specific glob)
+        let readme_defaults = config.defaults_for_page("snippets/ai/README.md");
+        assert_eq!(
+            readme_defaults.get("layout").and_then(|v| v.as_str()),
+            Some("category"),
+            "README.md should match the more specific glob pattern"
+        );
+        // Non-README should get snippet layout
+        let snippet_defaults = config.defaults_for_page("snippets/ai/toyaikit-loop.md");
+        assert_eq!(
+            snippet_defaults.get("layout").and_then(|v| v.as_str()),
+            Some("snippet"),
+            "regular snippet should match the generic glob pattern"
+        );
+    }
+
+    #[test]
+    fn test_scope_path_glob_no_match_different_depth() {
+        let yaml = r#"
+defaults:
+  - scope:
+      path: "snippets/*/*.md"
+      type: "pages"
+    values:
+      layout: "snippet"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        // Three levels deep should NOT match single-star glob
+        let defaults = config.defaults_for_page("snippets/ai/sub/deep.md");
+        assert!(
+            defaults.is_empty(),
+            "snippets/*/*.md should not match three levels deep"
+        );
+    }
+
+    #[test]
+    fn test_scope_path_glob_collection_defaults_for() {
+        let yaml = r#"
+defaults:
+  - scope:
+      path: "special/*/*.md"
+      type: "posts"
+    values:
+      layout: "special-post"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let defaults = config.defaults_for("posts", "special/featured/my-post.md");
+        assert_eq!(
+            defaults.get("layout").and_then(|v| v.as_str()),
+            Some("special-post"),
+            "glob in defaults_for should also work"
+        );
+    }
+
+    #[test]
+    fn test_scope_path_glob_star_does_not_match_slash() {
+        let yaml = r#"
+defaults:
+  - scope:
+      path: "docs/*.md"
+      type: "pages"
+    values:
+      layout: "doc"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        // Should match one level
+        let defaults = config.defaults_for_page("docs/intro.md");
+        assert_eq!(defaults.get("layout").and_then(|v| v.as_str()), Some("doc"));
+        // Should NOT match deeper paths (star doesn't cross directory boundaries)
+        let defaults2 = config.defaults_for_page("docs/api/intro.md");
+        assert!(defaults2.is_empty(), "* should not match across /");
     }
 
     #[test]
