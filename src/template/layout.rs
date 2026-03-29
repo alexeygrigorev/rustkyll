@@ -220,16 +220,16 @@ impl LayoutEngine {
 
     /// Internal render with layout chaining support.
     ///
-    /// `child_layout_name` tracks the previous (inner) layout in the chain so
-    /// that the parent layout sees the child's front matter as `layout.*`,
-    /// matching Jekyll's behavior.
+    /// Jekyll deep-merges the current layout's front matter into the accumulated
+    /// layout data from child layouts (child keys win on conflict).
+    /// `accumulated_layout_obj` carries the merged layout data up the chain.
     fn render_chained(
         &self,
         layout_name: &str,
         content: &str,
         page_front_matter: &FrontMatter,
         site_context: &Object,
-        child_layout_name: Option<&str>,
+        accumulated_layout_obj: Option<Object>,
     ) -> Result<String, TemplateError> {
         let layout = self
             .layouts
@@ -237,17 +237,21 @@ impl LayoutEngine {
             .ok_or_else(|| TemplateError::LayoutNotFound(layout_name.to_string()))?;
 
         let mut ctx = build_render_context(content, page_front_matter, site_context);
-        // Jekyll exposes the child layout's front matter as layout.* in the
-        // parent layout.  On the first call (no child), use the current layout.
-        let layout_obj_key = child_layout_name.unwrap_or(layout_name);
+        // Jekyll: payload["layout"] = deep_merge(layout.data, payload["layout"] || {})
+        // Current layout's keys are the master (base), child's accumulated keys overwrite.
+        let current_obj = self
+            .layout_objects
+            .get(layout_name)
+            .cloned()
+            .unwrap_or_default();
+        let merged_layout_obj = if let Some(ref child_obj) = accumulated_layout_obj {
+            deep_merge_objects(&current_obj, child_obj)
+        } else {
+            current_obj
+        };
         ctx.insert(
             "layout".into(),
-            LiquidValue::Object(
-                self.layout_objects
-                    .get(layout_obj_key)
-                    .cloned()
-                    .unwrap_or_default(),
-            ),
+            LiquidValue::Object(merged_layout_obj.clone()),
         );
 
         // Use pre-compiled template if available, otherwise parse on the fly
@@ -264,7 +268,7 @@ impl LayoutEngine {
                 &result,
                 page_front_matter,
                 site_context,
-                Some(layout_name),
+                Some(merged_layout_obj),
             )
         } else {
             Ok(result)
@@ -334,18 +338,15 @@ impl LayoutEngine {
 
     /// Like render_with_cached_site but takes ownership of a pre-built page Object.
     ///
-    /// `child_layout_name` is the layout that was rendered in the previous step of
-    /// the chain.  In Jekyll the `layout` Liquid variable inside a parent layout
-    /// exposes the **child** layout's front matter, not the current layout's own
-    /// front matter.  On the very first call (page -> innermost layout) there is
-    /// no child yet, so we pass `None` and fall back to the current layout.
+    /// Jekyll deep-merges the current layout's front matter into the accumulated
+    /// layout data from child layouts (child keys win on conflict).
     fn render_with_cached_site_prebuilt(
         &self,
         layout_name: &str,
         content: &str,
         page_obj: Object,
         cached_site: &CachedSiteContext,
-        child_layout_name: Option<&str>,
+        accumulated_layout_obj: Option<Object>,
     ) -> Result<String, TemplateError> {
         let layout = self
             .layouts
@@ -359,18 +360,20 @@ impl LayoutEngine {
             None
         };
         let mut ctx = build_render_context_from_page_object(content, page_obj);
-        // Jekyll exposes the child layout's front matter as the `layout` variable
-        // inside a parent layout.  When there is no child (first call), use the
-        // current layout's own front matter.
-        let layout_obj_key = child_layout_name.unwrap_or(layout_name);
+        // Jekyll: payload["layout"] = deep_merge(layout.data, payload["layout"] || {})
+        let current_obj = self
+            .layout_objects
+            .get(layout_name)
+            .cloned()
+            .unwrap_or_default();
+        let merged_layout_obj = if let Some(ref child_obj) = accumulated_layout_obj {
+            deep_merge_objects(&current_obj, child_obj)
+        } else {
+            current_obj
+        };
         ctx.insert(
             "layout".into(),
-            LiquidValue::Object(
-                self.layout_objects
-                    .get(layout_obj_key)
-                    .cloned()
-                    .unwrap_or_default(),
-            ),
+            LiquidValue::Object(merged_layout_obj.clone()),
         );
 
         let result = if let Some(compiled) = self.compiled_layouts.get(layout_name) {
@@ -387,7 +390,7 @@ impl LayoutEngine {
                 &result,
                 page_obj_for_chaining.unwrap(),
                 cached_site,
-                Some(layout_name),
+                Some(merged_layout_obj),
             )
         } else {
             Ok(result)
@@ -407,7 +410,7 @@ impl LayoutEngine {
         page_obj: Object,
         cached_site: &CachedSiteContext,
         site_overrides: &HashMap<String, super::engine::LenientValue>,
-        child_layout_name: Option<&str>,
+        accumulated_layout_obj: Option<Object>,
     ) -> Result<String, TemplateError> {
         let layout = self
             .layouts
@@ -421,15 +424,20 @@ impl LayoutEngine {
             None
         };
         let mut ctx = build_render_context_from_page_object(content, page_obj);
-        let layout_obj_key = child_layout_name.unwrap_or(layout_name);
+        // Jekyll: payload["layout"] = deep_merge(layout.data, payload["layout"] || {})
+        let current_obj = self
+            .layout_objects
+            .get(layout_name)
+            .cloned()
+            .unwrap_or_default();
+        let merged_layout_obj = if let Some(ref child_obj) = accumulated_layout_obj {
+            deep_merge_objects(&current_obj, child_obj)
+        } else {
+            current_obj
+        };
         ctx.insert(
             "layout".into(),
-            LiquidValue::Object(
-                self.layout_objects
-                    .get(layout_obj_key)
-                    .cloned()
-                    .unwrap_or_default(),
-            ),
+            LiquidValue::Object(merged_layout_obj.clone()),
         );
         let result = if let Some(compiled) = self.compiled_layouts.get(layout_name) {
             self.engine
@@ -449,7 +457,7 @@ impl LayoutEngine {
                 page_obj_for_chaining.unwrap(),
                 cached_site,
                 site_overrides,
-                Some(layout_name),
+                Some(merged_layout_obj),
             )
         } else {
             Ok(result)
@@ -565,6 +573,25 @@ impl LayoutEngine {
         cached_site: &CachedSiteContext,
         paginator: &LiquidValue,
     ) -> Result<String, TemplateError> {
+        self.render_with_paginator_chained(
+            layout_name,
+            content,
+            page_front_matter,
+            cached_site,
+            paginator,
+            None,
+        )
+    }
+
+    fn render_with_paginator_chained(
+        &self,
+        layout_name: &str,
+        content: &str,
+        page_front_matter: &FrontMatter,
+        cached_site: &CachedSiteContext,
+        paginator: &LiquidValue,
+        accumulated_layout_obj: Option<Object>,
+    ) -> Result<String, TemplateError> {
         let layout = self
             .layouts
             .get(layout_name)
@@ -572,14 +599,20 @@ impl LayoutEngine {
 
         let mut ctx = build_render_context_page_only(content, page_front_matter);
         ctx.insert("paginator".into(), paginator.clone());
+        // Jekyll: payload["layout"] = deep_merge(layout.data, payload["layout"] || {})
+        let current_obj = self
+            .layout_objects
+            .get(layout_name)
+            .cloned()
+            .unwrap_or_default();
+        let merged_layout_obj = if let Some(ref child_obj) = accumulated_layout_obj {
+            deep_merge_objects(&current_obj, child_obj)
+        } else {
+            current_obj
+        };
         ctx.insert(
             "layout".into(),
-            LiquidValue::Object(
-                self.layout_objects
-                    .get(layout_name)
-                    .cloned()
-                    .unwrap_or_default(),
-            ),
+            LiquidValue::Object(merged_layout_obj.clone()),
         );
 
         let result = if let Some(compiled) = self.compiled_layouts.get(layout_name) {
@@ -592,12 +625,13 @@ impl LayoutEngine {
 
         if let Some(ref parent_name) = layout.parent_layout {
             // Propagate paginator through the layout chain
-            self.render_with_paginator(
+            self.render_with_paginator_chained(
                 parent_name,
                 &result,
                 page_front_matter,
                 cached_site,
                 paginator,
+                Some(merged_layout_obj),
             )
         } else {
             Ok(result)
@@ -617,20 +651,45 @@ impl LayoutEngine {
         extra_page_fields: &[(String, LiquidValue)],
         cached_site: &CachedSiteContext,
     ) -> Result<String, TemplateError> {
+        self.render_with_extra_page_fields_chained(
+            layout_name,
+            content,
+            page_front_matter,
+            extra_page_fields,
+            cached_site,
+            None,
+        )
+    }
+
+    fn render_with_extra_page_fields_chained(
+        &self,
+        layout_name: &str,
+        content: &str,
+        page_front_matter: &FrontMatter,
+        extra_page_fields: &[(String, LiquidValue)],
+        cached_site: &CachedSiteContext,
+        accumulated_layout_obj: Option<Object>,
+    ) -> Result<String, TemplateError> {
         let layout = self
             .layouts
             .get(layout_name)
             .ok_or_else(|| TemplateError::LayoutNotFound(layout_name.to_string()))?;
 
         let mut ctx = build_render_context_page_only(content, page_front_matter);
+        // Jekyll: payload["layout"] = deep_merge(layout.data, payload["layout"] || {})
+        let current_obj = self
+            .layout_objects
+            .get(layout_name)
+            .cloned()
+            .unwrap_or_default();
+        let merged_layout_obj = if let Some(ref child_obj) = accumulated_layout_obj {
+            deep_merge_objects(&current_obj, child_obj)
+        } else {
+            current_obj
+        };
         ctx.insert(
             "layout".into(),
-            LiquidValue::Object(
-                self.layout_objects
-                    .get(layout_name)
-                    .cloned()
-                    .unwrap_or_default(),
-            ),
+            LiquidValue::Object(merged_layout_obj.clone()),
         );
 
         // Inject extra fields into the page object
@@ -650,12 +709,13 @@ impl LayoutEngine {
         };
 
         if let Some(ref parent_name) = layout.parent_layout {
-            self.render_with_extra_page_fields(
+            self.render_with_extra_page_fields_chained(
                 parent_name,
                 &result,
                 page_front_matter,
                 extra_page_fields,
                 cached_site,
+                Some(merged_layout_obj),
             )
         } else {
             Ok(result)
@@ -1107,6 +1167,36 @@ fn extract_layout_front_matter(
     }
 
     (None, HashMap::new(), source.to_string())
+}
+
+/// Deep-merge two Liquid Objects, matching Jekyll's `Utils.deep_merge_hashes`.
+///
+/// `master` is the current layout's front matter object.
+/// `overwrite` is the accumulated layout data from child layouts.
+/// The overwrite (child) wins on non-nil scalar conflicts; nested Objects
+/// are merged recursively.
+fn deep_merge_objects(master: &Object, overwrite: &Object) -> Object {
+    let mut result = master.clone();
+    for (key, ow_val) in overwrite {
+        if let Some(existing) = result.get(key) {
+            // Both have the key -- check if we can deep-merge
+            if let (LiquidValue::Object(existing_obj), LiquidValue::Object(ow_obj)) =
+                (existing, ow_val)
+            {
+                result.insert(
+                    key.clone(),
+                    LiquidValue::Object(deep_merge_objects(existing_obj, ow_obj)),
+                );
+            } else {
+                // Scalar conflict: overwrite (child) wins
+                result.insert(key.clone(), ow_val.clone());
+            }
+        } else {
+            // Key only in overwrite -- add it
+            result.insert(key.clone(), ow_val.clone());
+        }
+    }
+    result
 }
 
 /// Build a Liquid Object from a layout's front matter for use as the `layout`
@@ -4263,11 +4353,9 @@ mod tests {
         // Inner layout "post" has author_profile: true, chains to "base"
         // Base layout "base" has nav_enabled: false
         //
-        // Jekyll behavior: in the parent layout, `layout` refers to the CHILD
-        // layout's front matter, not the current layout's own front matter.
-        // So when "base" renders wrapping "post"'s output, `layout` is "post"'s
-        // front matter.  This means `layout.nav_enabled` is nil in "base",
-        // and `layout.author_profile` is true.
+        // Jekyll behavior: deep_merge(current_layout.data, accumulated_child_data).
+        // The current layout's keys are the master, child keys overwrite on conflict.
+        // So "base" sees BOTH its own nav_enabled AND child's author_profile.
         let mut layouts = HashMap::new();
         layouts.insert(
             "post".to_string(),
@@ -4303,11 +4391,10 @@ mod tests {
             "Post layout should see author_profile=true, got: {}",
             result
         );
-        // In the parent "base" layout, `layout` is "post"'s front matter,
-        // so nav_enabled is absent (nil -> empty string in Liquid).
+        // Jekyll deep-merges: base sees its own nav_enabled=false AND child's author_profile
         assert!(
-            result.contains("base:nav=|"),
-            "Base layout should see nav_enabled as nil (from post's front matter), got: {}",
+            result.contains("base:nav=false"),
+            "Base layout should see its own nav_enabled=false via deep merge, got: {}",
             result
         );
         // The parent "base" can still see the child layout's author_profile
@@ -4398,6 +4485,116 @@ mod tests {
         assert!(
             result.contains("outer:layout.layout=default"),
             "Outer layout should see child's layout.layout=default, got: {}",
+            result
+        );
+    }
+
+    // ========================================================================
+    // Jekyll deep-merges layout front matter in layout chains
+    // ========================================================================
+
+    #[test]
+    fn test_layout_chain_deep_merge_front_matter() {
+        // Jekyll's Renderer#render_layout does:
+        //   payload["layout"] = deep_merge(layout.data, payload["layout"] || {})
+        // This means the CURRENT layout's front matter is merged with the
+        // accumulated child layout data, and child keys win on conflict.
+        //
+        // Homebrew pattern: base.html has algolia.appId in its front matter,
+        // child "post" has only `layout: base`. The parent base layout must
+        // still see layout.algolia.appId from its own front matter.
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "post".to_string(),
+            Layout {
+                source: "post:{{ content }}".to_string(),
+                parent_layout: Some("base".to_string()),
+                front_matter: {
+                    let mut fm = HashMap::new();
+                    fm.insert(
+                        "layout".to_string(),
+                        serde_yaml::Value::String("base".to_string()),
+                    );
+                    fm
+                },
+            },
+        );
+        layouts.insert(
+            "base".to_string(),
+            Layout {
+                source: "base:appId={{ layout.algolia.appId }}|{{ content }}".to_string(),
+                parent_layout: None,
+                front_matter: {
+                    let mut fm = HashMap::new();
+                    let mut algolia = serde_yaml::Mapping::new();
+                    algolia.insert(
+                        serde_yaml::Value::String("appId".to_string()),
+                        serde_yaml::Value::String("D9HG3G8GS4".to_string()),
+                    );
+                    algolia.insert(
+                        serde_yaml::Value::String("indexName".to_string()),
+                        serde_yaml::Value::String("brew_all".to_string()),
+                    );
+                    fm.insert("algolia".to_string(), serde_yaml::Value::Mapping(algolia));
+                    fm
+                },
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+        let fm = FrontMatter::new();
+        let site = Object::new();
+        let result = engine.render("post", "body", &fm, &site).unwrap();
+        assert!(
+            result.contains("base:appId=D9HG3G8GS4"),
+            "Parent layout should see its own algolia.appId via deep merge, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_layout_chain_deep_merge_own_keys_visible() {
+        // When base has nav_enabled and child post does not, base should still
+        // see its own nav_enabled through deep merge.
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "post".to_string(),
+            Layout {
+                source: "post:author={{ layout.author_profile }}|{{ content }}".to_string(),
+                parent_layout: Some("base".to_string()),
+                front_matter: {
+                    let mut fm = HashMap::new();
+                    fm.insert("author_profile".to_string(), serde_yaml::Value::Bool(true));
+                    fm
+                },
+            },
+        );
+        layouts.insert(
+            "base".to_string(),
+            Layout {
+                source: "base:nav={{ layout.nav_enabled }}|author={{ layout.author_profile }}|{{ content }}".to_string(),
+                parent_layout: None,
+                front_matter: {
+                    let mut fm = HashMap::new();
+                    fm.insert("nav_enabled".to_string(), serde_yaml::Value::Bool(false));
+                    fm
+                },
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+        let fm = FrontMatter::new();
+        let site = Object::new();
+        let result = engine.render("post", "body", &fm, &site).unwrap();
+        // Jekyll deep-merges: base sees its own nav_enabled=false AND child's author_profile=true
+        assert!(
+            result.contains("base:nav=false"),
+            "Base layout should see its own nav_enabled=false via deep merge, got: {}",
+            result
+        );
+        assert!(
+            result.contains("author=true"),
+            "Base layout should also see child's author_profile=true, got: {}",
             result
         );
     }
