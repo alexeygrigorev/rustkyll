@@ -282,7 +282,10 @@ impl Renderable for SeoRenderable {
             page_title
         };
 
-        let site_title = get_nested_str(runtime, &["site", "title"]).map(|t| smartify(&t));
+        // Jekyll's jekyll-seo-tag uses site.title || site.name for site_title
+        let site_title = get_nested_str(runtime, &["site", "title"])
+            .or_else(|| get_nested_str(runtime, &["site", "name"]))
+            .map(|t| smartify(&t));
         let site_tagline = get_nested_str(runtime, &["site", "tagline"]);
         let page_description = get_nested_str(runtime, &["page", "description"]);
         let page_excerpt = get_nested_str(runtime, &["page", "excerpt"]);
@@ -618,6 +621,79 @@ impl Renderable for SeoRenderable {
                 "<meta property=\"article:publisher\" content=\"{}\" />\n",
                 html_escape(publisher)
             ));
+        }
+
+        // 13c. Webmaster verification tags (google, bing, alexa, yandex, baidu, facebook)
+        // Jekyll's jekyll-seo-tag supports both individual config keys and
+        // the consolidated site.webmaster_verifications hash.
+        let verification_tags: &[(&str, &str, &[&str])] = &[
+            (
+                "google-site-verification",
+                "content",
+                &["site", "google_site_verification"],
+            ),
+            (
+                "msvalidate.01",
+                "content",
+                &["site", "bing_site_verification"],
+            ),
+            (
+                "alexaVerifyID",
+                "content",
+                &["site", "alexa_site_verification"],
+            ),
+            (
+                "yandex-verification",
+                "content",
+                &["site", "yandex_site_verification"],
+            ),
+            (
+                "baidu-site-verification",
+                "content",
+                &["site", "baidu_site_verification"],
+            ),
+            ("fb:app_id", "content", &["site", "facebook", "app_id"]),
+        ];
+        for (meta_name, attr_name, path) in verification_tags {
+            if let Some(val) = get_nested_str(runtime, path) {
+                let tag_type = if meta_name.contains(':') {
+                    "property"
+                } else {
+                    "name"
+                };
+                output.push_str(&format!(
+                    "<meta {}=\"{}\" {}=\"{}\" />\n",
+                    tag_type,
+                    meta_name,
+                    attr_name,
+                    html_escape(&val)
+                ));
+            }
+        }
+        // Also support consolidated webmaster_verifications hash
+        let wm_keys: &[(&str, &str)] = &[
+            ("google", "google-site-verification"),
+            ("bing", "msvalidate.01"),
+            ("alexa", "alexaVerifyID"),
+            ("yandex", "yandex-verification"),
+            ("baidu", "baidu-site-verification"),
+            ("facebook", "fb:app_id"),
+        ];
+        for (wm_key, meta_name) in wm_keys {
+            if let Some(val) = get_nested_str(runtime, &["site", "webmaster_verifications", wm_key])
+            {
+                let tag_type = if meta_name.contains(':') {
+                    "property"
+                } else {
+                    "name"
+                };
+                output.push_str(&format!(
+                    "<meta {}=\"{}\" content=\"{}\" />\n",
+                    tag_type,
+                    meta_name,
+                    html_escape(&val)
+                ));
+            }
         }
 
         // 14. JSON-LD structured data
@@ -4442,6 +4518,88 @@ mod tests {
         assert!(
             out.contains("\"publisher\":{\"@type\":\"Organization\",\"logo\":{\"@type\":\"ImageObject\",\"url\":\"https://example.com/logo.png\"},\"name\":\"JohnDoe\"}"),
             "JSON-LD publisher should include author name in publisher object. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_seo_site_name_fallback_for_title() {
+        // When site.title is not set but site.name is, seo tag should use site.name
+        // as the site_title (matching jekyll-seo-tag behavior).
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        page.insert("title".into(), Value::scalar("About"));
+        page.insert("url".into(), Value::scalar("/about/"));
+        let mut site = Object::new();
+        site.insert(
+            "name".into(),
+            Value::scalar("Jekyll \u{2022} Simple, blog-aware, static sites"),
+        );
+        site.insert(
+            "url".into(),
+            Value::scalar("https://jekyllrb.com".to_string()),
+        );
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<title>About | Jekyll \u{2022} Simple, blog-aware, static sites</title>"),
+            "Title should include site.name as fallback. Got: {}",
+            out
+        );
+        assert!(
+            out.contains("og:site_name"),
+            "Should have og:site_name from site.name. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_seo_google_site_verification() {
+        // When site.google_site_verification is set, the seo tag should emit
+        // a google-site-verification meta tag.
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut site = Object::new();
+        site.insert("title".into(), Value::scalar("Test Site"));
+        site.insert(
+            "url".into(),
+            Value::scalar("https://example.com".to_string()),
+        );
+        site.insert(
+            "google_site_verification".into(),
+            Value::scalar("abc123def456"),
+        );
+        ctx.insert("site".into(), Value::Object(site));
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<meta name=\"google-site-verification\" content=\"abc123def456\" />"),
+            "Should emit google-site-verification meta tag. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_seo_no_verification_when_not_configured() {
+        // When no verification config is set, no verification meta tags should appear.
+        let eng = engine();
+        let ctx = make_context(
+            Some("Test"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            !out.contains("google-site-verification"),
+            "Should not emit google-site-verification when not configured. Got: {}",
             out
         );
     }

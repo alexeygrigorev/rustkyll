@@ -182,6 +182,25 @@ fn collect_all_source_paths(
     paths
 }
 
+/// Convert a slug to a title by replacing hyphens with spaces and capitalizing
+/// each word. Matches Jekyll's `Document#make_title_from_slug` behavior.
+/// E.g., "rendering-process" -> "Rendering Process"
+fn title_from_slug(slug: &str) -> String {
+    slug.split('-')
+        .map(|word| {
+            let mut chars = word.chars();
+            match chars.next() {
+                None => String::new(),
+                Some(c) => {
+                    let upper: String = c.to_uppercase().collect();
+                    upper + chars.as_str()
+                }
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 /// Run the full site build pipeline.
 /// Extract redirect URLs from a page/post's front matter.
 ///
@@ -348,6 +367,21 @@ fn build_site(
         collection::backfill_default_dates(items, &build_time, is_posts);
     }
 
+    // Issue 500: Jekyll infers title from slug for collection documents that have
+    // no explicit title in front matter. E.g., "rendering-process" -> "Rendering Process".
+    // This matches Jekyll's Document#make_title_from_slug behavior.
+    for items in collections.values_mut() {
+        for item in items.iter_mut() {
+            if !item.front_matter.contains_key("title") {
+                let title = title_from_slug(&item.slug);
+                if !title.is_empty() {
+                    item.front_matter
+                        .insert("title".to_string(), serde_yaml::Value::String(title));
+                }
+            }
+        }
+    }
+
     // Issue 354: Filter out future-dated posts (Jekyll defaults to future: false)
     let allow_future = config
         .extras
@@ -459,7 +493,7 @@ fn build_site(
     let layouts_dir = source.join("_layouts");
     let includes_dir = source.join("_includes");
 
-    let (site_context, layout_result) = rayon::join(
+    let (mut site_context, layout_result) = rayon::join(
         || {
             generator::build_site_context_with_static_files(
                 &config,
@@ -473,6 +507,17 @@ fn build_site(
         || LayoutEngine::new(&layouts_dir, &includes_dir),
     );
     let mut layout_engine = layout_result?;
+
+    // Issue 500: Expose config.repository as site.repository in Liquid context.
+    // The `repository` field is a named SiteConfig field (not in extras), so
+    // build_site_context doesn't automatically include it. Inject it here.
+    if let Some(ref repo) = config.repository {
+        site_context.insert(
+            "repository".into(),
+            liquid::model::Value::scalar(repo.clone()),
+        );
+    }
+
     summary.timing.context = phase_start_context.elapsed();
     // Layouts loaded in parallel, timing is subsumed by context.
     summary.timing.layouts = std::time::Duration::ZERO;
