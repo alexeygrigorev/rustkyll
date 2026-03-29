@@ -4200,6 +4200,33 @@ fn parse_ial_attributes(attr_str: &str) -> Vec<(String, String)> {
 // 2. Auto-generated heading IDs
 // ============================================================================
 
+/// Count the net change in `<div` open and `</div>` close tags in a slice.
+/// Returns the delta (opens minus closes). Used by `add_heading_ids` to track
+/// whether a heading is inside a raw HTML `<div>` block.
+fn count_div_depth_delta(text: &str) -> i32 {
+    let mut delta: i32 = 0;
+    let mut pos = 0;
+    let bytes = text.as_bytes();
+    while pos < bytes.len() {
+        if pos + 4 < bytes.len() && &bytes[pos..pos + 4] == b"<div" {
+            // Check it's actually a tag: next char should be '>', ' ', '\n', '\t', or '/'
+            let next = bytes.get(pos + 4).copied().unwrap_or(b'>');
+            if next == b'>' || next == b' ' || next == b'\n' || next == b'\t' {
+                delta += 1;
+                pos += 4;
+                continue;
+            }
+        }
+        if pos + 6 <= bytes.len() && &bytes[pos..pos + 6] == b"</div>" {
+            delta -= 1;
+            pos += 6;
+            continue;
+        }
+        pos += 1;
+    }
+    delta
+}
+
 /// Add auto-generated `id` attributes to heading tags.
 ///
 /// Matches kramdown's algorithm:
@@ -4211,12 +4238,18 @@ fn add_heading_ids(html: &str, mode: HeadingIdMode) -> String {
     let mut result = String::with_capacity(html.len());
     let mut used_ids: HashMap<String, usize> = HashMap::new();
     let mut remaining = html;
+    // Issue 526: Track div nesting depth so headings inside raw HTML <div> blocks
+    // (like note/warning boxes) don't get auto-generated IDs.
+    let mut div_depth: i32 = 0;
 
     while !remaining.is_empty() {
         // Find next heading tag
         if let Some(h_pos) = find_next_heading(remaining) {
             // Copy everything before the heading
-            result.push_str(&remaining[..h_pos]);
+            let before = &remaining[..h_pos];
+            // Issue 526: Update div nesting depth from content before this heading.
+            div_depth += count_div_depth_delta(before);
+            result.push_str(before);
 
             let after = &remaining[h_pos..];
             // Parse the heading tag: <hN> or <hN ...>
@@ -4271,10 +4304,18 @@ fn add_heading_ids(html: &str, mode: HeadingIdMode) -> String {
                     // Raw HTML headings passed through will already have
                     // attributes like class="...", so we skip those.
                     // Issue 320: data-md1-heading tags are treated as simple tags.
+                    // Issue 526: Skip headings inside raw HTML <div> blocks
+                    // (e.g., note/warning boxes). These are raw HTML that kramdown
+                    // passes through without adding IDs.
                     let is_simple_tag = tag == format!("<h{}>", level_char as char);
                     let is_md1_tag = tag == format!("<h{} data-md1-heading>", level_char as char);
+                    let inside_div = div_depth > 0;
                     if !is_simple_tag && !is_md1_tag {
                         // Has existing attributes or id -- leave as-is
+                        result.push_str(&after[..close_pos + close_tag.len()]);
+                    } else if inside_div && !is_md1_tag {
+                        // Issue 526: Heading inside a raw HTML <div> block --
+                        // leave as-is without adding an ID.
                         result.push_str(&after[..close_pos + close_tag.len()]);
                     } else if is_md1_tag {
                         // Issue 320: Strip data-md1-heading marker and add ID
@@ -8437,6 +8478,93 @@ on 20 Mar 2026
         assert!(
             result.contains("id=\"markdown-title\""),
             "Markdown heading should get auto-generated ID. Got: {}",
+            result
+        );
+    }
+
+    // ========================================================================
+    // Issue 526: Headings inside raw HTML div blocks should not get auto IDs
+    // ========================================================================
+
+    #[test]
+    fn test_issue526_h5_inside_div_note_no_id() {
+        // Raw HTML <h5> inside <div class="note"> should NOT get an auto-generated id.
+        // Jekyll/kramdown does not add IDs to headings inside raw HTML blocks.
+        let input = "<div class=\"note info\">\n  <h5>Be aware of directory paths</h5>\n  <p>Some note text.</p>\n</div>";
+        let result = add_heading_ids(input, HeadingIdMode::Kramdown);
+        assert!(
+            !result.contains("id="),
+            "h5 inside div.note should not get auto-generated ID. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue526_h5_inside_div_warning_no_id() {
+        let input = "<div class=\"note warning\">\n  <h5>ProTip\u{2122}</h5>\n  <p>Warning text.</p>\n</div>";
+        let result = add_heading_ids(input, HeadingIdMode::Kramdown);
+        assert!(
+            !result.contains("id="),
+            "h5 inside div.warning should not get auto-generated ID. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue526_h2_outside_div_still_gets_id() {
+        // Regular headings outside div blocks should still get IDs.
+        let input = "<h2>Regular Heading</h2>\n<div class=\"note\">\n  <h5>Note Title</h5>\n</div>";
+        let result = add_heading_ids(input, HeadingIdMode::Kramdown);
+        assert!(
+            result.contains("<h2 id=\"regular-heading\">"),
+            "h2 outside div should get auto-generated ID. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("id=\"note-title\""),
+            "h5 inside div should not get auto-generated ID. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue526_h5_at_top_level_still_gets_id() {
+        // h5 headings NOT inside a div block should still get IDs (markdown-generated).
+        let input = "<h5>Top Level H5</h5>";
+        let result = add_heading_ids(input, HeadingIdMode::Kramdown);
+        assert!(
+            result.contains("id=\"top-level-h5\""),
+            "h5 at top level should get auto-generated ID. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue526_nested_divs_h5_no_id() {
+        // Headings inside nested divs should not get IDs.
+        let input =
+            "<div class=\"wrapper\">\n<div class=\"note\">\n  <h5>Nested Note</h5>\n</div>\n</div>";
+        let result = add_heading_ids(input, HeadingIdMode::Kramdown);
+        assert!(
+            !result.contains("id="),
+            "h5 inside nested divs should not get auto-generated ID. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue526_heading_after_div_close_gets_id() {
+        // Headings after a div block closes should still get IDs.
+        let input = "<div class=\"note\">\n  <h5>Note</h5>\n</div>\n<h2>After Div</h2>";
+        let result = add_heading_ids(input, HeadingIdMode::Kramdown);
+        assert!(
+            !result.contains("id=\"note\""),
+            "h5 inside div should not get ID. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<h2 id=\"after-div\">"),
+            "h2 after div close should get ID. Got: {}",
             result
         );
     }
