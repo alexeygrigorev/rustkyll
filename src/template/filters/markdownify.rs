@@ -19,7 +19,13 @@ struct MarkdownifyFilter;
 impl Filter for MarkdownifyFilter {
     fn evaluate(&self, input: &dyn ValueView, _runtime: &dyn Runtime) -> Result<Value> {
         let markdown = input.to_kstr();
-        let html = crate::frontmatter::markdown_to_html_for_filter(&markdown);
+        // Mark existing raw HTML headings so add_heading_ids skips them.
+        // Jekyll's markdownify does not add auto-generated IDs to headings
+        // that were already present as raw HTML in the input (e.g., from
+        // data files or include snippets).
+        let marked = crate::kramdown::mark_existing_html_headings(&markdown);
+        let html = crate::frontmatter::markdown_to_html_for_filter(&marked);
+        let html = crate::kramdown::remove_heading_markers(&html);
         // Convert kramdown-style math delimiters after markdown processing.
         // Kramdown converts `$$inline math$$` to `\(inline math\)` (inline math).
         // We do this after markdown rendering so the backslashes aren't consumed
@@ -1405,6 +1411,41 @@ mod tests {
         assert!(
             html.contains("<ul>"),
             "Issue 381: Regression guard #362 <ul>. Got: {html}"
+        );
+    }
+
+    /// Raw HTML headings in markdownify input should NOT get auto-generated IDs.
+    /// This matches Jekyll's behavior where markdownify passes raw HTML through
+    /// without adding heading IDs.
+    #[test]
+    fn test_markdownify_raw_html_heading_no_id() {
+        // Simulate the programming-historian donation banner pattern:
+        // raw HTML <h2> from a data file passed through markdownify
+        let input =
+            r#"<h2><a href="https://example.com" class="alert-link">Donate today!</a></h2>"#;
+        let marked = crate::kramdown::mark_existing_html_headings(input);
+        let html = crate::frontmatter::markdown_to_html_for_filter(&marked);
+        let html = crate::kramdown::remove_heading_markers(&html);
+        assert!(
+            !html.contains("id="),
+            "Raw HTML headings should NOT get auto-generated IDs. Got: {html}"
+        );
+        assert!(
+            html.contains("<h2>"),
+            "The <h2> tag should still be present. Got: {html}"
+        );
+    }
+
+    /// Markdown headings in markdownify should still get IDs.
+    #[test]
+    fn test_markdownify_markdown_heading_still_gets_id() {
+        let input = "## Hello World";
+        let marked = crate::kramdown::mark_existing_html_headings(input);
+        let html = crate::frontmatter::markdown_to_html_for_filter(&marked);
+        let html = crate::kramdown::remove_heading_markers(&html);
+        assert!(
+            html.contains("id=\"hello-world\""),
+            "Markdown headings should still get IDs. Got: {html}"
         );
     }
 }
