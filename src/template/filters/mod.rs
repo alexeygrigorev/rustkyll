@@ -4,6 +4,7 @@
 //! jekyll feature, but are needed by common Jekyll site templates.
 
 mod absolute_url;
+mod array_to_sentence_string;
 pub(crate) mod cgi_escape;
 mod compact;
 mod date;
@@ -38,6 +39,7 @@ mod where_filter;
 mod xml_escape;
 
 pub use absolute_url::AbsoluteUrl;
+pub use array_to_sentence_string::ArrayToSentenceString;
 pub use cgi_escape::CgiEscape;
 pub use compact::Compact;
 pub use date::Date;

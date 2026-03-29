@@ -245,6 +245,76 @@ impl Filter for MinusFilter {
     }
 }
 
+// ---------------------------------------------------------------------------
+// modulo (lenient override of stdlib)
+// ---------------------------------------------------------------------------
+
+#[derive(Clone, Debug)]
+pub struct Modulo;
+
+impl FilterReflection for Modulo {
+    fn name(&self) -> &str {
+        "modulo"
+    }
+    fn description(&self) -> &str {
+        "Returns the remainder (lenient: non-numeric coerces to 0)"
+    }
+    fn positional_parameters(&self) -> &'static [liquid_core::parser::ParameterReflection] {
+        &[liquid_core::parser::ParameterReflection {
+            name: "operand",
+            description: "The divisor",
+            is_optional: false,
+        }]
+    }
+    fn keyword_parameters(&self) -> &'static [liquid_core::parser::ParameterReflection] {
+        &[]
+    }
+}
+
+impl ParseFilter for Modulo {
+    fn parse(&self, arguments: liquid_core::parser::FilterArguments) -> Result<Box<dyn Filter>> {
+        let mut args = arguments;
+        let operand = args
+            .positional
+            .next()
+            .ok_or_else(|| liquid_core::Error::with_msg("modulo requires an argument"))?;
+        Ok(Box::new(ModuloFilter { operand }))
+    }
+    fn reflection(&self) -> &dyn FilterReflection {
+        self
+    }
+}
+
+#[derive(Debug)]
+struct ModuloFilter {
+    operand: liquid_core::Expression,
+}
+
+impl std::fmt::Display for ModuloFilter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "modulo")
+    }
+}
+
+impl Filter for ModuloFilter {
+    fn evaluate(&self, input: &dyn ValueView, runtime: &dyn Runtime) -> Result<Value> {
+        let operand = self.operand.evaluate(runtime)?;
+        let op_i = coerce_to_i64(operand.as_view());
+        if is_float_value(input) || is_float_value(operand.as_view()) {
+            let op_f = coerce_to_f64(operand.as_view());
+            if op_f == 0.0 {
+                return Ok(Value::scalar(0i64));
+            }
+            Ok(Value::scalar(coerce_to_f64(input) % op_f))
+        } else {
+            if op_i == 0 {
+                return Ok(Value::scalar(0i64));
+            }
+            Ok(Value::scalar(coerce_to_i64(input) % op_i))
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::super::engine::TemplateEngine;
@@ -306,5 +376,43 @@ mod tests {
         ctx.insert("x".into(), liquid::model::Value::scalar(2.5f64));
         let out = eng.parse_and_render("{{ x | times: 4 }}", &ctx).unwrap();
         assert_eq!(out, "10");
+    }
+
+    #[test]
+    fn test_modulo_numeric() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("x".into(), liquid::model::Value::scalar(10i64));
+        let out = eng.parse_and_render("{{ x | modulo: 3 }}", &ctx).unwrap();
+        assert_eq!(out, "1");
+    }
+
+    #[test]
+    fn test_modulo_string_number() {
+        // date: "%s%N" produces a string like "1711814661000000000"
+        // modulo must coerce it to a number
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("x".into(), liquid::model::Value::scalar("10"));
+        let out = eng.parse_and_render("{{ x | modulo: 3 }}", &ctx).unwrap();
+        assert_eq!(out, "1");
+    }
+
+    #[test]
+    fn test_modulo_non_numeric_coerces_to_zero() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("x".into(), liquid::model::Value::scalar("abc"));
+        let out = eng.parse_and_render("{{ x | modulo: 3 }}", &ctx).unwrap();
+        assert_eq!(out, "0");
+    }
+
+    #[test]
+    fn test_modulo_float() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("x".into(), liquid::model::Value::scalar(10.5f64));
+        let out = eng.parse_and_render("{{ x | modulo: 3 }}", &ctx).unwrap();
+        assert_eq!(out, "1.5");
     }
 }

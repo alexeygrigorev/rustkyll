@@ -742,7 +742,7 @@ impl TemplateEngine {
             .filter(liquid_lib::jekyll::Pop)
             .filter(liquid_lib::jekyll::Unshift)
             .filter(liquid_lib::jekyll::Shift)
-            .filter(liquid_lib::jekyll::ArrayToSentenceString)
+            .filter(filters::ArrayToSentenceString)
             // Custom filters (Issue 07)
             .filter(filters::WhereExp)
             .filter(filters::Where)
@@ -778,6 +778,7 @@ impl TemplateEngine {
             .filter(filters::math::Times)
             .filter(filters::math::Plus)
             .filter(filters::math::Minus)
+            .filter(filters::math::Modulo)
             // Jekyll-compatible map filter that preserves nested arrays (Issue 209/233)
             // Must come after with_stdlib() to override the default map filter
             .filter(filters::Map)
@@ -6801,5 +6802,38 @@ title: "Test Book"
             "!= false should not introduce 'or'. Got: {}",
             output
         );
+    }
+
+    // ========================================================================
+    // Issue 528: array_to_sentence_string on nil input
+    // ========================================================================
+
+    #[test]
+    fn test_array_to_sentence_string_nil_returns_empty() {
+        // When post.categories is nil, array_to_sentence_string should return ""
+        // instead of erroring, matching Jekyll behavior.
+        let eng = engine();
+        let ctx = Object::new(); // no "cats" variable -> nil
+        let out = eng
+            .parse_and_render("{{ cats | array_to_sentence_string }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "", "nil input should produce empty string");
+    }
+
+    #[test]
+    fn test_array_to_sentence_string_normal_array() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "cats".into(),
+            LiquidValue::Array(vec![
+                LiquidValue::scalar("release"),
+                LiquidValue::scalar("update"),
+            ]),
+        );
+        let out = eng
+            .parse_and_render("{{ cats | array_to_sentence_string }}", &ctx)
+            .unwrap();
+        assert_eq!(out, "release, and update");
     }
 }
