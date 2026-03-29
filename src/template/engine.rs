@@ -1442,26 +1442,28 @@ fn preprocess_nil_contains(template: &str) -> String {
     result
 }
 
-/// Pre-process `== false` / `!= false` comparisons to work around the Liquid
-/// crate treating `nil == false` as true (Ruby Liquid returns false).
+/// Pre-process `== false` comparisons to work around the Liquid crate
+/// treating `nil == false` as true (Ruby Liquid returns false).
 ///
 /// Rewrites `VAR == false` to `VAR == false and VAR != nil` so that undefined
 /// variables (nil) don't match the literal `false`.
-/// Also rewrites `VAR != false` to `VAR != false or VAR == nil` so that nil
-/// is correctly treated as "not false" (distinct from false).
+///
+/// Note: The vendored liquid-core (issue #397) already fixes `nil == false` to
+/// return false, so the `== false` guard is belt-and-suspenders. The previous
+/// `!= false` -> `!= false or VAR == nil` rewrite was REMOVED (issue #504)
+/// because it introduces an `or` operator that changes Liquid's and-before-or
+/// precedence and causes incorrect evaluation of compound conditions like
+/// `site.x != false and layout.y == nil and page.z == nil`.
 fn preprocess_nil_eq_false(template: &str) -> String {
     use regex::Regex;
     use std::sync::LazyLock;
 
-    // Match patterns like: VARIABLE == false or VARIABLE != false
+    // Match patterns like: VARIABLE == false
     // VARIABLE is a dotted name like page.toc, site.show_edit, etc.
     static EQ_FALSE_RE: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"\b([\w][\w.]*)\s*==\s*false\b").unwrap());
-    static NEQ_FALSE_RE: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"\b([\w][\w.]*)\s*!=\s*false\b").unwrap());
 
     let result = EQ_FALSE_RE.replace_all(template, "$1 == false and $1 != nil");
-    let result = NEQ_FALSE_RE.replace_all(&result, "$1 != false or $1 == nil");
     result.into_owned()
 }
 
@@ -4053,12 +4055,14 @@ title: "Test Book"
     }
 
     #[test]
-    fn test_preprocess_nil_eq_false_neq() {
+    fn test_preprocess_nil_eq_false_neq_no_rewrite() {
+        // Issue 504: != false should NOT be rewritten (the or it introduces
+        // breaks precedence in compound conditions).
         let input = r#"{% if page.comments != false %}COMMENTS{% endif %}"#;
         let output = preprocess_nil_eq_false(input);
-        assert!(
-            output.contains("page.comments != false or page.comments == nil"),
-            "Should add nil guard for != false. Got: {}",
+        assert_eq!(
+            output, input,
+            "!= false should not be rewritten. Got: {}",
             output
         );
     }
@@ -6383,5 +6387,108 @@ title: "Test Book"
             result.err()
         );
         assert_eq!(result.unwrap(), "FIRST");
+    }
+
+    // ========================================================================
+    // Issue 504: false == nil preprocessing (symmetric to nil == false)
+    // ========================================================================
+
+    #[test]
+    fn test_issue504_false_var_eq_nil_when_false() {
+        // When layout.nav_enabled is false, `layout.nav_enabled == nil` should be false
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut layout = Object::new();
+        layout.insert("nav_enabled".into(), Value::scalar(false));
+        ctx.insert("layout".into(), Value::Object(layout));
+
+        let output = eng
+            .parse_and_render(
+                "{% if layout.nav_enabled == nil %}YES{% else %}NO{% endif %}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(output.trim(), "NO", "false should NOT equal nil");
+    }
+
+    #[test]
+    fn test_issue504_absent_var_eq_nil_when_missing() {
+        // When layout.nav_enabled is absent (truly nil), `layout.nav_enabled == nil` should be true
+        let eng = engine();
+        let mut ctx = Object::new();
+        let layout = Object::new(); // no nav_enabled
+        ctx.insert("layout".into(), Value::Object(layout));
+
+        let output = eng
+            .parse_and_render(
+                "{% if layout.nav_enabled == nil %}YES{% else %}NO{% endif %}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(output.trim(), "YES", "nil should equal nil");
+    }
+
+    #[test]
+    fn test_issue504_var_neq_nil_when_false() {
+        // When layout.nav_enabled is false, `layout.nav_enabled != nil` should be true
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut layout = Object::new();
+        layout.insert("nav_enabled".into(), Value::scalar(false));
+        ctx.insert("layout".into(), Value::Object(layout));
+
+        let output = eng
+            .parse_and_render(
+                "{% if layout.nav_enabled != nil %}YES{% else %}NO{% endif %}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(
+            output.trim(),
+            "YES",
+            "false should NOT equal nil, so != nil should be true"
+        );
+    }
+
+    #[test]
+    fn test_issue504_combined_nil_false_conditions() {
+        // Simulates the just-the-docs default.html sidebar logic:
+        // site.nav_enabled != false and layout.nav_enabled == nil and page.nav_enabled == nil
+        // When layout.nav_enabled is false, this should NOT render
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut layout = Object::new();
+        layout.insert("nav_enabled".into(), Value::scalar(false));
+        ctx.insert("layout".into(), Value::Object(layout));
+        let site = Object::new();
+        ctx.insert("site".into(), Value::Object(site));
+        let page = Object::new();
+        ctx.insert("page".into(), Value::Object(page));
+
+        let output = eng
+            .parse_and_render(
+                "{% if site.nav_enabled != false and layout.nav_enabled == nil and page.nav_enabled == nil %}SIDEBAR{% endif %}",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(
+            output.trim(),
+            "",
+            "Sidebar should NOT render when layout.nav_enabled is false"
+        );
+    }
+
+    #[test]
+    fn test_issue504_neq_false_no_rewrite_preserves_compound() {
+        // The != false rewrite used to introduce `or` which broke precedence.
+        // Verify it no longer rewrites != false.
+        let input = "{% if site.nav_enabled != false and layout.nav_enabled == nil and page.nav_enabled == nil %}SIDEBAR{% endif %}";
+        let output = preprocess_nil_eq_false(input);
+        // Only == nil comparisons should remain untouched; != false should not introduce or
+        assert!(
+            !output.contains(" or "),
+            "!= false should not introduce 'or'. Got: {}",
+            output
+        );
     }
 }
