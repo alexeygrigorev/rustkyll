@@ -679,6 +679,13 @@ pub fn load_collection(
     // Issue 294: Check if autolink extension is enabled in commonmark.extensions.
     let enable_autolink = config.has_commonmark_autolink();
 
+    // Issue 358: Extract site-level excerpt_separator from config.
+    let site_excerpt_separator = config
+        .extras
+        .get("excerpt_separator")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+
     // Phase 2: Process files in parallel (read, parse, convert markdown)
     let results: Vec<Result<CollectionItem, CollectionError>> = file_paths
         .par_iter()
@@ -692,6 +699,7 @@ pub fn load_collection(
                 add_code_classes,
                 enable_hardbreaks,
                 enable_autolink,
+                site_excerpt_separator.as_deref(),
             )
         })
         .collect();
@@ -831,6 +839,7 @@ fn process_collection_file(
     add_code_classes: bool,
     enable_hardbreaks: bool,
     enable_autolink: bool,
+    site_excerpt_separator: Option<&str>,
 ) -> Option<Result<CollectionItem, CollectionError>> {
     let filename = path.file_name()?.to_str()?.to_string();
 
@@ -856,7 +865,7 @@ fn process_collection_file(
         return None;
     }
 
-    let doc = match frontmatter::parse_document(&raw) {
+    let doc = match frontmatter::parse_document_with_separator(&raw, site_excerpt_separator) {
         Ok(doc) => doc,
         Err(e) => {
             return Some(Err(CollectionError::Parse {

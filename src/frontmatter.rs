@@ -93,8 +93,9 @@ pub enum ParseError {
 /// YAML front matter as a flexible key-value map.
 pub type FrontMatter = HashMap<String, serde_yaml::Value>;
 
-/// The excerpt separator used in Jekyll-style markdown files.
-const EXCERPT_SEPARATOR: &str = "<!--more-->";
+/// The default excerpt separator: double newline (first paragraph), matching
+/// Jekyll's default when no `excerpt_separator` is configured.
+const DEFAULT_EXCERPT_SEPARATOR: &str = "\n\n";
 
 /// A parsed document consisting of YAML front matter and markdown body.
 #[derive(Debug)]
@@ -169,41 +170,69 @@ fn split_front_matter(input: &str) -> (Option<&str>, &str) {
 
 /// Extract the excerpt from markdown content.
 ///
-/// First tries to find `<!--more-->` separator. If not found, falls back to
-/// the first paragraph (text before the first blank line), matching Jekyll's
-/// default behavior where `page.excerpt` is auto-generated from content.
-fn extract_excerpt(content: &str) -> Option<String> {
-    // Try <!--more--> separator first
-    if let Some(pos) = content.find(EXCERPT_SEPARATOR) {
-        let excerpt = content[..pos].trim().to_string();
-        return if excerpt.is_empty() {
-            Some(String::new())
-        } else {
-            Some(excerpt)
-        };
-    }
-
-    // Fall back to first paragraph (text before first blank line)
-    let trimmed = content.trim_start();
-    if trimmed.is_empty() {
-        return None;
-    }
-
-    // Find the first blank line (two consecutive newlines)
-    if let Some(pos) = trimmed.find("\n\n") {
-        let first_para = trimmed[..pos].trim().to_string();
-        if first_para.is_empty() {
-            None
-        } else {
-            Some(first_para)
+/// When `separator` is `Some(sep)`:
+///   - If the separator is found in content, return everything before it.
+///   - If the separator is NOT found, return the entire content (Jekyll behavior:
+///     when a separator is explicitly configured but absent from the body, the
+///     full content becomes the excerpt).
+///
+/// When `separator` is `None`:
+///   - Use the default `"\n\n"` separator (first paragraph), matching Jekyll's
+///     default behavior where `page.excerpt` is auto-generated from content.
+fn extract_excerpt(content: &str, separator: Option<&str>) -> Option<String> {
+    match separator {
+        Some(sep) => {
+            if sep.is_empty() {
+                // Empty separator: entire content is the excerpt.
+                let trimmed = content.trim().to_string();
+                return if trimmed.is_empty() {
+                    None
+                } else {
+                    Some(trimmed)
+                };
+            }
+            // Custom separator provided (from frontmatter or site config).
+            if let Some(pos) = content.find(sep) {
+                let excerpt = content[..pos].trim().to_string();
+                if excerpt.is_empty() {
+                    Some(String::new())
+                } else {
+                    Some(excerpt)
+                }
+            } else {
+                // Separator defined but not found: entire content is the excerpt
+                // (matching Jekyll behavior).
+                let trimmed = content.trim().to_string();
+                if trimmed.is_empty() {
+                    None
+                } else {
+                    Some(trimmed)
+                }
+            }
         }
-    } else {
-        // No blank line -- entire content is one paragraph
-        let para = trimmed.trim().to_string();
-        if para.is_empty() {
-            None
-        } else {
-            Some(para)
+        None => {
+            // No custom separator -- use default first-paragraph extraction.
+            let trimmed = content.trim_start();
+            if trimmed.is_empty() {
+                return None;
+            }
+
+            if let Some(pos) = trimmed.find(DEFAULT_EXCERPT_SEPARATOR) {
+                let first_para = trimmed[..pos].trim().to_string();
+                if first_para.is_empty() {
+                    None
+                } else {
+                    Some(first_para)
+                }
+            } else {
+                // No blank line -- entire content is one paragraph
+                let para = trimmed.trim().to_string();
+                if para.is_empty() {
+                    None
+                } else {
+                    Some(para)
+                }
+            }
         }
     }
 }
@@ -211,12 +240,34 @@ fn extract_excerpt(content: &str) -> Option<String> {
 /// Parse a string containing optional YAML front matter and a markdown body.
 ///
 /// Returns a `Document` with parsed front matter, raw markdown content,
-/// and an optional excerpt (text before `<!--more-->`).
+/// and an optional excerpt. Uses the default excerpt separator (first paragraph).
+/// For custom separator support, use `parse_document_with_separator`.
 ///
 /// # Errors
 ///
 /// Returns `ParseError::Yaml` if the front matter block contains invalid YAML.
 pub fn parse_document(input: &str) -> Result<Document, ParseError> {
+    parse_document_with_separator(input, None)
+}
+
+/// Parse a string containing optional YAML front matter and a markdown body,
+/// with an optional site-level excerpt separator.
+///
+/// The excerpt separator is resolved in priority order:
+/// 1. Per-post `excerpt_separator` in front matter (highest priority)
+/// 2. Site-level `excerpt_separator` from `_config.yml` (passed as parameter)
+/// 3. Default: `"\n\n"` (first paragraph)
+///
+/// When a custom separator is defined but not found in the body, the entire
+/// content becomes the excerpt (matching Jekyll behavior).
+///
+/// # Errors
+///
+/// Returns `ParseError::Yaml` if the front matter block contains invalid YAML.
+pub fn parse_document_with_separator(
+    input: &str,
+    site_excerpt_separator: Option<&str>,
+) -> Result<Document, ParseError> {
     let (yaml_str, body) = split_front_matter(input);
 
     let front_matter = match yaml_str {
@@ -228,7 +279,15 @@ pub fn parse_document(input: &str) -> Result<Document, ParseError> {
     };
 
     let content = body.to_string();
-    let excerpt = extract_excerpt(&content);
+
+    // Resolve excerpt separator: frontmatter > site config > None (default)
+    let post_separator = front_matter
+        .get("excerpt_separator")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let effective_separator = post_separator.as_deref().or(site_excerpt_separator);
+
+    let excerpt = extract_excerpt(&content, effective_separator);
 
     Ok(Document {
         front_matter,
@@ -4181,9 +4240,139 @@ mod tests {
 
     #[test]
     fn test_excerpt_separator_at_beginning() {
-        let input = "---\ntitle: Test\n---\n<!--more-->\nContent after.";
+        // With excerpt_separator in frontmatter, <!--more--> at the beginning
+        // should produce an empty excerpt.
+        let input =
+            "---\ntitle: Test\nexcerpt_separator: \"<!--more-->\"\n---\n<!--more-->\nContent after.";
         let doc = parse_document(input).unwrap();
         assert_eq!(doc.excerpt, Some(String::new()));
+    }
+
+    #[test]
+    fn test_excerpt_no_separator_no_blank_line() {
+        // Without excerpt_separator and no blank line, entire content is the excerpt.
+        let input = "---\ntitle: Test\n---\n<!--more-->\nContent after.";
+        let doc = parse_document(input).unwrap();
+        assert_eq!(doc.excerpt, Some("<!--more-->\nContent after.".to_string()));
+    }
+
+    // ========================================================================
+    // Issue 358: excerpt_separator from frontmatter / site config
+    // ========================================================================
+
+    #[test]
+    fn test_issue358_frontmatter_excerpt_separator_found() {
+        // Post with excerpt_separator in frontmatter and separator in body:
+        // returns content before separator.
+        let input = "---\ntitle: Test\nexcerpt_separator: \"<!--more-->\"\n---\nBefore the cut.\n\n<!--more-->\n\nAfter the cut.";
+        let doc = parse_document(input).unwrap();
+        assert_eq!(doc.excerpt, Some("Before the cut.".to_string()));
+    }
+
+    #[test]
+    fn test_issue358_frontmatter_excerpt_separator_not_found() {
+        // Post with excerpt_separator in frontmatter but separator NOT in body:
+        // entire content becomes the excerpt (Jekyll behavior).
+        let input = "---\ntitle: Test\nexcerpt_separator: \"<!--more-->\"\n---\nFirst paragraph.\n\nSecond paragraph.\n\nThird paragraph.";
+        let doc = parse_document(input).unwrap();
+        let expected = "First paragraph.\n\nSecond paragraph.\n\nThird paragraph.";
+        assert_eq!(doc.excerpt, Some(expected.to_string()));
+    }
+
+    #[test]
+    fn test_issue358_no_excerpt_separator_default_first_paragraph() {
+        // No excerpt_separator at all: use default first paragraph.
+        let input = "---\ntitle: Test\n---\nFirst paragraph.\n\nSecond paragraph.";
+        let doc = parse_document(input).unwrap();
+        assert_eq!(doc.excerpt, Some("First paragraph.".to_string()));
+    }
+
+    #[test]
+    fn test_issue358_empty_excerpt_separator() {
+        // Empty excerpt_separator: treated as no custom separator, returns full content.
+        let input =
+            "---\ntitle: Test\nexcerpt_separator: \"\"\n---\nFirst paragraph.\n\nSecond paragraph.";
+        let doc = parse_document(input).unwrap();
+        // Empty separator means full content
+        assert_eq!(
+            doc.excerpt,
+            Some("First paragraph.\n\nSecond paragraph.".to_string())
+        );
+    }
+
+    #[test]
+    fn test_issue358_custom_separator() {
+        // Custom separator like "---CUT---"
+        let input = "---\ntitle: Test\nexcerpt_separator: \"---CUT---\"\n---\nKeep this.\n\n---CUT---\n\nDrop this.";
+        let doc = parse_document(input).unwrap();
+        assert_eq!(doc.excerpt, Some("Keep this.".to_string()));
+    }
+
+    #[test]
+    fn test_issue358_site_level_separator() {
+        // Site-level separator passed to parse_document_with_separator.
+        let input = "---\ntitle: Test\n---\nBefore cut.\n\n<!--more-->\n\nAfter cut.";
+        let doc = parse_document_with_separator(input, Some("<!--more-->")).unwrap();
+        assert_eq!(doc.excerpt, Some("Before cut.".to_string()));
+    }
+
+    #[test]
+    fn test_issue358_frontmatter_overrides_site_separator() {
+        // Per-post excerpt_separator overrides site-level.
+        let input = "---\ntitle: Test\nexcerpt_separator: \"---CUT---\"\n---\nBefore site sep.\n\n<!--more-->\n\n---CUT---\n\nAfter post sep.";
+        let doc = parse_document_with_separator(input, Some("<!--more-->")).unwrap();
+        // Should use frontmatter separator "---CUT---", not site-level "<!--more-->"
+        assert_eq!(
+            doc.excerpt,
+            Some("Before site sep.\n\n<!--more-->".to_string())
+        );
+    }
+
+    #[test]
+    fn test_issue358_site_separator_not_found_returns_full_content() {
+        // Site-level separator defined but not found: entire content is excerpt.
+        let input = "---\ntitle: Test\n---\nAll content here.\n\nNo separator present.";
+        let doc = parse_document_with_separator(input, Some("<!--more-->")).unwrap();
+        assert_eq!(
+            doc.excerpt,
+            Some("All content here.\n\nNo separator present.".to_string())
+        );
+    }
+
+    #[test]
+    fn test_issue358_unicode_content_with_separator() {
+        // Unicode content with custom separator.
+        let input = "---\ntitle: \u{30C6}\u{30B9}\u{30C8}\nexcerpt_separator: \"<!--more-->\"\n---\n\u{1F382} \u{4F60}\u{597D}\u{4E16}\u{754C}\n\n<!--more-->\n\n\u{3053}\u{3093}\u{306B}\u{3061}\u{306F}";
+        let doc = parse_document(input).unwrap();
+        let excerpt = doc.excerpt.unwrap();
+        assert!(
+            excerpt.contains("\u{1F382}"),
+            "Excerpt should contain emoji. Got: {}",
+            excerpt
+        );
+        assert!(
+            excerpt.contains("\u{4F60}\u{597D}"),
+            "Excerpt should contain CJK. Got: {}",
+            excerpt
+        );
+        assert!(
+            !excerpt.contains("\u{3053}\u{3093}\u{306B}\u{3061}\u{306F}"),
+            "Excerpt should not contain text after separator. Got: {}",
+            excerpt
+        );
+    }
+
+    #[test]
+    fn test_issue358_unicode_separator_not_found_returns_full() {
+        // Unicode content with separator not found: returns full content.
+        let input = "---\ntitle: \u{30C6}\u{30B9}\u{30C8}\nexcerpt_separator: \"<!--more-->\"\n---\n\u{1F382} \u{4F60}\u{597D}\u{4E16}\u{754C}\n\n\u{3053}\u{3093}\u{306B}\u{3061}\u{306F}";
+        let doc = parse_document(input).unwrap();
+        let excerpt = doc.excerpt.unwrap();
+        assert!(
+            excerpt.contains("\u{3053}\u{3093}\u{306B}\u{3061}\u{306F}"),
+            "When separator not found, full content should be excerpt. Got: {}",
+            excerpt
+        );
     }
 
     // ========================================================================
