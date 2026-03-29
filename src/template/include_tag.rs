@@ -1369,8 +1369,7 @@ mod tests {
     #[test]
     fn test_multi_interp_include_filter_chain_extracted() {
         // Multi-interpolation include with filter chain should extract into assign
-        let input =
-            r#"{% include code/components/{{ include.component }}.{{ include.language | default: 'html' }} %}"#;
+        let input = r#"{% include code/components/{{ include.component }}.{{ include.language | default: 'html' }} %}"#;
         let output = preprocess_include_paths(input);
         assert!(
             output.contains("assign __dyn_inc_"),
