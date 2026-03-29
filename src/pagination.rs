@@ -169,10 +169,16 @@ fn collection_item_to_liquid_full(item: &CollectionItem) -> LiquidValue {
         LiquidValue::scalar(item.html_content.clone()),
     );
 
-    // Excerpt -- Jekyll provides post.excerpt in paginator.posts
-    // Use the CollectionItem's excerpt if present, otherwise generate from content
-    if let Some(ref excerpt) = item.excerpt {
-        obj.insert("excerpt".into(), LiquidValue::scalar(excerpt.clone()));
+    // Excerpt -- Jekyll provides post.excerpt as rendered HTML in paginator.posts.
+    // Prefer the pre-rendered excerpt_html (markdown already converted to HTML),
+    // then fall back to generating from html_content.
+    if let Some(ref html_excerpt) = item.excerpt_html {
+        obj.insert("excerpt".into(), LiquidValue::scalar(html_excerpt.clone()));
+    } else if let Some(ref raw_excerpt) = item.excerpt {
+        // If excerpt_html was not generated but raw excerpt exists,
+        // render it through markdown now.
+        let rendered = crate::frontmatter::markdown_to_html(raw_excerpt);
+        obj.insert("excerpt".into(), LiquidValue::scalar(rendered));
     } else if !item.front_matter.contains_key("excerpt") {
         let excerpt = generate_excerpt(&item.html_content);
         obj.insert("excerpt".into(), LiquidValue::scalar(excerpt));
@@ -668,6 +674,61 @@ mod tests {
             source_path: "about.md".to_string(),
         }];
         assert!(find_index_page(&pages).is_none());
+    }
+
+    // ========================================================================
+    // Paginator post excerpt uses rendered HTML, not raw markdown
+    // ========================================================================
+
+    #[test]
+    fn test_paginator_post_excerpt_is_html() {
+        // When a post has excerpt_html, the paginator should use the rendered
+        // HTML, not the raw markdown excerpt.
+        let mut post = make_post("Test Post", "2024-01-01", "test-post");
+        post.excerpt = Some("This has **bold** and a [link](http://example.com)".to_string());
+        post.excerpt_html = Some(
+            "<p>This has <strong>bold</strong> and a <a href=\"http://example.com\">link</a></p>"
+                .to_string(),
+        );
+
+        let liquid_post = collection_item_to_liquid_full(&post);
+        let obj = liquid_post.as_object().expect("should be object");
+        let excerpt_val = obj.get("excerpt").expect("should have excerpt");
+        let excerpt_str = excerpt_val.to_kstr().into_string();
+
+        assert!(
+            excerpt_str.contains("<p>"),
+            "Excerpt should be HTML, not raw markdown. Got: {}",
+            excerpt_str
+        );
+        assert!(
+            excerpt_str.contains("<strong>bold</strong>"),
+            "Excerpt should contain rendered bold. Got: {}",
+            excerpt_str
+        );
+        assert!(
+            !excerpt_str.contains("**bold**"),
+            "Excerpt should NOT contain raw markdown bold. Got: {}",
+            excerpt_str
+        );
+    }
+
+    #[test]
+    fn test_paginator_post_excerpt_fallback_to_html_content() {
+        // When no explicit excerpt, generate from html_content
+        let post = make_post("Test Post", "2024-01-01", "test-post");
+        // post.excerpt is None, post.excerpt_html is None
+
+        let liquid_post = collection_item_to_liquid_full(&post);
+        let obj = liquid_post.as_object().expect("should be object");
+        let excerpt_val = obj.get("excerpt").expect("should have excerpt");
+        let excerpt_str = excerpt_val.to_kstr().into_string();
+
+        assert!(
+            excerpt_str.contains("<p>"),
+            "Fallback excerpt should be generated from HTML. Got: {}",
+            excerpt_str
+        );
     }
 
     // ========================================================================

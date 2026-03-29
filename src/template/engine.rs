@@ -213,7 +213,15 @@ impl ObjectView for LenientValue {
 
     fn size(&self) -> i64 {
         if let Value::Object(ref obj) = self.inner {
-            obj.size()
+            let raw = obj.size();
+            // Exclude the __key_order metadata key from the count so that
+            // templates like `site.tags.size` return the number of real keys,
+            // matching Jekyll behavior.
+            if obj.contains_key("__key_order") {
+                raw - 1
+            } else {
+                raw
+            }
         } else {
             0
         }
@@ -510,7 +518,12 @@ impl ObjectView for LenientObject<'_> {
     }
 
     fn size(&self) -> i64 {
-        self.inner.size()
+        let raw = self.inner.size();
+        if self.inner.contains_key("__key_order") {
+            raw - 1
+        } else {
+            raw
+        }
     }
 
     fn keys<'k>(&'k self) -> Box<dyn Iterator<Item = KStringCow<'k>> + 'k> {
@@ -5602,6 +5615,74 @@ title: "Test Book"
         assert_eq!(
             output, "zebra,apple,middle,",
             "For-loop over Object with __key_order should iterate in specified order, not alphabetical"
+        );
+    }
+
+    // ========================================================================
+    // Issue: .size on Object with __key_order excludes metadata key
+    // ========================================================================
+
+    #[test]
+    fn test_size_excludes_key_order_metadata() {
+        // site.tags has 2 real tags + __key_order metadata.
+        // .size should return 2, not 3.
+        let eng = engine();
+
+        let mut tags = Object::new();
+        tags.insert(
+            "__key_order".into(),
+            LiquidValue::Array(vec![
+                LiquidValue::scalar("sample"),
+                LiquidValue::scalar("test"),
+            ]),
+        );
+        tags.insert(
+            "sample".into(),
+            LiquidValue::Array(vec![LiquidValue::scalar("post1")]),
+        );
+        tags.insert(
+            "test".into(),
+            LiquidValue::Array(vec![LiquidValue::scalar("post2")]),
+        );
+
+        let mut site = Object::new();
+        site.insert("tags".into(), LiquidValue::Object(tags));
+
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+
+        let output = eng.parse_and_render("{{ site.tags.size }}", &ctx).unwrap();
+        assert_eq!(
+            output, "2",
+            ".size on Object with __key_order should exclude the metadata key"
+        );
+    }
+
+    #[test]
+    fn test_size_without_key_order_unchanged() {
+        // Object without __key_order should report all keys.
+        let eng = engine();
+
+        let mut tags = Object::new();
+        tags.insert(
+            "sample".into(),
+            LiquidValue::Array(vec![LiquidValue::scalar("post1")]),
+        );
+        tags.insert(
+            "test".into(),
+            LiquidValue::Array(vec![LiquidValue::scalar("post2")]),
+        );
+
+        let mut site = Object::new();
+        site.insert("tags".into(), LiquidValue::Object(tags));
+
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+
+        let output = eng.parse_and_render("{{ site.tags.size }}", &ctx).unwrap();
+        assert_eq!(
+            output, "2",
+            ".size on Object without __key_order should count all keys"
         );
     }
 

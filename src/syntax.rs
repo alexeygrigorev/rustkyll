@@ -96,6 +96,11 @@ fn build_scope_map() -> Vec<ScopeMapping> {
         // JavaScript: Rouge maps class/constructor names (e.g. Function, Date)
         // to `nc` (name.class). Syntect uses support.class -> `nb`.
         ("source.js support.class", "nc"),
+        // JavaScript: Rouge classifies built-in objects (console, window, etc.)
+        // as `nx` (Name.Other), not `nb`. Syntect scopes them as
+        // support.type.object.console.js and support.function.console.js.
+        ("source.js support.type", "nx"),
+        ("source.js support.function.console", "nx"),
         // JavaScript: Rouge maps integer literals to `mi` (number.integer).
         // Syntect uses constant.numeric (general) for JS numbers -> `m`.
         ("source.js constant.numeric", "mi"),
@@ -2443,6 +2448,24 @@ mod tests {
         let code = "var x = 1;\n";
         let html = highlight_code("js", code);
         assert!(html.is_some(), "js should resolve to javascript");
+    }
+
+    #[test]
+    fn test_js_console_log_is_nx() {
+        // Rouge classifies `console` and `log` as `nx` (Name.Other) in JS,
+        // not `nb` (Name.Builtin). Syntect scopes them as support.type and
+        // support.function.console respectively; our scope map must override.
+        let html = highlight_code("js", "console.log(i);\n").unwrap();
+        assert!(
+            html.contains("<span class=\"nx\">console</span>"),
+            "console should be nx in JS, got: {}",
+            html
+        );
+        assert!(
+            html.contains("<span class=\"nx\">log</span>"),
+            "log should be nx in JS, got: {}",
+            html
+        );
     }
 
     #[test]
