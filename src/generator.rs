@@ -938,9 +938,10 @@ fn build_related_posts(
 
 /// Extract the text content of the first `<h1>` tag from HTML.
 ///
-/// Jekyll auto-extracts the page title from the first H1 when frontmatter
-/// has no `title` field. This function replicates that behavior using a
-/// simple regex, stripping any inner HTML tags to return plain text.
+/// Note: This is NOT used for site.pages title population (Issue 532 confirmed
+/// Jekyll does not auto-extract H1 as page.title). Kept for test coverage and
+/// potential future use in other contexts (e.g., SEO tag).
+#[cfg(test)]
 fn extract_title_from_h1(html: &str) -> Option<String> {
     use regex::Regex;
     use std::sync::OnceLock;
@@ -1029,13 +1030,10 @@ fn page_to_liquid(page: &Page) -> LiquidValue {
     // page.path -- the relative source path (e.g. "index.md" or "books.md")
     obj.insert("path".into(), LiquidValue::scalar(page.source_path.clone()));
 
-    // Jekyll auto-extracts the page title from the first <h1> when frontmatter
-    // has no `title` field. Only set if frontmatter didn't already provide one.
-    if !page.front_matter.contains_key("title") {
-        if let Some(h1_title) = extract_title_from_h1(&page.html_content) {
-            obj.insert("title".into(), LiquidValue::scalar(h1_title));
-        }
-    }
+    // Issue 532: Jekyll does NOT auto-extract the page title from H1 for
+    // site.pages entries. Pages without an explicit `title:` in front matter
+    // have nil title, which means templates like minima's nav-items.html
+    // correctly skip them with `{% if hyperpage.title %}`.
 
     LiquidValue::Object(obj)
 }
@@ -8299,7 +8297,9 @@ defaults:
     // ========================================================================
 
     #[test]
-    fn test_page_to_liquid_no_frontmatter_title_extracts_from_h1() {
+    fn test_page_to_liquid_no_frontmatter_title_no_h1_extraction() {
+        // Issue 532: Jekyll does NOT auto-extract H1 as title for site.pages.
+        // Pages without frontmatter title should have nil title.
         let page = Page {
             slug: "test".to_string(),
             front_matter: std::collections::HashMap::new(),
@@ -8310,8 +8310,10 @@ defaults:
         };
         let val = page_to_liquid(&page);
         if let LiquidValue::Object(obj) = val {
-            let title = obj.get("title").expect("should have title from H1");
-            assert_eq!(title.to_kstr().as_str(), "My Title");
+            assert!(
+                obj.get("title").is_none(),
+                "Page without frontmatter title should have nil title (no H1 extraction)"
+            );
         } else {
             panic!("Expected Object");
         }
@@ -8357,6 +8359,61 @@ defaults:
                 obj.get("title").is_none(),
                 "should not have title when no H1 and no frontmatter"
             );
+        } else {
+            panic!("Expected Object");
+        }
+    }
+
+    // ========================================================================
+    // Issue 532: pages without frontmatter title should have nil title
+    // ========================================================================
+
+    #[test]
+    fn test_page_to_liquid_no_frontmatter_title_h1_does_not_set_title() {
+        // Issue 532: Jekyll does NOT auto-extract H1 as page.title for site.pages.
+        // A page with <h1>404</h1> but no title in front matter should have nil title.
+        let page = Page {
+            slug: "404".to_string(),
+            front_matter: std::collections::HashMap::new(),
+            content: "<h1>404</h1><p>Not found</p>".to_string(),
+            html_content: "<h1>404</h1><p>Not found</p>".to_string(),
+            url: "/404.html".to_string(),
+            source_path: "404.html".to_string(),
+        };
+        let val = page_to_liquid(&page);
+        if let LiquidValue::Object(obj) = val {
+            assert!(
+                obj.get("title").is_none(),
+                "Page without frontmatter title should have nil title even with H1. Got: {:?}",
+                obj.get("title")
+            );
+        } else {
+            panic!("Expected Object");
+        }
+    }
+
+    #[test]
+    fn test_page_to_liquid_explicit_frontmatter_title_preserved() {
+        // Pages with explicit title in front matter should keep it
+        let mut fm = std::collections::HashMap::new();
+        fm.insert(
+            "title".to_string(),
+            serde_yaml::Value::String("About".to_string()),
+        );
+        let page = Page {
+            slug: "about".to_string(),
+            front_matter: fm,
+            content: "<h1>About Me</h1>".to_string(),
+            html_content: "<h1>About Me</h1>".to_string(),
+            url: "/about/".to_string(),
+            source_path: "about.md".to_string(),
+        };
+        let val = page_to_liquid(&page);
+        if let LiquidValue::Object(obj) = val {
+            let title = obj
+                .get("title")
+                .expect("Should have title from frontmatter");
+            assert_eq!(title.to_kstr().as_str(), "About");
         } else {
             panic!("Expected Object");
         }

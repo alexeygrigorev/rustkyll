@@ -102,13 +102,21 @@ impl Renderable for FeedMetaRenderable {
             format!("{}/{}", site_url, feed_path)
         };
 
-        // Emit main feed link
-        write!(
-            writer,
-            "<link type=\"application/atom+xml\" rel=\"alternate\" href=\"{}\" title=\"{}\" />",
-            html_escape(&feed_url),
-            html_escape(&title),
-        )
+        // Emit main feed link -- omit title attribute when title is empty (matches Jekyll)
+        if title.is_empty() {
+            write!(
+                writer,
+                "<link type=\"application/atom+xml\" rel=\"alternate\" href=\"{}\" />",
+                html_escape(&feed_url),
+            )
+        } else {
+            write!(
+                writer,
+                "<link type=\"application/atom+xml\" rel=\"alternate\" href=\"{}\" title=\"{}\" />",
+                html_escape(&feed_url),
+                html_escape(&title),
+            )
+        }
         .map_err(|e| liquid_core::Error::with_msg(format!("feed_meta write error: {}", e)))?;
 
         // Note: Jekyll's feed_meta tag only outputs the main feed link.
@@ -342,6 +350,48 @@ mod tests {
         assert!(
             out.contains("href=\"/feed.xml\""),
             "Should use relative feed.xml: {}",
+            out
+        );
+    }
+
+    // Issue 531: omit title attribute when site.title is absent
+    #[test]
+    fn test_feed_meta_no_title_omits_title_attribute() {
+        // When site has no title, the title attribute should be entirely omitted
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "site".into(),
+            site_object(vec![("url", Value::scalar("https://example.com"))]),
+        );
+        let out = eng.parse_and_render("{% feed_meta %}", &ctx).unwrap();
+        assert!(
+            !out.contains("title="),
+            "Should NOT have title attribute when no site title: {}",
+            out
+        );
+        assert_eq!(
+            out,
+            r#"<link type="application/atom+xml" rel="alternate" href="https://example.com/feed.xml" />"#,
+        );
+    }
+
+    #[test]
+    fn test_feed_meta_with_title_includes_title_attribute() {
+        // When site has a title, the title attribute should be present
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "site".into(),
+            site_object(vec![
+                ("url", Value::scalar("https://example.com")),
+                ("title", Value::scalar("My Blog")),
+            ]),
+        );
+        let out = eng.parse_and_render("{% feed_meta %}", &ctx).unwrap();
+        assert!(
+            out.contains(r#"title="My Blog""#),
+            "Should have title attribute when site has title: {}",
             out
         );
     }
