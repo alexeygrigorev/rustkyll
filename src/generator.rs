@@ -1085,8 +1085,8 @@ fn collection_item_to_liquid_ultra_slim(
 /// to dramatically reduce memory usage and the cost of `{% assign %}` deep copies.
 /// Templates that iterate categories/tags only access url, title, date etc.
 ///
-/// Categories and tags are inserted in first-encounter order using IndexMap,
-/// then converted to BTreeMap-backed Objects (alphabetical iteration).
+/// Categories and tags are inserted in first-encounter order using IndexMap.
+/// The __key_order metadata preserves this encounter order for Liquid iteration.
 fn build_categories_and_tags_from_liquid(
     posts: &[CollectionItem],
     _liquid_posts: &[LiquidValue],
@@ -1109,20 +1109,16 @@ fn build_categories_and_tags_from_liquid(
         }
     }
 
-    // Build Object preserving insertion (first-encounter) order.
-    // Since Object is backed by BTreeMap, iteration will be alphabetical.
-    // For sites that depend on insertion order (like large-blog-3000's index.html
-    // iterating site.categories), we build the Object by inserting keys in
-    // encounter order. BTreeMap will sort them, but that's acceptable for now --
-    // the fix for issue 269 (insertion-order iteration) will need a different
-    // approach if this causes DOM regressions.
+    // Build Object with __key_order preserving first-encounter order.
+    // The Object itself uses BTreeMap (alphabetical), but __key_order ensures
+    // Liquid iteration follows the encounter order that Jekyll uses.
     let mut categories_obj = Object::new();
-    // Build __key_order in alphabetical order (matching Jekyll's site.categories iteration)
-    let mut cat_keys_sorted: Vec<&String> = categories.keys().collect();
-    cat_keys_sorted.sort();
-    let cat_key_order: Vec<LiquidValue> = cat_keys_sorted
-        .iter()
-        .map(|k| LiquidValue::scalar((*k).clone()))
+    // Build __key_order in first-encounter order (matching Jekyll's site.categories iteration).
+    // Jekyll uses Ruby Hash insertion order (Ruby 1.9+), which is the order each category
+    // is first seen when processing posts date-ascending. IndexMap preserves this order.
+    let cat_key_order: Vec<LiquidValue> = categories
+        .keys()
+        .map(|k| LiquidValue::scalar(k.clone()))
         .collect();
     for (k, mut v) in categories {
         // Jekyll lists posts within each category in reverse chronological
@@ -1136,12 +1132,10 @@ fn build_categories_and_tags_from_liquid(
     }
 
     let mut tags_obj = Object::new();
-    // Build __key_order in alphabetical order (matching Jekyll's site.tags iteration)
-    let mut tag_keys_sorted: Vec<&String> = tags.keys().collect();
-    tag_keys_sorted.sort();
-    let tag_key_order: Vec<LiquidValue> = tag_keys_sorted
-        .iter()
-        .map(|k| LiquidValue::scalar((*k).clone()))
+    // Build __key_order in first-encounter order (matching Jekyll's site.tags iteration).
+    let tag_key_order: Vec<LiquidValue> = tags
+        .keys()
+        .map(|k| LiquidValue::scalar(k.clone()))
         .collect();
     for (k, mut v) in tags {
         // Same reverse-chronological ordering for tags.
@@ -8527,7 +8521,7 @@ defaults:
 
     #[test]
     fn test_issue399_categories_key_order_metadata() {
-        // Categories should have __key_order in alphabetical order (matching Jekyll)
+        // Categories should have __key_order in first-encounter order (matching Jekyll)
         let posts = vec![
             make_cat_tag_post("p1", "2024-01-01", vec!["Technology"], vec![]),
             make_cat_tag_post("p2", "2024-01-02", vec!["Science"], vec![]),
@@ -8552,8 +8546,8 @@ defaults:
                 let keys: Vec<String> = arr.iter().map(|v| v.to_kstr().to_string()).collect();
                 assert_eq!(
                     keys,
-                    vec!["Science", "Technology", "Travel"],
-                    "categories __key_order should be alphabetical (matching Jekyll)"
+                    vec!["Technology", "Science", "Travel"],
+                    "categories __key_order should be first-encounter order (matching Jekyll)"
                 );
             } else {
                 panic!("__key_order should be an Array");
@@ -8589,8 +8583,8 @@ defaults:
                 let keys: Vec<String> = arr.iter().map(|v| v.to_kstr().to_string()).collect();
                 assert_eq!(
                     keys,
-                    vec!["ml", "python", "rust"],
-                    "tags __key_order should be alphabetical (matching Jekyll)"
+                    vec!["rust", "python", "ml"],
+                    "tags __key_order should be first-encounter order (matching Jekyll)"
                 );
             } else {
                 panic!("__key_order should be an Array");
@@ -8627,7 +8621,7 @@ defaults:
                 assert_eq!(
                     keys,
                     vec!["A", "B", "C", "D"],
-                    "each category should appear once in alphabetical order"
+                    "each category should appear once in first-encounter order"
                 );
             } else {
                 panic!("__key_order should be an Array");
