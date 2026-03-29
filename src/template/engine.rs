@@ -718,6 +718,7 @@ impl TemplateEngine {
             // Custom filters (Issue 07)
             .filter(filters::WhereExp)
             .filter(filters::Where)
+            .filter(filters::Find)
             .filter(filters::Jsonify)
             .filter(filters::DateToString)
             .filter(filters::DateToLongString)
