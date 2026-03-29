@@ -881,19 +881,6 @@ fn collection_item_to_liquid_slim(
         obj.insert("short".into(), LiquidValue::scalar(item.slug.clone()));
     }
 
-    // Inject excerpt -- Jekyll exposes post.excerpt as rendered HTML on all
-    // document objects. Templates like archive-single.html use
-    // `{{ post.excerpt | markdownify }}` to render excerpts in listing pages.
-    // Without this, post.excerpt is nil and the excerpt paragraph is missing.
-    if !item.front_matter.contains_key("excerpt") {
-        if let Some(ref html_excerpt) = item.excerpt_html {
-            obj.insert("excerpt".into(), LiquidValue::scalar(html_excerpt.clone()));
-        } else if let Some(ref raw_excerpt) = item.excerpt {
-            let rendered = crate::frontmatter::markdown_to_html(raw_excerpt);
-            obj.insert("excerpt".into(), LiquidValue::scalar(rendered));
-        }
-    }
-
     // Issue 251: Normalize category/tag (singular) to categories/tags (plural arrays).
     // Jekyll always exposes `post.categories` and `post.tags` as arrays on every
     // document object. Without this, `category: release` in front matter would leave
@@ -6297,102 +6284,6 @@ defaults:
             collection_val,
             Some("posts".to_string()),
             "collection_item_to_liquid_slim should include collection field"
-        );
-    }
-
-    #[test]
-    fn test_collection_item_to_liquid_slim_includes_excerpt() {
-        // collection_item_to_liquid_slim must inject excerpt from excerpt_html
-        // so templates like {{ post.excerpt | markdownify }} work in archive pages.
-        let item = CollectionItem {
-            slug: "test-excerpt".to_string(),
-            front_matter: HashMap::new(),
-            content: "First paragraph.\n\nSecond paragraph.".to_string(),
-            html_content: "<p>First paragraph.</p>\n<p>Second paragraph.</p>".to_string(),
-            excerpt: Some("First paragraph.".to_string()),
-            excerpt_html: Some("<p>First paragraph.</p>\n".to_string()),
-            url: "/posts/test-excerpt.html".to_string(),
-            date: Some("2024-01-01".to_string()),
-            collection_name: "posts".to_string(),
-            source_path: "_posts/2024-01-01-test-excerpt.md".to_string(),
-            id: String::new(),
-        };
-
-        let liquid_val = collection_item_to_liquid_slim(&item, None, &SiteConfig::default());
-        let obj = liquid_val.as_object().unwrap();
-        let excerpt_val = obj
-            .iter()
-            .find(|(k, _)| k.as_str() == "excerpt")
-            .map(|(_, v)| v.to_kstr().to_string());
-        assert_eq!(
-            excerpt_val,
-            Some("<p>First paragraph.</p>\n".to_string()),
-            "collection_item_to_liquid_slim should include excerpt from excerpt_html"
-        );
-    }
-
-    #[test]
-    fn test_collection_item_to_liquid_slim_excerpt_respects_frontmatter() {
-        // If front matter already has an excerpt, don't override it
-        let mut fm = HashMap::new();
-        fm.insert(
-            "excerpt".to_string(),
-            serde_yaml::Value::String("Custom excerpt from FM".to_string()),
-        );
-        let item = CollectionItem {
-            slug: "test-fm-excerpt".to_string(),
-            front_matter: fm,
-            content: "First paragraph.\n\nSecond paragraph.".to_string(),
-            html_content: "<p>First paragraph.</p>\n<p>Second paragraph.</p>".to_string(),
-            excerpt: Some("First paragraph.".to_string()),
-            excerpt_html: Some("<p>First paragraph.</p>\n".to_string()),
-            url: "/posts/test-fm-excerpt.html".to_string(),
-            date: Some("2024-01-01".to_string()),
-            collection_name: "posts".to_string(),
-            source_path: "_posts/2024-01-01-test-fm-excerpt.md".to_string(),
-            id: String::new(),
-        };
-
-        let liquid_val = collection_item_to_liquid_slim(&item, None, &SiteConfig::default());
-        let obj = liquid_val.as_object().unwrap();
-        let excerpt_val = obj
-            .iter()
-            .find(|(k, _)| k.as_str() == "excerpt")
-            .map(|(_, v)| v.to_kstr().to_string());
-        assert_eq!(
-            excerpt_val,
-            Some("Custom excerpt from FM".to_string()),
-            "front matter excerpt should take precedence"
-        );
-    }
-
-    #[test]
-    fn test_collection_item_to_liquid_slim_excerpt_unicode() {
-        // Excerpt with non-ASCII content should be preserved
-        let item = CollectionItem {
-            slug: "test-unicode".to_string(),
-            front_matter: HashMap::new(),
-            content: "\u{4f60}\u{597d}\u{4e16}\u{754c}\n\nSecond.".to_string(),
-            html_content: "<p>\u{4f60}\u{597d}\u{4e16}\u{754c}</p>\n<p>Second.</p>".to_string(),
-            excerpt: Some("\u{4f60}\u{597d}\u{4e16}\u{754c}".to_string()),
-            excerpt_html: Some("<p>\u{4f60}\u{597d}\u{4e16}\u{754c}</p>\n".to_string()),
-            url: "/posts/test-unicode.html".to_string(),
-            date: Some("2024-01-01".to_string()),
-            collection_name: "posts".to_string(),
-            source_path: "_posts/2024-01-01-test-unicode.md".to_string(),
-            id: String::new(),
-        };
-
-        let liquid_val = collection_item_to_liquid_slim(&item, None, &SiteConfig::default());
-        let obj = liquid_val.as_object().unwrap();
-        let excerpt_val = obj
-            .iter()
-            .find(|(k, _)| k.as_str() == "excerpt")
-            .map(|(_, v)| v.to_kstr().to_string());
-        assert_eq!(
-            excerpt_val,
-            Some("<p>\u{4f60}\u{597d}\u{4e16}\u{754c}</p>\n".to_string()),
-            "Unicode excerpt should be preserved"
         );
     }
 
