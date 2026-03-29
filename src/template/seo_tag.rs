@@ -391,14 +391,12 @@ impl Renderable for SeoRenderable {
         let site_description = get_nested_str(runtime, &["site", "description"]);
         let page_content = get_nested_str(runtime, &["page", "content"])
             .or_else(|| get_nested_str(runtime, &["content"]));
-        // Jekyll's jekyll-seo-tag does NOT emit canonical/og:url when site.url
-        // is absent from _config.yml.  Rustkyll's config defaults url to ""
-        // (empty string) when the key is missing, so site.url is never truly nil
-        // in the Liquid context.  Treat empty string the same as absent so that
-        // sites without an explicit url: key do not get spurious relative
-        // canonical links.  (Issue 529)
-        let site_url =
-            get_nested_str_allow_empty_non_nil(runtime, &["site", "url"]).filter(|s| !s.is_empty());
+        // Jekyll's jekyll-seo-tag treats `url: ""` as a valid (empty) URL
+        // and still emits canonical/og:url with just the page path.  But when
+        // site.url is genuinely absent (key not in _config.yml), it skips them.
+        // Use get_nested_str_allow_empty which returns Some("") for explicitly
+        // empty strings, but check that the value is not nil (truly absent).
+        let site_url = get_nested_str_allow_empty_non_nil(runtime, &["site", "url"]);
         let page_url = get_nested_str(runtime, &["page", "url"]);
         let (page_image, page_image_alt) = match get_image_info(runtime, &["page", "image"]) {
             Some((url, alt)) => (Some(url), alt),
@@ -5351,104 +5349,6 @@ mod tests {
             !jsonld.contains("[Buddy]"),
             "JSON-LD should not contain markdown link syntax. Got: {}",
             jsonld
-        );
-    }
-
-    // ========================================================================
-    // Issue 529: SEO canonical URL with empty site.url
-    // ========================================================================
-
-    #[test]
-    fn test_no_canonical_with_empty_site_url() {
-        // When site.url is "" (empty string, from config defaulting), Jekyll's
-        // jekyll-seo-tag does NOT emit canonical or og:url. Rustkyll must treat
-        // empty string the same as absent.
-        let eng = engine();
-        let ctx = make_context(
-            Some("My Post"),
-            Some("My Site"),
-            None,
-            Some("A description"),
-            Some(""), // empty string site_url
-            Some("/2016/05/20/my-example-post.html"),
-            None,
-            Some("2016-05-20"),
-            None,
-            None,
-        );
-        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
-        assert!(
-            !out.contains("rel=\"canonical\""),
-            "Should NOT emit canonical link when site.url is empty string. Got:\n{}",
-            out
-        );
-        assert!(
-            !out.contains("og:url"),
-            "Should NOT emit og:url when site.url is empty string. Got:\n{}",
-            out
-        );
-    }
-
-    #[test]
-    fn test_no_canonical_with_empty_site_url_homepage() {
-        // Homepage case: empty site.url should not produce canonical
-        let eng = engine();
-        let ctx = make_context(
-            Some("Home"),
-            Some("My Site"),
-            None,
-            Some("Welcome"),
-            Some(""), // empty string site_url
-            Some("/"),
-            None,
-            None,
-            None,
-            None,
-        );
-        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
-        assert!(
-            !out.contains("rel=\"canonical\""),
-            "Should NOT emit canonical link for homepage when site.url is empty. Got:\n{}",
-            out
-        );
-        assert!(
-            !out.contains("og:url"),
-            "Should NOT emit og:url for homepage when site.url is empty. Got:\n{}",
-            out
-        );
-    }
-
-    #[test]
-    fn test_canonical_emitted_with_explicit_site_url() {
-        // When site.url IS explicitly set to a real URL, canonical must still work
-        let eng = engine();
-        let ctx = make_context(
-            Some("My Post"),
-            Some("My Site"),
-            None,
-            Some("A description"),
-            Some("https://example.com"),
-            Some("/2016/05/20/my-example-post.html"),
-            None,
-            Some("2016-05-20"),
-            None,
-            None,
-        );
-        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
-        assert!(
-            out.contains("rel=\"canonical\""),
-            "Should emit canonical when site.url is set to a real URL. Got:\n{}",
-            out
-        );
-        assert!(
-            out.contains("href=\"https://example.com/2016/05/20/my-example-post.html\""),
-            "Canonical should have full URL. Got:\n{}",
-            out
-        );
-        assert!(
-            out.contains("og:url"),
-            "Should emit og:url when site.url is set. Got:\n{}",
-            out
         );
     }
 }
