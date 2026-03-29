@@ -48,11 +48,32 @@ impl ParseBlock for HighlightBlock {
             TryMatchToken::Fails(token) => token.as_str().to_owned(),
         };
 
-        // Check for optional `linenos` parameter.
+        // Check for optional `linenos` and `hl_lines` parameters.
+        // The token stream from Liquid gives us individual tokens, so we
+        // accumulate them to detect `hl_lines="1 3 5"` patterns.
         let mut linenos = false;
+        let mut hl_lines: Vec<usize> = Vec::new();
+        // State machine: after seeing "hl_lines", expect "=", then the quoted value.
+        let mut hl_state = 0u8; // 0=idle, 1=saw hl_lines, 2=saw =
         while let Ok(next) = arguments.expect_next("") {
-            if next.as_str() == "linenos" {
-                linenos = true;
+            let s = next.as_str();
+            match hl_state {
+                1 if s == "=" => {
+                    hl_state = 2;
+                }
+                2 => {
+                    let val = s.trim_matches('"');
+                    hl_lines = parse_hl_lines(val);
+                    hl_state = 0;
+                }
+                _ => {
+                    hl_state = 0;
+                    if s == "linenos" {
+                        linenos = true;
+                    } else if s == "hl_lines" {
+                        hl_state = 1;
+                    }
+                }
             }
         }
 
@@ -69,6 +90,7 @@ impl ParseBlock for HighlightBlock {
             lang,
             body,
             linenos,
+            hl_lines,
         }))
     }
 
@@ -82,6 +104,46 @@ struct Highlight {
     lang: String,
     body: String,
     linenos: bool,
+    hl_lines: Vec<usize>,
+}
+
+/// Parse a space-separated list of 1-based line numbers from an `hl_lines` value.
+fn parse_hl_lines(value: &str) -> Vec<usize> {
+    value
+        .split_whitespace()
+        .filter_map(|s| s.parse::<usize>().ok())
+        .collect()
+}
+
+/// Wrap specified lines (1-based) in `<span class="hll">...</span>`.
+/// Each wrapped line includes its trailing newline inside the span, matching
+/// Jekyll/Rouge behavior.
+pub fn wrap_hl_lines(content: &str, hl_lines: &[usize]) -> String {
+    if hl_lines.is_empty() {
+        return content.to_string();
+    }
+    let mut result = String::with_capacity(content.len() + hl_lines.len() * 30);
+    // Split preserving trailing content: we split on '\n' and rejoin manually.
+    // Jekyll wraps each highlighted line including the trailing newline.
+    let lines: Vec<&str> = content.split('\n').collect();
+    for (i, line) in lines.iter().enumerate() {
+        let line_num = i + 1; // 1-based
+        let is_last = i == lines.len() - 1;
+        if hl_lines.contains(&line_num) {
+            result.push_str("<span class=\"hll\">");
+            result.push_str(line);
+            if !is_last {
+                result.push('\n');
+            }
+            result.push_str("</span>");
+        } else {
+            result.push_str(line);
+            if !is_last {
+                result.push('\n');
+            }
+        }
+    }
+    result
 }
 
 /// HTML-escape a string: replace `&`, `<`, `>`, and `"`.
@@ -110,13 +172,14 @@ impl Renderable for Highlight {
         )
         .replace("Failed to render")?;
 
-        // Get the highlighted or escaped content.
-        let content =
+        // Get the highlighted or escaped content, then apply hl_lines wrapping.
+        let raw_content =
             if let Some(highlighted) = crate::syntax::highlight_code(&self.lang, &self.body) {
                 highlighted
             } else {
                 html_escape(&self.body)
             };
+        let content = wrap_hl_lines(&raw_content, &self.hl_lines);
 
         if self.linenos {
             // Count lines in the original body, stripping leading/trailing
@@ -376,6 +439,91 @@ mod tests {
         assert!(
             output.contains("class=\"language-javascript\""),
             "Expected class=\"language-javascript\", got: {output}"
+        );
+    }
+
+    // --- hl_lines tests ---
+
+    #[test]
+    fn test_highlight_hl_lines_wraps_specified_lines() {
+        // hl_lines="2" should wrap only line 2 in <span class="hll">
+        let output = render(
+            "{% highlight plaintext hl_lines=\"2\" %}line one\nline two\nline three{% endhighlight %}",
+        );
+        assert!(
+            !output.contains("<span class=\"hll\">line one"),
+            "Line 1 should NOT be wrapped, got: {output}"
+        );
+        assert!(
+            output.contains("<span class=\"hll\">line two\n</span>"),
+            "Line 2 should be wrapped in hll span, got: {output}"
+        );
+        assert!(
+            !output.contains("<span class=\"hll\">line three"),
+            "Line 3 should NOT be wrapped, got: {output}"
+        );
+    }
+
+    #[test]
+    fn test_highlight_hl_lines_multiple_lines() {
+        let output =
+            render("{% highlight plaintext hl_lines=\"1 3\" %}aaa\nbbb\nccc{% endhighlight %}");
+        assert!(
+            output.contains("<span class=\"hll\">aaa\n</span>"),
+            "Line 1 should be wrapped, got: {output}"
+        );
+        assert!(
+            !output.contains("<span class=\"hll\">bbb"),
+            "Line 2 should NOT be wrapped, got: {output}"
+        );
+        assert!(
+            output.contains("<span class=\"hll\">ccc\n</span>")
+                || output.contains("<span class=\"hll\">ccc</span>"),
+            "Line 3 should be wrapped, got: {output}"
+        );
+    }
+
+    #[test]
+    fn test_highlight_hl_lines_single_line() {
+        let output = render("{% highlight plaintext hl_lines=\"1\" %}only line{% endhighlight %}");
+        assert!(
+            output.contains("<span class=\"hll\">only line\n</span>")
+                || output.contains("<span class=\"hll\">only line</span>"),
+            "Single line should be wrapped, got: {output}"
+        );
+    }
+
+    #[test]
+    fn test_highlight_no_hl_lines_no_hll_spans() {
+        let output = render("{% highlight plaintext %}line one\nline two{% endhighlight %}");
+        assert!(
+            !output.contains("class=\"hll\""),
+            "Without hl_lines, no hll spans should appear, got: {output}"
+        );
+    }
+
+    #[test]
+    fn test_highlight_hl_lines_with_syntax_highlighting() {
+        // hl_lines with a real language -- the hll span wraps the entire line including inner spans
+        let output = render("{% highlight ruby hl_lines=\"1\" %}puts \"hello\"{% endhighlight %}");
+        assert!(
+            output.contains("<span class=\"hll\">"),
+            "hl_lines should produce hll span even with syntax highlighting, got: {output}"
+        );
+    }
+
+    #[test]
+    fn test_highlight_hl_lines_with_linenos() {
+        let output = render(
+            "{% highlight plaintext linenos hl_lines=\"1\" %}line one\nline two{% endhighlight %}",
+        );
+        assert!(
+            output.contains("<span class=\"hll\">"),
+            "hl_lines should work with linenos, got: {output}"
+        );
+        assert!(
+            output.contains("<table class=\"rouge-table\">"),
+            "linenos table should still be present, got: {output}"
         );
     }
 

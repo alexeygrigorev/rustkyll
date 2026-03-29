@@ -158,6 +158,9 @@ fn pre_render_highlight_blocks(content: &str) -> String {
             // Extract language (first word, ignore linenos and other params)
             let lang = tag_args.split_whitespace().next().unwrap_or("text");
 
+            // Extract hl_lines parameter if present (e.g. hl_lines="1 3 5")
+            let hl_lines = parse_hl_lines_from_tag_args(tag_args);
+
             let after_open_tag = &after_open[close_pct + 2..];
 
             // Find the matching {% endhighlight %}
@@ -177,11 +180,15 @@ fn pre_render_highlight_blocks(content: &str) -> String {
                     "<figure class=\"highlight\"><pre><code class=\"language-{}\" data-lang=\"{}\">",
                     escaped_lang, escaped_lang
                 );
-                if let Some(highlighted) = crate::syntax::highlight_code(lang, body) {
-                    figure.push_str(&highlighted);
-                } else {
-                    figure.push_str(&html_escape_highlight(body));
-                }
+                let raw_content =
+                    if let Some(highlighted) = crate::syntax::highlight_code(lang, body) {
+                        highlighted
+                    } else {
+                        html_escape_highlight(body)
+                    };
+                let content =
+                    crate::template::highlight_tag::wrap_hl_lines(&raw_content, &hl_lines);
+                figure.push_str(&content);
                 figure.push_str("</code></pre></figure>");
                 // Collapse blank lines so markdown parser treats entire figure as
                 // one HTML block (CommonMark type-6 blocks end at blank lines).
@@ -211,6 +218,26 @@ fn pre_render_highlight_blocks(content: &str) -> String {
 
     result.push_str(remaining);
     result
+}
+
+/// Parse `hl_lines="1 3 5"` from raw tag arguments string.
+/// Returns empty vec if no hl_lines parameter is found.
+fn parse_hl_lines_from_tag_args(tag_args: &str) -> Vec<usize> {
+    // Look for hl_lines="..." pattern in the raw tag arguments
+    if let Some(start) = tag_args.find("hl_lines=") {
+        let after_eq = &tag_args[start + "hl_lines=".len()..];
+        // The value is quoted: hl_lines="1 3 5"
+        if let Some(after_eq) = after_eq.strip_prefix('"') {
+            if let Some(end_quote) = after_eq.find('"') {
+                let value = &after_eq[..end_quote];
+                return value
+                    .split_whitespace()
+                    .filter_map(|s| s.parse::<usize>().ok())
+                    .collect();
+            }
+        }
+    }
+    Vec::new()
 }
 
 /// HTML-escape for highlight pre-rendering (same logic as highlight_tag.rs).
@@ -4247,6 +4274,25 @@ mod tests {
         assert!(
             result.contains("<figure class=\"highlight\">"),
             "Should handle unicode content, got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_pre_render_highlight_blocks_hl_lines() {
+        let input =
+            "{% highlight plaintext hl_lines=\"2\" %}\nline one\nline two\nline three\n{% endhighlight %}";
+        let result = pre_render_highlight_blocks(input);
+        assert!(
+            result.contains("<span class=\"hll\">line two\n</span>"),
+            "Line 2 should be wrapped in hll span, got: {result}"
+        );
+        assert!(
+            !result.contains("<span class=\"hll\">line one"),
+            "Line 1 should NOT be wrapped, got: {result}"
+        );
+        assert!(
+            !result.contains("<span class=\"hll\">line three"),
+            "Line 3 should NOT be wrapped, got: {result}"
         );
     }
 
