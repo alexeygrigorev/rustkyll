@@ -54,8 +54,9 @@ impl Filter for WhereFilter {
         for item in array.values() {
             if let Some(obj) = item.as_object() {
                 if let Some(val) = obj.get(property.as_str()) {
-                    // Use to_kstr() instead of render().to_string() to avoid
-                    // unnecessary Display formatting and string allocation.
+                    // Compare as strings via to_kstr(), which coerces booleans
+                    // to "true"/"false" -- matching Jekyll's where filter behavior
+                    // where `pin: true` (YAML bool) matches `where: 'pin', 'true'`.
                     let val_str = val.to_kstr();
                     if val_str.as_str() == target_value.as_str() {
                         result.push(item.to_value());
@@ -146,6 +147,155 @@ mod tests {
         let result = liquid_core::call_filter!(Where, input, "status", "active").unwrap();
         let arr = result.as_array().unwrap();
         assert_eq!(arr.size(), 2);
+    }
+
+    #[test]
+    fn test_where_filter_bool_true_matches_string_true() {
+        // TDD: Jekyll coerces booleans to strings in `where` filter.
+        // `pin: true` (bool) should match `where: 'pin', 'true'` (string target).
+        let input = Value::Array(vec![
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("title".into(), Value::scalar("Pinned Post"));
+                o.insert("pin".into(), Value::scalar(true));
+                o
+            }),
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("title".into(), Value::scalar("Normal Post"));
+                o.insert("pin".into(), Value::scalar(false));
+                o
+            }),
+        ]);
+        // Verify boolean to_kstr works as expected
+        let bool_val = Value::scalar(true);
+        assert_eq!(
+            bool_val.to_kstr().as_str(),
+            "true",
+            "to_kstr on bool true must return 'true'"
+        );
+        let bool_val = Value::scalar(false);
+        assert_eq!(
+            bool_val.to_kstr().as_str(),
+            "false",
+            "to_kstr on bool false must return 'false'"
+        );
+
+        let result = liquid_core::call_filter!(Where, input, "pin", "true").unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.size(), 1, "Boolean true should match string 'true'");
+    }
+
+    #[test]
+    fn test_where_filter_bool_false_matches_string_false() {
+        let input = Value::Array(vec![
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("title".into(), Value::scalar("Post A"));
+                o.insert("hidden".into(), Value::scalar(false));
+                o
+            }),
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("title".into(), Value::scalar("Post B"));
+                o.insert("hidden".into(), Value::scalar(true));
+                o
+            }),
+        ]);
+        let result = liquid_core::call_filter!(Where, input, "hidden", "false").unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.size(), 1, "Boolean false should match string 'false'");
+    }
+
+    #[test]
+    fn test_where_filter_bool_true_does_not_match_string_false() {
+        let input = Value::Array(vec![Value::Object({
+            let mut o = liquid::Object::new();
+            o.insert("pin".into(), Value::scalar(true));
+            o
+        })]);
+        let result = liquid_core::call_filter!(Where, input, "pin", "false").unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(
+            arr.size(),
+            0,
+            "Boolean true should NOT match string 'false'"
+        );
+    }
+
+    #[test]
+    fn test_where_filter_string_comparison_still_works() {
+        let input = Value::Array(vec![
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("category".into(), Value::scalar("blog"));
+                o
+            }),
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("category".into(), Value::scalar("news"));
+                o
+            }),
+        ]);
+        let result = liquid_core::call_filter!(Where, input, "category", "blog").unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(
+            arr.size(),
+            1,
+            "String-to-string comparison should still work"
+        );
+    }
+
+    #[test]
+    fn test_where_filter_integer_matches_string() {
+        // Jekyll coerces numbers too: `priority: 1` (int) matches `where: 'priority', '1'`.
+        let input = Value::Array(vec![
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("priority".into(), Value::scalar(1i64));
+                o
+            }),
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("priority".into(), Value::scalar(2i64));
+                o
+            }),
+        ]);
+        let result = liquid_core::call_filter!(Where, input, "priority", "1").unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.size(), 1, "Integer 1 should match string '1'");
+    }
+
+    #[test]
+    fn test_where_filter_mixed_bool_and_nil() {
+        // Posts without the `pin` field should not match `where: 'pin', 'true'`.
+        let input = Value::Array(vec![
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("title".into(), Value::scalar("Pinned"));
+                o.insert("pin".into(), Value::scalar(true));
+                o
+            }),
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("title".into(), Value::scalar("No Pin Field"));
+                // pin field is absent
+                o
+            }),
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("title".into(), Value::scalar("Nil Pin"));
+                o.insert("pin".into(), Value::Nil);
+                o
+            }),
+        ]);
+        let result = liquid_core::call_filter!(Where, input, "pin", "true").unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(
+            arr.size(),
+            1,
+            "Only the post with pin=true should match; absent and nil should not"
+        );
     }
 
     #[test]
