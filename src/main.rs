@@ -865,6 +865,116 @@ fn build_site(
         summary.standalone_pages += redirect_count;
     }
 
+    // 10c2. Handle redirect_to pages (jekyll-redirect-from support)
+    // When a page has redirect_to in front matter, its output should be a
+    // redirect HTML page pointing to the target URL.
+    {
+        let mut redirect_to_count = 0;
+        // Check standalone pages for redirect_to front matter
+        for page in &pages {
+            if let Some(val) = page.front_matter.get("redirect_to") {
+                let target = match val {
+                    serde_yaml::Value::String(s) => Some(s.clone()),
+                    _ => None,
+                };
+                if let Some(target_url) = target {
+                    if !target_url.is_empty() {
+                        // For redirect_to, the target URL is used directly (may be
+                        // absolute or relative). If it's absolute, use as-is.
+                        let absolute_url = if target_url.starts_with("http://")
+                            || target_url.starts_with("https://")
+                        {
+                            target_url.clone()
+                        } else {
+                            let base = config.url.trim_end_matches('/');
+                            let baseurl_part = config.baseurl.trim_end_matches('/');
+                            let path = if target_url.starts_with('/') {
+                                target_url.clone()
+                            } else {
+                                format!("/{}", target_url)
+                            };
+                            format!("{}{}{}", base, baseurl_part, path)
+                        };
+                        let html = format!(
+                            r#"<!DOCTYPE html>
+<html lang="en-US">
+  <meta charset="utf-8">
+  <title>Redirecting&hellip;</title>
+  <link rel="canonical" href="{to}">
+  <script>location="{to}"</script>
+  <meta http-equiv="refresh" content="0; url={to}">
+  <meta name="robots" content="noindex">
+  <h1>Redirecting&hellip;</h1>
+  <a href="{to}">Click here if you are not redirected.</a>
+</html>
+"#,
+                            to = absolute_url
+                        );
+                        let out_path = generator::url_to_output_path(destination, &page.url);
+                        if let Some(parent) = out_path.parent() {
+                            let _ = std::fs::create_dir_all(parent);
+                        }
+                        if std::fs::write(&out_path, &html).is_ok() {
+                            redirect_to_count += 1;
+                        }
+                    }
+                }
+            }
+        }
+        // Check collections for redirect_to front matter
+        for items in collections.values() {
+            for item in items {
+                if let Some(val) = item.front_matter.get("redirect_to") {
+                    let target = match val {
+                        serde_yaml::Value::String(s) => Some(s.clone()),
+                        _ => None,
+                    };
+                    if let Some(target_url) = target {
+                        if !target_url.is_empty() {
+                            let absolute_url = if target_url.starts_with("http://")
+                                || target_url.starts_with("https://")
+                            {
+                                target_url.clone()
+                            } else {
+                                let base = config.url.trim_end_matches('/');
+                                let baseurl_part = config.baseurl.trim_end_matches('/');
+                                let path = if target_url.starts_with('/') {
+                                    target_url.clone()
+                                } else {
+                                    format!("/{}", target_url)
+                                };
+                                format!("{}{}{}", base, baseurl_part, path)
+                            };
+                            let html = format!(
+                                r#"<!DOCTYPE html>
+<html lang="en-US">
+  <meta charset="utf-8">
+  <title>Redirecting&hellip;</title>
+  <link rel="canonical" href="{to}">
+  <script>location="{to}"</script>
+  <meta http-equiv="refresh" content="0; url={to}">
+  <meta name="robots" content="noindex">
+  <h1>Redirecting&hellip;</h1>
+  <a href="{to}">Click here if you are not redirected.</a>
+</html>
+"#,
+                                to = absolute_url
+                            );
+                            let out_path = generator::url_to_output_path(destination, &item.url);
+                            if let Some(parent) = out_path.parent() {
+                                let _ = std::fs::create_dir_all(parent);
+                            }
+                            let _ = std::fs::write(&out_path, &html);
+                        }
+                    }
+                }
+            }
+        }
+        if redirect_to_count > 0 {
+            // redirect_to pages replace existing output, no new pages added
+        }
+    }
+
     // 10d. Generate archive pages (jekyll-archives support)
     if let Some(ref archives_config) = rustkyll::archives::ArchivesConfig::from_config(&config) {
         if let Some(posts) = collections.get("posts") {

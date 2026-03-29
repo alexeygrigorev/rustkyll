@@ -183,6 +183,58 @@ fn get_author_name(runtime: &dyn Runtime, prefix: &[&str]) -> Option<String> {
     }
 }
 
+/// Resolve an author's twitter handle from a Liquid runtime value.
+///
+/// Jekyll's `jekyll-seo-tag` AuthorDrop looks for:
+/// - author_hash["twitter"] if present
+/// - author_hash["name"] as fallback
+///
+/// If the author is a string, name == that string and twitter falls back to name.
+/// If the author is a Hash/Object, look for "twitter" key, falling back to "name".
+fn get_author_twitter(runtime: &dyn Runtime, prefix: &[&str]) -> Option<String> {
+    if prefix.is_empty() {
+        return None;
+    }
+    let path: Vec<liquid_core::model::ScalarCow<'_>> = prefix
+        .iter()
+        .map(|p| liquid_core::model::ScalarCow::new(*p))
+        .collect();
+    let val = runtime.try_get(&path)?;
+
+    if let Some(obj) = val.as_object() {
+        // Object: check "twitter" field first, then fall back to "name"
+        let twitter_val = obj
+            .get("twitter")
+            .and_then(|v| {
+                let s = v.to_kstr().to_string();
+                if s.is_empty() {
+                    None
+                } else {
+                    Some(s)
+                }
+            })
+            .or_else(|| {
+                obj.get("name").and_then(|v| {
+                    let s = v.to_kstr().to_string();
+                    if s.is_empty() {
+                        None
+                    } else {
+                        Some(s)
+                    }
+                })
+            });
+        twitter_val.map(|t| t.trim_start_matches('@').to_string())
+    } else {
+        // Scalar string: the name IS the twitter handle (fallback)
+        let s = val.to_kstr().to_string();
+        if s.is_empty() {
+            None
+        } else {
+            Some(s.trim_start_matches('@').to_string())
+        }
+    }
+}
+
 /// Compute the absolute URL for an image path.
 fn absolute_image_url(img: &str, site_url: &Option<String>) -> String {
     if img.starts_with("http://") || img.starts_with("https://") {
@@ -395,26 +447,30 @@ impl Renderable for SeoRenderable {
             .or(content_snippet.as_deref());
 
         // Strip HTML tags from description (Jekyll's SEO tag always does this),
-        // collapse multiple whitespace to single space, and apply smartify.
+        // normalize whitespace (matching Jekyll's normalize_whitespace which
+        // replaces ALL whitespace including \n, \r, \t with single space),
+        // and apply smartify (for apostrophe/quote conversion through markdownify).
         let stripped_description = raw_description.map(|d| {
             let stripped = html_unescape(&strip_html_tags(d));
-            // Collapse multiple whitespace to single space
+            // Normalize all whitespace to single space (matching Jekyll's normalize_whitespace)
             let mut prev_space = false;
             let collapsed: String = stripped
                 .chars()
-                .filter(|&ch| {
-                    if ch == ' ' {
+                .filter_map(|ch| {
+                    if ch.is_ascii_whitespace() {
                         if prev_space {
-                            return false;
+                            return None;
                         }
                         prev_space = true;
+                        Some(' ')
                     } else {
                         prev_space = false;
+                        Some(ch)
                     }
-                    true
                 })
                 .collect();
-            smartify(&collapsed)
+            let trimmed = collapsed.trim().to_string();
+            smartify(&trimmed)
         });
         let description = stripped_description.as_deref();
 
@@ -489,7 +545,6 @@ impl Renderable for SeoRenderable {
         }
 
         // 10. og:type - "article" for posts/documents (pages with date), "website" otherwise
-        let is_article = page_date.is_some();
         if let Some(ref date_str) = page_date {
             output.push_str("<meta property=\"og:type\" content=\"article\" />\n");
             // 10b. article:published_time (only for articles)
@@ -536,16 +591,33 @@ impl Renderable for SeoRenderable {
                 "<meta name=\"twitter:site\" content=\"{}\" />\n",
                 html_escape(&handle)
             ));
+
+            // 13a. twitter:creator - author's twitter handle
+            // Jekyll emits this when site.twitter is configured AND the author
+            // has a twitter handle (or falls back to author name).
+            let author_twitter = get_author_twitter(runtime, &["page", "author"])
+                .or_else(|| get_author_twitter(runtime, &["site", "author"]));
+            if let Some(ref tw) = author_twitter {
+                let creator_handle = if tw.starts_with('@') {
+                    tw.clone()
+                } else {
+                    format!("@{}", tw)
+                };
+                output.push_str(&format!(
+                    "<meta name=\"twitter:creator\" content=\"{}\" />\n",
+                    html_escape(&creator_handle)
+                ));
+            }
         }
 
         // 13b. article:publisher (after twitter tags, matching Jekyll SEO tag order)
-        if is_article {
-            if let Some(ref publisher) = facebook_publisher {
-                output.push_str(&format!(
-                    "<meta property=\"article:publisher\" content=\"{}\" />\n",
-                    html_escape(publisher)
-                ));
-            }
+        // Jekyll emits this for ALL pages when site.facebook.publisher is set,
+        // not just articles.
+        if let Some(ref publisher) = facebook_publisher {
+            output.push_str(&format!(
+                "<meta property=\"article:publisher\" content=\"{}\" />\n",
+                html_escape(publisher)
+            ));
         }
 
         // 14. JSON-LD structured data
@@ -650,12 +722,18 @@ impl Renderable for SeoRenderable {
         }
 
         // publisher field: when site.logo is configured, include publisher organization
-        // matching jekyll-seo-tag behavior
+        // matching jekyll-seo-tag behavior. Includes "name" from author if available.
         if let Some(ref logo) = site_logo {
             let absolute_logo = absolute_image_url(logo, &site_url);
+            let name_part = if let Some(author_name) = author {
+                format!(",\"name\":\"{}\"", json_escape(author_name))
+            } else {
+                String::new()
+            };
             jsonld_fields.push(format!(
-                "\"publisher\":{{\"@type\":\"Organization\",\"logo\":{{\"@type\":\"ImageObject\",\"url\":\"{}\"}}}}",
-                json_escape(&absolute_logo)
+                "\"publisher\":{{\"@type\":\"Organization\",\"logo\":{{\"@type\":\"ImageObject\",\"url\":\"{}\"}}{}}}",
+                json_escape(&absolute_logo),
+                name_part
             ));
         }
 
@@ -721,7 +799,7 @@ fn strip_html_tags(html: &str) -> String {
 /// - Straight double quotes `"..."` -> `\u{201C}...\u{201D}` (left/right double quotation marks)
 /// - Straight apostrophe in contractions (e.g., `it's`) -> `\u{2019}` (right single quotation mark)
 /// - `...` -> `\u{2026}` (horizontal ellipsis)
-/// - `--` -> `\u{2014}` (em dash)
+/// - `--` is preserved as-is (not converted to dash)
 fn smartify(s: &str) -> String {
     let mut result = String::with_capacity(s.len());
     let chars: Vec<char> = s.chars().collect();
@@ -738,12 +816,11 @@ fn smartify(s: &str) -> String {
             continue;
         }
 
-        // Handle em dash: -- -> \u{2014}
-        if ch == '-' && i + 1 < len && chars[i + 1] == '-' {
-            result.push('\u{2014}');
-            i += 2;
-            continue;
-        }
+        // Note: we do NOT convert -- to em-dash here. Jekyll's smartify
+        // (SmartyPants) does convert -- to en-dash, but descriptions have already
+        // been through markdownify where -- inside code blocks is preserved as
+        // literal text. Applying dash conversion after HTML stripping would
+        // incorrectly convert code-context dashes.
 
         // Handle double quotes
         if ch == '"' {
@@ -4162,6 +4239,209 @@ mod tests {
         assert!(
             !out.contains("&amp;quot;"),
             "Meta description should not contain &amp;quot; double-escaped entity, got:\n{}",
+            out
+        );
+    }
+
+    // ========================================================================
+    // homebrew-site fixes: article:publisher for non-articles
+    // ========================================================================
+
+    #[test]
+    fn test_article_publisher_on_non_article_page() {
+        // Jekyll emits article:publisher for ALL pages when site.facebook.publisher
+        // is configured, not just articles (pages with date).
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("Home"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/"),
+            None,
+            None, // no date = not an article
+            None,
+            None,
+        );
+        if let Some(Value::Object(ref mut site)) = ctx.get_mut("site") {
+            let mut facebook = Object::new();
+            facebook.insert(
+                "publisher".into(),
+                Value::scalar("https://www.facebook.com/testpub/"),
+            );
+            site.insert("facebook".into(), Value::Object(facebook));
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("article:publisher"),
+            "Should contain article:publisher even for non-article pages. Got:\n{}",
+            out
+        );
+        assert!(
+            out.contains("https://www.facebook.com/testpub/"),
+            "Should contain the publisher URL. Got:\n{}",
+            out
+        );
+    }
+
+    // ========================================================================
+    // homebrew-site fixes: twitter:creator
+    // ========================================================================
+
+    #[test]
+    fn test_twitter_creator_from_author_name() {
+        // When site.twitter is configured and page has an author (string),
+        // Jekyll emits twitter:creator with @author_name as fallback.
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("My Post"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/post/"),
+            Some("/img/card.png"),
+            Some("2024-01-15"),
+            None,
+            Some("SiteHandle"),
+        );
+        if let Some(Value::Object(ref mut page)) = ctx.get_mut("page") {
+            page.insert("author".into(), Value::scalar("JohnDoe"));
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<meta name=\"twitter:creator\" content=\"@JohnDoe\" />"),
+            "Should contain twitter:creator with @author_name. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_twitter_creator_from_author_twitter_field() {
+        // When author is an object with a twitter field, use that.
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("My Post"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/post/"),
+            Some("/img/card.png"),
+            Some("2024-01-15"),
+            None,
+            Some("SiteHandle"),
+        );
+        if let Some(Value::Object(ref mut page)) = ctx.get_mut("page") {
+            let mut author_obj = Object::new();
+            author_obj.insert("name".into(), Value::scalar("John Doe"));
+            author_obj.insert("twitter".into(), Value::scalar("johndoe_tw"));
+            page.insert("author".into(), Value::Object(author_obj));
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<meta name=\"twitter:creator\" content=\"@johndoe_tw\" />"),
+            "Should contain twitter:creator from author.twitter field. Got:\n{}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_twitter_creator_not_emitted_without_site_twitter() {
+        // twitter:creator requires site.twitter to be configured
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("My Post"),
+            Some("My Site"),
+            None,
+            None,
+            Some("https://example.com"),
+            Some("/post/"),
+            Some("/img/card.png"),
+            Some("2024-01-15"),
+            None,
+            None, // no twitter config
+        );
+        if let Some(Value::Object(ref mut page)) = ctx.get_mut("page") {
+            page.insert("author".into(), Value::scalar("JohnDoe"));
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            !out.contains("twitter:creator"),
+            "Should NOT contain twitter:creator without site.twitter. Got:\n{}",
+            out
+        );
+    }
+
+    // ========================================================================
+    // homebrew-site fixes: description newline normalization
+    // ========================================================================
+
+    #[test]
+    fn test_description_newlines_normalized_to_spaces() {
+        // Jekyll's normalize_whitespace converts newlines to spaces and trims
+        let eng = engine();
+        let ctx = make_context(
+            Some("My Post"),
+            Some("My Site"),
+            Some("First line.\nSecond line.\nThird line.\n"),
+            None,
+            Some("https://example.com"),
+            Some("/post/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        // Should contain normalized text with newlines as spaces, trimmed
+        assert!(
+            out.contains("First line. Second line. Third line."),
+            "Description should have newlines collapsed to spaces. Got:\n{}",
+            out
+        );
+        // Should NOT have a trailing space before the closing quote
+        assert!(
+            !out.contains("Third line. \""),
+            "Description should be trimmed (no trailing space). Got:\n{}",
+            out
+        );
+    }
+
+    // ========================================================================
+    // homebrew-site fixes: JSON-LD publisher name
+    // ========================================================================
+
+    #[test]
+    fn test_jsonld_publisher_includes_name() {
+        // Jekyll's JSON-LD includes "name" in the publisher object when
+        // the page has an author. The publisher name should be the author name.
+        let eng = engine();
+        let mut ctx = make_context(
+            Some("My Post"),
+            Some("My Site"),
+            Some("A description"),
+            None,
+            Some("https://example.com"),
+            Some("/post/"),
+            Some("/img/card.png"),
+            Some("2024-01-15"),
+            None,
+            None,
+        );
+        if let Some(Value::Object(ref mut page)) = ctx.get_mut("page") {
+            page.insert("author".into(), Value::scalar("JohnDoe"));
+        }
+        if let Some(Value::Object(ref mut site)) = ctx.get_mut("site") {
+            site.insert("logo".into(), Value::scalar("/logo.png"));
+        }
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        // The publisher object should include "name" field
+        // Jekyll outputs: "publisher":{"@type":"Organization","logo":{...},"name":"AuthorName"}
+        assert!(
+            out.contains("\"publisher\":{\"@type\":\"Organization\",\"logo\":{\"@type\":\"ImageObject\",\"url\":\"https://example.com/logo.png\"},\"name\":\"JohnDoe\"}"),
+            "JSON-LD publisher should include author name in publisher object. Got:\n{}",
             out
         );
     }

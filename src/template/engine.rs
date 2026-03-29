@@ -1199,7 +1199,7 @@ fn preprocess_jekyll_tags(template: &str) -> String {
                     let month = &slug[5..7];
                     let day = &slug[8..10];
                     let title = &slug[11..];
-                    result.push_str(&format!("/{}/{}/{}/{}", year, month, day, title));
+                    result.push_str(&format!("/{}/{}/{}/{}/", year, month, day, title));
                 } else {
                     // Fallback: just use slug as path
                     result.push_str(&format!("/{}", slug));
@@ -3629,8 +3629,9 @@ title: "Test Book"
 
     #[test]
     fn test_post_url_tag_preprocessing() {
+        // post_url should produce URL with trailing slash matching Jekyll's permalink
         let result = preprocess_jekyll_tags("{% post_url 2022-09-07-homebrew-3.6.0 %}");
-        assert_eq!(result, "/2022/09/07/homebrew-3.6.0");
+        assert_eq!(result, "/2022/09/07/homebrew-3.6.0/");
     }
 
     #[test]

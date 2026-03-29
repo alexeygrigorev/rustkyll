@@ -98,7 +98,8 @@ impl Filter for DateToLongStringFilter {
                         day, suffix, month, year
                     )))
                 } else {
-                    Ok(Value::scalar(format!("{} {} {}", day, month, year)))
+                    // Jekyll uses %d which zero-pads single-digit days (e.g., "07 November")
+                    Ok(Value::scalar(format!("{:02} {} {}", day, month, year)))
                 }
             }
             None => Ok(Value::scalar(s.to_string())),
@@ -124,8 +125,9 @@ mod tests {
 
     #[test]
     fn test_date_to_long_string_january() {
+        // Jekyll's %d produces zero-padded days
         let result = liquid_core::call_filter!(DateToLongString, "2024-01-01").unwrap();
-        assert_eq!(result.to_kstr(), "1 January 2024");
+        assert_eq!(result.to_kstr(), "01 January 2024");
     }
 
     #[test]
