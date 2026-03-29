@@ -8594,4 +8594,25 @@ More text.
             "Issue 387 regression: should have 1 <ul>. Got:\n{html}"
         );
     }
+
+    #[test]
+    fn test_iframe_not_wrapped_in_p() {
+        // Jekyll/kramdown treats standalone <iframe> as a block element,
+        // not wrapped in <p>. This matches how block-level HTML is handled.
+        let input = concat!(
+            "Some text\n\n",
+            "<iframe src=\"//example.com/embed\" width=\"595\" height=\"485\" frameborder=\"0\" allowfullscreen> </iframe>\n\n",
+            "More text\n",
+        );
+        let html = markdown_to_html(input);
+        // Must not be wrapped in <p> or contain \n<iframe inside a <p>
+        assert!(
+            !html.contains("<p><iframe") && !html.contains("<p>\n<iframe"),
+            "iframe should not be wrapped in <p>. Got:\n{html}"
+        );
+        assert!(
+            html.contains("<iframe src="),
+            "iframe should be preserved. Got:\n{html}"
+        );
+    }
 }

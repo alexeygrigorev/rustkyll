@@ -424,8 +424,17 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
         );
 
         html = postprocess_python_builtin_calls(&html);
+        // Rouge classifies import aliases as `n` (name), not `nn` (module).
+        // In `import X as Y`, syntect gives Y class="nn" but Rouge gives it "n".
+        html = html.replace(
+            "<span class=\"k\">as</span> <span class=\"nn\">",
+            "<span class=\"k\">as</span> <span class=\"n\">",
+        );
         html = html.replace("</span>]", "</span><span class=\"p\">]</span>");
         html = html.replace("<span class=\"p\">]</span>)", "<span class=\"p\">])</span>");
+        // Rouge classifies commas as punctuation ("p") in Python.
+        // Syntect sometimes leaves commas as bare text between spans.
+        html = wrap_bare_python_commas(&html);
     }
 
     // YAML post-processing: syntect classifies `on` as constant.language (kc)
@@ -539,16 +548,12 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
 
 fn postprocess_python_builtin_calls(html: &str) -> String {
     let mut out = html.to_string();
-    for builtin in ["min", "max", "sum"] {
-        for suffix in [
-            "<span class=\"p\">()</span>",
-            "<span class=\"p\">().</span>",
-            "<span class=\"p\">(</span>",
-        ] {
-            let from = format!("<span class=\"n\">{builtin}</span>{suffix}");
-            let to = format!("<span class=\"nb\">{builtin}</span>{suffix}");
-            out = out.replace(&from, &to);
-        }
+    for builtin in ["min", "max", "sum", "round"] {
+        // Match any call pattern: builtin followed by <span class="p">(...)
+        // This covers ()</span>, ().</span>, (</span>, ())</span>, etc.
+        let from = format!("<span class=\"n\">{builtin}</span><span class=\"p\">(");
+        let to = format!("<span class=\"nb\">{builtin}</span><span class=\"p\">(");
+        out = out.replace(&from, &to);
     }
     out
 }
@@ -827,6 +832,60 @@ fn merge_python_dotted_modules(html: &str) -> String {
         result = new_result;
     }
 
+    result
+}
+
+/// Merge bare commas into the preceding `<span class="p">` or wrap them in a
+/// new `<span class="p">` span for Python syntax-highlighted output.
+///
+/// Syntect sometimes leaves commas as bare text between spans (e.g., in tuple
+/// unpacking `c, d = t` or `return w[0], w[1:]`). Rouge always assigns commas
+/// the `p` (punctuation) class and often merges them with the preceding
+/// punctuation token (e.g., `<span class="p">],</span>`).
+fn wrap_bare_python_commas(html: &str) -> String {
+    let p_close = "<span class=\"p\">";
+    let close_span = "</span>";
+
+    let mut result = String::with_capacity(html.len() + 64);
+    let mut remaining = html;
+
+    while let Some(pos) = remaining.find(close_span) {
+        let after_close = pos + close_span.len();
+
+        // Check if next char after </span> is a bare comma
+        let after = &remaining[after_close..];
+        if let Some(after_comma) = after.strip_prefix(',') {
+            let is_bare = after_comma.is_empty()
+                || after_comma.starts_with(' ')
+                || after_comma.starts_with('\n')
+                || after_comma.starts_with('<');
+
+            if is_bare {
+                // Check if the span that just closed was class="p"
+                let before_close = &remaining[..pos];
+                if let Some(open_pos) = before_close.rfind(p_close) {
+                    let between = &remaining[open_pos + p_close.len()..pos];
+                    if !between.contains("</span>") {
+                        // Merge comma into the existing p span
+                        result.push_str(&remaining[..pos]);
+                        result.push(',');
+                        result.push_str(close_span);
+                        remaining = after_comma;
+                        continue;
+                    }
+                }
+                // No preceding p span -- wrap in new span
+                result.push_str(&remaining[..after_close]);
+                result.push_str("<span class=\"p\">,</span>");
+                remaining = after_comma;
+                continue;
+            }
+        }
+
+        result.push_str(&remaining[..after_close]);
+        remaining = &remaining[after_close..];
+    }
+    result.push_str(remaining);
     result
 }
 
@@ -4946,6 +5005,87 @@ u = df['user'].unique()\n";
         assert!(
             !html.contains(r#"<span class="ow">|</span>"#),
             "pipe should not be class 'ow' in bash: {html}"
+        );
+    }
+
+    #[test]
+    fn test_python_bare_commas_wrapped_in_p_span() {
+        let code = "c, d = t\n";
+        let html = highlight_code("python", code).unwrap();
+        assert!(
+            !html.contains("</span>, "),
+            "bare commas should be wrapped in <span class=\"p\">: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"p\">,</span>"),
+            "commas should have class 'p': {html}"
+        );
+    }
+
+    #[test]
+    fn test_python_return_comma_in_span() {
+        let code = "return w[0], w[1:]\n";
+        let html = highlight_code("python", code).unwrap();
+        assert!(
+            !html.contains("</span>, "),
+            "bare comma after ] should be wrapped: {html}"
+        );
+    }
+
+    #[test]
+    fn test_wrap_bare_python_commas_unit() {
+        let input = r#"<span class="n">c</span>, <span class="n">d</span>"#;
+        let result = wrap_bare_python_commas(input);
+        assert_eq!(
+            result,
+            r#"<span class="n">c</span><span class="p">,</span> <span class="n">d</span>"#,
+        );
+    }
+
+    #[test]
+    fn test_wrap_bare_python_commas_merge_into_p() {
+        let input = r#"<span class="p">]</span>, <span class="n">w</span>"#;
+        let result = wrap_bare_python_commas(input);
+        assert_eq!(
+            result,
+            r#"<span class="p">],</span> <span class="n">w</span>"#,
+        );
+    }
+
+    #[test]
+    fn test_wrap_bare_python_commas_already_wrapped() {
+        let input = r#"<span class="p">,</span> <span class="n">d</span>"#;
+        let result = wrap_bare_python_commas(input);
+        assert_eq!(result, input);
+    }
+
+    #[test]
+    fn test_python_import_alias_is_n_not_nn() {
+        let code = "import numpy as np\n";
+        let html = highlight_code("python", code).unwrap();
+        assert!(
+            html.contains("<span class=\"n\">np</span>"),
+            "import alias should be class 'n', not 'nn'. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_python_round_is_builtin() {
+        let code = "round(3.14)\n";
+        let html = highlight_code("python", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nb\">round</span>"),
+            "round() should be class 'nb' (builtin). Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_python_min_nested_call_is_builtin() {
+        let code = "print(min())\n";
+        let html = highlight_code("python", code).unwrap();
+        assert!(
+            html.contains("<span class=\"nb\">min</span>"),
+            "min() in nested call should be 'nb'. Got:\n{html}"
         );
     }
 }
