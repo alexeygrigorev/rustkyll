@@ -241,6 +241,20 @@ impl Renderable for SeoRenderable {
         let page_url = get_nested_str(runtime, &["page", "url"]);
         let page_image = get_nested_str(runtime, &["page", "image"]);
         let page_date = get_nested_str(runtime, &["page", "date"]);
+        // Jekyll sets page.date on ALL documents (collection items) even without
+        // an explicit date, falling back to the site build time. Detect collection
+        // documents and use site.time as the fallback date so the SEO tag generates
+        // og:type=article and article:published_time matching Jekyll behavior.
+        let page_collection = get_nested_str(runtime, &["page", "collection"]);
+        let site_time = get_nested_str(runtime, &["site", "time"]);
+        let page_date = if page_date.is_some() {
+            page_date
+        } else if page_collection.is_some() {
+            // Collection document without explicit date: use site build time
+            site_time.clone()
+        } else {
+            None
+        };
         let page_lang = get_nested_str(runtime, &["page", "lang"]);
         let site_lang = get_nested_str(runtime, &["site", "lang"]);
         let site_locale = get_nested_str(runtime, &["site", "locale"]);
@@ -318,15 +332,17 @@ impl Renderable for SeoRenderable {
 
         // 5. og:locale
         // Priority: page.lang > site.lang > site.locale > "en_US"
-        // jekyll-seo-tag uses page.lang || site.lang for og:locale
+        // jekyll-seo-tag uses page.lang || site.lang for og:locale.
+        // Jekyll converts hyphens to underscores in og:locale (e.g., "zh-hant" -> "zh_hant").
         let locale = page_lang
             .as_deref()
             .or(site_lang.as_deref())
             .or(site_locale.as_deref())
             .unwrap_or("en_US");
+        let locale = locale.replace('-', "_");
         output.push_str(&format!(
             "<meta property=\"og:locale\" content=\"{}\" />\n",
-            html_escape(locale)
+            html_escape(&locale)
         ));
 
         // 6. Description (both meta name="description" and og:description together)
@@ -472,7 +488,8 @@ impl Renderable for SeoRenderable {
             ));
         }
 
-        // 10. og:type - "article" for posts (pages with date), "website" otherwise
+        // 10. og:type - "article" for posts/documents (pages with date), "website" otherwise
+        let is_article = page_date.is_some();
         if let Some(ref date_str) = page_date {
             output.push_str("<meta property=\"og:type\" content=\"article\" />\n");
             // 10b. article:published_time (only for articles)
@@ -483,13 +500,7 @@ impl Renderable for SeoRenderable {
                 "<meta property=\"article:published_time\" content=\"{}\" />\n",
                 html_escape(&formatted_date)
             ));
-            // 10c. article:publisher (only for articles when site.facebook.publisher is set)
-            if let Some(ref publisher) = facebook_publisher {
-                output.push_str(&format!(
-                    "<meta property=\"article:publisher\" content=\"{}\" />\n",
-                    html_escape(publisher)
-                ));
-            }
+            // article:publisher is emitted after twitter tags to match Jekyll SEO tag order.
         } else {
             output.push_str("<meta property=\"og:type\" content=\"website\" />\n");
         }
@@ -525,6 +536,16 @@ impl Renderable for SeoRenderable {
                 "<meta name=\"twitter:site\" content=\"{}\" />\n",
                 html_escape(&handle)
             ));
+        }
+
+        // 13b. article:publisher (after twitter tags, matching Jekyll SEO tag order)
+        if is_article {
+            if let Some(ref publisher) = facebook_publisher {
+                output.push_str(&format!(
+                    "<meta property=\"article:publisher\" content=\"{}\" />\n",
+                    html_escape(publisher)
+                ));
+            }
         }
 
         // 14. JSON-LD structured data
@@ -596,6 +617,15 @@ impl Renderable for SeoRenderable {
         if let Some(ref date) = page_date {
             let site_tz = crate::template::filters::get_site_timezone(runtime);
             let formatted_date = crate::template::filters::format_date_to_xmlschema(date, site_tz);
+            // dateModified: use page.last_modified_at or page.date
+            let last_modified = get_nested_str(runtime, &["page", "last_modified_at"]);
+            let date_modified = last_modified.as_deref().unwrap_or(date);
+            let formatted_modified =
+                crate::template::filters::format_date_to_xmlschema(date_modified, site_tz);
+            jsonld_fields.push(format!(
+                "\"dateModified\":\"{}\"",
+                json_escape(&formatted_modified)
+            ));
             jsonld_fields.push(format!(
                 "\"datePublished\":\"{}\"",
                 json_escape(&formatted_date)
@@ -603,8 +633,10 @@ impl Renderable for SeoRenderable {
         }
 
         // mainEntityOfPage: only for BlogPosting (pages with date)
+        // Falls back to page.url if canonical_url is not available (no site.url configured)
         if schema_type == "BlogPosting" {
-            if let Some(ref url) = canonical_url {
+            let entity_url = canonical_url.as_deref().or(page_url.as_deref());
+            if let Some(url) = entity_url {
                 jsonld_fields.push(format!(
                     "\"mainEntityOfPage\":{{\"@type\":\"WebPage\",\"@id\":\"{}\"}}",
                     json_escape(url)
@@ -2824,8 +2856,8 @@ mod tests {
         ctx.insert("site".into(), Value::Object(site));
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
         assert!(
-            out.contains("og:locale\" content=\"zh-Hant\""),
-            "og:locale should handle multi-part lang tags. Got: {}",
+            out.contains("og:locale\" content=\"zh_Hant\""),
+            "og:locale should convert hyphens to underscores matching OG locale format. Got: {}",
             out
         );
     }

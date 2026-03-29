@@ -45,13 +45,21 @@ impl Filter for SplitFilter {
         if input.is_empty() {
             Ok(Value::Array(Vec::new()))
         } else {
-            // Split and construct resulting Array
-            Ok(Value::Array(
-                input
-                    .split(args.pattern.as_str())
-                    .map(|s| Value::scalar(s.to_owned()))
-                    .collect(),
-            ))
+            // Split and construct resulting Array.
+            // Remove trailing empty strings to match Ruby's String#split behavior
+            // (Ruby drops trailing empty fields by default). This matters for
+            // templates like jekyll-toc.html that split HTML by '>' and rejoin.
+            let mut parts: Vec<Value> = input
+                .split(args.pattern.as_str())
+                .map(|s| Value::scalar(s.to_owned()))
+                .collect();
+            while parts
+                .last()
+                .is_some_and(|v| v.to_kstr().as_str().is_empty())
+            {
+                parts.pop();
+            }
+            Ok(Value::Array(parts))
         }
     }
 }

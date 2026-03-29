@@ -8,6 +8,8 @@ use liquid_core::{
 };
 use liquid_core::{Value, ValueView};
 
+use super::jsonify::KEY_ORDER_FIELD;
+
 /// Flatten one level of nested arrays, matching Ruby Liquid's `InputIterator`
 /// behavior. When `map: "tags"` returns `[["A","B"],["C"]]`, downstream filters
 /// like `uniq`, `sort`, `compact` need to see `["A","B","C"]`.
@@ -100,6 +102,7 @@ impl Filter for SortFilter {
             if args.property.is_none() {
                 let mut pairs: Vec<Value> = obj
                     .iter()
+                    .filter(|(k, _)| k.as_str() != KEY_ORDER_FIELD)
                     .map(|(k, v)| Value::Array(vec![Value::scalar(k.to_string()), v.to_value()]))
                     .collect();
                 // Sort by key (first element of each pair)
@@ -670,5 +673,70 @@ mod tests {
             .collect::<Vec<_>>();
         expected.sort();
         assert_eq!(keys, expected);
+    }
+
+    #[test]
+    fn test_sort_object_excludes_key_order_metadata() {
+        // Objects with __key_order metadata should not leak it as a real key
+        // when sorted. This caused phantom languages in opensource-guide.
+        let mut obj = liquid::Object::new();
+        obj.insert("es".to_owned().into(), Value::scalar("Spanish"));
+        obj.insert("ar".to_owned().into(), Value::scalar("Arabic"));
+        obj.insert("en".to_owned().into(), Value::scalar("English"));
+        obj.insert(
+            KEY_ORDER_FIELD.to_owned().into(),
+            Value::Array(vec![
+                Value::scalar("ar"),
+                Value::scalar("en"),
+                Value::scalar("es"),
+            ]),
+        );
+        let input = Value::Object(obj);
+
+        let result = liquid_core::call_filter!(Sort, input).unwrap();
+        let arr = result.as_array().unwrap();
+        // Should have 3 pairs, not 4 (no __key_order)
+        assert_eq!(arr.size(), 3);
+
+        let keys: Vec<String> = arr
+            .values()
+            .map(|v| v.as_array().unwrap().get(0).unwrap().to_kstr().to_string())
+            .collect();
+        assert_eq!(keys, vec!["ar", "en", "es"]);
+        assert!(
+            !keys.contains(&KEY_ORDER_FIELD.to_string()),
+            "__key_order should not appear in sorted output"
+        );
+    }
+
+    #[test]
+    fn test_sort_object_with_key_order_unicode_locales() {
+        // Simulates the opensource-guide locales with __key_order metadata.
+        let mut obj = liquid::Object::new();
+        let locale_keys = vec!["ar", "en", "zh-hans", "\u{65E5}\u{672C}\u{8A9E}"];
+        for key in &locale_keys {
+            obj.insert(
+                key.to_string().into(),
+                Value::scalar(format!("Locale {key}")),
+            );
+        }
+        obj.insert(
+            KEY_ORDER_FIELD.to_owned().into(),
+            Value::Array(locale_keys.iter().map(|k| Value::scalar(*k)).collect()),
+        );
+        let input = Value::Object(obj);
+
+        let result = liquid_core::call_filter!(Sort, input).unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.size(), 4, "Should have 4 locales, not 5");
+
+        let keys: Vec<String> = arr
+            .values()
+            .map(|v| v.as_array().unwrap().get(0).unwrap().to_kstr().to_string())
+            .collect();
+        assert!(
+            !keys.contains(&KEY_ORDER_FIELD.to_string()),
+            "__key_order must not leak into sorted locale list"
+        );
     }
 }

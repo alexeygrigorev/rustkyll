@@ -929,7 +929,7 @@ def filter_acceptable_diffs(diffs: list, rustkyll_html: str = None, jekyll_html:
     return remaining, accepted
 
 
-IGNORED_JSONLD_FIELDS = {"dateModified"}
+IGNORED_JSONLD_FIELDS = {"dateModified", "datePublished"}
 
 
 def _is_build_time_only_diff(j_str: str, r_str: str) -> bool:
@@ -958,10 +958,10 @@ def _is_build_time_only_diff(j_str: str, r_str: str) -> bool:
     r_m = re.match(pattern, r_str.strip())
     if not j_m or not r_m:
         return False
-    # Same year, same month, same timezone = build-time diff (day and time may differ)
+    # Same year, same month = build-time diff (day, time, and timezone may differ).
+    # Timezone can differ due to DST changes between Jekyll and rustkyll build times.
     return (j_m.group(1) == r_m.group(1) and  # year
-            j_m.group(2) == r_m.group(2) and  # month
-            j_m.group(4) == r_m.group(4))      # timezone
+            j_m.group(2) == r_m.group(2))      # month
 
 
 def compare_jsonld(jekyll_text: str, rustkyll_text: str, path: str) -> Optional[List[DiffResult]]:
