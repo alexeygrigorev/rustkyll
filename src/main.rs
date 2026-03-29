@@ -760,6 +760,7 @@ fn build_site(
             destination,
             Some(&config),
             Some(&render_progress),
+            Some(source),
         )?;
         summary.standalone_pages = page_result.generated;
         summary.errors.extend(page_result.errors);

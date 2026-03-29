@@ -47,13 +47,162 @@ pub enum GeneratorError {
     },
 }
 
+/// Parse SASS configuration from a `SiteConfig`'s extras map.
+fn parse_sass_config(config: &SiteConfig) -> SassConfig {
+    let sass_value = config.extras.get("sass");
+    let sass_map = sass_value.and_then(|v| v.as_mapping());
+
+    let sass_dir = sass_map
+        .and_then(|m| m.get("sass_dir"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("_sass")
+        .to_string();
+
+    let load_paths: Vec<String> = sass_map
+        .and_then(|m| m.get("load_paths"))
+        .and_then(|v| v.as_sequence())
+        .map(|seq| {
+            seq.iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let style = sass_map
+        .and_then(|m| m.get("style"))
+        .and_then(|v| v.as_str())
+        .map(parse_sass_style)
+        .unwrap_or(grass::OutputStyle::Compressed);
+
+    SassConfig {
+        sass_dir,
+        load_paths,
+        style,
+    }
+}
+
+fn parse_sass_style(style_str: &str) -> grass::OutputStyle {
+    let s = style_str.trim().trim_start_matches(':');
+    match s {
+        "expanded" => grass::OutputStyle::Expanded,
+        _ => grass::OutputStyle::Compressed,
+    }
+}
+
+struct SassConfig {
+    sass_dir: String,
+    load_paths: Vec<String>,
+    style: grass::OutputStyle,
+}
+
+/// Strip `.scss` and `.sass` extensions from `@import` statements.
+fn strip_scss_import_extensions(scss: &str) -> String {
+    let mut result = String::with_capacity(scss.len());
+    for line in scss.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("@import")
+            || trimmed.starts_with("@use")
+            || trimmed.starts_with("@forward")
+        {
+            let processed = line
+                .replace(".scss\"", "\"")
+                .replace(".scss'", "'")
+                .replace(".sass\"", "\"")
+                .replace(".sass'", "'");
+            result.push_str(&processed);
+        } else {
+            result.push_str(line);
+        }
+        result.push('\n');
+    }
+    result
+}
+
+/// Custom filesystem for grass that strips `.scss`/`.sass` extensions from
+/// `@import` statements. This works around a grass bug where load paths are
+/// not searched when imports have explicit extensions.
+#[derive(Debug)]
+struct ImportFixFs;
+
+impl grass::Fs for ImportFixFs {
+    fn is_dir(&self, path: &Path) -> bool {
+        path.is_dir()
+    }
+
+    fn is_file(&self, path: &Path) -> bool {
+        path.is_file()
+    }
+
+    fn read(&self, path: &Path) -> std::io::Result<Vec<u8>> {
+        let content = std::fs::read_to_string(path)?;
+        let processed = strip_scss_import_extensions(&content);
+        Ok(processed.into_bytes())
+    }
+
+    fn canonicalize(&self, path: &Path) -> std::io::Result<PathBuf> {
+        // Use real canonicalize for proper path resolution
+        std::fs::canonicalize(path)
+    }
+}
+
 /// Compile SCSS source code to CSS using the grass compiler.
-///
-/// Jekyll compiles `.scss` files with front matter into CSS. This function
-/// replicates that behavior using the `grass` crate (a pure-Rust SCSS compiler).
-/// The output style is compressed to match Jekyll's default SCSS output.
-fn compile_scss(scss_source: &str) -> Result<String, String> {
-    let options = grass::Options::default().style(grass::OutputStyle::Compressed);
+fn compile_scss(
+    scss_source: &str,
+    source_path: &str,
+    site_dir: Option<&Path>,
+    config: Option<&SiteConfig>,
+) -> Result<String, String> {
+    let sass_config = config.map(parse_sass_config);
+    let style = sass_config
+        .as_ref()
+        .map(|c| c.style)
+        .unwrap_or(grass::OutputStyle::Compressed);
+
+    let import_fix_fs = ImportFixFs;
+    let mut options = grass::Options::default().style(style).fs(&import_fix_fs);
+
+    if let Some(site) = site_dir {
+        let abs_source = site.join(source_path);
+        if let Some(parent) = abs_source.parent() {
+            options = options.load_path(parent);
+        }
+
+        if let Some(ref sc) = sass_config {
+            let sass_dir_path = site.join(&sc.sass_dir);
+            if sass_dir_path.exists() {
+                options = options.load_path(&sass_dir_path);
+            }
+            for lp in &sc.load_paths {
+                let load_path = site.join(lp);
+                if load_path.exists() {
+                    options = options.load_path(&load_path);
+                }
+            }
+        }
+
+        // Strip extensions from the Liquid-processed SCSS content too
+        let preprocessed = strip_scss_import_extensions(scss_source);
+
+        // Write to a temp file so grass resolves imports relative to source
+        if let Some(parent) = abs_source.parent() {
+            let temp_name = format!(
+                ".rustkyll_tmp_{}.scss",
+                abs_source
+                    .file_stem()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("scss")
+            );
+            let temp_path = parent.join(&temp_name);
+            if let Err(e) = fs::write(&temp_path, &preprocessed) {
+                return Err(format!("Failed to write temp SCSS file: {}", e));
+            }
+            let result = grass::from_path(&temp_path, &options).map_err(|e| e.to_string());
+            let _ = fs::remove_file(&temp_path);
+            return result;
+        }
+    }
+
+    // Fallback: no site_dir, use from_string (original behavior)
     grass::from_string(scss_source.to_string(), &options).map_err(|e| e.to_string())
 }
 
@@ -1916,6 +2065,7 @@ pub fn generate_pages_cached_with_config(
         output_dir,
         config,
         None,
+        None,
     )
 }
 
@@ -1927,6 +2077,7 @@ pub fn generate_pages_cached_with_config_and_progress(
     output_dir: &Path,
     config: Option<&SiteConfig>,
     progress: Option<&RenderProgress>,
+    site_dir: Option<&Path>,
 ) -> Result<GenerationResult, GeneratorError> {
     fs::create_dir_all(output_dir).map_err(|e| GeneratorError::WriteFile {
         path: output_dir.display().to_string(),
@@ -2032,7 +2183,7 @@ pub fn generate_pages_cached_with_config_and_progress(
             Ok(html) => {
                 // If the source is an SCSS file, compile to CSS
                 let html = if page.source_path.ends_with(".scss") {
-                    match compile_scss(&html) {
+                    match compile_scss(&html, &page.source_path, site_dir, config) {
                         Ok(css) => css,
                         Err(e) => {
                             result.lock().unwrap().errors.push(format!(
@@ -8468,5 +8619,303 @@ defaults:
         } else {
             panic!("categories should be an Object");
         }
+    }
+
+    // ========================================================================
+    // Issue 465: SASS config parsing and SCSS compilation with load paths
+    // ========================================================================
+
+    #[test]
+    fn test_parse_sass_config_defaults() {
+        let config = SiteConfig::from_yaml_str("title: test\n").unwrap();
+        let sass = parse_sass_config(&config);
+        assert_eq!(sass.sass_dir, "_sass");
+        assert!(sass.load_paths.is_empty());
+        let options = grass::Options::default().style(sass.style);
+        let css = grass::from_string("a { b { color: red; } }".to_string(), &options).unwrap();
+        assert!(
+            !css.contains('\n'),
+            "compressed output should be single-line"
+        );
+    }
+
+    #[test]
+    fn test_parse_sass_config_with_values() {
+        let yaml = "sass:\n  sass_dir: assets/css/\n  load_paths:\n    - node_modules/\n    - vendor/\n  style: expanded\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let sass = parse_sass_config(&config);
+        assert_eq!(sass.sass_dir, "assets/css/");
+        assert_eq!(sass.load_paths, vec!["node_modules/", "vendor/"]);
+        let options = grass::Options::default().style(sass.style);
+        let css = grass::from_string("a { b { color: red; } }".to_string(), &options).unwrap();
+        assert!(css.contains('\n'), "expanded output should be multi-line");
+    }
+
+    #[test]
+    fn test_parse_sass_config_ruby_symbol_compressed() {
+        let yaml = "sass:\n  style: :compressed\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let sass = parse_sass_config(&config);
+        let options = grass::Options::default().style(sass.style);
+        let css = grass::from_string("a { b { color: red; } }".to_string(), &options).unwrap();
+        assert!(
+            !css.contains('\n'),
+            ":compressed should produce single-line CSS"
+        );
+    }
+
+    #[test]
+    fn test_parse_sass_config_ruby_symbol_expanded() {
+        let yaml = "sass:\n  style: :expanded\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let sass = parse_sass_config(&config);
+        let options = grass::Options::default().style(sass.style);
+        let css = grass::from_string("a { b { color: red; } }".to_string(), &options).unwrap();
+        assert!(
+            css.contains('\n'),
+            ":expanded should produce multi-line CSS"
+        );
+    }
+
+    #[test]
+    fn test_strip_scss_import_extensions() {
+        let input = "@import \"primer-core/index.scss\";\n@import \"custom\";\nbody { color: red; }\n@use \"lib/utils.sass\";\n";
+        let output = strip_scss_import_extensions(input);
+        assert!(
+            output.contains("@import \"primer-core/index\";"),
+            "should strip .scss from import"
+        );
+        assert!(
+            output.contains("@import \"custom\";"),
+            "extensionless import should be unchanged"
+        );
+        assert!(
+            output.contains("body { color: red; }"),
+            "non-import lines should be unchanged"
+        );
+        assert!(
+            output.contains("@use \"lib/utils\";"),
+            "should strip .sass from @use"
+        );
+    }
+
+    #[test]
+    fn test_compile_scss_with_load_paths() {
+        let tmp = tempfile::tempdir().unwrap();
+        let site = tmp.path();
+
+        let lib_dir = site.join("mylib");
+        fs::create_dir_all(&lib_dir).unwrap();
+        fs::write(lib_dir.join("_vars.scss"), "$color: blue;\n").unwrap();
+
+        let css_dir = site.join("assets").join("css");
+        fs::create_dir_all(&css_dir).unwrap();
+        fs::write(css_dir.join("main.scss"), "placeholder").unwrap();
+
+        let yaml = "sass:\n  load_paths:\n    - mylib/\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+
+        let result = compile_scss(
+            "@import \"vars\";\nbody { color: $color; }\n",
+            "assets/css/main.scss",
+            Some(site),
+            Some(&config),
+        );
+        assert!(
+            result.is_ok(),
+            "SCSS compilation failed: {:?}",
+            result.err()
+        );
+        assert!(
+            result.unwrap().contains("blue"),
+            "CSS should contain imported color"
+        );
+    }
+
+    #[test]
+    fn test_compile_scss_with_sass_dir() {
+        let tmp = tempfile::tempdir().unwrap();
+        let site = tmp.path();
+
+        let sass_dir = site.join("_sass");
+        fs::create_dir_all(&sass_dir).unwrap();
+        fs::write(sass_dir.join("_base.scss"), ".base { margin: 0; }\n").unwrap();
+
+        let css_dir = site.join("css");
+        fs::create_dir_all(&css_dir).unwrap();
+        fs::write(css_dir.join("style.scss"), "placeholder").unwrap();
+
+        let yaml = "sass:\n  sass_dir: _sass\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+
+        let result = compile_scss(
+            "@import \"base\";\n",
+            "css/style.scss",
+            Some(site),
+            Some(&config),
+        );
+        assert!(
+            result.is_ok(),
+            "SCSS compilation failed: {:?}",
+            result.err()
+        );
+        assert!(
+            result.unwrap().contains("margin"),
+            "CSS should contain imported base styles"
+        );
+    }
+
+    #[test]
+    fn test_compile_scss_with_explicit_extension_in_import() {
+        let tmp = tempfile::tempdir().unwrap();
+        let site = tmp.path();
+
+        let lib_dir = site.join("node_modules").join("mylib");
+        fs::create_dir_all(&lib_dir).unwrap();
+        fs::write(lib_dir.join("index.scss"), ".mylib { display: block; }\n").unwrap();
+
+        let css_dir = site.join("assets").join("css");
+        fs::create_dir_all(&css_dir).unwrap();
+        fs::write(css_dir.join("style.scss"), "placeholder").unwrap();
+
+        let yaml = "sass:\n  load_paths:\n    - node_modules/\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+
+        let result = compile_scss(
+            "@import \"mylib/index.scss\";\n",
+            "assets/css/style.scss",
+            Some(site),
+            Some(&config),
+        );
+        assert!(
+            result.is_ok(),
+            "SCSS with explicit extension should compile: {:?}",
+            result.err()
+        );
+        assert!(
+            result.unwrap().contains("mylib"),
+            "CSS should contain imported rules"
+        );
+    }
+
+    #[test]
+    fn test_compile_scss_government_github_scenario() {
+        let tmp = tempfile::tempdir().unwrap();
+        let site = tmp.path();
+
+        let primer_core = site.join("node_modules").join("primer-core");
+        fs::create_dir_all(&primer_core).unwrap();
+        fs::write(
+            primer_core.join("index.scss"),
+            ".primer-core { display: block; }\n",
+        )
+        .unwrap();
+
+        let primer_mkt = site.join("node_modules").join("primer-marketing");
+        fs::create_dir_all(&primer_mkt).unwrap();
+        fs::write(
+            primer_mkt.join("index.scss"),
+            ".primer-mkt { display: flex; }\n",
+        )
+        .unwrap();
+
+        let css_dir = site.join("assets").join("css");
+        fs::create_dir_all(&css_dir).unwrap();
+        fs::write(css_dir.join("custom.scss"), "body { font-size: 16px; }\n").unwrap();
+        fs::write(css_dir.join("style.scss"), "placeholder").unwrap();
+
+        let yaml = "sass:\n  style: :compressed\n  sass_dir: assets/css/\n  load_paths:\n    - node_modules/\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+
+        let scss_source = "\n@import \"primer-core/index.scss\";\n@import \"primer-marketing/index.scss\";\n@import \"custom\";\n";
+
+        let result = compile_scss(
+            scss_source,
+            "assets/css/style.scss",
+            Some(site),
+            Some(&config),
+        );
+        assert!(
+            result.is_ok(),
+            "government-github SCSS failed: {:?}",
+            result.err()
+        );
+        let css = result.unwrap();
+        assert!(
+            css.contains("primer-core"),
+            "CSS should contain primer-core rules"
+        );
+        assert!(
+            css.contains("primer-mkt"),
+            "CSS should contain primer-marketing rules"
+        );
+        assert!(css.contains("font-size"), "CSS should contain custom rules");
+    }
+
+    #[test]
+    fn test_compile_scss_unresolvable_import_returns_error() {
+        let tmp = tempfile::tempdir().unwrap();
+        let site = tmp.path();
+
+        let css_dir = site.join("css");
+        fs::create_dir_all(&css_dir).unwrap();
+        fs::write(css_dir.join("broken.scss"), "placeholder").unwrap();
+
+        let config = SiteConfig::from_yaml_str("title: test\n").unwrap();
+
+        let result = compile_scss(
+            "@import \"nonexistent\";\n",
+            "css/broken.scss",
+            Some(site),
+            Some(&config),
+        );
+        assert!(result.is_err(), "should fail for unresolvable import");
+    }
+
+    #[test]
+    fn test_compile_scss_no_site_dir_fallback() {
+        let result = compile_scss("body { color: red; }\n", "style.scss", None, None);
+        assert!(result.is_ok(), "basic SCSS should compile without site_dir");
+        assert!(
+            result.unwrap().contains("red"),
+            "CSS should contain color value"
+        );
+    }
+
+    #[test]
+    fn test_compile_scss_respects_style_config() {
+        let tmp = tempfile::tempdir().unwrap();
+        let site = tmp.path();
+        let css_dir = site.join("css");
+        fs::create_dir_all(&css_dir).unwrap();
+        fs::write(css_dir.join("style.scss"), "placeholder").unwrap();
+
+        let yaml = "sass:\n  style: expanded\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let result = compile_scss(
+            "a { b { color: red; } }\n",
+            "css/style.scss",
+            Some(site),
+            Some(&config),
+        );
+        assert!(result.is_ok());
+        assert!(
+            result.unwrap().contains('\n'),
+            "expanded style should produce multi-line CSS"
+        );
+
+        let yaml = "sass:\n  style: :compressed\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let result = compile_scss(
+            "a { b { color: red; } }\n",
+            "css/style.scss",
+            Some(site),
+            Some(&config),
+        );
+        assert!(result.is_ok());
+        assert!(
+            !result.unwrap().contains('\n'),
+            "compressed style should produce single-line CSS"
+        );
     }
 }
