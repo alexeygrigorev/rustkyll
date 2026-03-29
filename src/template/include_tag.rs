@@ -311,6 +311,7 @@ impl Renderable for LenientInclude {
                     .evaluate(runtime)
                     .map(|v| v.into_owned())
                     .unwrap_or(Value::Nil);
+                let value = unescape_html_entities_in_value(value);
                 params.insert(id.to_string(), value);
             }
 
@@ -397,6 +398,23 @@ fn unescape_include_params(params: &str) -> String {
     }
 
     result
+}
+
+/// Unescape HTML entities that were introduced by `unescape_include_params()`.
+///
+/// The preprocessing step replaces `\"` with `&quot;` and `\'` with `&#39;` so
+/// that the Liquid parser can handle escaped quotes in include parameters.
+/// After evaluation, we need to convert them back to literal quote characters
+/// so that the rendered output contains real quotes (not HTML entities).
+fn unescape_html_entities_in_value(val: Value) -> Value {
+    if let Value::Scalar(ref s) = val {
+        let s = s.to_kstr();
+        if s.contains("&quot;") || s.contains("&#39;") {
+            let unescaped = s.replace("&quot;", "\"").replace("&#39;", "'");
+            return Value::scalar(unescaped);
+        }
+    }
+    val
 }
 
 /// Pre-process a template string to handle Jekyll include tag quirks.
