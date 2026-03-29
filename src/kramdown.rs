@@ -722,6 +722,10 @@ pub fn postprocess_with_options(html: &str, indent_lists: bool) -> String {
     // Issue 201: Convert bare void elements (<br>, <hr>) to XHTML-style
     // (<br />, <hr />) to match Jekyll/kramdown output.
     let html = normalize_bare_void_elements(&html);
+    // Issue 448: Extract <br /> from end of blockquote <p> when followed by
+    // another blockquote. Jekyll renders such <br> as standalone elements
+    // between blockquotes, not inside the preceding blockquote's paragraph.
+    let html = extract_br_between_blockquotes(&html);
     // Issue 339: Escape malformed raw HTML tags that use single-quoted
     // attributes with unescaped apostrophes. Jekyll/kramdown treats these as
     // literal text rather than live elements.
@@ -5825,6 +5829,137 @@ fn indent_blockquote_content(html: &str) -> String {
         }
     }
     result
+}
+
+// ============================================================================
+// 9c. Extract <br /> between blockquotes (Issue 448)
+// ============================================================================
+
+/// Extract `<br />` tags from the end of a blockquote's `<p>` when the
+/// blockquote is followed by another `<blockquote>`.
+///
+/// Jekyll/kramdown renders a `<br>` between two blockquotes as a standalone
+/// element between them. pulldown-cmark absorbs it into the preceding
+/// blockquote's paragraph. This function moves it back outside.
+///
+/// Input pattern (after `normalize_bare_void_elements`):
+/// ```html
+/// <blockquote>
+/// <p>text<br />
+/// <br /></p>
+///
+/// </blockquote>
+/// ```
+///
+/// Output:
+/// ```html
+/// <blockquote>
+/// <p>text</p>
+///
+/// </blockquote>
+/// <br />
+/// ```
+fn extract_br_between_blockquotes(html: &str) -> String {
+    // Pattern: blockquote ending with <p>...trailing <br />\n</p>\n\n</blockquote>
+    // followed (possibly with whitespace) by <blockquote>
+    // We need to extract the trailing <br /> tags from the <p> and place them
+    // between the two blockquotes.
+
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+
+    while !remaining.is_empty() {
+        // Look for </blockquote> followed (with optional whitespace/newlines)
+        // by <blockquote>
+        if let Some(close_pos) = remaining.find("</blockquote>") {
+            let before_close = &remaining[..close_pos];
+            let after_close = &remaining[close_pos + "</blockquote>".len()..];
+
+            // Check if another <blockquote> follows
+            let trimmed_after = after_close.trim_start_matches('\n');
+            if trimmed_after.starts_with("<blockquote>") {
+                // Check if the content before </blockquote> ends with <br /> in a <p>
+                // Look for the pattern: <br />\n</p>\n\n or similar at the end
+                if let Some(extracted) = try_extract_trailing_br(before_close) {
+                    result.push_str(&extracted.cleaned_blockquote_content);
+                    result.push_str("</blockquote>\n");
+                    result.push_str(&extracted.br_tags);
+                    remaining = trimmed_after;
+                    continue;
+                }
+            }
+
+            // No extraction needed - copy up through </blockquote>
+            result.push_str(&remaining[..close_pos + "</blockquote>".len()]);
+            remaining = after_close;
+        } else {
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    result
+}
+
+struct ExtractedBr {
+    /// The blockquote content with trailing <br /> tags removed from the <p>
+    cleaned_blockquote_content: String,
+    /// The <br /> tags to insert between blockquotes
+    br_tags: String,
+}
+
+/// Try to extract trailing `<br />` tags from the last `<p>` in a blockquote.
+///
+/// Returns `None` if no trailing `<br />` pattern is found.
+fn try_extract_trailing_br(blockquote_content: &str) -> Option<ExtractedBr> {
+    // The content should end with something like:
+    // <p>text<br />\n<br /></p>\n\n
+    // or: <p>text\n<br /></p>\n\n
+    // We need to find the last </p> and check for trailing <br /> before it.
+
+    // Find the last </p> in the content
+    let p_close_pos = blockquote_content.rfind("</p>")?;
+    let before_p_close = &blockquote_content[..p_close_pos];
+
+    // Collect trailing <br /> tags from before </p>
+    let mut scan = before_p_close;
+    let mut br_count = 0;
+
+    loop {
+        let trimmed = scan.trim_end();
+        if let Some(stripped) = trimmed.strip_suffix("<br />") {
+            br_count += 1;
+            scan = stripped;
+        } else {
+            break;
+        }
+    }
+
+    if br_count == 0 {
+        return None;
+    }
+
+    // Rebuild: content without the trailing <br /> tags, closing the <p> properly
+    let clean_text = scan.trim_end_matches('\n');
+    let after_p_close = &blockquote_content[p_close_pos + "</p>".len()..];
+
+    let mut cleaned = String::with_capacity(blockquote_content.len());
+    cleaned.push_str(clean_text);
+    cleaned.push_str("</p>");
+    cleaned.push_str(after_p_close);
+
+    // Output exactly one <br /> between the blockquotes, matching Jekyll.
+    // pulldown-cmark may absorb the source <br> and also generate a hard-break
+    // <br />, doubling the count. Jekyll always outputs a single <br>.
+    let mut br_tags = String::new();
+    {
+        br_tags.push_str("<br />\n");
+    }
+
+    Some(ExtractedBr {
+        cleaned_blockquote_content: cleaned,
+        br_tags,
+    })
 }
 
 // ============================================================================
@@ -13992,6 +14127,55 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             result.contains("\u{0417}\u{0430}\u{0433}"),
             "Unicode table content should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue448_br_between_blockquotes_standalone() {
+        // Issue 448: When markdown has a <br> between two blockquotes,
+        // Jekyll renders it as a standalone element between the blockquotes.
+        // Rustkyll absorbs it into the first blockquote's <p>.
+        let md = "> Wouldn't it require we rewrite every element with a width/border/padding?\n<br>\n\n> I'm pretty sure the internet would break in half if we added that rule in today.\n";
+        let result = crate::frontmatter::markdown_to_html(md);
+        // The <br> (or <br />) must be BETWEEN the two blockquotes, not inside.
+        assert!(
+            result.contains("</blockquote>\n<br"),
+            "The <br> should be a standalone element between the two blockquotes, not inside the first one. Got:\n{}",
+            result
+        );
+        assert!(
+            !result.contains("<br>\n<br>"),
+            "Should not have doubled <br> elements inside blockquote. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue448_multiple_br_between_blockquotes() {
+        // Multiple <br> tags between blockquotes should all be standalone.
+        let md = "> quote one\n<br>\n<br>\n\n> quote two\n";
+        let result = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            result.contains("</blockquote>\n<br"),
+            "Multiple <br> tags should be standalone between blockquotes. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue448_no_br_blockquotes_unchanged() {
+        // Normal blockquotes without <br> should not be affected.
+        let md = "> quote one\n\n> quote two\n";
+        let result = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            result.contains("<blockquote>"),
+            "Normal blockquotes should still work. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("</blockquote>"),
+            "Normal blockquotes should still work. Got:\n{}",
             result
         );
     }
