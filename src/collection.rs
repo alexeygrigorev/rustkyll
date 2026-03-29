@@ -3994,38 +3994,46 @@ mod tests {
     }
 
     #[test]
-    fn test_lanyon_example_content_html_content() {
-        let lanyon_path = std::path::Path::new("websites/lanyon");
-        if !lanyon_path.exists() {
-            eprintln!("SKIP: websites/lanyon not available (CI environment)");
-            return;
-        }
+    fn test_highlight_tag_processed_before_markdown() {
+        // Self-contained fixture: a post with {% highlight %} tags
+        // should have them converted to <figure> HTML before markdown runs
+        let dir = tempfile::tempdir().unwrap();
+        let posts_dir = dir.path().join("_posts");
+        std::fs::create_dir_all(&posts_dir).unwrap();
+        std::fs::write(
+            posts_dir.join("2024-01-01-example.md"),
+            "---\ntitle: Example\n---\n\nSome text.\n\n{% highlight ruby %}\ndef foo\n  42\nend\n{% endhighlight %}\n\nMore text.\n",
+        )
+        .unwrap();
+        std::fs::write(
+            dir.path().join("_config.yml"),
+            "title: Test\n",
+        )
+        .unwrap();
         let config =
-            crate::config::SiteConfig::from_file(&lanyon_path.join("_config.yml")).unwrap();
-        let (items, errors) = load_collection("posts", lanyon_path, &config).unwrap();
+            crate::config::SiteConfig::from_file(&dir.path().join("_config.yml")).unwrap();
+        let (items, errors) = load_collection("posts", dir.path(), &config).unwrap();
         assert!(errors.is_empty(), "Unexpected errors: {:?}", errors);
-        let example = items
-            .iter()
-            .find(|i| i.slug == "example-content")
-            .expect("example-content post should exist");
+        assert_eq!(items.len(), 1);
+        let item = &items[0];
         assert!(
-            example
-                .html_content
-                .contains("<figure class=\"highlight\">"),
-            "html_content should have processed highlight tags"
+            item.html_content.contains("<figure class=\"highlight\">"),
+            "highlight tags should be processed into <figure>. Got: {}",
+            item.html_content
         );
         assert!(
-            !example.html_content.contains("{% highlight"),
-            "html_content should not contain raw Liquid tags"
+            !item.html_content.contains("{% highlight"),
+            "Raw Liquid highlight tags should not remain. Got: {}",
+            item.html_content
         );
-        // Check for <p> inside figure
-        if let Some(fig_start) = example.html_content.find("<figure") {
-            if let Some(fig_end) = example.html_content[fig_start..].find("</figure>") {
+        // No <p> inside <figure> (markdown should not wrap figure internals)
+        if let Some(fig_start) = item.html_content.find("<figure") {
+            if let Some(fig_end) = item.html_content[fig_start..].find("</figure>") {
                 let figure_block =
-                    &example.html_content[fig_start..fig_start + fig_end + "</figure>".len()];
+                    &item.html_content[fig_start..fig_start + fig_end + "</figure>".len()];
                 assert!(
                     !figure_block.contains("<p>"),
-                    "No <p> tags should appear inside <figure> block, got: {}",
+                    "No <p> tags inside <figure>. Got: {}",
                     figure_block
                 );
             }
