@@ -564,6 +564,7 @@ impl Renderable for SeoRenderable {
         // and apply smartify (for apostrophe/quote conversion through markdownify).
         let stripped_description = raw_description.map(|d| {
             let stripped = html_unescape(&strip_html_tags(d));
+            let stripped = strip_markdown_for_plaintext(&stripped);
             // Normalize all whitespace to single space (matching Jekyll's normalize_whitespace)
             let mut prev_space = false;
             let collapsed: String = stripped
@@ -1001,6 +1002,59 @@ fn strip_html_tags(html: &str) -> String {
     result
 }
 
+/// Strip common markdown formatting from a string, returning plain text.
+///
+/// This handles the markdown patterns that appear in Jekyll page excerpts and
+/// descriptions, converting them to plain text equivalents:
+/// - `[text](url)` -> `text` (inline links)
+/// - `[text][ref]` -> `text` (reference-style links)
+/// - `![alt](url)` -> `alt` (images)
+/// - `**bold**` / `__bold__` -> `bold`
+/// - `*italic*` / `_italic_` -> `italic`
+/// - `` `code` `` -> `code`
+/// - `<http://url>` -> `http://url` (autolinks)
+fn strip_markdown_for_plaintext(text: &str) -> String {
+    use regex::Regex;
+
+    // Order matters: images before links (both start with `[` but images have `!` prefix)
+    // 1. Images: ![alt](url)
+    let re_img = Regex::new(r"!\[([^\]]*)\]\([^)]*\)").unwrap();
+    let text = re_img.replace_all(text, "$1");
+
+    // 2. Inline links: [text](url)
+    let re_inline_link = Regex::new(r"\[([^\]]*)\]\([^)]*\)").unwrap();
+    let text = re_inline_link.replace_all(&text, "$1");
+
+    // 3. Reference-style links: [text][ref]
+    let re_ref_link = Regex::new(r"\[([^\]]*)\]\[[^\]]*\]").unwrap();
+    let text = re_ref_link.replace_all(&text, "$1");
+
+    // 4. Autolinks: <http://...> or <https://...>
+    let re_autolink = Regex::new(r"<(https?://[^>]+)>").unwrap();
+    let text = re_autolink.replace_all(&text, "$1");
+
+    // 5. Inline code: `code`
+    let re_code = Regex::new(r"`([^`]*)`").unwrap();
+    let text = re_code.replace_all(&text, "$1");
+
+    // 6. Bold: **text** or __text__
+    let re_bold_star = Regex::new(r"\*\*([^*]+)\*\*").unwrap();
+    let text = re_bold_star.replace_all(&text, "$1");
+    let re_bold_under = Regex::new(r"__([^_]+)__").unwrap();
+    let text = re_bold_under.replace_all(&text, "$1");
+
+    // 7. Italic: *text* or _text_
+    let re_italic_star = Regex::new(r"\*([^*]+)\*").unwrap();
+    let text = re_italic_star.replace_all(&text, "$1");
+    // For underscore italic, use a simpler pattern: match _text_ surrounded by
+    // word boundaries or whitespace. We avoid lookbehind since Rust regex doesn't support it.
+    // Just strip _ delimiters that look like emphasis (bounded by non-underscore).
+    let re_italic_under = Regex::new(r"(^|\s)_([^_]+)_($|\s|[.,;:!?])").unwrap();
+    let text = re_italic_under.replace_all(&text, "$1$2$3");
+
+    text.into_owned()
+}
+
 /// Apply SmartyPants-style typography to a string.
 ///
 /// Converts straight quotes and other ASCII typography to Unicode equivalents,
@@ -1082,6 +1136,7 @@ mod tests {
     use liquid::Object;
     use liquid_core::Value;
 
+    use crate::template::seo_tag::strip_markdown_for_plaintext;
     use crate::template::TemplateEngine;
 
     fn engine() -> TemplateEngine {
@@ -5118,6 +5173,181 @@ mod tests {
         assert!(
             !jsonld.contains("sameAs"),
             "JSON-LD should not include sameAs without social links. Got: {}",
+            jsonld
+        );
+    }
+
+    // ========================================================================
+    // Issue 519: strip_markdown_for_plaintext unit tests
+    // ========================================================================
+
+    #[test]
+    fn test_strip_markdown_reference_links() {
+        assert_eq!(
+            strip_markdown_for_plaintext("[Buddy][buddy-homepage] is great"),
+            "Buddy is great"
+        );
+    }
+
+    #[test]
+    fn test_strip_markdown_inline_links() {
+        assert_eq!(
+            strip_markdown_for_plaintext("[CircleCI](https://circleci.com) works"),
+            "CircleCI works"
+        );
+    }
+
+    #[test]
+    fn test_strip_markdown_link_adjacent_to_word() {
+        assert_eq!(
+            strip_markdown_for_plaintext("a [Docker][docker-homepage]-based CI"),
+            "a Docker-based CI"
+        );
+    }
+
+    #[test]
+    fn test_strip_markdown_bold_and_italic() {
+        assert_eq!(
+            strip_markdown_for_plaintext("**bold** and *italic*"),
+            "bold and italic"
+        );
+    }
+
+    #[test]
+    fn test_strip_markdown_underscore_bold_italic() {
+        assert_eq!(
+            strip_markdown_for_plaintext("__bold__ and _italic_"),
+            "bold and italic"
+        );
+    }
+
+    #[test]
+    fn test_strip_markdown_inline_code() {
+        assert_eq!(
+            strip_markdown_for_plaintext("Use `gem install` to install"),
+            "Use gem install to install"
+        );
+    }
+
+    #[test]
+    fn test_strip_markdown_images() {
+        assert_eq!(
+            strip_markdown_for_plaintext("![Logo](logo.png) is here"),
+            "Logo is here"
+        );
+    }
+
+    #[test]
+    fn test_strip_markdown_plain_text_unchanged() {
+        assert_eq!(
+            strip_markdown_for_plaintext("Plain text with no markdown"),
+            "Plain text with no markdown"
+        );
+    }
+
+    #[test]
+    fn test_strip_markdown_nested_brackets_no_crash() {
+        // Should handle gracefully without crashing
+        let result = strip_markdown_for_plaintext("[nested [brackets]](url)");
+        // The function should not panic; exact output for edge cases is acceptable
+        // as long as the markdown syntax is partially or fully removed
+        assert!(
+            !result.is_empty(),
+            "Should produce some output for nested brackets"
+        );
+    }
+
+    #[test]
+    fn test_strip_markdown_unicode_link_text() {
+        assert_eq!(
+            strip_markdown_for_plaintext("[Привет](https://example.com) мир"),
+            "Привет мир"
+        );
+    }
+
+    #[test]
+    fn test_strip_markdown_autolinks() {
+        assert_eq!(
+            strip_markdown_for_plaintext("Visit <http://example.com> for info"),
+            "Visit http://example.com for info"
+        );
+    }
+
+    // ========================================================================
+    // Issue 519: SEO description pipeline integration tests
+    // ========================================================================
+
+    #[test]
+    fn test_description_strips_markdown_reference_links() {
+        let eng = engine();
+        let ctx = make_context(
+            None,
+            None,
+            Some("[Buddy][buddy-homepage] is a [Docker][docker-homepage]-based CI server"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("content=\"Buddy is a Docker-based CI server\""),
+            "Description should have markdown links stripped. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_description_strips_markdown_inline_links() {
+        let eng = engine();
+        let ctx = make_context(
+            None,
+            None,
+            Some("[CircleCI](https://circleci.com) works great"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("content=\"CircleCI works great\""),
+            "Description should have inline markdown links stripped. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_description_jsonld_also_strips_markdown() {
+        let eng = engine();
+        let ctx = make_context(
+            None,
+            None,
+            Some("[Buddy][buddy-homepage] is great"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        let jsonld = extract_jsonld(&out);
+        assert!(
+            jsonld.contains("Buddy is great"),
+            "JSON-LD description should have markdown stripped. Got: {}",
+            jsonld
+        );
+        assert!(
+            !jsonld.contains("[Buddy]"),
+            "JSON-LD should not contain markdown link syntax. Got: {}",
             jsonld
         );
     }
