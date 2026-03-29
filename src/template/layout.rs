@@ -1015,18 +1015,18 @@ fn load_layouts_recursive(
             None => continue,
         };
 
-        if !filename.ends_with(".html") {
+        if !filename.ends_with(".html") && !filename.ends_with(".liquid") {
             continue;
         }
 
         // Compute the layout name as the relative path from the base _layouts/ dir,
-        // without the .html extension. E.g., _layouts/vendor/compress.html -> "vendor/compress"
+        // without the .html/.liquid extension. E.g., _layouts/vendor/compress.html -> "vendor/compress"
         let relative = path.strip_prefix(base_dir).unwrap_or(&path);
-        let name = relative
-            .to_string_lossy()
-            .replace('\\', "/")
+        let rel_str = relative.to_string_lossy().replace('\\', "/");
+        let name = rel_str
             .strip_suffix(".html")
-            .unwrap_or(&relative.to_string_lossy().replace('\\', "/"))
+            .or_else(|| rel_str.strip_suffix(".liquid"))
+            .unwrap_or(&rel_str)
             .to_string();
 
         let source = fs::read_to_string(&path)?;
@@ -1306,6 +1306,79 @@ mod tests {
     fn test_load_nonexistent_layout_dir_returns_empty() {
         let layouts = load_layouts(Path::new("/nonexistent/dir")).unwrap();
         assert!(layouts.is_empty());
+    }
+
+    #[test]
+    fn test_load_layouts_accepts_liquid_extension() {
+        let tmp = tempfile::tempdir().unwrap();
+        let layouts_dir = tmp.path().join("_layouts");
+        std::fs::create_dir_all(&layouts_dir).unwrap();
+
+        // Create an .html layout
+        std::fs::write(
+            layouts_dir.join("default.html"),
+            "<html>{{ content }}</html>",
+        )
+        .unwrap();
+
+        // Create a .liquid layout
+        std::fs::write(
+            layouts_dir.join("post.liquid"),
+            "<article>{{ content }}</article>",
+        )
+        .unwrap();
+
+        // Create a non-layout file that should be ignored
+        std::fs::write(layouts_dir.join("style.scss"), "body { color: red; }").unwrap();
+
+        let layouts = load_layouts(&layouts_dir).unwrap();
+
+        assert!(
+            layouts.contains_key("default"),
+            "Should load .html layout as 'default'"
+        );
+        assert!(
+            layouts.contains_key("post"),
+            "Should load .liquid layout as 'post'"
+        );
+        assert_eq!(layouts.len(), 2, "Should only load .html and .liquid files");
+        assert!(
+            !layouts.contains_key("style"),
+            ".scss files should be ignored"
+        );
+    }
+
+    #[test]
+    fn test_liquid_layout_chaining_with_html_parent() {
+        let tmp = tempfile::tempdir().unwrap();
+        let layouts_dir = tmp.path().join("_layouts");
+        std::fs::create_dir_all(&layouts_dir).unwrap();
+
+        // Parent layout in .html
+        std::fs::write(
+            layouts_dir.join("default.html"),
+            "<html><body>{{ content }}</body></html>",
+        )
+        .unwrap();
+
+        // Child layout in .liquid referencing .html parent
+        std::fs::write(
+            layouts_dir.join("page.liquid"),
+            "---\nlayout: default\n---\n<main>{{ content }}</main>",
+        )
+        .unwrap();
+
+        let layouts = load_layouts(&layouts_dir).unwrap();
+
+        assert!(layouts.contains_key("default"));
+        assert!(layouts.contains_key("page"));
+
+        let page_layout = &layouts["page"];
+        assert_eq!(
+            page_layout.parent_layout.as_deref(),
+            Some("default"),
+            ".liquid layout should chain to .html parent"
+        );
     }
 
     #[test]
@@ -2140,6 +2213,65 @@ mod tests {
             .parse_and_render(r#"{% include test.html msg="hello & goodbye" %}"#, &ctx)
             .unwrap();
         assert_eq!(output, "val=hello & goodbye");
+    }
+
+    // ========================================================================
+    // Issue 501: Include parameter HTML double-escaping
+    // ========================================================================
+
+    #[test]
+    fn test_include_param_escaped_quotes_svg_viewbox() {
+        // When an include parameter contains escaped quotes (e.g., SVG attributes),
+        // the output should have literal " not &quot;
+        let mut includes = HashMap::new();
+        includes.insert(
+            "anchor.html".to_string(),
+            "body={{ include.anchorBody }}".to_string(),
+        );
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render(
+                r#"{% include anchor.html anchorBody="<svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"></svg>" %}"#,
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(
+            output,
+            r#"body=<svg viewBox="0 0 16 16" aria-hidden="true"></svg>"#
+        );
+    }
+
+    #[test]
+    fn test_include_param_escaped_quotes_aria_labelledby() {
+        // The aria-labelledby attribute uses escaped quotes with a placeholder
+        let mut includes = HashMap::new();
+        includes.insert(
+            "anchor.html".to_string(),
+            "attrs={{ include.anchorAttrs }}".to_string(),
+        );
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render(
+                r#"{% include anchor.html anchorAttrs="aria-labelledby=\"navigation\"" %}"#,
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(output, r#"attrs=aria-labelledby="navigation""#);
+    }
+
+    #[test]
+    fn test_include_param_no_escaped_quotes_unchanged() {
+        // Include params without escaped quotes should still work normally
+        let mut includes = HashMap::new();
+        includes.insert("test.html".to_string(), "val={{ include.msg }}".to_string());
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render(r#"{% include test.html msg="normal value" %}"#, &ctx)
+            .unwrap();
+        assert_eq!(output, "val=normal value");
     }
 
     // ========================================================================
