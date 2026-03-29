@@ -208,7 +208,7 @@ fn render_avatar(
     } else {
         write!(
             writer,
-            "<img class=\"avatar{}\" src=\"{}\" alt=\"{}\" srcset=\"{}\" width=\"{}\" height=\"{}\" />",
+            "<img class=\"avatar{}\" src=\"{}\" alt=\"{}\" srcset=\"{}\" data-proofer-ignore=\"true\" width=\"{}\" height=\"{}\" />",
             size_class, base_url, username, srcset, size, size
         )
         .replace("Failed to render avatar tag")?;
@@ -567,6 +567,40 @@ mod tests {
         assert!(
             !output.contains("data-srcset"),
             "No lazy attrs without lazy=true"
+        );
+    }
+
+    // === Issue 525: data-proofer-ignore on all avatars ===
+
+    #[test]
+    fn test_avatar_eager_has_data_proofer_ignore() {
+        let eng = engine();
+        let ctx = Object::new();
+        let output = eng
+            .parse_and_render("{% avatar proofuser %}", &ctx)
+            .unwrap();
+        assert!(
+            output.contains("data-proofer-ignore=\"true\""),
+            "Eager (non-lazy) avatar must have data-proofer-ignore=\"true\", got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_avatar_eager_variable_has_data_proofer_ignore() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert(
+            "author".into(),
+            liquid::model::Value::scalar("proofauthor".to_string()),
+        );
+        let output = eng
+            .parse_and_render("{% avatar user=author size=24 %}", &ctx)
+            .unwrap();
+        assert!(
+            output.contains("data-proofer-ignore=\"true\""),
+            "Eager variable avatar must have data-proofer-ignore=\"true\", got: {}",
+            output
         );
     }
 
