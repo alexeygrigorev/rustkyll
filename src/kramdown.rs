@@ -502,6 +502,7 @@ pub fn fix_literal_asterisk_emphasis(html: &str) -> String {
     let len = bytes.len();
     let mut i = 0;
     let mut em_depth: i32 = 0;
+    let mut in_code = false;
 
     while i < len {
         if bytes[i] == b'<' {
@@ -518,12 +519,16 @@ pub fn fix_literal_asterisk_emphasis(html: &str) -> String {
                 em_depth += 1;
             } else if tag == "</em>" || tag == "</strong>" {
                 em_depth -= 1;
+            } else if tag == "<code>" || tag.starts_with("<code ") {
+                in_code = true;
+            } else if tag == "</code>" {
+                in_code = false;
             }
             result.push_str(tag);
             continue;
         }
 
-        if bytes[i] == b'*' && em_depth <= 0 {
+        if bytes[i] == b'*' && em_depth <= 0 && !in_code {
             let is_opener = {
                 let prev_ok = i == 0
                     || matches!(bytes[i - 1], b' ' | b'>' | b'"' | b'\n' | b'\t' | b'(')
@@ -3348,7 +3353,7 @@ fn strip_p_in_tag(html: &str, tag: &str) -> String {
 /// in paragraph tags.
 fn unwrap_block_elements_from_p(html: &str) -> String {
     /// Block-level tags that should never appear inside `<p>`.
-    const UNWRAP_TAGS: &[&str] = &["noscript"];
+    const UNWRAP_TAGS: &[&str] = &["noscript", "iframe"];
 
     let mut result = html.to_string();
     for &tag in UNWRAP_TAGS {
@@ -4798,6 +4803,7 @@ fn wrap_bare_text_in_paragraphs(html: &str) -> String {
         "p",
         "script",
         "noscript",
+        "iframe",
     ];
 
     let lines: Vec<&str> = html.split('\n').collect();
@@ -14451,6 +14457,106 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             !result.contains("<p><noscript>"),
             "noscript should be unwrapped: {}",
+            result
+        );
+    }
+
+    // ========================================================================
+    // Issue 499: fix_literal_asterisk_emphasis must skip <code> blocks
+    // ========================================================================
+
+    #[test]
+    fn test_asterisk_emphasis_skips_code_blocks() {
+        // *col* inside <code> should NOT become <em>col</em>
+        // After <code>, `>` satisfies prev_ok for opener; `<` satisfies next_ok for closer
+        let html = "<p>Use <code>*col*</code> in SQL</p>";
+        let result = fix_literal_asterisk_emphasis(html);
+        assert!(
+            result.contains("<code>*col*</code>"),
+            "Asterisks inside <code> must be preserved. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("<em>col</em>"),
+            "No <em> should appear for code content. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_asterisk_emphasis_skips_code_with_attributes() {
+        // <code class="..."> should also be recognized
+        let html = "<p>Run <code class=\"language-sql\">*col*</code> to select</p>";
+        let result = fix_literal_asterisk_emphasis(html);
+        assert!(
+            !result.contains("<em>col</em>"),
+            "Asterisks inside <code class=...> must be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_asterisk_emphasis_still_works_outside_code() {
+        // Emphasis outside code blocks should still be converted
+        let html = "<p>This is *important* and <code>*col*</code> is code</p>";
+        let result = fix_literal_asterisk_emphasis(html);
+        assert!(
+            result.contains("<em>important</em>"),
+            "Emphasis outside code must still work. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("<em>col</em>"),
+            "Asterisks inside code must be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_asterisk_emphasis_skips_code_unicode() {
+        // Unicode content inside code with asterisks
+        let html = "<p><code>*r\u{00e9}sum\u{00e9}*</code> is code</p>";
+        let result = fix_literal_asterisk_emphasis(html);
+        assert!(
+            !result.contains("<em>"),
+            "No emphasis conversion inside code with unicode. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_unwrap_iframe_from_p() {
+        let input = r#"<p><iframe src="//example.com/embed" width="595" height="485" frameborder="0" allowfullscreen> </iframe></p>"#;
+        let result = unwrap_block_elements_from_p(input);
+        assert!(
+            !result.contains("<p><iframe"),
+            "iframe should be unwrapped from <p>: {}",
+            result
+        );
+        assert!(
+            result.contains("<iframe src="),
+            "iframe element should be preserved: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_unwrap_multiple_iframes_from_p() {
+        let input = concat!(
+            r#"<p><iframe src="//a.com/1" width="100"> </iframe></p>"#,
+            "\n",
+            "<p>text</p>\n",
+            r#"<p><iframe src="//b.com/2" width="200"> </iframe></p>"#,
+        );
+        let result = unwrap_block_elements_from_p(input);
+        assert!(
+            !result.contains("<p><iframe"),
+            "all iframes should be unwrapped: {}",
+            result
+        );
+        assert!(
+            result.contains("<p>text</p>"),
+            "regular paragraphs should be preserved: {}",
             result
         );
     }
