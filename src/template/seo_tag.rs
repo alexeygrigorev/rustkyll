@@ -346,17 +346,19 @@ fn get_author_twitter(runtime: &dyn Runtime, prefix: &[&str]) -> Option<String> 
 }
 
 /// Compute the absolute URL for an image path.
-fn absolute_image_url(img: &str, site_url: &Option<String>) -> String {
+/// Includes `site.baseurl` prefix for relative image paths.
+fn absolute_image_url(img: &str, site_url: &Option<String>, baseurl: &str) -> String {
     if img.starts_with("http://") || img.starts_with("https://") {
         img.to_string()
     } else if let Some(ref base) = site_url {
         let base = base.trim_end_matches('/');
+        let baseurl = baseurl.trim_end_matches('/');
         let path = if img.starts_with('/') {
             img.to_string()
         } else {
             format!("/{}", img)
         };
-        format!("{}{}", base, path)
+        format!("{}{}{}", base, baseurl, path)
     } else {
         img.to_string()
     }
@@ -406,6 +408,7 @@ impl Renderable for SeoRenderable {
         // Use get_nested_str_allow_empty which returns Some("") for explicitly
         // empty strings, but check that the value is not nil (truly absent).
         let site_url = get_nested_str_allow_empty_non_nil(runtime, &["site", "url"]);
+        let site_baseurl = get_nested_str(runtime, &["site", "baseurl"]).unwrap_or_default();
         let page_url = get_nested_str(runtime, &["page", "url"]);
         let (page_image, page_image_alt) = match get_image_info(runtime, &["page", "image"]) {
             Some((url, alt)) => (Some(url), alt),
@@ -573,6 +576,9 @@ impl Renderable for SeoRenderable {
         // Jekyll strips trailing `index.html` from canonical URLs:
         //   /index.html -> /
         //   /about/index.html -> /about/
+        // Prepend site.baseurl to page path for canonical/og:url URLs.
+        // Jekyll's jekyll-seo-tag always includes baseurl in these URLs.
+        let baseurl_prefix = site_baseurl.trim_end_matches('/');
         let canonical_url = match (&site_url, &page_url) {
             (Some(base), Some(path)) => {
                 let base = base.trim_end_matches('/');
@@ -589,9 +595,16 @@ impl Renderable for SeoRenderable {
                 } else {
                     path
                 };
-                Some(format!("{}{}", base, path))
+                Some(format!("{}{}{}", base, baseurl_prefix, path))
             }
-            (Some(base), None) => Some(base.trim_end_matches('/').to_string()),
+            (Some(base), None) => {
+                let base = base.trim_end_matches('/');
+                if baseurl_prefix.is_empty() {
+                    Some(base.to_string())
+                } else {
+                    Some(format!("{}{}", base, baseurl_prefix))
+                }
+            }
             _ => None,
         };
 
@@ -619,7 +632,7 @@ impl Renderable for SeoRenderable {
 
         // 9. og:image
         if let Some(ref img) = page_image {
-            let absolute_img = absolute_image_url(img, &site_url);
+            let absolute_img = absolute_image_url(img, &site_url, &site_baseurl);
             output.push_str(&format!(
                 "<meta property=\"og:image\" content=\"{}\" />\n",
                 html_escape(&absolute_img)
@@ -653,7 +666,11 @@ impl Renderable for SeoRenderable {
         // 11. Twitter Card
         if page_image.is_some() {
             output.push_str("<meta name=\"twitter:card\" content=\"summary_large_image\" />\n");
-            let absolute_img = absolute_image_url(page_image.as_deref().unwrap_or(""), &site_url);
+            let absolute_img = absolute_image_url(
+                page_image.as_deref().unwrap_or(""),
+                &site_url,
+                &site_baseurl,
+            );
             output.push_str(&format!(
                 "<meta property=\"twitter:image\" content=\"{}\" />\n",
                 html_escape(&absolute_img)
@@ -886,14 +903,14 @@ impl Renderable for SeoRenderable {
         }
 
         if let Some(ref img) = page_image {
-            let absolute_img = absolute_image_url(img, &site_url);
+            let absolute_img = absolute_image_url(img, &site_url, &site_baseurl);
             jsonld_fields.push(format!("\"image\":\"{}\"", json_escape(&absolute_img)));
         }
 
         // publisher field: when site.logo is configured, include publisher organization
         // matching jekyll-seo-tag behavior. Includes "name" from author if available.
         if let Some(ref logo) = site_logo {
-            let absolute_logo = absolute_image_url(logo, &site_url);
+            let absolute_logo = absolute_image_url(logo, &site_url, &site_baseurl);
             let name_part = if let Some(author_name) = author {
                 format!(",\"name\":\"{}\"", json_escape(author_name))
             } else {
@@ -5568,6 +5585,213 @@ mod tests {
         assert!(
             !out.contains("Page content"),
             "Should NOT use page content when site.description exists. Got: {}",
+            out
+        );
+    }
+
+    // ========================================================================
+    // Issue 539: baseurl prepend for canonical/og:url/JSON-LD URLs
+    // ========================================================================
+
+    /// Helper to build a context with site.baseurl set.
+    fn make_context_with_baseurl(
+        site_url: Option<&str>,
+        site_baseurl: Option<&str>,
+        page_url: Option<&str>,
+        page_title: Option<&str>,
+        page_date: Option<&str>,
+        site_title: Option<&str>,
+        site_logo: Option<&str>,
+    ) -> Object {
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        let mut site = Object::new();
+
+        if let Some(u) = page_url {
+            page.insert("url".into(), Value::scalar(u.to_string()));
+        }
+        if let Some(t) = page_title {
+            page.insert("title".into(), Value::scalar(t.to_string()));
+        }
+        if let Some(d) = page_date {
+            page.insert("date".into(), Value::scalar(d.to_string()));
+        }
+        if let Some(u) = site_url {
+            site.insert("url".into(), Value::scalar(u.to_string()));
+        }
+        if let Some(b) = site_baseurl {
+            site.insert("baseurl".into(), Value::scalar(b.to_string()));
+        }
+        if let Some(t) = site_title {
+            site.insert("title".into(), Value::scalar(t.to_string()));
+        }
+        if let Some(l) = site_logo {
+            site.insert("logo".into(), Value::scalar(l.to_string()));
+        }
+
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+        ctx
+    }
+
+    #[test]
+    fn test_issue539_canonical_url_with_baseurl() {
+        let eng = engine();
+        let ctx = make_context_with_baseurl(
+            Some("https://example.com"),
+            Some("/example"),
+            Some("/404.html"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("href=\"https://example.com/example/404.html\""),
+            "Canonical URL should include baseurl. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_issue539_og_url_with_baseurl() {
+        let eng = engine();
+        let ctx = make_context_with_baseurl(
+            Some("https://example.com"),
+            Some("/example"),
+            Some("/404.html"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("og:url\" content=\"https://example.com/example/404.html\""),
+            "og:url should include baseurl. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_issue539_jsonld_url_with_baseurl() {
+        let eng = engine();
+        let ctx = make_context_with_baseurl(
+            Some("https://example.com"),
+            Some("/example"),
+            Some("/about/"),
+            Some("About"),
+            None,
+            Some("My Site"),
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"url\":\"https://example.com/example/about/\""),
+            "JSON-LD url should include baseurl. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_issue539_jsonld_main_entity_with_baseurl() {
+        let eng = engine();
+        let ctx = make_context_with_baseurl(
+            Some("https://example.com"),
+            Some("/blog"),
+            Some("/my-post/"),
+            Some("My Post"),
+            Some("2024-01-15"),
+            Some("My Site"),
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"@id\":\"https://example.com/blog/my-post/\""),
+            "JSON-LD mainEntityOfPage @id should include baseurl. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_issue539_jsonld_publisher_logo_with_baseurl() {
+        let eng = engine();
+        let ctx = make_context_with_baseurl(
+            Some("https://example.com"),
+            Some("/blog"),
+            Some("/"),
+            Some("Home"),
+            None,
+            Some("My Site"),
+            Some("/assets/logo.png"),
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("\"url\":\"https://example.com/blog/assets/logo.png\""),
+            "JSON-LD publisher logo URL should include baseurl. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_issue539_no_baseurl_unaffected() {
+        // Sites without baseurl should work exactly as before
+        let eng = engine();
+        let ctx = make_context_with_baseurl(
+            Some("https://example.com"),
+            None,
+            Some("/page/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("href=\"https://example.com/page/\""),
+            "Without baseurl, canonical should be site.url + page.url. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_issue539_empty_baseurl_unaffected() {
+        // Sites with empty baseurl should work exactly as before
+        let eng = engine();
+        let ctx = make_context_with_baseurl(
+            Some("https://example.com"),
+            Some(""),
+            Some("/page/"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("href=\"https://example.com/page/\""),
+            "With empty baseurl, canonical should be site.url + page.url. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_issue539_canonical_strips_index_html_with_baseurl() {
+        let eng = engine();
+        let ctx = make_context_with_baseurl(
+            Some("https://example.com"),
+            Some("/example"),
+            Some("/index.html"),
+            None,
+            None,
+            None,
+            None,
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("href=\"https://example.com/example/\""),
+            "Canonical should strip index.html and include baseurl. Got: {}",
             out
         );
     }
