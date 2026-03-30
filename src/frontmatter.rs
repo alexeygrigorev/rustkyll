@@ -8159,6 +8159,155 @@ More text.
         );
     }
 
+    // Issue 366: table inside list items -- pipe in angle brackets produces
+    // <table><tbody> inside <li>, with subsequent list items preserved.
+    #[test]
+    fn test_issue366_pipe_in_list_item_produces_table_inside_li() {
+        let input = "- engineering: training <tel:100-1000|100-1000>s of GPUs\n- dataset: training requires data\n- release: how to release";
+        let html = markdown_to_html_for_filter(input);
+        // The first list item should contain a table
+        assert!(
+            html.contains("<table>"),
+            "Issue 366: pipe in list item should produce table. Got:\n{html}"
+        );
+        assert!(
+            html.contains("<tbody>"),
+            "Issue 366: table should have tbody. Got:\n{html}"
+        );
+        // <tbody> must be inside <table>, not outside
+        let table_pos = html.find("<table>").unwrap();
+        let tbody_pos = html.find("<tbody>").unwrap();
+        let table_close_pos = html.find("</table>").unwrap();
+        assert!(
+            tbody_pos > table_pos && tbody_pos < table_close_pos,
+            "Issue 366: <tbody> must be inside <table>. Got:\n{html}"
+        );
+        // The other two list items should be present as <li> elements
+        assert!(
+            html.contains("dataset: training requires data"),
+            "Issue 366: 'dataset:' line should be present. Got:\n{html}"
+        );
+        assert!(
+            html.contains("release: how to release"),
+            "Issue 366: 'release:' line should be present. Got:\n{html}"
+        );
+        // dataset and release should be in <li> tags
+        let dataset_pos = html.find("dataset: training requires data").unwrap();
+        let li_before_dataset = html[..dataset_pos].rfind("<li>").unwrap_or(0);
+        assert!(
+            li_before_dataset > 0,
+            "Issue 366: 'dataset:' should be in an <li>. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_issue366_pipe_in_list_after_newline_to_br() {
+        // Simulates the actual DTC page: text goes through newline_to_br then markdownify.
+        // After newline_to_br, each \n becomes <br />\n, so the list items are
+        // separated by <br />\n rather than plain \n.
+        let input = "just to list a few:<br />\n- engineering: training large infrastructure with <tel:100-1000|100-1000>s of GPUs. you need some resilience.<br />\n- dataset: training these beadts requires a lot of data.<br />\n- release: how can one responsibly release such models.<br />\nmaybe Thomas Wolf has some more insights here :)";
+        let html = markdown_to_html_for_filter(input);
+        // The first list item should contain a table with <tbody> inside it
+        if html.contains("<table>") {
+            assert!(
+                html.contains("<tbody>"),
+                "Issue 366: table should have <tbody>. Got:\n{html}"
+            );
+            let table_pos = html.find("<table>").unwrap();
+            let tbody_pos = html.find("<tbody>").unwrap();
+            let table_close_pos = html.find("</table>").unwrap();
+            assert!(
+                tbody_pos > table_pos && tbody_pos < table_close_pos,
+                "Issue 366: <tbody> must be inside <table>, not outside. Got:\n{html}"
+            );
+        }
+        // <tbody> must NOT appear outside of <table>
+        // Check that every <tbody> is preceded by <table>
+        let mut pos = 0;
+        while let Some(tbody_idx) = html[pos..].find("<tbody>") {
+            let abs_idx = pos + tbody_idx;
+            let preceding = &html[..abs_idx];
+            let last_table_open = preceding.rfind("<table>");
+            let last_table_close = preceding.rfind("</table>");
+            assert!(
+                last_table_open.is_some()
+                    && (last_table_close.is_none()
+                        || last_table_open.unwrap() > last_table_close.unwrap()),
+                "Issue 366: <tbody> at position {abs_idx} is outside <table>. Got:\n{html}"
+            );
+            pos = abs_idx + 7;
+        }
+        // The "dataset:" and "release:" lines should appear as <li> elements
+        assert!(
+            html.contains("dataset:"),
+            "Issue 366: 'dataset:' text should be present. Got:\n{html}"
+        );
+        assert!(
+            html.contains("release:"),
+            "Issue 366: 'release:' text should be present. Got:\n{html}"
+        );
+        // They should be inside <li> tags, not raw text
+        if let Some(dataset_pos) = html.find("dataset:") {
+            let before = &html[..dataset_pos];
+            let last_li = before.rfind("<li>");
+            let last_li_close = before.rfind("</li>");
+            assert!(
+                last_li.is_some()
+                    && (last_li_close.is_none() || last_li.unwrap() > last_li_close.unwrap()),
+                "Issue 366: 'dataset:' should be inside <li>. Got:\n{html}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_issue366_normal_list_without_pipe_no_table() {
+        let input = "- item one\n- item two\n- item three";
+        let html = markdown_to_html_for_filter(input);
+        assert!(
+            !html.contains("<table>"),
+            "Issue 366: list without pipe should not produce table. Got:\n{html}"
+        );
+        assert!(
+            html.contains("<li>"),
+            "Issue 366: should produce list items. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_issue366_pipe_in_non_list_context_table() {
+        let input = "text with <tel:100-1000|100-1000> inline";
+        let html = markdown_to_html_for_filter(input);
+        // If a table is created, tbody must be inside table
+        if html.contains("<table>") && html.contains("<tbody>") {
+            let table_pos = html.find("<table>").unwrap();
+            let tbody_pos = html.find("<tbody>").unwrap();
+            let table_close_pos = html.find("</table>").unwrap();
+            assert!(
+                tbody_pos > table_pos && tbody_pos < table_close_pos,
+                "Issue 366: <tbody> must be inside <table> in non-list context. Got:\n{html}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_issue366_unicode_content_in_table_cells() {
+        let input =
+            "- Beschreibung: <info:deutsch|\u{00dc}bersetzung>s Modell\n- Fazit: gut";
+        let html = markdown_to_html_for_filter(input);
+        // Unicode content should be preserved
+        assert!(
+            html.contains("\u{00dc}bersetzung")
+                || html.contains("&Uuml;bersetzung")
+                || html.contains("&#220;bersetzung"),
+            "Issue 366: Unicode content should be preserved. Got:\n{html}"
+        );
+        // Fazit should be a list item
+        assert!(
+            html.contains("Fazit: gut"),
+            "Issue 366: 'Fazit' line should be present. Got:\n{html}"
+        );
+    }
+
     // Issue 373: Regression tests for heading-inside-list-item behavior.
     // The DTC book page has ### User: and ### Assistant: headings inside a
     // bullet list context. renest_heading_after_list (issue 341) moves the
