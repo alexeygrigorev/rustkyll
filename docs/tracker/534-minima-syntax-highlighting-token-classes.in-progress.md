@@ -98,3 +98,27 @@ This is a large issue spanning multiple language grammars. Focus on:
 
 - DTC: 790/790
 - Minima codeblocks-ahoy.html: 225 diffs (this is the biggest single-page diff)
+
+## Log
+
+### [SWE] 2026-03-30
+
+TDD cycle:
+- Wrote 10 failing tests in tests/syntax_highlighting.rs for Ruby (mi, mf, mh, mo, vi, ss, cm, kp) and Diff (gd, gi)
+- Ran tests: all 10 FAIL as expected
+- Implemented fixes:
+  1. Added Ruby-specific scope mappings: variable.other.readwrite.instance -> vi, constant.other.symbol -> ss, comment.block.documentation -> cm, variable.other.constant -> no
+  2. Added Diff scope mappings: markup.deleted -> gd, markup.inserted -> gi, punctuation.definition.deleted -> gd, punctuation.definition.inserted -> gi
+  3. Added `postprocess_ruby_numeric_classes()` to reclassify m -> mi/mf/mh/mo/mb based on literal text
+  4. Added `include` -> `kp` reclassification in Ruby post-processing
+- Ran tests: all 29 syntax_highlighting tests PASS (10 new + 19 existing)
+- Full test suite: 3358 passed, 3 failed (pre-existing test_515 kramdown table failures), 2 ignored
+- DTC DOM: 790/790 (no regression)
+- Minima codeblocks-ahoy.html: 222 diffs (down from 225, 3 diff reduction from Ruby token fixes)
+- Clippy clean, fmt clean
+
+Files modified:
+- src/syntax.rs (scope mappings + postprocess_ruby_numeric_classes + classify_ruby_number + include->kp)
+- tests/syntax_highlighting.rs (10 new tests)
+
+Files created: none

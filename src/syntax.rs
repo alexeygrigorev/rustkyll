@@ -32,6 +32,19 @@ fn build_scope_map() -> Vec<ScopeMapping> {
         // Ruby: Rouge classifies special methods (new, initialize, etc.) as `nf` (function name).
         // Syntect scopes these as keyword.other.special-method.ruby -> k. Override for Ruby.
         ("source.ruby keyword.other.special-method", "nf"),
+        // Ruby: Rouge classifies instance variables (@foo) as `vi` (variable.instance).
+        // Syntect uses variable.other.readwrite.instance.ruby -> n. Override for Ruby.
+        ("source.ruby variable.other.readwrite.instance", "vi"),
+        // Ruby: Rouge classifies symbols (:foo) as `ss` (string.symbol).
+        // Syntect scopes these as constant.other.symbol.ruby -> no. Override for Ruby.
+        ("source.ruby constant.other.symbol", "ss"),
+        // Ruby: Rouge classifies =begin/=end multi-line comments as `cm`.
+        // Syntect scopes these as comment.block.documentation.ruby which maps to `s`
+        // via the generic rule. Override for Ruby.
+        ("source.ruby comment.block.documentation", "cm"),
+        // Ruby: Rouge classifies named constants (LIPSUM, etc.) as `no`.
+        // Syntect uses variable.other.constant.ruby which has no direct mapping.
+        ("source.ruby variable.other.constant", "no"),
         // Ruby: block parameter delimiters (|...|) are `o` (operator) in Rouge.
         ("source.ruby punctuation.definition.parameters", "o"),
         // Ruby: string interpolation markers (#{...}) are `si` in Rouge.
@@ -115,6 +128,14 @@ fn build_scope_map() -> Vec<ScopeMapping> {
         // SQL: Rouge maps all SQL numbers to mi (integer), not m (generic numeric).
         // Syntect uses constant.numeric without .integer suffix for SQL.
         ("source.sql constant.numeric", "mi"),
+        // Diff: Rouge classifies deleted lines as `gd` (generic.deleted).
+        // Syntect uses markup.deleted.diff. Override.
+        ("source.diff markup.deleted", "gd"),
+        ("source.diff punctuation.definition.deleted", "gd"),
+        // Diff: Rouge classifies inserted lines as `gi` (generic.inserted).
+        // Syntect uses markup.inserted.diff. Override.
+        ("source.diff markup.inserted", "gi"),
+        ("source.diff punctuation.definition.inserted", "gi"),
         // ── Entity names (MUST come before strings so YAML keys get `na` not `s`) ──
         ("entity.name.function", "nf"),
         ("entity.name.class", "nc"),
@@ -523,6 +544,17 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
     // Rouge classifies them as `n` (Name).
     if lang == "ruby" || lang == "rb" {
         html = postprocess_ruby_bare_identifiers(&html);
+        // Ruby: Rouge classifies numeric literals with specific sub-classes
+        // (mi=integer, mf=float, mh=hex, mo=octal). Syntect gives all Ruby
+        // numbers the same `constant.numeric.ruby` scope -> `m`. Reclassify
+        // based on the literal text.
+        html = postprocess_ruby_numeric_classes(&html);
+        // Rouge classifies `include` as `kp` (keyword.pseudo).
+        // Syntect scopes it as keyword.other.special-method -> nf.
+        html = html.replace(
+            "<span class=\"nf\">include</span>",
+            "<span class=\"kp\">include</span>",
+        );
         // Rouge classifies `::` as `o` (operator). Syntect uses the same
         // punctuation.accessor scope for both `.` and `::`, so override via post-processing.
         html = html.replace("<span class=\"p\">::</span>", "<span class=\"o\">::</span>");
@@ -2256,6 +2288,61 @@ fn postprocess_xml_tag_tokens(html: &str) -> String {
 /// JSON, Python, and most other languages do NOT.
 fn is_dl_split_language(lang: &str) -> bool {
     matches!(lang, "javascript" | "js" | "ruby" | "rb")
+}
+
+/// Reclassify Ruby numeric literals from generic `m` to specific sub-classes.
+///
+/// Rouge uses `mi` (integer), `mf` (float), `mh` (hex), `mo` (octal), `mb` (binary).
+/// Syntect gives all Ruby numbers `constant.numeric.ruby` which maps to `m`.
+/// This function inspects the literal text to determine the correct sub-class.
+fn postprocess_ruby_numeric_classes(html: &str) -> String {
+    let m_open = "<span class=\"m\">";
+    let close_span = "</span>";
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+
+    while let Some(pos) = remaining.find(m_open) {
+        result.push_str(&remaining[..pos]);
+        let after_open = &remaining[pos + m_open.len()..];
+
+        if let Some(close_pos) = after_open.find(close_span) {
+            let num_text = &after_open[..close_pos];
+            let new_class = classify_ruby_number(num_text);
+            result.push_str("<span class=\"");
+            result.push_str(new_class);
+            result.push_str("\">");
+            result.push_str(num_text);
+            result.push_str(close_span);
+            remaining = &after_open[close_pos + close_span.len()..];
+        } else {
+            result.push_str(m_open);
+            result.push_str(after_open);
+            break;
+        }
+    }
+    result.push_str(remaining);
+    result
+}
+
+/// Classify a Ruby numeric literal text into the appropriate Rouge class.
+fn classify_ruby_number(text: &str) -> &'static str {
+    if text.starts_with("0x") || text.starts_with("0X") {
+        "mh" // hex
+    } else if text.starts_with("0b") || text.starts_with("0B") {
+        "mb" // binary
+    } else if text.starts_with('0')
+        && text.len() > 1
+        && !text.starts_with("0.")
+        && !text.starts_with("0e")
+        && !text.starts_with("0E")
+        && text[1..].chars().all(|c| c.is_ascii_digit() || c == '_')
+    {
+        "mo" // octal (0-prefixed)
+    } else if text.contains('.') || text.contains('e') || text.contains('E') {
+        "mf" // float
+    } else {
+        "mi" // integer
+    }
 }
 
 /// Post-process Ruby highlighted HTML to wrap bare identifiers in `<span class="n">`.

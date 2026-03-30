@@ -346,3 +346,127 @@ fn test_sql_select_from_where_are_k() {
         html
     );
 }
+
+// ── Ruby: Issue 534 - minima syntax highlighting token classes ──
+
+#[test]
+fn test_ruby_integer_literal_is_mi() {
+    // Rouge classifies integer literals as `mi` (number.integer).
+    let code = "x = 42\n";
+    let html = highlight_code("ruby", code).unwrap();
+    assert!(
+        html.contains("<span class=\"mi\">42</span>"),
+        "Ruby integer literal 42 should be 'mi' (number.integer). Got: {}",
+        html
+    );
+}
+
+#[test]
+fn test_ruby_float_literal_is_mf() {
+    // Rouge classifies float literals as `mf` (number.float).
+    let code = "x = 3.14\n";
+    let html = highlight_code("ruby", code).unwrap();
+    assert!(
+        html.contains("<span class=\"mf\">3.14</span>"),
+        "Ruby float literal 3.14 should be 'mf' (number.float). Got: {}",
+        html
+    );
+}
+
+#[test]
+fn test_ruby_hex_literal_is_mh() {
+    // Rouge classifies hex literals as `mh` (number.hex).
+    let code = "x = 0xff\n";
+    let html = highlight_code("ruby", code).unwrap();
+    assert!(
+        html.contains("<span class=\"mh\">0xff</span>"),
+        "Ruby hex literal 0xff should be 'mh' (number.hex). Got: {}",
+        html
+    );
+}
+
+#[test]
+fn test_ruby_octal_literal_is_mo() {
+    // Rouge classifies octal literals as `mo` (number.octal).
+    let code = "x = 0777\n";
+    let html = highlight_code("ruby", code).unwrap();
+    assert!(
+        html.contains("<span class=\"mo\">0777</span>"),
+        "Ruby octal literal 0777 should be 'mo' (number.octal). Got: {}",
+        html
+    );
+}
+
+#[test]
+fn test_ruby_instance_variable_is_vi() {
+    // Rouge classifies instance variables as `vi` (variable.instance).
+    let code = "@layout = true\n";
+    let html = highlight_code("ruby", code).unwrap();
+    assert!(
+        html.contains("<span class=\"vi\">@layout</span>"),
+        "Ruby instance variable @layout should be 'vi' (variable.instance). Got: {}",
+        html
+    );
+}
+
+#[test]
+fn test_ruby_symbol_is_ss() {
+    // Rouge classifies symbols as `ss` (string.symbol).
+    let code = "x = :layout\n";
+    let html = highlight_code("ruby", code).unwrap();
+    assert!(
+        html.contains("<span class=\"ss\">:layout</span>"),
+        "Ruby symbol :layout should be 'ss' (string.symbol). Got: {}",
+        html
+    );
+}
+
+#[test]
+fn test_ruby_begin_end_comment_is_cm() {
+    // Rouge classifies =begin/=end multi-line comments as `cm` (comment.multiline).
+    let code = "=begin\nthis is a comment\n=end\n";
+    let html = highlight_code("ruby", code).unwrap();
+    assert!(
+        html.contains("<span class=\"cm\">=begin"),
+        "Ruby =begin/=end comment should use class 'cm' (comment.multiline). Got: {}",
+        html
+    );
+}
+
+#[test]
+fn test_ruby_include_keyword_is_kp() {
+    // Rouge classifies `include` keyword as `kp` (keyword.pseudo).
+    let code = "include Enumerable\n";
+    let html = highlight_code("ruby", code).unwrap();
+    assert!(
+        html.contains("<span class=\"kp\">include</span>"),
+        "Ruby 'include' should be 'kp' (keyword.pseudo). Got: {}",
+        html
+    );
+}
+
+#[test]
+fn test_diff_deleted_line_is_gd() {
+    // Rouge classifies deleted lines as `gd` (generic.deleted).
+    let code = "- old line\n+ new line\n unchanged\n";
+    let html = highlight_code("diff", code).unwrap();
+    assert!(
+        html.contains("<span class=\"gd\">- old line\n</span>")
+            || html.contains("<span class=\"gd\">-"),
+        "Diff deleted line should use class 'gd' (generic.deleted). Got: {}",
+        html
+    );
+}
+
+#[test]
+fn test_diff_added_line_is_gi() {
+    // Rouge classifies added lines as `gi` (generic.inserted).
+    let code = "- old line\n+ new line\n unchanged\n";
+    let html = highlight_code("diff", code).unwrap();
+    assert!(
+        html.contains("<span class=\"gi\">+ new line\n</span>")
+            || html.contains("<span class=\"gi\">+"),
+        "Diff added line should use class 'gi' (generic.inserted). Got: {}",
+        html
+    );
+}
