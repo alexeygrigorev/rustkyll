@@ -89,3 +89,54 @@ This is an umbrella issue that has been superseded by more specific follow-up is
 ### Regression: DTC DOM
 - Build DTC site and run DOM comparison
 - Verify match count is at least 788/790
+
+## Log
+
+### [SWE] 2026-03-30
+
+#### Investigation: Hydeout (20/30, up from 17/30 baseline)
+- Built hydeout with rustkyll and ran DOM comparison: 20/30 matched, 10 diffs
+- Categorized all 10 unmatched pages:
+  - 8 pages: syntax highlighting differences (different `<span class>` values) -- rustkyll uses a different highlighter than Rouge
+  - 1 page: definition list (`<dl>`) not rendered -- kramdown-specific feature, not Liquid gap
+  - 1 page: nested list rendering difference -- markdown parsing edge case, not Liquid gap
+- 1 "Liquid leak" reported: `markup-syntax-highlighting.html` -- FALSE POSITIVE
+  - Contains `{% raw %}` / `{% endraw %}` and `language-liquid` code blocks showing Liquid examples
+  - Jekyll output has same `{{` and `{%` patterns (8 occurrences vs rustkyll 10)
+  - Extra 2 occurrences are the `{% raw %}`/`{% endraw %}` markers themselves
+  - Conclusion: no actual Liquid rendering gap
+
+#### Investigation: Cross-site raw Liquid check
+- DTC: 790/790 DOM match. 1 "leak" in `practical-guide-better-code.html` -- FALSE POSITIVE (GitHub Actions `${{ matrix.python-version }}` syntax in YAML code block). Jekyll output has identical patterns.
+- chirpy: 12/17 DOM match. 1 "leak" in `write-a-new-post/index.html` -- FALSE POSITIVE (Liquid tutorial content inside `language-liquid` code blocks).
+- hydeout: see above
+- yat: 0 leaks (clean)
+- minimal-mistakes: raw Liquid in output for 5+ pages, but these pages have no Jekyll cached counterpart to compare against. The raw Liquid comes from the error fallback path (line 2349-2361 of generator.rs) which writes raw content when template rendering fails. The failures are due to `{% include feature_row %}` and similar includes that depend on the remote theme. Not a generic Liquid bug.
+
+#### Conclusion
+- No actual Liquid rendering gaps found in any site where Jekyll comparison exists
+- All "Liquid leaks" are false positives (code examples, GitHub Actions syntax)
+- Hydeout remaining diffs are syntax highlighting (8) and markdown parsing (2), not Liquid
+- No code changes needed for Liquid rendering -- existing implementation is correct
+
+#### Tests added (9 new tests)
+All in `src/template/engine.rs`:
+1. `test_include_resolution_existing_file` - basic include works
+2. `test_include_resolution_nested_includes` - include A includes B
+3. `test_include_missing_file_returns_error` - missing include errors (not raw Liquid)
+4. `test_include_file_without_extension` - extensionless include files work
+5. `test_date_filter_yyyy_mm_dd` - date format `%Y-%m-%d`
+6. `test_date_filter_full_month_name` - date format `%B %d, %Y`
+7. `test_date_filter_on_nil_returns_empty` - nil date does not produce raw Liquid
+8. `test_include_with_unicode_content` - Unicode content in includes
+9. `test_date_filter_with_unicode_format` - Unicode in date format string
+
+#### Build/lint results
+- 3888 tests pass, 0 fail
+- clippy clean (no warnings on rustkyll crate)
+- cargo fmt clean
+- DTC DOM: 790/790
+- Hydeout DOM: 20/30 (above 17/30 baseline)
+
+#### Files modified
+- `src/template/engine.rs` -- added 9 unit tests

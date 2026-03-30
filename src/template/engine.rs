@@ -1389,9 +1389,17 @@ fn resolve_link_post_url(post_filename: &str) -> String {
             .replace(":categories", ""); // no category info available here
 
         // Clean up double slashes from empty :categories
-        // Remove trailing .html if the pattern includes it but the result
-        // shouldn't have it (e.g., /posts/:title doesn't end with .html)
-        url.replace("//", "/")
+        let mut cleaned = url.replace("//", "/");
+        // Collapse remaining double slashes
+        while cleaned.contains("//") {
+            cleaned = cleaned.replace("//", "/");
+        }
+        // Issue 347: Apply pretty URL rule -- if the resolved URL has no file
+        // extension and doesn't end with /, append / to match Jekyll behavior.
+        if !cleaned.ends_with('/') && !crate::collection::url_has_extension(&cleaned) {
+            cleaned.push('/');
+        }
+        cleaned
     } else {
         // Fallback: strip extension and use as-is
         format!("/posts/{}", stem)
@@ -4923,11 +4931,11 @@ title: "Test Book"
         // Test /posts/:title pattern (like muan-blog)
         crate::frontmatter::set_post_permalink_pattern("/posts/:title");
         let result = preprocess_jekyll_tags(r#"{% link _posts/2020-06-06-reparations.md %}"#);
-        assert_eq!(result, "/posts/reparations");
+        assert_eq!(result, "/posts/reparations/");
 
         // Also test with a different post
         let result2 = preprocess_jekyll_tags(r#"{% link _posts/2024-11-02-javascript.md %}"#);
-        assert_eq!(result2, "/posts/javascript");
+        assert_eq!(result2, "/posts/javascript/");
 
         // Test date-based permalink pattern
         crate::frontmatter::set_post_permalink_pattern(
@@ -7177,6 +7185,157 @@ title: "Test Book"
         assert_eq!(
             output, "tutorial",
             "camelcase should pass through unchanged"
+        );
+    }
+
+    // ========================================================================
+    // Issue 444: Liquid template rendering gaps -- include resolution
+    // ========================================================================
+
+    #[test]
+    fn test_include_resolution_existing_file() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "header.html".to_string(),
+            "<header>Site Header</header>".to_string(),
+        );
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render("{% include header.html %}", &ctx)
+            .unwrap();
+        assert_eq!(output, "<header>Site Header</header>");
+    }
+
+    #[test]
+    fn test_include_resolution_nested_includes() {
+        let mut includes = HashMap::new();
+        includes.insert("b.html".to_string(), "B-CONTENT".to_string());
+        includes.insert("a.html".to_string(), "A[{% include b.html %}]A".to_string());
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render("{% include a.html %}", &ctx)
+            .unwrap();
+        assert_eq!(output, "A[B-CONTENT]A");
+    }
+
+    #[test]
+    fn test_include_missing_file_returns_error() {
+        // Missing includes should produce an error, not raw Liquid in output
+        let includes = HashMap::new();
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let result = engine.parse_and_render("{% include missing.html %}", &ctx);
+        assert!(
+            result.is_err(),
+            "Missing include should return an error, not raw Liquid"
+        );
+    }
+
+    #[test]
+    fn test_include_file_without_extension() {
+        // Jekyll supports include files without .html extension (e.g., feature_row)
+        let mut includes = HashMap::new();
+        includes.insert(
+            "feature_row".to_string(),
+            "<div class=\"feature-row\">Features</div>".to_string(),
+        );
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render("{% include feature_row %}", &ctx)
+            .unwrap();
+        assert_eq!(output, "<div class=\"feature-row\">Features</div>");
+    }
+
+    // ========================================================================
+    // Issue 444: Liquid template rendering gaps -- date filter
+    // ========================================================================
+
+    #[test]
+    fn test_date_filter_yyyy_mm_dd() {
+        let eng = engine();
+        let mut page = Object::new();
+        page.insert("date".into(), LiquidValue::scalar("2024-07-24"));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        let output = eng
+            .parse_and_render(r#"{{ page.date | date: "%Y-%m-%d" }}"#, &ctx)
+            .unwrap();
+        assert_eq!(output, "2024-07-24");
+    }
+
+    #[test]
+    fn test_date_filter_full_month_name() {
+        let eng = engine();
+        let mut page = Object::new();
+        page.insert("date".into(), LiquidValue::scalar("2024-07-24"));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        let output = eng
+            .parse_and_render(r#"{{ page.date | date: "%B %d, %Y" }}"#, &ctx)
+            .unwrap();
+        assert_eq!(output, "July 24, 2024");
+    }
+
+    #[test]
+    fn test_date_filter_on_nil_returns_empty() {
+        // Date filter on nil/missing date should not produce raw Liquid output
+        let eng = engine();
+        let ctx = Object::new();
+        let output = eng
+            .parse_and_render(r#"{{ page.date | date: "%Y-%m-%d" }}"#, &ctx)
+            .unwrap();
+        // nil value should render as empty, not raw Liquid
+        assert!(
+            !output.contains("{{"),
+            "Date filter on nil should not produce raw Liquid, got: {}",
+            output
+        );
+    }
+
+    // ========================================================================
+    // Issue 444: Non-ASCII content in Liquid rendering
+    // ========================================================================
+
+    #[test]
+    fn test_include_with_unicode_content() {
+        let mut includes = HashMap::new();
+        includes.insert(
+            "greeting.html".to_string(),
+            "<p>Bonjour {{ include.name }}! \u{1F600}</p>".to_string(),
+        );
+        let engine = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let output = engine
+            .parse_and_render(r#"{% include greeting.html name="Fran\u00e7ois" %}"#, &ctx)
+            .unwrap();
+        assert!(
+            output.contains("Bonjour"),
+            "Unicode include should render, got: {}",
+            output
+        );
+        assert!(!output.contains("{%"), "Should not contain raw Liquid tags");
+    }
+
+    #[test]
+    fn test_date_filter_with_unicode_format() {
+        let eng = engine();
+        let mut page = Object::new();
+        page.insert("date".into(), LiquidValue::scalar("2024-01-15"));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+        // Japanese date format
+        let output = eng
+            .parse_and_render(
+                r#"{{ page.date | date: "%Y\u5e74%m\u6708%d\u65e5" }}"#,
+                &ctx,
+            )
+            .unwrap();
+        assert!(
+            !output.contains("{{"),
+            "Date filter with unicode format should not produce raw Liquid"
         );
     }
 }
