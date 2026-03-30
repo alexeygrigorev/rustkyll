@@ -8,7 +8,6 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::Mutex;
 
 use crate::progress::RenderProgress;
 
@@ -278,16 +277,17 @@ fn get_config_timezone(config: &SiteConfig) -> Option<chrono_tz::Tz> {
 /// Result of generating pages for a collection.
 #[derive(Debug)]
 pub struct GenerationResult {
-    /// Number of pages successfully generated.
     pub generated: usize,
-    /// Number of pages skipped (e.g., no layout found).
     pub skipped: usize,
-    /// Non-fatal errors encountered during generation.
     pub errors: Vec<String>,
-    /// Rendered HTML content for markdown items that had Liquid tags processed.
-    /// Maps source_path -> rendered HTML (post-Liquid, post-markdown, pre-layout).
-    /// Used to avoid redundant Liquid+markdown re-rendering for feed content.
     pub rendered_content: HashMap<String, String>,
+}
+
+struct PerItemResult {
+    generated: usize,
+    errors: Vec<String>,
+    rendered_content: Option<(String, String)>,
+    progress_slug: String,
 }
 
 /// Build a Liquid `Object` representing the `site` namespace.
@@ -355,12 +355,10 @@ pub fn build_site_context(
     // from site-level cross-references. Excluding them dramatically reduces
     // the cost of `where`, `sort`, and other filters that clone objects.
     let site_tz = get_config_timezone(config);
-    // Convert all posts to Liquid values once and reuse for site.posts,
-    // site.categories, and site.tags (avoids 2x redundant conversion).
     let mut posts_liquid: Option<Vec<LiquidValue>> = None;
     for (name, items) in collections {
         let mut arr: Vec<LiquidValue> = items
-            .iter()
+            .par_iter()
             .map(|item| collection_item_to_liquid_slim(item, site_tz, config))
             .collect();
         // Jekyll exposes site.posts in reverse chronological order (newest first).
@@ -1826,301 +1824,266 @@ pub fn generate_collection_pages_cached_with_progress(
         (None, HashMap::new())
     };
 
-    let result = Mutex::new(GenerationResult {
-        generated: 0,
-        skipped: 0,
-        errors: Vec::new(),
-        rendered_content: HashMap::new(),
-    });
-
-    // Determine if this is the posts collection (for feed content caching)
     let capture_rendered_content = collection_type == "posts";
 
-    // Hoist timezone resolution out of the per-page loop (same for all pages).
     let site_tz = get_config_timezone(config);
 
-    // Pre-compute jekyll-mentions base URL (None if plugin not enabled).
     let mentions_base_url = if crate::mentions::has_mentions_plugin(config) {
         Some(crate::mentions::mentions_base_url(config).to_string())
     } else {
         None
     };
 
-    items.par_iter().for_each(|item| {
-        let layout_name = resolve_layout(item, config, collection_type);
+    let item_results: Vec<PerItemResult> = items
+        .par_iter()
+        .map(|item| {
+            let layout_name = resolve_layout(item, config, collection_type);
 
-        // Build page front matter: start with defaults, then overlay item's own front matter
-        let mut page_fm = item.front_matter.clone();
+            let mut page_fm = item.front_matter.clone();
 
-        // Apply defaults from config (only for keys not already in front matter)
-        let defaults = config.defaults_for(collection_type, &item.source_path);
-        for (key, value) in defaults {
-            page_fm.entry(key).or_insert(value);
-        }
-
-        // Normalize categories and tags to arrays (Jekyll always exposes them as arrays).
-        // A front matter `categories: food` (string) must become `["food"]` so that
-        // Liquid filters like `join` work correctly.
-        // First, convert singular `category`/`tag` to plural `categories`/`tags`
-        // (Jekyll does this automatically on every document object).
-        if let Some(val) = page_fm.remove("category") {
-            page_fm.entry("categories".to_string()).or_insert(val);
-        }
-        if let Some(val) = page_fm.remove("tag") {
-            page_fm.entry("tags".to_string()).or_insert(val);
-        }
-        normalize_fm_to_array(&mut page_fm, "categories");
-        normalize_fm_to_array(&mut page_fm, "tags");
-
-        page_fm.insert("url".into(), serde_yaml::Value::String(item.url.clone()));
-
-        // page.id -- Jekyll sets document.id for all collection items
-        // (e.g., "/2020/02/26/flake-it-till-you-make-it" for posts).
-        // Templates like beautiful-jekyll use `{% if page.id %}` to distinguish
-        // posts from standalone pages.
-        if !item.id.is_empty() {
-            page_fm.insert("id".into(), serde_yaml::Value::String(item.id.clone()));
-        }
-
-        // page.path -- relative source path including collection directory prefix
-        // (e.g., "_licenses/mit.txt"). Needed by github_edit_link tag to build
-        // correct edit URLs for collection documents.
-        page_fm
-            .entry("path".into())
-            .or_insert_with(|| serde_yaml::Value::String(item.source_path.clone()));
-
-        // Inject collection name so templates can use {{ page.collection }}
-        // (e.g., for body class: `col-{{ page.collection }}` -> `col-pages`)
-        page_fm
-            .entry("collection".into())
-            .or_insert_with(|| serde_yaml::Value::String(item.collection_name.clone()));
-
-        // Also ensure date is in front matter if available (needed for posts).
-        // Issue 474: Only inject the backfilled date for posts. Non-post collections
-        // should have page.date = nil when no explicit date was set, matching Jekyll's
-        // behavior where DocumentDrop#date returns nil for non-post items without
-        // explicit dates. The item.date field is still set (for cross-page iteration
-        // via site.collection | map: "date") but should not leak into page.date.
-        if is_posts_collection && !page_fm.contains_key("date") {
-            if let Some(ref date) = item.date {
-                page_fm.insert("date".to_string(), serde_yaml::Value::String(date.clone()));
+            let defaults = config.defaults_for(collection_type, &item.source_path);
+            for (key, value) in defaults {
+                page_fm.entry(key).or_insert(value);
             }
-        }
 
-        // Issue 216: Normalize the date field in front matter to full datetime
-        // format with timezone offset (e.g., "2018/06/04 00:00" -> "2018-06-04 00:00:00 +0800").
-        // This must happen before the front matter is converted to the Liquid context,
-        // because yaml_to_liquid does not perform date expansion.
-        normalize_frontmatter_date(&mut page_fm, site_tz);
-
-        // Inject excerpt into page front matter (needed for SEO description fallback).
-        // Jekyll auto-generates page.excerpt from the first paragraph of content.
-        // Use the pre-rendered excerpt_html (computed once during collection loading)
-        // to avoid redundant markdown_to_html calls during generation.
-        if !page_fm.contains_key("excerpt") {
-            if let Some(ref html_excerpt) = item.excerpt_html {
-                page_fm.insert(
-                    "excerpt".to_string(),
-                    serde_yaml::Value::String(html_excerpt.clone()),
-                );
+            if let Some(val) = page_fm.remove("category") {
+                page_fm.entry("categories".to_string()).or_insert(val);
             }
-        }
+            if let Some(val) = page_fm.remove("tag") {
+                page_fm.entry("tags".to_string()).or_insert(val);
+            }
+            normalize_fm_to_array(&mut page_fm, "categories");
+            normalize_fm_to_array(&mut page_fm, "tags");
 
-        // Inject previous/next for posts
-        if let Some((prev, next)) = prev_next.get(&item.slug) {
-            match prev {
-                Some(val) => {
-                    page_fm.insert("previous".to_string(), val.clone());
-                }
-                None => {
-                    page_fm.insert("previous".to_string(), serde_yaml::Value::Null);
+            page_fm.insert("url".into(), serde_yaml::Value::String(item.url.clone()));
+
+            if !item.id.is_empty() {
+                page_fm.insert("id".into(), serde_yaml::Value::String(item.id.clone()));
+            }
+
+            page_fm
+                .entry("path".into())
+                .or_insert_with(|| serde_yaml::Value::String(item.source_path.clone()));
+
+            page_fm
+                .entry("collection".into())
+                .or_insert_with(|| serde_yaml::Value::String(item.collection_name.clone()));
+
+            if is_posts_collection && !page_fm.contains_key("date") {
+                if let Some(ref date) = item.date {
+                    page_fm.insert("date".to_string(), serde_yaml::Value::String(date.clone()));
                 }
             }
-            match next {
-                Some(val) => {
-                    page_fm.insert("next".to_string(), val.clone());
-                }
-                None => {
-                    page_fm.insert("next".to_string(), serde_yaml::Value::Null);
+
+            normalize_frontmatter_date(&mut page_fm, site_tz);
+
+            if !page_fm.contains_key("excerpt") {
+                if let Some(ref html_excerpt) = item.excerpt_html {
+                    page_fm.insert(
+                        "excerpt".to_string(),
+                        serde_yaml::Value::String(html_excerpt.clone()),
+                    );
                 }
             }
-        }
 
-        // Build per-post site.related_posts override for posts collection.
-        // In Jekyll, site.related_posts excludes the current post.
-        // Uses pre-built LiquidValue arrays to avoid redundant conversions.
-        let site_overrides: HashMap<String, crate::template::engine::LenientValue> =
-            if needs_related_posts {
-                let mut overrides = HashMap::new();
-                // Use pre-built related_posts arrays (special for top-N, common for the rest)
-                let liquid_arr = if let Some(special) = related_special_liquid.get(&item.url) {
-                    special.clone()
-                } else if let Some(ref common) = related_common_liquid {
-                    common.clone()
+            if let Some((prev, next)) = prev_next.get(&item.slug) {
+                match prev {
+                    Some(val) => {
+                        page_fm.insert("previous".to_string(), val.clone());
+                    }
+                    None => {
+                        page_fm.insert("previous".to_string(), serde_yaml::Value::Null);
+                    }
+                }
+                match next {
+                    Some(val) => {
+                        page_fm.insert("next".to_string(), val.clone());
+                    }
+                    None => {
+                        page_fm.insert("next".to_string(), serde_yaml::Value::Null);
+                    }
+                }
+            }
+
+            let site_overrides: HashMap<String, crate::template::engine::LenientValue> =
+                if needs_related_posts {
+                    let mut overrides = HashMap::new();
+                    let liquid_arr = if let Some(special) = related_special_liquid.get(&item.url) {
+                        special.clone()
+                    } else if let Some(ref common) = related_common_liquid {
+                        common.clone()
+                    } else {
+                        LiquidValue::Array(vec![])
+                    };
+                    overrides.insert(
+                        "related_posts".to_string(),
+                        crate::template::engine::LenientValue::from_value(liquid_arr),
+                    );
+                    overrides
                 } else {
-                    LiquidValue::Array(vec![])
+                    HashMap::new()
                 };
-                overrides.insert(
-                    "related_posts".to_string(),
-                    crate::template::engine::LenientValue::from_value(liquid_arr),
-                );
-                overrides
-            } else {
-                HashMap::new()
-            };
 
-        // Determine HTML output: render through layout if available,
-        // otherwise output raw content (Jekyll outputs items without layout too).
-        //
-        // For posts with Liquid+markdown content, use the "capture" variants that
-        // return both the layout-wrapped HTML and the intermediate rendered content.
-        // This avoids a redundant Liquid+markdown re-render for feed generation.
-        let html_result = if let Some(ref layout) = layout_name {
-            // Jekyll processes Liquid first, then markdown for ALL markdown-sourced files.
-            let is_markdown_source =
-                item.source_path.ends_with(".md") || item.source_path.ends_with(".markdown");
-            let has_liquid_tags = item.content.contains("{{") || item.content.contains("{%");
-            if !site_overrides.is_empty() {
-                if is_markdown_source && has_liquid_tags {
-                    if capture_rendered_content {
+            let html_result: Result<(String, Option<(String, String)>), _> =
+                if let Some(ref layout) = layout_name {
+                    let is_markdown_source = item.source_path.ends_with(".md")
+                        || item.source_path.ends_with(".markdown");
+                    let has_liquid_tags =
+                        item.content.contains("{{") || item.content.contains("{%");
+                    if !site_overrides.is_empty() {
+                        if is_markdown_source && has_liquid_tags {
+                            if capture_rendered_content {
+                                layout_engine
+                                    .render_markdown_page_with_site_overrides_and_capture(
+                                        layout,
+                                        &item.content,
+                                        &page_fm,
+                                        cached_site,
+                                        &site_overrides,
+                                    )
+                                    .map(|(html, content)| {
+                                        (html, Some((item.source_path.clone(), content)))
+                                    })
+                            } else {
+                                layout_engine
+                                    .render_markdown_page_with_site_overrides(
+                                        layout,
+                                        &item.content,
+                                        &page_fm,
+                                        cached_site,
+                                        &site_overrides,
+                                    )
+                                    .map(|html| (html, None))
+                            }
+                        } else {
+                            layout_engine
+                                .render_page_with_site_overrides(
+                                    layout,
+                                    &item.html_content,
+                                    &page_fm,
+                                    cached_site,
+                                    &site_overrides,
+                                )
+                                .map(|html| (html, None))
+                        }
+                    } else if is_markdown_source && has_liquid_tags {
+                        if capture_rendered_content {
+                            layout_engine
+                                .render_markdown_page_with_content_capture(
+                                    layout,
+                                    &item.content,
+                                    &page_fm,
+                                    cached_site,
+                                )
+                                .map(|(html, content)| {
+                                    (html, Some((item.source_path.clone(), content)))
+                                })
+                        } else {
+                            layout_engine
+                                .render_markdown_page_with_cached_site(
+                                    layout,
+                                    &item.content,
+                                    &page_fm,
+                                    cached_site,
+                                )
+                                .map(|html| (html, None))
+                        }
+                    } else {
                         layout_engine
-                            .render_markdown_page_with_site_overrides_and_capture(
+                            .render_page_with_cached_site(
                                 layout,
-                                &item.content,
+                                &item.html_content,
                                 &page_fm,
                                 cached_site,
-                                &site_overrides,
                             )
-                            .map(|(html, content)| {
-                                result
-                                    .lock()
-                                    .unwrap()
-                                    .rendered_content
-                                    .insert(item.source_path.clone(), content);
-                                html
-                            })
+                            .map(|html| (html, None))
+                    }
+                } else {
+                    if item.html_content.is_empty() {
+                        Ok(("\n".to_string(), None))
                     } else {
-                        layout_engine.render_markdown_page_with_site_overrides(
-                            layout,
-                            &item.content,
-                            &page_fm,
-                            cached_site,
-                            &site_overrides,
-                        )
+                        Ok((item.html_content.clone(), None))
                     }
-                } else {
-                    layout_engine.render_page_with_site_overrides(
-                        layout,
-                        &item.html_content,
-                        &page_fm,
-                        cached_site,
-                        &site_overrides,
-                    )
-                }
-            } else if is_markdown_source && has_liquid_tags {
-                if capture_rendered_content {
-                    layout_engine
-                        .render_markdown_page_with_content_capture(
-                            layout,
-                            &item.content,
-                            &page_fm,
-                            cached_site,
-                        )
-                        .map(|(html, content)| {
-                            result
-                                .lock()
-                                .unwrap()
-                                .rendered_content
-                                .insert(item.source_path.clone(), content);
-                            html
-                        })
-                } else {
-                    layout_engine.render_markdown_page_with_cached_site(
-                        layout,
-                        &item.content,
-                        &page_fm,
-                        cached_site,
-                    )
-                }
-            } else {
-                layout_engine.render_page_with_cached_site(
-                    layout,
-                    &item.html_content,
-                    &page_fm,
-                    cached_site,
-                )
-            }
-        } else {
-            // No layout: output just the rendered HTML content (matches Jekyll behavior).
-            // If the body is empty, output a newline -- Jekyll never produces 0-byte files
-            // for collection items with output: true.
-            if item.html_content.is_empty() {
-                Ok("\n".to_string())
-            } else {
-                Ok(item.html_content.clone())
-            }
-        };
-
-        match html_result {
-            Ok(html) => {
-                // Apply jekyll-mentions post-processing if enabled
-                let html = if let Some(ref base_url) = mentions_base_url {
-                    crate::mentions::process_mentions(&html, base_url)
-                } else {
-                    html
                 };
 
-                // Compute output path from the item's URL (respects permalink patterns)
-                let out_path = url_to_output_path(output_dir, &item.url);
+            let mut generated = 0;
+            let mut errors: Vec<String> = Vec::new();
+            let mut captured_content: Option<(String, String)> = None;
 
-                // Directories were pre-created before the parallel loop.
-                match fs::write(&out_path, &html) {
-                    Ok(()) => {
-                        result.lock().unwrap().generated += 1;
+            match html_result {
+                Ok((html, captured)) => {
+                    captured_content = captured;
+                    let html = if let Some(ref base_url) = mentions_base_url {
+                        crate::mentions::process_mentions(&html, base_url)
+                    } else {
+                        html
+                    };
+
+                    let out_path = url_to_output_path(output_dir, &item.url);
+
+                    match fs::write(&out_path, &html) {
+                        Ok(()) => {
+                            generated = 1;
+                        }
+                        Err(e) => {
+                            errors.push(format!(
+                                "Failed to write {}/{}: {}",
+                                collection_type, item.slug, e
+                            ));
+                        }
                     }
-                    Err(e) => {
-                        result.lock().unwrap().errors.push(format!(
-                            "Failed to write {}/{}: {}",
-                            collection_type, item.slug, e
-                        ));
+                }
+                Err(e) => {
+                    eprintln!(
+                        "Warning: failed to render {}/{}, writing fallback: {}",
+                        collection_type, item.slug, e
+                    );
+                    let out_path = url_to_output_path(output_dir, &item.url);
+                    let fallback_content = if item.html_content.is_empty() {
+                        "\n"
+                    } else {
+                        &item.html_content
+                    };
+                    match fs::write(&out_path, fallback_content) {
+                        Ok(()) => {
+                            generated = 1;
+                        }
+                        Err(write_e) => {
+                            errors.push(format!(
+                                "Failed to write fallback {}/{}: {}",
+                                collection_type, item.slug, write_e
+                            ));
+                        }
                     }
                 }
             }
-            Err(e) => {
-                // On render failure, fall back to writing the HTML content as-is.
-                // This matches Jekyll's behavior of always producing output files,
-                // and ensures page counts match even when templates have issues.
-                eprintln!(
-                    "Warning: failed to render {}/{}, writing fallback: {}",
-                    collection_type, item.slug, e
-                );
-                let out_path = url_to_output_path(output_dir, &item.url);
-                // Directories were pre-created before the parallel loop.
-                let fallback_content = if item.html_content.is_empty() {
-                    "\n"
-                } else {
-                    &item.html_content
-                };
-                match fs::write(&out_path, fallback_content) {
-                    Ok(()) => {
-                        result.lock().unwrap().generated += 1;
-                    }
-                    Err(write_e) => {
-                        result.lock().unwrap().errors.push(format!(
-                            "Failed to write fallback {}/{}: {}",
-                            collection_type, item.slug, write_e
-                        ));
-                    }
-                }
+
+            PerItemResult {
+                generated,
+                errors,
+                rendered_content: captured_content,
+                progress_slug: item.slug.clone(),
             }
+        })
+        .collect();
+
+    let mut result = GenerationResult {
+        generated: 0,
+        skipped: 0,
+        errors: Vec::new(),
+        rendered_content: HashMap::new(),
+    };
+    for ir in item_results {
+        result.generated += ir.generated;
+        result.errors.extend(ir.errors);
+        if let Some((k, v)) = ir.rendered_content {
+            result.rendered_content.insert(k, v);
         }
-        // Increment progress bar after each page is processed (real-time update)
         if let Some(p) = progress {
-            p.inc(&item.slug);
+            p.inc(&ir.progress_slug);
         }
-    });
-
-    Ok(result.into_inner().unwrap())
+    }
+    Ok(result)
 }
 
 /// Generate HTML pages for a named collection from the site directory.
@@ -2231,14 +2194,6 @@ pub fn generate_pages_cached_with_config_and_progress(
         source: e,
     })?;
 
-    let result = Mutex::new(GenerationResult {
-        generated: 0,
-        skipped: 0,
-        errors: Vec::new(),
-        rendered_content: HashMap::new(),
-    });
-
-    // Pre-compute jekyll-mentions base URL (None if plugin not enabled).
     let mentions_base_url = config.and_then(|cfg| {
         if crate::mentions::has_mentions_plugin(cfg) {
             Some(crate::mentions::mentions_base_url(cfg).to_string())
@@ -2247,186 +2202,182 @@ pub fn generate_pages_cached_with_config_and_progress(
         }
     });
 
-    pages.par_iter().for_each(|page| {
-        // Build page front matter: start with page's own front matter,
-        // then apply config defaults for keys not already present.
-        let mut page_fm = page.front_matter.clone();
-        if let Some(cfg) = config {
-            // Apply defaults matching type "pages" and path-scoped defaults
-            let defaults = cfg.defaults_for_page(&page.source_path);
-            for (key, value) in defaults {
-                page_fm.entry(key).or_insert(value);
+    let page_results: Vec<PerItemResult> = pages
+        .par_iter()
+        .map(|page| {
+            let mut page_fm = page.front_matter.clone();
+            if let Some(cfg) = config {
+                let defaults = cfg.defaults_for_page(&page.source_path);
+                for (key, value) in defaults {
+                    page_fm.entry(key).or_insert(value);
+                }
             }
-        }
 
-        // Issue 216: Normalize the date field in page front matter
-        if let Some(cfg) = config {
-            let site_tz = get_config_timezone(cfg);
-            normalize_frontmatter_date(&mut page_fm, site_tz);
-        }
+            if let Some(cfg) = config {
+                let site_tz = get_config_timezone(cfg);
+                normalize_frontmatter_date(&mut page_fm, site_tz);
+            }
 
-        // Resolve layout from front matter (after defaults are applied).
-        // Three cases:
-        //   1. `layout: "some_layout"` -> render with that layout
-        //   2. `layout: null` (explicit null) -> render through Liquid, no layout wrapping
-        //   3. No `layout` key at all -> skip page (no rendering)
-        let layout_value = page_fm.get("layout");
-        let layout_name: Option<String> = layout_value.and_then(yaml_value_to_layout_string);
+            let layout_value = page_fm.get("layout");
+            let layout_name: Option<String> = layout_value.and_then(yaml_value_to_layout_string);
 
-        // Jekyll processes ALL files with front matter regardless of layout.
-        // Pages without a layout are rendered through Liquid without wrapping.
-        page_fm.insert("url".into(), serde_yaml::Value::String(page.url.clone()));
+            page_fm.insert("url".into(), serde_yaml::Value::String(page.url.clone()));
 
-        // In Jekyll, standalone pages (not in a named collection) have
-        // page.collection = nil. We don't inject a collection name here;
-        // only actual collection items (via generate_collection_pages) get one.
+            let page_name = std::path::Path::new(&page.source_path)
+                .file_name()
+                .map(|f| f.to_string_lossy().to_string())
+                .unwrap_or_default();
+            page_fm
+                .entry("name".into())
+                .or_insert_with(|| serde_yaml::Value::String(page_name));
 
-        // page.name -- the source filename (e.g. "index.md"), matching Jekyll's behavior.
-        // Needed for templates like DTC's head.html that check page.name.
-        let page_name = std::path::Path::new(&page.source_path)
-            .file_name()
-            .map(|f| f.to_string_lossy().to_string())
-            .unwrap_or_default();
-        page_fm
-            .entry("name".into())
-            .or_insert_with(|| serde_yaml::Value::String(page_name));
+            page_fm
+                .entry("path".into())
+                .or_insert_with(|| serde_yaml::Value::String(page.source_path.clone()));
 
-        // page.path -- the relative source path
-        page_fm
-            .entry("path".into())
-            .or_insert_with(|| serde_yaml::Value::String(page.source_path.clone()));
-
-        // Use raw content (not html_content) because pages may contain Liquid tags
-        // that must be resolved before the layout wraps them.
-        let is_markdown = page.source_path.ends_with(".md");
-        let render_result = if let Some(ref layout) = layout_name {
-            // Has a named layout -> render with layout wrapping
-            if is_markdown {
-                layout_engine.render_markdown_page_with_cached_site(
-                    layout,
-                    &page.content,
-                    &page_fm,
-                    cached_site,
-                )
+            let is_markdown = page.source_path.ends_with(".md");
+            let render_result = if let Some(ref layout) = layout_name {
+                if is_markdown {
+                    layout_engine.render_markdown_page_with_cached_site(
+                        layout,
+                        &page.content,
+                        &page_fm,
+                        cached_site,
+                    )
+                } else {
+                    layout_engine.render_page_with_cached_site(
+                        layout,
+                        &page.content,
+                        &page_fm,
+                        cached_site,
+                    )
+                }
             } else {
-                layout_engine.render_page_with_cached_site(
-                    layout,
-                    &page.content,
-                    &page_fm,
-                    cached_site,
-                )
-            }
-        } else {
-            // layout: null -> render through Liquid without layout wrapping
-            if is_markdown {
-                layout_engine.render_markdown_content_with_cached_site(
-                    &page.content,
-                    &page_fm,
-                    cached_site,
-                )
-            } else {
-                layout_engine.render_content_only_with_cached_site(
-                    &page.content,
-                    &page_fm,
-                    cached_site,
-                )
-            }
-        };
-        match render_result {
-            Ok(html) => {
-                // If the source is an SCSS file, compile to CSS
-                let html = if page.source_path.ends_with(".scss") {
-                    match compile_scss(&html, &page.source_path, site_dir, config) {
-                        Ok(css) => css,
-                        Err(e) => {
-                            result.lock().unwrap().errors.push(format!(
-                                "Failed to compile SCSS for page {}: {}",
+                if is_markdown {
+                    layout_engine.render_markdown_content_with_cached_site(
+                        &page.content,
+                        &page_fm,
+                        cached_site,
+                    )
+                } else {
+                    layout_engine.render_content_only_with_cached_site(
+                        &page.content,
+                        &page_fm,
+                        cached_site,
+                    )
+                }
+            };
+
+            let mut generated = 0;
+            let mut errors: Vec<String> = Vec::new();
+
+            match render_result {
+                Ok(html) => {
+                    let html = if page.source_path.ends_with(".scss") {
+                        match compile_scss(&html, &page.source_path, site_dir, config) {
+                            Ok(css) => css,
+                            Err(e) => {
+                                errors.push(format!(
+                                    "Failed to compile SCSS for page {}: {}",
+                                    page.slug, e
+                                ));
+                                return PerItemResult {
+                                    generated,
+                                    errors,
+                                    rendered_content: None,
+                                    progress_slug: page.slug.clone(),
+                                };
+                            }
+                        }
+                    } else {
+                        html
+                    };
+
+                    let html = inject_children_nav(&html, &page_fm, pages, config);
+
+                    let html = if let Some(ref base_url) = mentions_base_url {
+                        crate::mentions::process_mentions(&html, base_url)
+                    } else {
+                        html
+                    };
+
+                    let out_path = url_to_output_path(output_dir, &page.url);
+
+                    if let Some(parent) = out_path.parent() {
+                        if let Err(e) = fs::create_dir_all(parent) {
+                            errors.push(format!(
+                                "Failed to create dir for page {}: {}",
                                 page.slug, e
                             ));
-                            return;
+                            return PerItemResult {
+                                generated,
+                                errors,
+                                rendered_content: None,
+                                progress_slug: page.slug.clone(),
+                            };
                         }
                     }
-                } else {
-                    html
-                };
 
-                // Issue 246: Inject children nav listing for parent pages.
-                // The just-the-docs theme's children_nav.html uses complex Liquid
-                // (include_cached, group_by, where_exp, string splitting) that
-                // doesn't work reliably. We compute the children listing directly
-                // in Rust and inject it into the rendered HTML.
-                let html = inject_children_nav(&html, &page_fm, pages, config);
-
-                // Apply jekyll-mentions post-processing if enabled
-                let html = if let Some(ref base_url) = mentions_base_url {
-                    crate::mentions::process_mentions(&html, base_url)
-                } else {
-                    html
-                };
-
-                // Compute output path from URL (handles trailing-slash pretty URLs)
-                let out_path = url_to_output_path(output_dir, &page.url);
-
-                if let Some(parent) = out_path.parent() {
-                    if let Err(e) = fs::create_dir_all(parent) {
-                        result.lock().unwrap().errors.push(format!(
-                            "Failed to create dir for page {}: {}",
-                            page.slug, e
-                        ));
-                        return;
+                    match fs::write(&out_path, &html) {
+                        Ok(()) => {
+                            generated = 1;
+                        }
+                        Err(e) => {
+                            errors.push(format!("Failed to write page {}: {}", page.slug, e));
+                        }
                     }
                 }
-
-                match fs::write(&out_path, &html) {
-                    Ok(()) => {
-                        result.lock().unwrap().generated += 1;
+                Err(e) => {
+                    eprintln!(
+                        "Warning: failed to render page '{}', writing fallback: {}",
+                        page.slug, e
+                    );
+                    let fallback = if page.source_path.ends_with(".md") {
+                        crate::frontmatter::markdown_to_html(&page.content)
+                    } else {
+                        page.content.clone()
+                    };
+                    let out_path = url_to_output_path(output_dir, &page.url);
+                    if let Some(parent) = out_path.parent() {
+                        let _ = fs::create_dir_all(parent);
                     }
-                    Err(e) => {
-                        result
-                            .lock()
-                            .unwrap()
-                            .errors
-                            .push(format!("Failed to write page {}: {}", page.slug, e));
+                    match fs::write(&out_path, &fallback) {
+                        Ok(()) => {
+                            generated = 1;
+                        }
+                        Err(write_e) => {
+                            errors.push(format!(
+                                "Failed to write fallback page {}: {}",
+                                page.slug, write_e
+                            ));
+                        }
                     }
                 }
             }
-            Err(e) => {
-                // On render failure, fall back to writing the content as-is
-                // (with markdown->HTML conversion). This matches Jekyll's behavior
-                // of always producing output files, and ensures page counts match.
-                eprintln!(
-                    "Warning: failed to render page '{}', writing fallback: {}",
-                    page.slug, e
-                );
-                let fallback = if page.source_path.ends_with(".md") {
-                    crate::frontmatter::markdown_to_html(&page.content)
-                } else {
-                    page.content.clone()
-                };
-                let out_path = url_to_output_path(output_dir, &page.url);
-                if let Some(parent) = out_path.parent() {
-                    let _ = fs::create_dir_all(parent);
-                }
-                match fs::write(&out_path, &fallback) {
-                    Ok(()) => {
-                        result.lock().unwrap().generated += 1;
-                    }
-                    Err(write_e) => {
-                        result.lock().unwrap().errors.push(format!(
-                            "Failed to write fallback page {}: {}",
-                            page.slug, write_e
-                        ));
-                    }
-                }
+
+            PerItemResult {
+                generated,
+                errors,
+                rendered_content: None,
+                progress_slug: page.slug.clone(),
             }
-        }
-        // Increment progress bar after each page is processed (real-time update)
+        })
+        .collect();
+
+    let mut result = GenerationResult {
+        generated: 0,
+        skipped: 0,
+        errors: Vec::new(),
+        rendered_content: HashMap::new(),
+    };
+    for ir in page_results {
+        result.generated += ir.generated;
+        result.errors.extend(ir.errors);
         if let Some(p) = progress {
-            p.inc(&page.slug);
+            p.inc(&ir.progress_slug);
         }
-    });
-
-    Ok(result.into_inner().unwrap())
+    }
+    Ok(result)
 }
 
 /// Generate HTML for standalone pages (alias for `generate_pages`).
@@ -9947,5 +9898,254 @@ defaults:
             "CSS should contain namespaced variable: {}",
             css
         );
+    }
+
+    // ========================================================================
+    // Issue 462: Parallel rendering correctness (par_iter + CachedSiteContext)
+    //
+    // TDD cycle:
+    //   1. Write test for parallel rendering correctness
+    //   2. Test FAILS (if the par_iter + OnceLock-based LenientValue is broken)
+    //   3. Implementation: par_iter().map().collect() + OnceLock in LenientValue
+    //   4. Test PASSES
+    // ========================================================================
+
+    fn make_test_collection_items(count: usize) -> Vec<CollectionItem> {
+        (0..count)
+            .map(|i| CollectionItem {
+                slug: format!("item-{}", i),
+                front_matter: {
+                    let mut fm = HashMap::new();
+                    fm.insert(
+                        "title".to_string(),
+                        serde_yaml::Value::String(format!("Item {}", i)),
+                    );
+                    fm.insert("order".to_string(), serde_yaml::Value::Number(i.into()));
+                    fm
+                },
+                content: String::new(),
+                html_content: format!("<p>Content for item {}</p>", i),
+                excerpt: None,
+                excerpt_html: None,
+                url: format!("/items/item-{}.html", i),
+                date: Some(format!("2024-01-{:02}", (i % 28) + 1)),
+                collection_name: "items".to_string(),
+                source_path: format!("_items/item-{}.md", i),
+                id: format!("/items/item-{}", i),
+            })
+            .collect()
+    }
+
+    #[test]
+    fn test_parallel_rendering_all_pages_generated() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let output_dir = tmp.path();
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "item".to_string(),
+            crate::template::Layout {
+                source: "<h1>{{ page.title }}</h1><span>{{ page.order }}</span>{{ content }}"
+                    .to_string(),
+                parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let config = SiteConfig {
+            url: "https://example.com".to_string(),
+            name: "Test".to_string(),
+            title: "Test".to_string(),
+            defaults: vec![crate::config::DefaultConfig {
+                scope: crate::config::DefaultScope {
+                    path: String::new(),
+                    type_name: "items".to_string(),
+                },
+                values: crate::config::DefaultValues {
+                    values: {
+                        let mut m = HashMap::new();
+                        m.insert(
+                            "layout".to_string(),
+                            serde_yaml::Value::String("item".to_string()),
+                        );
+                        m
+                    },
+                },
+            }],
+            ..Default::default()
+        };
+
+        let items = make_test_collection_items(50);
+        let site_context = Object::new();
+        let result =
+            generate_collection_pages(&items, "items", &config, &engine, &site_context, output_dir)
+                .unwrap();
+
+        assert_eq!(result.generated, 50, "All 50 pages should be generated");
+        assert!(result.errors.is_empty(), "No errors: {:?}", result.errors);
+
+        for i in 0..50 {
+            let path = output_dir.join(format!("items/item-{}.html", i));
+            assert!(path.exists(), "File should exist for item {}", i);
+            let html = fs::read_to_string(&path).unwrap();
+            assert!(
+                html.contains(&format!("Item {}", i)),
+                "Item {} should contain its title",
+                i
+            );
+            assert!(
+                html.contains(&format!("<span>{}</span>", i)),
+                "Item {} should contain its order number",
+                i
+            );
+        }
+    }
+
+    #[test]
+    fn test_parallel_rendering_cached_site_context_thread_safe() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let output_dir = tmp.path();
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "item".to_string(),
+            crate::template::Layout {
+                source: "{{ site.title }}: {{ page.title }}".to_string(),
+                parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let config = SiteConfig {
+            url: "https://example.com".to_string(),
+            name: "Test".to_string(),
+            title: "Parallel Test".to_string(),
+            defaults: vec![crate::config::DefaultConfig {
+                scope: crate::config::DefaultScope {
+                    path: String::new(),
+                    type_name: "items".to_string(),
+                },
+                values: crate::config::DefaultValues {
+                    values: {
+                        let mut m = HashMap::new();
+                        m.insert(
+                            "layout".to_string(),
+                            serde_yaml::Value::String("item".to_string()),
+                        );
+                        m
+                    },
+                },
+            }],
+            ..Default::default()
+        };
+
+        let items = make_test_collection_items(20);
+
+        let mut site_context = Object::new();
+        site_context.insert("title".into(), LiquidValue::scalar("Parallel Test"));
+        let posts_arr: Vec<LiquidValue> = items
+            .iter()
+            .map(|item| {
+                let mut obj = Object::new();
+                obj.insert("title".into(), LiquidValue::scalar(item.slug.clone()));
+                LiquidValue::Object(obj)
+            })
+            .collect();
+        site_context.insert("items".into(), LiquidValue::Array(posts_arr));
+
+        let cached_site = CachedSiteContext::from_object(site_context);
+        let result = generate_collection_pages_cached(
+            &items,
+            "items",
+            &config,
+            &engine,
+            &cached_site,
+            output_dir,
+            &[],
+        )
+        .unwrap();
+
+        assert_eq!(result.generated, 20);
+        for i in 0..20 {
+            let path = output_dir.join(format!("items/item-{}.html", i));
+            let html = fs::read_to_string(&path).unwrap();
+            assert!(
+                html.contains("Parallel Test"),
+                "All pages should access shared CachedSiteContext safely: item {} got: {}",
+                i,
+                html
+            );
+            assert!(
+                html.contains(&format!("Item {}", i)),
+                "Each page should have its own page context: item {}",
+                i
+            );
+        }
+    }
+
+    #[test]
+    fn test_parallel_rendering_deterministic_output() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let output_dir_1 = tmp.path().join("run1");
+        let output_dir_2 = tmp.path().join("run2");
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "item".to_string(),
+            crate::template::Layout {
+                source: "{{ page.title }}|{{ page.order }}".to_string(),
+                parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let config = SiteConfig {
+            url: "https://example.com".to_string(),
+            name: "Test".to_string(),
+            title: "Test".to_string(),
+            defaults: vec![crate::config::DefaultConfig {
+                scope: crate::config::DefaultScope {
+                    path: String::new(),
+                    type_name: "items".to_string(),
+                },
+                values: crate::config::DefaultValues {
+                    values: {
+                        let mut m = HashMap::new();
+                        m.insert(
+                            "layout".to_string(),
+                            serde_yaml::Value::String("item".to_string()),
+                        );
+                        m
+                    },
+                },
+            }],
+            ..Default::default()
+        };
+
+        let items = make_test_collection_items(30);
+
+        for output_dir in [&output_dir_1, &output_dir_2] {
+            let site_context = Object::new();
+            generate_collection_pages(&items, "items", &config, &engine, &site_context, output_dir)
+                .unwrap();
+        }
+
+        for i in 0..30 {
+            let html_1 =
+                fs::read_to_string(output_dir_1.join(format!("items/item-{}.html", i))).unwrap();
+            let html_2 =
+                fs::read_to_string(output_dir_2.join(format!("items/item-{}.html", i))).unwrap();
+            assert_eq!(
+                html_1, html_2,
+                "Parallel rendering must be deterministic for item {}",
+                i
+            );
+        }
     }
 }

@@ -585,6 +585,18 @@ impl CachedSiteContext {
             site_lenient: LenientValue::from_value(site_value),
         }
     }
+
+    /// Build a cached site context by taking ownership of the site `Object`.
+    ///
+    /// This avoids cloning the entire site Object (which can be expensive
+    /// for large sites with hundreds of collection items). Use this when
+    /// the caller no longer needs the Object after building the cache.
+    pub fn from_object(site_obj: Object) -> Self {
+        let site_value = Value::Object(site_obj);
+        Self {
+            site_lenient: LenientValue::from_value(site_value),
+        }
+    }
 }
 
 /// The core template engine wrapping the `liquid` crate parser.
@@ -7389,6 +7401,77 @@ title: "Test Book"
             output
         );
         assert!(!output.contains("{%"), "Should not contain raw Liquid tags");
+    }
+
+    #[test]
+    fn test_cached_site_context_from_object_matches_new() {
+        let mut site = Object::new();
+        site.insert("title".into(), LiquidValue::scalar("Test Site"));
+        site.insert(
+            "posts".into(),
+            LiquidValue::Array(vec![{
+                let mut post = Object::new();
+                post.insert("title".into(), LiquidValue::scalar("Hello"));
+                post.insert("url".into(), LiquidValue::scalar("/hello.html"));
+                LiquidValue::Object(post)
+            }]),
+        );
+
+        let site_clone = site.clone();
+        let cached_new = CachedSiteContext::new(&site);
+        let cached_from_obj = CachedSiteContext::from_object(site_clone);
+
+        let eng = engine();
+        let mut page = Object::new();
+        page.insert("title".into(), LiquidValue::scalar("My Page"));
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page));
+
+        let tpl = eng.parse("{{ site.title }} - {{ page.title }}").unwrap();
+        let out_new = eng
+            .render_with_cached_site(&tpl, &ctx, &cached_new)
+            .unwrap();
+        let out_from_obj = eng
+            .render_with_cached_site(&tpl, &ctx, &cached_from_obj)
+            .unwrap();
+
+        assert_eq!(out_new, out_from_obj);
+        assert_eq!(out_new, "Test Site - My Page");
+    }
+
+    #[test]
+    fn test_cached_site_context_from_object_array_access() {
+        let mut site = Object::new();
+        site.insert(
+            "posts".into(),
+            LiquidValue::Array(vec![
+                {
+                    let mut p = Object::new();
+                    p.insert("title".into(), LiquidValue::scalar("First"));
+                    LiquidValue::Object(p)
+                },
+                {
+                    let mut p = Object::new();
+                    p.insert("title".into(), LiquidValue::scalar("Second"));
+                    LiquidValue::Object(p)
+                },
+            ]),
+        );
+
+        let cached = CachedSiteContext::from_object(site);
+
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(Object::new()));
+
+        let out = eng
+            .parse_and_render_with_cached_site(
+                "{% for post in site.posts %}{{ post.title }} {% endfor %}",
+                &ctx,
+                &cached,
+            )
+            .unwrap();
+        assert_eq!(out, "First Second ");
     }
 
     #[test]

@@ -666,7 +666,7 @@ fn build_site(
     // across all collection and page renders, avoiding O(n) work per collection.
     progress.phase("Rendering pages...");
     let phase_start = Instant::now();
-    let cached_site = CachedSiteContext::new(&site_context);
+    let cached_site = CachedSiteContext::from_object(site_context);
 
     // Pre-collect author items once (used for JSON-LD author resolution).
     // Only "people" collection items are needed for author slug resolution,

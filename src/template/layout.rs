@@ -1303,10 +1303,17 @@ pub fn build_render_context_page_only(content: &str, page_front_matter: &FrontMa
 /// `JEKYLL_ENV` environment variable is set. Many themes (e.g. chirpy's
 /// `compress.html` layout) check `jekyll.environment` to conditionally
 /// skip HTML compression in development mode.
+use std::sync::LazyLock;
+
+static JEKYLL_ENV: LazyLock<String> =
+    LazyLock::new(|| std::env::var("JEKYLL_ENV").unwrap_or_else(|_| "development".to_string()));
+
 fn inject_jekyll_object(ctx: &mut Object) {
-    let env = std::env::var("JEKYLL_ENV").unwrap_or_else(|_| "development".to_string());
     let mut jekyll = Object::new();
-    jekyll.insert("environment".into(), LiquidValue::scalar(env));
+    jekyll.insert(
+        "environment".into(),
+        LiquidValue::scalar(JEKYLL_ENV.as_str()),
+    );
     ctx.insert("jekyll".into(), LiquidValue::Object(jekyll));
 }
 
@@ -1339,22 +1346,15 @@ pub fn build_page_object(page_front_matter: &FrontMatter) -> Object {
 pub fn build_render_context_from_page_object(content: &str, mut page: Object) -> Object {
     let mut ctx = Object::new();
 
-    // Jekyll makes the rendered HTML available as page.content in layout context.
-    // This is needed for templates that use {{ page.content | strip_html }} for
-    // meta descriptions. Escape " to &quot; in text nodes to match kramdown.
     let content_normalized = crate::frontmatter::normalize_block_whitespace(content);
     let content_escaped = crate::frontmatter::escape_quotes_in_text_nodes(&content_normalized);
-    let content_escaped_str = content_escaped.into_owned();
-    // Build the content scalar once and clone it for both page.content and top-level content.
-    // Using kstring's arc feature means the clone is cheap (Arc bump, not string copy).
-    let content_val = LiquidValue::scalar(content_escaped_str);
+    let content_string = content_escaped.into_owned();
+    let content_val = LiquidValue::scalar(content_string);
     page.insert("content".into(), content_val.clone());
     ctx.insert("page".into(), LiquidValue::Object(page));
 
     ctx.insert("content".into(), content_val);
 
-    // Expose `jekyll.environment` so templates like compress.html can check it.
-    // Jekyll defaults to "development" when JEKYLL_ENV is not set.
     inject_jekyll_object(&mut ctx);
 
     ctx
