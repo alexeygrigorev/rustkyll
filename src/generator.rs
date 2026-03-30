@@ -282,7 +282,14 @@ pub fn build_site_context(
     }
 
     // Basic site fields
-    site.insert("url".into(), LiquidValue::scalar(config.url.clone()));
+    // Issue 529: when url was not in _config.yml, insert Nil (not "").
+    // Jekyll treats missing url as nil (no canonical emitted), but url: ""
+    // as an explicit empty string (canonical with relative path).
+    if config.url_explicitly_set {
+        site.insert("url".into(), LiquidValue::scalar(config.url.clone()));
+    } else {
+        site.insert("url".into(), LiquidValue::Nil);
+    }
     site.insert(
         "baseurl".into(),
         LiquidValue::scalar(config.baseurl.clone()),
@@ -4381,12 +4388,48 @@ DONE
     // ========================================================================
 
     #[test]
-    fn test_site_context_empty_url_default() {
-        let config = SiteConfig::default();
+    fn test_site_context_url_nil_when_not_explicitly_set() {
+        // Issue 529: when url is not in _config.yml, site.url should be Nil
+        let config = SiteConfig::default(); // url_explicitly_set = false
         let colls = HashMap::new();
         let data = DataTree::new();
         let ctx = build_site_context(&config, &colls, &data, None, &[]);
-        assert_eq!(ctx.get("url"), Some(&LiquidValue::scalar("")));
+        assert_eq!(
+            ctx.get("url"),
+            Some(&LiquidValue::Nil),
+            "site.url should be Nil when url was not explicitly set in config"
+        );
+    }
+
+    #[test]
+    fn test_site_context_url_empty_when_explicitly_set() {
+        // Issue 529: chirpy sets url: "" explicitly -- should be empty string, not nil
+        let mut config = SiteConfig::default();
+        config.url_explicitly_set = true;
+        let colls = HashMap::new();
+        let data = DataTree::new();
+        let ctx = build_site_context(&config, &colls, &data, None, &[]);
+        assert_eq!(
+            ctx.get("url"),
+            Some(&LiquidValue::scalar("")),
+            "site.url should be empty string when url: \"\" is explicitly set"
+        );
+    }
+
+    #[test]
+    fn test_site_context_url_value_when_explicitly_set() {
+        // Normal case: url: "https://example.com"
+        let mut config = SiteConfig::default();
+        config.url = "https://example.com".to_string();
+        config.url_explicitly_set = true;
+        let colls = HashMap::new();
+        let data = DataTree::new();
+        let ctx = build_site_context(&config, &colls, &data, None, &[]);
+        assert_eq!(
+            ctx.get("url"),
+            Some(&LiquidValue::scalar("https://example.com")),
+            "site.url should have the URL value when explicitly set"
+        );
     }
 
     #[test]

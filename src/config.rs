@@ -146,6 +146,15 @@ pub struct SiteConfig {
     /// These are exposed in templates as `site.<key>`.
     #[serde(flatten)]
     pub extras: HashMap<String, serde_yaml::Value>,
+
+    /// Whether `url:` was explicitly present in `_config.yml`.
+    ///
+    /// Jekyll treats a missing `url` key as nil (no canonical URL emitted),
+    /// but `url: ""` as an explicit empty string (canonical with relative path).
+    /// This flag distinguishes the two cases because serde deserializes both
+    /// as `""`.
+    #[serde(skip)]
+    pub url_explicitly_set: bool,
 }
 
 /// Like `deserialize_string_or_null` but falls back to the default permalink
@@ -178,6 +187,7 @@ impl Default for SiteConfig {
             collections: HashMap::new(),
             defaults: vec![],
             extras: HashMap::new(),
+            url_explicitly_set: false,
         }
     }
 }
@@ -299,7 +309,15 @@ impl SiteConfig {
         {
             return Ok(Self::default());
         }
-        let config: SiteConfig = crate::yaml::from_str_lenient(yaml)?;
+        // Parse to Value first so we can check whether `url` key is present
+        let value = crate::yaml::parse_yaml_lenient(yaml)?;
+        let has_url_key = value
+            .as_mapping()
+            .map(|m| m.contains_key(serde_yaml::Value::String("url".to_string())))
+            .unwrap_or(false);
+        let mut config: SiteConfig = serde_yaml::from_value(value)
+            .map_err(|e| crate::yaml::YamlParseError::Conversion(e.to_string()))?;
+        config.url_explicitly_set = has_url_key;
         Ok(config)
     }
 
@@ -1849,6 +1867,54 @@ defaults:
             config.has_commonmark_autolink(),
             "muan-blog config should have autolink extension. extras: {:?}",
             config.extras.get("commonmark")
+        );
+    }
+
+    // ========================================================================
+    // Issue 529: url_explicitly_set tracking
+    // ========================================================================
+
+    #[test]
+    fn test_url_explicitly_set_when_present() {
+        let yaml = "url: https://example.com\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(
+            config.url_explicitly_set,
+            "url_explicitly_set should be true when url: is present in config"
+        );
+    }
+
+    #[test]
+    fn test_url_explicitly_set_when_empty_string() {
+        // chirpy uses url: "" -- this should still count as explicitly set
+        let yaml = "url: \"\"\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(
+            config.url_explicitly_set,
+            "url_explicitly_set should be true when url: \"\" is present in config"
+        );
+    }
+
+    #[test]
+    fn test_url_not_explicitly_set_when_absent() {
+        // minima has no url: key at all
+        let yaml = "name: Test\ntitle: My Site\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(
+            !config.url_explicitly_set,
+            "url_explicitly_set should be false when url: is absent from config"
+        );
+    }
+
+    #[test]
+    fn test_url_explicitly_set_when_null() {
+        // url: with no value (YAML null) should count as explicitly set
+        // because the key IS present in the file
+        let yaml = "url:\nname: Test\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(
+            config.url_explicitly_set,
+            "url_explicitly_set should be true when url: (null) is present in config"
         );
     }
 }

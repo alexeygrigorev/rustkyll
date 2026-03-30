@@ -125,3 +125,60 @@ None.
   Jekyll reference at `websites/jekyll-docs/docs/_site_jekyll_cached/docs/history/index.html`
 - Verify no `<table>` elements exist in rustkyll output where none exist in Jekyll reference
 - DTC site must build and produce 790/790 DOM match
+
+## Log
+
+### [SWE] 2026-03-30
+
+#### Root Cause Analysis
+
+Two separate bugs in the markdown pre-processing pipeline destroyed the structure
+of the jekyll-docs history page:
+
+**Bug 1: `collapse_blank_lines_in_html_blocks` ignoring backtick code spans**
+
+The function `collapse_blanks_in_tag` in `src/kramdown.rs` performed naive string
+searches for HTML tags like `<div>` without respecting backtick code spans. The
+history page's line 2120 contained `` `<div>` `` (in backticks), which the function
+matched as an opening `<div>` tag. It then found `` `</div>` `` (also in backticks)
+~2000 lines later, treated everything between as the "inner content" of a `<div>`
+block, and collapsed ALL blank lines in that range. This destroyed the markdown
+structure (blank lines between lists, headings, and IALs are essential).
+
+**Bug 2: `has_pipe_outside_angle_brackets` ignoring backtick code spans**
+
+The function checked for unescaped `|` characters to detect kramdown table lines,
+but didn't skip pipes inside backtick code spans. The line containing
+`` `site | jsonify` `` was detected as a table line, creating a spurious `<table>`
+element.
+
+#### TDD Cycle
+
+1. Wrote `test_collapse_blank_lines_respects_backtick_code` -- FAILS as expected
+   (blank lines removed when `<div>` and `</div>` are both in backticks)
+2. Added `is_inside_backtick_code` helper and modified `collapse_blanks_in_tag`
+   to skip tags inside backtick code spans -- test PASSES
+3. Wrote `test_pipe_in_backtick_not_table_line` -- initially caused infinite loop
+   (bug in backtick counting code), fixed the loop, test PASSES
+4. All 3431 tests pass, 0 failed
+
+#### Results
+
+- History page diff: 497 -> 226 (271 fewer diffs, 54% reduction)
+- Total jekyll-docs diffs: 8594 -> 8389 (205 fewer diffs)
+- DTC DOM: 788/790 (unchanged from baseline -- no regression)
+- No spurious `<table>` or `<tbody>` elements from the two identified patterns
+- Remaining 226 diffs are from unrelated issues (emoji shortcode rendering, etc.)
+
+#### Files Modified
+
+- `src/kramdown.rs`: Added `is_inside_backtick_code` helper, modified
+  `collapse_blanks_in_tag` to skip tags in backticks, enhanced
+  `has_pipe_outside_angle_brackets` to skip pipes in backtick code spans
+- `src/frontmatter.rs`: Added 3 tests (collapse backtick, pipe backtick,
+  exact history pattern)
+
+#### Build
+
+- 3431 tests pass, 0 fail, 2 ignored
+- clippy clean, fmt clean
