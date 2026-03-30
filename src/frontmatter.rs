@@ -642,6 +642,8 @@ pub fn markdown_to_html(markdown: &str) -> String {
     let markdown = crate::kramdown::collapse_blank_lines_between_list_items(&markdown);
     // Issue 200: Convert kramdown-style pipe tables to HTML.
     let markdown = crate::kramdown::convert_kramdown_pipe_tables(&markdown);
+    // Issue 491: Convert kramdown definition lists to HTML before pulldown-cmark
+    let markdown = crate::kramdown::convert_kramdown_definition_lists(&markdown);
 
     // Issue 203: Split text that follows HTML block close tags onto new lines.
     // In kramdown, `</figure>Text with [links](url)` treats the text as a new
@@ -818,6 +820,12 @@ pub fn markdown_to_html_with_options(
     let markdown = crate::kramdown::mark_simple_partial_loose_list_items(&markdown);
     let markdown = crate::kramdown::collapse_blank_lines_between_list_items(&markdown);
     let markdown = crate::kramdown::convert_kramdown_pipe_tables(&markdown);
+    // Issue 491: Convert kramdown definition lists to HTML before pulldown-cmark
+    let markdown = if add_code_classes {
+        crate::kramdown::convert_kramdown_definition_lists(&markdown)
+    } else {
+        markdown
+    };
     let markdown = crate::kramdown::split_text_after_html_block_close(&markdown);
     let markdown = rewrite_malformed_target_blank_links(&markdown);
     // Issue 367: Escape asterisks/underscores inside URL-like link text so
@@ -1055,6 +1063,8 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     let markdown = crate::kramdown::collapse_blank_lines_between_list_items(&markdown);
     // Issue 200: Convert kramdown-style pipe tables to HTML.
     let markdown = crate::kramdown::convert_kramdown_pipe_tables(&markdown);
+    // Issue 491: Convert kramdown definition lists to HTML before pulldown-cmark
+    let markdown = crate::kramdown::convert_kramdown_definition_lists(&markdown);
 
     let markdown = crate::kramdown::split_text_after_html_block_close(&markdown);
     let markdown = rewrite_malformed_target_blank_links(&markdown);
@@ -9166,6 +9176,65 @@ More text.
     }
 
     // ========================================================================
+    // Issue 491: Definition lists through full pipeline
+    // ========================================================================
+
+    #[test]
+    fn test_issue491_definition_list_full_pipeline() {
+        let input = "## Definition Lists\n\n\
+                      Definition List Title\n\
+                      :   Definition list division.\n\n\
+                      Startup\n\
+                      :   A startup company.\n";
+        let html = markdown_to_html(input);
+        eprintln!("=== test_issue491_full_pipeline ===\n{html}");
+        assert!(
+            html.contains("<dl>"),
+            "Issue 491: Full pipeline should produce <dl>. Got: {html}"
+        );
+        assert!(
+            html.contains("<dt>Definition List Title</dt>"),
+            "Issue 491: Should produce <dt>. Got: {html}"
+        );
+        assert!(
+            html.contains("<dd>Definition list division.</dd>"),
+            "Issue 491: Should produce <dd>. Got: {html}"
+        );
+        assert!(
+            !html.contains("<p>Definition List Title"),
+            "Issue 491: Should NOT produce <p> for definition term. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue491_definition_list_with_options() {
+        let input = "Term\n:   Definition text here.\n";
+        let html = markdown_to_html_with_options(input, true, true, false, false);
+        eprintln!("=== test_issue491_with_options ===\n{html}");
+        assert!(
+            html.contains("<dl>"),
+            "Issue 491: markdown_to_html_with_options should produce <dl>. Got: {html}"
+        );
+        assert!(
+            html.contains("<dt>Term</dt>"),
+            "Issue 491: Should produce <dt>. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue491_definition_list_not_in_commonmark_mode() {
+        // CommonMark (add_code_classes=false) should NOT convert definition lists
+        let input = "Term\n:   Definition text here.\n";
+        let html = markdown_to_html_with_options(input, false, false, false, false);
+        eprintln!("=== test_issue491_commonmark ===\n{html}");
+        // In CommonMark mode, this should remain as-is (no <dl>)
+        assert!(
+            !html.contains("<dl>"),
+            "Issue 491: CommonMark mode should NOT produce <dl>. Got: {html}"
+        );
+    }
+
+    // ========================================================================
     // Issue 387: text + continuation <ul> re-nesting
     // ========================================================================
 
@@ -9691,6 +9760,66 @@ More text.
         assert!(
             !html.contains("<code>"),
             "markdown_to_html_with_options should protect raw HTML tables. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_collapse_blank_lines_respects_backtick_code() {
+        // The collapse_blank_lines_in_html_blocks function must NOT treat
+        // HTML tags inside backtick code spans as real HTML block elements.
+        // This caused the jekyll-docs history page bug: `<div>` in backticks
+        // was matched with a distant `</div>` also in backticks, causing all
+        // blank lines between them to be removed, destroying markdown structure.
+        let input = "\
+- item with `<div>` tag in backticks
+
+### Heading After List
+
+- next item
+
+- item with `</div>` mention in backticks
+";
+        let result = crate::kramdown::collapse_blank_lines_in_html_blocks(input);
+        // Blank lines must be preserved because the tags are in backticks
+        assert!(
+            result.contains("\n\n### Heading After List\n"),
+            "Blank line before heading must be preserved when tags are in backticks. Got:\n{result}"
+        );
+        assert!(
+            result.contains("List\n\n- next"),
+            "Blank line after heading must be preserved when tags are in backticks. Got:\n{result}"
+        );
+    }
+
+    #[test]
+    fn test_history_page_exact_pattern_backtick_div_then_heading() {
+        // The exact pattern from jekyll-docs history.md v3.2.0:
+        // A list containing `<div>` in backticks, followed by headings with IALs,
+        // and much later a `</div>` in backticks.
+        // The collapse_blank_lines_in_html_blocks must not strip blank lines
+        // between the two backtick-enclosed tags.
+        let input = "\
+- Site Template: Changed main `<div>` to `<main>` and added info
+- Other item
+
+### Bug Fixes
+{: #bug-fixes-v3-2-0}
+
+- fix one
+
+### More Stuff
+
+- Add missing `</div>` to site template
+";
+        let html = markdown_to_html_with_options(input, true, true, false, false);
+        assert!(
+            html.contains("<h3"),
+            "Heading must render as <h3>, not absorbed into list. Got:\n{html}"
+        );
+        // Verify the heading text is present
+        assert!(
+            html.contains("Bug Fixes</h3>"),
+            "Bug Fixes heading must be present. Got:\n{html}"
         );
     }
 }

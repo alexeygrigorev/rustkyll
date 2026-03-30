@@ -2108,8 +2108,18 @@ fn strip_outer_p_tags_for_markdown(html: &str) -> String {
 pub fn collapse_blank_lines_in_html_blocks(content: &str) -> String {
     let mut result = content.to_string();
 
+    // TEMP DEBUG for issue 524
+    let is_history = content.contains("bug-fixes-v3-2-0");
+    if is_history {
+        let _ = std::fs::write("/tmp/history_before_collapse.md", &result);
+    }
+
     for &tag in BLOCK_PARENT_TAGS {
+        let prev = result.clone();
         result = collapse_blanks_in_tag(&result, tag);
+        if is_history && prev != result {
+            let _ = std::fs::write(format!("/tmp/history_after_{}.md", tag), &result);
+        }
     }
 
     result
@@ -2209,6 +2219,21 @@ pub fn split_text_after_html_block_close(content: &str) -> String {
 }
 
 /// Collapse blank lines inside all instances of `<tag ...>...</tag>`.
+/// Check if a position in text is inside a backtick code span on the same line.
+/// Returns true if there is an odd number of backtick-delimiters before pos
+/// on the same line, meaning we're inside an inline code span.
+fn is_inside_backtick_code(text: &str, pos: usize) -> bool {
+    // Find the start of the line containing pos
+    let line_start = text[..pos].rfind('\n').map_or(0, |p| p + 1);
+    let before = &text[line_start..pos];
+
+    // Count backtick groups (code spans use matching backtick counts)
+    // A simple heuristic: count individual backtick characters. If odd, we're inside code.
+    // This handles both single backtick `code` and double backtick ``code``.
+    let backtick_count = before.chars().filter(|&c| c == '`').count();
+    backtick_count % 2 != 0
+}
+
 fn collapse_blanks_in_tag(content: &str, tag: &str) -> String {
     let open_pattern = format!("<{}", tag);
     let close_pattern = format!("</{}>", tag);
@@ -2222,6 +2247,14 @@ fn collapse_blanks_in_tag(content: &str, tag: &str) -> String {
                 // Verify it's actually the tag (not e.g. <listing> when we search <li>)
                 let after = &remaining[pos + open_pattern.len()..];
                 if after.starts_with('>') || after.starts_with(' ') || after.starts_with('/') {
+                    // Issue 524: Skip tags inside backtick code spans.
+                    // `<div>` in backticks must not be treated as a real HTML block.
+                    let abs_pos = content.len() - remaining.len() + pos;
+                    if is_inside_backtick_code(content, abs_pos) {
+                        result.push_str(&remaining[..pos + open_pattern.len()]);
+                        remaining = &remaining[pos + open_pattern.len()..];
+                        continue;
+                    }
                     pos
                 } else {
                     // Not our tag, skip past this match
@@ -3271,6 +3304,193 @@ pub fn convert_kramdown_pipe_tables(content: &str) -> String {
         }
     }
     result
+}
+
+/// Issue 491: Convert kramdown definition list syntax to HTML.
+///
+/// Kramdown recognises a definition list when a line of text (the term) is
+/// immediately followed by a line starting with `:   ` (colon + 3 spaces) for
+/// the definition. Pulldown-cmark does not support this, so we convert to
+/// `<dl>/<dt>/<dd>` HTML before the markdown parser sees it.
+///
+/// The pattern is:
+/// ```text
+/// Term
+/// :   Definition text
+/// ```
+///
+/// Multiple consecutive term/definition pairs are grouped into a single `<dl>`.
+/// Inline markdown (links, emphasis) within terms and definitions is rendered.
+pub fn convert_kramdown_definition_lists(content: &str) -> String {
+    // Quick check: if no definition marker pattern exists, return early.
+    if !content.contains("\n:   ") && !content.starts_with(":   ") {
+        return content.to_string();
+    }
+
+    let lines: Vec<&str> = content.split('\n').collect();
+    let mut result = String::with_capacity(content.len());
+    let mut i = 0;
+    let mut in_code_block = false;
+
+    while i < lines.len() {
+        let line = lines[i];
+
+        // Track code fences
+        let trimmed = line.trim_start();
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            in_code_block = !in_code_block;
+            result.push_str(line);
+            result.push('\n');
+            i += 1;
+            continue;
+        }
+
+        if in_code_block {
+            result.push_str(line);
+            result.push('\n');
+            i += 1;
+            continue;
+        }
+
+        // Check if current line is a valid term line followed by a definition marker.
+        if is_potential_dl_term_line(line) {
+            // Peek: is the next line a definition marker?
+            if i + 1 < lines.len() && is_definition_marker_line(lines[i + 1]) {
+                // Start a definition list block
+                result.push_str("<dl>\n");
+
+                loop {
+                    if i >= lines.len() {
+                        break;
+                    }
+
+                    let term_line = lines[i].trim();
+                    if term_line.is_empty() {
+                        // Check if there's another term+def pair after the blank line
+                        if i + 2 < lines.len()
+                            && !lines[i + 1].trim().is_empty()
+                            && is_definition_marker_line(lines.get(i + 2).copied().unwrap_or(""))
+                        {
+                            // Skip blank line, continue accumulating in same <dl>
+                            i += 1;
+                            continue;
+                        }
+                        break;
+                    }
+
+                    // Must be a term line
+                    if is_definition_marker_line(lines[i]) {
+                        // Stray definition without term -- stop
+                        break;
+                    }
+
+                    // Read the term
+                    let term = lines[i].trim();
+                    i += 1;
+
+                    // Read definition(s) for this term
+                    if i < lines.len() && is_definition_marker_line(lines[i]) {
+                        result.push_str("  <dt>");
+                        result.push_str(&render_dl_inline_markdown(term));
+                        result.push_str("</dt>\n");
+
+                        while i < lines.len() && is_definition_marker_line(lines[i]) {
+                            let def = lines[i].trim().trim_start_matches(':').trim();
+                            result.push_str("  <dd>");
+                            result.push_str(&render_dl_inline_markdown(def));
+                            result.push_str("</dd>\n");
+                            i += 1;
+                        }
+                    } else {
+                        // Not followed by definition -- shouldn't happen but handle gracefully
+                        result.push_str("  <dt>");
+                        result.push_str(&render_dl_inline_markdown(term));
+                        result.push_str("</dt>\n");
+                    }
+                }
+
+                result.push_str("</dl>\n");
+                continue;
+            }
+        }
+
+        result.push_str(line);
+        if i + 1 < lines.len() {
+            result.push('\n');
+        }
+        i += 1;
+    }
+
+    // Trim any trailing extra newline if the input didn't have one
+    if !content.ends_with('\n') && result.ends_with('\n') {
+        result.pop();
+    }
+
+    result
+}
+
+/// Check if a line could be a definition list term.
+/// Must be non-blank, not a code fence, not a definition marker,
+/// and not an ATX heading (but `#hashtag` without space is OK).
+fn is_potential_dl_term_line(line: &str) -> bool {
+    let trimmed = line.trim();
+    if trimmed.is_empty() {
+        return false;
+    }
+    if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+        return false;
+    }
+    if is_definition_marker_line(line) {
+        return false;
+    }
+    // Reject ATX headings (# followed by space)
+    if trimmed.starts_with("# ")
+        || trimmed.starts_with("## ")
+        || trimmed.starts_with("### ")
+        || trimmed.starts_with("#### ")
+        || trimmed.starts_with("##### ")
+        || trimmed.starts_with("###### ")
+    {
+        return false;
+    }
+    true
+}
+
+/// Check if a line is a kramdown definition marker (starts with `:` + spaces).
+fn is_definition_marker_line(line: &str) -> bool {
+    if let Some(rest) = line.strip_prefix(':') {
+        rest.starts_with("   ") || rest.starts_with('\t')
+    } else {
+        false
+    }
+}
+
+/// Render inline markdown (links, emphasis, code) to HTML, stripping outer `<p>` tags.
+fn render_dl_inline_markdown(text: &str) -> String {
+    use pulldown_cmark::{html as cmark_html, Options, Parser};
+
+    // If the text has no markdown syntax, return as-is for performance
+    if !text.contains('[')
+        && !text.contains('*')
+        && !text.contains('_')
+        && !text.contains('`')
+        && !text.contains('<')
+    {
+        return text.to_string();
+    }
+
+    let options = Options::empty();
+    let parser = Parser::new_ext(text, options);
+    let mut html = String::new();
+    cmark_html::push_html(&mut html, parser);
+
+    // Strip outer <p>...</p>\n wrapper that pulldown-cmark adds
+    let trimmed = html.trim();
+    if trimmed.starts_with("<p>") && trimmed.ends_with("</p>") {
+        trimmed[3..trimmed.len() - 4].to_string()
+    } else {
+        trimmed.to_string()
+    }
 }
 
 /// Check if position `index` is after a block boundary.
@@ -15971,6 +16191,120 @@ by <a href="/people/author.html">Author Name</a>
             result.contains("markdown-toc-second-section"),
             "TOC should contain link to second-section. Got: {}",
             result
+        );
+    }
+
+    // --- Issue 491: Kramdown definition list pre-processing ---
+
+    #[test]
+    fn test_491_simple_definition_list() {
+        let input = "Definition List Title\n:   Definition list division.\n";
+        let result = convert_kramdown_definition_lists(input);
+        assert!(
+            result.contains("<dl>"),
+            "Issue 491: Should produce <dl>. Got: {result}"
+        );
+        assert!(
+            result.contains("<dt>Definition List Title</dt>"),
+            "Issue 491: Should produce <dt>. Got: {result}"
+        );
+        assert!(
+            result.contains("<dd>Definition list division.</dd>"),
+            "Issue 491: Should produce <dd>. Got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_491_multiple_definition_list_items() {
+        let input = "\
+Definition List Title\n\
+:   Definition list division.\n\
+\n\
+Startup\n\
+:   A startup company or startup is a company or temporary organization.\n\
+\n\
+Do It Live\n\
+:   I'll let Bill O'Reilly explain this one.\n";
+        let result = convert_kramdown_definition_lists(input);
+        assert!(
+            result.contains("<dt>Definition List Title</dt>"),
+            "Issue 491: First term. Got: {result}"
+        );
+        assert!(
+            result.contains("<dt>Startup</dt>"),
+            "Issue 491: Second term. Got: {result}"
+        );
+        assert!(
+            result.contains("<dt>Do It Live</dt>"),
+            "Issue 491: Third term. Got: {result}"
+        );
+        // All should be in one <dl> block (consecutive items)
+        let dl_count = result.matches("<dl>").count();
+        assert_eq!(
+            dl_count, 1,
+            "Issue 491: Consecutive items should be one <dl>. Got {dl_count} in: {result}"
+        );
+    }
+
+    #[test]
+    fn test_491_definition_list_unicode() {
+        let input = "T\u{00e9}rme\n:   D\u{00e9}finition avec des \u{00e9}moji \u{1f4da}\n";
+        let result = convert_kramdown_definition_lists(input);
+        assert!(
+            result.contains("<dl>"),
+            "Issue 491: Unicode dl should produce <dl>. Got: {result}"
+        );
+        assert!(
+            result.contains("T\u{00e9}rme"),
+            "Issue 491: Unicode term preserved. Got: {result}"
+        );
+        assert!(
+            result.contains("D\u{00e9}finition"),
+            "Issue 491: Unicode definition preserved. Got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_491_no_false_positive_on_regular_paragraph() {
+        let input = "This is a regular paragraph.\n\nAnother paragraph.\n";
+        let result = convert_kramdown_definition_lists(input);
+        assert!(
+            !result.contains("<dl>"),
+            "Issue 491: Regular paragraphs should NOT produce <dl>. Got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_491_no_false_positive_on_code_block() {
+        let input = "```\nterm\n:   value\n```\n";
+        let result = convert_kramdown_definition_lists(input);
+        assert!(
+            !result.contains("<dl>"),
+            "Issue 491: Code blocks should NOT produce <dl>. Got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_491_definition_with_link() {
+        let input = "Do It Live\n:   I'll let [explain](https://example.com) this one.\n";
+        let result = convert_kramdown_definition_lists(input);
+        assert!(
+            result.contains("<dt>Do It Live</dt>"),
+            "Issue 491: Term with link def. Got: {result}"
+        );
+        assert!(
+            result.contains("<a href=\"https://example.com\">explain</a>"),
+            "Issue 491: Links in definitions should be rendered. Got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_491_definition_list_with_hash_term() {
+        let input = "#dowork\n:   Do Work motivator.\n";
+        let result = convert_kramdown_definition_lists(input);
+        assert!(
+            result.contains("<dt>#dowork</dt>"),
+            "Issue 491: Hash term. Got: {result}"
         );
     }
 }
