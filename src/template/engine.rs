@@ -6468,6 +6468,179 @@ title: "Test Book"
     }
 
     // ========================================================================
+    // Issue 540: site.tags / site.categories iteration with [1].size
+    // ========================================================================
+
+    #[test]
+    fn test_issue540_tag_pair_index1_size() {
+        // basically-basic uses: {% for tag in site.tags %}{% if tag[1].size > tags_max %}
+        // tag[0] = tag name, tag[1] = posts array, tag[1].size = number of posts
+        let eng = engine();
+
+        let mut post1 = Object::new();
+        post1.insert("title".into(), LiquidValue::scalar("Post One"));
+        post1.insert(
+            "url".into(),
+            LiquidValue::scalar("/2024/01/01/post-one.html"),
+        );
+        let mut post2 = Object::new();
+        post2.insert("title".into(), LiquidValue::scalar("Post Two"));
+        post2.insert(
+            "url".into(),
+            LiquidValue::scalar("/2024/01/02/post-two.html"),
+        );
+
+        let mut tags = Object::new();
+        tags.insert(
+            "__key_order".into(),
+            LiquidValue::Array(vec![
+                LiquidValue::scalar("markup"),
+                LiquidValue::scalar("code"),
+            ]),
+        );
+        tags.insert(
+            "markup".into(),
+            LiquidValue::Array(vec![
+                LiquidValue::Object(post1.clone()),
+                LiquidValue::Object(post2.clone()),
+            ]),
+        );
+        tags.insert(
+            "code".into(),
+            LiquidValue::Array(vec![LiquidValue::Object(post1.clone())]),
+        );
+
+        let mut site = Object::new();
+        site.insert("tags".into(), LiquidValue::Object(tags));
+
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+
+        // Test tag[1].size -- should return the number of posts in each tag
+        let template = "{% for tag in site.tags %}{{ tag[0] }}:{{ tag[1].size }},{% endfor %}";
+        let output = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(
+            output, "markup:2,code:1,",
+            "tag[1].size should return the number of posts for each tag"
+        );
+    }
+
+    #[test]
+    fn test_issue540_tag_pair_index1_size_comparison() {
+        // Test the comparison pattern: {% if tag[1].size > tags_max %}
+        let eng = engine();
+
+        let mut post1 = Object::new();
+        post1.insert("title".into(), LiquidValue::scalar("Post One"));
+
+        let mut tags = Object::new();
+        tags.insert(
+            "__key_order".into(),
+            LiquidValue::Array(vec![
+                LiquidValue::scalar("markup"),
+                LiquidValue::scalar("code"),
+            ]),
+        );
+        tags.insert(
+            "markup".into(),
+            LiquidValue::Array(vec![
+                LiquidValue::Object(post1.clone()),
+                LiquidValue::Object(post1.clone()),
+                LiquidValue::Object(post1.clone()),
+            ]),
+        );
+        tags.insert(
+            "code".into(),
+            LiquidValue::Array(vec![LiquidValue::Object(post1.clone())]),
+        );
+
+        let mut site = Object::new();
+        site.insert("tags".into(), LiquidValue::Object(tags));
+
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+
+        // Pattern from basically-basic: find max tag count
+        let template = r#"{% assign tags_max = 0 %}{% for tag in site.tags %}{% if tag[1].size > tags_max %}{% assign tags_max = tag[1].size %}{% endif %}{% endfor %}max:{{ tags_max }}"#;
+        let output = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(
+            output, "max:3",
+            "Should find maximum tag count of 3 from markup tag"
+        );
+    }
+
+    #[test]
+    fn test_issue540_tag_last_iterates_posts() {
+        // basically-basic also uses: {% for post in tag.last %}
+        // tag.last should return the posts array (the value part of the pair)
+        let eng = engine();
+
+        let mut post1 = Object::new();
+        post1.insert("title".into(), LiquidValue::scalar("Post A"));
+        let mut post2 = Object::new();
+        post2.insert("title".into(), LiquidValue::scalar("Post B"));
+
+        let mut tags = Object::new();
+        tags.insert(
+            "__key_order".into(),
+            LiquidValue::Array(vec![LiquidValue::scalar("markup")]),
+        );
+        tags.insert(
+            "markup".into(),
+            LiquidValue::Array(vec![LiquidValue::Object(post1), LiquidValue::Object(post2)]),
+        );
+
+        let mut site = Object::new();
+        site.insert("tags".into(), LiquidValue::Object(tags));
+
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+
+        let template =
+            "{% for tag in site.tags %}{% for post in tag.last %}{{ post.title }},{% endfor %}{% endfor %}";
+        let output = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(
+            output, "Post A,Post B,",
+            "tag.last should iterate over the posts array"
+        );
+    }
+
+    #[test]
+    fn test_issue540_category_pair_index1_size() {
+        // Same pattern for categories
+        let eng = engine();
+
+        let mut post1 = Object::new();
+        post1.insert("title".into(), LiquidValue::scalar("Post One"));
+
+        let mut categories = Object::new();
+        categories.insert(
+            "__key_order".into(),
+            LiquidValue::Array(vec![LiquidValue::scalar("tutorials")]),
+        );
+        categories.insert(
+            "tutorials".into(),
+            LiquidValue::Array(vec![
+                LiquidValue::Object(post1.clone()),
+                LiquidValue::Object(post1.clone()),
+            ]),
+        );
+
+        let mut site = Object::new();
+        site.insert("categories".into(), LiquidValue::Object(categories));
+
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+
+        let template = "{% for category in site.categories %}{{ category[0] }}:{{ category[1].size }},{% endfor %}";
+        let output = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(
+            output, "tutorials:2,",
+            "category[1].size should return the number of posts for each category"
+        );
+    }
+
+    // ========================================================================
     // Issue 441: Liquid rendering failures for theme sites
     // ========================================================================
 
