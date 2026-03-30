@@ -99,3 +99,22 @@ None. Issue 425e is already done.
 
 - DTC: 790/790
 - Minima: 0/9 (this fix should eliminate 2 diffs per page = ~18 diffs)
+
+## Log
+
+### [SWE] 2026-03-30
+
+- TDD: Wrote 7 failing tests first (4 in config.rs, 3 in generator.rs)
+  - config tests: url_explicitly_set true/false for present/absent/empty/null url
+  - generator tests: site.url Nil when absent, empty string when explicit "", full URL when set
+- Verified tests fail: compilation error (url_explicitly_set field does not exist)
+- Implemented fix:
+  - Added `url_explicitly_set: bool` field to `SiteConfig` with `#[serde(skip)]`
+  - Modified `from_yaml_str` to parse YAML as Value first, check if `url` key present in mapping
+  - Modified `build_site_context` in generator.rs to insert `Nil` when url not explicitly set
+- All 7 new tests pass
+- Full test suite: 3437 passed, 0 failed, 2 ignored
+- clippy clean, fmt clean
+- DTC DOM: 790/790 (no regression)
+- Chirpy DOM: 12/17 (same as baseline, no regression from url: "" handling)
+- Files modified: src/config.rs, src/generator.rs
