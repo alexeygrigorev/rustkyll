@@ -1,0 +1,18 @@
+Jekyll directory:   /home/alexey/git/rustkyl/websites/wtf-html-css/_site_jekyll_cached
+Rustkyll directory: /home/alexey/git/rustkyl/websites/wtf-html-css/_site_rustkyll_recount
+Common HTML files:  1
+
+DIFF index.html (178 differences)
+  body > div > div > div > pre > code > span: attribute_differs - expected: "class='cp'", actual: "class='p'"
+  body > div > div > div > pre > code > span: text_differs - expected: '<!doctype html>', actual: '<!'
+  body > div > div > div > pre > code > span: extra_element - expected: '(none)', actual: '<span>'
+  body > div > div > div > pre > code: extra_text - expected: '(none)', actual: 'html'
+  body > div > div > div > pre > code > span: extra_element - expected: '(none)', actual: '<span>'
+  body > div > div > div > pre > code > span: attribute_differs - expected: "class='nt'", actual: "class='na'"
+  body > div > div > div > pre > code > span: attribute_differs - expected: "class='nl'", actual: "class='nb'"
+  body > div > div > div > pre > code > span: attribute_differs - expected: "class='p'", actual: "class='pi'"
+  body > div > div > div > pre > code > span: attribute_differs - expected: "class='c'", actual: "class='cm'"
+  body > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nb'"
+  ... and 168 more differences
+
+Summary: 0 files matched, 1 files with differences, 178 total differences

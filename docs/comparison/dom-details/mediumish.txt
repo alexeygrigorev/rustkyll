@@ -1,0 +1,276 @@
+Jekyll directory:   /home/alexey/git/rustkyl/websites/mediumish/_site_jekyll_cached
+Rustkyll directory: /home/alexey/git/rustkyl/websites/mediumish/_site_rustkyll_recount
+Common HTML files:  23
+Only in rustkyll:   1
+
+DIFF 404.html (9 differences)
+  head > meta > meta > child[4]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+DIFF about-bundler/index.html (12 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  ... and 2 more differences
+DIFF about.html (9 differences)
+  head > meta > meta > child[4]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+DIFF acumulated-experience/index.html (12 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  ... and 2 more differences
+DIFF categories.html (36 differences)
+  head > meta > meta > child[4]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  body > div > div > div > div > div > div > div > h4: missing_text - expected: 'There are lots of powerful things you can do with the Markdown editor. If you’ve gotten pretty comfo', actual: '(none)'
+  ... and 26 more differences
+DIFF category/jekyll/index.html (12 differences)
+  head > meta > meta > child[4]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  body > div > div > div > section > div > div > div > div > h4: text_differs - expected: 'gem install bundler installs the bundler gem through RubyGems. You only need to install it once - not every time you create a new Jekyll project. Here are some additional...', actual: '`gem install bundler` installs the bundler gem through RubyGems. You only need to install it once - not every time you create a new Jekyll project. Here are some additional...'
+  ... and 2 more differences
+DIFF category/tutorial/index.html (10 differences)
+  head > meta > meta > child[4]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  body > div > div > div > section > div > div > div > div > h4: text_differs - expected: 'jekyll new <PATH> installs a new Jekyll site at the path specified (relative to current directory). In this case, Jekyll will be installed in a directory called myblog. Here are...', actual: '`jekyll new ` installs a new Jekyll site at the path specified (relative to current directory). In this case, Jekyll will be installed in a directory called `myblog`. Here are...'
+DIFF category/web-development/index.html (9 differences)
+  head > meta > meta > child[4]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+DIFF customer-service/index.html (14 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  ... and 4 more differences
+DIFF education/index.html (23 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  ... and 13 more differences
+DIFF first-mass-produced/index.html (12 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  ... and 2 more differences
+DIFF index.html (81 differences)
+  head > meta > meta > child[4]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > div > div > div > section > div > div > div > div > div > div > div > a: attribute_differs - expected: "href='/mediumish-theme-jekyll/quick-start-guide/'", actual: "href='/mediumish-theme-jekyll/powerful-things-markdown-editor/'"
+  body > div > div > div > section > div > div > div > div > div > div > div > a > img: attribute_differs - expected: "src='/mediumish-theme-jekyll/assets/images/12.jpg'", actual: "src='/mediumish-theme-jekyll/assets/images/16.jpg'"
+  body > div > div > div > section > div > div > div > div > div > div > div > div > h2 > a: attribute_differs - expected: "href='/mediumish-theme-jekyll/quick-start-guide/'", actual: "href='/mediumish-theme-jekyll/powerful-things-markdown-editor/'"
+  body > div > div > div > section > div > div > div > div > div > div > div > div > h2 > a: text_differs - expected: "Let's test spoilers", actual: 'Powerful things you can do with the Markdown editor'
+  body > div > div > div > section > div > div > div > div > div > div > div > div > h4: text_differs - expected: 'Director Roland Suso Richter’s enigmatic psychological thriller (direct to video/DVD) was based upon screenwriter Michael Cooney’s own play “Point of Death” - a title that...', actual: 'There are lots of powerful things you can do with the Markdown editor. If you’ve gotten pretty comfortable with writing in Markdown, then you may...'
+  body > div > div > div > section > div > div > div > div > div > div > div > div > div > span > span: text_differs - expected: '11 Jan 2018', actual: '12 Jun 2018'
+  body > div > div > div > section > div > div > div > div > div > div > div > div > div > span > a: attribute_differs - expected: "href='/mediumish-theme-jekyll//quick-start-guide/'", actual: "href='/mediumish-theme-jekyll//powerful-things-markdown-editor/'"
+  ... and 71 more differences
+DIFF is-intelligence-enough/index.html (12 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  ... and 2 more differences
+DIFF never-stopped-worrying-never-loved-bomb/index.html (12 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  ... and 2 more differences
+DIFF options-for-creating-new-site-with-jekyll/index.html (14 differences)
+  head > meta > meta > meta: attribute_differs - expected: "content='jekyll new <PATH> installs a new Jekyll site at the path specified (relative to current directory). In this case, Jekyll will be installed in a directory called myblog. Here are some addition", actual: "content='jekyll new &lt;PATH&gt; installs a new Jekyll site at the path specified (relative to current directory). In this case, Jekyll will be installed in a directory called myblog. Here are some ad"
+  head > meta > meta > meta: attribute_differs - expected: "content='jekyll new <PATH> installs a new Jekyll site at the path specified (relative to current directory). In this case, Jekyll will be installed in a directory called myblog. Here are some addition", actual: "content='jekyll new &lt;PATH&gt; installs a new Jekyll site at the path specified (relative to current directory). In this case, Jekyll will be installed in a directory called myblog. Here are some ad"
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  ... and 4 more differences
+DIFF page2/index.html (51 differences)
+  head > title: text_differs - expected: 'Page 2 of 2 for Home | Mediumish', actual: 'Home | Mediumish'
+  head > meta > meta > child[4]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  body > div > div > div > section > div > div > div > div > a: attribute_differs - expected: "href='/mediumish-theme-jekyll/tree-of-codes/'", actual: "href='/mediumish-theme-jekyll/never-stopped-worrying-never-loved-bomb/'"
+  body > div > div > div > section > div > div > div > div > a > img: attribute_differs - expected: "alt='Tree of Codes'", actual: "alt='Never stopped worrying or loving the bomb'"
+  body > div > div > div > section > div > div > div > div > a > img: attribute_differs - expected: "src='/mediumish-theme-jekyll/assets/images/9.jpg'", actual: "src='/mediumish-theme-jekyll/assets/images/14.jpg'"
+  body > div > div > div > section > div > div > div > div > h2 > a: attribute_differs - expected: "href='/mediumish-theme-jekyll/tree-of-codes/'", actual: "href='/mediumish-theme-jekyll/never-stopped-worrying-never-loved-bomb/'"
+  body > div > div > div > section > div > div > div > div > h2 > a: text_differs - expected: 'Tree of Codes', actual: 'Never stopped worrying or loving the bomb'
+  body > div > div > div > section > div > div > div > div > h4: text_differs - expected: 'The first mass-produced book to deviate from a rectilinear format, at least in the United States, is thought to be this 1863 edition of Red Riding Hood, cut into the...', actual: 'I’ve been through fire and water, I tell you! From my earliest pebblehood the wildest things you could imagine have been happening to this world of ours, and I have...'
+  ... and 41 more differences
+DIFF powerful-things-markdown-editor/index.html (138 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  ... and 128 more differences
+DIFF press-and-education/index.html (12 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  ... and 2 more differences
+DIFF quick-start-guide/index.html (18 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  ... and 8 more differences
+DIFF red-riding/index.html (12 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  ... and 2 more differences
+DIFF tags.html (11 differences)
+  head > meta > meta > child[4]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  body > div > div > div > div > div > div > div > h4: missing_text - expected: 'Review products, books, movies, restaurant and anything you like on your Jekyll blog with Mediumish!', actual: '(none)'
+  ... and 1 more differences
+DIFF tree-of-codes/index.html (12 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  ... and 2 more differences
+DIFF we-all-wait-for-summer/index.html (12 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
+  ... and 2 more differences
+
+Summary: 0 files matched, 23 files with differences, 543 total differences (11 acceptable diffs filtered out)

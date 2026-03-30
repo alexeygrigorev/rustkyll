@@ -1,20 +1,15 @@
-Jekyll directory:   websites/beautiful-jekyll/_site_jekyll_cached
-Rustkyll directory: /tmp/bj_fix
+Jekyll directory:   /home/alexey/git/rustkyl/websites/beautiful-jekyll/_site_jekyll_cached
+Rustkyll directory: /home/alexey/git/rustkyl/websites/beautiful-jekyll/_site_rustkyll_recount
 Common HTML files:  5
 Only in Jekyll:     1
 Only in rustkyll:   1
 
-DIFF 2020-02-28-sample-markdown/index.html (30 differences)
-  body > main > div > div > div > p > br: missing_text - expected: 'I also encourage you to look at the', actual: '(none)'
-  body > main > div > div > div > p > br > a: missing_element - expected: '<a>', actual: '(none)'
-  body > main > div > div > div > p > br: missing_text - expected: 'to learn some more advanced tips about using markdown in Beautiful Jekyll.', actual: '(none)'
-  body > main > div > div > div > p: extra_text - expected: '(none)', actual: 'I also encourage you to look at the'
-  body > main > div > div > div > p > a: extra_element - expected: '(none)', actual: '<a>'
-  body > main > div > div > div > p: extra_text - expected: '(none)', actual: 'to learn some more advanced tips about using markdown in Beautiful Jekyll.'
+DIFF 2020-02-28-sample-markdown/index.html (6 differences)
   body > main > div > div > div > p: text_differs - expected: 'to write LaTeX expressions. For example: When \\(a \\ne 0\\), there are two solutions to \\(ax^2 + bx + c = 0\\) and they are \\(x = {-b \\pm \\sqrt{b^2-4ac} \\over 2a}.\\)', actual: 'to write LaTeX expressions. For example: When \\(a \\ne 0\\), there are two solutions to \\(ax^2 + bx + c = 0\\) and they are $$x = {-b \\pm \\sqrt{b^2-4ac} \\over 2a}.$$'
-  body > main > div > div > div > p > img: missing_attribute - expected: "class='d-block mx-auto'", actual: '(none)'
-  body > main > div > div > div > p: extra_text - expected: '(none)', actual: '{: .mx-auto.d-block :}'
-  body > main > div > div > div > figure > pre > code > child[1]: tag_name_differs - expected: 'table', actual: 'span'
-  ... and 20 more differences
+  body > main > div > div > div > child[9]: tag_name_differs - expected: 'p', actual: 'img'
+  body > main > div > div > div > child[28]: tag_name_differs - expected: 'p', actual: 'img'
+  body > main > div > div > div > child[30]: tag_name_differs - expected: 'p', actual: 'img'
+  body > main > div > div > div > details: expected_element_got_text - expected: '<p>', actual: 'Here you can see an **expandable** section'
+  body > main > div > div > div > details > p: missing_element - expected: '<p>', actual: '(none)'
 
-Summary: 4 files matched, 1 files with differences, 30 total differences
+Summary: 4 files matched, 1 files with differences, 6 total differences (7 acceptable diffs filtered out)

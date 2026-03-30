@@ -1,0 +1,68 @@
+Jekyll directory:   /home/alexey/git/rustkyl/websites/edition-template/_site_jekyll_cached
+Rustkyll directory: /home/alexey/git/rustkyl/websites/edition-template/_site_rustkyll_recount
+Common HTML files:  11
+Only in Jekyll:     2
+Only in rustkyll:   2
+
+DIFF 2016/01/12/media-support/index.html (5 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF 2016/02/05/general-fixes-and-improvements/index.html (5 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF 404.html (1 differences)
+  body > header > nav > ul > li > a: missing_text - expected: 'Change Log', actual: '(none)'
+DIFF contact-syncing/facebook/index.html (5 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'blockquote'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  img: extra_element - expected: '(none)', actual: '<img>'
+DIFF contact-syncing/phone/index.html (5 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'blockquote'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  img: extra_element - expected: '(none)', actual: '<img>'
+DIFF devices/android/index.html (4 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  img: extra_element - expected: '(none)', actual: '<img>'
+DIFF devices/ios/index.html (4 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  img: extra_element - expected: '(none)', actual: '<img>'
+DIFF index.html (1 differences)
+  body > header > nav > ul > li > a: missing_text - expected: 'Change Log', actual: '(none)'
+DIFF media/documents/index.html (5 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  blockquote: extra_element - expected: '(none)', actual: '<blockquote>'
+  img: extra_element - expected: '(none)', actual: '<img>'
+DIFF media/images/index.html (9 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'blockquote'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  img: extra_element - expected: '(none)', actual: '<img>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+  p: extra_element - expected: '(none)', actual: '<p>'
+  ul: extra_element - expected: '(none)', actual: '<ul>'
+DIFF media/video/index.html (5 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'p'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
+  ol: extra_element - expected: '(none)', actual: '<ol>'
+  blockquote: extra_element - expected: '(none)', actual: '<blockquote>'
+  img: extra_element - expected: '(none)', actual: '<img>'
+
+Summary: 0 files matched, 11 files with differences, 49 total differences

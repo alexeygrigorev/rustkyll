@@ -2,5 +2,50 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/DataTalksClub/docs/_site_j
 Rustkyll directory: /home/alexey/git/rustkyl/websites/DataTalksClub/docs/_site_rustkyll_recount
 Common HTML files:  57
 
+DIFF courses/course-management-platform/dashboard/index.html (1 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > child[3]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF courses/course-management-platform/homework/index.html (2 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > child[3]: tag_name_differs - expected: 'p', actual: 'img'
+  head > meta > meta > meta > link > body > div > div > div > main > child[7]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF courses/course-management-platform/index.html (1 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > child[4]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF courses/course-management-platform/leaderboard/index.html (1 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > child[3]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF courses/course-management-platform/learning-in-public/index.html (2 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > child[5]: tag_name_differs - expected: 'p', actual: 'img'
+  head > meta > meta > meta > link > body > div > div > div > main > child[17]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF courses/course-management-platform/peer-review/index.html (2 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > child[5]: tag_name_differs - expected: 'p', actual: 'img'
+  head > meta > meta > meta > link > body > div > div > div > main > child[10]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF courses/course-management-platform/projects/index.html (2 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > child[12]: tag_name_differs - expected: 'p', actual: 'img'
+  head > meta > meta > meta > link > body > div > div > div > main > child[20]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF courses/data-engineering-zoomcamp/index.html (1 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > child[4]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF courses/data-engineering-zoomcamp/logistics/certification/index.html (1 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > child[10]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF courses/data-engineering-zoomcamp/logistics/communication/index.html (2 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > child[12]: tag_name_differs - expected: 'p', actual: 'img'
+  head > meta > meta > meta > link > body > div > div > div > main > child[15]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF courses/data-engineering-zoomcamp/logistics/deadlines/index.html (1 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > child[9]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF courses/data-engineering-zoomcamp/logistics/homework/index.html (1 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > child[3]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF courses/data-engineering-zoomcamp/logistics/leaderboard/index.html (2 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > child[3]: tag_name_differs - expected: 'p', actual: 'img'
+  head > meta > meta > meta > link > body > div > div > div > main > child[11]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF courses/data-engineering-zoomcamp/logistics/learning-in-public/index.html (1 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > child[7]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF courses/data-engineering-zoomcamp/resources/course-platform/index.html (1 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > child[4]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF courses/data-engineering-zoomcamp/resources/dataset/index.html (1 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > child[3]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF courses/data-engineering-zoomcamp/resources/github/index.html (1 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > child[4]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF courses/data-engineering-zoomcamp/resources/youtube/index.html (1 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > child[6]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF general/guidelines/promotion/index.html (2 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > child[17]: tag_name_differs - expected: 'p', actual: 'img'
+  head > meta > meta > meta > link > body > div > div > div > main > child[25]: tag_name_differs - expected: 'p', actual: 'img'
 
-Summary: 57 files matched, 0 files with differences, 0 total differences
+Summary: 38 files matched, 19 files with differences, 26 total differences (1 acceptable diffs filtered out)

@@ -1,10 +1,9 @@
 Jekyll directory:   /home/alexey/git/rustkyl/websites/government-github/_site_jekyll_cached
 Rustkyll directory: /home/alexey/git/rustkyl/websites/government-github/_site_rustkyll_recount
-Common HTML files:  21
+Common HTML files:  11
+Only in Jekyll:     10
+Only in rustkyll:   10
 
-DIFF 404.html (2 differences)
-  head > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  body > footer > div > div > a > svg: missing_element - expected: '<svg>', actual: '(none)'
 DIFF accessibility/index.html (8 differences)
   child[1]: tag_name_differs - expected: 'meta', actual: 'head'
   child[2]: tag_name_differs - expected: 'title', actual: 'body'
@@ -14,57 +13,18 @@ DIFF accessibility/index.html (8 differences)
   meta: missing_element - expected: '<meta>', actual: '(none)'
   h1: missing_element - expected: '<h1>', actual: '(none)'
   a: missing_element - expected: '<a>', actual: '(none)'
-DIFF aws-govcloud.html (11 differences)
-  head > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  body > div > div > div > div > div > div > svg: missing_element - expected: '<svg>', actual: '(none)'
-  body > div > div > div > div > div > div > svg: missing_element - expected: '<svg>', actual: '(none)'
-  body > div > div > div > div > div > div > svg: missing_element - expected: '<svg>', actual: '(none)'
-  body > div > div > div > div > div > div > svg: missing_element - expected: '<svg>', actual: '(none)'
-  body > div > div > div > div > div > div > svg: missing_element - expected: '<svg>', actual: '(none)'
-  body > div > div > div > div > div > div > svg: missing_element - expected: '<svg>', actual: '(none)'
-  body > div > div > div > div > div > div > svg: missing_element - expected: '<svg>', actual: '(none)'
-  body > div > div > div > div > div > svg: missing_element - expected: '<svg>', actual: '(none)'
-  body > div > div > div > div > div > svg: missing_element - expected: '<svg>', actual: '(none)'
-  ... and 1 more differences
-DIFF best-practices/index.html (8 differences)
-  meta: missing_element - expected: '<meta>', actual: '(none)'
-  title: missing_element - expected: '<title>', actual: '(none)'
-  link: missing_element - expected: '<link>', actual: '(none)'
-  script: missing_element - expected: '<script>', actual: '(none)'
-  meta: missing_element - expected: '<meta>', actual: '(none)'
-  meta: missing_element - expected: '<meta>', actual: '(none)'
-  h1: missing_element - expected: '<h1>', actual: '(none)'
-  a: missing_element - expected: '<a>', actual: '(none)'
-DIFF community/index.html (9497 differences)
-  head > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  head > meta > meta > meta > meta: attribute_differs - expected: "content='Government agencies at the national, state, and local level use GitHub to share and collaborate. If you don’t see your organization on this list, follow the instructions below to add it!'", actual: 'content="Government agencies at the national, state, and local level use GitHub to share and collaborate. If you don\'t see your organization on this list, follow the instructions below to add it!"'
-  head > meta > meta > meta > meta: attribute_differs - expected: "content='Government agencies at the national, state, and local level use GitHub to share and collaborate. If you don’t see your organization on this list, follow the instructions below to add it!'", actual: 'content="Government agencies at the national, state, and local level use GitHub to share and collaborate. If you don\'t see your organization on this list, follow the instructions below to add it!"'
-  head > meta > meta > meta > link > script > jsonld.description: jsonld_value_differs - expected: 'Government agencies at the national, state, and local level use GitHub to share and collaborate. If you don’t see your organization on this list, follow the instructions below to add it!', actual: 'Government agencies at the national, state, and local level use GitHub to share and collaborate. If you don&#39;t see your organization on this list, follow the instructions below to add it!'
-  body > div > div > div > div > div > div > div > a > img: attribute_differs - expected: "alt='argob'", actual: "alt='lazy'"
-  body > div > div > div > div > div > div > div > a > img: missing_attribute - expected: "data-proofer-ignore='true'", actual: '(none)'
-  body > div > div > div > div > div > div > div > a > img: missing_attribute - expected: "data-src='https://avatars2.githubusercontent.com/argob?v=3&s=60'", actual: '(none)'
-  body > div > div > div > div > div > div > div > a > img: missing_attribute - expected: "data-srcset='https://avatars2.githubusercontent.com/argob?v=3&s=60 1x, https://avatars2.githubusercontent.com/argob?v=3&s=120 2x, https://avatars2.githubusercontent.com/argob?v=3&s=180 3x, https://avatars2.githubusercontent.com/argob?v=3&s=240 4x'", actual: '(none)'
-  body > div > div > div > div > div > div > div > a > img: attribute_differs - expected: "src=''", actual: "src='https://avatars.githubusercontent.com/lazy?v=4&s=60'"
-  body > div > div > div > div > div > div > div > a > img: extra_attribute - expected: '(none)', actual: "srcset='https://avatars.githubusercontent.com/lazy?v=4&s=60 1x, https://avatars.githubusercontent.com/lazy?v=4&s=120 2x, https://avatars.githubusercontent.com/lazy?v=4&s=180 3x, https://avatars.githubusercontent.com/lazy?v=4&s=240 4x'"
-  ... and 9487 more differences
-DIFF fedramp-confirmation/index.html (2 differences)
-  head > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  body > footer > div > div > a > svg: missing_element - expected: '<svg>', actual: '(none)'
-DIFF fedramp-faq.html (2 differences)
-  head > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  body > footer > div > div > a > svg: missing_element - expected: '<svg>', actual: '(none)'
-DIFF fedramp/index.html (2 differences)
-  head > meta: attribute_differs - expected: "content='Jekyll v3.10.0'", actual: "content='Jekyll v4.4.1'"
-  body > div > footer > div > div > a > svg: missing_element - expected: '<svg>', actual: '(none)'
-DIFF govcloud/index.html (8 differences)
-  meta: missing_element - expected: '<meta>', actual: '(none)'
-  title: missing_element - expected: '<title>', actual: '(none)'
-  link: missing_element - expected: '<link>', actual: '(none)'
-  script: missing_element - expected: '<script>', actual: '(none)'
-  meta: missing_element - expected: '<meta>', actual: '(none)'
-  meta: missing_element - expected: '<meta>', actual: '(none)'
-  h1: missing_element - expected: '<h1>', actual: '(none)'
-  a: missing_element - expected: '<a>', actual: '(none)'
+DIFF community/index.html (3164 differences)
+  body > div > div > div > div > div > div > div > a > img: attribute_differs - expected: "data-src='https://avatars2.githubusercontent.com/argob?v=3&s=60'", actual: "data-src='https://avatars.githubusercontent.com/argob?v=4&s=60'"
+  body > div > div > div > div > div > div > div > a > img: attribute_differs - expected: "data-srcset='https://avatars2.githubusercontent.com/argob?v=3&s=60 1x, https://avatars2.githubusercontent.com/argob?v=3&s=120 2x, https://avatars2.githubusercontent.com/argob?v=3&s=180 3x, https://ava", actual: "data-srcset='https://avatars.githubusercontent.com/argob?v=4&s=60 1x, https://avatars.githubusercontent.com/argob?v=4&s=120 2x, https://avatars.githubusercontent.com/argob?v=4&s=180 3x, https://avatar"
+  body > div > div > div > div > div > div > div > a > img: attribute_differs - expected: "data-src='https://avatars3.githubusercontent.com/cifasis?v=3&s=60'", actual: "data-src='https://avatars.githubusercontent.com/cifasis?v=4&s=60'"
+  body > div > div > div > div > div > div > div > a > img: attribute_differs - expected: "data-srcset='https://avatars3.githubusercontent.com/cifasis?v=3&s=60 1x, https://avatars3.githubusercontent.com/cifasis?v=3&s=120 2x, https://avatars3.githubusercontent.com/cifasis?v=3&s=180 3x, https", actual: "data-srcset='https://avatars.githubusercontent.com/cifasis?v=4&s=60 1x, https://avatars.githubusercontent.com/cifasis?v=4&s=120 2x, https://avatars.githubusercontent.com/cifasis?v=4&s=180 3x, https://"
+  body > div > div > div > div > div > div > div > a > img: attribute_differs - expected: "data-src='https://avatars2.githubusercontent.com/gcba?v=3&s=60'", actual: "data-src='https://avatars.githubusercontent.com/gcba?v=4&s=60'"
+  body > div > div > div > div > div > div > div > a > img: attribute_differs - expected: "data-srcset='https://avatars2.githubusercontent.com/gcba?v=3&s=60 1x, https://avatars2.githubusercontent.com/gcba?v=3&s=120 2x, https://avatars2.githubusercontent.com/gcba?v=3&s=180 3x, https://avatar", actual: "data-srcset='https://avatars.githubusercontent.com/gcba?v=4&s=60 1x, https://avatars.githubusercontent.com/gcba?v=4&s=120 2x, https://avatars.githubusercontent.com/gcba?v=4&s=180 3x, https://avatars.g"
+  body > div > div > div > div > div > div > div > a > img: attribute_differs - expected: "data-src='https://avatars1.githubusercontent.com/inti-cmnb?v=3&s=60'", actual: "data-src='https://avatars.githubusercontent.com/inti-cmnb?v=4&s=60'"
+  body > div > div > div > div > div > div > div > a > img: attribute_differs - expected: "data-srcset='https://avatars1.githubusercontent.com/inti-cmnb?v=3&s=60 1x, https://avatars1.githubusercontent.com/inti-cmnb?v=3&s=120 2x, https://avatars1.githubusercontent.com/inti-cmnb?v=3&s=180 3x,", actual: "data-srcset='https://avatars.githubusercontent.com/inti-cmnb?v=4&s=60 1x, https://avatars.githubusercontent.com/inti-cmnb?v=4&s=120 2x, https://avatars.githubusercontent.com/inti-cmnb?v=4&s=180 3x, ht"
+  body > div > div > div > div > div > div > div > a > img: attribute_differs - expected: "data-src='https://avatars3.githubusercontent.com/municipalidad-de-vicente-lopez?v=3&s=60'", actual: "data-src='https://avatars.githubusercontent.com/municipalidad-de-vicente-lopez?v=4&s=60'"
+  body > div > div > div > div > div > div > div > a > img: attribute_differs - expected: "data-srcset='https://avatars3.githubusercontent.com/municipalidad-de-vicente-lopez?v=3&s=60 1x, https://avatars3.githubusercontent.com/municipalidad-de-vicente-lopez?v=3&s=120 2x, https://avatars3.git", actual: "data-srcset='https://avatars.githubusercontent.com/municipalidad-de-vicente-lopez?v=4&s=60 1x, https://avatars.githubusercontent.com/municipalidad-de-vicente-lopez?v=4&s=120 2x, https://avatars.github"
+  ... and 3154 more differences
 DIFF index.html (8 differences)
   child[1]: tag_name_differs - expected: 'meta', actual: 'head'
   child[2]: tag_name_differs - expected: 'title', actual: 'body'
@@ -74,55 +34,5 @@ DIFF index.html (8 differences)
   meta: missing_element - expected: '<meta>', actual: '(none)'
   h1: missing_element - expected: '<h1>', actual: '(none)'
   a: missing_element - expected: '<a>', actual: '(none)'
-DIFF stories/canadian-web-experience-toolkit.html (4 differences)
-  link: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/canadian-web-experience-toolkit.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  meta: attribute_differs - expected: "content='0; url=https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/canadian-web-experience-toolkit.md'", actual: "content='0; url=https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  a: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/canadian-web-experience-toolkit.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  script: text_differs - expected: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/canadian-web-experience-toolkit.md'", actual: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-DIFF stories/design-a-street-with-streetmix.html (4 differences)
-  link: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/design-a-street-with-streetmix.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  meta: attribute_differs - expected: "content='0; url=https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/design-a-street-with-streetmix.md'", actual: "content='0; url=https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  a: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/design-a-street-with-streetmix.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  script: text_differs - expected: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/design-a-street-with-streetmix.md'", actual: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-DIFF stories/forking-your-city.html (4 differences)
-  link: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/forking-your-city.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  meta: attribute_differs - expected: "content='0; url=https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/forking-your-city.md'", actual: "content='0; url=https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  a: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/forking-your-city.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  script: text_differs - expected: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/forking-your-city.md'", actual: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-DIFF stories/gds-source-control.html (4 differences)
-  link: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/gds-source-control.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  meta: attribute_differs - expected: "content='0; url=https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/gds-source-control.md'", actual: "content='0; url=https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  a: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/gds-source-control.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  script: text_differs - expected: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/gds-source-control.md'", actual: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-DIFF stories/modern-approach-to-open-data.html (4 differences)
-  link: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/modern-approach-to-open-data.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  meta: attribute_differs - expected: "content='0; url=https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/modern-approach-to-open-data.md'", actual: "content='0; url=https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  a: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/modern-approach-to-open-data.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  script: text_differs - expected: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/modern-approach-to-open-data.md'", actual: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-DIFF stories/opening-up-informatics-for-cancer-research.html (4 differences)
-  link: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/opening-up-informatics-for-cancer-research.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  meta: attribute_differs - expected: "content='0; url=https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/opening-up-informatics-for-cancer-research.md'", actual: "content='0; url=https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  a: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/opening-up-informatics-for-cancer-research.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  script: text_differs - expected: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/opening-up-informatics-for-cancer-research.md'", actual: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-DIFF stories/philadelphia-gets-going-and-gets-open.html (4 differences)
-  link: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/philadelphia-gets-going-and-gets-open.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  meta: attribute_differs - expected: "content='0; url=https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/philadelphia-gets-going-and-gets-open.md'", actual: "content='0; url=https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  a: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/philadelphia-gets-going-and-gets-open.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  script: text_differs - expected: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/philadelphia-gets-going-and-gets-open.md'", actual: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-DIFF stories/project-open-data.html (4 differences)
-  link: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/project-open-data.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  meta: attribute_differs - expected: "content='0; url=https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/project-open-data.md'", actual: "content='0; url=https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  a: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/project-open-data.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  script: text_differs - expected: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/project-open-data.md'", actual: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-DIFF stories/public-private-collaborations.html (4 differences)
-  link: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/public-private-collaborations.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  meta: attribute_differs - expected: "content='0; url=https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/public-private-collaborations.md'", actual: "content='0; url=https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  a: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/public-private-collaborations.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  script: text_differs - expected: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/public-private-collaborations.md'", actual: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-DIFF stories/xas-software.html (4 differences)
-  link: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/xas-software.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  meta: attribute_differs - expected: "content='0; url=https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/xas-software.md'", actual: "content='0; url=https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  a: attribute_differs - expected: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/xas-software.md'", actual: "href='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
-  script: text_differs - expected: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/xas-software.md'", actual: "location='https://government-community.githubapp.com/government/best-practices/blob/master/docs/case-studies/.md'"
 
-Summary: 1 files matched, 20 files with differences, 9588 total differences
+Summary: 8 files matched, 3 files with differences, 3180 total differences (6 acceptable diffs filtered out)

@@ -2,5 +2,17 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/mojombo-blog/_site_jekyll_
 Rustkyll directory: /home/alexey/git/rustkyl/websites/mojombo-blog/_site_rustkyll_recount
 Common HTML files:  17
 
+DIFF 2016/11/10/snyk.html (28 differences)
+  body > div > div > p > a > img: missing_element - expected: '<img>', actual: '(none)'
+  body > div > div > child[6]: tag_name_differs - expected: 'p', actual: 'img'
+  body > div > div > p: missing_text - expected: 'The fact is, security is hard. And it’s getting harder every day. To win, you have to get it right e', actual: '(none)'
+  body > div > div > p: text_differs - expected: 'During my years at GitHub, I spent a lot of time assembling a dedicated security team, managing security audits and penetration tests, and working to establish a culture of security awareness amongst ', actual: 'I’ve used a fair number of emotionally charged words above that might be triggering your FUD detectors right about now. But be advised: it’s not paranoia when they really are out to get you. If recent'
+  body > div > div > p: text_differs - expected: 'A year ago I was contemplating this, especially the difficult proposition of having developers, furious at work on new features, constantly maintain awareness of security vulnerabilities they might be', actual: 'The fact is, security is hard. And it’s getting harder every day. To win, you have to get it right every single time. To lose (and lose big), you only have to screw it up once.'
+  body > div > div > p: text_differs - expected: 'Open source projects are not known for their excellent security records. Vulnerabilities like', actual: 'During my years at GitHub, I spent a lot of time assembling a dedicated security team, managing security audits and penetration tests, and working to establish a culture of security awareness amongst '
+  body > div > div > p > a: missing_element - expected: '<a>', actual: '(none)'
+  body > div > div > p: missing_text - expected: 'and', actual: '(none)'
+  body > div > div > p > a: missing_element - expected: '<a>', actual: '(none)'
+  body > div > div > p: missing_text - expected: 'painfully demonstrate the idea that “given enough eyeballs, all bugs are shallow” is completely fals', actual: '(none)'
+  ... and 18 more differences
 
-Summary: 17 files matched, 0 files with differences, 0 total differences
+Summary: 16 files matched, 1 files with differences, 28 total differences

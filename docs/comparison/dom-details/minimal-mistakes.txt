@@ -1,0 +1,19 @@
+Jekyll directory:   /home/alexey/git/rustkyl/websites/minimal-mistakes/_site_jekyll_cached
+Rustkyll directory: /home/alexey/git/rustkyl/websites/minimal-mistakes/_site_rustkyll_recount
+Common HTML files:  1
+Only in rustkyll:   31
+
+DIFF index.html (38 differences)
+  head > meta: attribute_differs - expected: "content='An amazing website.'", actual: "content='A flexible two-column Jekyll theme. Perfect for building personal sites, blogs, and portfolios. Latest release v4.28.0'"
+  head > meta: attribute_differs - expected: "content='An amazing website.'", actual: "content='A flexible two-column Jekyll theme. Perfect for building personal sites, blogs, and portfolios. Latest release v4.28.0'"
+  head > child[11]: tag_name_differs - expected: 'link', actual: 'meta'
+  head > child[12]: tag_name_differs - expected: 'script', actual: 'link'
+  head > child[13]: tag_name_differs - expected: 'link', actual: 'script'
+  head > child[14]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > child[15]: tag_name_differs - expected: 'script', actual: 'meta'
+  head > child[16]: tag_name_differs - expected: 'link', actual: 'script'
+  head > link: missing_attribute - expected: "as='style'", actual: '(none)'
+  head > link: attribute_differs - expected: "href='https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css'", actual: "href='/assets/css/main.css'"
+  ... and 28 more differences
+
+Summary: 0 files matched, 1 files with differences, 38 total differences

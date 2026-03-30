@@ -2,118 +2,188 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/alexeygrigorev/snippets/_s
 Rustkyll directory: /home/alexey/git/rustkyl/websites/alexeygrigorev/snippets/_site_rustkyll_recount
 Common HTML files:  25
 
-DIFF snippets/ai/llm-api-cost-tracker.html (6 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'div'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-DIFF snippets/ai/openai-agents-basic.html (5 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-DIFF snippets/ai/openai-responses-function-calls.html (11 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h1: extra_element - expected: '(none)', actual: '<h1>'
-  ... and 1 more differences
-DIFF snippets/ai/pydantic-ai-streaming.html (5 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-DIFF snippets/ai/pydantic-ai-toyaikit.html (5 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-DIFF snippets/ai/pydantic-discriminated-unions.html (6 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'div'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-DIFF snippets/ai/toyaikit-agents-sdk.html (5 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-DIFF snippets/ai/toyaikit-custom-callbacks.html (2 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'div'
-DIFF snippets/ai/toyaikit-loop.html (8 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-DIFF snippets/ai/toyaikit-tools-example.html (6 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-DIFF snippets/devops/deploy-jekyll-pages-action.html (4 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'div'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-DIFF snippets/devops/dockerfile-uv-python.html (4 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'div'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-DIFF snippets/devops/python-project-makefile.html (4 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'div'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-DIFF snippets/python/async_batch_queue.html (6 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'div'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-DIFF snippets/python/async_map_tqdm.html (6 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'div'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-DIFF snippets/python/threaded_map_tqdm.html (7 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'div'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  ul: extra_element - expected: '(none)', actual: '<ul>'
-DIFF snippets/tools/uv-path-dependencies.html (6 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
+DIFF snippets/ai/llm-api-cost-tracker.html (657 differences)
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='s'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '"', actual: '"openai:gpt-4o-mini"'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='p'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: 'openai:gpt-4o-mini', actual: ':'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='p'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '"', actual: '{'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='p'", actual: "class='s'"
+  ... and 647 more differences
+DIFF snippets/ai/openai-agents-basic.html (135 differences)
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='s'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '"""', actual: '"""Fetch and return the content of a web page."""'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='c1'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: 'Fetch and return the content of a web page.', actual: '# Implementation would fetch actual page content'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='k'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '"""', actual: 'pass'
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '# Implementation would fetch actual page content', actual: '# Create agent with instructions and tools'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='k'", actual: "class='n'"
+  ... and 125 more differences
+DIFF snippets/ai/openai-responses-function-calls.html (380 differences)
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='s'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '"', actual: '"type"'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='p'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: 'type', actual: ':'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='s'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '"', actual: '"function"'
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: ':', actual: ','
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='s'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '"', actual: '"name"'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='p'"
+  ... and 370 more differences
+DIFF snippets/ai/pydantic-ai-streaming.html (976 differences)
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='s'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '"""', actual: '"""Handles streaming display of agent execution"""'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='k'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: 'Handles streaming display of agent execution', actual: 'def'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='nf'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '"""', actual: '__init__'
+  ... and 966 more differences
+DIFF snippets/ai/pydantic-ai-toyaikit.html (172 differences)
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='p'", actual: "class='kc'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='n'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='nc'", actual: "class='n'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='s'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: "'", actual: "'openai:gpt-4o-mini'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='p'"
+  ... and 162 more differences
+DIFF snippets/ai/pydantic-discriminated-unions.html (558 differences)
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nb'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='s'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '"', actual: '"text"'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='p'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: 'text', actual: ']'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='o'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '"', actual: '='
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='p'", actual: "class='s'"
+  ... and 548 more differences
+DIFF snippets/ai/toyaikit-agents-sdk.html (183 differences)
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='p'", actual: "class='kc'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='n'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='nc'", actual: "class='n'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='s'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '"', actual: '"CodingAgent"'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='p'"
+  ... and 173 more differences
+DIFF snippets/ai/toyaikit-custom-callbacks.html (6 differences)
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nb'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='nc'", actual: "class='n'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='nc'", actual: "class='n'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='n'"
+DIFF snippets/ai/toyaikit-loop.html (156 differences)
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='nc'", actual: "class='n'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='nc'", actual: "class='n'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='nc'", actual: "class='n'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='nc'", actual: "class='n'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='s'"
+  ... and 146 more differences
+DIFF snippets/ai/toyaikit-tools-example.html (252 differences)
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='nc'", actual: "class='n'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '# Add a simple function as a tool # important: define doc strings and typehints', actual: '# Add a simple function as a tool'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='k'", actual: "class='c1'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: 'def', actual: '# important: define doc strings and typehints'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='k'"
+  ... and 242 more differences
+DIFF snippets/devops/deploy-jekyll-pages-action.html (5 differences)
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='s1'", actual: "class='s2'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='s1'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='s1'", actual: "class='s2'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='s1'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
+DIFF snippets/devops/dockerfile-uv-python.html (17 differences)
+  body > div > main > article > div > div > div > pre > code: text_differs - expected: 'uv', actual: 'uv sync'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nt'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: 'sync', actual: '--frozen'
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '--frozen', actual: '--no-dev'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='nt'", actual: "class='k'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '--no-dev', actual: 'COPY'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='k'", actual: "class='s'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: 'COPY', actual: '. .'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='k'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '. .', actual: 'EXPOSE'
+  ... and 7 more differences
+DIFF snippets/devops/python-project-makefile.html (90 differences)
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='nv'", actual: "class='n'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='p'", actual: "class='s'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '$(', actual: '$(shell date +'
+  body > div > main > article > div > div > div > pre > code: expected_text_got_element - expected: 'shell', actual: '<span>'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='s2'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: 'date', actual: '"%Y-%m-%d-%H-%M"'
+  body > div > main > article > div > div > div > pre > code: expected_text_got_element - expected: '+', actual: '<span>'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='s2'", actual: "class='s'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '"%Y-%m-%d-%H-%M"', actual: ')'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='p'", actual: "class='nf'"
+  ... and 80 more differences
+DIFF snippets/python/async_batch_queue.html (502 differences)
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='s'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '"""', actual: '"""Collects items and flushes them in batches at regular intervals."""'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='k'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: 'Collects items and flushes them in batches at regular intervals.', actual: 'def'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='nf'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '"""', actual: '__init__'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='k'", actual: "class='p'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: 'def', actual: '('
+  ... and 492 more differences
+DIFF snippets/python/async_map_tqdm.html (220 differences)
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='s'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '"""', actual: '"""Asynchronously map an async function over a sequence with progress bar. Limits concurrency to `max_concurrency`. """'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='n'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: 'Asynchronously map an async function over a sequence with progress bar. Limits concurrency to `max_concurrency`.', actual: 'semaphore'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='o'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '"""', actual: '='
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: 'semaphore', actual: 'asyncio'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
+  ... and 210 more differences
+DIFF snippets/python/threaded_map_tqdm.html (220 differences)
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='s'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '"""', actual: '"""Map function f over seq using the provided executor pool while displaying a tqdm progress bar. Returns a list of results in submission order. """'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='n'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: 'Map function f over seq using the provided executor pool while displaying a tqdm progress bar. Returns a list of results in submission order.', actual: 'results'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='o'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: '"""', actual: '='
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='p'"
+  body > div > main > article > div > div > div > pre > code > span: text_differs - expected: 'results', actual: '[]'
+  ... and 210 more differences
+DIFF snippets/tools/uv-path-dependencies.html (1 differences)
+  body > div > main > article > div > child[6]: tag_name_differs - expected: 'div', actual: 'pre'
 
-Summary: 8 files matched, 17 files with differences, 96 total differences
+Summary: 8 files matched, 17 files with differences, 4530 total differences

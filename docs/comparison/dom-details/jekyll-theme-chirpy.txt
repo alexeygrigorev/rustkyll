@@ -1,17 +1,24 @@
 Jekyll directory:   /home/alexey/git/rustkyl/websites/jekyll-theme-chirpy/_site_jekyll_cached
 Rustkyll directory: /home/alexey/git/rustkyl/websites/jekyll-theme-chirpy/_site_rustkyll_recount
-Common HTML files:  13
-Only in Jekyll:     4
-Only in rustkyll:   4
+Common HTML files:  17
 
 DIFF 404.html (3 differences)
   (root): expected_element_got_text - expected: '<head>', actual: '{% include lang.html %}'
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   body: missing_element - expected: '<body>', actual: '(none)'
+DIFF about/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'blockquote'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF archives/index.html (2 differences)
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
 DIFF categories/blogging/index.html (2 differences)
   head: missing_element - expected: '<head>', actual: '(none)'
   body: missing_element - expected: '<body>', actual: '(none)'
 DIFF categories/demo/index.html (2 differences)
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF categories/index.html (2 differences)
   head: missing_element - expected: '<head>', actual: '(none)'
   body: missing_element - expected: '<body>', actual: '(none)'
 DIFF categories/tutorial/index.html (2 differences)
@@ -44,7 +51,7 @@ DIFF posts/getting-started/index.html (48 differences)
   h2: extra_element - expected: '(none)', actual: '<h2>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 38 more differences
-DIFF posts/text-and-typography/index.html (65 differences)
+DIFF posts/text-and-typography/index.html (62 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'h1'
   h2: extra_element - expected: '(none)', actual: '<h2>'
@@ -55,23 +62,14 @@ DIFF posts/text-and-typography/index.html (65 differences)
   h2: extra_element - expected: '(none)', actual: '<h2>'
   h3: extra_element - expected: '(none)', actual: '<h3>'
   ol: extra_element - expected: '(none)', actual: '<ol>'
-  ... and 55 more differences
-DIFF posts/write-a-new-post/index.html (137 differences)
-  child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'h2'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h2: extra_element - expected: '(none)', actual: '<h2>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  div: extra_element - expected: '(none)', actual: '<div>'
-  blockquote: extra_element - expected: '(none)', actual: '<blockquote>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  p: extra_element - expected: '(none)', actual: '<p>'
-  h3: extra_element - expected: '(none)', actual: '<h3>'
-  ... and 127 more differences
+  ... and 52 more differences
 DIFF tags/favicon/index.html (2 differences)
   head: missing_element - expected: '<head>', actual: '(none)'
   body: missing_element - expected: '<body>', actual: '(none)'
 DIFF tags/getting-started/index.html (2 differences)
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF tags/index.html (2 differences)
   head: missing_element - expected: '<head>', actual: '(none)'
   body: missing_element - expected: '<body>', actual: '(none)'
 DIFF tags/typography/index.html (2 differences)
@@ -81,4 +79,4 @@ DIFF tags/writing/index.html (2 differences)
   head: missing_element - expected: '<head>', actual: '(none)'
   body: missing_element - expected: '<body>', actual: '(none)'
 
-Summary: 0 files matched, 13 files with differences, 281 total differences
+Summary: 1 files matched, 16 files with differences, 149 total differences (138 acceptable diffs filtered out)

@@ -1,6 +1,30 @@
-Jekyll directory:   websites/midnight-theme/_site_jekyll_cached
-Rustkyll directory: /tmp/midnight-theme_fix
+Jekyll directory:   /home/alexey/git/rustkyl/websites/midnight-theme/_site_jekyll_cached
+Rustkyll directory: /home/alexey/git/rustkyl/websites/midnight-theme/_site_rustkyll_recount
 Common HTML files:  2
 
+DIFF another-page.html (24 differences)
+  head > meta > meta > child[4]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: attribute_differs - expected: "content='website'", actual: "content='/another-page.html'"
+  head > meta > meta > meta: attribute_differs - expected: "property='og:type'", actual: "property='og:url'"
+  head > meta > meta > meta: attribute_differs - expected: "content='summary'", actual: "content='Midnight theme'"
+  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:site_name'"
+  head > meta > meta > meta: attribute_differs - expected: "content='Midnight theme'", actual: "content='website'"
+  head > meta > meta > meta: attribute_differs - expected: "property='twitter:title'", actual: "property='og:type'"
+  head > meta > meta > child[8]: tag_name_differs - expected: 'script', actual: 'meta'
+  head > meta > meta > child[9]: tag_name_differs - expected: 'link', actual: 'meta'
+  ... and 14 more differences
+DIFF index.html (26 differences)
+  head > meta > meta > child[4]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: attribute_differs - expected: "content='website'", actual: "content='/'"
+  head > meta > meta > meta: attribute_differs - expected: "property='og:type'", actual: "property='og:url'"
+  head > meta > meta > meta: attribute_differs - expected: "content='summary'", actual: "content='Midnight theme'"
+  head > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:site_name'"
+  head > meta > meta > meta: attribute_differs - expected: "content='Midnight theme'", actual: "content='website'"
+  head > meta > meta > meta: attribute_differs - expected: "property='twitter:title'", actual: "property='og:type'"
+  head > meta > meta > child[8]: tag_name_differs - expected: 'script', actual: 'meta'
+  head > meta > meta > child[9]: tag_name_differs - expected: 'link', actual: 'meta'
+  ... and 16 more differences
 
-Summary: 2 files matched, 0 files with differences, 0 total differences
+Summary: 0 files matched, 2 files with differences, 50 total differences (2 acceptable diffs filtered out)

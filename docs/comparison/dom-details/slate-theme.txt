@@ -2,5 +2,19 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/slate-theme/_site_jekyll_c
 Rustkyll directory: /home/alexey/git/rustkyl/websites/slate-theme/_site_rustkyll_recount
 Common HTML files:  2
 
+DIFF another-page.html (5 differences)
+  head > meta > meta > meta > child[3]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+DIFF index.html (7 differences)
+  head > meta > meta > meta > child[3]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  body > div > section > child[27]: tag_name_differs - expected: 'p', actual: 'img'
+  body > div > section > child[29]: tag_name_differs - expected: 'p', actual: 'img'
 
-Summary: 2 files matched, 0 files with differences, 0 total differences
+Summary: 0 files matched, 2 files with differences, 12 total differences (2 acceptable diffs filtered out)

@@ -73,7 +73,13 @@ impl LayoutEngine {
     /// engine fails to build.
     pub fn new(layouts_dir: &Path, includes_dir: &Path) -> Result<Self, TemplateError> {
         let layouts = load_layouts(layouts_dir)?;
-        let engine = TemplateEngine::with_includes(includes_dir)?;
+        let layout_sources: HashMap<String, String> = layouts
+            .iter()
+            .map(|(k, v)| (k.clone(), v.source.clone()))
+            .collect();
+        let includes_map = super::engine::load_includes(includes_dir)?;
+        let engine =
+            TemplateEngine::with_includes_and_extra_sources(&includes_map, &layout_sources)?;
         let compiled_layouts = Self::compile_layouts(&layouts, &engine)?;
         let layout_objects = Self::precompute_layout_objects(&layouts);
         Ok(Self {
@@ -94,7 +100,11 @@ impl LayoutEngine {
         layouts: HashMap<String, Layout>,
         includes: &HashMap<String, String>,
     ) -> Result<Self, TemplateError> {
-        let engine = TemplateEngine::with_includes_map(includes)?;
+        let layout_sources: HashMap<String, String> = layouts
+            .iter()
+            .map(|(k, v)| (k.clone(), v.source.clone()))
+            .collect();
+        let engine = TemplateEngine::with_includes_and_extra_sources(includes, &layout_sources)?;
         let compiled_layouts = Self::compile_layouts(&layouts, &engine)?;
         let layout_objects = Self::precompute_layout_objects(&layouts);
         Ok(Self {
@@ -4702,6 +4712,52 @@ mod tests {
         assert_eq!(
             intermediate, content_only,
             "Capture intermediate should match content-only render"
+        );
+    }
+
+    // ========================================================================
+    // Issue 345: Unknown filters in layouts should be handled as passthrough
+    // ========================================================================
+
+    #[test]
+    fn test_layout_with_unknown_filter_regex_replace() {
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "bib".to_string(),
+            Layout {
+                source: "{%- assign author_last_name = author.last | regex_replace: 'pattern', '' -%}{{ author_last_name }}".to_string(),
+                parent_layout: None,
+                front_matter: HashMap::new(),
+            },
+        );
+        let includes = HashMap::new();
+        let result = LayoutEngine::from_maps(layouts, &includes);
+        if let Err(e) = &result {
+            eprintln!("Layout with regex_replace failed: {}", e);
+        }
+        assert!(result.is_ok(), "Layout with regex_replace should not fail");
+    }
+
+    #[test]
+    fn test_layout_with_unknown_filter_asterisk_args() {
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "bib".to_string(),
+            Layout {
+                source: "{%- assign name = author.last | regex_replace: '[*]', '' -%}{{ name }}"
+                    .to_string(),
+                parent_layout: None,
+                front_matter: HashMap::new(),
+            },
+        );
+        let includes = HashMap::new();
+        let result = LayoutEngine::from_maps(layouts, &includes);
+        if let Err(e) = &result {
+            eprintln!("Layout with regex_replace and special chars failed: {}", e);
+        }
+        assert!(
+            result.is_ok(),
+            "Layout with regex_replace and special chars should not fail"
         );
     }
 }

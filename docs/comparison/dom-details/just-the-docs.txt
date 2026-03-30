@@ -2,546 +2,312 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/just-the-docs/_site_jekyll
 Rustkyll directory: /home/alexey/git/rustkyl/websites/just-the-docs/_site_rustkyll_recount
 Common HTML files:  47
 
-DIFF 404.html (4 differences)
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-DIFF CHANGELOG/index.html (878 differences)
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='changelog'", actual: 'aria-labelledby=\'"changelog"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "viewbox='0 0 16 16'", actual: 'viewbox=\'"0\''
-  ... and 868 more differences
-DIFF MIGRATION/index.html (568 differences)
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='migrating-and-upgrading'", actual: 'aria-labelledby=\'"migrating-and-upgrading"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "viewbox='0 0 16 16'", actual: 'viewbox=\'"0\''
-  ... and 558 more differences
-DIFF docs/configuration/index.html (292 differences)
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='configuration'", actual: 'aria-labelledby=\'"configuration"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "viewbox='0 0 16 16'", actual: 'viewbox=\'"0\''
-  ... and 282 more differences
-DIFF docs/customization/index.html (320 differences)
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='customization'", actual: 'aria-labelledby=\'"customization"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "viewbox='0 0 16 16'", actual: 'viewbox=\'"0\''
-  ... and 310 more differences
-DIFF docs/index-test/index.html (513 differences)
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='header-1'", actual: 'aria-labelledby=\'"header-1"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "viewbox='0 0 16 16'", actual: 'viewbox=\'"0\''
-  ... and 503 more differences
-DIFF docs/layout/layout/index.html (71 differences)
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='layout'", actual: 'aria-labelledby=\'"layout"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "viewbox='0 0 16 16'", actual: 'viewbox=\'"0\''
-  ... and 61 more differences
-DIFF docs/layout/minimal/default-child/index.html (12 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(5) > ul > li:nth-child(1) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(5) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(5) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(5) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(5) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(5) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(5) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='default-layout-child-page'", actual: 'aria-labelledby=\'"default-layout-child-page"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 2 more differences
-DIFF docs/layout/minimal/minimal-child/index.html (6 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li:not(:nth-child(2)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(5) > ul > li:nth-child(1) > ul > li:nth-child(2) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(5) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(5) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(5) > ul > li:nth-child(1) > ul > li:nth-child(2) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(5) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(5) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(5) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > child[3]: tag_name_differs - expected: 'div', actual: 'header'
-  head > meta > meta > meta > link > body > child[4]: tag_name_differs - expected: 'script', actual: 'div'
-  head > meta > meta > meta > link > body > script: extra_attribute - expected: '(none)', actual: "src='https://cdn.jsdelivr.net/npm/mermaid@9.1.6/dist/mermaid.min.js'"
-  head > meta > meta > meta > link > body > script: missing_text - expected: 'var config = {} ; mermaid.initialize(config); window.mermaid.init(undefined, document.querySelectorA', actual: '(none)'
-  head > meta > meta > meta > link > body > script: extra_element - expected: '(none)', actual: '<script>'
-DIFF docs/layout/minimal/minimal/index.html (6 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(5) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(5) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(5) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(5) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(5) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > child[3]: tag_name_differs - expected: 'div', actual: 'header'
-  head > meta > meta > meta > link > body > child[4]: tag_name_differs - expected: 'script', actual: 'div'
-  head > meta > meta > meta > link > body > script: extra_attribute - expected: '(none)', actual: "src='https://cdn.jsdelivr.net/npm/mermaid@9.1.6/dist/mermaid.min.js'"
-  head > meta > meta > meta > link > body > script: missing_text - expected: 'var config = {} ; mermaid.initialize(config); window.mermaid.init(undefined, document.querySelectorA', actual: '(none)'
-  head > meta > meta > meta > link > body > script: extra_element - expected: '(none)', actual: '<script>'
-DIFF docs/minimal-test/index.html (5 differences)
-  head > meta > meta > meta > link > body > child[3]: tag_name_differs - expected: 'div', actual: 'header'
-  head > meta > meta > meta > link > body > child[4]: tag_name_differs - expected: 'script', actual: 'div'
-  head > meta > meta > meta > link > body > script: extra_attribute - expected: '(none)', actual: "src='https://cdn.jsdelivr.net/npm/mermaid@9.1.6/dist/mermaid.min.js'"
-  head > meta > meta > meta > link > body > script: missing_text - expected: 'var config = {} ; mermaid.initialize(config); window.mermaid.init(undefined, document.querySelectorA', actual: '(none)'
-  head > meta > meta > meta > link > body > script: extra_element - expected: '(none)', actual: '<script>'
-DIFF docs/navigation/auxiliary/index.html (20 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(2)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(2) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(2) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='auxiliary-links'", actual: 'aria-labelledby=\'"auxiliary-links"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 10 more differences
-DIFF docs/navigation/children/index.html (41 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(4)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(4) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(4) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='child-pages'", actual: 'aria-labelledby=\'"child-pages"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 31 more differences
-DIFF docs/navigation/in-page/index.html (78 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(5)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(5) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(5) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(5) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='in-page-navigation'", actual: 'aria-labelledby=\'"in-page-navigation"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 68 more differences
-DIFF docs/navigation/index.html (14 differences)
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='navigation'", actual: 'aria-labelledby=\'"navigation"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "viewbox='0 0 16 16'", actual: 'viewbox=\'"0\''
-  ... and 4 more differences
-DIFF docs/navigation/main/ancestry/index.html (85 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li:not(:nth-child(4)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='ancestry'", actual: 'aria-labelledby=\'"ancestry"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 75 more differences
-DIFF docs/navigation/main/collections/index.html (33 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li:not(:nth-child(5)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(5) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(5) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(5) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='collections'", actual: 'aria-labelledby=\'"collections"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 23 more differences
-DIFF docs/navigation/main/exclude/index.html (51 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li:not(:nth-child(2)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(2) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(2) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='excluding-pages'", actual: 'aria-labelledby=\'"excluding-pages"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 41 more differences
-DIFF docs/navigation/main/external/index.html (27 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li:not(:nth-child(6)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(6) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(6) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(6) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='external-links'", actual: 'aria-labelledby=\'"external-links"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 17 more differences
-DIFF docs/navigation/main/index.html (37 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='main-navigation'", actual: 'aria-labelledby=\'"main-navigation"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 27 more differences
-DIFF docs/navigation/main/levels/index.html (167 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li:not(:nth-child(3)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(3) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(3) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(3) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='page-levels'", actual: 'aria-labelledby=\'"page-levels"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 157 more differences
-DIFF docs/navigation/main/order/index.html (52 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='ordering-pages'", actual: 'aria-labelledby=\'"ordering-pages"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 42 more differences
-DIFF docs/navigation/main/x/index.html (15 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='x'", actual: 'aria-labelledby=\'"x"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 5 more differences
-DIFF docs/navigation/main/xs/index.html (15 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='s'", actual: 'aria-labelledby=\'"s"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 5 more differences
-DIFF docs/navigation/main/xt/index.html (15 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > ul > li:nth-child(1) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='t'", actual: 'aria-labelledby=\'"t"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 5 more differences
-DIFF docs/navigation/main/xu/index.html (12 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > ul > li:nth-child(1) > ul > li:nth-child(1) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(1) > ul > li:nth-child(1) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='u'", actual: 'aria-labelledby=\'"u"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 2 more differences
-DIFF docs/navigation/main/y/index.html (16 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li:not(:nth-child(2)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='y'", actual: 'aria-labelledby=\'"y"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 6 more differences
-DIFF docs/navigation/main/ys/index.html (16 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='s'", actual: 'aria-labelledby=\'"s"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 6 more differences
-DIFF docs/navigation/main/yt/index.html (16 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > ul > li:nth-child(1) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='t'", actual: 'aria-labelledby=\'"t"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 6 more differences
-DIFF docs/navigation/main/yu/index.html (13 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > ul > li:nth-child(1) > ul > li:nth-child(1) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(1) > ul > li:nth-child(4) > ul > li:nth-child(2) > ul > li:nth-child(1) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='u'", actual: 'aria-labelledby=\'"u"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 3 more differences
-DIFF docs/navigation/parents/index.html (12 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(3)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(3) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(6) > ul > li:nth-child(3) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(3) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='breadcrumbs'", actual: 'aria-labelledby=\'"breadcrumbs"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 2 more differences
-DIFF docs/search/index.html (233 differences)
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='search'", actual: 'aria-labelledby=\'"search"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "viewbox='0 0 16 16'", actual: 'viewbox=\'"0\''
-  ... and 223 more differences
-DIFF docs/ui-components/buttons/index.html (64 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(2)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(2) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(3) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(2) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='buttons'", actual: 'aria-labelledby=\'"buttons"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
+DIFF CHANGELOG/index.html (6 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > ul > li > li: expected_text_got_element - expected: '~BaseURL has been modified #109~ Reverted – seems the existing implementation worked', actual: '<del>'
+  head > meta > meta > meta > link > body > div > div > div > main > ul > li > li > child[1]: tag_name_differs - expected: 'li', actual: 'del'
+  head > meta > meta > meta > link > body > div > div > div > main > ul > li > li: extra_text - expected: '(none)', actual: 'Reverted – seems the existing implementation worked'
+  head > meta > meta > meta > link > body > div > div > div > main > p: expected_text_got_element - expected: '~#109 by @daviddarnes - Fix baseurl link~ Reverted #135 by @SgtSilvio - Upgrades lunr.js, improves s', actual: '<del>'
+  head > meta > meta > meta > link > body > div > div > div > main > p > del: extra_element - expected: '(none)', actual: '<del>'
+  head > meta > meta > meta > link > body > div > div > div > main > p: extra_text - expected: '(none)', actual: 'Reverted #135 by @SgtSilvio - Upgrades lunr.js, improves search UI, adds heading anchors #152 by @ya'
+DIFF MIGRATION/index.html (445 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > dl > dt > dd > code: missing_attribute - expected: "class='highlighter-rouge language-plaintext'", actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > dl > dt > dd: text_differs - expected: '(as a theme or as a remote theme) automatically switches to a new release, unless it is pinned to a previous version.', actual: '(as a theme or as a remote theme) automatically'
+  head > meta > meta > meta > link > body > div > div > div > main > dl > dt > dd > child[2]: tag_name_differs - expected: 'p', actual: 'dt'
+  head > meta > meta > meta > link > body > div > div > div > main > dl > dt > dd > ul: missing_element - expected: '<ul>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > child[3]: tag_name_differs - expected: 'p', actual: 'div'
+  head > meta > meta > meta > link > body > div > div > div > main > child[4]: tag_name_differs - expected: 'h2', actual: 'p'
+  head > meta > meta > meta > link > body > div > div > div > main > child[5]: tag_name_differs - expected: 'p', actual: 'h2'
+  head > meta > meta > meta > link > body > div > div > div > main > p: text_differs - expected: 'To use a specific release explicitly as a remote theme:', actual: 'Users who have not pinned the theme version will be'
+  head > meta > meta > meta > link > body > div > div > div > main > p > strong: extra_element - expected: '(none)', actual: '<strong>'
+  head > meta > meta > meta > link > body > div > div > div > main > p: extra_text - expected: '(none)', actual: '.'
+  ... and 435 more differences
+DIFF docs/configuration/index.html (165 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > ol: missing_attribute - expected: "id='markdown-toc'", actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li: expected_element_got_text - expected: '<a>', actual: 'TOC {:toc}'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > a: missing_element - expected: '<a>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > li: missing_element - expected: '<li>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='s1'", actual: "class='s2'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='s1'"
+  ... and 155 more differences
+DIFF docs/customization/index.html (243 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > ol: missing_attribute - expected: "id='markdown-toc'", actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li: expected_element_got_text - expected: '<a>', actual: 'TOC {:toc}'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > a: missing_element - expected: '<a>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > li: missing_element - expected: '<li>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '@import "./color_schemes/dark";'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '$link-color: $blue-000;'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  ... and 233 more differences
+DIFF docs/index-test/index.html (323 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > ul > li > ul: missing_attribute - expected: "class='task-list'", actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ul > li > ul: missing_attribute - expected: "class='task-list'", actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > child[47]: tag_name_differs - expected: 'p', actual: 'img'
+  head > meta > meta > meta > link > body > div > div > div > main > child[49]: tag_name_differs - expected: 'p', actual: 'img'
+  head > meta > meta > meta > link > body > div > div > div > main > p: attribute_differs - expected: "class='label label-blue'", actual: "class='label label-red'"
+  head > meta > meta > meta > link > body > div > div > div > main > p: text_differs - expected: 'blue', actual: 'blue {: .label .label-blue } green {: .label .label-green } purple {: .label .label-purple } yellow {: .label .label-yellow } red'
+  head > meta > meta > meta > link > body > div > div > div > main > p: missing_attribute - expected: "class='label label-green'", actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > p: expected_text_got_element - expected: 'green', actual: '<strong>'
+  head > meta > meta > meta > link > body > div > div > div > main > p > strong: extra_element - expected: '(none)', actual: '<strong>'
+  head > meta > meta > meta > link > body > div > div > div > main > p > em: extra_element - expected: '(none)', actual: '<em>'
+  ... and 313 more differences
+DIFF docs/layout/layout/index.html (22 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '---'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='na'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: '---', actual: 'layout'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='na'", actual: "class='pi'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: 'layout', actual: ':'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='pi'", actual: "class='s'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: ':', actual: 'default'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='na'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: 'default', actual: 'title'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='na'", actual: "class='pi'"
+  ... and 12 more differences
+DIFF docs/navigation/children/index.html (22 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '---'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='na'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: '---', actual: 'title'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='na'", actual: "class='pi'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: 'title', actual: ':'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='pi'", actual: "class='s'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: ':', actual: 'UI Components'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='na'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: 'UI Components', actual: 'nav_order'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='na'", actual: "class='pi'"
+  ... and 12 more differences
+DIFF docs/navigation/in-page/index.html (31 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > ol: missing_attribute - expected: "id='markdown-toc'", actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li: expected_element_got_text - expected: '<a>', actual: 'TOC {:toc}'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > a: missing_element - expected: '<a>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > li: missing_element - expected: '<li>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '1'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: '1.', actual: '.'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: text_differs - expected: '- TOC {:toc}', actual: '<!-- KRAMDOWN_TOC: -->'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='gh'", actual: "class='p'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: '# In-Page Navigation', actual: '#'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: text_differs - expected: '{: .no_toc }', actual: 'In-Page Navigation {: .no_toc }'
+  ... and 21 more differences
+DIFF docs/navigation/main/ancestry/index.html (44 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '---'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='na'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: '---', actual: 'title'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='na'", actual: "class='pi'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: 'title', actual: ':'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='pi'", actual: "class='s'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: ':', actual: 'T'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='na'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: 'T', actual: 'parent'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='na'", actual: "class='pi'"
+  ... and 34 more differences
+DIFF docs/navigation/main/collections/index.html (11 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li: expected_element_got_text - expected: '<p>', actual: 'You can optionally specify a directory to store all your collections. For example, if you specify'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li > child[1]: tag_name_differs - expected: 'p', actual: 'code'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li: expected_element_got_text - expected: '<li>', actual: 'in'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li > child[2]: tag_name_differs - expected: 'li', actual: 'code'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li: extra_text - expected: '(none)', actual: ', you should then store the pages of the'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li > code: extra_element - expected: '(none)', actual: '<code>'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li: extra_text - expected: '(none)', actual: 'collection in the'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li > code: extra_element - expected: '(none)', actual: '<code>'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li: extra_text - expected: '(none)', actual: 'directory.'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li > a: extra_element - expected: '(none)', actual: '<a>'
+  ... and 1 more differences
+DIFF docs/navigation/main/exclude/index.html (28 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '---'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='na'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: '---', actual: 'layout'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='na'", actual: "class='pi'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: 'layout', actual: ':'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='pi'", actual: "class='s'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: ':', actual: 'default'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='na'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: 'default', actual: 'title'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='na'", actual: "class='pi'"
+  ... and 18 more differences
+DIFF docs/navigation/main/index.html (11 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > p > child[1]: tag_name_differs - expected: 'strong', actual: 'em'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li: expected_element_got_text - expected: '<p>', actual: 'Previous versions of Just the Docs restricted the navigation to three levels. You also needed to spe'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li > child[1]: tag_name_differs - expected: 'p', actual: 'code'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li: extra_text - expected: '(none)', actual: 'on all parent pages, and a'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li > code: extra_element - expected: '(none)', actual: '<code>'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li: extra_text - expected: '(none)', actual: 'title on all grandchild pages. The'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li > code: extra_element - expected: '(none)', actual: '<code>'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li: extra_text - expected: '(none)', actual: 'parameter is now redundant, and the'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li > code: extra_element - expected: '(none)', actual: '<code>'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li: extra_text - expected: '(none)', actual: 'parameter can usually be omitted.'
+  ... and 1 more differences
+DIFF docs/navigation/main/levels/index.html (116 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > child[3]: tag_name_differs - expected: 'div', actual: 'pre'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '---'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='na'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: '---', actual: 'title'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='na'", actual: "class='pi'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: 'title', actual: ':'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='pi'", actual: "class='s'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: ':', actual: 'UI Components'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='na'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: 'UI Components', actual: 'nav_order'
+  ... and 106 more differences
+DIFF docs/navigation/main/order/index.html (23 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '---'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='na'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: '---', actual: 'title'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='na'", actual: "class='pi'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: 'title', actual: ':'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='pi'", actual: "class='s'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: ':', actual: 'Customization'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='na'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: 'Customization', actual: 'nav_order'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='na'", actual: "class='pi'"
+  ... and 13 more differences
+DIFF docs/navigation/main/y/index.html (1 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='kc'"
+DIFF docs/navigation/main/ys/index.html (1 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='kc'"
+DIFF docs/navigation/main/yt/index.html (1 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='kc'"
+DIFF docs/navigation/main/yu/index.html (1 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='kc'"
+DIFF docs/search/index.html (105 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > ol: missing_attribute - expected: "id='markdown-toc'", actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li: expected_element_got_text - expected: '<a>', actual: 'TOC {:toc}'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > a: missing_element - expected: '<a>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > ol: missing_element - expected: '<ol>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > li: missing_element - expected: '<li>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='s1'", actual: "class='s2'"
+  ... and 95 more differences
+DIFF docs/ui-components/buttons/index.html (31 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > ol: missing_attribute - expected: "id='markdown-toc'", actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li: expected_element_got_text - expected: '<a>', actual: 'TOC {:toc}'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > a: missing_element - expected: '<a>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > ol: missing_element - expected: '<ol>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > li: missing_element - expected: '<li>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div: attribute_differs - expected: "class='code-example'", actual: "class='btn code-example'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > p > a: extra_element - expected: '(none)', actual: '<a>'
+  head > meta > meta > meta > link > body > div > div > div > main > div > p > a: extra_element - expected: '(none)', actual: '<a>'
+  head > meta > meta > meta > link > body > div > div > div > main > div > p > a: extra_element - expected: '(none)', actual: '<a>'
+  head > meta > meta > meta > link > body > div > div > div > main > div > p > a: extra_element - expected: '(none)', actual: '<a>'
+  ... and 21 more differences
+DIFF docs/ui-components/callouts/index.html (64 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='gt'", actual: "class='p'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: '> My note title', actual: '>'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'My note title'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='gt'", actual: "class='p'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='gt'", actual: "class='p'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: '> A paragraph with a custom title callout', actual: '>'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: extra_text - expected: '(none)', actual: 'A paragraph with a custom title callout'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='gt'", actual: "class='p'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: '> A paragraph', actual: '>'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'A paragraph'
   ... and 54 more differences
-DIFF docs/ui-components/callouts/index.html (102 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(7)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(7) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(3) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(7) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(7) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='callouts'", actual: 'aria-labelledby=\'"callouts"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 92 more differences
-DIFF docs/ui-components/code/index.html (123 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(6)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(6) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(3) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(6) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(6) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='code'", actual: 'aria-labelledby=\'"code"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 113 more differences
-DIFF docs/ui-components/code/line-numbers/index.html (170 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(6) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(3) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(6) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(6) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(6) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(6) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='code-snippets-with-line-numbers'", actual: 'aria-labelledby=\'"code-snippets-with-line-numbers"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 160 more differences
-DIFF docs/ui-components/index.html (14 differences)
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='ui-components'", actual: 'aria-labelledby=\'"ui-components"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "viewbox='0 0 16 16'", actual: 'viewbox=\'"0\''
-  ... and 4 more differences
-DIFF docs/ui-components/labels/index.html (27 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(3)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(3) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(3) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(3) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(3) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='labels'", actual: 'aria-labelledby=\'"labels"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 17 more differences
-DIFF docs/ui-components/lists/index.html (66 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(5)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(5) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(3) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(5) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(5) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='lists'", actual: 'aria-labelledby=\'"lists"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 56 more differences
-DIFF docs/ui-components/tables/index.html (15 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(4)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(4) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(3) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(4) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='tables'", actual: 'aria-labelledby=\'"tables"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
+DIFF docs/ui-components/code/index.html (98 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > ol: missing_attribute - expected: "id='markdown-toc'", actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li: expected_element_got_text - expected: '<a>', actual: 'TOC {:toc}'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > a: missing_element - expected: '<a>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > li: missing_element - expected: '<li>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > p > code: missing_attribute - expected: "class='highlighter-rouge language-plaintext'", actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > h2 > code: missing_attribute - expected: "class='highlighter-rouge language-plaintext'", actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > child[8]: tag_name_differs - expected: 'div', actual: 'p'
+  head > meta > meta > meta > link > body > div > div > div > main > child[9]: tag_name_differs - expected: 'hr', actual: 'h2'
+  head > meta > meta > meta > link > body > div > div > div > main > child[10]: tag_name_differs - expected: 'h2', actual: 'div'
+  head > meta > meta > meta > link > body > div > div > div > main > p: missing_element - expected: '<p>', actual: '(none)'
+  ... and 88 more differences
+DIFF docs/ui-components/code/line-numbers/index.html (148 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > figure > pre > code: expected_element_got_text - expected: '<span>', actual: '%'
+  head > meta > meta > meta > link > body > div > div > div > main > figure > pre > code > span: attribute_differs - expected: "class='err'", actual: "class='nv'"
+  head > meta > meta > meta > link > body > div > div > div > main > figure > pre > code > span: text_differs - expected: '%', actual: 'raw %'
+  head > meta > meta > meta > link > body > div > div > div > main > figure > pre > code > span: attribute_differs - expected: "class='nv'", actual: "class='p'"
+  head > meta > meta > meta > link > body > div > div > div > main > figure > pre > code > span: text_differs - expected: 'highlight some_language %', actual: '}{'
+  head > meta > meta > meta > link > body > div > div > div > main > figure > pre > code: expected_element_got_text - expected: '<span>', actual: '%'
+  head > meta > meta > meta > link > body > div > div > div > main > figure > pre > code > span: attribute_differs - expected: "class='pi'", actual: "class='nv'"
+  head > meta > meta > meta > link > body > div > div > div > main > figure > pre > code > span: text_differs - expected: '}', actual: 'highlight some_language %'
+  head > meta > meta > meta > link > body > div > div > div > main > figure > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='pi'"
+  head > meta > meta > meta > link > body > div > div > div > main > figure > pre > code > span: text_differs - expected: 'Some code', actual: '}'
+  ... and 138 more differences
+DIFF docs/ui-components/labels/index.html (15 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > div: attribute_differs - expected: "class='code-example'", actual: "class='code-example label'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > p: attribute_differs - expected: "class='label'", actual: "class='label label-red'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > p: text_differs - expected: 'Default label', actual: 'Default label {: .label } Blue label {: .label .label-blue } Stable {: .label .label-green } New release {: .label .label-purple } Coming soon {: .label .label-yellow } Deprecated'
+  head > meta > meta > meta > link > body > div > div > div > main > div > p: missing_element - expected: '<p>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > p: missing_element - expected: '<p>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > p: missing_element - expected: '<p>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > p: missing_element - expected: '<p>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > p: missing_element - expected: '<p>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > child[4]: tag_name_differs - expected: 'div', actual: 'p'
+  head > meta > meta > meta > link > body > div > div > div > main > p: extra_element - expected: '(none)', actual: '<p>'
   ... and 5 more differences
-DIFF docs/ui-components/typography/index.html (136 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(3) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='typography'", actual: 'aria-labelledby=\'"typography"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 126 more differences
-DIFF docs/utilities/color/index.html (72 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(1)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(4) > ul > li:nth-child(1) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(4) > ul > li:nth-child(1) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='color-utilities'", actual: 'aria-labelledby=\'"color-utilities"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 62 more differences
-DIFF docs/utilities/index.html (14 differences)
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='utilities'", actual: 'aria-labelledby=\'"utilities"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "viewbox='0 0 16 16'", actual: 'viewbox=\'"0\''
-  ... and 4 more differences
-DIFF docs/utilities/layout/index.html (84 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(2)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(4) > ul > li:nth-child(2) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(4) > ul > li:nth-child(2) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(2) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='layout-utilities'", actual: 'aria-labelledby=\'"layout-utilities"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 74 more differences
-DIFF docs/utilities/responsive-modifiers/index.html (12 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(3)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(4) > ul > li:nth-child(3) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(4) > ul > li:nth-child(3) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(3) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='responsive-modifiers'", actual: 'aria-labelledby=\'"responsive-modifiers"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 2 more differences
-DIFF docs/utilities/typography/index.html (54 differences)
-  head > style: text_differs - expected: '.site-nav > ul.nav-list:first-child > li > a, .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(4)) > a, .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a { background-image: none; } .site-nav > ul.nav-list:not(:first-child) a, .site-nav li.external a { background-image: none; } .site-nav > ul.nav-list:first-child > li:nth-child(4) > ul > li:nth-child(4) > a { font-weight: 600; text-decoration: none; }.site-nav > ul.nav-list:first-child > li:nth-child(4) > button svg, .site-nav > ul.nav-list:first-child > li:nth-child(4) > ul > li:nth-child(4) > button svg { transform: rotate(-90deg); }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(4) > ul.nav-list, .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(4) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list { display: block; }', actual: '.site-nav ul li a { background-image: none; }'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='typography-utilities'", actual: 'aria-labelledby=\'"typography-utilities"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  ... and 44 more differences
-DIFF index.html (76 differences)
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[1]: tag_name_differs - expected: 'button', actual: 'a'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > child[2]: tag_name_differs - expected: 'a', actual: 'li'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  head > meta > meta > meta > link > body > header > nav > ul > li > li > li > li: missing_element - expected: '<li>', actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a: attribute_differs - expected: "aria-labelledby='focus-on-writing-good-documentation'", actual: 'aria-labelledby=\'"focus-on-writing-good-documentation"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "0=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: extra_attribute - expected: '(none)', actual: "16&quot;=''"
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "aria-hidden='true'", actual: 'aria-hidden=\'"true"\''
-  head > meta > meta > meta > link > body > div > div > div > main > h1 > a > svg: attribute_differs - expected: "viewbox='0 0 16 16'", actual: 'viewbox=\'"0\''
-  ... and 66 more differences
+DIFF docs/ui-components/lists/index.html (26 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > ol: missing_attribute - expected: "id='markdown-toc'", actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li: expected_element_got_text - expected: '<a>', actual: 'TOC {:toc}'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > a: missing_element - expected: '<a>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > li: missing_element - expected: '<li>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ul > li > li > li > em: extra_element - expected: '(none)', actual: '<em>'
+  head > meta > meta > meta > link > body > div > div > div > main > div > child[2]: tag_name_differs - expected: 'p', actual: 'ul'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ul: missing_element - expected: '<ul>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > child[8]: tag_name_differs - expected: 'div', actual: 'p'
+  head > meta > meta > meta > link > body > div > div > div > main > child[9]: tag_name_differs - expected: 'h2', actual: 'p'
+  head > meta > meta > meta > link > body > div > div > div > main > child[10]: tag_name_differs - expected: 'div', actual: 'ul'
+  ... and 16 more differences
+DIFF docs/ui-components/tables/index.html (3 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > table > thead > tr > th > th > th > tbody > tr > td > td > td > tr > td > td > td > tr > td > td > code: missing_attribute - expected: "class='highlighter-rouge language-plaintext'", actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > table > thead > tr > th > th > th > tbody > tr > td > td > td > tr > td > td > td > tr > td > td > td > tr > td > td > code: missing_attribute - expected: "class='highlighter-rouge language-plaintext'", actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > child[4]: tag_name_differs - expected: 'div', actual: 'p'
+DIFF docs/ui-components/typography/index.html (40 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > ol: missing_attribute - expected: "id='markdown-toc'", actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li: expected_element_got_text - expected: '<a>', actual: 'TOC {:toc}'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > a: missing_element - expected: '<a>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > li: missing_element - expected: '<li>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-seri'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  ... and 30 more differences
+DIFF docs/utilities/color/index.html (4 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > ol: missing_attribute - expected: "id='markdown-toc'", actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li: expected_element_got_text - expected: '<a>', actual: 'TOC {:toc}'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > a: missing_element - expected: '<a>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > li: missing_element - expected: '<li>', actual: '(none)'
+DIFF docs/utilities/layout/index.html (23 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > ol: missing_attribute - expected: "id='markdown-toc'", actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li: expected_element_got_text - expected: '<a>', actual: 'TOC {:toc}'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > a: missing_element - expected: '<a>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > li: missing_element - expected: '<li>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'A button'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='nv'", actual: "class='p'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: 'A button', actual: ']('
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '#url'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: '](', actual: ')'
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '{: .d-none .d-md-inline-block } These headings will be'
+  ... and 13 more differences
+DIFF docs/utilities/typography/index.html (28 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > ol: missing_attribute - expected: "id='markdown-toc'", actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li: expected_element_got_text - expected: '<a>', actual: 'TOC {:toc}'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > a: missing_element - expected: '<a>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > ol > li > li: missing_element - expected: '<li>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > p: attribute_differs - expected: "class='fs-1'", actual: "class='fs-10'"
+  head > meta > meta > meta > link > body > div > div > div > main > div > p: text_differs - expected: 'Font size 1', actual: 'Font size 1 {: .fs-1 } Font size 2 {: .fs-2 } Font size 3 {: .fs-3 } Font size 4 {: .fs-4 } Font size 5 {: .fs-5 } Font size 6 {: .fs-6 } Font size 7 {: .fs-7 } Font size 8 {: .fs-8 } Font size 9 {: .'
+  head > meta > meta > meta > link > body > div > div > div > main > div > p: missing_element - expected: '<p>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > p: missing_element - expected: '<p>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > p: missing_element - expected: '<p>', actual: '(none)'
+  head > meta > meta > meta > link > body > div > div > div > main > div > p: missing_element - expected: '<p>', actual: '(none)'
+  ... and 18 more differences
+DIFF index.html (6 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > p > child[1]: tag_name_differs - expected: 'strong', actual: 'em'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li: expected_element_got_text - expected: '<p>', actual: 'The'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li > child[1]: tag_name_differs - expected: 'p', actual: 'a'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li: expected_element_got_text - expected: '<li>', actual: 'uses all three markup languages.'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li > child[2]: tag_name_differs - expected: 'li', actual: 'a'
+  head > meta > meta > meta > link > body > div > div > div > main > div > ol > li > li: extra_element - expected: '(none)', actual: '<li>'
 
-Summary: 0 files matched, 47 files with differences, 4672 total differences
+Summary: 16 files matched, 31 files with differences, 2085 total differences (11 acceptable diffs filtered out)

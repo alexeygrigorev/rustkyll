@@ -1,0 +1,237 @@
+Jekyll directory:   /home/alexey/git/rustkyl/websites/yat/_site_jekyll_cached
+Rustkyll directory: /home/alexey/git/rustkyl/websites/yat/_site_rustkyll_recount
+Common HTML files:  20
+
+DIFF 404.html (58 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: attribute_differs - expected: "content='IE=edge'", actual: "content='width=device-width, initial-scale=1'"
+  head > meta: missing_attribute - expected: "http-equiv='X-UA-Compatible'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1'", actual: "content='108d9124921d80c3-80e20d618ff053c8-g4f02ec6f3dba68b7-c'"
+  ... and 48 more differences
+DIFF about.html (58 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: attribute_differs - expected: "content='IE=edge'", actual: "content='width=device-width, initial-scale=1'"
+  head > meta: missing_attribute - expected: "http-equiv='X-UA-Compatible'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1'", actual: "content='108d9124921d80c3-80e20d618ff053c8-g4f02ec6f3dba68b7-c'"
+  ... and 48 more differences
+DIFF archives.html (58 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: attribute_differs - expected: "content='IE=edge'", actual: "content='width=device-width, initial-scale=1'"
+  head > meta: missing_attribute - expected: "http-equiv='X-UA-Compatible'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1'", actual: "content='108d9124921d80c3-80e20d618ff053c8-g4f02ec6f3dba68b7-c'"
+  ... and 48 more differences
+DIFF categories.html (58 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: attribute_differs - expected: "content='IE=edge'", actual: "content='width=device-width, initial-scale=1'"
+  head > meta: missing_attribute - expected: "http-equiv='X-UA-Compatible'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1'", actual: "content='108d9124921d80c3-80e20d618ff053c8-g4f02ec6f3dba68b7-c'"
+  ... and 48 more differences
+DIFF example/2017/12/04/plantuml-example.html (59 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: attribute_differs - expected: "content='IE=edge'", actual: "content='width=device-width, initial-scale=1'"
+  head > meta: missing_attribute - expected: "http-equiv='X-UA-Compatible'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1'", actual: "content='108d9124921d80c3-80e20d618ff053c8-g4f02ec6f3dba68b7-c'"
+  ... and 49 more differences
+DIFF example/2017/12/08/mermaid-example.html (59 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: attribute_differs - expected: "content='IE=edge'", actual: "content='width=device-width, initial-scale=1'"
+  head > meta: missing_attribute - expected: "http-equiv='X-UA-Compatible'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1'", actual: "content='108d9124921d80c3-80e20d618ff053c8-g4f02ec6f3dba68b7-c'"
+  ... and 49 more differences
+DIFF example/2017/12/15/table-example.html (62 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: attribute_differs - expected: "content='IE=edge'", actual: "content='width=device-width, initial-scale=1'"
+  head > meta: missing_attribute - expected: "http-equiv='X-UA-Compatible'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1'", actual: "content='108d9124921d80c3-80e20d618ff053c8-g4f02ec6f3dba68b7-c'"
+  ... and 52 more differences
+DIFF example/2017/12/18/video-example.html (59 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: attribute_differs - expected: "content='IE=edge'", actual: "content='width=device-width, initial-scale=1'"
+  head > meta: missing_attribute - expected: "http-equiv='X-UA-Compatible'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1'", actual: "content='108d9124921d80c3-80e20d618ff053c8-g4f02ec6f3dba68b7-c'"
+  ... and 49 more differences
+DIFF index.html (8 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: missing_attribute - expected: "http-equiv='X-UA-Compatible'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+DIFF jekyll/2015/01/01/welcome-to-jekyll.html (8 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: missing_attribute - expected: "http-equiv='X-UA-Compatible'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+DIFF junk/2016/08/12/my-example-post.html (59 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: attribute_differs - expected: "content='IE=edge'", actual: "content='width=device-width, initial-scale=1'"
+  head > meta: missing_attribute - expected: "http-equiv='X-UA-Compatible'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1'", actual: "content='108d9124921d80c3-80e20d618ff053c8-g4f02ec6f3dba68b7-c'"
+  ... and 49 more differences
+DIFF junk/2017/05/20/this-post-demonstrates-post-content-styles.html (59 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: attribute_differs - expected: "content='IE=edge'", actual: "content='width=device-width, initial-scale=1'"
+  head > meta: missing_attribute - expected: "http-equiv='X-UA-Compatible'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1'", actual: "content='108d9124921d80c3-80e20d618ff053c8-g4f02ec6f3dba68b7-c'"
+  ... and 49 more differences
+DIFF markdown/2015/02/28/test-markdown.html (59 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: attribute_differs - expected: "content='IE=edge'", actual: "content='width=device-width, initial-scale=1'"
+  head > meta: missing_attribute - expected: "http-equiv='X-UA-Compatible'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1'", actual: "content='108d9124921d80c3-80e20d618ff053c8-g4f02ec6f3dba68b7-c'"
+  ... and 49 more differences
+DIFF markdown/2016/01/01/another-test-markdown.html (8 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: missing_attribute - expected: "http-equiv='X-UA-Compatible'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+DIFF markdown/2017/06/10/quick-mardown-example.html (62 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: attribute_differs - expected: "content='IE=edge'", actual: "content='width=device-width, initial-scale=1'"
+  head > meta: missing_attribute - expected: "http-equiv='X-UA-Compatible'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1'", actual: "content='108d9124921d80c3-80e20d618ff053c8-g4f02ec6f3dba68b7-c'"
+  ... and 52 more differences
+DIFF markdown/2018/05/26/mathjax-test.html (59 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: attribute_differs - expected: "content='IE=edge'", actual: "content='width=device-width, initial-scale=1'"
+  head > meta: missing_attribute - expected: "http-equiv='X-UA-Compatible'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1'", actual: "content='108d9124921d80c3-80e20d618ff053c8-g4f02ec6f3dba68b7-c'"
+  ... and 49 more differences
+DIFF markdown/2018/12/05/an-exhibit-of-markdown.html (59 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: attribute_differs - expected: "content='IE=edge'", actual: "content='width=device-width, initial-scale=1'"
+  head > meta: missing_attribute - expected: "http-equiv='X-UA-Compatible'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1'", actual: "content='108d9124921d80c3-80e20d618ff053c8-g4f02ec6f3dba68b7-c'"
+  ... and 49 more differences
+DIFF misc/2016/05/19/super-short-article.html (59 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: attribute_differs - expected: "content='IE=edge'", actual: "content='width=device-width, initial-scale=1'"
+  head > meta: missing_attribute - expected: "http-equiv='X-UA-Compatible'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1'", actual: "content='108d9124921d80c3-80e20d618ff053c8-g4f02ec6f3dba68b7-c'"
+  ... and 49 more differences
+DIFF misc/2016/05/20/super-long-article.html (59 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: attribute_differs - expected: "content='IE=edge'", actual: "content='width=device-width, initial-scale=1'"
+  head > meta: missing_attribute - expected: "http-equiv='X-UA-Compatible'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1'", actual: "content='108d9124921d80c3-80e20d618ff053c8-g4f02ec6f3dba68b7-c'"
+  ... and 49 more differences
+DIFF tags.html (58 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: attribute_differs - expected: "content='IE=edge'", actual: "content='width=device-width, initial-scale=1'"
+  head > meta: missing_attribute - expected: "http-equiv='X-UA-Compatible'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1'", actual: "content='108d9124921d80c3-80e20d618ff053c8-g4f02ec6f3dba68b7-c'"
+  ... and 48 more differences
+
+Summary: 0 files matched, 20 files with differences, 1028 total differences (365 acceptable diffs filtered out)

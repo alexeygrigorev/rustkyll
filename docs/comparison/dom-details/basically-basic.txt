@@ -1,0 +1,92 @@
+Jekyll directory:   /home/alexey/git/rustkyl/websites/basically-basic/_site_jekyll_cached
+Rustkyll directory: /home/alexey/git/rustkyl/websites/basically-basic/_site_rustkyll_recount
+Common HTML files:  7
+Only in Jekyll:     31
+Only in rustkyll:   6
+
+DIFF 404.html (46 differences)
+  head > title: text_differs - expected: 'Page not found | Basically Basic', actual: 'Page not found | My Awesome Site'
+  head > meta > meta > meta: attribute_differs - expected: "content='Dugan Nash'", actual: "content='en_US'"
+  head > meta > meta > meta: missing_attribute - expected: "name='author'", actual: '(none)'
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:locale'"
+  head > meta > meta > meta > child[1]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='Your new default Jekyll theme'", actual: "content='/404.html'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "name='description'", actual: '(none)'
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:url'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='Your new default Jekyll theme'", actual: "content='My Awesome Site'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:description'", actual: "property='og:site_name'"
+  ... and 36 more differences
+DIFF categories/edge-case/index.html (52 differences)
+  head > title: text_differs - expected: 'Edge Case | Basically Basic', actual: 'Edge Case | My Awesome Site'
+  head > meta > meta > meta: attribute_differs - expected: "content='Dugan Nash'", actual: "content='en_US'"
+  head > meta > meta > meta: missing_attribute - expected: "name='author'", actual: '(none)'
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:locale'"
+  head > meta > meta > meta > child[1]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='Your new default Jekyll theme'", actual: "content='/categories/edge-case/'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "name='description'", actual: '(none)'
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:url'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='Your new default Jekyll theme'", actual: "content='My Awesome Site'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:description'", actual: "property='og:site_name'"
+  ... and 42 more differences
+DIFF categories/index.html (63 differences)
+  head > title: text_differs - expected: 'Category Archive | Basically Basic', actual: 'Category Archive | My Awesome Site'
+  head > meta > meta > meta: attribute_differs - expected: "content='Dugan Nash'", actual: "content='en_US'"
+  head > meta > meta > meta: missing_attribute - expected: "name='author'", actual: '(none)'
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:locale'"
+  head > meta > meta > meta > child[1]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='Your new default Jekyll theme'", actual: "content='/categories/'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "name='description'", actual: '(none)'
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:url'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='Your new default Jekyll theme'", actual: "content='My Awesome Site'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:description'", actual: "property='og:site_name'"
+  ... and 53 more differences
+DIFF posts/index.html (50 differences)
+  head > title: text_differs - expected: 'Post Archive | Basically Basic', actual: 'Post Archive | My Awesome Site'
+  head > meta > meta > meta: attribute_differs - expected: "content='Dugan Nash'", actual: "content='en_US'"
+  head > meta > meta > meta: missing_attribute - expected: "name='author'", actual: '(none)'
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:locale'"
+  head > meta > meta > meta > child[1]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='Your new default Jekyll theme'", actual: "content='/posts/'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "name='description'", actual: '(none)'
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:url'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='Your new default Jekyll theme'", actual: "content='My Awesome Site'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:description'", actual: "property='og:site_name'"
+  ... and 40 more differences
+DIFF recipes/index.html (53 differences)
+  head > title: text_differs - expected: 'Recipes | Basically Basic', actual: 'Recipes | My Awesome Site'
+  head > meta > meta > meta: attribute_differs - expected: "content='Dugan Nash'", actual: "content='en_US'"
+  head > meta > meta > meta: missing_attribute - expected: "name='author'", actual: '(none)'
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:locale'"
+  head > meta > meta > meta > child[1]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='Your new default Jekyll theme'", actual: "content='/recipes/'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "name='description'", actual: '(none)'
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:url'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='Your new default Jekyll theme'", actual: "content='My Awesome Site'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:description'", actual: "property='og:site_name'"
+  ... and 43 more differences
+DIFF tags/index.html (95 differences)
+  head > title: text_differs - expected: 'Tag Archive | Basically Basic', actual: 'Tag Archive | My Awesome Site'
+  head > meta > meta > meta: attribute_differs - expected: "content='Dugan Nash'", actual: "content='en_US'"
+  head > meta > meta > meta: missing_attribute - expected: "name='author'", actual: '(none)'
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:locale'"
+  head > meta > meta > meta > child[1]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='Your new default Jekyll theme'", actual: "content='/tags/'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "name='description'", actual: '(none)'
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:url'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='Your new default Jekyll theme'", actual: "content='My Awesome Site'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:description'", actual: "property='og:site_name'"
+  ... and 85 more differences
+DIFF tags/markup/index.html (51 differences)
+  head > title: text_differs - expected: 'Markup | Basically Basic', actual: 'Markup | My Awesome Site'
+  head > meta > meta > meta: attribute_differs - expected: "content='Dugan Nash'", actual: "content='en_US'"
+  head > meta > meta > meta: missing_attribute - expected: "name='author'", actual: '(none)'
+  head > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:locale'"
+  head > meta > meta > meta > child[1]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='Your new default Jekyll theme'", actual: "content='/tags/markup/'"
+  head > meta > meta > meta > meta: missing_attribute - expected: "name='description'", actual: '(none)'
+  head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:url'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='Your new default Jekyll theme'", actual: "content='My Awesome Site'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "property='og:description'", actual: "property='og:site_name'"
+  ... and 41 more differences
+
+Summary: 0 files matched, 7 files with differences, 410 total differences (154 acceptable diffs filtered out)

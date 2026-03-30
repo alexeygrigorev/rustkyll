@@ -1,0 +1,115 @@
+Jekyll directory:   /home/alexey/git/rustkyl/websites/jasper2/_site_jekyll_cached
+Rustkyll directory: /home/alexey/git/rustkyl/websites/jasper2/_site_rustkyll_recount
+Common HTML files:  10
+Only in Jekyll:     19
+Only in rustkyll:   8
+
+DIFF 404.html (6 differences)
+  body > div > aside > div > div > article > a: attribute_differs - expected: "href='/jasper2/welcome'", actual: "href='/jasper2/welcome/'"
+  body > div > aside > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/welcome'", actual: "href='/jasper2/welcome/'"
+  body > div > aside > div > div > article > a: attribute_differs - expected: "href='/jasper2/the-editor'", actual: "href='/jasper2/the-editor.html'"
+  body > div > aside > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/the-editor'", actual: "href='/jasper2/the-editor.html'"
+  body > div > aside > div > div > article > a: attribute_differs - expected: "href='/jasper2/using-tags'", actual: "href='/jasper2/using-tags.html'"
+  body > div > aside > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/using-tags'", actual: "href='/jasper2/using-tags.html'"
+DIFF a-full-and-comprehensive-style-test.html (144 differences)
+  head > link > link: attribute_differs - expected: "href='/jasper2/a-full-and-comprehensive-style-test'", actual: "href='/jasper2/a-full-and-comprehensive-style-test.html'"
+  head > link > meta: attribute_differs - expected: "content='Below is just about everything you’ll need to style in the theme. Check the source code to see the many embedded elements within paragraphs. Heading 1 Heading 2 Heading 3 Heading 4 Heading 5 ", actual: "content='Home About Getting Started Try Ghost Subscribe 1 September 2012 A Full and Comprehensive Style Test Below is just about everything you’ll need to style in the theme. Check the source code to "
+  head > link > meta: attribute_differs - expected: "content='/jasper2/a-full-and-comprehensive-style-test'", actual: "content='/jasper2/a-full-and-comprehensive-style-test.html'"
+  head > link > meta: attribute_differs - expected: "content='Below is just about everything you’ll need to style in the theme. Check the source code to see the many embedded elements within paragraphs. Heading 1 Heading 2 Heading 3 Heading 4 Heading 5 ", actual: "content='Home About Getting Started Try Ghost Subscribe 1 September 2012 A Full and Comprehensive Style Test Below is just about everything you’ll need to style in the theme. Check the source code to "
+  head > link > script > jsonld.description: jsonld_value_differs - expected: 'Below is just about everything you’ll need to style in the theme. Check the source code to see the many embedded elements within paragraphs. Heading 1 Heading 2 Heading 3 Heading 4 Heading 5 Heading 6', actual: 'Home About Getting Started Try Ghost Subscribe 1 September 2012 A Full and Comprehensive Style Test Below is just about everything you’ll need to style in the theme. Check the source code to see the m'
+  head > link > script > jsonld.mainEntityOfPage.@id: jsonld_value_differs - expected: '/jasper2/a-full-and-comprehensive-style-test', actual: '/jasper2/a-full-and-comprehensive-style-test.html'
+  head > link > script > jsonld.url: jsonld_value_differs - expected: '/jasper2/a-full-and-comprehensive-style-test', actual: '/jasper2/a-full-and-comprehensive-style-test.html'
+  body > div > main > div > article > section > div > figure > pre > code > span: attribute_differs - expected: "class='c'", actual: "class='cm'"
+  body > div > main > div > article > section > div > figure > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='na'"
+  body > div > main > div > article > section > div > figure > pre > code > span: attribute_differs - expected: "class='nl'", actual: "class='nb'"
+  ... and 134 more differences
+DIFF about/index.html (3 differences)
+  head > link > meta: attribute_differs - expected: 'content="Ghost is professional publishing platform designed for modern journalism. This is a demo site of a basic Ghost install to give you a general sense of what a new Ghost site looks like when set', actual: "content='Home About Getting Started Try Ghost Subscribe About Ghost is professional publishing platform designed for modern journalism. This is a demo site of a basic Ghost install to give you a gener"
+  head > link > meta: attribute_differs - expected: 'content="Ghost is professional publishing platform designed for modern journalism. This is a demo site of a basic Ghost install to give you a general sense of what a new Ghost site looks like when set', actual: "content='Home About Getting Started Try Ghost Subscribe About Ghost is professional publishing platform designed for modern journalism. This is a demo site of a basic Ghost install to give you a gener"
+  head > link > script > jsonld.description: jsonld_value_differs - expected: 'Ghost is professional publishing platform designed for modern journalism. This is a demo site of a basic Ghost install to give you a general sense of what a new Ghost site looks like when set up for t', actual: 'Home About Getting Started Try Ghost Subscribe About Ghost is professional publishing platform designed for modern journalism. This is a demo site of a basic Ghost install to give you a general sense '
+DIFF advanced-markdown.html (17 differences)
+  head > link > link: attribute_differs - expected: "href='/jasper2/advanced-markdown'", actual: "href='/jasper2/advanced-markdown.html'"
+  head > link > meta: attribute_differs - expected: 'content="There are lots of powerful things you can do with the Ghost editor If you\'ve gotten pretty comfortable with all the basics of writing in Ghost, then you may enjoy some more advanced tips abou', actual: 'content="Home About Getting Started Try Ghost Subscribe 27 July 2017 / GETTING STARTED Advanced Markdown tips There are lots of powerful things you can do with the Ghost editor If you\'ve gotten pretty'
+  head > link > meta: attribute_differs - expected: "content='/jasper2/advanced-markdown'", actual: "content='/jasper2/advanced-markdown.html'"
+  head > link > meta: attribute_differs - expected: "content='Getting Started'", actual: "content='Getting started'"
+  head > link > meta: attribute_differs - expected: 'content="There are lots of powerful things you can do with the Ghost editor If you\'ve gotten pretty comfortable with all the basics of writing in Ghost, then you may enjoy some more advanced tips abou', actual: 'content="Home About Getting Started Try Ghost Subscribe 27 July 2017 / GETTING STARTED Advanced Markdown tips There are lots of powerful things you can do with the Ghost editor If you\'ve gotten pretty'
+  head > link > meta: attribute_differs - expected: "content='Getting Started'", actual: "content='Getting started'"
+  head > link > script > jsonld.description: jsonld_value_differs - expected: "There are lots of powerful things you can do with the Ghost editor If you've gotten pretty comfortable with all the basics of writing in Ghost, then you may enjoy some more advanced tips about the typ", actual: "Home About Getting Started Try Ghost Subscribe 27 July 2017 / GETTING STARTED Advanced Markdown tips There are lots of powerful things you can do with the Ghost editor If you've gotten pretty comforta"
+  head > link > script > jsonld.mainEntityOfPage.@id: jsonld_value_differs - expected: '/jasper2/advanced-markdown', actual: '/jasper2/advanced-markdown.html'
+  head > link > script > jsonld.url: jsonld_value_differs - expected: '/jasper2/advanced-markdown', actual: '/jasper2/advanced-markdown.html'
+  body > div > aside > div > div > article > a: attribute_differs - expected: "href='/jasper2/private-sites'", actual: "href='/jasper2/private-sites.html'"
+  ... and 7 more differences
+DIFF index.html (30 differences)
+  body > div > main > div > div > article > a: attribute_differs - expected: "href='/jasper2/welcome'", actual: "href='/jasper2/welcome/'"
+  body > div > main > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/welcome'", actual: "href='/jasper2/welcome/'"
+  body > div > main > div > div > article > a: attribute_differs - expected: "href='/jasper2/the-editor'", actual: "href='/jasper2/the-editor.html'"
+  body > div > main > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/the-editor'", actual: "href='/jasper2/the-editor.html'"
+  body > div > main > div > div > article > a: attribute_differs - expected: "href='/jasper2/using-tags'", actual: "href='/jasper2/using-tags.html'"
+  body > div > main > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/using-tags'", actual: "href='/jasper2/using-tags.html'"
+  body > div > main > div > div > article > a: attribute_differs - expected: "href='/jasper2/managing-users'", actual: "href='/jasper2/managing-users.html'"
+  body > div > main > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/managing-users'", actual: "href='/jasper2/managing-users.html'"
+  body > div > main > div > div > article > a: attribute_differs - expected: "href='/jasper2/private-sites'", actual: "href='/jasper2/private-sites.html'"
+  body > div > main > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/private-sites'", actual: "href='/jasper2/private-sites.html'"
+  ... and 20 more differences
+DIFF managing-users.html (18 differences)
+  head > link > link: attribute_differs - expected: "href='/jasper2/managing-users'", actual: "href='/jasper2/managing-users.html'"
+  head > link > meta: attribute_differs - expected: 'content="Ghost has a number of different user roles for your team Authors The base user level in Ghost is an author. Authors can write posts, edit their own posts, and publish their own posts. Authors', actual: "content='Home About Getting Started Try Ghost Subscribe 27 July 2017 / GETTING STARTED Managing Ghost users Ghost has a number of different user roles for your team Authors The base user level in Ghos"
+  head > link > meta: attribute_differs - expected: "content='/jasper2/managing-users'", actual: "content='/jasper2/managing-users.html'"
+  head > link > meta: attribute_differs - expected: "content='Getting Started'", actual: "content='Getting started'"
+  head > link > meta: attribute_differs - expected: 'content="Ghost has a number of different user roles for your team Authors The base user level in Ghost is an author. Authors can write posts, edit their own posts, and publish their own posts. Authors', actual: "content='Home About Getting Started Try Ghost Subscribe 27 July 2017 / GETTING STARTED Managing Ghost users Ghost has a number of different user roles for your team Authors The base user level in Ghos"
+  head > link > meta: attribute_differs - expected: "content='Getting Started'", actual: "content='Getting started'"
+  head > link > script > jsonld.description: jsonld_value_differs - expected: 'Ghost has a number of different user roles for your team Authors The base user level in Ghost is an author. Authors can write posts, edit their own posts, and publish their own posts. Authors are trus', actual: 'Home About Getting Started Try Ghost Subscribe 27 July 2017 / GETTING STARTED Managing Ghost users Ghost has a number of different user roles for your team Authors The base user level in Ghost is an a'
+  head > link > script > jsonld.mainEntityOfPage.@id: jsonld_value_differs - expected: '/jasper2/managing-users', actual: '/jasper2/managing-users.html'
+  head > link > script > jsonld.url: jsonld_value_differs - expected: '/jasper2/managing-users', actual: '/jasper2/managing-users.html'
+  body > div > aside > div > div > article > a: attribute_differs - expected: "href='/jasper2/using-tags'", actual: "href='/jasper2/using-tags.html'"
+  ... and 8 more differences
+DIFF private-sites.html (18 differences)
+  head > link > link: attribute_differs - expected: "href='/jasper2/private-sites'", actual: "href='/jasper2/private-sites.html'"
+  head > link > meta: attribute_differs - expected: 'content="Sometimes you might want to put your site behind closed doors If you\'ve got a publication that you don\'t want the world to see yet because it\'s not ready to launch, you can hide your Ghost si', actual: 'content="Home About Getting Started Try Ghost Subscribe 27 July 2017 / GETTING STARTED Making your site private Sometimes you might want to put your site behind closed doors If you\'ve got a publicatio'
+  head > link > meta: attribute_differs - expected: "content='/jasper2/private-sites'", actual: "content='/jasper2/private-sites.html'"
+  head > link > meta: attribute_differs - expected: "content='Getting Started'", actual: "content='Getting started'"
+  head > link > meta: attribute_differs - expected: 'content="Sometimes you might want to put your site behind closed doors If you\'ve got a publication that you don\'t want the world to see yet because it\'s not ready to launch, you can hide your Ghost si', actual: 'content="Home About Getting Started Try Ghost Subscribe 27 July 2017 / GETTING STARTED Making your site private Sometimes you might want to put your site behind closed doors If you\'ve got a publicatio'
+  head > link > meta: attribute_differs - expected: "content='Getting Started'", actual: "content='Getting started'"
+  head > link > script > jsonld.description: jsonld_value_differs - expected: "Sometimes you might want to put your site behind closed doors If you've got a publication that you don't want the world to see yet because it's not ready to launch, you can hide your Ghost site behind", actual: "Home About Getting Started Try Ghost Subscribe 27 July 2017 / GETTING STARTED Making your site private Sometimes you might want to put your site behind closed doors If you've got a publication that yo"
+  head > link > script > jsonld.mainEntityOfPage.@id: jsonld_value_differs - expected: '/jasper2/private-sites', actual: '/jasper2/private-sites.html'
+  head > link > script > jsonld.url: jsonld_value_differs - expected: '/jasper2/private-sites', actual: '/jasper2/private-sites.html'
+  body > div > aside > div > div > article > a: attribute_differs - expected: "href='/jasper2/managing-users'", actual: "href='/jasper2/managing-users.html'"
+  ... and 8 more differences
+DIFF the-editor.html (18 differences)
+  head > link > link: attribute_differs - expected: "href='/jasper2/the-editor'", actual: "href='/jasper2/the-editor.html'"
+  head > link > meta: attribute_differs - expected: "content='Ghost uses a language called Markdown to format text. When you go to edit a post and see special characters and colours intertwined between the words, those are Markdown shortcuts which tell ", actual: "content='Home About Getting Started Try Ghost Subscribe 27 July 2017 / GETTING STARTED Using the Ghost editor Ghost uses a language called Markdown to format text. When you go to edit a post and see s"
+  head > link > meta: attribute_differs - expected: "content='/jasper2/the-editor'", actual: "content='/jasper2/the-editor.html'"
+  head > link > meta: attribute_differs - expected: "content='Getting Started'", actual: "content='Getting started'"
+  head > link > meta: attribute_differs - expected: "content='Ghost uses a language called Markdown to format text. When you go to edit a post and see special characters and colours intertwined between the words, those are Markdown shortcuts which tell ", actual: "content='Home About Getting Started Try Ghost Subscribe 27 July 2017 / GETTING STARTED Using the Ghost editor Ghost uses a language called Markdown to format text. When you go to edit a post and see s"
+  head > link > meta: attribute_differs - expected: "content='Getting Started'", actual: "content='Getting started'"
+  head > link > script > jsonld.description: jsonld_value_differs - expected: 'Ghost uses a language called Markdown to format text. When you go to edit a post and see special characters and colours intertwined between the words, those are Markdown shortcuts which tell Ghost wha', actual: 'Home About Getting Started Try Ghost Subscribe 27 July 2017 / GETTING STARTED Using the Ghost editor Ghost uses a language called Markdown to format text. When you go to edit a post and see special ch'
+  head > link > script > jsonld.mainEntityOfPage.@id: jsonld_value_differs - expected: '/jasper2/the-editor', actual: '/jasper2/the-editor.html'
+  head > link > script > jsonld.url: jsonld_value_differs - expected: '/jasper2/the-editor', actual: '/jasper2/the-editor.html'
+  body > div > aside > div > div > article > a: attribute_differs - expected: "href='/jasper2/welcome'", actual: "href='/jasper2/welcome/'"
+  ... and 8 more differences
+DIFF themes.html (19 differences)
+  head > link > link: attribute_differs - expected: "href='/jasper2/themes'", actual: "href='/jasper2/themes.html'"
+  head > link > meta: attribute_differs - expected: "content='Creating a totally custom design for your publication Ghost comes with a beautiful default theme called Casper, which is designed to be a clean, readable publication layout and can be easily ", actual: "content='Home About Getting Started Try Ghost Subscribe 27 July 2017 / GETTING STARTED Setting up your own Ghost theme Creating a totally custom design for your publication Ghost comes with a beautifu"
+  head > link > meta: attribute_differs - expected: "content='/jasper2/themes'", actual: "content='/jasper2/themes.html'"
+  head > link > meta: attribute_differs - expected: "content='Getting Started'", actual: "content='Getting started'"
+  head > link > meta: attribute_differs - expected: "content='Creating a totally custom design for your publication Ghost comes with a beautiful default theme called Casper, which is designed to be a clean, readable publication layout and can be easily ", actual: "content='Home About Getting Started Try Ghost Subscribe 27 July 2017 / GETTING STARTED Setting up your own Ghost theme Creating a totally custom design for your publication Ghost comes with a beautifu"
+  head > link > meta: attribute_differs - expected: "content='Getting Started'", actual: "content='Getting started'"
+  head > link > script > jsonld.description: jsonld_value_differs - expected: 'Creating a totally custom design for your publication Ghost comes with a beautiful default theme called Casper, which is designed to be a clean, readable publication layout and can be easily adapted f', actual: 'Home About Getting Started Try Ghost Subscribe 27 July 2017 / GETTING STARTED Setting up your own Ghost theme Creating a totally custom design for your publication Ghost comes with a beautiful default'
+  head > link > script > jsonld.mainEntityOfPage.@id: jsonld_value_differs - expected: '/jasper2/themes', actual: '/jasper2/themes.html'
+  head > link > script > jsonld.url: jsonld_value_differs - expected: '/jasper2/themes', actual: '/jasper2/themes.html'
+  body > div > aside > div > div > article > a: attribute_differs - expected: "href='/jasper2/advanced-markdown'", actual: "href='/jasper2/advanced-markdown.html'"
+  ... and 9 more differences
+DIFF using-tags.html (18 differences)
+  head > link > link: attribute_differs - expected: "href='/jasper2/using-tags'", actual: "href='/jasper2/using-tags.html'"
+  head > link > meta: attribute_differs - expected: 'content="Ghost has a single, powerful organisational taxonomy, called tags. It doesn\'t matter whether you want to call them categories, tags, boxes, or anything else. You can think of Ghost tags a lot', actual: 'content="Home About Getting Started Try Ghost Subscribe 27 July 2017 / GETTING STARTED Organising your content with tags Ghost has a single, powerful organisational taxonomy, called tags. It doesn\'t m'
+  head > link > meta: attribute_differs - expected: "content='/jasper2/using-tags'", actual: "content='/jasper2/using-tags.html'"
+  head > link > meta: attribute_differs - expected: "content='Getting Started'", actual: "content='Getting started'"
+  head > link > meta: attribute_differs - expected: 'content="Ghost has a single, powerful organisational taxonomy, called tags. It doesn\'t matter whether you want to call them categories, tags, boxes, or anything else. You can think of Ghost tags a lot', actual: 'content="Home About Getting Started Try Ghost Subscribe 27 July 2017 / GETTING STARTED Organising your content with tags Ghost has a single, powerful organisational taxonomy, called tags. It doesn\'t m'
+  head > link > meta: attribute_differs - expected: "content='Getting Started'", actual: "content='Getting started'"
+  head > link > script > jsonld.description: jsonld_value_differs - expected: "Ghost has a single, powerful organisational taxonomy, called tags. It doesn't matter whether you want to call them categories, tags, boxes, or anything else. You can think of Ghost tags a lot like Gma", actual: "Home About Getting Started Try Ghost Subscribe 27 July 2017 / GETTING STARTED Organising your content with tags Ghost has a single, powerful organisational taxonomy, called tags. It doesn't matter whe"
+  head > link > script > jsonld.mainEntityOfPage.@id: jsonld_value_differs - expected: '/jasper2/using-tags', actual: '/jasper2/using-tags.html'
+  head > link > script > jsonld.url: jsonld_value_differs - expected: '/jasper2/using-tags', actual: '/jasper2/using-tags.html'
+  body > div > aside > div > div > article > a: attribute_differs - expected: "href='/jasper2/the-editor'", actual: "href='/jasper2/the-editor.html'"
+  ... and 8 more differences
+
+Summary: 0 files matched, 10 files with differences, 291 total differences (32 acceptable diffs filtered out)

@@ -726,7 +726,28 @@ impl TemplateEngine {
     ///
     /// Returns `TemplateError::ParseError` if the parser fails to build.
     pub fn with_includes_map(includes: &HashMap<String, String>) -> Result<Self, TemplateError> {
-        let passthrough_set = Self::discover_unknown_filters_in_includes(includes)?;
+        Self::with_includes_and_extra_sources(includes, &HashMap::new())
+    }
+
+    /// Create a `TemplateEngine` with includes and additional template sources
+    /// for unknown filter discovery (e.g., layout sources).
+    ///
+    /// Like `with_includes_map`, but also scans `extra_sources` for unknown
+    /// filters and registers them as passthrough stubs. This prevents parse
+    /// failures when layouts contain filters not present in includes.
+    ///
+    /// # Errors
+    ///
+    /// Returns `TemplateError::ParseError` if the parser fails to build.
+    pub fn with_includes_and_extra_sources(
+        includes: &HashMap<String, String>,
+        extra_sources: &HashMap<String, String>,
+    ) -> Result<Self, TemplateError> {
+        let mut passthrough_set = Self::discover_unknown_filters_in_includes(includes)?;
+        if !extra_sources.is_empty() {
+            let extra = Self::discover_unknown_filters_in_includes(extra_sources)?;
+            passthrough_set.extend(extra);
+        }
         let partials = build_partials(includes);
         let mut builder = Self::builder()
             .tag(super::include_tag::LenientIncludeTag)

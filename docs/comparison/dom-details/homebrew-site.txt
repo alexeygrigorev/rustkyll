@@ -1,0 +1,601 @@
+Jekyll directory:   /home/alexey/git/rustkyl/websites/homebrew-site/_site_jekyll_cached
+Rustkyll directory: /home/alexey/git/rustkyl/websites/homebrew-site/_site_rustkyll_recount
+Common HTML files:  134
+
+DIFF 2019/06/14/homebrew-maintainer-meeting/index.html (3 differences)
+  body > div > main > article > div > child[4]: tag_name_differs - expected: 'p', actual: 'img'
+  body > div > main > article > div > child[6]: tag_name_differs - expected: 'p', actual: 'img'
+  body > div > main > article > div > child[8]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF 2020/11/18/homebrew-tap-with-bottles-uploaded-to-github-releases/index.html (113 differences)
+  body > div > main > article > div > child[4]: tag_name_differs - expected: 'p', actual: 'img'
+  body > div > main > article > div > child[8]: tag_name_differs - expected: 'p', actual: 'img'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='si'", actual: "class='p'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='si'", actual: "class='p'"
+  body > div > main > article > div > child[11]: tag_name_differs - expected: 'p', actual: 'img'
+  body > div > main > article > div > child[15]: tag_name_differs - expected: 'p', actual: 'img'
+  body > div > main > article > div > child[22]: tag_name_differs - expected: 'p', actual: 'img'
+  body > div > main > article > div > child[23]: tag_name_differs - expected: 'p', actual: 'img'
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
+  body > div > main > article > div > div > div > pre > code > span: attribute_differs - expected: "class='no'", actual: "class='nb'"
+  ... and 103 more differences
+DIFF 2023/02/16/homebrew-4.0.0/index.html (1 differences)
+  body > div > main > article > div > child[8]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF 2024/05/14/homebrew-4.3.0/index.html (28 differences)
+  body > div > main > article > div > ul > li > child[1]: tag_name_differs - expected: 'p', actual: 'a'
+  body > div > main > article > div > ul > li: extra_text - expected: '(none)', actual: '.'
+  body > div > main > article > div > ul > li > a: extra_element - expected: '(none)', actual: '<a>'
+  body > div > main > article > div > ul > li: expected_element_got_text - expected: '<p>', actual: 'There are'
+  body > div > main > article > div > ul > li > child[1]: tag_name_differs - expected: 'p', actual: 'a'
+  body > div > main > article > div > ul > li > a: extra_element - expected: '(none)', actual: '<a>'
+  body > div > main > article > div > ul > li > a: extra_element - expected: '(none)', actual: '<a>'
+  body > div > main > article > div > ul > li > a: extra_element - expected: '(none)', actual: '<a>'
+  body > div > main > article > div > ul > li: extra_text - expected: '(none)', actual: 'why casks are deprecated or disabled.'
+  body > div > main > article > div > ul > li: expected_element_got_text - expected: '<p>', actual: 'Homebrew’s code documentation on'
+  ... and 18 more differences
+DIFF 2024/07/26/homebrew-summer-2024-hackathon/index.html (7 differences)
+  body > div > main > article > div > child[6]: tag_name_differs - expected: 'p', actual: 'img'
+  body > div > main > article > div > child[10]: tag_name_differs - expected: 'p', actual: 'img'
+  body > div > main > article > div > child[13]: tag_name_differs - expected: 'p', actual: 'img'
+  body > div > main > article > div > child[20]: tag_name_differs - expected: 'p', actual: 'img'
+  body > div > main > article > div > child[21]: tag_name_differs - expected: 'p', actual: 'img'
+  body > div > main > article > div > child[28]: tag_name_differs - expected: 'p', actual: 'img'
+  body > div > main > article > div > child[30]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF 2024/07/30/homebrew-security-audit/index.html (37 differences)
+  body > div > main > article > div > ol > li > ul > li: expected_text_got_element - expected: 'Status:', actual: '<p>'
+  body > div > main > article > div > ol > li > ul > li > child[1]: tag_name_differs - expected: 'a', actual: 'p'
+  body > div > main > article > div > ol > li > ul > li: expected_text_got_element - expected: 'Status:', actual: '<p>'
+  body > div > main > article > div > ol > li > ul > li > child[1]: tag_name_differs - expected: 'a', actual: 'p'
+  body > div > main > article > div > ol > li > ul > li: expected_text_got_element - expected: 'Status:', actual: '<p>'
+  body > div > main > article > div > ol > li > ul > li > child[1]: tag_name_differs - expected: 'a', actual: 'p'
+  body > div > main > article > div > ol > li > ul > li: expected_text_got_element - expected: 'Status:', actual: '<p>'
+  body > div > main > article > div > ol > li > ul > li > child[1]: tag_name_differs - expected: 'a', actual: 'p'
+  body > div > main > article > div > ol > li > ul > li: expected_text_got_element - expected: 'Status:', actual: '<p>'
+  body > div > main > article > div > ol > li > ul > li > child[1]: tag_name_differs - expected: 'a', actual: 'p'
+  ... and 27 more differences
+DIFF 2025/02/03/Homebrew-git-signing/index.html (3 differences)
+  head > meta: attribute_differs - expected: "content='Over the next few days, Homebrew’s repositories will begin to transition from PGP-based signing to SSH-based signing for @BrewTestBot commits.'", actual: "content='Over the next few days, Homebrew’s repositories will begin to transition from PGP-based signing to SSH-based signing for [@BrewTestBot] commits.'"
+  head > meta: attribute_differs - expected: "content='Over the next few days, Homebrew’s repositories will begin to transition from PGP-based signing to SSH-based signing for @BrewTestBot commits.'", actual: "content='Over the next few days, Homebrew’s repositories will begin to transition from PGP-based signing to SSH-based signing for [@BrewTestBot] commits.'"
+  head > script > jsonld.description: jsonld_value_differs - expected: 'Over the next few days, Homebrew’s repositories will begin to transition from PGP-based signing to SSH-based signing for @BrewTestBot commits.', actual: 'Over the next few days, Homebrew’s repositories will begin to transition from PGP-based signing to SSH-based signing for [@BrewTestBot] commits.'
+DIFF ar/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF az/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF be/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF bg/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF blog/index.html (45 differences)
+  head > child[14]: tag_name_differs - expected: 'link', actual: 'meta'
+  head > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='https://brew.sh/assets/img/homebrew-social-card.png'"
+  head > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
+  head > meta: attribute_differs - expected: "content='https://brew.sh/assets/img/homebrew-social-card.png'", actual: "content='Homebrew'"
+  head > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
+  head > meta: attribute_differs - expected: "content='Homebrew'", actual: "content='@MacHomebrew'"
+  head > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
+  head > meta: attribute_differs - expected: "content='@MacHomebrew'", actual: "content='https://www.facebook.com/machomebrew/'"
+  ... and 35 more differences
+DIFF blog/page-2/index.html (99 differences)
+  head > title: text_differs - expected: 'Homebrew — Homebrew', actual: 'The Missing Package Manager for macOS (or Linux) — Homebrew'
+  head > meta: attribute_differs - expected: "content='en_US'", actual: "content='en'"
+  head > child[14]: tag_name_differs - expected: 'link', actual: 'meta'
+  head > child[15]: tag_name_differs - expected: 'link', actual: 'meta'
+  head > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='Homebrew'"
+  head > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
+  head > meta: attribute_differs - expected: "content='https://brew.sh/assets/img/homebrew-social-card.png'", actual: "content='@MacHomebrew'"
+  head > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  head > meta: missing_attribute - expected: "property='twitter:image'", actual: '(none)'
+  ... and 89 more differences
+DIFF blog/page-3/index.html (97 differences)
+  head > title: text_differs - expected: 'Homebrew — Homebrew', actual: 'The Missing Package Manager for macOS (or Linux) — Homebrew'
+  head > meta: attribute_differs - expected: "content='en_US'", actual: "content='en'"
+  head > child[14]: tag_name_differs - expected: 'link', actual: 'meta'
+  head > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='https://brew.sh/assets/img/homebrew-social-card.png'"
+  head > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "property='twitter:image'"
+  head > meta: attribute_differs - expected: "content='https://brew.sh/assets/img/homebrew-social-card.png'", actual: "content='Homebrew'"
+  head > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='twitter:title'"
+  head > meta: attribute_differs - expected: "content='Homebrew'", actual: "content='@MacHomebrew'"
+  head > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
+  ... and 87 more differences
+DIFF ca/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'  Progress: 100/134 files compared...
+
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF cs/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF da/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF de/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF el/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF es/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF fa/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF fi/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF fr/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF gl/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF he/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF hi/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF hu/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF id/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF it/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF ja/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF ko/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF ku/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF lb/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF nb/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF nl/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF nn/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF pl/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF pt-br/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF pt/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF ro/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF ru/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF sr/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF sv/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF ta/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF th/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF tl/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF tr/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF uk/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF vi/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF zh-cn/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+DIFF zh-tw/index.html (87 differences)
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'curl', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code: missing_text - expected: 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > section > div > figure > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > main > div > ul > li > div > div > figure > pre > code: expected_element_got_text - expected: '<span>', actual: 'cd /opt/homebrew'
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nv'"
+  body > div > main > div > ul > li > div > div > figure > pre > code > span: text_differs - expected: 'cd', actual: '$'
+  ... and 77 more differences
+
+Summary: 82 files matched, 52 files with differences, 4087 total differences (169 acceptable diffs filtered out)

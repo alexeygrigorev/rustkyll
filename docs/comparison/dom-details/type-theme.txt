@@ -1,0 +1,6 @@
+Jekyll directory:   /home/alexey/git/rustkyl/websites/type-theme/_site_jekyll_cached
+Rustkyll directory: /home/alexey/git/rustkyl/websites/type-theme/_site_rustkyll_recount
+Common HTML files:  8
+
+
+Summary: 8 files matched, 0 files with differences, 0 total differences (3 acceptable diffs filtered out)

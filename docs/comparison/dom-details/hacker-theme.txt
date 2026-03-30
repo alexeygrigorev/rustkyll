@@ -1,6 +1,12 @@
-Jekyll directory:   websites/hacker-theme/_site_jekyll_cached
-Rustkyll directory: /tmp/hacker-theme_fix
+Jekyll directory:   /home/alexey/git/rustkyl/websites/hacker-theme/_site_jekyll_cached
+Rustkyll directory: /home/alexey/git/rustkyl/websites/hacker-theme/_site_rustkyll_recount
 Common HTML files:  2
 
+DIFF another-page.html (1 differences)
+  head > meta > meta > meta > meta > meta > child[1]: tag_name_differs - expected: 'meta', actual: 'link'
+DIFF index.html (3 differences)
+  head > meta > meta > meta > meta > meta > child[1]: tag_name_differs - expected: 'meta', actual: 'link'
+  body > div > section > child[27]: tag_name_differs - expected: 'p', actual: 'img'
+  body > div > section > child[29]: tag_name_differs - expected: 'p', actual: 'img'
 
-Summary: 2 files matched, 0 files with differences, 0 total differences
+Summary: 0 files matched, 2 files with differences, 4 total differences (2 acceptable diffs filtered out)

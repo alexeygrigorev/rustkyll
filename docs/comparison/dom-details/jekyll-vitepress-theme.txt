@@ -2,207 +2,171 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/jekyll-vitepress-theme/_si
 Rustkyll directory: /home/alexey/git/rustkyl/websites/jekyll-vitepress-theme/_site_rustkyll_recount
 Common HTML files:  17
 
-DIFF code-blocks/index.html (30 differences)
+DIFF code-blocks/index.html (36 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
   body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[1]: tag_name_differs - expected: 'h1', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > child[2]: tag_name_differs - expected: 'p', actual: 'h2'
-  body > div > div > div > div > div > div > div > main > div > child[3]: tag_name_differs - expected: 'h2', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > child[4]: tag_name_differs - expected: 'p', actual: 'ul'
-  ... and 20 more differences
-DIFF configuration-reference/index.html (86 differences)
-  head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[1]: tag_name_differs - expected: 'h1', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > child[2]: tag_name_differs - expected: 'p', actual: 'ul'
-  body > div > div > div > div > div > div > div > main > div > child[3]: tag_name_differs - expected: 'ul', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > child[4]: tag_name_differs - expected: 'p', actual: 'h2'
-  ... and 76 more differences
-DIFF configuration/index.html (44 differences)
-  head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[1]: tag_name_differs - expected: 'h1', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > child[2]: tag_name_differs - expected: 'p', actual: 'h2'
-  body > div > div > div > div > div > div > div > main > div > child[3]: tag_name_differs - expected: 'h2', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > child[4]: tag_name_differs - expected: 'p', actual: 'pre'
-  ... and 34 more differences
-DIFF custom-blocks/index.html (55 differences)
-  head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[1]: tag_name_differs - expected: 'h1', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > child[2]: tag_name_differs - expected: 'p', actual: 'h2'
-  body > div > div > div > div > div > div > div > main > div > child[3]: tag_name_differs - expected: 'h2', actual: 'div'
-  body > div > div > div > div > div > div > div > main > div > child[4]: tag_name_differs - expected: 'div', actual: 'p'
-  ... and 45 more differences
-DIFF customizing-styles/index.html (46 differences)
-  head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[1]: tag_name_differs - expected: 'h1', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > child[2]: tag_name_differs - expected: 'p', actual: 'h2'
-  body > div > div > div > div > div > div > div > main > div > child[3]: tag_name_differs - expected: 'h2', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > child[4]: tag_name_differs - expected: 'p', actual: 'pre'
-  ... and 36 more differences
-DIFF deployment/index.html (22 differences)
-  head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[1]: tag_name_differs - expected: 'h1', actual: 'h2'
-  body > div > div > div > div > div > div > div > main > div > child[2]: tag_name_differs - expected: 'h2', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > child[3]: tag_name_differs - expected: 'p', actual: 'ol'
-  body > div > div > div > div > div > div > div > main > div > child[4]: tag_name_differs - expected: 'ol', actual: 'p'
-  ... and 12 more differences
-DIFF extending-behavior/index.html (30 differences)
-  head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[1]: tag_name_differs - expected: 'h1', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > child[2]: tag_name_differs - expected: 'p', actual: 'h2'
-  body > div > div > div > div > div > div > div > main > div > child[3]: tag_name_differs - expected: 'h2', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > child[4]: tag_name_differs - expected: 'p', actual: 'ul'
-  ... and 20 more differences
-DIFF frontmatter-reference/index.html (20 differences)
-  head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[1]: tag_name_differs - expected: 'h1', actual: 'h2'
-  body > div > div > div > div > div > div > div > main > div > child[2]: tag_name_differs - expected: 'h2', actual: 'ul'
-  body > div > div > div > div > div > div > div > main > div > child[3]: tag_name_differs - expected: 'ul', actual: 'h2'
-  body > div > div > div > div > div > div > div > main > div > child[4]: tag_name_differs - expected: 'h2', actual: 'p'
-  ... and 10 more differences
-DIFF getting-started/index.html (36 differences)
-  head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[1]: tag_name_differs - expected: 'h1', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > child[2]: tag_name_differs - expected: 'p', actual: 'h2'
-  body > div > div > div > div > div > div > div > main > div > child[3]: tag_name_differs - expected: 'h2', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > child[4]: tag_name_differs - expected: 'p', actual: 'pre'
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='nl'", actual: "class='no'"
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'puts "Hello, world!"'
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='p'"
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: text_differs - expected: 'puts', actual: '```'
   ... and 26 more differences
-DIFF index.html (9 differences)
+DIFF configuration-reference/index.html (18 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
   body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > child[3]: tag_name_differs - expected: 'div', actual: 'h2'
-  body > div > div > div > div > p: extra_element - expected: '(none)', actual: '<p>'
-  body > div > div > footer: missing_element - expected: '<footer>', actual: '(none)'
-DIFF markdown-extensions/index.html (53 differences)
+  body > div > div > div > div > div > div > div > main > div > p > a: attribute_differs - expected: "href='/vitepress-parity-and-extensions/'", actual: "href='/reference/vitepress-parity-and-extensions/'"
+  body > div > div > div > div > div > div > div > main > div > child[12]: tag_name_differs - expected: 'div', actual: 'pre'
+  body > div > div > div > div > div > div > div > main > div > child[15]: tag_name_differs - expected: 'div', actual: 'pre'
+  body > div > div > div > div > div > div > div > main > div > child[19]: tag_name_differs - expected: 'div', actual: 'pre'
+  ... and 8 more differences
+DIFF configuration/index.html (16 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
   body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[1]: tag_name_differs - expected: 'h1', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > child[2]: tag_name_differs - expected: 'p', actual: 'h2'
-  body > div > div > div > div > div > div > div > main > div > child[3]: tag_name_differs - expected: 'h2', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > p: text_differs - expected: 'Every heading (', actual: 'Kramdown generates heading IDs from the heading text by default. You can also set a custom anchor:'
-  ... and 43 more differences
-DIFF navigation-layout/index.html (25 differences)
+  body > div > div > div > div > div > div > div > main > div > child[5]: tag_name_differs - expected: 'div', actual: 'pre'
+  body > div > div > div > div > div > div > div > main > div > child[9]: tag_name_differs - expected: 'div', actual: 'pre'
+  body > div > div > div > div > div > div > div > main > div > child[13]: tag_name_differs - expected: 'div', actual: 'pre'
+  body > div > div > div > div > div > div > div > main > div > child[15]: tag_name_differs - expected: 'div', actual: 'pre'
+  ... and 6 more differences
+DIFF custom-blocks/index.html (58 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
   body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[1]: tag_name_differs - expected: 'h1', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > child[2]: tag_name_differs - expected: 'p', actual: 'h2'
-  body > div > div > div > div > div > div > div > main > div > child[3]: tag_name_differs - expected: 'h2', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > child[4]: tag_name_differs - expected: 'p', actual: 'div'
-  ... and 15 more differences
-DIFF overview/index.html (23 differences)
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '{% include alert.html type="tip" content="This is a helpful tip." %}'
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  ... and 48 more differences
+DIFF customizing-styles/index.html (8 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
   body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[1]: tag_name_differs - expected: 'h1', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > child[2]: tag_name_differs - expected: 'p', actual: 'h2'
-  body > div > div > div > div > div > div > div > main > div > child[3]: tag_name_differs - expected: 'h2', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > child[4]: tag_name_differs - expected: 'p', actual: 'ul'
-  ... and 13 more differences
-DIFF search-and-outline/index.html (26 differences)
+  body > div > div > div > div > div > div > div > main > div > child[5]: tag_name_differs - expected: 'div', actual: 'pre'
+  body > div > div > div > div > div > div > div > main > div > child[10]: tag_name_differs - expected: 'div', actual: 'pre'
+DIFF deployment/index.html (6 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
   body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[1]: tag_name_differs - expected: 'h1', actual: 'h2'
-  body > div > div > div > div > div > div > div > main > div > child[2]: tag_name_differs - expected: 'h2', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > p: text_differs - expected: 'The theme includes a built-in search modal that works entirely client-side — no external service required.', actual: 'Open search with any of these shortcuts:'
-  body > div > div > div > div > div > div > div > main > div > child[4]: tag_name_differs - expected: 'p', actual: 'ul'
-  ... and 16 more differences
-DIFF troubleshooting/index.html (29 differences)
+DIFF extending-behavior/index.html (8 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
   body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[1]: tag_name_differs - expected: 'h1', actual: 'h2'
-  body > div > div > div > div > div > div > div > main > div > child[2]: tag_name_differs - expected: 'h2', actual: 'ul'
-  body > div > div > div > div > div > div > div > main > div > child[3]: tag_name_differs - expected: 'ul', actual: 'h2'
-  body > div > div > div > div > div > div > div > main > div > child[4]: tag_name_differs - expected: 'h2', actual: 'ul'
-  ... and 19 more differences
-DIFF vitepress-parity-and-extensions/index.html (23 differences)
+  body > div > div > div > div > div > div > div > main > div > child[7]: tag_name_differs - expected: 'div', actual: 'pre'
+  body > div > div > div > div > div > div > div > main > div > child[17]: tag_name_differs - expected: 'div', actual: 'pre'
+DIFF frontmatter-reference/index.html (8 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
   body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[1]: tag_name_differs - expected: 'h1', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > child[2]: tag_name_differs - expected: 'p', actual: 'h2'
-  body > div > div > div > div > div > div > div > main > div > child[3]: tag_name_differs - expected: 'h2', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > child[4]: tag_name_differs - expected: 'p', actual: 'ul'
-  ... and 13 more differences
-DIFF what-is-jekyll-vitepress-theme/index.html (34 differences)
+  body > div > div > div > div > div > div > div > main > div > child[6]: tag_name_differs - expected: 'div', actual: 'pre'
+  body > div > div > div > div > div > div > div > main > div > child[13]: tag_name_differs - expected: 'div', actual: 'pre'
+DIFF getting-started/index.html (20 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
   body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
   body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[1]: tag_name_differs - expected: 'h1', actual: 'p'
-  body > div > div > div > div > div > div > div > main > div > p: expected_element_got_text - expected: '<a>', actual: 'Jekyll powers a huge number of documentation sites and blogs, particularly in the Ruby ecosystem and'
-  body > div > div > div > div > div > div > div > main > div > p > a: attribute_differs - expected: "href='https://jekyllrb.com/'", actual: "href='https://pages.github.com/'"
-  body > div > div > div > div > div > div > div > main > div > p > a: text_differs - expected: 'Jekyll', actual: 'GitHub Pages'
-  ... and 24 more differences
+  body > div > div > div > div > div > div > div > main > div > child[5]: tag_name_differs - expected: 'div', actual: 'pre'
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code: text_differs - expected: 'bundle', actual: 'bundle install'
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > div > div > div > div > div > div > main > div > child[10]: tag_name_differs - expected: 'div', actual: 'pre'
+  ... and 10 more differences
+DIFF index.html (6 differences)
+  head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
+  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
+DIFF markdown-extensions/index.html (93 differences)
+  head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
+  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='gu'", actual: "class='p'"
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: text_differs - expected: '## My Custom Section {#custom-id}', actual: '##'
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code: extra_text - expected: '(none)', actual: 'My Custom Section {#custom-id}'
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'Getting Started'
+  ... and 83 more differences
+DIFF navigation-layout/index.html (10 differences)
+  head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
+  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
+  body > div > div > div > div > div > div > div > main > div > child[5]: tag_name_differs - expected: 'div', actual: 'pre'
+  body > div > div > div > div > div > div > div > main > div > child[9]: tag_name_differs - expected: 'div', actual: 'pre'
+  body > div > div > div > div > div > div > div > main > div > child[13]: tag_name_differs - expected: 'div', actual: 'pre'
+  body > div > div > div > div > div > div > div > main > div > p > a: attribute_differs - expected: "href='/frontmatter-reference/'", actual: "href='/reference/frontmatter-reference/'"
+DIFF overview/index.html (7 differences)
+  head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
+  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
+  body > div > div > div > div > div > div > div > main > div > p > a: attribute_differs - expected: "href='/vitepress-parity-and-extensions/'", actual: "href='/reference/vitepress-parity-and-extensions/'"
+DIFF search-and-outline/index.html (7 differences)
+  head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
+  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
+  body > div > div > div > div > div > div > div > main > div > child[11]: tag_name_differs - expected: 'div', actual: 'pre'
+DIFF troubleshooting/index.html (41 differences)
+  head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
+  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
+  body > div > div > div > div > div > div > div > main > div > child[10]: tag_name_differs - expected: 'div', actual: 'pre'
+  body > div > div > div > div > div > div > div > main > div > ul > li: expected_text_got_element - expected: 'Confirm the gem is installed: run', actual: '<table>'
+  body > div > div > div > div > div > div > div > main > div > ul > li > child[1]: tag_name_differs - expected: 'code', actual: 'table'
+  body > div > div > div > div > div > div > div > main > div > ul > li: missing_text - expected: 'and check the output.', actual: '(none)'
+  ... and 31 more differences
+DIFF vitepress-parity-and-extensions/index.html (6 differences)
+  head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
+  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
+DIFF what-is-jekyll-vitepress-theme/index.html (6 differences)
+  head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  head > script: missing_element - expected: '<script>', actual: '(none)'
+  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
+  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
 
-Summary: 0 files matched, 17 files with differences, 591 total differences
+Summary: 0 files matched, 17 files with differences, 354 total differences (4 acceptable diffs filtered out)

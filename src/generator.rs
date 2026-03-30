@@ -118,6 +118,48 @@ fn strip_scss_import_extensions(scss: &str) -> String {
     result
 }
 
+/// Rewrite `color.channel($expr, "red", $space: rgb)` to `red($expr)` etc.
+///
+/// Grass 0.13 does not implement `color.channel()` (added in Dart Sass 1.79).
+/// This preprocessor rewrites calls with `$space: rgb` (or namespaced like
+/// `v.$space: rgb`) to the equivalent global functions `red()`, `green()`,
+/// `blue()` which grass does support.
+fn rewrite_color_channel_calls(scss: &str) -> String {
+    let mut result = scss.to_string();
+    for (channel, func) in [("red", "red"), ("green", "green"), ("blue", "blue")] {
+        let suffix = format!(", \"{}\", ", channel);
+        let mut new_result = String::new();
+        let mut remaining = result.as_str();
+        while let Some(pos) = remaining.find("color.channel(") {
+            new_result.push_str(&remaining[..pos]);
+            let after = &remaining[pos + "color.channel(".len()..];
+            if let Some(suffix_pos) = after.find(&suffix) {
+                let expr = &after[..suffix_pos];
+                let rest = &after[suffix_pos + suffix.len()..];
+                if !expr.contains('\n') && !expr.contains(';') && !expr.contains(')') {
+                    let matched = rest
+                        .strip_prefix("$space: rgb)")
+                        .or_else(|| rest.strip_prefix("v.$space: rgb)"))
+                        .or_else(|| {
+                            rest.find(".$space: rgb)")
+                                .filter(|&p| p < 30)
+                                .map(|p| &rest[p + ".$space: rgb)".len()..])
+                        });
+                    if let Some(remaining_after) = matched {
+                        new_result.push_str(&format!("{}({})", func, expr));
+                        remaining = remaining_after;
+                        continue;
+                    }
+                }
+            }
+            new_result.push_str("color.channel(");
+            remaining = after;
+        }
+        new_result.push_str(remaining);
+        result = new_result;
+    }
+    result
+}
 /// Custom filesystem for grass that strips `.scss`/`.sass` extensions from
 /// `@import` statements. This works around a grass bug where load paths are
 /// not searched when imports have explicit extensions.
@@ -136,6 +178,7 @@ impl grass::Fs for ImportFixFs {
     fn read(&self, path: &Path) -> std::io::Result<Vec<u8>> {
         let content = std::fs::read_to_string(path)?;
         let processed = strip_scss_import_extensions(&content);
+        let processed = rewrite_color_channel_calls(&processed);
         Ok(processed.into_bytes())
     }
 
@@ -182,6 +225,7 @@ fn compile_scss(
 
         // Strip extensions from the Liquid-processed SCSS content too
         let preprocessed = strip_scss_import_extensions(scss_source);
+        let preprocessed = rewrite_color_channel_calls(&preprocessed);
 
         // Write to a temp file so grass resolves imports relative to source
         if let Some(parent) = abs_source.parent() {
@@ -9180,32 +9224,130 @@ defaults:
     }
 
     #[test]
-    fn test_compile_scss_unresolvable_import_returns_error() {
+    fn test_compile_scss_multiple_use_partials() {
         let tmp = tempfile::tempdir().unwrap();
         let site = tmp.path();
 
-        let css_dir = site.join("css");
-        fs::create_dir_all(&css_dir).unwrap();
-        fs::write(css_dir.join("broken.scss"), "placeholder").unwrap();
+        let sass_dir = site.join("_sass");
+        fs::create_dir_all(&sass_dir).unwrap();
+        fs::write(sass_dir.join("_base.scss"), ".base { margin: 0; }\n").unwrap();
+        fs::write(
+            sass_dir.join("_layout.scss"),
+            ".layout { padding: 10px; }\n",
+        )
+        .unwrap();
 
-        let config = SiteConfig::from_yaml_str("title: test\n").unwrap();
+        let css_dir = site.join("assets").join("css");
+        fs::create_dir_all(&css_dir).unwrap();
+        fs::write(css_dir.join("main.scss"), "placeholder").unwrap();
+
+        let yaml = "sass:\n  style: compressed\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
 
         let result = compile_scss(
-            "@import \"nonexistent\";\n",
-            "css/broken.scss",
+            "@use \"base\";\n@use \"layout\";\n",
+            "assets/css/main.scss",
             Some(site),
             Some(&config),
         );
-        assert!(result.is_err(), "should fail for unresolvable import");
+        assert!(
+            result.is_ok(),
+            "Multiple @use directives should compile: {:?}",
+            result.err()
+        );
+        let css = result.unwrap();
+        assert!(
+            css.contains("margin"),
+            "CSS should contain base styles: {}",
+            css
+        );
+        assert!(
+            css.contains("padding"),
+            "CSS should contain layout styles: {}",
+            css
+        );
     }
 
     #[test]
-    fn test_compile_scss_no_site_dir_fallback() {
-        let result = compile_scss("body { color: red; }\n", "style.scss", None, None);
-        assert!(result.is_ok(), "basic SCSS should compile without site_dir");
+    fn test_rewrite_color_channel_to_global() {
+        let input = "a { color: rgba(#{color.channel($c, \"red\", $space: rgb)}, 0.5); }";
+        let output = rewrite_color_channel_calls(input);
         assert!(
-            result.unwrap().contains("red"),
-            "CSS should contain color value"
+            output.contains("red($c)"),
+            "Should rewrite color.channel red: {}",
+            output
+        );
+        assert!(
+            !output.contains("color.channel"),
+            "Should not contain color.channel: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_rewrite_color_channel_green_blue() {
+        let input = "a { background: rgba(#{color.channel($c, \"green\", $space: rgb)}, #{color.channel($c, \"blue\", $space: rgb)}, 0.3); }";
+        let output = rewrite_color_channel_calls(input);
+        assert!(
+            output.contains("green($c)"),
+            "Should rewrite color.channel green: {}",
+            output
+        );
+        assert!(
+            output.contains("blue($c)"),
+            "Should rewrite color.channel blue: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_rewrite_color_channel_preserves_other() {
+        let input = "a { color: color.adjust($c, $lightness: 10%); }";
+        let output = rewrite_color_channel_calls(input);
+        assert_eq!(output, input, "Should not modify color.adjust calls");
+    }
+
+    #[test]
+    fn test_compile_scss_color_channel_workaround() {
+        let tmp = tempfile::tempdir().unwrap();
+        let site = tmp.path();
+
+        let sass_dir = site.join("_sass");
+        fs::create_dir_all(&sass_dir).unwrap();
+        fs::write(
+            sass_dir.join("_variables.scss"),
+            "$black-color: #000000;\n$white-color: #ffffff;\n",
+        )
+        .unwrap();
+        fs::write(
+            sass_dir.join("_themes.scss"),
+            "@use \"variables\" as v;\n@use \"sass:color\";\n:root { --bg: rgba(#{color.channel(v.$black-color, \"red\", $space: rgb)}, #{color.channel(v.$black-color, \"green\", $space: rgb)}, #{color.channel(v.$black-color, \"blue\", $space: rgb)}, 0.4); }\n",
+        )
+        .unwrap();
+
+        let css_dir = site.join("assets").join("css");
+        fs::create_dir_all(&css_dir).unwrap();
+        fs::write(css_dir.join("main.scss"), "placeholder").unwrap();
+
+        let yaml = "sass:\n  style: compressed\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+
+        let result = compile_scss(
+            "@use \"variables\" as v;\n@use \"themes\";\n",
+            "assets/css/main.scss",
+            Some(site),
+            Some(&config),
+        );
+        assert!(
+            result.is_ok(),
+            "SCSS with color.channel workaround should compile: {:?}",
+            result.err()
+        );
+        let css = result.unwrap();
+        assert!(
+            css.contains("rgba(0, 0, 0, 0.4)"),
+            "CSS should contain resolved rgba: {}",
+            css
         );
     }
 
@@ -9243,6 +9385,116 @@ defaults:
         assert!(
             !result.unwrap().contains('\n'),
             "compressed style should produce single-line CSS"
+        );
+    }
+
+    // Issue 249: Mediumish Sass import resolution
+    // Verifies that @import "partial" resolves _sass/_partial.scss
+    // using the default sass_dir without explicit sass config.
+
+    #[test]
+    fn test_compile_scss_default_sass_dir_partial_resolution() {
+        let tmp = tempfile::tempdir().unwrap();
+        let site = tmp.path();
+
+        let sass_dir = site.join("_sass");
+        fs::create_dir_all(&sass_dir).unwrap();
+        fs::write(
+            sass_dir.join("_syntax.scss"),
+            ".highlight .c { color: #999; }\n",
+        )
+        .unwrap();
+        fs::write(
+            sass_dir.join("_starsnonscss.scss"),
+            ".rating-holder { font-size: 16px; }\n",
+        )
+        .unwrap();
+
+        let css_dir = site.join("assets").join("css");
+        fs::create_dir_all(&css_dir).unwrap();
+        fs::write(css_dir.join("main.scss"), "placeholder").unwrap();
+
+        let config = SiteConfig::from_yaml_str("title: test\n").unwrap();
+
+        let scss_source = ".post-excerpt p { display: inline; }\n@import\n\t\"syntax\",\n    \"starsnonscss\"\n;\n";
+
+        let result = compile_scss(
+            scss_source,
+            "assets/css/main.scss",
+            Some(site),
+            Some(&config),
+        );
+        assert!(
+            result.is_ok(),
+            "Mediumish-style SCSS compilation failed: {:?}",
+            result.err()
+        );
+        let css = result.unwrap();
+        assert!(
+            css.contains("highlight"),
+            "CSS should contain syntax highlighting styles from _syntax.scss"
+        );
+        assert!(
+            css.contains("rating-holder"),
+            "CSS should contain rating styles from _starsnonscss.scss"
+        );
+        assert!(
+            css.contains("post-excerpt"),
+            "CSS should contain inline styles from main.scss"
+        );
+    }
+
+    #[test]
+    fn test_mediumish_css_contains_imported_partials() {
+        let mediumish_css = std::path::Path::new("websites/mediumish/assets/css/main.scss");
+        assert!(
+            mediumish_css.exists(),
+            "Mediumish main.scss must exist for integration test"
+        );
+
+        let mediumish_site = std::path::Path::new("websites/mediumish");
+        assert!(
+            mediumish_site.join("_sass/_syntax.scss").exists(),
+            "_sass/_syntax.scss must exist"
+        );
+        assert!(
+            mediumish_site.join("_sass/_starsnonscss.scss").exists(),
+            "_sass/_starsnonscss.scss must exist"
+        );
+
+        let config = SiteConfig::from_yaml_str(
+            &std::fs::read_to_string(mediumish_site.join("_config.yml"))
+                .expect("must read _config.yml"),
+        )
+        .expect("must parse _config.yml");
+
+        let scss_raw = std::fs::read_to_string(mediumish_css).expect("must read main.scss");
+        let scss_source = if scss_raw.starts_with("---") {
+            let end = scss_raw[3..].find("---").expect("must find closing ---");
+            scss_raw[3 + end + 3..].trim_start()
+        } else {
+            &scss_raw
+        };
+
+        let result = compile_scss(
+            scss_source,
+            "assets/css/main.scss",
+            Some(mediumish_site),
+            Some(&config),
+        );
+        assert!(
+            result.is_ok(),
+            "Mediumish SCSS compilation failed: {:?}",
+            result.err()
+        );
+        let css = result.unwrap();
+        assert!(
+            css.contains("highlight"),
+            "CSS must contain syntax highlighting classes from _syntax.scss"
+        );
+        assert!(
+            css.contains("rating-holder"),
+            "CSS must contain rating styles from _starsnonscss.scss"
         );
     }
 
@@ -9573,5 +9825,127 @@ defaults:
         let config = SiteConfig::default();
         let result = resolve_layout(&item, &config, "pages");
         assert_eq!(result, Some("404".to_string()));
+    }
+
+    // ========================================================================
+    // Issue 345: al-folio Sass @use directive support
+    // ========================================================================
+
+    #[test]
+    fn test_compile_scss_use_sass_math() {
+        let result = compile_scss(
+            "@use \"sass:math\";\n.test { width: math.div(100, 3) * 1%; }\n",
+            "assets/css/main.scss",
+            None,
+            None,
+        );
+        assert!(
+            result.is_ok(),
+            "sass:math should compile: {:?}",
+            result.err()
+        );
+        let css = result.unwrap();
+        assert!(
+            css.contains("width:"),
+            "CSS should contain width rule: {}",
+            css
+        );
+    }
+
+    #[test]
+    fn test_compile_scss_use_sass_string() {
+        let result = compile_scss(
+            "@use \"sass:string\";\n.test { content: string.to-upper-case(\"hello\"); }\n",
+            "assets/css/main.scss",
+            None,
+            None,
+        );
+        assert!(
+            result.is_ok(),
+            "sass:string should compile: {:?}",
+            result.err()
+        );
+        let css = result.unwrap();
+        assert!(
+            css.contains("HELLO"),
+            "CSS should contain uppercased string: {}",
+            css
+        );
+    }
+
+    #[test]
+    fn test_compile_scss_use_with_config() {
+        let tmp = tempfile::tempdir().unwrap();
+        let site = tmp.path();
+
+        let sass_dir = site.join("_sass");
+        fs::create_dir_all(&sass_dir).unwrap();
+        fs::write(
+            sass_dir.join("_variables.scss"),
+            "$max-content-width: 930px !default;\n",
+        )
+        .unwrap();
+
+        let css_dir = site.join("assets").join("css");
+        fs::create_dir_all(&css_dir).unwrap();
+        fs::write(css_dir.join("main.scss"), "placeholder").unwrap();
+
+        let yaml = "sass:\n  style: compressed\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+
+        let liquid_processed = "@use \"variables\" with (\n  $max-content-width: 930px\n);\n.test { max-width: variables.$max-content-width; }\n";
+
+        let result = compile_scss(
+            liquid_processed,
+            "assets/css/main.scss",
+            Some(site),
+            Some(&config),
+        );
+        assert!(
+            result.is_ok(),
+            "@use with () should compile: {:?}",
+            result.err()
+        );
+        let css = result.unwrap();
+        assert!(
+            css.contains("930px"),
+            "CSS should contain configured value: {}",
+            css
+        );
+    }
+
+    #[test]
+    fn test_compile_scss_use_with_namespace() {
+        let tmp = tempfile::tempdir().unwrap();
+        let site = tmp.path();
+
+        let sass_dir = site.join("_sass");
+        fs::create_dir_all(&sass_dir).unwrap();
+        fs::write(sass_dir.join("_colors.scss"), "$primary: #0076df;\n").unwrap();
+
+        let css_dir = site.join("assets").join("css");
+        fs::create_dir_all(&css_dir).unwrap();
+        fs::write(css_dir.join("main.scss"), "placeholder").unwrap();
+
+        let yaml = "sass:\n  style: compressed\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+
+        let result = compile_scss(
+            "@use \"colors\" as c;\n.test { color: c.$primary; }\n",
+            "assets/css/main.scss",
+            Some(site),
+            Some(&config),
+        );
+        assert!(
+            result.is_ok(),
+            "@use with namespace should compile: {:?}",
+            result.err()
+        );
+        let css = result.unwrap();
+        assert!(
+            css.contains("#0076df"),
+            "CSS should contain namespaced variable: {}",
+            css
+        );
     }
 }

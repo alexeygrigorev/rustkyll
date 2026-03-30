@@ -1,0 +1,110 @@
+Jekyll directory:   /home/alexey/git/rustkyl/websites/hydeout/_site_jekyll_cached
+Rustkyll directory: /home/alexey/git/rustkyl/websites/hydeout/_site_rustkyll_recount
+Common HTML files:  30
+Only in Jekyll:     4
+Only in rustkyll:   4
+
+DIFF 2012/02/05/markup-syntax-highlighting.html (246 differences)
+  body > main > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='na'"
+  body > main > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nl'", actual: "class='nb'"
+  body > main > div > div > div > div > pre > code > span: attribute_differs - expected: "class='p'", actual: "class='pi'"
+  body > main > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'left'
+  body > main > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='p'"
+  body > main > div > div > div > div > pre > code > span: text_differs - expected: 'left', actual: ';'
+  body > main > div > div > div > div > pre > code > span: attribute_differs - expected: "class='p'", actual: "class='nb'"
+  body > main > div > div > div > div > pre > code > span: text_differs - expected: ';', actual: 'margin'
+  body > main > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nl'", actual: "class='pi'"
+  body > main > div > div > div > div > pre > code > span: text_differs - expected: 'margin', actual: ':'
+  ... and 236 more differences
+DIFF 2017/06/01/hello-hydeout.html (31 differences)
+  body > main > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '$sidebar-bg-color: #202020 !default; $sidebar-fg-color: white !default; $sidebar-sticky: true !defau'
+  body > main > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  ... and 21 more differences
+DIFF category/edge-case.html (23 differences)
+  body > main > div > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='p'"
+  body > main > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'layout: category title: My Category'
+  body > main > div > div > div > pre > code > span: attribute_differs - expected: "class='na'", actual: "class='p'"
+  body > main > div > div > div > pre > code > span: text_differs - expected: 'layout', actual: '---'
+  body > main > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  ... and 13 more differences
+DIFF edge case/2009/05/15/edge-case-nested-and-mixed-lists.html (1 differences)
+  body > main > div > div > ol > li > ul: missing_element - expected: '<ul>', actual: '(none)'
+DIFF edge case/2009/10/05/edge-case-title-should-not-overflow-the-content-area.html (7 differences)
+  body > main > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nt'", actual: "class='na'"
+  body > main > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: ':'
+  body > main > div > div > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='na'"
+  body > main > div > div > div > div > pre > code > span: text_differs - expected: ':', actual: 'break-word'
+  body > main > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: ';'
+  body > main > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+DIFF index.html (43 differences)
+  body > main > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '$sidebar-bg-color: #202020 !default; $sidebar-fg-color: white !default; $sidebar-sticky: true !defau'
+  body > main > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  ... and 33 more differences
+DIFF markup/2012/01/11/markup-html-elements-and-formatting.html (70 differences)
+  body > main > div > div > table > thead > tr > th: missing_text - expected: '\xa0', actual: '(none)'
+  body > main > div > div > child[18]: tag_name_differs - expected: 'dl', actual: 'p'
+  body > main > div > div > child[19]: tag_name_differs - expected: 'h2', actual: 'p'
+  body > main > div > div > child[20]: tag_name_differs - expected: 'ul', actual: 'p'
+  body > main > div > div > child[21]: tag_name_differs - expected: 'h2', actual: 'p'
+  body > main > div > div > child[22]: tag_name_differs - expected: 'ol', actual: 'h2'
+  body > main > div > div > child[23]: tag_name_differs - expected: 'h2', actual: 'ul'
+  body > main > div > div > child[24]: tag_name_differs - expected: 'address', actual: 'h2'
+  body > main > div > div > child[25]: tag_name_differs - expected: 'h2', actual: 'ol'
+  body > main > div > div > child[26]: tag_name_differs - expected: 'p', actual: 'h2'
+  ... and 60 more differences
+DIFF markup/2012/01/30/markup-title-with-markup.html (9 differences)
+  body > main > div > div > div > div > pre > code > span: text_differs - expected: 'Markup:', actual: 'Markup: Title *with* **Markdown**"'
+  body > main > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nv'", actual: "class='s2'"
+  body > main > div > div > div > div > pre > code > span: extra_text - expected: '(none)', actual: '"'
+  body > main > div > div > div > div > pre > code > span: missing_text - expected: 'Title', actual: '(none)'
+  body > main > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > main > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+DIFF markup/2012/01/31/markup-title-with-special-characters.html (9 differences)
+  body > main > div > div > div > div > pre > code > span: attribute_differs - expected: "class='ni'", actual: "class='p'"
+  body > main > div > div > div > div > pre > code > span: text_differs - expected: '&nbsp;', actual: '&'
+  body > main > div > div > div > div > pre > code: text_differs - expected: '---', actual: 'nbsp'
+  body > main > div > div > div > div > pre > code > span: attribute_differs - expected: "class='ni'", actual: "class='p'"
+  body > main > div > div > div > div > pre > code > span: text_differs - expected: '&nbsp;', actual: ';'
+  body > main > div > div > div > div > pre > code: extra_text - expected: '(none)', actual: '---'
+  body > main > div > div > div > div > pre > code > span: extra_element - expected: '(none)', actual: '<span>'
+  body > main > div > div > div > div > pre > code: extra_text - expected: '(none)', actual: 'nbsp'
+  body > main > div > div > div > div > pre > code > span: extra_element - expected: '(none)', actual: '<span>'
+DIFF post formats/2010/06/02/post-video-youtube.html (52 differences)
+  body > main > div > div > div > div > pre > code > span: attribute_differs - expected: "class='c'", actual: "class='cm'"
+  body > main > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nt'", actual: "class='p'"
+  body > main > div > div > div > div > pre > code > span: text_differs - expected: '></iframe>', actual: '></'
+  body > main > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nt'", actual: "class='na'"
+  body > main > div > div > div > div > pre > code > span: text_differs - expected: '</div>', actual: 'iframe'
+  body > main > div > div > div > div > pre > code > span: attribute_differs - expected: "class='c'", actual: "class='nt'"
+  body > main > div > div > div > div > pre > code > span: text_differs - expected: '<!-- 4:3 aspect ratio -->', actual: '>'
+  body > main > div > div > div > div > pre > code > span: text_differs - expected: '<div', actual: '</div>'
+  body > main > div > div > div > div > pre > code > span: attribute_differs - expected: "class='na'", actual: "class='cm'"
+  body > main > div > div > div > div > pre > code > span: text_differs - expected: 'class=', actual: '<!-- 4:3 aspect ratio -->'
+  ... and 42 more differences
+
+Summary: 20 files matched, 10 files with differences, 491 total differences (8 acceptable diffs filtered out)
