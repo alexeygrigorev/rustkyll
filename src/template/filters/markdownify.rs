@@ -802,8 +802,8 @@ mod tests {
         // Inline code SHOULD have highlighter-rouge
         let html_kd = crate::frontmatter::markdown_to_html_for_filter("`some_code`");
         assert!(
-            html_kd.contains("<code class=\"highlighter-rouge\">some_code</code>"),
-            "Kramdown mode: inline code should have highlighter-rouge. Got: {:?}",
+            html_kd.contains("<code class=\"language-plaintext highlighter-rouge\">some_code</code>"),
+            "Kramdown mode: inline code should have language-plaintext highlighter-rouge. Got: {:?}",
             html_kd
         );
 
