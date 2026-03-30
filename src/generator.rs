@@ -1232,6 +1232,40 @@ fn build_categories_and_tags(
     )
 }
 
+/// Convert a YAML value to a layout name string.
+///
+/// - String values are returned as-is (empty strings return `None`).
+/// - Null values return `None` (layout: null means no layout).
+/// - Non-string values (integers, bools, floats) are converted to their string
+///   representation, e.g. `layout: 404` (integer) becomes `"404"`.
+pub fn yaml_value_to_layout_string(val: &serde_yaml::Value) -> Option<String> {
+    if let Some(s) = val.as_str() {
+        if s.is_empty() {
+            None
+        } else {
+            Some(s.to_string())
+        }
+    } else if val.is_null() {
+        None
+    } else if let Some(n) = val.as_u64() {
+        Some(n.to_string())
+    } else if let Some(n) = val.as_i64() {
+        Some(n.to_string())
+    } else if let Some(n) = val.as_f64() {
+        Some(n.to_string())
+    } else if let Some(b) = val.as_bool() {
+        Some(b.to_string())
+    } else {
+        // Fallback for sequences/mappings -- unlikely for layout but handle gracefully
+        Some(
+            serde_yaml::to_string(val)
+                .unwrap_or_default()
+                .trim()
+                .to_string(),
+        )
+    }
+}
+
 /// Resolve the layout name for a collection item.
 ///
 /// First checks the item's own front matter for a `layout` key.
@@ -1244,11 +1278,11 @@ pub fn resolve_layout<'a>(
 ) -> Option<String> {
     // Check the item's own front matter first
     if let Some(layout_val) = item.front_matter.get("layout") {
-        if let Some(layout_str) = layout_val.as_str() {
-            if !layout_str.is_empty() {
-                return Some(layout_str.to_string());
-            }
+        if let Some(layout_str) = yaml_value_to_layout_string(layout_val) {
+            return Some(layout_str);
         }
+        // layout key exists but is null or empty -- no layout
+        return None;
     }
 
     // Fall back to config defaults
@@ -2193,10 +2227,7 @@ pub fn generate_pages_cached_with_config_and_progress(
         //   2. `layout: null` (explicit null) -> render through Liquid, no layout wrapping
         //   3. No `layout` key at all -> skip page (no rendering)
         let layout_value = page_fm.get("layout");
-        let layout_name: Option<String> = layout_value
-            .and_then(|v| v.as_str())
-            .filter(|s| !s.is_empty())
-            .map(|s| s.to_string());
+        let layout_name: Option<String> = layout_value.and_then(yaml_value_to_layout_string);
 
         // Jekyll processes ALL files with front matter regardless of layout.
         // Pages without a layout are rendered through Liquid without wrapping.
@@ -9477,5 +9508,70 @@ defaults:
         } else {
             panic!("Expected Array");
         }
+    }
+
+    #[test]
+    fn test_yaml_value_to_layout_string_integer() {
+        let val = serde_yaml::Value::Number(serde_yaml::Number::from(404));
+        assert_eq!(yaml_value_to_layout_string(&val), Some("404".to_string()));
+    }
+
+    #[test]
+    fn test_yaml_value_to_layout_string_string() {
+        let val = serde_yaml::Value::String("default".to_string());
+        assert_eq!(
+            yaml_value_to_layout_string(&val),
+            Some("default".to_string())
+        );
+    }
+
+    #[test]
+    fn test_yaml_value_to_layout_string_empty_string() {
+        let val = serde_yaml::Value::String("".to_string());
+        assert_eq!(yaml_value_to_layout_string(&val), None);
+    }
+
+    #[test]
+    fn test_yaml_value_to_layout_string_null() {
+        let val = serde_yaml::Value::Null;
+        assert_eq!(yaml_value_to_layout_string(&val), None);
+    }
+
+    #[test]
+    fn test_yaml_value_to_layout_string_bool() {
+        let val = serde_yaml::Value::Bool(true);
+        assert_eq!(yaml_value_to_layout_string(&val), Some("true".to_string()));
+    }
+
+    #[test]
+    fn test_yaml_value_to_layout_string_float() {
+        let val = serde_yaml::Value::Number(serde_yaml::Number::from(3));
+        // serde_yaml doesn't have a direct from-float for Number, so test with integer
+        assert_eq!(yaml_value_to_layout_string(&val), Some("3".to_string()));
+    }
+
+    #[test]
+    fn test_resolve_layout_with_numeric_layout() {
+        let mut fm = std::collections::HashMap::new();
+        fm.insert(
+            "layout".to_string(),
+            serde_yaml::Value::Number(serde_yaml::Number::from(404)),
+        );
+        let item = CollectionItem {
+            slug: "404".to_string(),
+            front_matter: fm,
+            content: "".to_string(),
+            html_content: "".to_string(),
+            excerpt: None,
+            excerpt_html: None,
+            url: "/404.html".to_string(),
+            date: None,
+            collection_name: "pages".to_string(),
+            source_path: "404.html".to_string(),
+            id: "/404".to_string(),
+        };
+        let config = SiteConfig::default();
+        let result = resolve_layout(&item, &config, "pages");
+        assert_eq!(result, Some("404".to_string()));
     }
 }
