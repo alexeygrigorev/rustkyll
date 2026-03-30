@@ -645,6 +645,16 @@ impl TemplateEngine {
             .block(super::highlight_tag::HighlightBlock)
             .tag(super::feed_meta_tag::FeedMetaTag)
             .tag(super::noop_tags::GithubEditLinkTag)
+            .tag(super::noop_tags::CiteTag)
+            .tag(super::noop_tags::ReferenceTag)
+            .tag(super::noop_tags::BibliographyTag)
+            .tag(super::noop_tags::JupyterNotebookTag)
+            .tag(super::noop_tags::SocialLinksTag)
+            .tag(super::noop_tags::TwitterTag)
+            .tag(super::noop_tags::BustFileCacheTag)
+            .block(super::noop_tags::TabsBlock)
+            .block(super::noop_tags::TabBlock)
+            .block(super::noop_tags::QuoteBlock)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
         Ok(Self {
@@ -682,7 +692,17 @@ impl TemplateEngine {
             .tag(super::avatar_tag::AvatarTag)
             .block(super::highlight_tag::HighlightBlock)
             .tag(super::feed_meta_tag::FeedMetaTag)
-            .tag(super::noop_tags::GithubEditLinkTag);
+            .tag(super::noop_tags::GithubEditLinkTag)
+            .tag(super::noop_tags::CiteTag)
+            .tag(super::noop_tags::ReferenceTag)
+            .tag(super::noop_tags::BibliographyTag)
+            .tag(super::noop_tags::JupyterNotebookTag)
+            .tag(super::noop_tags::SocialLinksTag)
+            .tag(super::noop_tags::TwitterTag)
+            .tag(super::noop_tags::BustFileCacheTag)
+            .block(super::noop_tags::TabsBlock)
+            .block(super::noop_tags::TabBlock)
+            .block(super::noop_tags::QuoteBlock);
         for name in &passthrough_set {
             builder = builder.filter(filters::passthrough::PassthroughFilter::new(name.clone()));
         }
@@ -715,7 +735,17 @@ impl TemplateEngine {
             .tag(super::avatar_tag::AvatarTag)
             .block(super::highlight_tag::HighlightBlock)
             .tag(super::feed_meta_tag::FeedMetaTag)
-            .tag(super::noop_tags::GithubEditLinkTag);
+            .tag(super::noop_tags::GithubEditLinkTag)
+            .tag(super::noop_tags::CiteTag)
+            .tag(super::noop_tags::ReferenceTag)
+            .tag(super::noop_tags::BibliographyTag)
+            .tag(super::noop_tags::JupyterNotebookTag)
+            .tag(super::noop_tags::SocialLinksTag)
+            .tag(super::noop_tags::TwitterTag)
+            .tag(super::noop_tags::BustFileCacheTag)
+            .block(super::noop_tags::TabsBlock)
+            .block(super::noop_tags::TabBlock)
+            .block(super::noop_tags::QuoteBlock);
         for name in &passthrough_set {
             builder = builder.filter(filters::passthrough::PassthroughFilter::new(name.clone()));
         }
@@ -858,6 +888,16 @@ impl TemplateEngine {
             .block(super::highlight_tag::HighlightBlock)
             .tag(super::feed_meta_tag::FeedMetaTag)
             .tag(super::noop_tags::GithubEditLinkTag)
+            .tag(super::noop_tags::CiteTag)
+            .tag(super::noop_tags::ReferenceTag)
+            .tag(super::noop_tags::BibliographyTag)
+            .tag(super::noop_tags::JupyterNotebookTag)
+            .tag(super::noop_tags::SocialLinksTag)
+            .tag(super::noop_tags::TwitterTag)
+            .tag(super::noop_tags::BustFileCacheTag)
+            .block(super::noop_tags::TabsBlock)
+            .block(super::noop_tags::TabBlock)
+            .block(super::noop_tags::QuoteBlock)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
 
@@ -1018,7 +1058,18 @@ impl TemplateEngine {
         builder = builder.tag(super::avatar_tag::AvatarTag);
         builder = builder.block(super::highlight_tag::HighlightBlock);
         builder = builder.tag(super::feed_meta_tag::FeedMetaTag);
-        builder = builder.tag(super::noop_tags::GithubEditLinkTag);
+        builder = builder
+            .tag(super::noop_tags::GithubEditLinkTag)
+            .tag(super::noop_tags::CiteTag)
+            .tag(super::noop_tags::ReferenceTag)
+            .tag(super::noop_tags::BibliographyTag)
+            .tag(super::noop_tags::JupyterNotebookTag)
+            .tag(super::noop_tags::SocialLinksTag)
+            .tag(super::noop_tags::TwitterTag)
+            .tag(super::noop_tags::BustFileCacheTag)
+            .block(super::noop_tags::TabsBlock)
+            .block(super::noop_tags::TabBlock)
+            .block(super::noop_tags::QuoteBlock);
         if self.has_include_tag {
             builder = builder.tag(super::include_tag::LenientIncludeTag);
             builder = builder.tag(super::include_tag::LenientIncludeCachedTag);

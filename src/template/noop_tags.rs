@@ -7,7 +7,10 @@
 use std::io::Write;
 
 use liquid_core::model::ValueView;
-use liquid_core::{Language, ParseTag, Renderable, Runtime, TagReflection, TagTokenIter};
+use liquid_core::{
+    BlockReflection, Language, ParseBlock, ParseTag, Renderable, Runtime, TagBlock, TagReflection,
+    TagTokenIter,
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -142,6 +145,136 @@ impl Renderable for GithubEditLinkRenderable {
         Ok(())
     }
 }
+
+// ---------------------------------------------------------------------------
+// Macro for no-op inline tags (produce empty output)
+// ---------------------------------------------------------------------------
+
+macro_rules! noop_inline_tag {
+    ($struct_name:ident, $tag_name:expr, $desc:expr) => {
+        #[derive(Copy, Clone, Debug, Default)]
+        pub struct $struct_name;
+
+        impl TagReflection for $struct_name {
+            fn tag(&self) -> &'static str {
+                $tag_name
+            }
+            fn description(&self) -> &'static str {
+                $desc
+            }
+        }
+
+        impl ParseTag for $struct_name {
+            fn parse(
+                &self,
+                mut arguments: TagTokenIter<'_>,
+                _options: &Language,
+            ) -> liquid_core::Result<Box<dyn Renderable>> {
+                consume_all_arguments(&mut arguments);
+                Ok(Box::new(NoopRenderable))
+            }
+            fn reflection(&self) -> &dyn TagReflection {
+                self
+            }
+        }
+    };
+}
+
+// ---------------------------------------------------------------------------
+// Macro for no-op block tags (produce empty output)
+// ---------------------------------------------------------------------------
+
+macro_rules! noop_block_tag {
+    ($struct_name:ident, $start:expr, $end:expr, $desc:expr) => {
+        #[derive(Copy, Clone, Debug, Default)]
+        pub struct $struct_name;
+
+        impl BlockReflection for $struct_name {
+            fn start_tag(&self) -> &str {
+                $start
+            }
+            fn end_tag(&self) -> &str {
+                $end
+            }
+            fn description(&self) -> &str {
+                $desc
+            }
+        }
+
+        impl ParseBlock for $struct_name {
+            fn parse(
+                &self,
+                mut arguments: TagTokenIter<'_>,
+                mut block: TagBlock<'_, '_>,
+                _options: &Language,
+            ) -> liquid_core::Result<Box<dyn Renderable>> {
+                consume_all_arguments(&mut arguments);
+                // Consume block body without parsing
+                let _body = block.escape_liquid(true)?;
+                Ok(Box::new(NoopRenderable))
+            }
+            fn reflection(&self) -> &dyn BlockReflection {
+                self
+            }
+        }
+    };
+}
+
+/// Renderable that produces no output.
+#[derive(Debug)]
+struct NoopRenderable;
+
+impl std::fmt::Display for NoopRenderable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "noop")
+    }
+}
+
+impl Renderable for NoopRenderable {
+    fn render_to(
+        &self,
+        _writer: &mut dyn Write,
+        _runtime: &dyn Runtime,
+    ) -> liquid_core::Result<()> {
+        Ok(())
+    }
+}
+
+// ---------------------------------------------------------------------------
+// No-op inline tags (jekyll-scholar and other plugins)
+// ---------------------------------------------------------------------------
+
+noop_inline_tag!(CiteTag, "cite", "No-op cite tag (jekyll-scholar)");
+noop_inline_tag!(
+    ReferenceTag,
+    "reference",
+    "No-op reference tag (jekyll-scholar)"
+);
+noop_inline_tag!(
+    BibliographyTag,
+    "bibliography",
+    "No-op bibliography tag (jekyll-scholar)"
+);
+noop_inline_tag!(
+    JupyterNotebookTag,
+    "jupyter_notebook",
+    "No-op jupyter_notebook tag"
+);
+noop_inline_tag!(SocialLinksTag, "social_links", "No-op social_links tag");
+noop_inline_tag!(TwitterTag, "twitter", "No-op twitter tag");
+noop_inline_tag!(
+    BustFileCacheTag,
+    "bust_file_cache",
+    "No-op bust_file_cache tag"
+);
+
+// ---------------------------------------------------------------------------
+// No-op block tags
+// ---------------------------------------------------------------------------
+
+noop_block_tag!(TabsBlock, "tabs", "endtabs", "No-op tabs block");
+noop_block_tag!(TabBlock, "tab", "endtab", "No-op tab block");
+noop_block_tag!(QuoteBlock, "quote", "endquote", "No-op quote block");
 
 #[cfg(test)]
 mod tests {
