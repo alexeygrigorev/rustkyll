@@ -125,3 +125,23 @@ The key insight is that pulldown-cmark (CommonMark) does not allow headings (`# 
 - Verify `books/20220425-natural-language-processing-with-transformers.html` does not regress (currently 3 diffs).
 
 ## Log
+
+### [SWE] 2026-03-30
+
+- Read issue; found that the underlying bug was already fixed by issue #385
+  (`renest_heading_after_list` enhanced to collect ALL consecutive block elements)
+- Issue #385 was accepted and committed; the `.done.md` version of #373 already exists
+- Current DTC DOM: 790/790 (0 diffs for the target page)
+- Existing tests: 8 tests in `src/frontmatter.rs` (test_issue373_*) and 9 tests in `tests/test_issue_385.rs`
+- TDD: wrote 7 new integration-level tests in `tests/test_issue_373.rs`:
+  - `test_issue373_heading_inside_list_item_stays_nested` -- heading nested in li
+  - `test_issue373_multiple_headings_and_p_inside_list_item` -- both h3 User/Assistant + p stay inside li
+  - `test_issue373_heading_in_code_block_not_converted` -- ### in code block stays as code
+  - `test_issue373_regression_simple_numbered_list` -- ol/li structure preserved
+  - `test_issue373_regression_nested_bullet_list` -- nested ul structure preserved
+  - `test_issue373_regression_list_followed_by_paragraph` -- paragraph after list correct
+  - `test_issue373_unicode_emoji_in_list_item` -- U+1F60A, U+25E6, U+1F4DA preserved
+- All 7 new tests pass, full test suite passes
+- Clippy: clean, fmt: clean
+- DTC DOM: 790/790 (no regression)
+- Files created: `tests/test_issue_373.rs`
