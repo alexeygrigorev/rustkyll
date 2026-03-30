@@ -143,14 +143,31 @@ fn pre_render_highlight_blocks(content: &str) -> String {
         return content.to_string();
     }
 
+    // Build a list of protected byte ranges (raw blocks and fenced code blocks)
+    // so we can skip {% highlight %} tags that fall inside them.
+    let protected = find_protected_ranges(content);
+
     let mut result = String::with_capacity(content.len());
     let mut remaining = content;
+    let mut offset = 0usize; // tracks byte offset into original content
 
-    while let Some(start_pos) = remaining.find("{% highlight ") {
+    while let Some(rel_pos) = remaining.find("{% highlight ") {
+        let abs_pos = offset + rel_pos;
+
+        // Check if this {% highlight %} is inside a protected range
+        if is_in_protected_range(abs_pos, &protected) {
+            // Don't process -- copy up to and past this tag text, advance
+            result.push_str(&remaining[..rel_pos + "{% highlight ".len()]);
+            remaining = &remaining[rel_pos + "{% highlight ".len()..];
+            offset = abs_pos + "{% highlight ".len();
+            continue;
+        }
+
         // Push everything before the tag
-        result.push_str(&remaining[..start_pos]);
+        result.push_str(&remaining[..rel_pos]);
 
-        let after_open = &remaining[start_pos + "{% highlight ".len()..];
+        let after_open = &remaining[rel_pos + "{% highlight ".len()..];
+        let after_open_offset = abs_pos + "{% highlight ".len();
 
         // Find the closing %} of the opening tag
         if let Some(close_pct) = after_open.find("%}") {
@@ -162,19 +179,29 @@ fn pre_render_highlight_blocks(content: &str) -> String {
             let hl_lines = parse_hl_lines_from_tag_args(tag_args);
 
             let after_open_tag = &after_open[close_pct + 2..];
+            let after_open_tag_offset = after_open_offset + close_pct + 2;
 
-            // Find the matching {% endhighlight %}
-            if let Some(end_pos) = after_open_tag.find("{% endhighlight %}") {
+            // Find the matching {% endhighlight %} that is NOT in a protected range
+            let mut search_from = 0usize;
+            let mut found_end = None;
+            while let Some(ep) = after_open_tag[search_from..].find("{% endhighlight %}") {
+                let candidate_abs = after_open_tag_offset + search_from + ep;
+                if is_in_protected_range(candidate_abs, &protected) {
+                    // Skip this one, keep searching
+                    search_from += ep + "{% endhighlight %}".len();
+                } else {
+                    found_end = Some(search_from + ep);
+                    break;
+                }
+            }
+
+            if let Some(end_pos) = found_end {
                 let body = &after_open_tag[..end_pos];
                 // Strip leading/trailing newline matching Jekyll behavior
                 let body = body.strip_prefix('\n').unwrap_or(body);
                 let body = body.strip_suffix('\n').unwrap_or(body);
 
                 // Render the highlight block using the same logic as the Liquid tag.
-                // The output is embedded in markdown, so we must avoid blank lines
-                // inside the <figure> block. CommonMark type-6 HTML blocks end at
-                // blank lines, which would cause the markdown parser to wrap
-                // subsequent content in <p> tags. Collapse \n\n to \n.
                 let escaped_lang = html_escape_highlight(lang);
                 let mut figure = format!(
                     "<figure class=\"highlight\"><pre><code class=\"language-{}\" data-lang=\"{}\">",
@@ -192,7 +219,6 @@ fn pre_render_highlight_blocks(content: &str) -> String {
                 figure.push_str("</code></pre></figure>");
                 // Collapse blank lines so markdown parser treats entire figure as
                 // one HTML block (CommonMark type-6 blocks end at blank lines).
-                // Handle both LF (\n\n) and CRLF (\r\n\r\n) line endings.
                 while figure.contains("\r\n\r\n") {
                     figure = figure.replace("\r\n\r\n", "\r\n");
                 }
@@ -201,23 +227,114 @@ fn pre_render_highlight_blocks(content: &str) -> String {
                 }
                 result.push_str(&figure);
 
-                remaining = &after_open_tag[end_pos + "{% endhighlight %}".len()..];
+                let new_remaining_rel = end_pos + "{% endhighlight %}".len();
+                remaining = &after_open_tag[new_remaining_rel..];
+                offset = after_open_tag_offset + new_remaining_rel;
             } else {
                 // No matching endhighlight, keep as-is
-                result.push_str(
-                    &remaining[start_pos..start_pos + "{% highlight ".len() + close_pct + 2],
-                );
-                remaining = after_open_tag;
+                result
+                    .push_str(&remaining[rel_pos..rel_pos + "{% highlight ".len() + close_pct + 2]);
+                remaining = &after_open[close_pct + 2..];
+                offset = after_open_offset + close_pct + 2;
             }
         } else {
             // No closing %}, keep as-is
-            result.push_str(&remaining[start_pos..]);
+            result.push_str(&remaining[rel_pos..]);
             remaining = "";
+            offset = content.len();
         }
     }
 
     result.push_str(remaining);
     result
+}
+
+/// Find byte ranges in `content` that are protected: `{% raw %}...{% endraw %}`
+/// blocks and fenced code blocks (``` or ~~~). Returns sorted, non-overlapping
+/// `(start, end)` byte ranges.
+fn find_protected_ranges(content: &str) -> Vec<(usize, usize)> {
+    let mut ranges: Vec<(usize, usize)> = Vec::new();
+    let bytes = content.as_bytes();
+    let len = bytes.len();
+    let mut pos = 0;
+
+    while pos < len {
+        // Check for {% raw %} blocks
+        if bytes[pos] == b'{' && content[pos..].starts_with("{%") {
+            if let Some(tag_end) = content[pos..].find("%}") {
+                let tag_inner = content[pos + 2..pos + tag_end].trim();
+                if tag_inner == "raw" {
+                    let after_tag = pos + tag_end + 2;
+                    if let Some(end_offset) = content[after_tag..].find("{% endraw %}") {
+                        let block_end = after_tag + end_offset + "{% endraw %}".len();
+                        ranges.push((pos, block_end));
+                        pos = block_end;
+                        continue;
+                    }
+                }
+            }
+        }
+
+        // Check for fenced code blocks (``` or ~~~) at start of line
+        if (pos == 0 || bytes[pos - 1] == b'\n')
+            && pos + 3 <= len
+            && (content[pos..].starts_with("```") || content[pos..].starts_with("~~~"))
+        {
+            let fence_char = bytes[pos];
+            let mut fence_len = 0;
+            while pos + fence_len < len && bytes[pos + fence_len] == fence_char {
+                fence_len += 1;
+            }
+            if fence_len >= 3 {
+                let block_start = pos;
+                let line_end = content[pos + fence_len..]
+                    .find('\n')
+                    .map(|i| pos + fence_len + i + 1)
+                    .unwrap_or(len);
+                let mut search_pos = line_end;
+                let mut found_end = None;
+                while search_pos < len {
+                    if bytes[search_pos] == fence_char {
+                        let mut close_len = 0;
+                        while search_pos + close_len < len
+                            && bytes[search_pos + close_len] == fence_char
+                        {
+                            close_len += 1;
+                        }
+                        if close_len >= fence_len {
+                            let close_line_end = content[search_pos + close_len..]
+                                .find('\n')
+                                .map(|i| search_pos + close_len + i + 1)
+                                .unwrap_or(search_pos + close_len);
+                            found_end = Some(close_line_end);
+                            break;
+                        }
+                    }
+                    if let Some(nl) = content[search_pos..].find('\n') {
+                        search_pos += nl + 1;
+                    } else {
+                        break;
+                    }
+                }
+                if let Some(block_end) = found_end {
+                    ranges.push((block_start, block_end));
+                    pos = block_end;
+                    continue;
+                }
+            }
+        }
+
+        pos += 1;
+    }
+
+    ranges
+}
+
+/// Check whether a byte position falls inside any protected range.
+fn is_in_protected_range(pos: usize, ranges: &[(usize, usize)]) -> bool {
+    ranges
+        .iter()
+        .any(|(start, end)| pos >= *start && pos < *end)
 }
 
 /// Parse `hl_lines="1 3 5"` from raw tag arguments string.
@@ -4293,6 +4410,83 @@ mod tests {
         assert!(
             !result.contains("<span class=\"hll\">line three"),
             "Line 3 should NOT be wrapped, got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_pre_render_highlight_blocks_inside_raw() {
+        // {% highlight %} inside {% raw %}...{% endraw %} should NOT be processed
+        let input = "{% raw %}{% highlight ruby linenos %}\ndef foo\n  puts 'foo'\nend\n{% endhighlight %}{% endraw %}";
+        let result = pre_render_highlight_blocks(input);
+        assert!(
+            !result.contains("<figure"),
+            "highlight inside raw should not be processed, got: {result}"
+        );
+        assert!(
+            result.contains("{% highlight ruby linenos %}"),
+            "highlight tag should be kept as literal text, got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_pre_render_highlight_blocks_inside_fenced_code() {
+        // {% highlight %} inside fenced code blocks should NOT be processed
+        let input = "```\n{% raw %}{% highlight ruby linenos %}\ndef foo\n  puts 'foo'\nend\n{% endhighlight %}{% endraw %}\n```";
+        let result = pre_render_highlight_blocks(input);
+        assert!(
+            !result.contains("<figure"),
+            "highlight inside fenced code block should not be processed, got: {result}"
+        );
+        assert!(
+            result.contains("{% highlight ruby linenos %}"),
+            "highlight tag inside code block should be literal, got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_pre_render_highlight_wrapping_raw_highlight() {
+        // Outer {% highlight yaml %} wraps inner {% raw %}{% highlight %}{% endraw %}
+        // The outer should be processed; the inner should be literal text in output
+        let input = "{% highlight yaml %}\n{% raw %}{% highlight some_language %}\nSome code\n{% endhighlight %}{% endraw %}\n{% endhighlight %}";
+        let result = pre_render_highlight_blocks(input);
+        assert!(
+            result.contains("<figure class=\"highlight\">"),
+            "Outer highlight should be processed, got: {result}"
+        );
+        // The inner {% highlight some_language %} should appear as text in the output
+        // (it's inside {% raw %} inside the outer highlight's body)
+        assert!(
+            result.contains("highlight some_language"),
+            "Inner highlight text should appear literally, got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_pre_render_highlight_blocks_mixed_protected_unprotected() {
+        // Mix of: unprotected highlight, then fenced code with highlight, then another unprotected
+        let input = "{% highlight js %}\nvar x = 1;\n{% endhighlight %}\n\n```\n{% highlight ruby %}\ndef foo\nend\n{% endhighlight %}\n```\n\n{% highlight python %}\nx = 1\n{% endhighlight %}";
+        let result = pre_render_highlight_blocks(input);
+        // Count figure tags - should be exactly 2 (js and python, not ruby)
+        let figure_count = result.matches("<figure class=\"highlight\">").count();
+        assert_eq!(
+            figure_count, 2,
+            "Should have 2 figures (js + python), not ruby in fenced code. Got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_pre_render_highlight_blocks_raw_with_unicode() {
+        // Unicode content inside raw+highlight should be preserved literally
+        let input =
+            "{% raw %}{% highlight python %}\nx = \"caf\u{e9}\"\n{% endhighlight %}{% endraw %}";
+        let result = pre_render_highlight_blocks(input);
+        assert!(
+            !result.contains("<figure"),
+            "highlight inside raw should not be processed (unicode), got: {result}"
+        );
+        assert!(
+            result.contains("caf\u{e9}"),
+            "Unicode should be preserved, got: {result}"
         );
     }
 

@@ -57,3 +57,15 @@ The interaction between `{% raw %}`, fenced code blocks, and `{% highlight %}` t
 ### Integration: line-numbers page
 - Build just-the-docs, check code/line-numbers page does not have raw `{% highlight %}` in output
 - Verify the documentation example shows the literal `{% highlight %}` text
+
+## Log
+
+### [SWE] 2026-03-30
+- Root cause: `pre_render_highlight_blocks()` in src/collection.rs naively scanned for `{% highlight %}` tags without checking if they were inside `{% raw %}...{% endraw %}` blocks or fenced code blocks (``` or ~~~). This caused highlight tags that should be literal text to get processed into `<figure>` HTML.
+- TDD cycle:
+  - Wrote 5 tests: `test_pre_render_highlight_blocks_inside_raw`, `test_pre_render_highlight_blocks_inside_fenced_code`, `test_pre_render_highlight_wrapping_raw_highlight`, `test_pre_render_highlight_blocks_mixed_protected_unprotected`, `test_pre_render_highlight_blocks_raw_with_unicode`
+  - Ran tests: all 5 FAILED as expected (highlight inside raw/fenced was being processed)
+  - Implemented fix: refactored `pre_render_highlight_blocks()` to first build a list of protected byte ranges (raw blocks and fenced code blocks) via `find_protected_ranges()`, then skip `{% highlight %}` and `{% endhighlight %}` tags that fall inside protected ranges via `is_in_protected_range()`
+  - Ran tests: all 5 new tests PASS, all 11 highlight tests PASS
+- Build: 3346 lib tests pass, 0 fail; all integration tests pass; clippy clean; fmt clean
+- Files modified: src/collection.rs only
