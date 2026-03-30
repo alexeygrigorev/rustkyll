@@ -597,6 +597,11 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // <div markdown="1">, etc. and strips the attribute.
     let markdown = crate::kramdown::process_markdown_attribute(&markdown);
 
+    // Issue 489: Replace standalone {:toc} patterns with a placeholder before
+    // pulldown-cmark processes them. The placeholder will be replaced with
+    // an actual generated TOC during kramdown postprocessing.
+    let markdown = crate::kramdown::replace_toc_pattern_in_markdown(&markdown);
+
     // Issue 301: Mark forward-direction IALs (standalone {: .class} with blank
     // lines on both sides) so apply_block_ial can detect them.
     let markdown = crate::kramdown::mark_forward_ial(&markdown);
@@ -778,6 +783,9 @@ pub fn markdown_to_html_with_options(
 
     // Issue 228: Process markdown="1" attribute on HTML elements
     let markdown = crate::kramdown::process_markdown_attribute(markdown);
+
+    // Issue 489: Replace standalone {:toc} patterns with a placeholder
+    let markdown = crate::kramdown::replace_toc_pattern_in_markdown(&markdown);
 
     // Issue 301: Mark forward-direction IALs
     let markdown = crate::kramdown::mark_forward_ial(&markdown);

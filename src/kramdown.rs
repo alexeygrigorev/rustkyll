@@ -238,6 +238,13 @@ pub fn postprocess(html: &str) -> String {
     postprocess_with_options(html, true)
 }
 
+/// Issue 489: Replace kramdown `{:toc}` patterns in markdown content with a
+/// placeholder that will be expanded to an actual TOC during postprocessing.
+/// This is the public entry point for the main markdown pipeline.
+pub fn replace_toc_pattern_in_markdown(content: &str) -> String {
+    replace_toc_pattern_with_placeholder(content)
+}
+
 /// Whether heading IDs are generated in kramdown mode (GFM slugify on text content)
 /// or CommonMarkGhPages mode (basic_generate_id on raw inner HTML).
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -897,6 +904,9 @@ pub fn postprocess_with_options(html: &str, indent_lists: bool) -> String {
         HeadingIdMode::CommonMarkGhPages
     };
     let html = add_heading_ids(&html, heading_mode);
+    // Issue 489: Replace {:toc} placeholders with generated TOC from headings.
+    // Must run after add_heading_ids so heading IDs are available.
+    let html = replace_toc_placeholders(&html);
     let html = apply_block_ial(&html);
     let html = apply_inline_attributes(&html);
     let html = wrap_fenced_code_blocks(&html);
@@ -1431,6 +1441,291 @@ fn find_mixed_emphasis_span(
 // Issue 228: Process markdown="1" attribute on HTML elements
 // ============================================================================
 
+/// Issue 489: Placeholder prefix for kramdown {:toc} inside markdown="1" blocks.
+/// Uses HTML comment syntax so pulldown-cmark passes it through unchanged
+/// (double underscores would be interpreted as strong emphasis by markdown).
+const KRAMDOWN_TOC_PLACEHOLDER_PREFIX: &str = "<!-- KRAMDOWN_TOC:";
+const KRAMDOWN_TOC_PLACEHOLDER_SUFFIX: &str = " -->";
+
+/// Issue 489: Detect kramdown `{:toc}` pattern in markdown content and replace
+/// it with a placeholder. The pattern is a list item followed by a `{:toc ...}`
+/// IAL, which kramdown interprets as "replace this list with a generated TOC".
+///
+/// Pattern: `* <any text>\n{:toc ...}` (the `*` creates a list marker, and
+/// `{:toc}` on the next line tells kramdown to generate a TOC).
+///
+/// This is also available as `replace_toc_pattern_in_markdown` for use in
+/// the main markdown pipeline (frontmatter.rs).
+fn replace_toc_pattern_with_placeholder(content: &str) -> String {
+    // Look for `{:toc` in the content first (fast path)
+    if !content.contains("{:toc") {
+        return content.to_string();
+    }
+
+    // Match: `* <text>\n{:toc [.class1 .class2 ...]}`
+    // The list marker can be `*`, `-`, or `+` with optional leading whitespace.
+    let mut result = String::with_capacity(content.len());
+    let lines: Vec<&str> = content.lines().collect();
+
+    // Also track if input ended with newline
+    let ends_with_newline = content.ends_with('\n');
+
+    let mut i = 0;
+    while i < lines.len() {
+        if i + 1 < lines.len() {
+            let next_line = lines[i + 1].trim();
+            if next_line.starts_with("{:toc") && next_line.ends_with('}') {
+                let current_trimmed = lines[i].trim();
+                // Check if current line is a list item
+                if current_trimmed.starts_with("* ")
+                    || current_trimmed.starts_with("- ")
+                    || current_trimmed.starts_with("+ ")
+                {
+                    // Extract classes from {:toc .class1 .class2}
+                    let ial_content = &next_line[1..next_line.len() - 1]; // strip { and }
+                    let ial_content = ial_content.strip_prefix(':').unwrap_or(ial_content).trim();
+                    let mut classes = Vec::new();
+                    for token in ial_content.split_whitespace() {
+                        if token == "toc" {
+                            continue;
+                        }
+                        if let Some(class) = token.strip_prefix('.') {
+                            classes.push(class);
+                        }
+                    }
+                    let class_str = classes.join(" ");
+                    result.push_str(KRAMDOWN_TOC_PLACEHOLDER_PREFIX);
+                    result.push_str(&class_str);
+                    result.push_str(KRAMDOWN_TOC_PLACEHOLDER_SUFFIX);
+                    result.push('\n');
+                    i += 2; // skip both lines
+                    continue;
+                }
+            }
+        }
+        result.push_str(lines[i]);
+        result.push('\n');
+        i += 1;
+    }
+
+    // Remove the extra trailing newline we added if original didn't have one
+    if !ends_with_newline && result.ends_with('\n') {
+        result.pop();
+    }
+
+    result
+}
+
+/// Issue 489: Generate a TOC `<ul>` from heading IDs already present in the
+/// HTML. This scans for `<hN id="...">` tags and builds a nested list.
+///
+/// `extra_classes` is an optional space-separated class list to add to the
+/// outer `<ul>` (from `{:toc .toc__menu}` => `class="toc__menu"`).
+fn generate_toc_from_headings(html: &str, extra_classes: &str) -> String {
+    // Collect all headings with IDs: (level, id, text)
+    let mut headings: Vec<(usize, String, String)> = Vec::new();
+
+    let mut search_from = 0;
+    while let Some(h_pos) = html[search_from..].find("<h") {
+        let abs_pos = search_from + h_pos;
+        let after = &html[abs_pos + 2..];
+
+        // Parse heading level (1-6)
+        let level_char = after.as_bytes().first().copied().unwrap_or(0);
+        if !level_char.is_ascii_digit() {
+            search_from = abs_pos + 2;
+            continue;
+        }
+        let level = (level_char - b'0') as usize;
+        if !(1..=6).contains(&level) {
+            search_from = abs_pos + 2;
+            continue;
+        }
+
+        // Check for id="..."
+        let tag_end = match after.find('>') {
+            Some(p) => p,
+            None => {
+                search_from = abs_pos + 2;
+                continue;
+            }
+        };
+        let tag_content = &after[..tag_end];
+
+        // Extract id value
+        let id = if let Some(id_pos) = tag_content.find("id=\"") {
+            let id_start = id_pos + 4;
+            if let Some(id_end) = tag_content[id_start..].find('"') {
+                tag_content[id_start..id_start + id_end].to_string()
+            } else {
+                search_from = abs_pos + 2;
+                continue;
+            }
+        } else {
+            search_from = abs_pos + 2;
+            continue;
+        };
+
+        // Skip headings with data-raw-html attribute (from includes)
+        if tag_content.contains("data-raw-html") {
+            search_from = abs_pos + tag_end + 1;
+            continue;
+        }
+
+        // Extract heading text (between > and </hN>)
+        let content_start = abs_pos + 2 + tag_end + 1;
+        let close_tag = format!("</h{}>", level);
+        if let Some(close_pos) = html[content_start..].find(&close_tag) {
+            let text = &html[content_start..content_start + close_pos];
+            // Strip any inner HTML tags to get plain text for the TOC link
+            let plain_text = strip_html_tags_for_toc(text);
+            headings.push((level, id, plain_text));
+            search_from = content_start + close_pos + close_tag.len();
+        } else {
+            search_from = abs_pos + 2;
+        }
+    }
+
+    if headings.is_empty() {
+        return String::new();
+    }
+
+    let mut output = String::new();
+    let class_attr = if extra_classes.is_empty() {
+        String::new()
+    } else {
+        format!(" class=\"{}\"", extra_classes)
+    };
+    output.push_str(&format!("<ul{} id=\"markdown-toc\">\n", class_attr));
+
+    let mut stack: Vec<usize> = Vec::new();
+
+    for (i, (level, id, text)) in headings.iter().enumerate() {
+        let level = *level;
+
+        // Close nested lists as needed
+        while stack.last().is_some_and(|&l| l >= level) {
+            stack.pop();
+            let indent = 2 + stack.len() * 4;
+            output.push_str(&" ".repeat(indent + 2));
+            output.push_str("</ul>\n");
+            output.push_str(&" ".repeat(indent));
+            output.push_str("</li>\n");
+        }
+
+        let indent = 2 + stack.len() * 4;
+
+        // Check if next heading is deeper
+        let next_is_deeper = headings.get(i + 1).is_some_and(|(nl, _, _)| *nl > level);
+
+        output.push_str(&" ".repeat(indent));
+        output.push_str(&format!(
+            "<li><a href=\"#{}\" id=\"markdown-toc-{}\">{}</a>",
+            id, id, text
+        ));
+
+        if next_is_deeper {
+            output.push_str(&"    ".repeat(stack.len() + 1));
+            output.push_str("<ul>\n");
+            stack.push(level);
+        } else {
+            output.push_str("</li>\n");
+        }
+    }
+
+    // Close remaining open lists
+    while stack.pop().is_some() {
+        let indent = 2 + stack.len() * 4;
+        output.push_str(&" ".repeat(indent + 2));
+        output.push_str("</ul>\n");
+        output.push_str(&" ".repeat(indent));
+        output.push_str("</li>\n");
+    }
+
+    output.push_str("</ul>\n");
+    output
+}
+
+/// Strip HTML tags from text, keeping only the text content. Used for
+/// generating TOC link text from heading inner HTML.
+fn strip_html_tags_for_toc(html: &str) -> String {
+    let mut result = String::with_capacity(html.len());
+    let mut in_tag = false;
+    for ch in html.chars() {
+        if ch == '<' {
+            in_tag = true;
+        } else if ch == '>' {
+            in_tag = false;
+        } else if !in_tag {
+            result.push(ch);
+        }
+    }
+    result
+}
+
+/// Issue 489: Replace TOC placeholders in HTML with generated TOC from headings.
+/// Called during postprocessing after heading IDs have been assigned.
+fn replace_toc_placeholders(html: &str) -> String {
+    if !html.contains(KRAMDOWN_TOC_PLACEHOLDER_PREFIX) {
+        return html.to_string();
+    }
+
+    let mut result = html.to_string();
+    // Find and replace each placeholder
+    while let Some(start) = result.find(KRAMDOWN_TOC_PLACEHOLDER_PREFIX) {
+        let after_prefix = start + KRAMDOWN_TOC_PLACEHOLDER_PREFIX.len();
+        if let Some(suffix_offset) = result[after_prefix..].find(KRAMDOWN_TOC_PLACEHOLDER_SUFFIX) {
+            let classes = result[after_prefix..after_prefix + suffix_offset].to_string();
+            let end = after_prefix + suffix_offset + KRAMDOWN_TOC_PLACEHOLDER_SUFFIX.len();
+
+            // The placeholder might be wrapped in <p> tags by pulldown-cmark
+            // or inside a <li>. Check for surrounding wrappers and remove.
+            let before = &result[..start];
+            let after_end = &result[end..];
+
+            let (remove_start, remove_end) =
+                if before.ends_with("<p>") && after_end.trim_start().starts_with("</p>") {
+                    let ws_len = after_end.len() - after_end.trim_start().len();
+                    (start - 3, end + ws_len + 4)
+                } else if before.ends_with("<li>") && after_end.trim_start().starts_with("</li>") {
+                    let ws_len = after_end.len() - after_end.trim_start().len();
+                    (start - 4, end + ws_len + 5)
+                } else {
+                    (start, end)
+                };
+
+            // Also check if the wrapper is itself inside a <ul>/<ol> that should be removed
+            let before_wrapper = &result[..remove_start];
+            let after_wrapper = &result[remove_end..];
+            let (final_start, final_end) = if before_wrapper.trim_end().ends_with("<ul>")
+                && after_wrapper.trim_start().starts_with("</ul>")
+            {
+                let pre_ws = before_wrapper.len() - before_wrapper.trim_end().len();
+                let ul_start = before_wrapper.trim_end().len() - 4;
+                let post_ws = after_wrapper.len() - after_wrapper.trim_start().len();
+                // Also remove any newline before <ul>
+                let final_start = if ul_start > 0
+                    && result.as_bytes().get(ul_start - 1).copied() == Some(b'\n')
+                {
+                    ul_start - 1 - pre_ws
+                } else {
+                    ul_start - pre_ws
+                };
+                (final_start, remove_end + post_ws + 5)
+            } else {
+                (remove_start, remove_end)
+            };
+
+            let toc_html = generate_toc_from_headings(&result, &classes);
+            result.replace_range(final_start..final_end, &toc_html);
+        } else {
+            break; // malformed placeholder
+        }
+    }
+
+    result
+}
+
 /// Process HTML elements with `markdown="1"` attribute (kramdown feature).
 ///
 /// When an HTML element has `markdown="1"`:
@@ -1531,10 +1826,18 @@ pub fn process_markdown_attribute(content: &str) -> String {
 
         // Render inner content as markdown
         let trimmed_inner = inner_content.trim();
+
+        // Issue 489: Detect kramdown {:toc} pattern inside markdown="1" blocks.
+        // The pattern is: `* <text>\n{:toc ...}` which kramdown replaces with
+        // a generated table of contents. Replace with a placeholder that
+        // postprocess_with_options will fill with the actual TOC.
+        let trimmed_inner = replace_toc_pattern_with_placeholder(trimmed_inner);
+        let trimmed_inner_ref: &str = &trimmed_inner;
+
         // Issue 322: Pre-process to join <img> lines with following text so
         // pulldown-cmark treats them as inline content (paragraph) rather than
         // HTML blocks.
-        let preprocessed_inner = preprocess_inline_html_for_markdown(trimmed_inner);
+        let preprocessed_inner = preprocess_inline_html_for_markdown(trimmed_inner_ref);
         let preprocessed_ref = preprocessed_inner.trim();
         let rendered_inner = if preprocessed_ref.is_empty() {
             String::new()
@@ -15558,6 +15861,115 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             !result.contains("<p><img"),
             "Self-closing img should be unwrapped from <p>. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue489_toc_placeholder_in_markdown1_block() {
+        // Issue 489: {:toc} inside markdown="1" should produce a TOC placeholder
+        // that gets replaced with an actual TOC in postprocessing.
+        let input = concat!(
+            "<nav class=\"toc\" markdown=\"1\">\n",
+            "*  Auto generated table of contents\n",
+            "{:toc .toc__menu}\n",
+            "</nav>\n",
+            "\n",
+            "## Privacy Policy\n",
+            "\n",
+            "Some text.\n",
+            "\n",
+            "## Log Files\n",
+            "\n",
+            "More text.\n",
+        );
+        let html = crate::frontmatter::markdown_to_html(input);
+        let result = postprocess(&html);
+        // The output should contain a TOC <ul> with links to the headings
+        assert!(
+            result.contains("id=\"markdown-toc\""),
+            "Should generate a TOC with id=\"markdown-toc\". Got: {}",
+            result
+        );
+        assert!(
+            result.contains("markdown-toc-privacy-policy"),
+            "TOC should contain link to privacy-policy heading. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("markdown-toc-log-files"),
+            "TOC should contain link to log-files heading. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("class=\"toc__menu\""),
+            "TOC <ul> should have class toc__menu from {{:toc .toc__menu}}. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue489_toc_placeholder_unicode_headings() {
+        // Issue 489: TOC should work with non-ASCII heading content
+        let input = concat!(
+            "<div markdown=\"1\">\n",
+            "* TOC\n",
+            "{:toc}\n",
+            "</div>\n",
+            "\n",
+            "## Einf\u{00fc}hrung\n",
+            "\n",
+            "German text.\n",
+            "\n",
+            "## R\u{00e9}sum\u{00e9}\n",
+            "\n",
+            "French text.\n",
+        );
+        let html = crate::frontmatter::markdown_to_html(input);
+        let result = postprocess(&html);
+        assert!(
+            result.contains("id=\"markdown-toc\""),
+            "Should generate a TOC with Unicode headings. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("Einf\u{00fc}hrung"),
+            "TOC should contain non-ASCII heading text. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue489_standalone_toc_in_markdown() {
+        // Issue 489: {:toc} directly in markdown (not inside markdown="1")
+        // should also generate a TOC.
+        let input = concat!(
+            "* TOC\n",
+            "{:toc}\n",
+            "\n",
+            "## First Section\n",
+            "\n",
+            "Content here.\n",
+            "\n",
+            "## Second Section\n",
+            "\n",
+            "More content.\n",
+        );
+        let html = crate::frontmatter::markdown_to_html(input);
+        let result = postprocess(&html);
+        assert!(
+            result.contains("id=\"markdown-toc\""),
+            "Standalone {{:toc}} should generate a TOC. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("markdown-toc-first-section"),
+            "TOC should contain link to first-section. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("markdown-toc-second-section"),
+            "TOC should contain link to second-section. Got: {}",
             result
         );
     }
