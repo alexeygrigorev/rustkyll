@@ -332,7 +332,9 @@ fn add_inline_code_class_to_events_impl<'a>(
                 // Emit raw HTML instead of the Code event so that push_html
                 // produces <code class="...">text</code> rather than bare <code>.
                 let escaped = html_escape_for_code(&text);
-                let html = format!("<code class=\"highlighter-rouge\">{escaped}</code>");
+                let html = format!(
+                    "<code class=\"language-plaintext highlighter-rouge\">{escaped}</code>"
+                );
                 events.push(Event::InlineHtml(html.into()));
             }
             Event::SoftBreak if hardbreaks => {
@@ -612,6 +614,11 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // Issue 329: Protect <details> blocks from pulldown-cmark processing.
     let (markdown, details_saved) = protect_details_blocks(&markdown);
 
+    // Issue 516: Protect raw HTML <table> blocks from pulldown-cmark processing.
+    // pulldown-cmark can corrupt tables containing HTML entities (&#8220; etc.)
+    // by breaking out of HTML block context and inserting code blocks.
+    let (markdown, table_saved) = protect_raw_html_tables(&markdown);
+
     // Issue 227: Protect math content from backslash-escape processing.
     let (markdown, math_saved) = protect_math_content(&markdown);
 
@@ -675,6 +682,10 @@ pub fn markdown_to_html(markdown: &str) -> String {
     let mut html_output = String::new();
     html::push_html(&mut html_output, events.into_iter());
 
+    // Issue 515: Restructure kramdown full-width table separator rows into
+    // proper <tbody> splits and <tfoot> sections.
+    let html_output = crate::kramdown::restructure_kramdown_table_separators(&html_output);
+
     // Issue 503: Convert pulldown-cmark footnotes to kramdown-style HTML
     let html_output = convert_footnotes_to_kramdown(&html_output);
 
@@ -720,6 +731,9 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // Issue 535: Convert pulldown-cmark task list HTML to Jekyll/kramdown-style HTML.
     // Must run after postprocess which adds list indentation.
     let html_output = convert_tasklist_to_kramdown(&html_output);
+
+    // Issue 516: Restore raw HTML <table> blocks after all processing
+    let html_output = restore_raw_html_tables(&html_output, &table_saved);
 
     // Issue 329: Restore <details> blocks after all processing
     restore_details_blocks(&html_output, &details_saved)
@@ -777,6 +791,9 @@ pub fn markdown_to_html_with_options(
         (mark_details_inline_content(&markdown), Vec::new())
     };
 
+    // Issue 516: Protect raw HTML <table> blocks from pulldown-cmark processing.
+    let (markdown, table_saved) = protect_raw_html_tables(&markdown);
+
     // Protect pre-existing curly quotes from fix_smart_quote_directions
     let markdown = protect_preexisting_curly_quotes(&markdown);
 
@@ -828,6 +845,10 @@ pub fn markdown_to_html_with_options(
     let mut html_output = String::new();
     html::push_html(&mut html_output, events.into_iter());
 
+    // Issue 515: Restructure kramdown full-width table separator rows into
+    // proper <tbody> splits and <tfoot> sections.
+    let html_output = crate::kramdown::restructure_kramdown_table_separators(&html_output);
+
     // Issue 503: Convert pulldown-cmark footnotes to kramdown-style HTML
     let html_output = convert_footnotes_to_kramdown(&html_output);
 
@@ -862,6 +883,8 @@ pub fn markdown_to_html_with_options(
     // Issue 535: Convert pulldown-cmark task list HTML to Jekyll/kramdown-style HTML.
     // Must run after postprocess which adds list indentation.
     let html_output = convert_tasklist_to_kramdown(&html_output);
+    // Issue 516: Restore raw HTML <table> blocks after all processing
+    let html_output = restore_raw_html_tables(&html_output, &table_saved);
     // Issue 329: Restore <details> blocks after all processing
     let html_output = restore_details_blocks(&html_output, &details_saved);
     // Issue 330: Fix inline content in <details> blocks for CommonMarkGhPages
@@ -1010,6 +1033,9 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     // Issue 301: Mark forward-direction IALs
     let markdown = crate::kramdown::mark_forward_ial(&markdown);
 
+    // Issue 516: Protect raw HTML <table> blocks from pulldown-cmark processing.
+    let (markdown, table_saved) = protect_raw_html_tables(&markdown);
+
     // Protect pre-existing curly quotes from fix_smart_quote_directions
     let markdown = protect_preexisting_curly_quotes(&markdown);
 
@@ -1059,6 +1085,10 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     );
     let mut html_output = String::new();
     html::push_html(&mut html_output, events.into_iter());
+
+    // Issue 515: Restructure kramdown full-width table separator rows into
+    // proper <tbody> splits and <tfoot> sections.
+    let html_output = crate::kramdown::restructure_kramdown_table_separators(&html_output);
 
     // Issue 503: Convert pulldown-cmark footnotes to kramdown-style HTML
     let html_output = convert_footnotes_to_kramdown(&html_output);
@@ -1123,7 +1153,10 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
 
     // Issue 535: Convert pulldown-cmark task list HTML to Jekyll/kramdown-style HTML.
     // Must run after postprocess which adds list indentation.
-    convert_tasklist_to_kramdown(&html_output)
+    let html_output = convert_tasklist_to_kramdown(&html_output);
+
+    // Issue 516: Restore raw HTML <table> blocks after all processing
+    restore_raw_html_tables(&html_output, &table_saved)
 }
 
 /// Rewrite malformed markdown links where `{:target="_blank"}` is embedded
@@ -1897,6 +1930,93 @@ fn restore_details_blocks(html: &str, saved: &[String]) -> String {
     let mut result = html.to_string();
     for (idx, block) in saved.iter().enumerate() {
         let placeholder = format!("<!-- DETAILS_PLACEHOLDER_{} -->", idx);
+        let wrapped_placeholder = format!("<p>{}</p>", placeholder);
+        if result.contains(&wrapped_placeholder) {
+            result = result.replace(&wrapped_placeholder, block);
+        } else {
+            result = result.replace(&placeholder, block);
+        }
+    }
+    result
+}
+
+/// Issue 516: Protect raw HTML `<table>` blocks from pulldown-cmark processing.
+///
+/// pulldown-cmark can break out of HTML block context when it encounters
+/// HTML entity references (`&#NNN;`, `&name;`) followed by blank lines
+/// and indented content, causing subsequent `<td>` elements to be treated
+/// as indented code blocks. This function replaces `<table>...</table>`
+/// blocks with placeholder comments before parsing, similar to
+/// `protect_details_blocks`.
+///
+/// Handles nested tables by finding the outermost `</table>` that balances
+/// the opening `<table>` tag.
+fn protect_raw_html_tables(input: &str) -> (String, Vec<String>) {
+    if !input.contains("<table") {
+        return (input.to_string(), Vec::new());
+    }
+
+    let mut result = String::with_capacity(input.len());
+    let mut saved = Vec::new();
+    let mut remaining = input;
+
+    while !remaining.is_empty() {
+        if let Some(start) = remaining.find("<table") {
+            // Find the balancing </table> accounting for nested tables
+            let block = &remaining[start..];
+            let mut depth = 0usize;
+            let mut search_pos = 0;
+            let mut end_pos = None;
+
+            while search_pos < block.len() {
+                if block[search_pos..].starts_with("<table") {
+                    depth += 1;
+                    search_pos += "<table".len();
+                } else if block[search_pos..].starts_with("</table>") {
+                    depth -= 1;
+                    if depth == 0 {
+                        end_pos = Some(search_pos + "</table>".len());
+                        break;
+                    }
+                    search_pos += "</table>".len();
+                } else {
+                    // Advance by one character (may be multi-byte for non-ASCII)
+                    let ch = block[search_pos..].chars().next().unwrap();
+                    search_pos += ch.len_utf8();
+                }
+            }
+
+            if let Some(end_offset) = end_pos {
+                let end = start + end_offset;
+                result.push_str(&remaining[..start]);
+                let block_content = &remaining[start..end];
+                let idx = saved.len();
+                saved.push(block_content.to_string());
+                result.push_str(&format!("<!-- RAW_TABLE_PLACEHOLDER_{} -->", idx));
+                remaining = &remaining[end..];
+            } else {
+                // No closing tag found, copy rest as-is
+                result.push_str(remaining);
+                break;
+            }
+        } else {
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    (result, saved)
+}
+
+/// Issue 516: Restore protected raw HTML `<table>` blocks.
+fn restore_raw_html_tables(html: &str, saved: &[String]) -> String {
+    if saved.is_empty() {
+        return html.to_string();
+    }
+
+    let mut result = html.to_string();
+    for (idx, block) in saved.iter().enumerate() {
+        let placeholder = format!("<!-- RAW_TABLE_PLACEHOLDER_{} -->", idx);
         let wrapped_placeholder = format!("<p>{}</p>", placeholder);
         if result.contains(&wrapped_placeholder) {
             result = result.replace(&wrapped_placeholder, block);
@@ -5451,8 +5571,10 @@ Some text after.
         // Markdown backtick inline code should get highlighter-rouge class
         let html = markdown_to_html("Use `pip install` to install.\n");
         assert!(
-            html.contains("<code class=\"highlighter-rouge\">pip install</code>"),
-            "Backtick inline code should get highlighter-rouge class. Got: {}",
+            html.contains(
+                "<code class=\"language-plaintext highlighter-rouge\">pip install</code>"
+            ),
+            "Backtick inline code should get language-plaintext highlighter-rouge class. Got: {}",
             html
         );
     }
@@ -5481,7 +5603,7 @@ Some text after.
         let html = markdown_to_html(input);
         // Backtick code gets class
         assert!(
-            html.contains("<code class=\"highlighter-rouge\">pip</code>"),
+            html.contains("<code class=\"language-plaintext highlighter-rouge\">pip</code>"),
             "Backtick code should have class. Got: {}",
             html
         );
@@ -5498,7 +5620,7 @@ Some text after.
         // markdownify filter should also add classes to backtick code
         let html = markdown_to_html_for_filter("Use `code` here\n");
         assert!(
-            html.contains("<code class=\"highlighter-rouge\">code</code>"),
+            html.contains("<code class=\"language-plaintext highlighter-rouge\">code</code>"),
             "markdownify backtick code should have class. Got: {}",
             html
         );
@@ -5553,8 +5675,10 @@ Some text after.
             false,
         );
         assert!(
-            html.contains("<code class=\"highlighter-rouge\">pip install</code>"),
-            "Kramdown mode should add highlighter-rouge class. Got: {}",
+            html.contains(
+                "<code class=\"language-plaintext highlighter-rouge\">pip install</code>"
+            ),
+            "Kramdown mode should add language-plaintext highlighter-rouge class. Got: {}",
             html
         );
     }
@@ -5590,28 +5714,23 @@ Some text after.
     }
 
     // ========================================================================
-    // Issue 470: Inline code should NOT have language-plaintext class
+    // Issue 470/537: Inline code language-plaintext class
     // ========================================================================
 
     #[test]
-    fn test_issue470_kramdown_inline_code_no_language_plaintext() {
-        // kramdown mode inline code should have highlighter-rouge but NOT language-plaintext
+    fn test_issue470_kramdown_inline_code_has_language_plaintext() {
+        // kramdown mode inline code should have language-plaintext highlighter-rouge (issue 537)
         let html = markdown_to_html("Use `pip install` to install.\n");
         assert!(
-            html.contains("<code class=\"highlighter-rouge\">pip install</code>"),
-            "Kramdown inline code should have highlighter-rouge without language-plaintext. Got: {}",
-            html
-        );
-        assert!(
-            !html.contains("language-plaintext"),
-            "Kramdown inline code should NOT have language-plaintext. Got: {}",
+            html.contains("<code class=\"language-plaintext highlighter-rouge\">pip install</code>"),
+            "Kramdown inline code should have language-plaintext highlighter-rouge (issue 537). Got: {}",
             html
         );
     }
 
     #[test]
-    fn test_issue470_kramdown_with_options_inline_code_no_language_plaintext() {
-        // markdown_to_html_with_options in kramdown mode should also NOT add language-plaintext
+    fn test_issue470_kramdown_with_options_inline_code_has_language_plaintext() {
+        // markdown_to_html_with_options in kramdown mode should also add language-plaintext (issue 537)
         let html = markdown_to_html_with_options(
             "Use `pip install` to set up.\n",
             true,
@@ -5620,8 +5739,8 @@ Some text after.
             false,
         );
         assert!(
-            html.contains("<code class=\"highlighter-rouge\">pip install</code>"),
-            "Kramdown mode (with_options) should have highlighter-rouge without language-plaintext. Got: {}",
+            html.contains("<code class=\"language-plaintext highlighter-rouge\">pip install</code>"),
+            "Kramdown mode (with_options) should have language-plaintext highlighter-rouge (issue 537). Got: {}",
             html
         );
     }
@@ -5649,28 +5768,23 @@ Some text after.
     }
 
     #[test]
-    fn test_issue470_markdownify_inline_code_no_language_plaintext() {
-        // markdownify filter should also NOT add language-plaintext
+    fn test_issue470_markdownify_inline_code_has_language_plaintext() {
+        // markdownify filter should also add language-plaintext (issue 537)
         let html = markdown_to_html_for_filter("Use `code` here\n");
         assert!(
-            html.contains("<code class=\"highlighter-rouge\">code</code>"),
-            "markdownify backtick code should have highlighter-rouge without language-plaintext. Got: {}",
-            html
-        );
-        assert!(
-            !html.contains("language-plaintext"),
-            "markdownify should NOT have language-plaintext. Got: {}",
+            html.contains("<code class=\"language-plaintext highlighter-rouge\">code</code>"),
+            "markdownify backtick code should have language-plaintext highlighter-rouge (issue 537). Got: {}",
             html
         );
     }
 
     #[test]
-    fn test_issue470_unicode_inline_code_no_language_plaintext() {
-        // Non-ASCII content in inline code should also NOT get language-plaintext
+    fn test_issue470_unicode_inline_code_has_language_plaintext() {
+        // Non-ASCII content in inline code should also get language-plaintext (issue 537)
         let html = markdown_to_html("Use `einrichten` to configure.\n");
         assert!(
-            html.contains("<code class=\"highlighter-rouge\">einrichten</code>"),
-            "Unicode inline code should have highlighter-rouge without language-plaintext. Got: {}",
+            html.contains("<code class=\"language-plaintext highlighter-rouge\">einrichten</code>"),
+            "Unicode inline code should have language-plaintext highlighter-rouge (issue 537). Got: {}",
             html
         );
     }
@@ -8291,8 +8405,7 @@ More text.
 
     #[test]
     fn test_issue366_unicode_content_in_table_cells() {
-        let input =
-            "- Beschreibung: <info:deutsch|\u{00dc}bersetzung>s Modell\n- Fazit: gut";
+        let input = "- Beschreibung: <info:deutsch|\u{00dc}bersetzung>s Modell\n- Fazit: gut";
         let html = markdown_to_html_for_filter(input);
         // Unicode content should be preserved
         assert!(
@@ -9315,6 +9428,191 @@ More text.
         assert!(
             html.contains(r#"type="checkbox""#),
             "markdown_to_html_for_filter should support task lists. Got:\n{html}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 516: Raw HTML table protection from pulldown-cmark corruption
+    // ========================================================================
+
+    #[test]
+    fn test_raw_html_table_with_numeric_entity() {
+        // A raw HTML <table> with &#8220; entity must pass through intact
+        let md = "<table>\n  <tr>\n    <td>\n      !\n    </td>\n\n    <td>\n      &#8220;\n    </td>\n\n    <td>\n      #\n    </td>\n  </tr>\n</table>\n";
+        let html = markdown_to_html(md);
+        assert!(
+            !html.contains("highlighter-rouge"),
+            "Raw HTML table should not contain highlighter-rouge. Got:\n{html}"
+        );
+        assert!(
+            !html.contains("<code>"),
+            "Raw HTML table should not contain <code> blocks. Got:\n{html}"
+        );
+        assert!(
+            html.contains("&#8220;"),
+            "Entity &#8220; should be preserved. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_raw_html_table_with_single_quote_entity() {
+        // A raw HTML <table> with &#8216; entity must pass through intact
+        let md = "<table>\n  <tr>\n    <td>&#8216;</td>\n  </tr>\n</table>\n";
+        let html = markdown_to_html(md);
+        assert!(
+            !html.contains("highlighter-rouge"),
+            "Raw HTML table should not contain highlighter-rouge. Got:\n{html}"
+        );
+        assert!(
+            html.contains("&#8216;"),
+            "Entity &#8216; should be preserved. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_raw_html_table_with_named_entities() {
+        // A raw HTML <table> with &amp; and &nbsp; should pass through
+        let md = "<table>\n  <tr>\n    <td>&amp;</td>\n    <td>&nbsp;</td>\n  </tr>\n</table>\n";
+        let html = markdown_to_html(md);
+        assert!(
+            !html.contains("<code>"),
+            "Raw HTML table should not contain <code> blocks. Got:\n{html}"
+        );
+        assert!(
+            html.contains("<table>"),
+            "Table tag should be preserved. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_raw_html_table_blank_lines_between_tds() {
+        // Blank lines between </td> and <td> should not break the table
+        let md = "<table>\n  <tr>\n    <td>\n      text1\n    </td>\n\n    <td>\n      text2\n    </td>\n  </tr>\n</table>\n";
+        let html = markdown_to_html(md);
+        assert!(
+            !html.contains("<pre>"),
+            "Blank lines in table should not cause code blocks. Got:\n{html}"
+        );
+        assert!(
+            !html.contains("<code>"),
+            "Blank lines in table should not cause code blocks. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_raw_html_table_indented_content_no_code_block() {
+        // 4-space indented content inside table should not become code block
+        let md = "<table>\n  <tr>\n    <td>\n      &#8220;\n    </td>\n\n    <td>\n      more content\n    </td>\n  </tr>\n</table>\n";
+        let html = markdown_to_html(md);
+        assert!(
+            !html.contains("<pre>"),
+            "Indented table content should not become code block. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_raw_html_table_hydeout_special_chars() {
+        // Simulated hydeout special-characters table
+        let md = r#"<table>
+  <thead>
+    <tr>
+      <th>HTML Entity</th>
+      <th>Character</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>&#8220;</td>
+      <td>"</td>
+    </tr>
+    <tr>
+      <td>&#8216;</td>
+      <td>'</td>
+    </tr>
+    <tr>
+      <td>&amp;</td>
+      <td>&amp;</td>
+    </tr>
+  </tbody>
+</table>
+"#;
+        let html = markdown_to_html(md);
+        assert!(
+            !html.contains("<pre>"),
+            "Special chars table should not contain <pre>. Got:\n{html}"
+        );
+        assert!(
+            !html.contains("<code>"),
+            "Special chars table should not contain <code>. Got:\n{html}"
+        );
+        assert!(
+            !html.contains("highlighter-rouge"),
+            "Special chars table should not contain highlighter-rouge. Got:\n{html}"
+        );
+        // Unicode curly quotes should be present (smart punctuation converts entities)
+        // The important thing is no code block corruption
+    }
+
+    #[test]
+    fn test_raw_html_table_nested_tables() {
+        // Nested tables should be handled as a single block
+        let md = "<table>\n  <tr>\n    <td>\n      <table>\n        <tr><td>inner</td></tr>\n      </table>\n    </td>\n  </tr>\n</table>\n";
+        let html = markdown_to_html(md);
+        assert!(
+            !html.contains("<code>"),
+            "Nested tables should not cause code blocks. Got:\n{html}"
+        );
+        assert!(
+            html.contains("inner"),
+            "Inner table content should be preserved. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_raw_html_table_with_unicode_content() {
+        // Non-ASCII content inside raw HTML table
+        let md = "<table>\n  <tr>\n    <td>\u{201C}curly\u{201D}</td>\n    <td>\u{00E9}t\u{00E9}</td>\n  </tr>\n</table>\n";
+        let html = markdown_to_html(md);
+        assert!(
+            !html.contains("<code>"),
+            "Unicode content in table should not cause code blocks. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_normal_div_with_entities_still_works() {
+        // Non-table HTML blocks with entities should still pass through
+        let md = "<div>\n  &amp; test &nbsp;\n</div>\n";
+        let html = markdown_to_html(md);
+        assert!(
+            html.contains("<div>"),
+            "Div should pass through. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_fenced_code_blocks_still_highlighted() {
+        // Markdown fenced code blocks should still be highlighted normally
+        let md = "```ruby\nputs 'hello'\n```\n";
+        let html = markdown_to_html(md);
+        assert!(
+            html.contains("highlight"),
+            "Fenced code blocks should still be highlighted. Got:\n{html}"
+        );
+    }
+
+    #[test]
+    fn test_raw_html_table_with_options() {
+        // markdown_to_html_with_options should also protect tables
+        let md = "<table>\n  <tr>\n    <td>\n      &#8220;\n    </td>\n\n    <td>\n      #\n    </td>\n  </tr>\n</table>\n";
+        let html = markdown_to_html_with_options(md, true, true, false, false);
+        assert!(
+            !html.contains("highlighter-rouge"),
+            "markdown_to_html_with_options should protect raw HTML tables. Got:\n{html}"
+        );
+        assert!(
+            !html.contains("<code>"),
+            "markdown_to_html_with_options should protect raw HTML tables. Got:\n{html}"
         );
     }
 }

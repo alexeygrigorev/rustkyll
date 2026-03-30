@@ -136,3 +136,22 @@ None.
 
 - Build hydeout, verify `markup-title-with-special-characters.html` has no code blocks inside table
 - Run DOM comparison, verify table-related diffs eliminated
+
+## Log
+
+### [SWE] 2026-03-30
+- TDD: Wrote 11 failing tests first (test_raw_html_table_with_numeric_entity, etc.)
+- Ran tests: 1 FAILED as expected (highlighter-rouge inside table output confirmed)
+- Root cause: pulldown-cmark breaks out of HTML block context when encountering HTML entities (&#8220;, etc.) followed by blank lines and indented content inside raw HTML tables
+- Fix: Added protect_raw_html_tables() / restore_raw_html_tables() in src/frontmatter.rs following the existing protect_details_blocks() pattern
+- protect_raw_html_tables() replaces <table>...</table> blocks with placeholder comments before pulldown-cmark processing
+- restore_raw_html_tables() restores them after all post-processing, handling <p>-wrapped placeholders
+- Handles nested tables by tracking depth with balanced <table>/<\/table> matching
+- Fixed UTF-8 safety: advance by character (not byte) when scanning for tags in multi-byte content
+- Wired into all three markdown conversion functions: markdown_to_html(), markdown_to_html_with_options(), markdown_to_html_for_filter()
+- Ran tests: 11 new tests PASS, 3383 total (3376 pass, 5 pre-existing failures from issues 515/449, 2 ignored)
+- Clippy: clean (no warnings from our code)
+- Fmt: clean
+- DTC DOM: 788/790 (2 known pre-existing differences, no regression)
+- Files modified: src/frontmatter.rs
+- Files renamed: docs/tracker/516-html-block-entity-code-block-corruption.todo.md -> .in-progress.md
