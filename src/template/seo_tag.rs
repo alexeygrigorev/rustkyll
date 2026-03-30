@@ -400,8 +400,6 @@ impl Renderable for SeoRenderable {
         let page_description = get_nested_str(runtime, &["page", "description"]);
         let page_excerpt = get_nested_str(runtime, &["page", "excerpt"]);
         let site_description = get_nested_str(runtime, &["site", "description"]);
-        let page_content = get_nested_str(runtime, &["page", "content"])
-            .or_else(|| get_nested_str(runtime, &["content"]));
         // Jekyll's jekyll-seo-tag treats `url: ""` as a valid (empty) URL
         // and still emits canonical/og:url with just the page path.  But when
         // site.url is genuinely absent (key not in _config.yml), it skips them.
@@ -521,53 +519,13 @@ impl Renderable for SeoRenderable {
         ));
 
         // 6. Description (both meta name="description" and og:description together)
-        // Priority: page.description > page.excerpt > site.description > content snippet
-        // jekyll-seo-tag also falls back to page content (stripped HTML, ~200 chars)
-        let content_snippet =
-            if page_description.is_none() && page_excerpt.is_none() && site_description.is_none() {
-                page_content.as_deref().and_then(|c| {
-                    let stripped = html_unescape(&strip_html_tags(c));
-                    let trimmed = stripped.trim().replace('\n', " ");
-                    // Collapse multiple spaces
-                    let mut prev_space = false;
-                    let collapsed: String = trimmed
-                        .chars()
-                        .filter(|&ch| {
-                            if ch == ' ' {
-                                if prev_space {
-                                    return false;
-                                }
-                                prev_space = true;
-                            } else {
-                                prev_space = false;
-                            }
-                            true
-                        })
-                        .collect();
-                    if collapsed.is_empty() {
-                        return None;
-                    }
-                    // Truncate to ~200 chars on a word boundary
-                    if collapsed.len() > 200 {
-                        let truncated = &collapsed[..200];
-                        if let Some(last_space) = truncated.rfind(' ') {
-                            Some(truncated[..last_space].to_string())
-                        } else {
-                            Some(truncated.to_string())
-                        }
-                    } else {
-                        Some(collapsed)
-                    }
-                })
-            } else {
-                None
-            };
-
+        // Priority: page.description > page.excerpt > site.description
+        // Jekyll's jekyll-seo-tag does NOT fall back to page.content for descriptions.
+        // Only explicit description, excerpt, or site.description are used.
         let raw_description = page_description
             .as_deref()
             .or(page_excerpt.as_deref())
-            .or(site_description.as_deref())
-            .or(content_snippet.as_deref());
+            .or(site_description.as_deref());
 
         // Strip HTML tags from description (Jekyll's SEO tag always does this),
         // normalize whitespace (matching Jekyll's normalize_whitespace which
@@ -3014,7 +2972,9 @@ mod tests {
     // ========================================================================
 
     #[test]
-    fn test_seo_description_from_page_content() {
+    fn test_seo_no_description_from_page_content() {
+        // Issue 530: Jekyll's jekyll-seo-tag does NOT fall back to page.content
+        // for descriptions. Only explicit description, excerpt, or site.description.
         let eng = engine();
         let mut ctx = Object::new();
         let mut page = Object::new();
@@ -3031,19 +2991,15 @@ mod tests {
         ctx.insert("site".into(), Value::Object(site));
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
         assert!(
-            out.contains("name=\"description\""),
-            "Description meta tag should be present when page.content exists. Got: {}",
-            out
-        );
-        assert!(
-            out.contains("Pretty sure my dad is the biggest winner"),
-            "Description should contain text from content. Got: {}",
+            !out.contains("name=\"description\""),
+            "Page with only content (no explicit description) should NOT have description meta. Got: {}",
             out
         );
     }
 
     #[test]
-    fn test_seo_description_from_content_strips_html() {
+    fn test_seo_no_description_from_content_html() {
+        // Issue 530: content should never become a description
         let eng = engine();
         let mut ctx = Object::new();
         let mut page = Object::new();
@@ -3058,14 +3014,15 @@ mod tests {
         ctx.insert("site".into(), Value::Object(site));
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
         assert!(
-            out.contains("Hello world from here."),
-            "Description should have HTML stripped. Got: {}",
+            !out.contains("name=\"description\""),
+            "Page with only HTML content should NOT have description meta. Got: {}",
             out
         );
     }
 
     #[test]
-    fn test_seo_description_from_content_unicode() {
+    fn test_seo_no_description_from_content_unicode() {
+        // Issue 530: unicode content should not become a description either
         let eng = engine();
         let mut ctx = Object::new();
         let mut page = Object::new();
@@ -3081,14 +3038,15 @@ mod tests {
         ctx.insert("site".into(), Value::Object(site));
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
         assert!(
-            out.contains("hubberversary"),
-            "Content text should be in description. Got: {}",
+            !out.contains("name=\"description\""),
+            "Page with only unicode content should NOT have description meta. Got: {}",
             out
         );
     }
 
     #[test]
-    fn test_seo_description_truncated_to_snippet() {
+    fn test_seo_no_description_from_long_content() {
+        // Issue 530: long content should not become a truncated description
         let eng = engine();
         let mut ctx = Object::new();
         let mut page = Object::new();
@@ -3098,17 +3056,11 @@ mod tests {
         ctx.insert("page".into(), Value::Object(page));
         ctx.insert("site".into(), Value::Object(site));
         let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
-        if let Some(start) = out.find("name=\"description\" content=\"") {
-            let after = &out[start + 27..];
-            if let Some(end) = after.find('"') {
-                let desc = &after[..end];
-                assert!(
-                    desc.len() <= 210,
-                    "Description should be truncated to ~200 chars, got {} chars",
-                    desc.len()
-                );
-            }
-        }
+        assert!(
+            !out.contains("name=\"description\""),
+            "Page with only long content should NOT have description meta. Got: {}",
+            out
+        );
     }
 
     #[test]
@@ -5464,6 +5416,159 @@ mod tests {
             !jsonld.contains("[Buddy]"),
             "JSON-LD should not contain markdown link syntax. Got: {}",
             jsonld
+        );
+    }
+
+    // Issue 530: No spurious description from page content
+    #[test]
+    fn test_issue530_no_description_from_content_for_non_post_page() {
+        // A non-post page with content but no description/excerpt/site.description
+        // should NOT generate description meta tags (matching Jekyll behavior).
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        let site = Object::new();
+        page.insert("title".into(), Value::scalar("My Page".to_string()));
+        page.insert(
+            "content".into(),
+            Value::scalar(
+                "<p>Some page content that should not become a description.</p>".to_string(),
+            ),
+        );
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            !out.contains("name=\"description\""),
+            "Non-post page with content but no explicit description should NOT have description meta tag. Got: {}",
+            out
+        );
+        assert!(
+            !out.contains("og:description"),
+            "Non-post page with content but no explicit description should NOT have og:description. Got: {}",
+            out
+        );
+        // JSON-LD should also not have description
+        let jsonld = extract_jsonld(&out);
+        assert!(
+            !jsonld.contains("\"description\""),
+            "JSON-LD should not have description for non-post page without explicit description. Got: {}",
+            jsonld
+        );
+    }
+
+    #[test]
+    fn test_issue530_no_description_from_content_for_404_page() {
+        // Simulates a 404 page with CSS content -- should not become a description
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        let site = Object::new();
+        page.insert("title".into(), Value::scalar("404".to_string()));
+        page.insert(
+            "content".into(),
+            Value::scalar(
+                "<style>.container { margin: 10px auto; max-width: 600px; }</style><h1>404</h1><p>Page not found</p>".to_string(),
+            ),
+        );
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            !out.contains("name=\"description\""),
+            "404 page should NOT have description from CSS content. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_issue530_post_with_excerpt_still_gets_description() {
+        // Posts (pages with date) that have an excerpt should still get description
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        let site = Object::new();
+        page.insert("title".into(), Value::scalar("My Post".to_string()));
+        page.insert("date".into(), Value::scalar("2024-01-01".to_string()));
+        page.insert(
+            "excerpt".into(),
+            Value::scalar("<p>This is my post excerpt.</p>".to_string()),
+        );
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("name=\"description\""),
+            "Post with excerpt should have description. Got: {}",
+            out
+        );
+        assert!(
+            out.contains("This is my post excerpt"),
+            "Post description should come from excerpt. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_issue530_page_with_explicit_description_still_works() {
+        // Any page with explicit description should still emit it
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        let site = Object::new();
+        page.insert("title".into(), Value::scalar("About".to_string()));
+        page.insert(
+            "description".into(),
+            Value::scalar("About this site".to_string()),
+        );
+        page.insert(
+            "content".into(),
+            Value::scalar("<p>Full page content here.</p>".to_string()),
+        );
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("name=\"description\""),
+            "Page with explicit description should have description meta. Got: {}",
+            out
+        );
+        assert!(
+            out.contains("About this site"),
+            "Description should be from explicit value. Got: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_issue530_site_description_fallback_still_works() {
+        // When site.description is set but page has no description, it should still
+        // fall back to site.description (not page content)
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        let mut site = Object::new();
+        page.insert("title".into(), Value::scalar("Home".to_string()));
+        page.insert(
+            "content".into(),
+            Value::scalar("<p>Page content</p>".to_string()),
+        );
+        site.insert(
+            "description".into(),
+            Value::scalar("My awesome site".to_string()),
+        );
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("My awesome site"),
+            "Should use site.description as fallback. Got: {}",
+            out
+        );
+        assert!(
+            !out.contains("Page content"),
+            "Should NOT use page content when site.description exists. Got: {}",
+            out
         );
     }
 }
