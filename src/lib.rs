@@ -11,6 +11,7 @@ pub mod incremental;
 pub mod kramdown;
 pub mod kramdown_parser;
 pub mod livereload;
+pub mod mentions;
 pub mod pagination;
 pub mod progress;
 pub mod server;

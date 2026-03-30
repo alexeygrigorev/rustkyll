@@ -1754,6 +1754,13 @@ pub fn generate_collection_pages_cached_with_progress(
     // Hoist timezone resolution out of the per-page loop (same for all pages).
     let site_tz = get_config_timezone(config);
 
+    // Pre-compute jekyll-mentions base URL (None if plugin not enabled).
+    let mentions_base_url = if crate::mentions::has_mentions_plugin(config) {
+        Some(crate::mentions::mentions_base_url(config).to_string())
+    } else {
+        None
+    };
+
     items.par_iter().for_each(|item| {
         let layout_name = resolve_layout(item, config, collection_type);
 
@@ -1971,6 +1978,13 @@ pub fn generate_collection_pages_cached_with_progress(
 
         match html_result {
             Ok(html) => {
+                // Apply jekyll-mentions post-processing if enabled
+                let html = if let Some(ref base_url) = mentions_base_url {
+                    crate::mentions::process_mentions(&html, base_url)
+                } else {
+                    html
+                };
+
                 // Compute output path from the item's URL (respects permalink patterns)
                 let out_path = url_to_output_path(output_dir, &item.url);
 
@@ -2139,6 +2153,15 @@ pub fn generate_pages_cached_with_config_and_progress(
         rendered_content: HashMap::new(),
     });
 
+    // Pre-compute jekyll-mentions base URL (None if plugin not enabled).
+    let mentions_base_url = config.and_then(|cfg| {
+        if crate::mentions::has_mentions_plugin(cfg) {
+            Some(crate::mentions::mentions_base_url(cfg).to_string())
+        } else {
+            None
+        }
+    });
+
     pages.par_iter().for_each(|page| {
         // Build page front matter: start with page's own front matter,
         // then apply config defaults for keys not already present.
@@ -2251,6 +2274,13 @@ pub fn generate_pages_cached_with_config_and_progress(
                 // doesn't work reliably. We compute the children listing directly
                 // in Rust and inject it into the rendered HTML.
                 let html = inject_children_nav(&html, &page_fm, pages, config);
+
+                // Apply jekyll-mentions post-processing if enabled
+                let html = if let Some(ref base_url) = mentions_base_url {
+                    crate::mentions::process_mentions(&html, base_url)
+                } else {
+                    html
+                };
 
                 // Compute output path from URL (handles trailing-slash pretty URLs)
                 let out_path = url_to_output_path(output_dir, &page.url);
