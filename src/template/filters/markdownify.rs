@@ -1448,4 +1448,123 @@ mod tests {
             "Markdown headings should still get IDs. Got: {html}"
         );
     }
+
+    // ========================================================================
+    // Issue 369: Blockquote + list continuation
+    // ========================================================================
+
+    #[test]
+    fn test_issue369_blockquote_with_list_continuation() {
+        // Sub-problem A: blockquote lines alternating with list items connected by <br />
+        let input = "> *Is there any tool comparable to dbt?*<br />\n- Matilion is a fully-fledged ETL tool<br />\n- An alternative is Dataform<br />\n> *Have you tested dbt vault?*<br />\n- Nope";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        // The list should be INSIDE the blockquote, not outside
+        assert!(
+            html.contains("<blockquote>") && html.contains("<ul>"),
+            "Should have blockquote and ul. Got: {html}"
+        );
+        // ul must be inside blockquote (between <blockquote> and </blockquote>)
+        let bq_start = html.find("<blockquote>").expect("missing blockquote");
+        let bq_end = html.find("</blockquote>").expect("missing /blockquote");
+        let ul_start = html.find("<ul>").expect("missing ul");
+        assert!(
+            ul_start > bq_start && ul_start < bq_end,
+            "ul should be inside blockquote. Got: {html}"
+        );
+        // Should not have extra blockquotes - count them
+        let bq_count = html.matches("<blockquote>").count();
+        assert!(
+            bq_count <= 2,
+            "Should not have more than 2 blockquotes (one per > group). Got {bq_count} in: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue369_blockquote_without_list_no_regression() {
+        // Sub-problem A regression check: blockquote without list should still work
+        let input = "> This is a quote<br />\n> continued quote";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("<blockquote>"),
+            "Should have blockquote. Got: {html}"
+        );
+        assert!(
+            !html.contains("<ul>"),
+            "Should not have ul for pure blockquote. Got: {html}"
+        );
+        let bq_count = html.matches("<blockquote>").count();
+        assert_eq!(bq_count, 1, "Should have exactly 1 blockquote. Got: {html}");
+    }
+
+    #[test]
+    fn test_issue369_list_item_with_continuation_text_and_nested_ol() {
+        // Sub-problem B: list item with continuation text and nested ordered list
+        let input =
+            "- <br />\nHere are a few tips<br />\n1. First tip<br />\n2. Second tip<br />\n3. Third tip";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        // "Here are a few tips" should appear as text inside the <li>
+        assert!(
+            html.contains("Here are a few tips"),
+            "Continuation text should be preserved. Got: {html}"
+        );
+        // Should have a nested <ol> inside the <li>
+        assert!(
+            html.contains("<ol>") || html.contains("<ol "),
+            "Should have nested ol. Got: {html}"
+        );
+        // The ol should be inside the ul's li
+        assert!(html.contains("<ul>"), "Should have outer ul. Got: {html}");
+        // Verify the <ol> is nested inside <li> (not a sibling of <ul>)
+        // The <ol> should appear between the first <li> and its closing </li>
+        let li_start = html.find("<li>").expect("missing li");
+        let ol_start = html
+            .find("<ol>")
+            .or_else(|| html.find("<ol "))
+            .expect("missing ol");
+        // Find the </li> that comes after the </ol>
+        let ol_end = html.find("</ol>").expect("missing /ol");
+        let li_end_after_ol = html[ol_end..].find("</li>").expect("missing /li after /ol");
+        assert!(
+            ol_start > li_start && ol_end < ol_end + li_end_after_ol,
+            "ol should be nested inside li. Got: {html}"
+        );
+        // All three tips should be present
+        assert!(html.contains("First tip"), "Missing First tip. Got: {html}");
+        assert!(
+            html.contains("Second tip"),
+            "Missing Second tip. Got: {html}"
+        );
+        assert!(html.contains("Third tip"), "Missing Third tip. Got: {html}");
+    }
+
+    #[test]
+    fn test_issue369_list_item_continuation_text_only() {
+        // Sub-problem B regression: list item with continuation text but no nested list
+        let input = "- <br />\nSome continuation text";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("Some continuation text"),
+            "Continuation text should be preserved. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue369_unicode_blockquote_list() {
+        // Unicode content in blockquote + list
+        let input = "> *Gibt es ein vergleichbares Tool?*<br />\n- Ja, es gibt Alternativen";
+        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        assert!(
+            html.contains("Gibt es ein vergleichbares Tool?"),
+            "Unicode blockquote text should be preserved. Got: {html}"
+        );
+        assert!(
+            html.contains("Ja, es gibt Alternativen"),
+            "Unicode list text should be preserved. Got: {html}"
+        );
+        // Structure: blockquote should contain both the quoted text and the list
+        assert!(
+            html.contains("<blockquote>"),
+            "Should have blockquote with unicode content. Got: {html}"
+        );
+    }
 }
