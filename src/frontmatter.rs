@@ -675,10 +675,6 @@ pub fn markdown_to_html(markdown: &str) -> String {
     let mut html_output = String::new();
     html::push_html(&mut html_output, events.into_iter());
 
-    // Issue 515: Restructure kramdown full-width table separator rows into
-    // proper <tbody> splits and <tfoot> sections.
-    let html_output = crate::kramdown::restructure_kramdown_table_separators(&html_output);
-
     // Issue 503: Convert pulldown-cmark footnotes to kramdown-style HTML
     let html_output = convert_footnotes_to_kramdown(&html_output);
 
@@ -831,10 +827,6 @@ pub fn markdown_to_html_with_options(
     );
     let mut html_output = String::new();
     html::push_html(&mut html_output, events.into_iter());
-
-    // Issue 515: Restructure kramdown full-width table separator rows into
-    // proper <tbody> splits and <tfoot> sections.
-    let html_output = crate::kramdown::restructure_kramdown_table_separators(&html_output);
 
     // Issue 503: Convert pulldown-cmark footnotes to kramdown-style HTML
     let html_output = convert_footnotes_to_kramdown(&html_output);
@@ -5456,11 +5448,11 @@ Some text after.
 
     #[test]
     fn test_issue176_backtick_code_gets_class() {
-        // Markdown backtick inline code should get language-plaintext highlighter-rouge class
+        // Markdown backtick inline code should get highlighter-rouge class
         let html = markdown_to_html("Use `pip install` to install.\n");
         assert!(
-            html.contains("<code class=\"language-plaintext highlighter-rouge\">pip install</code>"),
-            "Backtick inline code should get language-plaintext highlighter-rouge class. Got: {}",
+            html.contains("<code class=\"highlighter-rouge\">pip install</code>"),
+            "Backtick inline code should get highlighter-rouge class. Got: {}",
             html
         );
     }
@@ -5489,7 +5481,7 @@ Some text after.
         let html = markdown_to_html(input);
         // Backtick code gets class
         assert!(
-            html.contains("<code class=\"language-plaintext highlighter-rouge\">pip</code>"),
+            html.contains("<code class=\"highlighter-rouge\">pip</code>"),
             "Backtick code should have class. Got: {}",
             html
         );
@@ -5506,7 +5498,7 @@ Some text after.
         // markdownify filter should also add classes to backtick code
         let html = markdown_to_html_for_filter("Use `code` here\n");
         assert!(
-            html.contains("<code class=\"language-plaintext highlighter-rouge\">code</code>"),
+            html.contains("<code class=\"highlighter-rouge\">code</code>"),
             "markdownify backtick code should have class. Got: {}",
             html
         );
@@ -5552,7 +5544,7 @@ Some text after.
 
     #[test]
     fn test_issue216_kramdown_keeps_inline_code_class() {
-        // Default (kramdown) mode should add language-plaintext highlighter-rouge class
+        // Default (kramdown) mode should still add the highlighter-rouge class
         let html = markdown_to_html_with_options(
             "Use `pip install` to set up.\n",
             true,
@@ -5561,8 +5553,8 @@ Some text after.
             false,
         );
         assert!(
-            html.contains("<code class=\"language-plaintext highlighter-rouge\">pip install</code>"),
-            "Kramdown mode should add language-plaintext highlighter-rouge class. Got: {}",
+            html.contains("<code class=\"highlighter-rouge\">pip install</code>"),
+            "Kramdown mode should add highlighter-rouge class. Got: {}",
             html
         );
     }
