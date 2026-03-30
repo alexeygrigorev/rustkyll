@@ -83,3 +83,33 @@ This is a triage issue -- no code changes, no new tests.
 - #471, #534 (syntax highlighting -- in progress)
 - #354 (category URL case -- done)
 - #249, #345 (SASS Liquid preprocessing -- todo)
+
+## Log
+
+### [SWE] 2026-03-30
+
+**Build results:**
+- Built from `websites/basically-basic/example/` (the Jekyll cached output was generated from the example subdirectory, not the root)
+- Rustkyll: 39 pages (13 HTML), Jekyll: 38 pages (38 HTML)
+- DOM comparison: 0/38 matched, 1031 total differences (57 acceptable filtered)
+
+**DTC baseline check:** 784/787 pages matched (no regression -- this is triage only, no code changes)
+
+**Blocker verification:**
+
+1. **Category case in permalinks** -- RESOLVED. Verified: categories render with correct case.
+2. **og:locale format** -- RESOLVED. Verified: `<meta property="og:locale" content="en_US" />` (underscore, not hyphen).
+3. **Future post filtering** -- RESOLVED. No future posts in output.
+4. **Author/image hash serialization** -- CONFIRMED tracked in #514/#515. Still producing flat string instead of hash for `jsonld.image`.
+5. **Syntax highlighting** -- CONFIRMED tracked in #471/#534. Span class diffs visible in syntax-highlighting.html (251 diffs).
+
+6. **baseurl not prepended** -- CONFIRMED OPEN. All 38 pages show `/404.html` instead of `/example/404.html` in canonical/og:url/JSON-LD. ~180 of 1031 total diffs are baseurl-related. Created **#539**.
+7. **site.tags/categories empty** -- CONFIRMED OPEN. tags/index.html is 4.8 KB vs 363 KB. Missing `<p>` excerpt elements in tag/category archives. Created **#540**.
+8. **Liquid-in-SCSS** -- CONFIRMED OPEN. `assets/stylesheets/main.scss` contains `{{ site.data.theme.skin | default: 'default' }}`. Not covered by #249 or #345 (those are import resolution, not Liquid preprocessing). Created **#541**.
+
+**New tracker files created:**
+- `docs/tracker/539-seo-tag-baseurl-prepend-canonical-og-url.todo.md`
+- `docs/tracker/540-site-tags-categories-iteration-empty.todo.md`
+- `docs/tracker/541-liquid-in-scss-preprocessing.todo.md`
+
+**Files modified:** No source code changes (triage only).
