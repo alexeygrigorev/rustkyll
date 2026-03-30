@@ -8932,6 +8932,114 @@ More text.
         );
     }
 
+    // ========================================================================
+    // Issue 380: Multi-item ol merge guard test
+    // ========================================================================
+
+    /// Issue 380: Two consecutive multi-item `<ol>` elements ARE merged into one.
+    ///
+    /// Decision: merging is INTENTIONAL. The `merge_consecutive_same_type_lists`
+    /// function merges all consecutive same-type lists unconditionally. This is
+    /// correct because pulldown-cmark splits ordered lists at interruption points
+    /// (sub-lists, blank lines between items with `<br />`), producing separate
+    /// `<ol>` elements that kramdown keeps as one. Merging multi-item `<ol>`
+    /// elements is consistent with this design and causes zero DTC DOM regressions
+    /// at 790/790.
+    #[test]
+    fn test_issue380_multi_item_ol_merge_behavior() {
+        let input = "<ol>\n<li>Item A</li>\n<li>Item B</li>\n</ol>\n\n<ol>\n<li>Item C</li>\n<li>Item D</li>\n</ol>";
+        let result = merge_consecutive_same_type_lists(input);
+        assert_eq!(
+            result.matches("<ol>").count(),
+            1,
+            "Issue 380: Multi-item <ol> elements should be merged (intentional). Got:\n{result}"
+        );
+        assert_eq!(
+            result.matches("<li>").count(),
+            4,
+            "Issue 380: Merged <ol> should contain all 4 items. Got:\n{result}"
+        );
+        assert_eq!(
+            result.matches("</ol>").count(),
+            1,
+            "Issue 380: Should have exactly 1 closing </ol>. Got:\n{result}"
+        );
+    }
+
+    /// Issue 380: Mixed multi-item and single-item consecutive `<ol>` are merged.
+    ///
+    /// Consistent with the decision above: merging is unconditional regardless
+    /// of item count per list fragment.
+    #[test]
+    fn test_issue380_mixed_multi_and_single_item_ol_merge() {
+        let input = "<ol>\n<li>Item A</li>\n<li>Item B</li>\n</ol>\n\n<ol>\n<li>Item C</li>\n</ol>";
+        let result = merge_consecutive_same_type_lists(input);
+        assert_eq!(
+            result.matches("<ol>").count(),
+            1,
+            "Issue 380: Mixed multi/single item <ol> should be merged. Got:\n{result}"
+        );
+        assert_eq!(
+            result.matches("<li>").count(),
+            3,
+            "Issue 380: Merged <ol> should contain all 3 items. Got:\n{result}"
+        );
+    }
+
+    /// Issue 380: Three consecutive multi-item `<ol>` elements all merge into one.
+    #[test]
+    fn test_issue380_three_consecutive_multi_item_ol_merge() {
+        let input = "<ol>\n<li>A1</li>\n<li>A2</li>\n</ol>\n\n<ol>\n<li>B1</li>\n<li>B2</li>\n</ol>\n\n<ol>\n<li>C1</li>\n<li>C2</li>\n</ol>";
+        let result = merge_consecutive_same_type_lists(input);
+        assert_eq!(
+            result.matches("<ol>").count(),
+            1,
+            "Issue 380: Three multi-item <ol> should merge into one. Got:\n{result}"
+        );
+        assert_eq!(
+            result.matches("<li>").count(),
+            6,
+            "Issue 380: Merged <ol> should contain all 6 items. Got:\n{result}"
+        );
+    }
+
+    /// Issue 380: Multi-item `<ul>` elements are also merged (same logic).
+    #[test]
+    fn test_issue380_multi_item_ul_merge() {
+        let input = "<ul>\n<li>X</li>\n<li>Y</li>\n</ul>\n\n<ul>\n<li>Z</li>\n<li>W</li>\n</ul>";
+        let result = merge_consecutive_same_type_lists(input);
+        assert_eq!(
+            result.matches("<ul>").count(),
+            1,
+            "Issue 380: Multi-item <ul> should also be merged. Got:\n{result}"
+        );
+        assert_eq!(
+            result.matches("<li>").count(),
+            4,
+            "Issue 380: Merged <ul> should contain all 4 items. Got:\n{result}"
+        );
+    }
+
+    /// Issue 380: Multi-item `<ol>` with Unicode content merges correctly.
+    #[test]
+    fn test_issue380_multi_item_ol_merge_unicode() {
+        let input = "<ol>\n<li>\u{00c9}l\u{00e9}ment un</li>\n<li>\u{00c9}l\u{00e9}ment deux</li>\n</ol>\n\n<ol>\n<li>\u{4e09}\u{756a}\u{76ee}</li>\n<li>\u{56db}\u{756a}\u{76ee}</li>\n</ol>";
+        let result = merge_consecutive_same_type_lists(input);
+        assert_eq!(
+            result.matches("<ol>").count(),
+            1,
+            "Issue 380: Unicode multi-item <ol> should merge. Got:\n{result}"
+        );
+        assert!(
+            result.contains("\u{00c9}l\u{00e9}ment un"),
+            "Issue 380: French text preserved. Got:\n{result}"
+        );
+        assert!(
+            result.contains("\u{4e09}\u{756a}\u{76ee}"),
+            "Issue 380: Japanese text preserved. Got:\n{result}"
+        );
+    }
+
     // -----------------------------------------------------------------------
     // Issue 382: mailto pipe encoding and definition list regression guards
     // -----------------------------------------------------------------------
