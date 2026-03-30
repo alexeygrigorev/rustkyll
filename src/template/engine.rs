@@ -773,6 +773,8 @@ impl TemplateEngine {
             .filter(filters::UrlEncode)
             .filter(filters::CgiEscape)
             .filter(filters::UriEscape)
+            .filter(filters::UrlEscape)
+            .filter(filters::Camelcase)
             // Lenient math filters: non-numeric strings coerce to 0 (Issue 196)
             // Must come after with_stdlib() to override strict versions
             .filter(filters::math::Times)
@@ -7008,5 +7010,173 @@ title: "Test Book"
             .parse_and_render("{{ cats | array_to_sentence_string }}", &ctx)
             .unwrap();
         assert_eq!(out, "release, and update");
+    }
+
+    // ========================================================================
+    // Issue 247: Object.first should return [key, value] pair (Ruby Liquid compat)
+    // ========================================================================
+
+    #[test]
+    fn test_object_first_returns_key_value_pair() {
+        // In Ruby Liquid, hash.first returns the first [key, value] pair.
+        // categories_list.first[0] should return the first category name (not nil).
+        let eng = engine();
+
+        let mut categories = Object::new();
+        categories.insert(
+            "__key_order".into(),
+            LiquidValue::Array(vec![
+                LiquidValue::scalar("Jekyll"),
+                LiquidValue::scalar("tutorial"),
+            ]),
+        );
+        categories.insert(
+            "Jekyll".into(),
+            LiquidValue::Array(vec![LiquidValue::scalar("post1")]),
+        );
+        categories.insert(
+            "tutorial".into(),
+            LiquidValue::Array(vec![
+                LiquidValue::scalar("post1"),
+                LiquidValue::scalar("post2"),
+            ]),
+        );
+
+        let mut site = Object::new();
+        site.insert("categories".into(), LiquidValue::Object(categories));
+
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+
+        // .first on an Object should return the first [key, value] pair
+        // .first[0] should return the key (category name)
+        let template = "{{ site.categories.first[0] }}";
+        let output = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(
+            output, "Jekyll",
+            "Object.first[0] should return the first key"
+        );
+    }
+
+    #[test]
+    fn test_object_first_null_check_mediumish_pattern() {
+        // Mediumish template pattern:
+        //   {% assign categories_list = site.categories %}
+        //   {% if categories_list.first[0] == null %}
+        //     (simple array branch)
+        //   {% else %}
+        //     (hash branch - should be taken for site.categories)
+        //   {% endif %}
+        let eng = engine();
+
+        let mut categories = Object::new();
+        categories.insert(
+            "__key_order".into(),
+            LiquidValue::Array(vec![LiquidValue::scalar("Jekyll")]),
+        );
+        categories.insert(
+            "Jekyll".into(),
+            LiquidValue::Array(vec![LiquidValue::scalar("post1")]),
+        );
+
+        let mut site = Object::new();
+        site.insert("categories".into(), LiquidValue::Object(categories));
+
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+
+        let template = r#"{% assign categories_list = site.categories %}{% if categories_list.first[0] == null %}NULL{% else %}NOT_NULL{% endif %}"#;
+        let output = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(
+            output, "NOT_NULL",
+            "categories_list.first[0] should not be null for an Object with keys"
+        );
+    }
+
+    #[test]
+    fn test_object_last_returns_key_value_pair() {
+        let eng = engine();
+
+        let mut categories = Object::new();
+        categories.insert(
+            "__key_order".into(),
+            LiquidValue::Array(vec![
+                LiquidValue::scalar("Jekyll"),
+                LiquidValue::scalar("tutorial"),
+            ]),
+        );
+        categories.insert(
+            "Jekyll".into(),
+            LiquidValue::Array(vec![LiquidValue::scalar("post1")]),
+        );
+        categories.insert(
+            "tutorial".into(),
+            LiquidValue::Array(vec![LiquidValue::scalar("post2")]),
+        );
+
+        let mut site = Object::new();
+        site.insert("categories".into(), LiquidValue::Object(categories));
+
+        let mut ctx = Object::new();
+        ctx.insert("site".into(), LiquidValue::Object(site));
+
+        let template = "{{ site.categories.last[0] }}";
+        let output = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(
+            output, "tutorial",
+            "Object.last[0] should return the last key"
+        );
+    }
+
+    // ========================================================================
+    // Issue 247: url_escape filter
+    // ========================================================================
+
+    #[test]
+    fn test_url_escape_filter() {
+        // url_escape is a passthrough (not a standard Jekyll filter)
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("input".into(), LiquidValue::scalar("web development"));
+        let output = eng
+            .parse_and_render("{{ input | url_escape }}", &ctx)
+            .unwrap();
+        assert_eq!(
+            output, "web development",
+            "url_escape should pass through unchanged"
+        );
+    }
+
+    // ========================================================================
+    // Issue 247: camelcase filter
+    // ========================================================================
+
+    #[test]
+    fn test_camelcase_filter() {
+        // camelcase is a passthrough (not a standard Jekyll filter)
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("input".into(), LiquidValue::scalar("hello_world"));
+        let output = eng
+            .parse_and_render("{{ input | camelcase }}", &ctx)
+            .unwrap();
+        assert_eq!(
+            output, "hello_world",
+            "camelcase should pass through unchanged"
+        );
+    }
+
+    #[test]
+    fn test_camelcase_filter_simple_word() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("input".into(), LiquidValue::scalar("tutorial"));
+        let output = eng
+            .parse_and_render("{{ input | camelcase }}", &ctx)
+            .unwrap();
+        assert_eq!(
+            output, "tutorial",
+            "camelcase should pass through unchanged"
+        );
     }
 }

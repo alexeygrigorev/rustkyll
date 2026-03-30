@@ -75,3 +75,52 @@ After building the site, inspect the following pages manually:
 - `about.html` must contain `<div class="section-title">` from the page layout
 - Any post page must contain `<div class="article-post">` from the post layout
 - All pages must have `<footer class="footer">` from the default layout
+
+## Log
+
+### [SWE] 2026-03-30
+
+#### Root Cause Analysis
+The issue had multiple independent root causes, not just "layouts not applied":
+
+1. **Object.first/last not supported in liquid-core**: The mediumish default layout uses `categories_list.first[0] == null` to detect whether `site.categories` is a hash or an array. The Rust liquid-core crate did not implement `.first` or `.last` for Objects (only for Arrays). This caused the check to always evaluate to null, taking the wrong branch and dumping the entire category object as a string.
+
+2. **Missing `url_escape` and `camelcase` filters**: These are not standard Jekyll/Liquid filters but are referenced by the mediumish theme. They were being registered as passthrough filters with warnings. Registered them as proper named passthrough filters (matching Jekyll behavior where they pass input through unchanged).
+
+3. **Archive `layout:` (singular) config key not parsed**: The mediumish `_config.yml` uses `layout: archive` (singular key) in the `jekyll-archives` section, but the parser only looked for `layouts:` (plural with per-type mapping). Added fallback to singular `layout` key.
+
+4. **Archive post sort order**: Within the same date, posts were sorted by ascending slug instead of descending slug, causing mismatched order with Jekyll.
+
+#### TDD Cycle
+1. Wrote test `test_object_first_returns_key_value_pair` -- FAILS (returns empty, expected "Jekyll")
+2. Wrote test `test_object_first_null_check_mediumish_pattern` -- FAILS (returns "NULL", expected "NOT_NULL")
+3. Wrote test `test_object_last_returns_key_value_pair` -- FAILS
+4. Wrote test `test_url_escape_filter` -- FAILS
+5. Wrote test `test_camelcase_filter` -- FAILS
+6. Fixed `augmented_get` in liquid-core to support `.first`/`.last` on Objects
+7. All object tests PASS
+8. Implemented `url_escape` and `camelcase` as passthrough filters
+9. Filter tests PASS
+10. Wrote test `test_config_parsing_singular_layout_key` for archive config
+11. Fixed archive config to support singular `layout` key
+12. Fixed archive post sort order (descending slug tiebreaker)
+
+#### Files Modified
+- `vendor/liquid-core/src/model/find.rs` -- Added `first`/`last` support for Objects
+- `src/template/filters/url_escape.rs` -- New passthrough filter
+- `src/template/filters/camelcase.rs` -- New passthrough filter
+- `src/template/filters/mod.rs` -- Register new filters
+- `src/template/engine.rs` -- Register filters in builder, add tests
+- `src/archives.rs` -- Support singular `layout:` config key, fix sort order
+
+#### Test Results
+- 3533 tests pass (3488 lib + 41 main + 4 integration), 0 fail, 2 ignored
+- Clippy clean, fmt clean
+
+#### DOM Comparison
+- Mediumish: 0/23 matched, 543 total diffs (down from 638 pre-fix)
+  - Remaining diffs are primarily SEO tag output differences (issue #248)
+  - All 24 HTML files now have DOCTYPE, head, body from default layout
+  - No raw Liquid code in any output file
+  - Category archive pages now render with archive -> default layout chain
+- DTC: 787/787 matched, 0 diffs (no regression)

@@ -5,6 +5,7 @@
 
 mod absolute_url;
 mod array_to_sentence_string;
+mod camelcase;
 pub(crate) mod cgi_escape;
 mod compact;
 mod date;
@@ -34,12 +35,14 @@ mod truncatewords;
 mod uniq;
 mod uri_escape;
 mod url_encode;
+mod url_escape;
 mod where_exp;
 mod where_filter;
 mod xml_escape;
 
 pub use absolute_url::AbsoluteUrl;
 pub use array_to_sentence_string::ArrayToSentenceString;
+pub use camelcase::Camelcase;
 pub use cgi_escape::CgiEscape;
 pub use compact::Compact;
 pub use date::Date;
@@ -67,6 +70,7 @@ pub use truncatewords::Truncatewords;
 pub use uniq::Uniq;
 pub use uri_escape::UriEscape;
 pub use url_encode::UrlEncode;
+pub use url_escape::UrlEscape;
 pub use where_exp::WhereExp;
 pub use where_filter::Where;
 pub use xml_escape::XmlEscape;

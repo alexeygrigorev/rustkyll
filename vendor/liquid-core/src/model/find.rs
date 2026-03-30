@@ -175,6 +175,44 @@ fn augmented_get<'o>(value: &'o dyn ValueView, index: &ScalarCow<'_>) -> Option<
             .map(ValueCow::Borrowed)
             .or_else(|| match index.as_str() {
                 "size" => Some(ValueCow::Owned(Value::scalar(obj.size()))),
+                "first" => {
+                    // Ruby Liquid: hash.first returns the first [key, value] pair.
+                    // Respect __key_order if present for consistent iteration order.
+                    let first_key = obj
+                        .get("__key_order")
+                        .and_then(|v| v.as_array())
+                        .and_then(|arr| arr.first())
+                        .map(|v| v.to_kstr().to_string())
+                        .or_else(|| {
+                            obj.keys()
+                                .find(|k| k.as_str() != "__key_order")
+                                .map(|k| k.to_string())
+                        });
+                    first_key.and_then(|key| {
+                        obj.get(&key).map(|val| {
+                            ValueCow::Owned(Value::Array(vec![Value::scalar(key), val.to_value()]))
+                        })
+                    })
+                }
+                "last" => {
+                    // Ruby Liquid: hash.last returns the last [key, value] pair.
+                    let last_key = obj
+                        .get("__key_order")
+                        .and_then(|v| v.as_array())
+                        .and_then(|arr| arr.last())
+                        .map(|v| v.to_kstr().to_string())
+                        .or_else(|| {
+                            obj.keys()
+                                .filter(|k| k.as_str() != "__key_order")
+                                .last()
+                                .map(|k| k.to_string())
+                        });
+                    last_key.and_then(|key| {
+                        obj.get(&key).map(|val| {
+                            ValueCow::Owned(Value::Array(vec![Value::scalar(key), val.to_value()]))
+                        })
+                    })
+                }
                 _ => None,
             })
     } else if let Some(scalar) = value.as_scalar() {

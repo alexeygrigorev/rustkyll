@@ -67,22 +67,34 @@ impl ArchivesConfig {
             return None;
         }
 
-        // Parse layouts
+        // Parse layouts. jekyll-archives supports two formats:
+        //   1. `layout: archive` -- a single layout name applied to all archive types
+        //   2. `layouts: { category: archive, tag: tag_archive }` -- per-type layout names
+        // Check the singular `layout` key first, then the plural `layouts` key.
+        let single_layout = mapping
+            .get(serde_yaml::Value::String("layout".to_string()))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+
         let layouts = mapping
             .get(serde_yaml::Value::String("layouts".to_string()))
             .and_then(|v| v.as_mapping());
 
-        let category_layout = layouts.and_then(|m| {
-            m.get(serde_yaml::Value::String("category".to_string()))
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-        });
+        let category_layout = layouts
+            .and_then(|m| {
+                m.get(serde_yaml::Value::String("category".to_string()))
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+            })
+            .or_else(|| single_layout.clone());
 
-        let tag_layout = layouts.and_then(|m| {
-            m.get(serde_yaml::Value::String("tag".to_string()))
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-        });
+        let tag_layout = layouts
+            .and_then(|m| {
+                m.get(serde_yaml::Value::String("tag".to_string()))
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+            })
+            .or_else(|| single_layout.clone());
 
         // Parse permalinks
         let permalinks = mapping
@@ -296,12 +308,15 @@ fn generate_single_archive_page(
 ) -> Result<usize, GeneratorError> {
     let url = resolve_permalink(permalink_pattern, name);
 
-    // Sort posts by date descending (newest first)
+    // Sort posts by date descending (newest first), matching Jekyll's behavior.
+    // Within the same date, posts are ordered by slug descending (reverse
+    // alphabetical), matching Jekyll's reverse-chronological ordering where
+    // filenames with later slugs come first.
     let mut sorted_posts: Vec<&CollectionItem> = posts.to_vec();
     sorted_posts.sort_by(|a, b| {
         let date_a = a.date.as_deref().unwrap_or("");
         let date_b = b.date.as_deref().unwrap_or("");
-        date_b.cmp(date_a).then_with(|| a.slug.cmp(&b.slug))
+        date_b.cmp(date_a).then_with(|| b.slug.cmp(&a.slug))
     });
 
     // Build the posts array for this archive page
@@ -495,6 +510,28 @@ jekyll-archives:
         assert!(!archives.tags_enabled());
         assert_eq!(archives.category_layout, Some("archive".to_string()));
         assert_eq!(archives.category_permalink, "/cat/:name/");
+    }
+
+    #[test]
+    fn test_config_parsing_singular_layout_key() {
+        // Mediumish-style config: `layout: archive` (singular, applies to all types)
+        let yaml = r#"
+jekyll-archives:
+  enabled:
+    - categories
+  layout: archive
+  permalinks:
+    category: '/category/:name/'
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let archives = ArchivesConfig::from_config(&config).unwrap();
+
+        assert!(archives.categories_enabled());
+        assert_eq!(
+            archives.category_layout,
+            Some("archive".to_string()),
+            "Singular `layout` key should be used for category archives"
+        );
     }
 
     // ========================================================================
