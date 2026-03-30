@@ -669,6 +669,199 @@ pub fn fix_literal_underscore_emphasis(html: &str) -> String {
     result
 }
 
+/// Issue 515: Restructure kramdown full-width table separator rows into proper
+/// `<tbody>` splits and `<tfoot>` sections.
+///
+/// When pulldown-cmark renders a GFM table that contains kramdown full-width
+/// separators like `|----|` or `|====|`, it treats them as data rows with a
+/// single cell containing dashes/equals (the rest are empty). Smart punctuation
+/// may also convert `---` sequences to em-dashes.
+///
+/// This function detects those separator rows in the HTML output and restructures
+/// them:
+/// - A dash separator row (`-` or em-dash content) splits `<tbody>` into two.
+/// - An equals separator row (`=` content) starts a `<tfoot>` section.
+pub fn restructure_kramdown_table_separators(html: &str) -> String {
+    // Quick check: if no <tbody>, nothing to restructure
+    if !html.contains("<tbody>") {
+        return html.to_string();
+    }
+
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+
+    while let Some(tbody_start) = remaining.find("<tbody>") {
+        // Copy everything up to and including <tbody>
+        result.push_str(&remaining[..tbody_start + "<tbody>".len()]);
+        remaining = &remaining[tbody_start + "<tbody>".len()..];
+
+        // Find the matching </tbody>
+        let tbody_end = match remaining.find("</tbody>") {
+            Some(pos) => pos,
+            None => {
+                // No closing tag, just copy the rest
+                result.push_str(remaining);
+                return result;
+            }
+        };
+
+        let tbody_content = &remaining[..tbody_end];
+
+        // Check if this tbody contains any separator rows
+        if !contains_separator_row(tbody_content) {
+            // No separators, pass through as-is
+            result.push_str(&remaining[..tbody_end + "</tbody>".len()]);
+            remaining = &remaining[tbody_end + "</tbody>".len()..];
+            continue;
+        }
+
+        // Process rows within this tbody, splitting on separator rows
+        let mut in_tfoot = false;
+        let mut row_remaining = tbody_content;
+
+        while let Some(tr_start) = row_remaining.find("<tr>") {
+            let tr_end = match row_remaining[tr_start..].find("</tr>") {
+                Some(pos) => tr_start + pos + "</tr>".len(),
+                None => break,
+            };
+
+            let tr_html = &row_remaining[tr_start..tr_end];
+            let before_tr = &row_remaining[..tr_start];
+
+            if is_separator_tr(tr_html) {
+                let sep_type = separator_type(tr_html);
+                match sep_type {
+                    SeparatorType::Dash => {
+                        // Close current tbody, open a new one
+                        result.push_str("\n</tbody>\n<tbody>");
+                    }
+                    SeparatorType::Equals => {
+                        // Close current tbody, open tfoot
+                        result.push_str("\n</tbody>\n<tfoot>");
+                        in_tfoot = true;
+                    }
+                    SeparatorType::None => {
+                        // Not actually a separator, keep it
+                        result.push_str(before_tr);
+                        result.push_str(tr_html);
+                    }
+                }
+            } else {
+                result.push_str(before_tr);
+                result.push_str(tr_html);
+            }
+
+            row_remaining = &row_remaining[tr_end..];
+        }
+
+        // Append any trailing content after the last </tr> but before </tbody>
+        result.push_str(row_remaining);
+
+        if in_tfoot {
+            result.push_str("\n</tfoot>");
+        } else {
+            result.push_str("</tbody>");
+        }
+        remaining = &remaining[tbody_end + "</tbody>".len()..];
+    }
+
+    // Copy any remaining content after the last </tbody>
+    result.push_str(remaining);
+    result
+}
+
+/// Check if a tbody's content contains any separator rows.
+fn contains_separator_row(tbody_content: &str) -> bool {
+    let mut pos = 0;
+    while let Some(tr_start) = tbody_content[pos..].find("<tr>") {
+        let abs_start = pos + tr_start;
+        if let Some(tr_end_rel) = tbody_content[abs_start..].find("</tr>") {
+            let tr_html = &tbody_content[abs_start..abs_start + tr_end_rel + "</tr>".len()];
+            if is_separator_tr(tr_html) {
+                return true;
+            }
+            pos = abs_start + tr_end_rel + "</tr>".len();
+        } else {
+            break;
+        }
+    }
+    false
+}
+
+#[derive(PartialEq)]
+enum SeparatorType {
+    Dash,
+    Equals,
+    None,
+}
+
+/// Determine what kind of separator a `<tr>` row is.
+fn separator_type(tr_html: &str) -> SeparatorType {
+    if let Some(content) = extract_first_td_content(tr_html) {
+        let trimmed = content.trim();
+        if trimmed.is_empty() {
+            return SeparatorType::None;
+        }
+        // Check for equals separator: all '=' characters
+        if trimmed.chars().all(|c| c == '=') {
+            return SeparatorType::Equals;
+        }
+        // Check for dash separator: all '-' or em-dash or en-dash characters
+        if trimmed
+            .chars()
+            .all(|c| c == '-' || c == '\u{2014}' || c == '\u{2013}')
+        {
+            return SeparatorType::Dash;
+        }
+    }
+    SeparatorType::None
+}
+
+/// Check if a `<tr>` is a kramdown separator row.
+///
+/// A separator row has:
+/// - First `<td>` contains only dashes (or em-dashes) or only equals signs
+/// - All other `<td>` elements are empty
+fn is_separator_tr(tr_html: &str) -> bool {
+    let sep = separator_type(tr_html);
+    if sep == SeparatorType::None {
+        return false;
+    }
+
+    // Verify all other <td>s are empty
+    let mut td_count = 0;
+    let mut pos = 0;
+    while let Some(td_start) = tr_html[pos..].find("<td") {
+        let abs_start = pos + td_start;
+        let tag_end = match tr_html[abs_start..].find('>') {
+            Some(p) => abs_start + p + 1,
+            None => break,
+        };
+        let td_close = match tr_html[tag_end..].find("</td>") {
+            Some(p) => tag_end + p,
+            None => break,
+        };
+        let content = tr_html[tag_end..td_close].trim();
+        td_count += 1;
+
+        if td_count > 1 && !content.is_empty() {
+            return false;
+        }
+
+        pos = td_close + "</td>".len();
+    }
+
+    td_count >= 1
+}
+
+/// Extract the text content of the first `<td>` in a `<tr>`.
+fn extract_first_td_content(tr_html: &str) -> Option<&str> {
+    let td_start = tr_html.find("<td")?;
+    let tag_end = tr_html[td_start..].find('>')? + td_start + 1;
+    let td_close = tr_html[tag_end..].find("</td>")? + tag_end;
+    Some(&tr_html[tag_end..td_close])
+}
+
 /// Apply all kramdown compatibility transformations to HTML output.
 ///
 /// When `indent_lists` is true (kramdown mode), list items are indented with
@@ -3366,6 +3559,10 @@ fn unwrap_block_elements_from_p(html: &str) -> String {
     /// Block-level tags that should never appear inside `<p>`.
     const UNWRAP_TAGS: &[&str] = &["noscript", "iframe"];
 
+    /// Issue 449: Void (self-closing) tags that should be unwrapped from `<p>`
+    /// when they are the sole content of the paragraph.
+    const UNWRAP_VOID_TAGS: &[&str] = &["img"];
+
     let mut result = html.to_string();
     for &tag in UNWRAP_TAGS {
         let open_tag = format!("<{}", tag);
@@ -3416,6 +3613,56 @@ fn unwrap_block_elements_from_p(html: &str) -> String {
             // Don't advance search_from -- there may be more instances
         }
     }
+
+    // Issue 449: Unwrap void (self-closing) elements like <img> from <p> when
+    // they are the sole content. Pattern: <p><img ... /></p> or <p><img ...></p>
+    for &tag in UNWRAP_VOID_TAGS {
+        let open_tag = format!("<{}", tag);
+        let mut search_from = 0;
+        loop {
+            let haystack = &result[search_from..];
+            let Some(rel_pos) = haystack.find("<p>") else {
+                break;
+            };
+            let p_pos = search_from + rel_pos;
+            let after_p_start = p_pos + 3; // len("<p>")
+            let after_p = &result[after_p_start..];
+
+            // Check if immediately followed by our void tag
+            if !after_p.starts_with(&open_tag) {
+                search_from = after_p_start;
+                continue;
+            }
+
+            // Find the end of the tag (the closing >) -- void tags have no
+            // separate closing tag, just <img ...> or <img ... />
+            let Some(gt_rel) = after_p.find('>') else {
+                search_from = after_p_start;
+                continue;
+            };
+            let tag_end = after_p_start + gt_rel + 1;
+            let after_tag = &result[tag_end..];
+
+            // Check for </p> immediately after the void tag (with optional newline)
+            let trimmed = after_tag.trim_start_matches('\n');
+            if !trimmed.starts_with("</p>") {
+                search_from = after_p_start;
+                continue;
+            }
+            let p_close_end = result.len() - trimmed.len() + 4; // len("</p>")
+
+            // Extract the void element (without the <p>...</p> wrapper)
+            let element_content = result[after_p_start..tag_end].to_string();
+            result = format!(
+                "{}{}{}",
+                &result[..p_pos],
+                &element_content,
+                &result[p_close_end..]
+            );
+            // Don't advance search_from -- there may be more instances
+        }
+    }
+
     result
 }
 
@@ -4790,6 +5037,7 @@ fn wrap_bare_text_in_paragraphs(html: &str) -> String {
         "table",
         "thead",
         "tbody",
+        "tfoot",
         "tr",
         "td",
         "th",
@@ -4830,6 +5078,7 @@ fn wrap_bare_text_in_paragraphs(html: &str) -> String {
         "table",
         "thead",
         "tbody",
+        "tfoot",
         "tr",
         "td",
         "th",
@@ -4988,6 +5237,28 @@ fn is_block_line(trimmed: &str, block_tags: &[&str]) -> bool {
         let close = format!("</{}>", tag);
         if trimmed.starts_with(&close) || trimmed.ends_with(&close) {
             return true;
+        }
+    }
+
+    // Issue 449: Standalone void elements (like <img>) that occupy the entire
+    // line are block-level. This prevents wrap_bare_text_in_paragraphs from
+    // re-wrapping them in <p> after unwrap_block_elements_from_p stripped the
+    // original <p> wrapper. Only matches lines that are entirely a single
+    // void element tag (starting with <img and ending with > or />).
+    const BLOCK_VOID_TAGS: &[&str] = &["img"];
+    for tag in BLOCK_VOID_TAGS {
+        let open = format!("<{}", tag);
+        if trimmed.starts_with(&open) {
+            let rest = &trimmed[open.len()..];
+            if (rest.starts_with('>') || rest.starts_with(' ') || rest.starts_with('/'))
+                && trimmed.ends_with('>')
+            {
+                // Verify the line is ONLY this single element (no other text content)
+                // by checking there's only one `<` in the trimmed line
+                if trimmed.chars().filter(|c| *c == '<').count() == 1 {
+                    return true;
+                }
+            }
         }
     }
 
@@ -15023,6 +15294,270 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             result.contains("<p>text</p>"),
             "regular paragraphs should be preserved: {}",
+            result
+        );
+    }
+
+    // --- Issue 515: Kramdown table tfoot and multi-tbody separators ---
+
+    #[test]
+    fn test_515_unit_restructure_endash_separator() {
+        // Simulate pulldown-cmark output with en-dash separator row
+        let html = "<table><thead><tr><th>H1</th><th>H2</th></tr></thead><tbody>\n<tr><td>a</td><td>b</td></tr>\n<tr><td>\u{2013}\u{2013}\u{2013}\u{2013}\u{2013}</td><td></td></tr>\n<tr><td>c</td><td>d</td></tr>\n</tbody></table>";
+        let result = restructure_kramdown_table_separators(html);
+        let tbody_count = result.matches("<tbody>").count();
+        assert_eq!(
+            tbody_count, 2,
+            "Expected 2 <tbody>, got {}: {}",
+            tbody_count, result
+        );
+    }
+
+    #[test]
+    fn test_515_unit_restructure_equals_separator() {
+        let html = "<table><thead><tr><th>H1</th><th>H2</th></tr></thead><tbody>\n<tr><td>a</td><td>b</td></tr>\n<tr><td>=====</td><td></td></tr>\n<tr><td>f1</td><td>f2</td></tr>\n</tbody></table>";
+        let result = restructure_kramdown_table_separators(html);
+        assert!(result.contains("<tfoot>"), "Expected <tfoot>: {}", result);
+    }
+
+    #[test]
+    fn test_515_fullwidth_body_separator_produces_two_tbody() {
+        let md = "\
+| Header1 | Header2 |
+|---------|---------|
+| cell1   | cell2   |
+|--------------------|
+| cell3   | cell4   |
+";
+        let html = crate::frontmatter::markdown_to_html(md);
+        let tbody_count = html.matches("<tbody>").count();
+        assert_eq!(
+            tbody_count, 2,
+            "Expected 2 <tbody> sections, got {}: {}",
+            tbody_count, html
+        );
+        assert!(
+            !html.contains("------"),
+            "Separator dashes should not appear as cell content: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_515_fullwidth_footer_separator_produces_tfoot() {
+        let md = "\
+| Header1 | Header2 |
+|---------|---------|
+| cell1   | cell2   |
+|====================|
+| Foot1   | Foot2   |
+";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("<tfoot>"),
+            "Expected <tfoot> section: {}",
+            html
+        );
+        assert!(
+            html.contains("</tfoot>"),
+            "Expected </tfoot> closing tag: {}",
+            html
+        );
+        assert!(
+            !html.contains("====="),
+            "Separator equals should not appear as cell content: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_515_combined_separators_hydeout_pattern() {
+        let md = "\
+| Header1 | Header2 | Header3 |
+|:--------|:-------:|--------:|
+| cell1   | cell2   | cell3   |
+| cell4   | cell5   | cell6   |
+|-----------------------------|
+| cell1   | cell2   | cell3   |
+| cell4   | cell5   | cell6   |
+|=============================|
+| Foot1   | Foot2   | Foot3   |
+";
+        let html = crate::frontmatter::markdown_to_html(md);
+        let thead_count = html.matches("<thead>").count();
+        let tbody_count = html.matches("<tbody>").count();
+        let tfoot_count = html.matches("<tfoot>").count();
+        assert_eq!(thead_count, 1, "Expected 1 <thead>: {}", html);
+        assert_eq!(tbody_count, 2, "Expected 2 <tbody>: {}", html);
+        assert_eq!(tfoot_count, 1, "Expected 1 <tfoot>: {}", html);
+        assert!(
+            !html.contains("========"),
+            "Separator equals should not appear: {}",
+            html
+        );
+        // Em-dashes from smart punctuation should also be removed
+        assert!(
+            !html.contains("\u{2014}\u{2014}"),
+            "Em-dashes from separator should not appear: {}",
+            html
+        );
+        // Verify alignment preserved
+        assert!(
+            html.contains("text-align: left"),
+            "Left alignment should be preserved: {}",
+            html
+        );
+        assert!(
+            html.contains("text-align: center"),
+            "Center alignment should be preserved: {}",
+            html
+        );
+        assert!(
+            html.contains("text-align: right"),
+            "Right alignment should be preserved: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_515_per_column_separator_no_regression() {
+        let md = "\
+| Name | Value |
+|------|-------|
+| foo  | bar   |
+";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("<thead>"),
+            "Per-column separator should still produce thead: {}",
+            html
+        );
+        assert!(
+            html.contains("<tbody>"),
+            "Per-column separator should still produce tbody: {}",
+            html
+        );
+        assert!(
+            html.contains("foo"),
+            "Cell content should be preserved: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_515_no_false_positive_on_dash_content() {
+        let md = "\
+| Status | Note |
+|--------|------|
+| ---N/A--- | skip |
+";
+        let html = crate::frontmatter::markdown_to_html(md);
+        // This cell has mixed content (dashes + text), NOT a separator
+        assert!(
+            html.contains("---N/A---") || html.contains("N/A"),
+            "Dash content with text should be preserved: {}",
+            html
+        );
+    }
+
+    // ========================================================================
+    // Issue 449: standalone iframe/img should not be wrapped in <p>
+    // ========================================================================
+
+    #[test]
+    fn test_issue449_iframe_standalone_not_wrapped_in_p() {
+        // Standalone iframe on its own line should not be wrapped in <p>
+        let md = "Some text before.\n\n<iframe style=\"border: 0; width: 100%;\" src=\"https://example.com/embed\" seamless><a href=\"https://example.com\">Fallback</a></iframe>\n\nSome text after.\n";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            !html.contains("<p><iframe"),
+            "Standalone iframe should NOT be wrapped in <p>. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<iframe"),
+            "iframe element should be preserved. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue449_img_standalone_not_wrapped_in_p() {
+        // Standalone img on its own line should not be wrapped in <p>
+        let md = "Some text before.\n\n<img src=\"https://example.com/photo.jpg\" alt=\"A photo\" style=\"max-height: 20em;\">\n\nSome text after.\n";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            !html.contains("<p><img"),
+            "Standalone img should NOT be wrapped in <p>. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<img"),
+            "img element should be preserved. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue449_img_unicode_alt_standalone() {
+        // Standalone img with Unicode alt text
+        let md = "<img src=\"https://example.com/pic.jpg\" alt=\"Ein Bild mit Umlauten: \u{00e4}\u{00f6}\u{00fc}\" style=\"display: block;\">\n";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            !html.contains("<p><img"),
+            "Standalone img with Unicode alt should NOT be wrapped in <p>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue449_iframe_youtube_embed_standalone() {
+        let md = "<iframe width=\"240\" height=\"140\" src=\"https://www.youtube.com/embed/test\" frameborder=\"0\" allow=\"accelerometer; autoplay\" allowfullscreen></iframe>\n";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            !html.contains("<p><iframe"),
+            "Standalone YouTube iframe should NOT be wrapped in <p>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue449_inline_img_stays_in_paragraph() {
+        // Inline img within a paragraph should stay in <p>
+        let md = "Here is an image <img src=\"x.jpg\"> in a paragraph.\n";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("<p>") && html.contains("<img"),
+            "Inline img within text should stay in paragraph. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue449_unwrap_img_from_p_postprocess() {
+        // Direct test of the unwrap function for standalone img in <p>
+        let input = "<p><img src=\"https://example.com/photo.jpg\" alt=\"test\" style=\"max-height: 20em;\"></p>";
+        let result = unwrap_block_elements_from_p(input);
+        assert!(
+            !result.contains("<p><img"),
+            "Standalone img should be unwrapped from <p>. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<img src="),
+            "img element should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue449_unwrap_img_self_closing_from_p() {
+        // Self-closing img with /> should also be unwrapped
+        let input = "<p><img src=\"https://example.com/photo.jpg\" alt=\"test\" /></p>";
+        let result = unwrap_block_elements_from_p(input);
+        assert!(
+            !result.contains("<p><img"),
+            "Self-closing img should be unwrapped from <p>. Got: {}",
             result
         );
     }

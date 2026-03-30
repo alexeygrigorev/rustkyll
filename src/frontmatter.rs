@@ -5790,6 +5790,76 @@ Some text after.
     }
 
     // ========================================================================
+    // Issue 537: Inline code should have language-plaintext class in kramdown mode
+    // ========================================================================
+
+    #[test]
+    fn test_issue537_kramdown_inline_code_has_language_plaintext() {
+        // kramdown mode inline code should have language-plaintext highlighter-rouge
+        // to match Jekyll's kramdown output (all versions)
+        let html = markdown_to_html("Use `pip install` to install.\n");
+        assert!(
+            html.contains(
+                "<code class=\"language-plaintext highlighter-rouge\">pip install</code>"
+            ),
+            "Kramdown inline code should have language-plaintext highlighter-rouge. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue537_kramdown_with_options_inline_code_has_language_plaintext() {
+        // markdown_to_html_with_options in kramdown mode should add language-plaintext
+        let html = markdown_to_html_with_options(
+            "Use `pip install` to set up.\n",
+            true,
+            true,
+            false,
+            false,
+        );
+        assert!(
+            html.contains(
+                "<code class=\"language-plaintext highlighter-rouge\">pip install</code>"
+            ),
+            "Kramdown mode (with_options) should have language-plaintext highlighter-rouge. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue537_commonmark_still_no_language_plaintext() {
+        // CommonMark mode should still NOT add language-plaintext
+        let html = markdown_to_html_with_options(
+            "Use `pip install` to set up.\n",
+            false,
+            true,
+            false,
+            false,
+        );
+        assert!(
+            html.contains("<code>pip install</code>"),
+            "CommonMark mode should produce bare <code> tags. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains("language-plaintext"),
+            "CommonMark mode should NOT have language-plaintext. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue537_unicode_inline_code_has_language_plaintext() {
+        // Non-ASCII content should also get language-plaintext
+        let html = markdown_to_html("Nutze `einrichten` zum Konfigurieren.\n");
+        assert!(
+            html.contains("<code class=\"language-plaintext highlighter-rouge\">einrichten</code>"),
+            "Unicode inline code should have language-plaintext highlighter-rouge. Got: {}",
+            html
+        );
+    }
+
+    // ========================================================================
     // Issue 220: Conditional smart punctuation (kramdown vs CommonMarkGhPages)
     // ========================================================================
 
