@@ -928,6 +928,17 @@ fn build_site(
         // Check standalone pages for redirect_to front matter
         for page in &pages {
             if let Some(val) = page.front_matter.get("redirect_to") {
+                // If the page has a layout that exists in the layout engine,
+                // the normal rendering pipeline already rendered it correctly
+                // using that layout (e.g., a custom "redirect" layout).
+                // Skip the hardcoded redirect override in that case.
+                if let Some(serde_yaml::Value::String(layout_name)) =
+                    page.front_matter.get("layout")
+                {
+                    if layout_engine.has_layout(layout_name) {
+                        continue;
+                    }
+                }
                 let target = match val {
                     serde_yaml::Value::String(s) => Some(s.clone()),
                     _ => None,
@@ -980,6 +991,15 @@ fn build_site(
         for items in collections.values() {
             for item in items {
                 if let Some(val) = item.front_matter.get("redirect_to") {
+                    // If the item has a layout that exists in the layout engine,
+                    // the normal rendering pipeline already rendered it correctly.
+                    if let Some(serde_yaml::Value::String(layout_name)) =
+                        item.front_matter.get("layout")
+                    {
+                        if layout_engine.has_layout(layout_name) {
+                            continue;
+                        }
+                    }
                     let target = match val {
                         serde_yaml::Value::String(s) => Some(s.clone()),
                         _ => None,

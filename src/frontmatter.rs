@@ -716,8 +716,8 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // Issue 384: Strip mailto: prefix from autolink display text
     let html_output = strip_mailto_from_display_text(&html_output);
 
-    // Issue 313: Restore non-ASCII characters in URLs
-    let html_output = restore_non_ascii_in_urls(&html_output, &url_non_ascii_saved);
+    // Issue 313: Restore non-ASCII characters in URLs (kramdown mode: keep unicode)
+    let html_output = restore_non_ascii_in_urls(&html_output, &url_non_ascii_saved, true);
 
     // Issue 211: Fix smart quote directions to match kramdown
     let html_output = crate::kramdown::fix_smart_quote_directions(&html_output);
@@ -880,8 +880,10 @@ pub fn markdown_to_html_with_options(
     let html_output = decode_pulldown_url_encoding(&html_output);
     // Issue 384: Strip mailto: prefix from autolink display text
     let html_output = strip_mailto_from_display_text(&html_output);
-    // Issue 313: Restore non-ASCII characters in URLs
-    let html_output = restore_non_ascii_in_urls(&html_output, &url_non_ascii_saved);
+    // Issue 313: Restore non-ASCII characters in URLs.
+    // For CommonMarkGhPages (add_code_classes=false), percent-encode non-ASCII chars.
+    let html_output =
+        restore_non_ascii_in_urls(&html_output, &url_non_ascii_saved, add_code_classes);
     // Issue 211: Fix smart quote directions to match kramdown
     let html_output = crate::kramdown::fix_smart_quote_directions(&html_output);
     // Issue 247: Apply kramdown SQ_RULES to straight quotes from restored ''/'''' sequences.
@@ -1120,8 +1122,8 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     let html_output = decode_pulldown_url_encoding(&html_output);
     // Issue 384: Strip mailto: prefix from autolink display text
     let html_output = strip_mailto_from_display_text(&html_output);
-    // Issue 313: Restore non-ASCII characters in URLs
-    let html_output = restore_non_ascii_in_urls(&html_output, &url_non_ascii_saved);
+    // Issue 313: Restore non-ASCII characters in URLs (filter mode: always kramdown/keep unicode)
+    let html_output = restore_non_ascii_in_urls(&html_output, &url_non_ascii_saved, true);
     // Issue 211: Fix smart quote directions to match kramdown
     let html_output = crate::kramdown::fix_smart_quote_directions(&html_output);
     // Issue 247: Apply kramdown SQ_RULES to straight quotes from restored ''/'''' sequences
@@ -1888,14 +1890,27 @@ fn protect_non_ascii_in_link_urls(input: &str) -> (String, Vec<String>) {
 }
 
 /// Issue 313: Restore non-ASCII URL placeholders with the original characters.
-fn restore_non_ascii_in_urls(html: &str, saved: &[String]) -> String {
+/// When `keep_unicode` is true (kramdown mode), restores the original Unicode chars.
+/// When `keep_unicode` is false (CommonMarkGhPages mode), percent-encodes them
+/// to match the behavior of the commonmarker gem used by Jekyll.
+fn restore_non_ascii_in_urls(html: &str, saved: &[String], keep_unicode: bool) -> String {
     if saved.is_empty() {
         return html.to_string();
     }
     let mut result = html.to_string();
     for (idx, original) in saved.iter().enumerate() {
         let placeholder = format!("{}{}{}", URL_NON_ASCII_PREFIX, idx, URL_NON_ASCII_SUFFIX);
-        result = result.replace(&placeholder, original);
+        if keep_unicode {
+            result = result.replace(&placeholder, original);
+        } else {
+            // Percent-encode each byte of the UTF-8 representation
+            let mut encoded = String::new();
+            for byte in original.bytes() {
+                use std::fmt::Write;
+                let _ = write!(encoded, "%{:02X}", byte);
+            }
+            result = result.replace(&placeholder, &encoded);
+        }
     }
     result
 }
@@ -6192,6 +6207,22 @@ Some text after.
         assert!(
             html.contains("\u{043D}\u{0430}\u{0437}\u{0432}\u{0430}\u{043D}\u{0438}\u{0435}"),
             "Non-ASCII in URL should be preserved as raw UTF-8. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_url_with_non_ascii_percent_encoded_commonmark() {
+        // Issue 400: For CommonMarkGhPages mode, non-ASCII characters in URLs should be
+        // percent-encoded to match the behavior of the commonmarker gem used by Jekyll.
+        let md = "[link](https://zh.wikipedia.org/zh-tw/\u{8F49}\u{578B}\u{6B63}\u{7FA9})";
+        let html = markdown_to_html_with_options(md, false, false, false, false);
+        assert!(
+            html.contains("%E8%BD%89%E5%9E%8B%E6%AD%A3%E7%BE%A9"),
+            "Non-ASCII in URL should be percent-encoded in CommonMarkGhPages mode. Got: {html}"
+        );
+        assert!(
+            !html.contains("\u{8F49}\u{578B}\u{6B63}\u{7FA9}"),
+            "Raw Unicode should not appear in URL in CommonMarkGhPages mode. Got: {html}"
         );
     }
 
