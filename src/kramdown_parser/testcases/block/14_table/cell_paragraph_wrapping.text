@@ -1,0 +1,19 @@
+| Variable | Description |
+|---|---|
+| `site` | Site wide information + configuration settings from `_config.yml`. See below for details. |
+| `page` | Page specific information |
+
+Table with unicode and mixed inline content
+
+| Header | Beschreibung |
+|---|---|
+| `config` | Ubersicht der `Konfiguration` und weitere Details. |
+| **bold** | Text with *emphasis* and `code` mixed together |
+| simple | just text |
+
+Empty cells and single code spans
+
+| a | b |
+|---|---|
+| `single_code` | |
+| | `another` |

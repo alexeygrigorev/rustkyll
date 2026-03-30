@@ -561,6 +561,7 @@ const ALL_TEST_STEMS: &[&str] = &[
     "block/13_definition_list/styled_terms",
     "block/13_definition_list/too_much_space",
     "block/13_definition_list/with_blocks",
+    "block/14_table/cell_paragraph_wrapping",
     "block/14_table/empty_tag_in_cell",
     "block/14_table/errors",
     "block/14_table/escaping",
@@ -681,7 +682,7 @@ fn kramdown_conformance_summary() {
 
     // This test is informational -- it does not panic on failures.
     // It asserts the total count to ensure all test cases are discovered.
-    assert_eq!(total, 198, "Expected exactly 198 conformance test cases");
+    assert_eq!(total, 199, "Expected exactly 199 conformance test cases");
 }
 
 /// Verify that all .text files with .html pairs are covered in ALL_TEST_STEMS.
@@ -715,8 +716,8 @@ fn kramdown_test_discovery_complete() {
 
     assert_eq!(
         discovered.len(),
-        198,
-        "Expected 198 test pairs, found {}",
+        199,
+        "Expected 199 test pairs, found {}",
         discovered.len()
     );
 }
@@ -1223,6 +1224,10 @@ conformance_test!(kramdown_block_14_table_simple, "block/14_table/simple");
 conformance_test!(
     kramdown_block_14_table_table_with_footnote,
     "block/14_table/table_with_footnote"
+);
+conformance_test!(
+    kramdown_block_14_table_cell_paragraph_wrapping,
+    "block/14_table/cell_paragraph_wrapping"
 );
 
 // block/15_math
@@ -3021,5 +3026,133 @@ fn test_issue393_void_element_uppercase_inline_still_works() {
     assert!(
         html.contains("<br />"),
         "uppercase void element <BR /> inline should be normalized, got: {html}"
+    );
+}
+
+// Issue 520: Verify kramdown table cells do NOT get <p> wrapping for markdown tables.
+// Kramdown only produces <p> wrapping when the source HTML template explicitly includes it.
+
+#[test]
+fn test_issue520_markdown_table_no_p_wrapping() {
+    // Kramdown does NOT wrap markdown table cell content in <p> tags
+    let input = "\
+| Variable | Description |
+|---|---|
+| `site` | Site wide info + configuration from `_config.yml`. See below. |
+| `page` | Page specific information |
+";
+    let html = super::to_html(input);
+    // Cells should NOT be wrapped in <p>
+    assert!(
+        !html.contains("<td><p>"),
+        "markdown table cells should NOT have <p> wrapping, got: {html}"
+    );
+    assert!(
+        html.contains("<td><code>site</code></td>"),
+        "cell with code span should render directly, got: {html}"
+    );
+    assert!(
+        html.contains("Site wide info"),
+        "text content should be present, got: {html}"
+    );
+}
+
+#[test]
+fn test_issue520_markdown_table_unicode_no_p_wrapping() {
+    // Unicode content in table cells should also NOT get <p> wrapping
+    let input = "\
+| Header | Beschreibung |
+|---|---|
+| `config` | \u{00dc}bersicht der `Konfiguration` und Details |
+";
+    let html = super::to_html(input);
+    assert!(
+        !html.contains("<td><p>"),
+        "unicode table cells should NOT have <p> wrapping, got: {html}"
+    );
+    assert!(
+        html.contains("\u{00dc}bersicht"),
+        "unicode content should be preserved, got: {html}"
+    );
+}
+
+#[test]
+fn test_issue520_markdown_table_empty_cells_no_p() {
+    // Empty cells should use non-breaking space, no <p> wrapping
+    let input = "\
+| a | b |
+|---|---|
+| x | |
+| | y |
+";
+    let html = super::to_html(input);
+    assert!(
+        !html.contains("<p>"),
+        "empty table cells should NOT have <p> tags, got: {html}"
+    );
+    assert!(
+        html.contains("<td>\u{a0}</td>"),
+        "empty cells should use non-breaking space, got: {html}"
+    );
+}
+
+#[test]
+fn test_issue520_html_table_p_tags_preserved() {
+    // HTML tables with explicit <p> tags in cells should be preserved as-is
+    // This is the pattern used by jekyll-docs includes like docs_variables_table.html
+    let input = "\
+<table>
+  <thead>
+    <tr>
+      <th>Variable</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><p><code>site</code></p></td>
+      <td><p>Site info + config from <code>_config.yml</code>.</p></td>
+    </tr>
+  </tbody>
+</table>
+";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<td><p><code>site</code></p></td>"),
+        "HTML table <p> tags should be preserved, got: {html}"
+    );
+    assert!(
+        html.contains("<td><p>Site info"),
+        "HTML table <p> tags with mixed content should be preserved, got: {html}"
+    );
+}
+
+#[test]
+fn test_issue520_html_table_p_tags_preserved_multiline() {
+    // Multiline HTML table cells with <p> tags should also be preserved
+    let input = "\
+<table>
+  <tbody>
+    <tr>
+      <td>
+        <p><code>_config.yml</code></p>
+      </td>
+      <td>
+        <p>
+          Stores configuration data with \u{00fc}nicode content.
+        </p>
+      </td>
+    </tr>
+  </tbody>
+</table>
+";
+    let html = super::to_html(input);
+    assert!(
+        html.contains("<p>"),
+        "multiline HTML table <p> tags should be preserved, got: {html}"
+    );
+    assert!(
+        html.contains("\u{00fc}nicode"),
+        "unicode in HTML table cells should be preserved, got: {html}"
     );
 }

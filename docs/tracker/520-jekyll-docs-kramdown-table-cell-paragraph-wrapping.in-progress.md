@@ -124,3 +124,42 @@ None.
 - Build jekyll-docs site with rustkyll
 - Inspect generated HTML for docs/variables/index.html -- `<td>` elements must contain `<p>` wrapped content matching the Jekyll reference at `websites/jekyll-docs/docs/_site_jekyll_cached/docs/variables/index.html`
 - DTC site must build and produce 790/790 DOM match
+
+## Log
+
+### [SWE] 2026-03-30
+
+**Finding: Issue already resolved by issue 516.**
+
+Investigation revealed that the `<p>` wrapping described in this issue comes from
+the HTML include template `docs_variables_table.html` (which explicitly generates
+`<td><p>...</p></td>`), NOT from kramdown's markdown table parser. Kramdown does
+NOT wrap markdown table cells in `<p>` tags -- verified against Ruby kramdown directly.
+
+The `<p>` tags were being stripped by pulldown-cmark HTML corruption, which was fixed
+by issue 516 ("protect raw HTML tables from pulldown-cmark corruption", commit fa6d951).
+
+Fresh build verification:
+- docs/variables/index.html: all 108 `<td><p>` cells match Jekyll reference (0 diffs)
+- docs/configuration/options/index.html: matches Jekyll reference (0 diffs)
+- docs/structure/index.html: matches Jekyll reference (0 diffs)
+- Remaining diffs on other listed pages are unrelated (syntax highlighting, emoji plugin)
+- DTC DOM: 788/790 (matches baseline)
+- jekyll-docs: 48/125 pages match, remaining diffs are code highlighting
+
+Tests added:
+- Conformance test: `block/14_table/cell_paragraph_wrapping` (kramdown reference output)
+- Unit test: `test_issue520_markdown_table_no_p_wrapping` -- verifies no `<p>` wrapping
+- Unit test: `test_issue520_markdown_table_unicode_no_p_wrapping` -- unicode content
+- Unit test: `test_issue520_markdown_table_empty_cells_no_p` -- empty cells use nbsp
+- Unit test: `test_issue520_html_table_p_tags_preserved` -- HTML `<p>` in cells preserved
+- Unit test: `test_issue520_html_table_p_tags_preserved_multiline` -- multiline cells
+
+Build: 3416 lib tests pass, 0 fail (plus integration tests all pass)
+Clippy: clean (warnings only from external liquid-lib)
+Fmt: clean
+
+Files modified:
+- src/kramdown_parser/tests.rs (added 6 tests, updated test counts)
+- src/kramdown_parser/testcases/block/14_table/cell_paragraph_wrapping.text (new)
+- src/kramdown_parser/testcases/block/14_table/cell_paragraph_wrapping.html (new)
