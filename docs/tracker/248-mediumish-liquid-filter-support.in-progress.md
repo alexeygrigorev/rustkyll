@@ -49,3 +49,20 @@ Both filters are already implemented as passthrough filters in `src/template/fil
 ## Dependencies
 
 - Issue #239 (must be `.done.md` or `.in-progress.md`)
+
+## Log
+
+### [SWE] 2026-03-30
+- Verified existing passthrough filter implementations in `src/template/filters/url_escape.rs` and `src/template/filters/camelcase.rs`
+- Verified both filters are registered in `src/template/filters/mod.rs`
+- Existing unit tests: 3 for url_escape, 5 for camelcase, 2 engine-level camelcase tests -- all pass
+- Wrote 4 integration tests in `tests/test_issue_248_mediumish_filters.rs`:
+  - `test_mediumish_no_unknown_filter_warnings`: builds mediumish, checks stderr for url_escape/camelcase warnings
+  - `test_mediumish_category_sidebar_rendered`: verifies no raw Liquid markup in index.html
+  - `test_mediumish_category_sidebar_has_links`: verifies category anchor links exist in fortags section
+  - `test_mediumish_no_raw_liquid_in_any_page`: walks all HTML files checking for raw filter markup
+- All 4 integration tests PASS; build completes in ~0.5s
+- Existing unit tests (10 total for url_escape + camelcase): all PASS
+- Full suite: 3502 passed, 1 failed (pre-existing `test_link_tag_collection_unicode_with_trailing_slash` from other in-progress issues), 2 ignored
+- Clippy clean, fmt clean
+- Files created: `tests/test_issue_248_mediumish_filters.rs`
