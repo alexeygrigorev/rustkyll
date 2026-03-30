@@ -55,3 +55,30 @@ The Jasper2 permalink pattern `/:title` does not end with `.html`. Jekyll interp
 ## Dependencies
 
 - Issue #240 (must be `.done.md` or `.in-progress.md`)
+
+## Log
+
+### [SWE] 2026-03-30
+
+- **TDD Step 1: Wrote 6 failing tests** in `src/collection.rs`:
+  - `test_permalink_title_no_ext_produces_pretty_url`: `/:title` -> `/my-post/`
+  - `test_permalink_categories_title_no_ext_produces_pretty_url`: `/:categories/:title` -> `/tech/intro/`
+  - `test_permalink_title_html_no_trailing_slash`: `/:title.html` -> `/my-post.html` (no regression)
+  - `test_permalink_blog_title_html_no_trailing_slash`: `/blog/:title.html` -> `/blog/my-post.html` (DTC pattern)
+  - `test_permalink_pretty_named_style_trailing_slash`: `pretty` -> `/2024/01/15/my-post/`
+  - `test_permalink_year_month_title_no_ext_produces_pretty_url`: `/:year/:month/:title` -> `/2024/01/my-post/`
+- **Ran tests: 4 of 6 FAILED as expected** (the `.html` tests already passed since no change needed)
+  - `test_permalink_title_no_ext_produces_pretty_url`: got `/my-post`, expected `/my-post/`
+- **Implemented fix** in `src/collection.rs`:
+  - Added `url_has_extension()` function to detect file extensions in URL paths
+  - Modified `generate_url_with_context()` to append trailing `/` when URL has no file extension (pretty URL rule)
+  - Fixed `process_collection_file()` id computation to strip trailing `/` before computing dirname (matching Ruby's `File.dirname` behavior)
+- **Updated `resolve_link_post_url()`** in `src/template/engine.rs` to also apply the pretty URL rule for `{% link %}` tags pointing to posts
+- **Updated 4 existing tests** with correct expected values:
+  - `test_default_collection_permalink_no_html`: `/pages/banners` -> `/pages/banners/`
+  - `test_generate_url_collection_path_pattern`: `/notes/2018-06-04-aa` -> `/notes/2018-06-04-aa/`
+  - `test_generate_url_collection_path_unicode`: `/pages/uber-uns` -> `/pages/uber-uns/`
+  - `test_link_tag_posts_uses_permalink_pattern`: added trailing `/` to pretty URL assertions
+- **Ran all tests: 3503 lib tests pass, 0 fail; full suite all pass**
+- **Clippy clean, fmt clean**
+- Files modified: `src/collection.rs`, `src/template/engine.rs`

@@ -522,7 +522,33 @@ pub fn generate_url_with_context(pattern: &str, ctx: &PermalinkContext) -> Strin
         url = url.replace("//", "/");
     }
 
+    // Issue 347: Jekyll treats permalink patterns without a file extension as
+    // "pretty" URLs. If the resulting URL doesn't end with a recognized file
+    // extension (like .html, .xml, etc.) and doesn't already end with `/`,
+    // append `/` to produce a directory-based pretty URL.
+    // This ensures `permalink: /:title` produces `/my-post/` (not `/my-post`),
+    // which maps to output file `my-post/index.html`.
+    if !url.ends_with('/') && !url_has_extension(&url) {
+        url.push('/');
+    }
+
     url
+}
+
+/// Check if a URL path ends with a recognized file extension.
+///
+/// Used by `generate_url_with_context` to determine whether to append a
+/// trailing slash for pretty URL generation.
+pub fn url_has_extension(url: &str) -> bool {
+    // Get the last path segment
+    let last_segment = url.rsplit('/').next().unwrap_or(url);
+    if let Some(dot_pos) = last_segment.rfind('.') {
+        // There's a dot -- check if the extension part is non-empty
+        let ext = &last_segment[dot_pos..];
+        ext.len() > 1
+    } else {
+        false
+    }
 }
 
 /// Parse a date string (YYYY-MM-DD) into (year, month, day) components.
@@ -1146,12 +1172,14 @@ fn process_collection_file(
         let (_, raw_slug) = parse_post_filename(&filename);
         // Get the directory portion of the resolved URL, matching Jekyll's
         // File.dirname(url). For `/blog/my-post.html` -> `/blog`.
-        // For `/stories/my-post` -> `/stories`.
-        let url_dir = if let Some(pos) = url.rfind('/') {
+        // For `/stories/my-post/` -> `/stories` (strip trailing slash first).
+        // Ruby's File.dirname strips trailing slashes before computing dirname.
+        let url_for_dirname = url.trim_end_matches('/');
+        let url_dir = if let Some(pos) = url_for_dirname.rfind('/') {
             if pos == 0 {
                 "/".to_string()
             } else {
-                url[..pos].to_string()
+                url_for_dirname[..pos].to_string()
             }
         } else {
             "/".to_string()
@@ -1719,6 +1747,89 @@ mod tests {
             expand_permalink_style("/blog/:title.html"),
             "/blog/:title.html"
         );
+    }
+
+    // ========================================================================
+    // Issue 347: Pretty permalink URL generation (no .html extension)
+    // ========================================================================
+
+    #[test]
+    fn test_permalink_title_no_ext_produces_pretty_url() {
+        // permalink: /:title -> URL should be /my-post/ (trailing slash)
+        let ctx = PermalinkContext {
+            collection: "posts".to_string(),
+            title: "my-post".to_string(),
+            date: Some("2024-01-15".to_string()),
+            ..Default::default()
+        };
+        let url = generate_url_with_context("/:title", &ctx);
+        assert_eq!(url, "/my-post/");
+    }
+
+    #[test]
+    fn test_permalink_categories_title_no_ext_produces_pretty_url() {
+        // permalink: /:categories/:title -> URL should be /tech/intro/ (trailing slash)
+        let ctx = PermalinkContext {
+            collection: "posts".to_string(),
+            title: "intro".to_string(),
+            date: Some("2024-01-15".to_string()),
+            categories: vec!["tech".to_string()],
+            ..Default::default()
+        };
+        let url = generate_url_with_context("/:categories/:title", &ctx);
+        assert_eq!(url, "/tech/intro/");
+    }
+
+    #[test]
+    fn test_permalink_title_html_no_trailing_slash() {
+        // permalink: /:title.html -> URL should be /my-post.html (no trailing slash)
+        let ctx = PermalinkContext {
+            collection: "posts".to_string(),
+            title: "my-post".to_string(),
+            date: Some("2024-01-15".to_string()),
+            ..Default::default()
+        };
+        let url = generate_url_with_context("/:title.html", &ctx);
+        assert_eq!(url, "/my-post.html");
+    }
+
+    #[test]
+    fn test_permalink_blog_title_html_no_trailing_slash() {
+        // permalink: /blog/:title.html -> URL should be /blog/my-post.html (DTC pattern)
+        let ctx = PermalinkContext {
+            collection: "posts".to_string(),
+            title: "my-post".to_string(),
+            date: Some("2024-01-15".to_string()),
+            ..Default::default()
+        };
+        let url = generate_url_with_context("/blog/:title.html", &ctx);
+        assert_eq!(url, "/blog/my-post.html");
+    }
+
+    #[test]
+    fn test_permalink_pretty_named_style_trailing_slash() {
+        // permalink: pretty -> URL should end with /
+        let ctx = PermalinkContext {
+            collection: "posts".to_string(),
+            title: "my-post".to_string(),
+            date: Some("2024-01-15".to_string()),
+            ..Default::default()
+        };
+        let url = generate_url_with_context("pretty", &ctx);
+        assert_eq!(url, "/2024/01/15/my-post/");
+    }
+
+    #[test]
+    fn test_permalink_year_month_title_no_ext_produces_pretty_url() {
+        // permalink: /:year/:month/:title -> URL should be /2024/01/my-post/
+        let ctx = PermalinkContext {
+            collection: "posts".to_string(),
+            title: "my-post".to_string(),
+            date: Some("2024-01-15".to_string()),
+            ..Default::default()
+        };
+        let url = generate_url_with_context("/:year/:month/:title", &ctx);
+        assert_eq!(url, "/2024/01/my-post/");
     }
 
     // ========================================================================
@@ -3494,8 +3605,8 @@ mod tests {
         let config = SiteConfig::from_file(&site.join("_config.yml")).unwrap();
         let (items, _) = load_collection("pages", site, &config).unwrap();
         assert_eq!(items.len(), 1);
-        // Should be /pages/banners (no .html), matching Jekyll's /:collection/:path default
-        assert_eq!(items[0].url, "/pages/banners");
+        // Should be /pages/banners/ (pretty URL), matching Jekyll's /:collection/:path default
+        assert_eq!(items[0].url, "/pages/banners/");
     }
 
     #[test]
@@ -3525,9 +3636,9 @@ mod tests {
 
     #[test]
     fn test_generate_url_collection_path_pattern() {
-        // The /:collection/:path pattern should produce URLs without .html
+        // The /:collection/:path pattern produces pretty URLs (trailing slash)
         let url = generate_url("/:collection/:path", "notes", "2018-06-04-aa");
-        assert_eq!(url, "/notes/2018-06-04-aa");
+        assert_eq!(url, "/notes/2018-06-04-aa/");
     }
 
     #[test]
@@ -3540,7 +3651,7 @@ mod tests {
             ..Default::default()
         };
         let url = generate_url_with_context("/:collection/:path", &ctx);
-        assert_eq!(url, "/pages/über-uns");
+        assert_eq!(url, "/pages/über-uns/");
     }
 
     // ========================================================================
