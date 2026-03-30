@@ -5431,51 +5431,78 @@ fn wrap_fenced_code_blocks(html: &str) -> String {
     let mut remaining = html;
 
     while !remaining.is_empty() {
-        // Look for <pre><code (either bare or with class)
-        if let Some(pre_pos) = remaining.find("<pre><code") {
-            // Copy everything before this match
+        // Look for <pre followed by optional attributes and ><code
+        // This handles both bare <pre><code> and IAL-annotated <pre data-title="..."><code>
+        if let Some(pre_pos) = remaining.find("<pre") {
+            let after_pre_tag = &remaining[pre_pos + 4..];
+
+            let (pre_attrs, after_pre_open) = if let Some(rest) = after_pre_tag.strip_prefix('>') {
+                // Bare <pre> — no attributes
+                ("", rest)
+            } else if after_pre_tag.starts_with(' ') {
+                // <pre with attributes — find the closing >
+                if let Some(gt_pos) = after_pre_tag.find('>') {
+                    let attrs = after_pre_tag[1..gt_pos].trim();
+                    (attrs, &after_pre_tag[gt_pos + 1..])
+                } else {
+                    // Unclosed <pre, skip
+                    result.push_str(&remaining[..pre_pos + 4]);
+                    remaining = after_pre_tag;
+                    continue;
+                }
+            } else {
+                // <pre followed by something unexpected (e.g. <preview), skip
+                result.push_str(&remaining[..pre_pos + 4]);
+                remaining = after_pre_tag;
+                continue;
+            };
+
+            // Now check if the content starts with <code
+            if !after_pre_open.starts_with("<code") {
+                // Not a code block, copy the <pre> tag and continue
+                if pre_attrs.is_empty() {
+                    result.push_str("<pre>");
+                } else {
+                    result.push_str(&format!("<pre {}>", pre_attrs));
+                }
+                remaining = after_pre_open;
+                continue;
+            }
+
+            // Copy everything before this <pre>
             result.push_str(&remaining[..pre_pos]);
 
-            let after_pre = &remaining[pre_pos + 10..]; // skip "<pre><code"
+            let after_code = &after_pre_open[5..]; // skip "<code"
 
-            // Determine if this is bare <code> or <code class="language-xxx">
-            let (lang, after_open_tag) = if let Some(rest) = after_pre.strip_prefix('>') {
-                // Bare <pre><code>
+            let (lang, after_open_tag) = if let Some(rest) = after_code.strip_prefix('>') {
                 ("plaintext".to_string(), rest)
-            } else if let Some(rest) = after_pre.strip_prefix(" class=\"language-") {
-                // <pre><code class="language-xxx">
+            } else if let Some(rest) = after_code.strip_prefix(" class=\"language-") {
                 if let Some(quote_end) = rest.find('"') {
                     let lang = rest[..quote_end].to_string();
                     let after_quote = &rest[quote_end + 1..];
                     if let Some(inner) = after_quote.strip_prefix('>') {
                         (lang, inner)
                     } else {
-                        // Unexpected format, copy as-is
                         result.push_str("<pre><code");
-                        remaining = after_pre;
+                        remaining = after_code;
                         continue;
                     }
                 } else {
                     result.push_str("<pre><code");
-                    remaining = after_pre;
+                    remaining = after_code;
                     continue;
                 }
             } else {
-                // Some other attribute, copy as-is
                 result.push_str("<pre><code");
-                remaining = after_pre;
+                remaining = after_code;
                 continue;
             };
 
-            // Find the closing </code></pre>
             if let Some(close_pos) = after_open_tag.find("</code></pre>") {
                 let code_content = &after_open_tag[..close_pos];
-                // Try syntax highlighting for non-plaintext languages
                 let raw_code = html_unescape(code_content);
                 let highlighted = if lang != "plaintext" {
                     crate::syntax::highlight_code(&lang, &raw_code).or_else(|| {
-                        // Fallback: Docker/Dockerfile highlighting (Rouge recognizes
-                        // these but syntect has no grammar for them)
                         if lang == "docker" || lang == "dockerfile" {
                             crate::docker_highlight::highlight_docker(&raw_code)
                         } else {
@@ -5490,16 +5517,26 @@ fn wrap_fenced_code_blocks(html: &str) -> String {
                     || highlighted.is_some()
                     || is_rouge_recognized_language(&lang)
                 {
-                    // Write the kramdown wrapper div structure
-                    // Issue 329: Fix class order for plaintext to match Jekyll
                     if lang == "plaintext" {
-                        result.push_str(
-                            "<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>",
-                        );
-                    } else {
+                        if pre_attrs.is_empty() {
+                            result.push_str(
+                                "<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>",
+                            );
+                        } else {
+                            result.push_str(&format!(
+                                "<div {} class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>",
+                                pre_attrs
+                            ));
+                        }
+                    } else if pre_attrs.is_empty() {
                         result.push_str(&format!(
                             "<div class=\"language-{} highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>",
                             lang
+                        ));
+                    } else {
+                        result.push_str(&format!(
+                            "<div {} class=\"language-{} highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>",
+                            pre_attrs, lang
                         ));
                     }
                     if let Some(ref hl) = highlighted {
@@ -5508,21 +5545,24 @@ fn wrap_fenced_code_blocks(html: &str) -> String {
                         result.push_str(code_content);
                     }
                     result.push_str("</code></pre></div></div>");
-                } else {
-                    // Issue 329: Unrecognized language -- Jekyll/kramdown falls back
-                    // to bare <pre><code class="language-..."> without the wrapper div.
+                } else if pre_attrs.is_empty() {
                     result.push_str(&format!("<pre><code class=\"language-{}\">", lang));
                     result.push_str(code_content);
                     result.push_str("</code></pre>");
+                } else {
+                    result.push_str(&format!(
+                        "<div {}><pre><code class=\"language-{}\">",
+                        pre_attrs, lang
+                    ));
+                    result.push_str(code_content);
+                    result.push_str("</code></pre></div>");
                 }
-                remaining = &after_open_tag[close_pos + 13..]; // skip "</code></pre>"
+                remaining = &after_open_tag[close_pos + 13..];
             } else {
-                // No closing tag found, copy as-is
                 result.push_str("<pre><code>");
                 remaining = after_open_tag;
             }
         } else {
-            // No more <pre><code blocks
             result.push_str(remaining);
             break;
         }
@@ -8934,6 +8974,82 @@ mod tests {
         assert_eq!(
             wrapper_count, 1,
             "Only one block should be wrapped. Got: {}",
+            result
+        );
+    }
+
+    // ======================================================================
+    // Issue 443: IAL attributes on <pre> should be moved to wrapper div
+    // ======================================================================
+
+    #[test]
+    fn test_fenced_code_wrapping_with_ial_data_title() {
+        let html = "<pre data-title=\"Gemfile\"><code class=\"language-ruby\">gem \"hello\"\n</code></pre>\n";
+        let result = postprocess(html);
+        assert!(
+            result
+                .contains("<div data-title=\"Gemfile\" class=\"language-ruby highlighter-rouge\">"),
+            "IAL data-title should move from <pre> to outer wrapper <div>. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<pre class=\"highlight\"><code>"),
+            "Inner <pre> should get class=\"highlight\" without IAL attrs. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_fenced_code_wrapping_with_multiple_ial_attrs() {
+        let html = "<pre data-title=\"Config\" data-lang=\"yaml\" id=\"config-block\"><code class=\"language-yaml\">key: val\n</code></pre>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("data-title=\"Config\""),
+            "data-title should be on wrapper div. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("data-lang=\"yaml\""),
+            "data-lang should be on wrapper div. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("id=\"config-block\""),
+            "id should be on wrapper div. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("class=\"language-yaml highlighter-rouge\""),
+            "Language class should be present on wrapper div. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_fenced_code_wrapping_ial_no_language() {
+        let html = "<pre data-info=\"example\"><code>plain code\n</code></pre>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("<div data-info=\"example\" class=\"highlighter-rouge\">"),
+            "IAL attrs on bare code block should move to wrapper div. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_fenced_code_wrapping_ial_preserves_unicode() {
+        let html = "<pre data-title=\"Konfigürasyon\"><code class=\"language-yaml\">ayar: değer\n</code></pre>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("data-title=\"Konfigürasyon\""),
+            "Unicode IAL attribute should be preserved on wrapper div. Got: {}",
+            result
+        );
+        assert!(
+            result.contains(
+                "<div data-title=\"Konfigürasyon\" class=\"language-yaml highlighter-rouge\">"
+            ),
+            "Full wrapper div should have both IAL attrs and language class. Got: {}",
             result
         );
     }

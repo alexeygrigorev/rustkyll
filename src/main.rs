@@ -1065,6 +1065,25 @@ fn build_site(
         }
     }
 
+    // 10e. Generate plugin-driven author/tag pages (Jasper2-style generators)
+    {
+        let detected = rustkyll::plugin_generators::detect_generators(source);
+        if detected.author_generator || detected.tag_generator {
+            if let Some(posts) = collections.get("posts") {
+                let count = rustkyll::plugin_generators::generate_plugin_pages(
+                    &detected,
+                    posts,
+                    &data_tree,
+                    &layout_engine,
+                    &cached_site,
+                    &config,
+                    destination,
+                )?;
+                summary.standalone_pages += count;
+            }
+        }
+    }
+
     render_progress.finish();
     summary.timing.generation = phase_start.elapsed();
 

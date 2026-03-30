@@ -1085,17 +1085,19 @@ fn load_layouts_recursive(
             None => continue,
         };
 
-        if !filename.ends_with(".html") && !filename.ends_with(".liquid") {
+        if !filename.ends_with(".html")
+            && !filename.ends_with(".liquid")
+            && !filename.ends_with(".xml")
+        {
             continue;
         }
 
-        // Compute the layout name as the relative path from the base _layouts/ dir,
-        // without the .html/.liquid extension. E.g., _layouts/vendor/compress.html -> "vendor/compress"
         let relative = path.strip_prefix(base_dir).unwrap_or(&path);
         let rel_str = relative.to_string_lossy().replace('\\', "/");
         let name = rel_str
             .strip_suffix(".html")
             .or_else(|| rel_str.strip_suffix(".liquid"))
+            .or_else(|| rel_str.strip_suffix(".xml"))
             .unwrap_or(&rel_str)
             .to_string();
 
@@ -1107,7 +1109,11 @@ fn load_layouts_recursive(
         // Pre-normalize void elements and boolean attributes in layout sources.
         // This way, the rendered output doesn't contain `/>` or `=""` from the
         // layout HTML, and the final normalize_html_output() can exit early.
-        let clean_source = crate::kramdown::normalize_html_output_owned(clean_source);
+        let clean_source = if filename.ends_with(".xml") {
+            clean_source
+        } else {
+            crate::kramdown::normalize_html_output_owned(clean_source)
+        };
 
         layouts.insert(
             name,

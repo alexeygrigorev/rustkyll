@@ -13,6 +13,7 @@ pub mod kramdown_parser;
 pub mod livereload;
 pub mod mentions;
 pub mod pagination;
+pub mod plugin_generators;
 pub mod progress;
 pub mod server;
 pub mod sitemap;
