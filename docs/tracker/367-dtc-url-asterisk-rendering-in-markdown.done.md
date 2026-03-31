@@ -190,3 +190,15 @@ Code is clean: `suppress_url_emphasis` flag in span_parser.rs is surgical, `prot
 No descoped items. No follow-up issues needed.
 
 **VERDICT: ACCEPT**
+
+### [SWE] 2026-03-31 Re-verification
+
+Issue was already implemented, tested, and committed in `b184d05`. Stale `.groomed.md` and `.in-progress.md` copies were cleaned up (`git rm`).
+
+**Current state:**
+- All 8 issue-367 tests PASS
+- Full test suite: 3839 passed, 0 failed, 2 ignored
+- Clippy: clean (only upstream dependency warnings)
+- Fmt: clean
+- DTC DOM: 790/790, 0 total diffs
+- Build time: 0.34s (under 1.0s limit)
