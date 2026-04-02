@@ -581,16 +581,18 @@ pub fn extract_categories(front_matter: &FrontMatter) -> Vec<String> {
                     .collect();
             }
             serde_yaml::Value::String(s) => {
-                // Single string treated as one category
+                // Jekyll splits space-separated strings into multiple categories.
+                // e.g. "classics crime mystery" -> ["classics", "crime", "mystery"]
                 if !s.is_empty() {
-                    return vec![s.clone()];
+                    let parts: Vec<String> = s.split_whitespace().map(|p| p.to_string()).collect();
+                    return parts;
                 }
             }
             _ => {}
         }
     }
 
-    // Fall back to `category` (single string)
+    // Fall back to `category` (single string -- never split)
     if let Some(val) = front_matter.get("category") {
         if let Some(s) = val.as_str() {
             if !s.is_empty() {
@@ -617,16 +619,18 @@ pub fn extract_tags(front_matter: &FrontMatter) -> Vec<String> {
                     .collect();
             }
             serde_yaml::Value::String(s) => {
-                // Single string treated as one tag
+                // Jekyll splits space-separated strings into multiple tags.
+                // e.g. "formatting audios" -> ["formatting", "audios"]
                 if !s.is_empty() {
-                    return vec![s.clone()];
+                    let parts: Vec<String> = s.split_whitespace().map(|p| p.to_string()).collect();
+                    return parts;
                 }
             }
             _ => {}
         }
     }
 
-    // Fall back to `tag` (single string)
+    // Fall back to `tag` (single string -- never split)
     if let Some(val) = front_matter.get("tag") {
         if let Some(s) = val.as_str() {
             if !s.is_empty() {
@@ -4913,5 +4917,49 @@ mod tests {
             normalized_unicode.starts_with(scope_path_unicode),
             "Unicode backslash path should match after normalization"
         );
+    }
+
+    #[test]
+    fn test_extract_tags_space_separated_string() {
+        let mut fm = FrontMatter::new();
+        fm.insert(
+            "tags".to_string(),
+            serde_yaml::Value::String("formatting audios".to_string()),
+        );
+        let tags = extract_tags(&fm);
+        assert_eq!(tags, vec!["formatting", "audios"]);
+    }
+
+    #[test]
+    fn test_extract_categories_space_separated_string() {
+        let mut fm = FrontMatter::new();
+        fm.insert(
+            "categories".to_string(),
+            serde_yaml::Value::String("classics crime mystery".to_string()),
+        );
+        let cats = extract_categories(&fm);
+        assert_eq!(cats, vec!["classics", "crime", "mystery"]);
+    }
+
+    #[test]
+    fn test_extract_categories_single_string_no_spaces() {
+        let mut fm = FrontMatter::new();
+        fm.insert(
+            "categories".to_string(),
+            serde_yaml::Value::String("sample-posts".to_string()),
+        );
+        let cats = extract_categories(&fm);
+        assert_eq!(cats, vec!["sample-posts"]);
+    }
+
+    #[test]
+    fn test_extract_tags_unicode_space_separated() {
+        let mut fm = FrontMatter::new();
+        fm.insert(
+            "tags".to_string(),
+            serde_yaml::Value::String("programacao dados".to_string()),
+        );
+        let tags = extract_tags(&fm);
+        assert_eq!(tags, vec!["programacao", "dados"]);
     }
 }

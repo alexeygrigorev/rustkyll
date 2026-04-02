@@ -241,6 +241,197 @@ fn parse_enabled(value: &serde_yaml::Value) -> Vec<ArchiveType> {
     result
 }
 
+/// Parsed configuration for the jekyll-archives-v2 plugin (per-collection format).
+///
+/// V2 format nests archive config under collection names:
+/// ```yaml
+/// jekyll-archives:
+///   posts:
+///     enabled: [year, tags, categories]
+///     permalinks:
+///       year: "/blog/:year/"
+///       tags: "/blog/:type/:name/"
+///   books:
+///     enabled: [year, tags, categories]
+/// ```
+#[derive(Debug, Clone)]
+pub struct ArchivesV2Config {
+    /// Per-collection archive configurations. Key is the collection name.
+    pub collections: HashMap<String, ArchivesConfig>,
+}
+
+/// Known v1 top-level keys that should NOT be treated as collection names.
+const V1_KEYS: &[&str] = &["enabled", "layouts", "layout", "permalinks"];
+
+impl ArchivesV2Config {
+    /// Detect and parse a v2-format jekyll-archives config.
+    ///
+    /// Returns `None` if the config is not in v2 format (i.e., it uses v1 format
+    /// with a top-level `enabled` key, or `jekyll-archives` is not present).
+    pub fn from_config(config: &SiteConfig) -> Option<Self> {
+        let archives_val = config.extras.get("jekyll-archives")?;
+        let mapping = archives_val.as_mapping()?;
+
+        // If there's a top-level `enabled` key, this is v1 format
+        if mapping.contains_key(serde_yaml::Value::String("enabled".to_string())) {
+            return None;
+        }
+
+        // Look for collection keys (keys that are NOT standard v1 keys)
+        let mut collections = HashMap::new();
+        for (key, value) in mapping {
+            let key_str = key.as_str()?;
+            if V1_KEYS.contains(&key_str) {
+                continue;
+            }
+            // This should be a collection config
+            let coll_mapping = value.as_mapping();
+            if coll_mapping.is_none() {
+                continue;
+            }
+            let coll_mapping = coll_mapping.unwrap();
+
+            // Parse enabled types
+            let enabled = if let Some(enabled_val) =
+                coll_mapping.get(serde_yaml::Value::String("enabled".to_string()))
+            {
+                parse_enabled(enabled_val)
+            } else {
+                Vec::new()
+            };
+
+            if enabled.is_empty() {
+                continue;
+            }
+
+            // Parse permalinks (v2 uses plural keys: "tags", "categories")
+            let permalinks = coll_mapping
+                .get(serde_yaml::Value::String("permalinks".to_string()))
+                .and_then(|v| v.as_mapping());
+
+            // Default permalinks for v2 use the collection name as prefix
+            let default_year = format!("/{}/:year/", key_str);
+            let default_tag = format!("/{}/tag/:name/", key_str);
+            let default_category = format!("/{}/category/:name/", key_str);
+
+            let category_permalink = permalinks
+                .and_then(|m| {
+                    m.get(serde_yaml::Value::String("categories".to_string()))
+                        .and_then(|v| v.as_str())
+                })
+                .unwrap_or(&default_category)
+                .to_string();
+
+            let tag_permalink = permalinks
+                .and_then(|m| {
+                    m.get(serde_yaml::Value::String("tags".to_string()))
+                        .and_then(|v| v.as_str())
+                })
+                .unwrap_or(&default_tag)
+                .to_string();
+
+            let year_permalink = permalinks
+                .and_then(|m| {
+                    m.get(serde_yaml::Value::String("year".to_string()))
+                        .and_then(|v| v.as_str())
+                })
+                .unwrap_or(&default_year)
+                .to_string();
+
+            let month_permalink = permalinks
+                .and_then(|m| {
+                    m.get(serde_yaml::Value::String("month".to_string()))
+                        .and_then(|v| v.as_str())
+                })
+                .unwrap_or(&format!("/{}/:year/:month/", key_str))
+                .to_string();
+
+            let day_permalink = permalinks
+                .and_then(|m| {
+                    m.get(serde_yaml::Value::String("day".to_string()))
+                        .and_then(|v| v.as_str())
+                })
+                .unwrap_or(&format!("/{}/:year/:month/:day/", key_str))
+                .to_string();
+
+            // Parse layouts (v2 can have per-collection layouts)
+            let layouts = coll_mapping
+                .get(serde_yaml::Value::String("layouts".to_string()))
+                .and_then(|v| v.as_mapping());
+
+            let single_layout = coll_mapping
+                .get(serde_yaml::Value::String("layout".to_string()))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+
+            let category_layout = layouts
+                .and_then(|m| {
+                    m.get(serde_yaml::Value::String("category".to_string()))
+                        .or_else(|| m.get(serde_yaml::Value::String("categories".to_string())))
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string())
+                })
+                .or_else(|| single_layout.clone());
+
+            let tag_layout = layouts
+                .and_then(|m| {
+                    m.get(serde_yaml::Value::String("tag".to_string()))
+                        .or_else(|| m.get(serde_yaml::Value::String("tags".to_string())))
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string())
+                })
+                .or_else(|| single_layout.clone());
+
+            let year_layout = layouts
+                .and_then(|m| {
+                    m.get(serde_yaml::Value::String("year".to_string()))
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string())
+                })
+                .or_else(|| single_layout.clone());
+
+            let month_layout = layouts
+                .and_then(|m| {
+                    m.get(serde_yaml::Value::String("month".to_string()))
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string())
+                })
+                .or_else(|| single_layout.clone());
+
+            let day_layout = layouts
+                .and_then(|m| {
+                    m.get(serde_yaml::Value::String("day".to_string()))
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string())
+                })
+                .or_else(|| single_layout.clone());
+
+            collections.insert(
+                key_str.to_string(),
+                ArchivesConfig {
+                    enabled,
+                    category_layout,
+                    tag_layout,
+                    year_layout,
+                    month_layout,
+                    day_layout,
+                    category_permalink,
+                    tag_permalink,
+                    year_permalink,
+                    month_permalink,
+                    day_permalink,
+                },
+            );
+        }
+
+        if collections.is_empty() {
+            return None;
+        }
+
+        Some(ArchivesV2Config { collections })
+    }
+}
+
 /// Slugify a name for use in archive URLs.
 ///
 /// Jekyll's archive slug behavior:
@@ -254,6 +445,16 @@ pub fn slugify(name: &str) -> String {
 /// Resolve a permalink pattern by replacing `:name` with the slugified name.
 pub fn resolve_permalink(pattern: &str, name: &str) -> String {
     pattern.replace(":name", &slugify(name))
+}
+
+/// Resolve a permalink pattern by replacing `:name` and `:type` placeholders.
+///
+/// Used by jekyll-archives-v2 which supports `/blog/:type/:name/` patterns
+/// where `:type` is the archive type name (e.g., "tag", "category").
+pub fn resolve_permalink_with_type(pattern: &str, name: &str, archive_type: &str) -> String {
+    pattern
+        .replace(":type", archive_type)
+        .replace(":name", &slugify(name))
 }
 
 /// Resolve a date-based permalink pattern by replacing `:year`, `:month`, `:day`.
@@ -497,6 +698,431 @@ pub fn generate_archive_pages(
     }
 
     Ok(generated)
+}
+
+/// Generate all archive pages for a site using V2 per-collection config.
+///
+/// Iterates over each collection in the V2 config and generates archive pages
+/// for each, using the collection-specific config (enabled types, permalinks, layouts).
+///
+/// Returns the total number of archive pages generated.
+pub fn generate_v2_archive_pages(
+    all_collections: &HashMap<String, Vec<CollectionItem>>,
+    v2_config: &ArchivesV2Config,
+    layout_engine: &LayoutEngine,
+    cached_site: &CachedSiteContext,
+    config: &SiteConfig,
+    output_dir: &Path,
+) -> Result<usize, GeneratorError> {
+    let mut total = 0;
+
+    for (collection_name, archives_config) in &v2_config.collections {
+        let empty = Vec::new();
+        let items = all_collections.get(collection_name).unwrap_or(&empty);
+
+        let count = generate_v2_collection_archive_pages(
+            items,
+            collection_name,
+            archives_config,
+            layout_engine,
+            cached_site,
+            config,
+            output_dir,
+        )?;
+        total += count;
+    }
+
+    Ok(total)
+}
+
+/// Generate archive pages for a single collection in V2 format.
+///
+/// Like `generate_archive_pages` but with V2-specific behavior:
+/// - Uses `:type` placeholder resolution in permalinks
+/// - Sets `page.documents` (alias for `page.posts`)
+/// - Sets `page.collection_name`
+/// - Uses plural `page.type` values (tags, categories) instead of singular
+/// - Sets `page.date` on year archive pages
+#[allow(clippy::too_many_arguments)]
+fn generate_v2_collection_archive_pages(
+    items: &[CollectionItem],
+    collection_name: &str,
+    archives_config: &ArchivesConfig,
+    layout_engine: &LayoutEngine,
+    cached_site: &CachedSiteContext,
+    config: &SiteConfig,
+    output_dir: &Path,
+) -> Result<usize, GeneratorError> {
+    let mut generated = 0;
+
+    let mut categories: HashMap<String, Vec<&CollectionItem>> = HashMap::new();
+    let mut tags: HashMap<String, Vec<&CollectionItem>> = HashMap::new();
+    let mut years: HashMap<String, Vec<&CollectionItem>> = HashMap::new();
+    let mut months: HashMap<String, Vec<&CollectionItem>> = HashMap::new();
+    let mut days: HashMap<String, Vec<&CollectionItem>> = HashMap::new();
+
+    let need_year = archives_config.year_enabled();
+    let need_month = archives_config.month_enabled();
+    let need_day = archives_config.day_enabled();
+
+    for item in items {
+        if archives_config.categories_enabled() {
+            let post_categories = crate::collection::extract_categories(&item.front_matter);
+            for cat in post_categories {
+                categories.entry(cat).or_default().push(item);
+            }
+        }
+
+        if archives_config.tags_enabled() {
+            let post_tags = crate::collection::extract_tags(&item.front_matter);
+            for tag in post_tags {
+                tags.entry(tag).or_default().push(item);
+            }
+        }
+
+        if need_year || need_month || need_day {
+            if let Some(ref date_str) = item.date {
+                if let Some((year, month, day)) = parse_date_components(date_str) {
+                    if need_year {
+                        years.entry(year.clone()).or_default().push(item);
+                    }
+                    if need_month {
+                        let key = format!("{}-{}", year, month);
+                        months.entry(key).or_default().push(item);
+                    }
+                    if need_day {
+                        let key = format!("{}-{}-{}", year, month, day);
+                        days.entry(key).or_default().push(item);
+                    }
+                }
+            }
+        }
+    }
+
+    // Generate category archive pages (v2: plural type "categories")
+    if archives_config.categories_enabled() {
+        for (cat_name, cat_posts) in &categories {
+            let count = generate_single_v2_archive_page(
+                cat_name,
+                "categories",
+                "category",
+                collection_name,
+                cat_posts,
+                archives_config.category_layout.as_deref(),
+                &archives_config.category_permalink,
+                layout_engine,
+                cached_site,
+                config,
+                output_dir,
+            )?;
+            generated += count;
+        }
+    }
+
+    // Generate tag archive pages (v2: plural type "tags")
+    if archives_config.tags_enabled() {
+        for (tag_name, tag_posts) in &tags {
+            let count = generate_single_v2_archive_page(
+                tag_name,
+                "tags",
+                "tag",
+                collection_name,
+                tag_posts,
+                archives_config.tag_layout.as_deref(),
+                &archives_config.tag_permalink,
+                layout_engine,
+                cached_site,
+                config,
+                output_dir,
+            )?;
+            generated += count;
+        }
+    }
+
+    // Generate year archive pages
+    if need_year {
+        for (year_key, year_posts) in &years {
+            let url = resolve_date_permalink(&archives_config.year_permalink, year_key, "01", "01");
+            let count = generate_single_v2_date_archive_page(
+                year_key,
+                "year",
+                collection_name,
+                &url,
+                year_posts,
+                archives_config.year_layout.as_deref(),
+                layout_engine,
+                cached_site,
+                config,
+                output_dir,
+            )?;
+            generated += count;
+        }
+    }
+
+    // Generate month archive pages
+    if need_month {
+        for (month_key, month_posts) in &months {
+            let parts: Vec<&str> = month_key.split('-').collect();
+            let (year, month) = (parts[0], parts[1]);
+            let url = resolve_date_permalink(&archives_config.month_permalink, year, month, "01");
+            let count = generate_single_v2_date_archive_page(
+                month_key,
+                "month",
+                collection_name,
+                &url,
+                month_posts,
+                archives_config.month_layout.as_deref(),
+                layout_engine,
+                cached_site,
+                config,
+                output_dir,
+            )?;
+            generated += count;
+        }
+    }
+
+    // Generate day archive pages
+    if need_day {
+        for (day_key, day_posts) in &days {
+            let parts: Vec<&str> = day_key.split('-').collect();
+            let (year, month, day) = (parts[0], parts[1], parts[2]);
+            let url = resolve_date_permalink(&archives_config.day_permalink, year, month, day);
+            let count = generate_single_v2_date_archive_page(
+                day_key,
+                "day",
+                collection_name,
+                &url,
+                day_posts,
+                archives_config.day_layout.as_deref(),
+                layout_engine,
+                cached_site,
+                config,
+                output_dir,
+            )?;
+            generated += count;
+        }
+    }
+
+    Ok(generated)
+}
+
+/// Generate a single V2 archive page for one category or tag.
+///
+/// V2-specific: uses `:type` placeholder, sets `page.documents`, `page.collection_name`,
+/// and uses plural `page.type`.
+#[allow(clippy::too_many_arguments)]
+fn generate_single_v2_archive_page(
+    name: &str,
+    archive_type_plural: &str,
+    archive_type_singular: &str,
+    collection_name: &str,
+    posts: &[&CollectionItem],
+    layout_name: Option<&str>,
+    permalink_pattern: &str,
+    layout_engine: &LayoutEngine,
+    cached_site: &CachedSiteContext,
+    _config: &SiteConfig,
+    output_dir: &Path,
+) -> Result<usize, GeneratorError> {
+    let url = resolve_permalink_with_type(permalink_pattern, name, archive_type_singular);
+
+    let mut sorted_posts: Vec<&CollectionItem> = posts.to_vec();
+    sorted_posts.sort_by(|a, b| {
+        let date_a = a.date.as_deref().unwrap_or("");
+        let date_b = b.date.as_deref().unwrap_or("");
+        date_b.cmp(date_a).then_with(|| b.slug.cmp(&a.slug))
+    });
+
+    let posts_arr: Vec<LiquidValue> = sorted_posts
+        .iter()
+        .map(|item| collection_item_to_liquid_full(item))
+        .collect();
+
+    let mut page_fm = crate::frontmatter::FrontMatter::new();
+    page_fm.insert(
+        "title".to_string(),
+        serde_yaml::Value::String(name.to_string()),
+    );
+    page_fm.insert(
+        "type".to_string(),
+        serde_yaml::Value::String(archive_type_plural.to_string()),
+    );
+    page_fm.insert("url".to_string(), serde_yaml::Value::String(url.clone()));
+    page_fm.insert(
+        "collection_name".to_string(),
+        serde_yaml::Value::String(collection_name.to_string()),
+    );
+    if let Some(layout) = layout_name {
+        page_fm.insert(
+            "layout".to_string(),
+            serde_yaml::Value::String(layout.to_string()),
+        );
+    }
+
+    let posts_liquid = normalize_arrays(LiquidValue::Array(posts_arr));
+    let extra_page_fields = vec![
+        ("posts".to_string(), posts_liquid.clone()),
+        ("documents".to_string(), posts_liquid),
+    ];
+
+    let html = if let Some(layout) = layout_name {
+        match layout_engine.render_with_extra_page_fields(
+            layout,
+            "",
+            &page_fm,
+            &extra_page_fields,
+            cached_site,
+        ) {
+            Ok(rendered) => rendered,
+            Err(e) => {
+                eprintln!(
+                    "Warning: failed to render v2 archive page for {} '{}': {}",
+                    archive_type_plural, name, e
+                );
+                String::new()
+            }
+        }
+    } else {
+        format!(
+            "<h1>{}</h1>\n<ul>\n{}</ul>\n",
+            name,
+            sorted_posts
+                .iter()
+                .map(|p| format!(
+                    "  <li><a href=\"{}\">{}</a></li>\n",
+                    p.url,
+                    p.front_matter
+                        .get("title")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or(&p.slug)
+                ))
+                .collect::<String>()
+        )
+    };
+
+    let out_path = url_to_output_path(output_dir, &url);
+    if let Some(parent) = out_path.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    if fs::write(&out_path, &html).is_ok() {
+        Ok(1)
+    } else {
+        Ok(0)
+    }
+}
+
+/// Generate a single V2 date-based archive page (year, month, or day).
+///
+/// V2-specific: sets `page.documents`, `page.collection_name`, and `page.date`
+/// for year archives.
+#[allow(clippy::too_many_arguments)]
+fn generate_single_v2_date_archive_page(
+    title: &str,
+    archive_type: &str,
+    collection_name: &str,
+    url: &str,
+    posts: &[&CollectionItem],
+    layout_name: Option<&str>,
+    layout_engine: &LayoutEngine,
+    cached_site: &CachedSiteContext,
+    _config: &SiteConfig,
+    output_dir: &Path,
+) -> Result<usize, GeneratorError> {
+    let mut sorted_posts: Vec<&CollectionItem> = posts.to_vec();
+    sorted_posts.sort_by(|a, b| {
+        let date_a = a.date.as_deref().unwrap_or("");
+        let date_b = b.date.as_deref().unwrap_or("");
+        date_b.cmp(date_a).then_with(|| b.slug.cmp(&a.slug))
+    });
+
+    let posts_arr: Vec<LiquidValue> = sorted_posts
+        .iter()
+        .map(|item| collection_item_to_liquid_full(item))
+        .collect();
+
+    let mut page_fm = crate::frontmatter::FrontMatter::new();
+    page_fm.insert(
+        "title".to_string(),
+        serde_yaml::Value::String(title.to_string()),
+    );
+    page_fm.insert(
+        "type".to_string(),
+        serde_yaml::Value::String(archive_type.to_string()),
+    );
+    page_fm.insert(
+        "url".to_string(),
+        serde_yaml::Value::String(url.to_string()),
+    );
+    page_fm.insert(
+        "collection_name".to_string(),
+        serde_yaml::Value::String(collection_name.to_string()),
+    );
+
+    // Set page.date for year archives (synthetic date: YYYY-01-01 00:00:00 +0000)
+    if archive_type == "year" && title.len() == 4 {
+        page_fm.insert(
+            "date".to_string(),
+            serde_yaml::Value::String(format!("{}-01-01 00:00:00 +0000", title)),
+        );
+    }
+
+    if let Some(layout) = layout_name {
+        page_fm.insert(
+            "layout".to_string(),
+            serde_yaml::Value::String(layout.to_string()),
+        );
+    }
+
+    let posts_liquid = normalize_arrays(LiquidValue::Array(posts_arr));
+    let extra_page_fields = vec![
+        ("posts".to_string(), posts_liquid.clone()),
+        ("documents".to_string(), posts_liquid),
+    ];
+
+    let html = if let Some(layout) = layout_name {
+        match layout_engine.render_with_extra_page_fields(
+            layout,
+            "",
+            &page_fm,
+            &extra_page_fields,
+            cached_site,
+        ) {
+            Ok(rendered) => rendered,
+            Err(e) => {
+                eprintln!(
+                    "Warning: failed to render v2 date archive page for {} '{}': {}",
+                    archive_type, title, e
+                );
+                String::new()
+            }
+        }
+    } else {
+        format!(
+            "<h1>{}</h1>\n<ul>\n{}</ul>\n",
+            title,
+            sorted_posts
+                .iter()
+                .map(|p| format!(
+                    "  <li><a href=\"{}\">{}</a></li>\n",
+                    p.url,
+                    p.front_matter
+                        .get("title")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or(&p.slug)
+                ))
+                .collect::<String>()
+        )
+    };
+
+    let out_path = url_to_output_path(output_dir, url);
+    if let Some(parent) = out_path.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    if fs::write(&out_path, &html).is_ok() {
+        Ok(1)
+    } else {
+        Ok(0)
+    }
 }
 
 /// Generate a single archive page for one category or tag.
@@ -1897,5 +2523,308 @@ jekyll-archives:
         let content = fs::read_to_string(output_dir.join("2024/index.html")).unwrap();
         assert!(content.contains("Programmierung auf Deutsch"));
         assert!(content.contains("Portugues"));
+    }
+
+    // ========================================================================
+    // V2 per-collection config parsing tests
+    // ========================================================================
+
+    #[test]
+    fn test_v2_config_parsing_two_collections() {
+        let yaml = r#"
+jekyll-archives:
+  posts:
+    enabled: [year, tags, categories]
+    permalinks:
+      year: "/blog/:year/"
+      tags: "/blog/:type/:name/"
+      categories: "/blog/:type/:name/"
+  books:
+    enabled: [year, tags, categories]
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let v2 = ArchivesV2Config::from_config(&config);
+        assert!(v2.is_some(), "Should detect v2 config format");
+        let v2 = v2.unwrap();
+        assert_eq!(v2.collections.len(), 2);
+        assert!(v2.collections.contains_key("posts"));
+        assert!(v2.collections.contains_key("books"));
+
+        let posts_cfg = &v2.collections["posts"];
+        assert!(posts_cfg.year_enabled());
+        assert!(posts_cfg.tags_enabled());
+        assert!(posts_cfg.categories_enabled());
+        assert_eq!(posts_cfg.tag_permalink, "/blog/:type/:name/");
+        assert_eq!(posts_cfg.category_permalink, "/blog/:type/:name/");
+        assert_eq!(posts_cfg.year_permalink, "/blog/:year/");
+    }
+
+    #[test]
+    fn test_v2_config_parsing_single_collection() {
+        let yaml = r#"
+jekyll-archives:
+  posts:
+    enabled: [tags]
+    permalinks:
+      tags: "/blog/tag/:name/"
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let v2 = ArchivesV2Config::from_config(&config);
+        assert!(v2.is_some());
+        let v2 = v2.unwrap();
+        assert_eq!(v2.collections.len(), 1);
+        assert!(v2.collections["posts"].tags_enabled());
+        assert!(!v2.collections["posts"].categories_enabled());
+    }
+
+    #[test]
+    fn test_v1_config_still_works_not_v2() {
+        let yaml = r#"
+jekyll-archives:
+  enabled: [categories, tags]
+  layouts:
+    category: category
+    tag: tag
+  permalinks:
+    tag: /tags/:name/
+    category: /categories/:name/
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        // V1 should still work
+        let v1 = ArchivesConfig::from_config(&config);
+        assert!(v1.is_some(), "V1 should still parse");
+        // V2 should return None for v1 format
+        let v2 = ArchivesV2Config::from_config(&config);
+        assert!(v2.is_none(), "V2 should not match v1 format");
+    }
+
+    #[test]
+    fn test_v2_config_none_for_empty() {
+        let yaml = "url: https://example.com\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(ArchivesV2Config::from_config(&config).is_none());
+    }
+
+    // ========================================================================
+    // :type permalink placeholder
+    // ========================================================================
+
+    #[test]
+    fn test_resolve_permalink_with_type_placeholder() {
+        assert_eq!(
+            resolve_permalink_with_type("/blog/:type/:name/", "code", "tag"),
+            "/blog/tag/code/"
+        );
+        assert_eq!(
+            resolve_permalink_with_type("/blog/:type/:name/", "sample-posts", "category"),
+            "/blog/category/sample-posts/"
+        );
+    }
+
+    // ========================================================================
+    // V2 archive generation with page.documents, page.collection_name,
+    // plural page.type, page.date
+    // ========================================================================
+
+    #[test]
+    fn test_v2_generate_archive_pages_creates_files() {
+        let dir = tempfile::tempdir().unwrap();
+        let output_dir = dir.path();
+
+        let posts = vec![make_post(
+            "Post A",
+            "2024-01-03",
+            "post-a",
+            vec!["ML"],
+            vec!["rust"],
+        )];
+        let books = vec![make_post(
+            "Book A",
+            "2024-06-01",
+            "book-a",
+            vec!["classics"],
+            vec!["top-100"],
+        )];
+
+        let yaml = r#"
+jekyll-archives:
+  posts:
+    enabled: [year, tags, categories]
+    permalinks:
+      year: "/blog/:year/"
+      tags: "/blog/:type/:name/"
+      categories: "/blog/:type/:name/"
+  books:
+    enabled: [year, tags, categories]
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let v2 = ArchivesV2Config::from_config(&config).unwrap();
+
+        let mut all_collections: HashMap<String, Vec<CollectionItem>> = HashMap::new();
+        all_collections.insert("posts".to_string(), posts);
+        all_collections.insert("books".to_string(), books);
+
+        let layouts_dir = dir.path().join("_layouts");
+        let includes_dir = dir.path().join("_includes");
+        fs::create_dir_all(&layouts_dir).unwrap();
+        fs::create_dir_all(&includes_dir).unwrap();
+
+        let layout_engine = LayoutEngine::new(&layouts_dir, &includes_dir).unwrap();
+        let site_context = Object::new();
+        let cached_site = CachedSiteContext::new(&site_context);
+
+        let count = generate_v2_archive_pages(
+            &all_collections,
+            &v2,
+            &layout_engine,
+            &cached_site,
+            &config,
+            output_dir,
+        )
+        .unwrap();
+
+        // Posts: 1 year + 1 tag + 1 category = 3
+        // Books: 1 year + 1 tag + 1 category = 3
+        assert_eq!(count, 6);
+
+        // Posts archives under /blog/
+        assert!(
+            output_dir.join("blog/2024/index.html").exists(),
+            "blog year archive"
+        );
+        assert!(
+            output_dir.join("blog/tag/rust/index.html").exists(),
+            "blog tag archive"
+        );
+        assert!(
+            output_dir.join("blog/category/ml/index.html").exists(),
+            "blog category archive"
+        );
+
+        // Books archives use default permalinks /:collection/:year/, etc.
+        assert!(
+            output_dir.join("books/2024/index.html").exists(),
+            "books year archive"
+        );
+        assert!(
+            output_dir.join("books/tag/top-100/index.html").exists(),
+            "books tag archive"
+        );
+        assert!(
+            output_dir
+                .join("books/category/classics/index.html")
+                .exists(),
+            "books category archive"
+        );
+    }
+
+    #[test]
+    fn test_v2_books_archives_separate_from_blog() {
+        let dir = tempfile::tempdir().unwrap();
+        let output_dir = dir.path();
+
+        let posts = vec![make_post(
+            "Post A",
+            "2024-01-03",
+            "post-a",
+            vec!["ML"],
+            vec!["rust"],
+        )];
+        let books = vec![make_post(
+            "Book A",
+            "2024-06-01",
+            "book-a",
+            vec!["classics"],
+            vec!["top-100"],
+        )];
+
+        let yaml = r#"
+jekyll-archives:
+  posts:
+    enabled: [year, tags, categories]
+    permalinks:
+      year: "/blog/:year/"
+      tags: "/blog/:type/:name/"
+      categories: "/blog/:type/:name/"
+  books:
+    enabled: [year, tags, categories]
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let v2 = ArchivesV2Config::from_config(&config).unwrap();
+
+        let mut all_collections: HashMap<String, Vec<CollectionItem>> = HashMap::new();
+        all_collections.insert("posts".to_string(), posts);
+        all_collections.insert("books".to_string(), books);
+
+        let layouts_dir = dir.path().join("_layouts");
+        let includes_dir = dir.path().join("_includes");
+        fs::create_dir_all(&layouts_dir).unwrap();
+        fs::create_dir_all(&includes_dir).unwrap();
+
+        let layout_engine = LayoutEngine::new(&layouts_dir, &includes_dir).unwrap();
+        let site_context = Object::new();
+        let cached_site = CachedSiteContext::new(&site_context);
+
+        generate_v2_archive_pages(
+            &all_collections,
+            &v2,
+            &layout_engine,
+            &cached_site,
+            &config,
+            output_dir,
+        )
+        .unwrap();
+
+        // Blog tag archive should NOT contain book content
+        let blog_tag = fs::read_to_string(output_dir.join("blog/tag/rust/index.html")).unwrap();
+        assert!(blog_tag.contains("Post A"), "Blog tag should contain post");
+        assert!(
+            !blog_tag.contains("Book A"),
+            "Blog tag should NOT contain book"
+        );
+
+        // Books tag archive should NOT contain post content
+        let books_tag =
+            fs::read_to_string(output_dir.join("books/tag/top-100/index.html")).unwrap();
+        assert!(
+            books_tag.contains("Book A"),
+            "Books tag should contain book"
+        );
+        assert!(
+            !books_tag.contains("Post A"),
+            "Books tag should NOT contain post"
+        );
+    }
+
+    #[test]
+    fn test_v2_config_default_permalinks_for_books() {
+        // When a v2 collection has no explicit permalinks, defaults should use
+        // /:collection_name/:year/ etc.
+        let yaml = r#"
+jekyll-archives:
+  books:
+    enabled: [year, tags, categories]
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let v2 = ArchivesV2Config::from_config(&config).unwrap();
+        let books_cfg = &v2.collections["books"];
+
+        assert_eq!(books_cfg.year_permalink, "/books/:year/");
+        assert_eq!(books_cfg.tag_permalink, "/books/tag/:name/");
+        assert_eq!(books_cfg.category_permalink, "/books/category/:name/");
+    }
+
+    #[test]
+    fn test_v2_config_unicode_collection_name() {
+        // Non-ASCII collection name should work
+        let yaml = r#"
+jekyll-archives:
+  livros:
+    enabled: [tags]
+"#;
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let v2 = ArchivesV2Config::from_config(&config).unwrap();
+        assert!(v2.collections.contains_key("livros"));
+        assert_eq!(v2.collections["livros"].tag_permalink, "/livros/tag/:name/");
     }
 }

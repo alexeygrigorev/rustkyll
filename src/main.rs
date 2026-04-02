@@ -1118,7 +1118,20 @@ fn build_site(
     }
 
     // 10d. Generate archive pages (jekyll-archives support)
-    if let Some(ref archives_config) = rustkyll::archives::ArchivesConfig::from_config(&config) {
+    // Try V2 per-collection format first, fall back to V1
+    if let Some(ref v2_config) = rustkyll::archives::ArchivesV2Config::from_config(&config) {
+        let count = rustkyll::archives::generate_v2_archive_pages(
+            &collections,
+            v2_config,
+            &layout_engine,
+            &cached_site,
+            &config,
+            destination,
+        )?;
+        summary.standalone_pages += count;
+    } else if let Some(ref archives_config) =
+        rustkyll::archives::ArchivesConfig::from_config(&config)
+    {
         if let Some(posts) = collections.get("posts") {
             let count = rustkyll::archives::generate_archive_pages(
                 posts,
