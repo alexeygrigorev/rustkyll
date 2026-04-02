@@ -9961,4 +9961,134 @@ More text.
             "Bug Fixes heading must be present. Got:\n{html}"
         );
     }
+
+    // ========================================================================
+    // Issue 460: Escaped dash \- in CommonMarkGhPages mode
+    // ========================================================================
+
+    #[test]
+    fn test_issue460_escaped_dash_at_line_start_commonmark() {
+        // \- at line start should produce literal dash, not backslash-dash
+        // CommonMarkGhPages mode: add_code_classes=false
+        let html = markdown_to_html_with_options("\\- text\n", false, false, false, false);
+        assert!(
+            html.contains("- text"),
+            "Escaped dash at line start should produce literal dash. Got: {html}"
+        );
+        assert!(
+            !html.contains("\\-"),
+            "Backslash should be consumed in escaped dash. Got: {html}"
+        );
+        assert!(
+            !html.contains("<hr"),
+            "Escaped dash must not produce horizontal rule. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue460_escaped_dash_in_blockquote_commonmark() {
+        // \- inside blockquote should produce literal dash
+        let html = markdown_to_html_with_options("> \\- quoted text\n", false, false, false, false);
+        assert!(
+            html.contains("- quoted text"),
+            "Escaped dash in blockquote should produce literal dash. Got: {html}"
+        );
+        assert!(
+            !html.contains("\\-"),
+            "Backslash should be consumed in blockquote escaped dash. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue460_real_hr_unaffected_commonmark() {
+        // --- (three dashes) should still produce <hr>
+        let html = markdown_to_html_with_options("---\n", false, false, false, false);
+        assert!(
+            html.contains("<hr"),
+            "Three dashes should still produce horizontal rule. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue460_escaped_dash_mid_line_commonmark() {
+        // \- in middle of line should also have backslash consumed
+        let html = markdown_to_html_with_options(
+            "text with \\- dash in middle\n",
+            false,
+            false,
+            false,
+            false,
+        );
+        assert!(
+            html.contains("- dash in middle"),
+            "Escaped dash mid-line should produce literal dash. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue460_triple_escaped_dash_no_hr_commonmark() {
+        // \-\-\- should NOT produce <hr>, each dash is individually escaped
+        let html = markdown_to_html_with_options("\\-\\-\\-\n", false, false, false, false);
+        assert!(
+            !html.contains("<hr"),
+            "Triple escaped dashes must not produce horizontal rule. Got: {html}"
+        );
+        assert!(
+            html.contains("---"),
+            "Triple escaped dashes should produce literal dashes. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue460_escaped_dash_unicode_commonmark() {
+        // \- with non-ASCII text should work correctly
+        let html = markdown_to_html_with_options(
+            "\\- Mu-An \u{00E9}crit \u{00E0} Montr\u{00E9}al\n",
+            false,
+            false,
+            false,
+            false,
+        );
+        assert!(
+            html.contains("- Mu-An"),
+            "Escaped dash with Unicode text should produce literal dash. Got: {html}"
+        );
+        assert!(
+            html.contains("\u{00E9}crit"),
+            "Unicode content should be preserved. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue460_escaped_dash_after_br_commonmark() {
+        // <br> followed by \- text should NOT produce <hr>
+        // This matches the muan-blog reparations page context
+        let html = markdown_to_html_with_options(
+            "<br>\n\\- Mu-An @ Brooklyn, NY\n",
+            false,
+            false,
+            false,
+            false,
+        );
+        assert!(
+            !html.contains("<hr"),
+            "Escaped dash after <br> must not produce horizontal rule. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue460_escaped_dash_not_list_commonmark() {
+        // \- at line start should not produce a list item
+        // Note: pulldown-cmark correctly treats \- as escaped dash (literal text)
+        // A naive preprocessing that converts \- to - would break this by creating a list
+        let html = markdown_to_html_with_options("\\- not a list\n", false, false, false, false);
+        assert!(
+            !html.contains("<li>"),
+            "Escaped dash should not produce a list item. Got: {html}"
+        );
+        assert!(
+            !html.contains("<ul>"),
+            "Escaped dash should not produce an unordered list. Got: {html}"
+        );
+    }
 }
