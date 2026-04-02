@@ -50,6 +50,23 @@ pub type DataTree = BTreeMap<String, serde_yaml::Value>;
 /// Returns `DataError::DirectoryNotFound` if `data_dir` does not exist.
 /// Returns `DataError::YamlParse` (with the filename) if any file contains invalid YAML.
 pub fn load_data(data_dir: &Path) -> Result<DataTree, DataError> {
+    load_data_internal(data_dir, None, None)
+}
+
+/// Load data and apply config-aware postprocessing that depends on the site root.
+pub fn load_data_with_config(
+    data_dir: &Path,
+    site_source: &Path,
+    config: &crate::config::SiteConfig,
+) -> Result<DataTree, DataError> {
+    load_data_internal(data_dir, Some(site_source), Some(config))
+}
+
+fn load_data_internal(
+    data_dir: &Path,
+    site_source: Option<&Path>,
+    config: Option<&crate::config::SiteConfig>,
+) -> Result<DataTree, DataError> {
     if !data_dir.exists() {
         return Err(DataError::DirectoryNotFound(data_dir.display().to_string()));
     }
@@ -96,7 +113,83 @@ pub fn load_data(data_dir: &Path) -> Result<DataTree, DataError> {
         }
     }
 
+    if let (Some(site_source), Some(config)) = (site_source, config) {
+        postprocess_data(&mut tree, site_source, config);
+    }
+
     Ok(tree)
+}
+
+fn postprocess_data(
+    tree: &mut DataTree,
+    site_source: &Path,
+    config: &crate::config::SiteConfig,
+) {
+    let Some(theme_name) = config.extras.get("theme").and_then(|v| v.as_str()) else {
+        return;
+    };
+
+    let Some(versions) = tree.get_mut("versions").and_then(|v| v.as_mapping_mut()) else {
+        return;
+    };
+
+    let current_key = serde_yaml::Value::String("current".to_string());
+    let Some(current) = versions.get_mut(&current_key) else {
+        return;
+    };
+
+    let Some(current_str) = current.as_str() else {
+        return;
+    };
+
+    if !current_str.eq_ignore_ascii_case("auto") {
+        return;
+    }
+
+    let Some(version) = extract_theme_version_from_gemfile_lock(site_source, theme_name) else {
+        return;
+    };
+
+    *current = serde_yaml::Value::String(format!("v{}", version));
+}
+
+fn extract_theme_version_from_gemfile_lock(site_source: &Path, theme_name: &str) -> Option<String> {
+    let gemfile_lock = site_source.join("Gemfile.lock");
+    let content = fs::read_to_string(gemfile_lock).ok()?;
+    extract_theme_version_from_lock_content(&content, theme_name)
+}
+
+fn extract_theme_version_from_lock_content(content: &str, theme_name: &str) -> Option<String> {
+    let mut in_specs = false;
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+
+        if trimmed == "specs:" {
+            in_specs = true;
+            continue;
+        }
+
+        if in_specs && !line.starts_with(' ') {
+            break;
+        }
+
+        if !in_specs || !line.starts_with("    ") {
+            continue;
+        }
+
+        let prefix = format!("{theme_name} (");
+        let candidate = line.trim_start();
+        if !candidate.starts_with(&prefix) {
+            continue;
+        }
+
+        let remainder = &candidate[prefix.len()..];
+        let end = remainder.find(')')?;
+        return Some(remainder[..end].to_string());
+    }
+
+    None
 }
 
 /// Load all YAML files in a single directory (non-recursive) into a BTreeMap.
@@ -760,6 +853,143 @@ mod tests {
             msg.contains("bad.json"),
             "Error should include filename, got: {}",
             msg
+        );
+    }
+
+    #[test]
+    fn test_issue543_resolves_versions_current_auto_from_gemfile_lock() {
+        let dir = TempDir::new().unwrap();
+        let data_dir = dir.path().join("_data");
+        fs::create_dir_all(&data_dir).unwrap();
+        fs::write(data_dir.join("versions.yml"), "current: auto\n").unwrap();
+        fs::write(
+            dir.path().join("Gemfile.lock"),
+            "GEM\n  specs:\n    jekyll-vitepress-theme (1.1.1)\n\nDEPENDENCIES\n  jekyll-vitepress-theme\n",
+        )
+        .unwrap();
+
+        let config = crate::config::SiteConfig::from_yaml_str("theme: jekyll-vitepress-theme\n")
+            .unwrap();
+        let tree = load_data_with_config(&data_dir, dir.path(), &config).unwrap();
+
+        let versions = tree["versions"].as_mapping().unwrap();
+        assert_eq!(
+            versions
+                .get(serde_yaml::Value::String("current".into()))
+                .and_then(|v| v.as_str()),
+            Some("v1.1.1")
+        );
+    }
+
+    #[test]
+    fn test_issue543_auto_is_case_insensitive() {
+        let dir = TempDir::new().unwrap();
+        let data_dir = dir.path().join("_data");
+        fs::create_dir_all(&data_dir).unwrap();
+        fs::write(data_dir.join("versions.yml"), "current: AUTO\n").unwrap();
+        fs::write(
+            dir.path().join("Gemfile.lock"),
+            "GEM\n  specs:\n    jekyll-vitepress-theme (2.0.0)\n",
+        )
+        .unwrap();
+
+        let config = crate::config::SiteConfig::from_yaml_str("theme: jekyll-vitepress-theme\n")
+            .unwrap();
+        let tree = load_data_with_config(&data_dir, dir.path(), &config).unwrap();
+
+        let versions = tree["versions"].as_mapping().unwrap();
+        assert_eq!(
+            versions
+                .get(serde_yaml::Value::String("current".into()))
+                .and_then(|v| v.as_str()),
+            Some("v2.0.0")
+        );
+    }
+
+    #[test]
+    fn test_issue543_missing_gemfile_lock_leaves_auto_unchanged() {
+        let dir = TempDir::new().unwrap();
+        let data_dir = dir.path().join("_data");
+        fs::create_dir_all(&data_dir).unwrap();
+        fs::write(data_dir.join("versions.yml"), "current: auto\n").unwrap();
+
+        let config = crate::config::SiteConfig::from_yaml_str("theme: jekyll-vitepress-theme\n")
+            .unwrap();
+        let tree = load_data_with_config(&data_dir, dir.path(), &config).unwrap();
+
+        let versions = tree["versions"].as_mapping().unwrap();
+        assert_eq!(
+            versions
+                .get(serde_yaml::Value::String("current".into()))
+                .and_then(|v| v.as_str()),
+            Some("auto")
+        );
+    }
+
+    #[test]
+    fn test_issue543_missing_theme_gem_leaves_auto_unchanged() {
+        let dir = TempDir::new().unwrap();
+        let data_dir = dir.path().join("_data");
+        fs::create_dir_all(&data_dir).unwrap();
+        fs::write(data_dir.join("versions.yml"), "current: auto\n").unwrap();
+        fs::write(
+            dir.path().join("Gemfile.lock"),
+            "GEM\n  specs:\n    some-other-theme (0.5.2)\n",
+        )
+        .unwrap();
+
+        let config = crate::config::SiteConfig::from_yaml_str("theme: jekyll-vitepress-theme\n")
+            .unwrap();
+        let tree = load_data_with_config(&data_dir, dir.path(), &config).unwrap();
+
+        let versions = tree["versions"].as_mapping().unwrap();
+        assert_eq!(
+            versions
+                .get(serde_yaml::Value::String("current".into()))
+                .and_then(|v| v.as_str()),
+            Some("auto")
+        );
+    }
+
+    #[test]
+    fn test_issue543_non_auto_current_is_unchanged() {
+        let dir = TempDir::new().unwrap();
+        let data_dir = dir.path().join("_data");
+        fs::create_dir_all(&data_dir).unwrap();
+        fs::write(data_dir.join("versions.yml"), "current: v9.9.9\n").unwrap();
+        fs::write(
+            dir.path().join("Gemfile.lock"),
+            "GEM\n  specs:\n    jekyll-vitepress-theme (1.1.1)\n",
+        )
+        .unwrap();
+
+        let config = crate::config::SiteConfig::from_yaml_str("theme: jekyll-vitepress-theme\n")
+            .unwrap();
+        let tree = load_data_with_config(&data_dir, dir.path(), &config).unwrap();
+
+        let versions = tree["versions"].as_mapping().unwrap();
+        assert_eq!(
+            versions
+                .get(serde_yaml::Value::String("current".into()))
+                .and_then(|v| v.as_str()),
+            Some("v9.9.9")
+        );
+    }
+
+    #[test]
+    fn test_issue543_extracts_theme_version_from_specs_section() {
+        let lock = "GEM\n  specs:\n    jekyll-vitepress-theme (1.1.1)\n    other-gem (0.1.0)\n\nDEPENDENCIES\n  jekyll-vitepress-theme\n";
+        assert_eq!(
+            extract_theme_version_from_lock_content(lock, "jekyll-vitepress-theme"),
+            Some("1.1.1".to_string())
+        );
+    }
+
+    #[test]
+    fn test_issue543_extract_theme_version_returns_none_for_empty_lock() {
+        assert_eq!(
+            extract_theme_version_from_lock_content("", "jekyll-vitepress-theme"),
+            None
         );
     }
 }

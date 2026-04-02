@@ -307,7 +307,7 @@ fn build_site(
     let phase_start = Instant::now();
     let data_dir = source.join("_data");
     let data_tree = if data_dir.exists() {
-        data::load_data(&data_dir)?
+        data::load_data_with_config(&data_dir, source, &config)?
     } else {
         data::DataTree::new()
     };
