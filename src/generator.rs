@@ -9397,42 +9397,51 @@ defaults:
 
     #[test]
     fn test_mediumish_css_contains_imported_partials() {
-        let mediumish_css = std::path::Path::new("websites/mediumish/assets/css/main.scss");
-        assert!(
-            mediumish_css.exists(),
-            "Mediumish main.scss must exist for integration test"
-        );
+        let tmp = tempfile::tempdir().unwrap();
+        let site = tmp.path();
 
-        let mediumish_site = std::path::Path::new("websites/mediumish");
-        assert!(
-            mediumish_site.join("_sass/_syntax.scss").exists(),
-            "_sass/_syntax.scss must exist"
-        );
-        assert!(
-            mediumish_site.join("_sass/_starsnonscss.scss").exists(),
-            "_sass/_starsnonscss.scss must exist"
-        );
+        std::fs::write(site.join("_config.yml"), "title: mediumish-test\n").unwrap();
+
+        let sass_dir = site.join("_sass");
+        std::fs::create_dir_all(&sass_dir).unwrap();
+        std::fs::write(
+            sass_dir.join("_syntax.scss"),
+            ".highlight { color: #333; }\n",
+        )
+        .unwrap();
+        std::fs::write(
+            sass_dir.join("_starsnonscss.scss"),
+            ".rating-holder { font-size: 16px; }\n",
+        )
+        .unwrap();
+
+        let css_dir = site.join("assets").join("css");
+        std::fs::create_dir_all(&css_dir).unwrap();
+        let scss_raw = r#"---
+---
+@import "syntax", "starsnonscss";
+
+.post-excerpt {
+  p {
+    display: inline;
+  }
+}
+"#;
+        std::fs::write(css_dir.join("main.scss"), scss_raw).unwrap();
 
         let config = SiteConfig::from_yaml_str(
-            &std::fs::read_to_string(mediumish_site.join("_config.yml"))
-                .expect("must read _config.yml"),
+            &std::fs::read_to_string(site.join("_config.yml")).expect("must read _config.yml"),
         )
         .expect("must parse _config.yml");
 
-        let scss_raw = std::fs::read_to_string(mediumish_css).expect("must read main.scss");
         let scss_source = if scss_raw.starts_with("---") {
             let end = scss_raw[3..].find("---").expect("must find closing ---");
             scss_raw[3 + end + 3..].trim_start()
         } else {
-            &scss_raw
+            scss_raw
         };
 
-        let result = compile_scss(
-            scss_source,
-            "assets/css/main.scss",
-            Some(mediumish_site),
-            Some(&config),
-        );
+        let result = compile_scss(scss_source, "assets/css/main.scss", Some(site), Some(&config));
         assert!(
             result.is_ok(),
             "Mediumish SCSS compilation failed: {:?}",
@@ -9446,6 +9455,10 @@ defaults:
         assert!(
             css.contains("rating-holder"),
             "CSS must contain rating styles from _starsnonscss.scss"
+        );
+        assert!(
+            css.contains("post-excerpt"),
+            "CSS must contain inline styles from main.scss"
         );
     }
 
