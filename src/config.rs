@@ -141,6 +141,13 @@ pub struct SiteConfig {
     #[serde(default)]
     pub defaults: Vec<DefaultConfig>,
 
+    /// Source directory relative to the project root.
+    /// Jekyll's `source` config option (default: `"."`).
+    /// When set to e.g. `"src"`, all content (pages, posts, layouts, includes,
+    /// data, etc.) is loaded from `<cli_source>/src/` instead of `<cli_source>/`.
+    #[serde(default = "default_source")]
+    pub source: String,
+
     /// Directory to look for include files (default: `_includes`).
     /// Jekyll's `includes_dir` config option.
     #[serde(default = "default_includes_dir")]
@@ -177,6 +184,10 @@ fn default_permalink() -> String {
     "date".to_string()
 }
 
+fn default_source() -> String {
+    ".".to_string()
+}
+
 fn default_includes_dir() -> String {
     "_includes".to_string()
 }
@@ -194,6 +205,7 @@ impl Default for SiteConfig {
             exclude: vec![],
             include: vec![],
             collections: HashMap::new(),
+            source: default_source(),
             includes_dir: default_includes_dir(),
             defaults: vec![],
             extras: HashMap::new(),
@@ -329,6 +341,20 @@ impl SiteConfig {
             .map_err(|e| crate::yaml::YamlParseError::Conversion(e.to_string()))?;
         config.url_explicitly_set = has_url_key;
         Ok(config)
+    }
+
+    /// Resolve the effective source directory.
+    ///
+    /// If `config.source` is `"."` or empty, returns `cli_source` as-is.
+    /// Otherwise returns `cli_source.join(config.source)`.
+    /// This matches Jekyll's behavior: `_config.yml` is read from `cli_source`,
+    /// but all content is loaded from the resolved effective source.
+    pub fn resolve_source(&self, cli_source: &Path) -> std::path::PathBuf {
+        if self.source == "." || self.source.is_empty() {
+            cli_source.to_path_buf()
+        } else {
+            cli_source.join(&self.source)
+        }
     }
 
     /// Look up the default layout for a given collection type.
@@ -1958,5 +1984,61 @@ defaults:
         let yaml = "includes_dir: docs/インクルード\nname: Test\n";
         let config = SiteConfig::from_yaml_str(yaml).unwrap();
         assert_eq!(config.includes_dir, "docs/インクルード");
+    }
+
+    // ========================================================================
+    // Source config parsing (Issue 545)
+    // ========================================================================
+
+    #[test]
+    fn test_source_config_explicit_src() {
+        let yaml = "source: src\nname: Test\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.source, "src");
+    }
+
+    #[test]
+    fn test_source_config_dot() {
+        let yaml = "source: .\nname: Test\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.source, ".");
+    }
+
+    #[test]
+    fn test_source_config_default_when_absent() {
+        let yaml = "name: Test\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.source, ".");
+    }
+
+    #[test]
+    fn test_source_config_unicode_path() {
+        let yaml = "source: ソース\nname: Test\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.source, "ソース");
+    }
+
+    #[test]
+    fn test_resolve_source_with_subdir() {
+        let config = SiteConfig::from_yaml_str("source: src\n").unwrap();
+        let cli_source = Path::new("/repo");
+        let effective = config.resolve_source(cli_source);
+        assert_eq!(effective, PathBuf::from("/repo/src"));
+    }
+
+    #[test]
+    fn test_resolve_source_with_dot() {
+        let config = SiteConfig::from_yaml_str("source: .\n").unwrap();
+        let cli_source = Path::new("/repo");
+        let effective = config.resolve_source(cli_source);
+        assert_eq!(effective, PathBuf::from("/repo"));
+    }
+
+    #[test]
+    fn test_resolve_source_default() {
+        let config = SiteConfig::default();
+        let cli_source = Path::new("/repo");
+        let effective = config.resolve_source(cli_source);
+        assert_eq!(effective, PathBuf::from("/repo"));
     }
 }

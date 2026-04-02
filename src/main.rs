@@ -296,6 +296,12 @@ fn build_site(
     };
     summary.timing.config = phase_start.elapsed();
 
+    // 1b. Resolve effective source directory.
+    // Jekyll reads _config.yml from the CLI --source directory, but if the config
+    // contains `source: src`, all content is loaded from `<cli_source>/src/`.
+    let effective_source = config.resolve_source(source);
+    let source = effective_source.as_path();
+
     // 2. Load data
     progress.phase("Loading data files...");
     let phase_start = Instant::now();
