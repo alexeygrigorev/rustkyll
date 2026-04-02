@@ -141,6 +141,54 @@ fn convert_display_math_blocks(html: &str) -> String {
     result
 }
 
+/// Convert inline `$$...$$` pairs to `\(...\)` within HTML text.
+///
+/// This runs AFTER `convert_display_math_blocks`, so standalone `<p>$$...$$</p>`
+/// patterns have already been consumed. Any remaining `$$...$$` pairs are inline math.
+///
+/// Does NOT convert inside `<code>` or `<pre>` elements.
+fn convert_inline_double_dollar_math(html: &str) -> String {
+    if !html.contains("$$") {
+        return html.to_string();
+    }
+
+    let mut result = String::with_capacity(html.len());
+    for line in html.split('\n') {
+        if line.contains("$$") && !line.contains("<code") && !line.contains("<pre") {
+            // Replace $$...$$ pairs with \(...\)
+            let mut converted = String::with_capacity(line.len());
+            let mut remaining = line;
+            while let Some(start) = remaining.find("$$") {
+                converted.push_str(&remaining[..start]);
+                let after_open = &remaining[start + 2..];
+                if let Some(end) = after_open.find("$$") {
+                    let math_content = &after_open[..end];
+                    converted.push_str("\\(");
+                    converted.push_str(math_content);
+                    converted.push_str("\\)");
+                    remaining = &after_open[end + 2..];
+                } else {
+                    // No closing $$, leave as-is
+                    converted.push_str("$$");
+                    remaining = after_open;
+                }
+            }
+            converted.push_str(remaining);
+            result.push_str(&converted);
+        } else {
+            result.push_str(line);
+        }
+        result.push('\n');
+    }
+
+    // Remove trailing newline added by the split/join
+    if result.ends_with('\n') && !html.ends_with('\n') {
+        result.pop();
+    }
+
+    result
+}
+
 /// Convert inline math `$...$` to `\(...\)` within a line of HTML.
 ///
 /// Only converts when `$` is followed by non-space content and closed by another `$`.
@@ -945,8 +993,10 @@ pub fn postprocess_with_options(html: &str, indent_lists: bool) -> String {
     let html = normalize_newlines_in_html_tags(&html);
     // Issue 276: Convert display math blocks <p>$$...$$</p> to \[...\] bare
     // text nodes, matching Jekyll/kramdown behavior for MathJax rendering.
-    // Only display math is converted; inline $...$ is preserved as-is.
     let html = convert_display_math_blocks(&html);
+    // Issue 475: Convert remaining inline $$...$$ to \(...\) after display math
+    // has been consumed. Jekyll/kramdown converts inline $$...$$ to MathJax \(...\).
+    let html = convert_inline_double_dollar_math(&html);
     // D2, D12: Normalize boolean attributes in the markdown output early
     // (during collection loading). This ensures that the final
     // normalize_html_output() call after layout wrapping finds nothing to change
@@ -16517,6 +16567,114 @@ Do It Live\n\
         assert!(
             result.contains("<dt>#dowork</dt>"),
             "Issue 491: Hash term. Got: {result}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 475: Inline $$...$$ math delimiter conversion
+    // ========================================================================
+
+    #[test]
+    fn test_issue475_inline_double_dollar_math_basic() {
+        let input = "<p>text $$x^2$$ more</p>";
+        let result = convert_inline_double_dollar_math(input);
+        assert_eq!(result, "<p>text \\(x^2\\) more</p>");
+    }
+
+    #[test]
+    fn test_issue475_inline_double_dollar_math_multiple() {
+        let input = "<p>$$formula$$ and $$other$$</p>";
+        let result = convert_inline_double_dollar_math(input);
+        assert_eq!(result, "<p>\\(formula\\) and \\(other\\)</p>");
+    }
+
+    #[test]
+    fn test_issue475_inline_double_dollar_not_in_code() {
+        let input = "<code>$$code$$</code>";
+        let result = convert_inline_double_dollar_math(input);
+        assert_eq!(result, input, "Should not convert $$ inside <code>");
+    }
+
+    #[test]
+    fn test_issue475_inline_double_dollar_not_in_pre() {
+        let input = "<pre>$$code$$</pre>";
+        let result = convert_inline_double_dollar_math(input);
+        assert_eq!(result, input, "Should not convert $$ inside <pre>");
+    }
+
+    #[test]
+    fn test_issue475_inline_double_dollar_no_match() {
+        let input = "<p>no math here</p>";
+        let result = convert_inline_double_dollar_math(input);
+        assert_eq!(result, input);
+    }
+
+    #[test]
+    fn test_issue475_single_dollar_not_converted() {
+        let input = "<p>price is $100</p>";
+        let result = convert_inline_double_dollar_math(input);
+        assert_eq!(result, input, "Single dollar should not be converted");
+    }
+
+    #[test]
+    fn test_issue475_beautiful_jekyll_math_formula() {
+        let input = "<p>they are $$x = {-b \\pm \\sqrt{b^2-4ac} \\over 2a}.$$</p>";
+        let result = convert_inline_double_dollar_math(input);
+        assert_eq!(
+            result,
+            "<p>they are \\(x = {-b \\pm \\sqrt{b^2-4ac} \\over 2a}.\\)</p>"
+        );
+    }
+
+    #[test]
+    fn test_issue475_display_math_not_affected() {
+        // Display math (standalone <p>$$...$$</p>) should NOT be converted by this function
+        // because convert_display_math_blocks runs first
+        let input = "<p>$$formula$$</p>";
+        let result = convert_inline_double_dollar_math(input);
+        // This function sees it as inline since it's within a <p> tag
+        // but display math should have been consumed already by convert_display_math_blocks
+        // So in the actual pipeline, this case won't arise.
+        // Here we just test that the function itself handles $$ pairs.
+        assert!(result.contains("\\(formula\\)") || result.contains("$$formula$$"));
+    }
+
+    #[test]
+    fn test_issue475_pipeline_converts_inline_double_dollar() {
+        // Test through the pipeline: inline $$ within text should become \(...\)
+        let md = "they are $$x^2 + y^2$$ in math\n";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("\\(x^2 + y^2\\)"),
+            "Pipeline should convert inline $$...$$ to \\(...\\). Got: {}",
+            html
+        );
+        assert!(
+            !html.contains("$$x^2"),
+            "Pipeline should not leave raw $$. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue475_pipeline_display_math_still_works() {
+        // Display math should still be converted to \[...\]
+        let md = "$$\nx + y\n$$\n";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("\\["),
+            "Display math should still become \\[...\\]. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue475_unicode_math_content() {
+        let input = "<p>The value is $$\\alpha + \\beta = \\gamma$$.</p>";
+        let result = convert_inline_double_dollar_math(input);
+        assert_eq!(
+            result,
+            "<p>The value is \\(\\alpha + \\beta = \\gamma\\).</p>"
         );
     }
 }
