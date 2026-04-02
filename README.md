@@ -2,7 +2,7 @@
 
 A fast, drop-in replacement for Jekyll, written in Rust.
 
-rustkyll reads the same source files as Jekyll - Markdown with YAML front matter, Liquid templates, YAML data files, collections - and produces equivalent HTML output, 10-50x faster.
+rustkyll reads the same source files as Jekyll - Markdown with YAML front matter, Liquid templates, YAML data files, collections - and usually produces equivalent HTML output much faster.
 
 ```
 uvx rustkyll serve
@@ -12,18 +12,18 @@ Run this in any Jekyll site directory. That's it.
 
 ## Benchmarks
 
-Tested on 50+ Jekyll sites. Here are some highlights:
+Tested on 50+ Jekyll sites. Fresh benchmark run on 2026-04-02. Here are some highlights:
 
 | Site | Pages | Jekyll | rustkyll | Speedup |
 |------|------:|-------:|---------:|--------:|
-| [DataTalksClub](https://github.com/DataTalksClub/datatalksclub.github.io) | 790 | 19.8s | 1.2s | 17x |
-| [opensource.guide](https://github.com/github/opensource.guide) | 390 | 15.6s | 0.5s | 30x |
-| [muan/site](https://github.com/muan/site) | 2,219 | 16.3s | 0.6s | 27x |
-| [large-docs-site](websites/large-docs-site) | 801 | 24.2s | 0.7s | 35x |
-| [large-blog-3000](websites/large-blog-3000) | 3,001 | 4.5s | 0.9s | 5x |
-| [al-folio](https://github.com/alshedivat/al-folio) | 60 | 17.5s | 0.1s | 117x |
+| [DataTalksClub](https://github.com/DataTalksClub/datatalksclub.github.io) | 790 | 19.6s | 0.6s | 31x |
+| [opensource.guide](https://github.com/github/opensource.guide) | 390 | 15.8s | 0.6s | 27x |
+| [muan/site](https://github.com/muan/site) | 2,219 | 16.2s | 0.6s | 27x |
+| [large-docs-site](websites/large-docs-site) | 801 | 23.9s | 0.7s | 34x |
+| [large-blog-3000](websites/large-blog-3000) | 3,001 | 4.5s | 1.0s | 4x |
+| [al-folio](https://github.com/alshedivat/al-folio) | 102 | 17.7s | 0.4s | 46x |
 | [type-theme](https://github.com/rohanchandra/type-theme) | 8 | 2.2s | 0.02s | 104x |
-| [academicpages](https://github.com/academicpages/academicpages.github.io) | 45 | 4.6s | 0.07s | 62x |
+| [academicpages](https://github.com/academicpages/academicpages.github.io) | 45 | 4.5s | 0.09s | 53x |
 
 Median wall-clock time over 3 runs, clean builds, no caching. Full results in [docs/benchmark/results.md](docs/benchmark/results.md).
 
