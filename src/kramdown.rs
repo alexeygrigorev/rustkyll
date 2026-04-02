@@ -2187,10 +2187,21 @@ pub fn split_text_after_html_block_close(content: &str) -> String {
             }
         }
 
-        if let Some((end, _tag)) = earliest {
+        if let Some((end, tag)) = earliest {
             // Copy everything up to and including the closing tag
             result.push_str(&remaining[..end]);
             let after = &remaining[end..];
+
+            // For </summary>, skip the split if </details> appears on the same line.
+            // This preserves single-line <details><summary>...</summary>text</details>
+            // as raw HTML, preventing pulldown-cmark from wrapping content in <p> tags.
+            if tag == "</summary>" {
+                let rest_of_line = after.split('\n').next().unwrap_or("");
+                if rest_of_line.contains("</details>") {
+                    remaining = after;
+                    continue;
+                }
+            }
 
             // Check if there's non-whitespace text immediately following
             // (not starting with newline, not empty, not another HTML tag)
@@ -12317,6 +12328,91 @@ by <a href="/people/author.html">Author Name</a>
         let input = "</a> some text";
         let result = split_text_after_html_block_close(input);
         assert_eq!(result, input, "Inline tags should not be split");
+    }
+
+    // --- Issue 476: single-line <details> should not be split ---
+
+    #[test]
+    fn test_issue476_single_line_details_not_split() {
+        let input = "<details><summary>Content warning</summary>Some text here.</details>";
+        let result = split_text_after_html_block_close(input);
+        assert_eq!(
+            result, input,
+            "Single-line <details> block should NOT be split after </summary>. Got: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue476_single_line_details_unicode() {
+        let input =
+            "<details><summary>Warning</summary>\u{4e2d}\u{6587}\u{5185}\u{5bb9}\u{3002}</details>";
+        let result = split_text_after_html_block_close(input);
+        assert_eq!(
+            result, input,
+            "Single-line <details> with Unicode should NOT be split. Got: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue476_multiline_details_summary_still_splits() {
+        // When </details> is on a different line, </summary> should still be split
+        let input = "</summary>Some text\n</details>";
+        let result = split_text_after_html_block_close(input);
+        assert!(
+            result.contains("</summary>\n\nSome text"),
+            "Multi-line details: </summary> should still split when </details> is on a different line. Got: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue476_summary_without_details_still_splits() {
+        // </summary> followed by text without </details> on same line
+        let input = "</summary>Some text after summary";
+        let result = split_text_after_html_block_close(input);
+        assert!(
+            result.contains("</summary>\n\nSome text"),
+            "</summary> followed by text without </details> should still split. Got: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue476_single_line_details_no_p_wrapping() {
+        // End-to-end: single-line details through markdown pipeline
+        let input = "<details><summary>CW</summary>Some text here.</details>\n";
+        let preprocessed = split_text_after_html_block_close(input);
+        let html = crate::frontmatter::markdown_to_html(&preprocessed);
+        assert!(
+            !html.contains("<p>"),
+            "Single-line <details> should NOT have <p> wrapping inside. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<details><summary>CW</summary>Some text here.</details>"),
+            "Single-line <details> should be preserved verbatim. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue476_details_followed_by_paragraph() {
+        // Details block followed by regular markdown
+        let input = "<details><summary>CW</summary>text</details>\n\nA regular paragraph.\n";
+        let preprocessed = split_text_after_html_block_close(input);
+        let html = crate::frontmatter::markdown_to_html(&preprocessed);
+        assert!(
+            html.contains("<details><summary>CW</summary>text</details>"),
+            "Details block should be preserved. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<p>A regular paragraph.</p>"),
+            "Following paragraph should render correctly. Got: {}",
+            html
+        );
     }
 
     // --- Issue 218: postprocess_for_filter block spacing and list indentation ---
