@@ -68,13 +68,25 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/DataTalksClub/datatalksclub.github.io.git
 
-      - name: Cache Ruby gems
+      - name: Clone DTC docs (shallow)
+        run: |
+          git clone --depth 1 https://github.com/DataTalksClub/docs.git dtc-docs
+
+      - name: Cache Ruby gems (DTC main)
         uses: actions/cache@v4
         with:
-          path: vendor/bundle
-          key: ${{ runner.os }}-gems-dtc-${{ hashFiles('datatalksclub.github.io/Gemfile.lock') }}
+          path: vendor/bundle-dtc-main
+          key: ${{ runner.os }}-gems-dtc-main-${{ hashFiles('datatalksclub.github.io/Gemfile.lock') }}
           restore-keys: |
-            ${{ runner.os }}-gems-dtc-
+            ${{ runner.os }}-gems-dtc-main-
+
+      - name: Cache Ruby gems (DTC docs)
+        uses: actions/cache@v4
+        with:
+          path: vendor/bundle-dtc-docs
+          key: ${{ runner.os }}-gems-dtc-docs-${{ hashFiles('dtc-docs/Gemfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-gems-dtc-docs-
 
       - name: Install Jekyll and Bundler
         run: gem install bundler jekyll
@@ -82,12 +94,23 @@ jobs:
       - name: Bundle install for DTC site
         run: |
           cd datatalksclub.github.io
-          bundle config set --local path '${{ github.workspace }}/vendor/bundle'
+          bundle config set --local path '${{ github.workspace }}/vendor/bundle-dtc-main'
+          bundle install --jobs 4 --retry 3
+
+      - name: Bundle install for DTC docs
+        run: |
+          cd dtc-docs
+          bundle config set --local path '${{ github.workspace }}/vendor/bundle-dtc-docs'
           bundle install --jobs 4 --retry 3
 
       - name: Build DTC with Jekyll
         run: |
           cd datatalksclub.github.io
+          bundle exec jekyll build
+
+      - name: Build DTC docs with Jekyll
+        run: |
+          cd dtc-docs
           bundle exec jekyll build
 
       - name: Build rustkyll (release)
@@ -98,10 +121,15 @@ jobs:
           cd datatalksclub.github.io
           ../target/release/rustkyll build --destination ../dtc-rustkyll-output
 
+      - name: Build DTC docs with rustkyll
+        run: |
+          cd dtc-docs
+          ../target/release/rustkyll build --destination ../dtc-docs-rustkyll-output
+
       - name: Install uv
         uses: astral-sh/setup-uv@v4
 
-      - name: Run DOM comparison
+      - name: Run DOM comparison (DTC main)
         run: |
           uv run scripts/dom_compare.py \
             --jekyll-dir datatalksclub.github.io/_site \
@@ -109,7 +137,7 @@ jobs:
             --output dom-report.txt \
             2>&1 | tee dom-output.txt
 
-      - name: Assert 790/790 matched and 0 diffs
+      - name: Assert DTC main 790/790 matched and 0 diffs
         run: |
           SUMMARY=$(grep '^Summary:' dom-output.txt)
           echo "DOM comparison result: $SUMMARY"
@@ -121,18 +149,49 @@ jobs:
           echo "Total diffs: $DIFFS"
 
           if [ "$MATCHED" -lt 790 ]; then
-            echo "FAIL: Matched file count ($MATCHED) is below 790"
+            echo "FAIL: DTC main matched file count ($MATCHED) is below 790"
             exit 1
           fi
 
           if [ "$DIFFS" -ne 0 ]; then
-            echo "FAIL: Total differences ($DIFFS) is not 0"
+            echo "FAIL: DTC main total differences ($DIFFS) is not 0"
             exit 1
           fi
 
-          echo "PASS: $MATCHED files matched, 0 total differences"
+          echo "PASS: DTC main $MATCHED files matched, 0 total differences"
 
-      - name: Upload DOM report on failure
+      - name: Run DOM comparison (DTC docs)
+        run: |
+          uv run scripts/dom_compare.py \
+            --jekyll-dir dtc-docs/_site \
+            --rustkyll-dir dtc-docs-rustkyll-output \
+            --output dtc-docs-dom-report.txt \
+            2>&1 | tee dtc-docs-dom-output.txt
+
+      - name: Assert DTC docs >= 38 matched and <= 26 diffs
+        run: |
+          SUMMARY=$(grep '^Summary:' dtc-docs-dom-output.txt)
+          echo "DOM comparison result: $SUMMARY"
+
+          MATCHED=$(echo "$SUMMARY" | sed 's/Summary: \([0-9]*\) files matched.*/\1/')
+          DIFFS=$(echo "$SUMMARY" | sed 's/.*matched, [0-9]* files with differences, \([0-9]*\) total differences.*/\1/')
+
+          echo "Matched: $MATCHED"
+          echo "Total diffs: $DIFFS"
+
+          if [ "$MATCHED" -lt 38 ]; then
+            echo "FAIL: DTC docs matched file count ($MATCHED) is below 38"
+            exit 1
+          fi
+
+          if [ "$DIFFS" -gt 26 ]; then
+            echo "FAIL: DTC docs total differences ($DIFFS) exceeds 26"
+            exit 1
+          fi
+
+          echo "PASS: DTC docs $MATCHED files matched, $DIFFS total differences"
+
+      - name: Upload DTC main DOM report on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -140,3 +199,12 @@ jobs:
           path: |
             dom-report.txt
             dom-output.txt
+
+      - name: Upload DTC docs DOM report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dtc-docs-dom-report
+          path: |
+            dtc-docs-dom-report.txt
+            dtc-docs-dom-output.txt
