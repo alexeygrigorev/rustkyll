@@ -93,6 +93,37 @@ impl LayoutEngine {
         })
     }
 
+    /// Create a `LayoutEngine` that merges includes from a default and custom directory.
+    ///
+    /// Files from the custom directory override files from the default directory
+    /// with the same relative path. This supports Jekyll's `includes_dir` config.
+    pub fn new_with_merged_includes(
+        layouts_dir: &Path,
+        default_includes_dir: &Path,
+        custom_includes_dir: &Path,
+    ) -> Result<Self, TemplateError> {
+        let layouts = load_layouts(layouts_dir)?;
+        let layout_sources: HashMap<String, String> = layouts
+            .iter()
+            .map(|(k, v)| (k.clone(), v.source.clone()))
+            .collect();
+        let includes_map =
+            super::engine::load_includes_merged(default_includes_dir, custom_includes_dir)?;
+        let engine =
+            TemplateEngine::with_includes_and_extra_sources(&includes_map, &layout_sources)?;
+        let compiled_layouts = Self::compile_layouts(&layouts, &engine)?;
+        let layout_objects = Self::precompute_layout_objects(&layouts);
+        Ok(Self {
+            layouts,
+            compiled_layouts,
+            layout_objects,
+            engine,
+            use_kramdown_code_classes: true,
+            enable_hardbreaks: false,
+            enable_autolink: false,
+        })
+    }
+
     /// Create a `LayoutEngine` from pre-loaded layouts and includes.
     ///
     /// Useful for testing.

@@ -141,6 +141,11 @@ pub struct SiteConfig {
     #[serde(default)]
     pub defaults: Vec<DefaultConfig>,
 
+    /// Directory to look for include files (default: `_includes`).
+    /// Jekyll's `includes_dir` config option.
+    #[serde(default = "default_includes_dir")]
+    pub includes_dir: String,
+
     /// Catch-all for unknown config keys.
     /// Any YAML key not matched by a named field above is captured here.
     /// These are exposed in templates as `site.<key>`.
@@ -172,6 +177,10 @@ fn default_permalink() -> String {
     "date".to_string()
 }
 
+fn default_includes_dir() -> String {
+    "_includes".to_string()
+}
+
 impl Default for SiteConfig {
     fn default() -> Self {
         Self {
@@ -185,6 +194,7 @@ impl Default for SiteConfig {
             exclude: vec![],
             include: vec![],
             collections: HashMap::new(),
+            includes_dir: default_includes_dir(),
             defaults: vec![],
             extras: HashMap::new(),
             url_explicitly_set: false,
@@ -1916,5 +1926,37 @@ defaults:
             config.url_explicitly_set,
             "url_explicitly_set should be true when url: (null) is present in config"
         );
+    }
+
+    // ========================================================================
+    // Issue 542: includes_dir config field
+    // ========================================================================
+
+    #[test]
+    fn test_includes_dir_custom_value() {
+        let yaml = "includes_dir: docs/_includes\nname: Test\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.includes_dir, "docs/_includes");
+    }
+
+    #[test]
+    fn test_includes_dir_default_when_absent() {
+        let yaml = "name: Test\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.includes_dir, "_includes");
+    }
+
+    #[test]
+    fn test_includes_dir_explicit_default() {
+        let yaml = "includes_dir: _includes\nname: Test\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.includes_dir, "_includes");
+    }
+
+    #[test]
+    fn test_includes_dir_unicode_path() {
+        let yaml = "includes_dir: docs/インクルード\nname: Test\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(config.includes_dir, "docs/インクルード");
     }
 }

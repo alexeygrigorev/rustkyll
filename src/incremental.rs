@@ -73,6 +73,14 @@ pub fn file_mtime(path: &Path) -> Option<u64> {
 /// - `_layouts/` directory
 /// - `_includes/` directory
 pub fn collect_global_files(source: &Path) -> HashMap<String, u64> {
+    collect_global_files_with_includes_dir(source, "_includes")
+}
+
+/// Like `collect_global_files` but also tracks a custom includes directory.
+pub fn collect_global_files_with_includes_dir(
+    source: &Path,
+    includes_dir: &str,
+) -> HashMap<String, u64> {
     let mut globals = HashMap::new();
 
     // Config file
@@ -84,8 +92,13 @@ pub fn collect_global_files(source: &Path) -> HashMap<String, u64> {
     // Layout files
     collect_dir_mtimes(source, &source.join("_layouts"), &mut globals);
 
-    // Include files
+    // Include files (default _includes)
     collect_dir_mtimes(source, &source.join("_includes"), &mut globals);
+
+    // Custom includes dir (if different from default)
+    if includes_dir != "_includes" {
+        collect_dir_mtimes(source, &source.join(includes_dir), &mut globals);
+    }
 
     globals
 }

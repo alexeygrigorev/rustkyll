@@ -438,7 +438,8 @@ fn build_site(
 
     // 5. Incremental build check
     let phase_start = Instant::now();
-    let current_globals = incremental::collect_global_files(source);
+    let current_globals =
+        incremental::collect_global_files_with_includes_dir(source, &config.includes_dir);
     let all_source_paths = collect_all_source_paths(&collections, &pages);
     let current_sources = incremental::collect_source_files(source, &all_source_paths);
 
@@ -506,7 +507,8 @@ fn build_site(
     progress.phase("Building site context...");
     let phase_start_context = Instant::now();
     let layouts_dir = source.join("_layouts");
-    let includes_dir = source.join("_includes");
+    let default_includes_dir = source.join("_includes");
+    let custom_includes_dir = source.join(&config.includes_dir);
 
     let (mut site_context, layout_result) = rayon::join(
         || {
@@ -519,7 +521,13 @@ fn build_site(
                 &static_file_paths,
             )
         },
-        || LayoutEngine::new(&layouts_dir, &includes_dir),
+        || {
+            LayoutEngine::new_with_merged_includes(
+                &layouts_dir,
+                &default_includes_dir,
+                &custom_includes_dir,
+            )
+        },
     );
     let mut layout_engine = layout_result?;
 

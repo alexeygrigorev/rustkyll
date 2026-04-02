@@ -2157,6 +2157,27 @@ fn load_includes_recursive(
     Ok(())
 }
 
+/// Load includes from a default directory and a custom directory, merging them.
+///
+/// Files from the custom directory override files from the default directory
+/// with the same relative path. This matches Jekyll's behavior where a
+/// site-level include overrides a theme-level include.
+///
+/// When both paths are the same directory, the includes are loaded once (no duplication).
+pub fn load_includes_merged(
+    default_dir: &Path,
+    custom_dir: &Path,
+) -> Result<HashMap<String, String>, TemplateError> {
+    let mut map = HashMap::new();
+    // Load default includes first
+    load_includes_recursive(default_dir, default_dir, &mut map)?;
+    // If custom dir is different, overlay its entries (overriding defaults)
+    if default_dir != custom_dir {
+        load_includes_recursive(custom_dir, custom_dir, &mut map)?;
+    }
+    Ok(map)
+}
+
 /// Strip stray `}` inside `{% %}` tags.
 ///
 /// Some themes have typos like `{% assign x = y | filter } %}` where
@@ -7492,5 +7513,65 @@ title: "Test Book"
             !output.contains("{{"),
             "Date filter with unicode format should not produce raw Liquid"
         );
+    }
+
+    // ========================================================================
+    // Issue 542: load_includes_merged
+    // ========================================================================
+
+    #[test]
+    fn test_load_includes_merged_custom_overrides_default() {
+        let dir = tempfile::tempdir().unwrap();
+        let default_dir = dir.path().join("_includes");
+        let custom_dir = dir.path().join("custom_inc");
+        std::fs::create_dir_all(&default_dir).unwrap();
+        std::fs::create_dir_all(&custom_dir).unwrap();
+        std::fs::write(default_dir.join("a.html"), "default-a").unwrap();
+        std::fs::write(custom_dir.join("a.html"), "custom-a").unwrap();
+        std::fs::write(default_dir.join("b.html"), "default-b").unwrap();
+
+        let map = load_includes_merged(&default_dir, &custom_dir).unwrap();
+        assert_eq!(map.get("a.html").unwrap(), "custom-a");
+        assert_eq!(map.get("b.html").unwrap(), "default-b");
+    }
+
+    #[test]
+    fn test_load_includes_merged_subdirectory_override() {
+        let dir = tempfile::tempdir().unwrap();
+        let default_dir = dir.path().join("_includes");
+        let custom_dir = dir.path().join("custom_inc");
+        std::fs::create_dir_all(default_dir.join("sub")).unwrap();
+        std::fs::create_dir_all(custom_dir.join("sub")).unwrap();
+        std::fs::write(default_dir.join("sub/x.html"), "default-x").unwrap();
+        std::fs::write(custom_dir.join("sub/x.html"), "custom-x").unwrap();
+
+        let map = load_includes_merged(&default_dir, &custom_dir).unwrap();
+        assert_eq!(map.get("sub/x.html").unwrap(), "custom-x");
+    }
+
+    #[test]
+    fn test_load_includes_merged_same_dir_no_duplication() {
+        let dir = tempfile::tempdir().unwrap();
+        let inc_dir = dir.path().join("_includes");
+        std::fs::create_dir_all(&inc_dir).unwrap();
+        std::fs::write(inc_dir.join("a.html"), "content-a").unwrap();
+
+        let map = load_includes_merged(&inc_dir, &inc_dir).unwrap();
+        assert_eq!(map.get("a.html").unwrap(), "content-a");
+        assert_eq!(map.len(), 1);
+    }
+
+    #[test]
+    fn test_load_includes_merged_unicode_filenames() {
+        let dir = tempfile::tempdir().unwrap();
+        let default_dir = dir.path().join("_includes");
+        let custom_dir = dir.path().join("custom_inc");
+        std::fs::create_dir_all(&default_dir).unwrap();
+        std::fs::create_dir_all(&custom_dir).unwrap();
+        std::fs::write(default_dir.join("ヘッダー.html"), "default-header").unwrap();
+        std::fs::write(custom_dir.join("ヘッダー.html"), "custom-header").unwrap();
+
+        let map = load_includes_merged(&default_dir, &custom_dir).unwrap();
+        assert_eq!(map.get("ヘッダー.html").unwrap(), "custom-header");
     }
 }

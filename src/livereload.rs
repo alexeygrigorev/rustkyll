@@ -171,6 +171,50 @@ pub fn classify_changed_file(rel_path: &str) -> FileChangeKind {
     }
 }
 
+/// Classify a changed file, recognizing a custom includes directory.
+///
+/// When `includes_dir` is set to something other than `"_includes"`, files under
+/// that directory are also classified as `FileChangeKind::Include`.
+pub fn classify_changed_file_with_includes_dir(
+    rel_path: &str,
+    includes_dir: &str,
+) -> FileChangeKind {
+    if rel_path == "_config.yml" || rel_path == "_config.yaml" {
+        FileChangeKind::Config
+    } else if rel_path.starts_with("_layouts/") || rel_path.starts_with("_layouts\\") {
+        FileChangeKind::Layout
+    } else if rel_path.starts_with("_includes/")
+        || rel_path.starts_with("_includes\\")
+        || (includes_dir != "_includes" && is_under_dir(rel_path, includes_dir))
+    {
+        FileChangeKind::Include
+    } else if rel_path.starts_with("_data/") || rel_path.starts_with("_data\\") {
+        FileChangeKind::Data
+    } else {
+        // Check if it's a static asset (no front matter expected) or content
+        let is_content_ext = rel_path.ends_with(".md")
+            || rel_path.ends_with(".html")
+            || rel_path.ends_with(".htm")
+            || rel_path.ends_with(".markdown");
+        if is_content_ext {
+            FileChangeKind::Content
+        } else {
+            FileChangeKind::StaticAsset
+        }
+    }
+}
+
+/// Check if a relative path is under a given directory prefix.
+fn is_under_dir(rel_path: &str, dir: &str) -> bool {
+    let with_slash = if dir.ends_with('/') || dir.ends_with('\\') {
+        dir.to_string()
+    } else {
+        format!("{}/", dir)
+    };
+    let with_backslash = with_slash.replace('/', "\\");
+    rel_path.starts_with(&with_slash) || rel_path.starts_with(&with_backslash)
+}
+
 /// Analyze a set of changed file paths and determine the rebuild scope.
 ///
 /// If any file is config, layout, include, or data, returns `RebuildScope::Full`.
@@ -178,6 +222,15 @@ pub fn classify_changed_file(rel_path: &str) -> FileChangeKind {
 /// Static asset changes also trigger a full rebuild (they need to be re-copied and the
 /// current architecture doesn't support partial static file copy).
 pub fn determine_rebuild_scope(source: &Path, changed_paths: &[PathBuf]) -> RebuildScope {
+    determine_rebuild_scope_with_includes_dir(source, changed_paths, "_includes")
+}
+
+/// Like `determine_rebuild_scope` but recognizes a custom includes directory.
+pub fn determine_rebuild_scope_with_includes_dir(
+    source: &Path,
+    changed_paths: &[PathBuf],
+    includes_dir: &str,
+) -> RebuildScope {
     let mut content_paths = Vec::new();
     let mut needs_full = false;
 
@@ -199,7 +252,7 @@ pub fn determine_rebuild_scope(source: &Path, changed_paths: &[PathBuf]) -> Rebu
             }
         };
 
-        match classify_changed_file(&rel) {
+        match classify_changed_file_with_includes_dir(&rel, includes_dir) {
             FileChangeKind::Config
             | FileChangeKind::Layout
             | FileChangeKind::Include
@@ -824,6 +877,59 @@ mod tests {
 
         let changed = vec![css];
         let scope = determine_rebuild_scope(source, &changed);
+        assert_eq!(scope, RebuildScope::Full);
+    }
+
+    // ========================================================================
+    // Issue 542: Custom includes_dir classification
+    // ========================================================================
+
+    #[test]
+    fn test_classify_custom_includes_dir() {
+        assert_eq!(
+            classify_changed_file_with_includes_dir("docs/_includes/head.html", "docs/_includes"),
+            FileChangeKind::Include
+        );
+    }
+
+    #[test]
+    fn test_classify_custom_includes_dir_default_still_works() {
+        assert_eq!(
+            classify_changed_file_with_includes_dir("_includes/header.html", "docs/_includes"),
+            FileChangeKind::Include
+        );
+    }
+
+    #[test]
+    fn test_classify_custom_includes_dir_not_matching() {
+        assert_eq!(
+            classify_changed_file_with_includes_dir("about.html", "docs/_includes"),
+            FileChangeKind::Content
+        );
+    }
+
+    #[test]
+    fn test_classify_custom_includes_dir_unicode_path() {
+        assert_eq!(
+            classify_changed_file_with_includes_dir(
+                "docs/インクルード/header.html",
+                "docs/インクルード"
+            ),
+            FileChangeKind::Include
+        );
+    }
+
+    #[test]
+    fn test_scope_custom_includes_dir_triggers_full_rebuild() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path();
+        let custom_inc = source.join("docs/_includes");
+        std::fs::create_dir_all(&custom_inc).unwrap();
+        let inc_file = custom_inc.join("head.html");
+        std::fs::write(&inc_file, "<script>test</script>").unwrap();
+
+        let changed = vec![inc_file];
+        let scope = determine_rebuild_scope_with_includes_dir(source, &changed, "docs/_includes");
         assert_eq!(scope, RebuildScope::Full);
     }
 }
