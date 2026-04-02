@@ -19,6 +19,7 @@ from dom_compare import (
     compare_trees,
     filter_acceptable_diffs,
     find_common_html_files,
+    is_acceptable_cache_busting_timestamp_diff,
     is_acceptable_jekyll_math_pipe_table_diff,
     is_acceptable_jekyll_math_emphasis_diff,
     is_acceptable_jekyll_math_br_diff,
@@ -1610,6 +1611,110 @@ class TestJsonldSmartQuoteFilter(unittest.TestCase):
             actual,
         )
         self.assertTrue(is_acceptable_jsonld_markdown_link_diff(diff))
+
+
+class TestCacheBustingTimestampFilter(unittest.TestCase):
+    """Tests for is_acceptable_cache_busting_timestamp_diff."""
+
+    def test_css_href_different_timestamps(self):
+        """attribute_differs with same base CSS path, different timestamps -> accepted."""
+        diff = DiffResult(
+            "html > head > link", "attribute_differs",
+            "href='/css/main.css?1774771914'", "href='/css/main.css?1774898774'"
+        )
+        self.assertTrue(is_acceptable_cache_busting_timestamp_diff(diff))
+
+    def test_js_src_different_timestamps(self):
+        """attribute_differs with same base JS path, different timestamps -> accepted."""
+        diff = DiffResult(
+            "html > body > script", "attribute_differs",
+            "src='/js/base.js?1774771914'", "src='/js/base.js?1774898774'"
+        )
+        self.assertTrue(is_acceptable_cache_busting_timestamp_diff(diff))
+
+    def test_full_url_different_timestamps(self):
+        """attribute_differs with full URL and different timestamps -> accepted."""
+        diff = DiffResult(
+            "html > head > meta", "attribute_differs",
+            "content='https://bitcoin.org/img/icons/opengraph.png?1774771914'",
+            "content='https://bitcoin.org/img/icons/opengraph.png?1774898774'"
+        )
+        self.assertTrue(is_acceptable_cache_busting_timestamp_diff(diff))
+
+    def test_different_base_paths_not_accepted(self):
+        """attribute_differs with different base paths -> NOT accepted."""
+        diff = DiffResult(
+            "html > body > script", "attribute_differs",
+            "src='/js/base.js?1774771914'", "src='/js/main.js?1774898774'"
+        )
+        self.assertFalse(is_acceptable_cache_busting_timestamp_diff(diff))
+
+    def test_non_numeric_query_not_accepted(self):
+        """attribute_differs with non-numeric query string -> NOT accepted."""
+        diff = DiffResult(
+            "html > head > link", "attribute_differs",
+            "href='/css/main.css?v=2.1'", "href='/css/main.css?v=2.2'"
+        )
+        self.assertFalse(is_acceptable_cache_busting_timestamp_diff(diff))
+
+    def test_text_differs_not_accepted(self):
+        """text_differs with timestamp content -> NOT accepted (wrong diff type)."""
+        diff = DiffResult(
+            "html > body > p", "text_differs",
+            "1774771914", "1774898774"
+        )
+        self.assertFalse(is_acceptable_cache_busting_timestamp_diff(diff))
+
+    def test_no_query_string_not_accepted(self):
+        """attribute_differs with no query string -> NOT accepted."""
+        diff = DiffResult(
+            "html > head > link", "attribute_differs",
+            "class='foo'", "class='bar'"
+        )
+        self.assertFalse(is_acceptable_cache_busting_timestamp_diff(diff))
+
+    def test_one_side_no_timestamp(self):
+        """attribute_differs where one side has no timestamp, other does -> accepted."""
+        diff = DiffResult(
+            "html > head > link", "attribute_differs",
+            "href='/css/main.css'", "href='/css/main.css?1774898774'"
+        )
+        self.assertTrue(is_acceptable_cache_busting_timestamp_diff(diff))
+
+    def test_one_side_no_timestamp_reversed(self):
+        """Same as above but reversed sides."""
+        diff = DiffResult(
+            "html > head > link", "attribute_differs",
+            "href='/css/main.css?1774771914'", "href='/css/main.css'"
+        )
+        self.assertTrue(is_acceptable_cache_busting_timestamp_diff(diff))
+
+    def test_unicode_path_with_timestamps(self):
+        """attribute_differs with non-ASCII path and different timestamps -> accepted."""
+        diff = DiffResult(
+            "html > head > link", "attribute_differs",
+            "href='/css/hauptseite\u00e4.css?1774771914'",
+            "href='/css/hauptseite\u00e4.css?1774898774'"
+        )
+        self.assertTrue(is_acceptable_cache_busting_timestamp_diff(diff))
+
+    def test_integrated_in_filter_acceptable_diffs(self):
+        """Verify the filter is called from filter_acceptable_diffs."""
+        diffs = [
+            DiffResult(
+                "html > head > link", "attribute_differs",
+                "href='/css/main.css?1774771914'", "href='/css/main.css?1774898774'"
+            ),
+            DiffResult(
+                "html > body > p", "text_differs",
+                "Hello", "World"
+            ),
+        ]
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertEqual(len(accepted), 1)
+        self.assertEqual(accepted[0].expected, "href='/css/main.css?1774771914'")
+        self.assertEqual(len(remaining), 1)
+        self.assertEqual(remaining[0].diff_type, "text_differs")
 
 
 if __name__ == "__main__":

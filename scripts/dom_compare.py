@@ -597,6 +597,36 @@ def _match_github_pages_urls(pages_url: str, io_url: str) -> bool:
     return io_url == expected_io_http
 
 
+def is_acceptable_cache_busting_timestamp_diff(diff: 'DiffResult') -> bool:
+    """Check if a diff is a cache-busting timestamp difference.
+
+    Sites use {{ site.time | date: '%s' }} to append Unix epoch timestamps
+    as query strings to asset URLs (e.g., /css/main.css?1774771914).
+    Jekyll and rustkyll produce different timestamps because they were built
+    at different times. These diffs are build artifacts, not content bugs.
+
+    Matches attribute_differs diffs where both sides are identical after
+    stripping a trailing ?<digits> query string suffix.
+    """
+    if diff.diff_type != "attribute_differs":
+        return False
+    import re
+    expected = diff.expected or ''
+    actual = diff.actual or ''
+    # Strip ?<digits> before optional trailing quote from both values
+    # The format is like: href='/css/main.css?1774771914'
+    # So the timestamp appears before the closing quote (or at end of string)
+    stripped_expected = re.sub(r'\?\d+(\'?)$', r'\1', expected)
+    stripped_actual = re.sub(r'\?\d+(\'?)$', r'\1', actual)
+    # Both stripped values must be equal
+    if stripped_expected != stripped_actual:
+        return False
+    # At least one side must have had a ?<digits> suffix (or they differ somehow)
+    if stripped_expected == expected and stripped_actual == actual:
+        return False
+    return True
+
+
 def is_acceptable_jekyll_math_pipe_table_diff(diff: 'DiffResult') -> bool:
     """Filter: Jekyll's kramdown creates <table> from | inside math.
 
@@ -901,7 +931,8 @@ def filter_acceptable_diffs(diffs: list, rustkyll_html: str = None, jekyll_html:
                 is_acceptable_language_plaintext_diff(d) or
                 is_acceptable_build_time_event_diff(d) or
                 is_acceptable_jekyll_version_diff(d) or
-                is_acceptable_github_pages_url_diff(d)):
+                is_acceptable_github_pages_url_diff(d) or
+                is_acceptable_cache_busting_timestamp_diff(d)):
             accepted.append(d)
         else:
             remaining.append(d)
