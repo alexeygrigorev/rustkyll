@@ -1,8 +1,9 @@
-//! Pagination support implementing Jekyll's `jekyll-paginate` plugin.
+//! Pagination support implementing Jekyll's `jekyll-paginate` (v1) and
+//! `jekyll-paginate-v2` plugins.
 //!
-//! This module generates paginated index pages when `paginate` is set in
-//! `_config.yml`. It provides the `paginator` variable in templates with
-//! all standard Jekyll pagination fields.
+//! v1: Global `paginate: N` in `_config.yml`, paginates a single root index.html.
+//! v2: Per-page `pagination: { enabled: true }` in front matter, each page can
+//!     opt into independent pagination with category/tag filtering.
 
 use std::fs;
 use std::path::Path;
@@ -412,6 +413,447 @@ pub fn find_index_page(pages: &[Page]) -> Option<&Page> {
     })
 }
 
+// ==========================================================================
+// jekyll-paginate-v2 support
+// ==========================================================================
+
+/// Global v2 pagination configuration from `_config.yml`.
+///
+/// Parsed from the `pagination:` block (not the v1 `paginate:` integer).
+#[derive(Debug, Clone)]
+pub struct PaginationV2Config {
+    /// Default posts per page (overridable per-page).
+    pub per_page: usize,
+    /// Permalink pattern for paginated pages (e.g., `/page/:num/`).
+    pub permalink: String,
+    /// Field to sort posts by.
+    pub sort_field: String,
+    /// Sort in reverse order (newest first).
+    pub sort_reverse: bool,
+    /// Default collection to paginate.
+    pub collection: String,
+}
+
+impl PaginationV2Config {
+    /// Extract v2 pagination config from the `pagination:` block in `_config.yml`.
+    ///
+    /// Returns `None` if:
+    /// - No `pagination:` key exists in extras
+    /// - `pagination.enabled` is false or missing
+    pub fn from_config(config: &SiteConfig) -> Option<Self> {
+        let pagination_val = config.extras.get("pagination")?;
+        let mapping = pagination_val.as_mapping()?;
+
+        // Check enabled flag
+        let enabled = mapping
+            .get(serde_yaml::Value::String("enabled".to_string()))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        if !enabled {
+            return None;
+        }
+
+        let get_str = |key: &str| -> Option<String> {
+            mapping
+                .get(serde_yaml::Value::String(key.to_string()))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+        };
+
+        let get_u64 = |key: &str| -> Option<u64> {
+            mapping
+                .get(serde_yaml::Value::String(key.to_string()))
+                .and_then(|v| v.as_u64())
+        };
+
+        let get_bool = |key: &str| -> Option<bool> {
+            mapping
+                .get(serde_yaml::Value::String(key.to_string()))
+                .and_then(|v| v.as_bool())
+        };
+
+        Some(Self {
+            per_page: get_u64("per_page").unwrap_or(10) as usize,
+            permalink: get_str("permalink").unwrap_or_else(|| "/page/:num/".to_string()),
+            sort_field: get_str("sort_field").unwrap_or_else(|| "date".to_string()),
+            sort_reverse: get_bool("sort_reverse").unwrap_or(true),
+            collection: get_str("collection").unwrap_or_else(|| "posts".to_string()),
+        })
+    }
+}
+
+/// Per-page pagination configuration from page front matter.
+///
+/// Extracted from the `pagination:` key in a page's YAML front matter.
+#[derive(Debug, Clone)]
+pub struct PagePaginationConfig {
+    pub enabled: bool,
+    pub per_page: Option<usize>,
+    pub permalink: Option<String>,
+    pub category: Option<String>,
+    pub tag: Option<String>,
+    pub collection: Option<String>,
+    pub sort_field: Option<String>,
+    pub sort_reverse: Option<bool>,
+}
+
+impl PagePaginationConfig {
+    /// Parse per-page pagination config from front matter.
+    ///
+    /// Returns `None` if no `pagination:` key or `enabled` is false.
+    pub fn from_front_matter(fm: &crate::frontmatter::FrontMatter) -> Option<Self> {
+        let pagination_val = fm.get("pagination")?;
+        let mapping = pagination_val.as_mapping()?;
+
+        let enabled = mapping
+            .get(serde_yaml::Value::String("enabled".to_string()))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        if !enabled {
+            return None;
+        }
+
+        let get_str = |key: &str| -> Option<String> {
+            mapping
+                .get(serde_yaml::Value::String(key.to_string()))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+        };
+
+        let get_u64 = |key: &str| -> Option<u64> {
+            mapping
+                .get(serde_yaml::Value::String(key.to_string()))
+                .and_then(|v| v.as_u64())
+        };
+
+        let get_bool = |key: &str| -> Option<bool> {
+            mapping
+                .get(serde_yaml::Value::String(key.to_string()))
+                .and_then(|v| v.as_bool())
+        };
+
+        Some(Self {
+            enabled: true,
+            per_page: get_u64("per_page").map(|v| v as usize),
+            permalink: get_str("permalink"),
+            category: get_str("category"),
+            tag: get_str("tag"),
+            collection: get_str("collection"),
+            sort_field: get_str("sort_field"),
+            sort_reverse: get_bool("sort_reverse"),
+        })
+    }
+}
+
+/// Filter posts by category and/or tag.
+///
+/// If `category` is Some, only posts with that category are included.
+/// If `tag` is Some, only posts with that tag are included.
+/// Both can be applied simultaneously (AND logic).
+pub fn filter_posts_for_pagination<'a>(
+    posts: &'a [CollectionItem],
+    category: Option<&str>,
+    tag: Option<&str>,
+) -> Vec<&'a CollectionItem> {
+    posts
+        .iter()
+        .filter(|post| {
+            if let Some(cat) = category {
+                if !post_has_category(post, cat) {
+                    return false;
+                }
+            }
+            if let Some(t) = tag {
+                if !post_has_tag(post, t) {
+                    return false;
+                }
+            }
+            true
+        })
+        .collect()
+}
+
+/// Check if a post belongs to a category.
+///
+/// Checks both `categories` (array) and `category` (string) front matter keys.
+fn post_has_category(post: &CollectionItem, category: &str) -> bool {
+    // Check "categories" array
+    if let Some(cats) = post.front_matter.get("categories") {
+        if value_contains_string(cats, category) {
+            return true;
+        }
+    }
+    // Check singular "category" string
+    if let Some(cat) = post.front_matter.get("category") {
+        if let Some(s) = cat.as_str() {
+            if s == category {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// Check if a post has a given tag.
+fn post_has_tag(post: &CollectionItem, tag: &str) -> bool {
+    if let Some(tags) = post.front_matter.get("tags") {
+        return value_contains_string(tags, tag);
+    }
+    // Check singular "tag" key
+    if let Some(t) = post.front_matter.get("tag") {
+        if let Some(s) = t.as_str() {
+            return s == tag;
+        }
+    }
+    false
+}
+
+/// Check if a YAML value (string or array of strings) contains a target string.
+fn value_contains_string(value: &serde_yaml::Value, target: &str) -> bool {
+    match value {
+        serde_yaml::Value::String(s) => s == target,
+        serde_yaml::Value::Sequence(seq) => seq.iter().any(|v| v.as_str() == Some(target)),
+        _ => false,
+    }
+}
+
+/// Find all pages that have v2 pagination enabled in their front matter.
+pub fn find_v2_pagination_pages(pages: &[Page]) -> Vec<&Page> {
+    pages
+        .iter()
+        .filter(|p| PagePaginationConfig::from_front_matter(&p.front_matter).is_some())
+        .collect()
+}
+
+/// Generate v2 pagination pages for all pages that opt into pagination.
+///
+/// For each page with `pagination: { enabled: true }` in front matter:
+/// 1. Filter posts by category/tag if specified
+/// 2. Sort posts by the configured field
+/// 3. Generate page 1 (overwrites original) and pages 2+ at permalink paths
+///
+/// Returns the total number of pagination pages generated.
+pub fn generate_v2_pagination_pages(
+    posts: &[CollectionItem],
+    pages: &[Page],
+    global_v2: &PaginationV2Config,
+    layout_engine: &LayoutEngine,
+    cached_site: &CachedSiteContext,
+    config: &SiteConfig,
+    output_dir: &Path,
+) -> Result<usize, GeneratorError> {
+    let v2_pages = find_v2_pagination_pages(pages);
+    if v2_pages.is_empty() {
+        return Ok(0);
+    }
+
+    let mut total_generated = 0;
+
+    for page in v2_pages {
+        let page_config = match PagePaginationConfig::from_front_matter(&page.front_matter) {
+            Some(c) => c,
+            None => continue,
+        };
+
+        // Determine effective settings (page overrides global)
+        let per_page = page_config.per_page.unwrap_or(global_v2.per_page);
+        let permalink_pattern = page_config
+            .permalink
+            .as_deref()
+            .unwrap_or(&global_v2.permalink);
+        let sort_reverse = page_config.sort_reverse.unwrap_or(global_v2.sort_reverse);
+
+        // Filter posts
+        let filtered = filter_posts_for_pagination(
+            posts,
+            page_config.category.as_deref(),
+            page_config.tag.as_deref(),
+        );
+
+        if filtered.is_empty() || per_page == 0 {
+            continue;
+        }
+
+        // Sort posts by date
+        let mut sorted_posts = filtered;
+        sorted_posts.sort_by(|a, b| {
+            let date_a = a.date.as_deref().unwrap_or("");
+            let date_b = b.date.as_deref().unwrap_or("");
+            if sort_reverse {
+                date_b.cmp(date_a).then_with(|| a.slug.cmp(&b.slug))
+            } else {
+                date_a.cmp(date_b).then_with(|| a.slug.cmp(&b.slug))
+            }
+        });
+
+        let total_posts = sorted_posts.len();
+        let total_pages = total_posts.div_ceil(per_page);
+
+        // The base URL is the page's permalink (e.g., /blog/)
+        let base_url = page.url.clone();
+
+        for page_num in 1..=total_pages {
+            let start = (page_num - 1) * per_page;
+            let end = std::cmp::min(start + per_page, total_posts);
+            let page_posts: Vec<&CollectionItem> = sorted_posts[start..end].to_vec();
+
+            // Build full pagination path: base_url + permalink_pattern
+            // For page 1: use base_url as-is
+            // For page N: base_url + permalink_pattern with :num replaced
+            let full_permalink_pattern =
+                format!("{}{}", base_url.trim_end_matches('/'), permalink_pattern);
+
+            let paginator = build_paginator_object_v2(
+                &page_posts,
+                page_num,
+                per_page,
+                total_posts,
+                total_pages,
+                &base_url,
+                &full_permalink_pattern,
+            );
+
+            let page_url = if page_num == 1 {
+                base_url.clone()
+            } else {
+                full_permalink_pattern.replace(":num", &page_num.to_string())
+            };
+
+            // Build page front matter
+            let mut page_fm = page.front_matter.clone();
+            let defaults = config.defaults_for_page(&page.source_path);
+            for (key, value) in defaults {
+                page_fm.entry(key).or_insert(value);
+            }
+            page_fm.insert("url".into(), serde_yaml::Value::String(page_url.clone()));
+
+            let page_name = std::path::Path::new(&page.source_path)
+                .file_name()
+                .map(|f| f.to_string_lossy().to_string())
+                .unwrap_or_default();
+            page_fm
+                .entry("name".into())
+                .or_insert_with(|| serde_yaml::Value::String(page_name));
+            page_fm
+                .entry("path".into())
+                .or_insert_with(|| serde_yaml::Value::String(page.source_path.clone()));
+
+            let layout_name = page_fm
+                .get("layout")
+                .and_then(|v| v.as_str())
+                .filter(|s| !s.is_empty())
+                .map(|s| s.to_string());
+
+            let is_markdown = page.source_path.ends_with(".md");
+            let raw_content = &page.content;
+
+            let render_result = render_with_paginator(
+                layout_engine,
+                cached_site,
+                raw_content,
+                &page_fm,
+                &paginator,
+                layout_name.as_deref(),
+                is_markdown,
+            );
+
+            let html = match render_result {
+                Ok(html) => html,
+                Err(e) => {
+                    eprintln!(
+                        "Warning: failed to render v2 pagination page {} for {}: {}",
+                        page_num, page.url, e
+                    );
+                    if is_markdown {
+                        crate::frontmatter::markdown_to_html(raw_content)
+                    } else {
+                        raw_content.to_string()
+                    }
+                }
+            };
+
+            let out_path = url_to_output_path(output_dir, &page_url);
+            if let Some(parent) = out_path.parent() {
+                let _ = fs::create_dir_all(parent);
+            }
+            if fs::write(&out_path, &html).is_ok() {
+                total_generated += 1;
+            }
+        }
+    }
+
+    Ok(total_generated)
+}
+
+/// Build a v2 paginator object with proper base_url-relative paths.
+///
+/// Unlike v1 where page 1 previous_page_path is always "/", v2 uses the
+/// page's own base_url (e.g., `/blog/`) as page 1's path.
+fn build_paginator_object_v2(
+    page_posts: &[&CollectionItem],
+    page_num: usize,
+    per_page: usize,
+    total_posts: usize,
+    total_pages: usize,
+    base_url: &str,
+    paginate_path: &str,
+) -> LiquidValue {
+    let mut paginator = Object::new();
+
+    let posts_arr: Vec<LiquidValue> = page_posts
+        .iter()
+        .map(|item| collection_item_to_liquid_full(item))
+        .collect();
+    paginator.insert(
+        "posts".into(),
+        normalize_arrays(LiquidValue::Array(posts_arr)),
+    );
+
+    paginator.insert("per_page".into(), LiquidValue::scalar(per_page as i64));
+    paginator.insert(
+        "total_posts".into(),
+        LiquidValue::scalar(total_posts as i64),
+    );
+    paginator.insert(
+        "total_pages".into(),
+        LiquidValue::scalar(total_pages as i64),
+    );
+    paginator.insert("page".into(), LiquidValue::scalar(page_num as i64));
+
+    // previous_page
+    if page_num > 1 {
+        paginator.insert(
+            "previous_page".into(),
+            LiquidValue::scalar((page_num - 1) as i64),
+        );
+        let prev_path = if page_num == 2 {
+            // Page 1 is the original page at base_url
+            base_url.to_string()
+        } else {
+            paginate_path.replace(":num", &(page_num - 1).to_string())
+        };
+        paginator.insert("previous_page_path".into(), LiquidValue::scalar(prev_path));
+    } else {
+        paginator.insert("previous_page".into(), LiquidValue::Nil);
+        paginator.insert("previous_page_path".into(), LiquidValue::Nil);
+    }
+
+    // next_page
+    if page_num < total_pages {
+        paginator.insert(
+            "next_page".into(),
+            LiquidValue::scalar((page_num + 1) as i64),
+        );
+        let next_path = paginate_path.replace(":num", &(page_num + 1).to_string());
+        paginator.insert("next_page_path".into(), LiquidValue::scalar(next_path));
+    } else {
+        paginator.insert("next_page".into(), LiquidValue::Nil);
+        paginator.insert("next_page_path".into(), LiquidValue::Nil);
+    }
+
+    LiquidValue::Object(paginator)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -766,5 +1208,328 @@ mod tests {
         assert_eq!(6usize.div_ceil(3), 2);
         // 1 post with per_page=5 should give 1 page
         assert_eq!(1usize.div_ceil(5), 1);
+    }
+
+    // ========================================================================
+    // PaginationV2Config -- global config parsing
+    // ========================================================================
+
+    #[test]
+    fn test_v2_config_from_config_enabled() {
+        let yaml = "pagination:\n  enabled: true\n  per_page: 10\n  permalink: \"/page/:num/\"\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let v2 = PaginationV2Config::from_config(&config);
+        assert!(v2.is_some());
+        let v2 = v2.unwrap();
+        assert_eq!(v2.per_page, 10);
+        assert_eq!(v2.permalink, "/page/:num/");
+        assert!(v2.sort_reverse);
+    }
+
+    #[test]
+    fn test_v2_config_from_config_disabled() {
+        let yaml = "pagination:\n  enabled: false\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(PaginationV2Config::from_config(&config).is_none());
+    }
+
+    #[test]
+    fn test_v2_config_from_config_missing() {
+        let yaml = "url: https://example.com\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        assert!(PaginationV2Config::from_config(&config).is_none());
+    }
+
+    #[test]
+    fn test_v2_config_defaults() {
+        // Only enabled: true, everything else defaults
+        let yaml = "pagination:\n  enabled: true\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let v2 = PaginationV2Config::from_config(&config).unwrap();
+        assert_eq!(v2.per_page, 10); // default
+        assert_eq!(v2.permalink, "/page/:num/"); // default
+        assert_eq!(v2.sort_field, "date"); // default
+        assert!(v2.sort_reverse); // default true
+        assert_eq!(v2.collection, "posts"); // default
+    }
+
+    #[test]
+    fn test_v2_config_backward_compat_with_v1() {
+        // v1-style paginate: N should still work
+        let yaml = "paginate: 5\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        // v2 should return None (no pagination: block)
+        assert!(PaginationV2Config::from_config(&config).is_none());
+        // v1 should still work
+        assert!(PaginationConfig::from_config(&config).is_some());
+    }
+
+    // ========================================================================
+    // PagePaginationConfig -- per-page front matter parsing
+    // ========================================================================
+
+    #[test]
+    fn test_page_pagination_config_enabled_with_category() {
+        let mut fm = FrontMatter::new();
+        let mut pagination_map = serde_yaml::Mapping::new();
+        pagination_map.insert(
+            serde_yaml::Value::String("enabled".to_string()),
+            serde_yaml::Value::Bool(true),
+        );
+        pagination_map.insert(
+            serde_yaml::Value::String("category".to_string()),
+            serde_yaml::Value::String("articles".to_string()),
+        );
+        fm.insert(
+            "pagination".to_string(),
+            serde_yaml::Value::Mapping(pagination_map),
+        );
+        let page_config = PagePaginationConfig::from_front_matter(&fm);
+        assert!(page_config.is_some());
+        let page_config = page_config.unwrap();
+        assert!(page_config.enabled);
+        assert_eq!(page_config.category.as_deref(), Some("articles"));
+        assert!(page_config.tag.is_none());
+    }
+
+    #[test]
+    fn test_page_pagination_config_enabled_no_filter() {
+        let mut fm = FrontMatter::new();
+        let mut pagination_map = serde_yaml::Mapping::new();
+        pagination_map.insert(
+            serde_yaml::Value::String("enabled".to_string()),
+            serde_yaml::Value::Bool(true),
+        );
+        fm.insert(
+            "pagination".to_string(),
+            serde_yaml::Value::Mapping(pagination_map),
+        );
+        let page_config = PagePaginationConfig::from_front_matter(&fm);
+        assert!(page_config.is_some());
+        let page_config = page_config.unwrap();
+        assert!(page_config.enabled);
+        assert!(page_config.category.is_none());
+        assert!(page_config.tag.is_none());
+    }
+
+    #[test]
+    fn test_page_pagination_config_disabled() {
+        let mut fm = FrontMatter::new();
+        let mut pagination_map = serde_yaml::Mapping::new();
+        pagination_map.insert(
+            serde_yaml::Value::String("enabled".to_string()),
+            serde_yaml::Value::Bool(false),
+        );
+        fm.insert(
+            "pagination".to_string(),
+            serde_yaml::Value::Mapping(pagination_map),
+        );
+        assert!(PagePaginationConfig::from_front_matter(&fm).is_none());
+    }
+
+    #[test]
+    fn test_page_pagination_config_missing() {
+        let fm = FrontMatter::new();
+        assert!(PagePaginationConfig::from_front_matter(&fm).is_none());
+    }
+
+    #[test]
+    fn test_page_pagination_config_with_tag() {
+        let mut fm = FrontMatter::new();
+        let mut pagination_map = serde_yaml::Mapping::new();
+        pagination_map.insert(
+            serde_yaml::Value::String("enabled".to_string()),
+            serde_yaml::Value::Bool(true),
+        );
+        pagination_map.insert(
+            serde_yaml::Value::String("tag".to_string()),
+            serde_yaml::Value::String("jekyll".to_string()),
+        );
+        fm.insert(
+            "pagination".to_string(),
+            serde_yaml::Value::Mapping(pagination_map),
+        );
+        let page_config = PagePaginationConfig::from_front_matter(&fm).unwrap();
+        assert_eq!(page_config.tag.as_deref(), Some("jekyll"));
+    }
+
+    #[test]
+    fn test_page_pagination_config_with_per_page_override() {
+        let mut fm = FrontMatter::new();
+        let mut pagination_map = serde_yaml::Mapping::new();
+        pagination_map.insert(
+            serde_yaml::Value::String("enabled".to_string()),
+            serde_yaml::Value::Bool(true),
+        );
+        pagination_map.insert(
+            serde_yaml::Value::String("per_page".to_string()),
+            serde_yaml::Value::Number(serde_yaml::Number::from(5)),
+        );
+        fm.insert(
+            "pagination".to_string(),
+            serde_yaml::Value::Mapping(pagination_map),
+        );
+        let page_config = PagePaginationConfig::from_front_matter(&fm).unwrap();
+        assert_eq!(page_config.per_page, Some(5));
+    }
+
+    // ========================================================================
+    // Post filtering by category/tag
+    // ========================================================================
+
+    fn make_post_with_category(
+        title: &str,
+        date: &str,
+        slug: &str,
+        categories: &[&str],
+    ) -> CollectionItem {
+        let mut post = make_post(title, date, slug);
+        if !categories.is_empty() {
+            let cat_values: Vec<serde_yaml::Value> = categories
+                .iter()
+                .map(|c| serde_yaml::Value::String(c.to_string()))
+                .collect();
+            post.front_matter.insert(
+                "categories".to_string(),
+                serde_yaml::Value::Sequence(cat_values),
+            );
+        }
+        post
+    }
+
+    fn make_post_with_tags(title: &str, date: &str, slug: &str, tags: &[&str]) -> CollectionItem {
+        let mut post = make_post(title, date, slug);
+        if !tags.is_empty() {
+            let tag_values: Vec<serde_yaml::Value> = tags
+                .iter()
+                .map(|t| serde_yaml::Value::String(t.to_string()))
+                .collect();
+            post.front_matter
+                .insert("tags".to_string(), serde_yaml::Value::Sequence(tag_values));
+        }
+        post
+    }
+
+    #[test]
+    fn test_filter_posts_by_category() {
+        let posts = vec![
+            make_post_with_category("P1", "2024-01-03", "p1", &["articles"]),
+            make_post_with_category("P2", "2024-01-02", "p2", &["notes"]),
+            make_post_with_category("P3", "2024-01-01", "p3", &["articles"]),
+        ];
+        let filtered = filter_posts_for_pagination(&posts, Some("articles"), None);
+        assert_eq!(filtered.len(), 2);
+        assert_eq!(filtered[0].slug, "p1");
+        assert_eq!(filtered[1].slug, "p3");
+    }
+
+    #[test]
+    fn test_filter_posts_by_tag() {
+        let posts = vec![
+            make_post_with_tags("P1", "2024-01-03", "p1", &["jekyll", "ruby"]),
+            make_post_with_tags("P2", "2024-01-02", "p2", &["rust"]),
+            make_post_with_tags("P3", "2024-01-01", "p3", &["jekyll"]),
+        ];
+        let filtered = filter_posts_for_pagination(&posts, None, Some("jekyll"));
+        assert_eq!(filtered.len(), 2);
+        assert_eq!(filtered[0].slug, "p1");
+        assert_eq!(filtered[1].slug, "p3");
+    }
+
+    #[test]
+    fn test_filter_posts_no_filter_returns_all() {
+        let posts = vec![
+            make_post("P1", "2024-01-03", "p1"),
+            make_post("P2", "2024-01-02", "p2"),
+        ];
+        let filtered = filter_posts_for_pagination(&posts, None, None);
+        assert_eq!(filtered.len(), 2);
+    }
+
+    #[test]
+    fn test_filter_posts_unicode_category() {
+        let posts = vec![
+            make_post_with_category("P1", "2024-01-03", "p1", &["Anleitungen"]),
+            make_post_with_category("P2", "2024-01-02", "p2", &["notes"]),
+        ];
+        let filtered = filter_posts_for_pagination(&posts, Some("Anleitungen"), None);
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].slug, "p1");
+    }
+
+    #[test]
+    fn test_filter_posts_single_category_string() {
+        // Some posts have category: "articles" (string) instead of categories: ["articles"] (array)
+        let mut post = make_post("P1", "2024-01-03", "p1");
+        post.front_matter.insert(
+            "category".to_string(),
+            serde_yaml::Value::String("articles".to_string()),
+        );
+        let posts = vec![post, make_post("P2", "2024-01-02", "p2")];
+        let filtered = filter_posts_for_pagination(&posts, Some("articles"), None);
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].slug, "p1");
+    }
+
+    // ========================================================================
+    // v2 paginator object with base_url
+    // ========================================================================
+
+    #[test]
+    fn test_v2_paginator_paths_use_base_url() {
+        let posts = vec![make_post("P1", "2024-01-01", "p1")];
+        let post_refs: Vec<&CollectionItem> = posts.iter().collect();
+        // Simulate page at /blog/ with pagination permalink /page/:num/
+        let paginator =
+            build_paginator_object_v2(&post_refs, 2, 1, 3, 3, "/blog/", "/blog/page/:num/");
+        let obj = paginator.as_object().unwrap();
+        assert_eq!(
+            obj.get("previous_page_path").unwrap().to_kstr().as_str(),
+            "/blog/",
+        );
+        assert_eq!(
+            obj.get("next_page_path").unwrap().to_kstr().as_str(),
+            "/blog/page/3/",
+        );
+    }
+
+    // ========================================================================
+    // find_v2_pagination_pages
+    // ========================================================================
+
+    #[test]
+    fn test_find_v2_pagination_pages() {
+        let mut fm_with_pagination = FrontMatter::new();
+        let mut pagination_map = serde_yaml::Mapping::new();
+        pagination_map.insert(
+            serde_yaml::Value::String("enabled".to_string()),
+            serde_yaml::Value::Bool(true),
+        );
+        fm_with_pagination.insert(
+            "pagination".to_string(),
+            serde_yaml::Value::Mapping(pagination_map),
+        );
+
+        let pages = vec![
+            Page {
+                slug: "about".to_string(),
+                front_matter: FrontMatter::new(),
+                content: String::new(),
+                html_content: String::new(),
+                url: "/about/".to_string(),
+                source_path: "about.md".to_string(),
+            },
+            Page {
+                slug: "blog".to_string(),
+                front_matter: fm_with_pagination,
+                content: String::new(),
+                html_content: String::new(),
+                url: "/blog/".to_string(),
+                source_path: "_pages/blog.md".to_string(),
+            },
+        ];
+        let v2_pages = find_v2_pagination_pages(&pages);
+        assert_eq!(v2_pages.len(), 1);
+        assert_eq!(v2_pages[0].slug, "blog");
     }
 }

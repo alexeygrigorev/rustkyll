@@ -11,7 +11,7 @@ use rustkyll::data;
 use rustkyll::feed::{self, FeedOptions};
 use rustkyll::generator::{self, GeneratorError};
 use rustkyll::incremental::{self, BuildManifest, IncrementalAction};
-use rustkyll::pagination::{self, PaginationConfig};
+use rustkyll::pagination::{self, PaginationConfig, PaginationV2Config};
 use rustkyll::progress::ProgressReporter;
 use rustkyll::sitemap;
 use rustkyll::static_files;
@@ -818,31 +818,58 @@ fn build_site(
     // When pagination is enabled, skip the index page from normal rendering
     // because it will be rendered with the paginator variable in step 10b.
     let pagination_config = PaginationConfig::from_config(&config);
+    let pagination_v2_config = PaginationV2Config::from_config(&config);
     let has_pagination = pagination_config.is_some()
         && collections.contains_key("posts")
         && pagination::find_index_page(&pages).is_some();
 
+    // Collect source paths of v2-paginated pages to skip them from normal rendering
+    let v2_paginated_paths: std::collections::HashSet<String> =
+        if pagination_v2_config.is_some() && collections.contains_key("posts") {
+            pagination::find_v2_pagination_pages(&pages)
+                .iter()
+                .map(|p| p.source_path.clone())
+                .collect()
+        } else {
+            std::collections::HashSet::new()
+        };
+    let has_v2_pagination = !v2_paginated_paths.is_empty();
+
     let filtered_pages: Vec<collection::Page>;
-    let pages_slice: &[collection::Page] = match (&changed_set, has_pagination) {
-        (Some(changed), true) => {
+    let pages_slice: &[collection::Page] = match (&changed_set, has_pagination, has_v2_pagination) {
+        (Some(changed), _, _) => {
             filtered_pages = pages
                 .iter()
                 .filter(|page| {
-                    changed.contains(&page.source_path) && !is_index_page(&page.source_path)
+                    if !changed.contains(&page.source_path) {
+                        return false;
+                    }
+                    // Skip v1-paginated index page
+                    if has_pagination && is_index_page(&page.source_path) {
+                        return false;
+                    }
+                    // Skip v2-paginated pages
+                    if v2_paginated_paths.contains(&page.source_path) {
+                        return false;
+                    }
+                    true
                 })
                 .cloned()
                 .collect();
             &filtered_pages
         }
-        (Some(changed), false) => {
+        (None, true, true) => {
             filtered_pages = pages
                 .iter()
-                .filter(|page| changed.contains(&page.source_path))
+                .filter(|page| {
+                    !is_index_page(&page.source_path)
+                        && !v2_paginated_paths.contains(&page.source_path)
+                })
                 .cloned()
                 .collect();
             &filtered_pages
         }
-        (None, true) => {
+        (None, true, false) => {
             filtered_pages = pages
                 .iter()
                 .filter(|page| !is_index_page(&page.source_path))
@@ -850,7 +877,15 @@ fn build_site(
                 .collect();
             &filtered_pages
         }
-        (None, false) => &pages,
+        (None, false, true) => {
+            filtered_pages = pages
+                .iter()
+                .filter(|page| !v2_paginated_paths.contains(&page.source_path))
+                .cloned()
+                .collect();
+            &filtered_pages
+        }
+        (None, false, false) => &pages,
     };
 
     if !pages_slice.is_empty() {
@@ -866,7 +901,7 @@ fn build_site(
         summary.standalone_pages = page_result.generated;
         summary.errors.extend(page_result.errors);
     }
-    // 10b. Generate pagination pages (jekyll-paginate support)
+    // 10b. Generate pagination pages (jekyll-paginate v1 support)
     if let Some(ref pagination_config) = pagination_config {
         if let Some(posts) = collections.get("posts") {
             if let Some(index_page) = pagination::find_index_page(&pages) {
@@ -879,6 +914,24 @@ fn build_site(
                     &config,
                     destination,
                 )?;
+                summary.standalone_pages += count;
+            }
+        }
+    }
+
+    // 10b2. Generate v2 pagination pages (jekyll-paginate-v2 support)
+    if let Some(ref v2_config) = pagination_v2_config {
+        if let Some(posts) = collections.get("posts") {
+            let count = pagination::generate_v2_pagination_pages(
+                posts,
+                &pages,
+                v2_config,
+                &layout_engine,
+                &cached_site,
+                &config,
+                destination,
+            )?;
+            if count > 0 {
                 summary.standalone_pages += count;
             }
         }
