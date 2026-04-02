@@ -193,7 +193,7 @@ Status key: "yes" = fully implemented, "partial" = implemented with limitations,
 | jekyll-sitemap | yes | yes | `src/sitemap.rs` -- generates sitemap.xml |
 | jekyll-avatar | yes | yes | `src/template/avatar_tag.rs` -- built-in implementation |
 | jekyll-archives | yes | yes | `src/archives.rs` -- generates archive pages for categories and tags |
-| jekyll-redirect-from | yes | no | |
+| jekyll-redirect-from | yes | yes | `src/main.rs` -- extract_redirect_from, generate_redirect_html, redirect_from/redirect_to in build_site |
 | jekyll-paginate | yes | yes | `src/pagination.rs` -- full paginator variable in templates |
 | jekyll-mentions | yes | no | |
 | jekyll-include-cache | yes | partial | Includes are loaded eagerly; `{% include_cached %}` is not a distinct tag but includes are not re-parsed per render |

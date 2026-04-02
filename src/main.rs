@@ -2050,4 +2050,413 @@ mod tests {
             html
         );
     }
+
+    // --- Issue 481: extract_redirect_from unit tests ---
+
+    #[test]
+    fn test_extract_redirect_from_single_string() {
+        let mut fm = rustkyll::frontmatter::FrontMatter::new();
+        fm.insert(
+            "redirect_from".to_string(),
+            serde_yaml::Value::String("/old-page/".to_string()),
+        );
+        let result = extract_redirect_from(&fm);
+        assert_eq!(result, vec!["/old-page/"]);
+    }
+
+    #[test]
+    fn test_extract_redirect_from_array() {
+        let mut fm = rustkyll::frontmatter::FrontMatter::new();
+        fm.insert(
+            "redirect_from".to_string(),
+            serde_yaml::Value::Sequence(vec![
+                serde_yaml::Value::String("/old-1/".to_string()),
+                serde_yaml::Value::String("/old-2/".to_string()),
+            ]),
+        );
+        let result = extract_redirect_from(&fm);
+        assert_eq!(result, vec!["/old-1/", "/old-2/"]);
+    }
+
+    #[test]
+    fn test_extract_redirect_from_missing_key() {
+        let fm = rustkyll::frontmatter::FrontMatter::new();
+        let result = extract_redirect_from(&fm);
+        assert!(
+            result.is_empty(),
+            "Missing redirect_from key should return empty vec"
+        );
+    }
+
+    #[test]
+    fn test_extract_redirect_from_empty_string() {
+        let mut fm = rustkyll::frontmatter::FrontMatter::new();
+        fm.insert(
+            "redirect_from".to_string(),
+            serde_yaml::Value::String("".to_string()),
+        );
+        let result = extract_redirect_from(&fm);
+        assert!(
+            result.is_empty(),
+            "Empty string redirect_from should return empty vec"
+        );
+    }
+
+    #[test]
+    fn test_extract_redirect_from_array_with_empty_strings() {
+        let mut fm = rustkyll::frontmatter::FrontMatter::new();
+        fm.insert(
+            "redirect_from".to_string(),
+            serde_yaml::Value::Sequence(vec![
+                serde_yaml::Value::String("/valid/".to_string()),
+                serde_yaml::Value::String("".to_string()),
+            ]),
+        );
+        let result = extract_redirect_from(&fm);
+        assert_eq!(
+            result,
+            vec!["/valid/"],
+            "Should filter out empty strings from array"
+        );
+    }
+
+    // --- Issue 481: Integration tests for redirect_from ---
+
+    #[test]
+    fn test_integration_redirect_from_post() {
+        let tmp = tempfile::tempdir().unwrap();
+        let site_root = tmp.path();
+
+        // Create minimal site structure
+        std::fs::create_dir_all(site_root.join("_layouts")).unwrap();
+        std::fs::create_dir_all(site_root.join("_posts")).unwrap();
+        std::fs::write(
+            site_root.join("_config.yml"),
+            "url: \"https://example.com\"\ntitle: \"Redirect Test\"\npermalink: /:year/:month/:day/:title/\n",
+        )
+        .unwrap();
+        std::fs::write(
+            site_root.join("_layouts/post.html"),
+            "<html><body>{{ content }}</body></html>",
+        )
+        .unwrap();
+        std::fs::write(
+            site_root.join("_layouts/default.html"),
+            "<html><body>{{ content }}</body></html>",
+        )
+        .unwrap();
+        // Post with redirect_from
+        std::fs::write(
+            site_root.join("_posts/2024-01-15-my-post.md"),
+            "---\ntitle: My Post\nlayout: post\nredirect_from: /old-post/\n---\nPost content here.",
+        )
+        .unwrap();
+
+        let dest = site_root.join("_site");
+        let options = BuildOptions {
+            incremental: false,
+            force: false,
+            quiet: true,
+            changed_paths: None,
+        };
+
+        let result = build_site(site_root, &dest, &options);
+        assert!(result.is_ok(), "Build failed: {:?}", result.err());
+
+        // Verify redirect file exists
+        let redirect_path = dest.join("old-post/index.html");
+        assert!(
+            redirect_path.exists(),
+            "Redirect file should exist at old-post/index.html"
+        );
+
+        let redirect_content = std::fs::read_to_string(&redirect_path).unwrap();
+        assert!(
+            redirect_content.contains("<meta http-equiv=\"refresh\""),
+            "Redirect should contain meta refresh tag"
+        );
+        assert!(
+            redirect_content.contains("2024/01/15/my-post/"),
+            "Redirect should point to the post URL, got: {}",
+            redirect_content
+        );
+
+        // Verify original post is also generated
+        let post_path = dest.join("2024/01/15/my-post/index.html");
+        assert!(
+            post_path.exists(),
+            "Original post should also be generated at {:?}",
+            post_path
+        );
+    }
+
+    #[test]
+    fn test_integration_redirect_from_array_on_page() {
+        let tmp = tempfile::tempdir().unwrap();
+        let site_root = tmp.path();
+
+        std::fs::create_dir_all(site_root.join("_layouts")).unwrap();
+        std::fs::write(
+            site_root.join("_config.yml"),
+            "url: \"https://example.com\"\ntitle: \"Redirect Array Test\"\n",
+        )
+        .unwrap();
+        std::fs::write(
+            site_root.join("_layouts/page.html"),
+            "<html><body>{{ content }}</body></html>",
+        )
+        .unwrap();
+        // Page with redirect_from array
+        std::fs::write(
+            site_root.join("about.md"),
+            "---\ntitle: About\nlayout: page\npermalink: /about/\nredirect_from:\n  - /old-about/\n  - /another-old/\n---\nAbout page content.",
+        )
+        .unwrap();
+
+        let dest = site_root.join("_site");
+        let options = BuildOptions {
+            incremental: false,
+            force: false,
+            quiet: true,
+            changed_paths: None,
+        };
+
+        let result = build_site(site_root, &dest, &options);
+        assert!(result.is_ok(), "Build failed: {:?}", result.err());
+
+        // Verify both redirect files exist
+        let redirect1 = dest.join("old-about/index.html");
+        let redirect2 = dest.join("another-old/index.html");
+        assert!(
+            redirect1.exists(),
+            "First redirect file should exist at old-about/index.html"
+        );
+        assert!(
+            redirect2.exists(),
+            "Second redirect file should exist at another-old/index.html"
+        );
+
+        // Verify they point to the correct target
+        let content1 = std::fs::read_to_string(&redirect1).unwrap();
+        assert!(
+            content1.contains("/about/"),
+            "Redirect should point to /about/, got: {}",
+            content1
+        );
+
+        // Verify original page is also generated
+        let page_path = dest.join("about/index.html");
+        assert!(page_path.exists(), "Original page should also be generated");
+    }
+
+    #[test]
+    fn test_integration_redirect_to_no_layout() {
+        let tmp = tempfile::tempdir().unwrap();
+        let site_root = tmp.path();
+
+        std::fs::create_dir_all(site_root.join("_layouts")).unwrap();
+        std::fs::write(
+            site_root.join("_config.yml"),
+            "url: \"https://example.com\"\ntitle: \"Redirect To Test\"\n",
+        )
+        .unwrap();
+        std::fs::write(
+            site_root.join("_layouts/page.html"),
+            "<html><body>{{ content }}</body></html>",
+        )
+        .unwrap();
+        // Page with redirect_to (no custom redirect layout)
+        std::fs::write(
+            site_root.join("old-page.md"),
+            "---\ntitle: Old Page\npermalink: /old-page/\nredirect_to: /new-location/\n---\nThis should be replaced by redirect.",
+        )
+        .unwrap();
+
+        let dest = site_root.join("_site");
+        let options = BuildOptions {
+            incremental: false,
+            force: false,
+            quiet: true,
+            changed_paths: None,
+        };
+
+        let result = build_site(site_root, &dest, &options);
+        assert!(result.is_ok(), "Build failed: {:?}", result.err());
+
+        // The page output should be redirect HTML pointing to /new-location/
+        let page_path = dest.join("old-page/index.html");
+        assert!(page_path.exists(), "Page output should exist");
+
+        let content = std::fs::read_to_string(&page_path).unwrap();
+        assert!(
+            content.contains("<meta http-equiv=\"refresh\""),
+            "Page should contain meta refresh for redirect_to"
+        );
+        assert!(
+            content.contains("/new-location/"),
+            "Page should redirect to /new-location/, got: {}",
+            content
+        );
+    }
+
+    #[test]
+    fn test_integration_redirect_to_absolute_url() {
+        let tmp = tempfile::tempdir().unwrap();
+        let site_root = tmp.path();
+
+        std::fs::create_dir_all(site_root.join("_layouts")).unwrap();
+        std::fs::write(
+            site_root.join("_config.yml"),
+            "url: \"https://example.com\"\ntitle: \"Redirect To Absolute Test\"\n",
+        )
+        .unwrap();
+        std::fs::write(
+            site_root.join("_layouts/page.html"),
+            "<html><body>{{ content }}</body></html>",
+        )
+        .unwrap();
+        // Page with redirect_to pointing to external URL
+        std::fs::write(
+            site_root.join("external.md"),
+            "---\ntitle: External\npermalink: /external/\nredirect_to: https://external.example.com/target/\n---\nRedirect to external.",
+        )
+        .unwrap();
+
+        let dest = site_root.join("_site");
+        let options = BuildOptions {
+            incremental: false,
+            force: false,
+            quiet: true,
+            changed_paths: None,
+        };
+
+        let result = build_site(site_root, &dest, &options);
+        assert!(result.is_ok(), "Build failed: {:?}", result.err());
+
+        let page_path = dest.join("external/index.html");
+        assert!(page_path.exists(), "Page output should exist");
+
+        let content = std::fs::read_to_string(&page_path).unwrap();
+        assert!(
+            content.contains("https://external.example.com/target/"),
+            "Absolute URL should be used as-is (no baseurl prepended), got: {}",
+            content
+        );
+        // Should NOT have site_url prepended to an absolute URL
+        assert!(
+            !content.contains("https://example.comhttps://"),
+            "Should not double-prefix absolute URLs"
+        );
+    }
+
+    #[test]
+    fn test_integration_redirect_to_with_custom_layout() {
+        let tmp = tempfile::tempdir().unwrap();
+        let site_root = tmp.path();
+
+        std::fs::create_dir_all(site_root.join("_layouts")).unwrap();
+        std::fs::write(
+            site_root.join("_config.yml"),
+            "url: \"https://example.com\"\ntitle: \"Custom Layout Redirect Test\"\n",
+        )
+        .unwrap();
+        std::fs::write(
+            site_root.join("_layouts/page.html"),
+            "<html><body>{{ content }}</body></html>",
+        )
+        .unwrap();
+        // Custom redirect layout
+        std::fs::write(
+            site_root.join("_layouts/redirect.html"),
+            "<html><head><meta http-equiv=\"refresh\" content=\"0; url={{ page.redirect_to }}\"></head><body>Custom redirect to {{ page.redirect_to }}</body></html>",
+        )
+        .unwrap();
+        // Page with redirect_to AND layout: redirect
+        std::fs::write(
+            site_root.join("custom-redirect.md"),
+            "---\ntitle: Custom Redirect\npermalink: /custom-redirect/\nlayout: redirect\nredirect_to: /target/\n---\n",
+        )
+        .unwrap();
+
+        let dest = site_root.join("_site");
+        let options = BuildOptions {
+            incremental: false,
+            force: false,
+            quiet: true,
+            changed_paths: None,
+        };
+
+        let result = build_site(site_root, &dest, &options);
+        assert!(result.is_ok(), "Build failed: {:?}", result.err());
+
+        let page_path = dest.join("custom-redirect/index.html");
+        assert!(page_path.exists(), "Page output should exist");
+
+        let content = std::fs::read_to_string(&page_path).unwrap();
+        // Custom layout should be used - it contains "Custom redirect to"
+        assert!(
+            content.contains("Custom redirect to"),
+            "Custom redirect layout should be used when layout exists, got: {}",
+            content
+        );
+        // Should NOT contain the hardcoded "Redirecting&hellip;" from generate_redirect_html
+        assert!(
+            !content.contains("Redirecting&hellip;"),
+            "Hardcoded redirect HTML should NOT be used when custom layout exists, got: {}",
+            content
+        );
+    }
+
+    #[test]
+    fn test_integration_redirect_from_unicode_path() {
+        let tmp = tempfile::tempdir().unwrap();
+        let site_root = tmp.path();
+
+        std::fs::create_dir_all(site_root.join("_layouts")).unwrap();
+        std::fs::write(
+            site_root.join("_config.yml"),
+            "url: \"https://example.com\"\ntitle: \"Unicode Redirect Test\"\n",
+        )
+        .unwrap();
+        std::fs::write(
+            site_root.join("_layouts/page.html"),
+            "<html><body>{{ content }}</body></html>",
+        )
+        .unwrap();
+        // Page with non-ASCII redirect_from path
+        std::fs::write(
+            site_root.join("articles.md"),
+            "---\ntitle: Artículos\nlayout: page\npermalink: /articles/\nredirect_from: /artículos/viejo/\n---\nArticles content.",
+        )
+        .unwrap();
+
+        let dest = site_root.join("_site");
+        let options = BuildOptions {
+            incremental: false,
+            force: false,
+            quiet: true,
+            changed_paths: None,
+        };
+
+        let result = build_site(site_root, &dest, &options);
+        assert!(result.is_ok(), "Build failed: {:?}", result.err());
+
+        // Verify redirect file with Unicode path exists
+        let redirect_path = dest.join("artículos/viejo/index.html");
+        assert!(
+            redirect_path.exists(),
+            "Redirect file with Unicode path should exist at artículos/viejo/index.html"
+        );
+
+        let content = std::fs::read_to_string(&redirect_path).unwrap();
+        assert!(
+            content.contains("/articles/"),
+            "Unicode redirect should point to /articles/, got: {}",
+            content
+        );
+        assert!(
+            content.contains("<meta http-equiv=\"refresh\""),
+            "Unicode redirect should contain meta refresh"
+        );
+    }
 }
