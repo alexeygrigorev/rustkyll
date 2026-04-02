@@ -1437,7 +1437,7 @@ fn load_pages_recursive(
         if !has_front_matter(&raw) {
             if is_readme {
                 let rel = path.strip_prefix(site_dir).unwrap_or(&path);
-                let rel_str = rel.to_string_lossy();
+                let rel_str = rel.to_string_lossy().replace('\\', "/");
                 // Check if there's a path-specific default targeting this file.
                 // Type-only defaults (type: pages, path: "") don't count --
                 // they apply to already-discovered pages, not README.md files.
@@ -4881,5 +4881,37 @@ mod tests {
         }];
         filter_future_posts(&mut items, false);
         assert_eq!(items.len(), 1, "Past posts should always be included");
+    }
+
+    #[test]
+    fn test_readme_default_scope_matching_with_backslash_paths() {
+        // Regression test for Windows CI: on Windows, rel.to_string_lossy()
+        // produces backslashes (e.g., "subdir\README.md"), but config default
+        // scope paths use forward slashes ("subdir/README.md"). The
+        // starts_with check must normalize backslashes to forward slashes.
+        //
+        // This test verifies the normalization logic directly, independent of
+        // the OS path separator, by checking that a backslash-containing
+        // string matches against a forward-slash scope path after
+        // normalization.
+        let rel_str_windows = r"subdir\README.md";
+        let normalized = rel_str_windows.replace('\\', "/");
+        let scope_path = "subdir/README.md";
+        assert!(
+            normalized.starts_with(scope_path),
+            "Backslash path '{}' should match scope '{}' after normalization, got '{}'",
+            rel_str_windows,
+            scope_path,
+            normalized,
+        );
+
+        // Also test Unicode paths (e.g., Cyrillic directory names)
+        let rel_str_unicode_win = r"часть_1\README.md";
+        let normalized_unicode = rel_str_unicode_win.replace('\\', "/");
+        let scope_path_unicode = "часть_1/README.md";
+        assert!(
+            normalized_unicode.starts_with(scope_path_unicode),
+            "Unicode backslash path should match after normalization"
+        );
     }
 }

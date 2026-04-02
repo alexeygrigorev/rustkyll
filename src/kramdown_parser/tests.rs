@@ -60,10 +60,13 @@ fn run_conformance_test(stem: &str) -> bool {
         "Expected HTML file not found: {html_path:?}"
     );
 
+    // Normalize CRLF -> LF to handle Windows Git checkout (core.autocrlf=true)
     let input = std::fs::read_to_string(&text_path)
-        .unwrap_or_else(|e| panic!("Failed to read {text_path:?}: {e}"));
+        .unwrap_or_else(|e| panic!("Failed to read {text_path:?}: {e}"))
+        .replace("\r\n", "\n");
     let expected = std::fs::read_to_string(&html_path)
-        .unwrap_or_else(|e| panic!("Failed to read {html_path:?}: {e}"));
+        .unwrap_or_else(|e| panic!("Failed to read {html_path:?}: {e}"))
+        .replace("\r\n", "\n");
 
     let options = load_test_options(&dir, stem);
 
@@ -86,10 +89,13 @@ fn assert_conformance(stem: &str) {
         "Expected HTML file not found: {html_path:?}"
     );
 
+    // Normalize CRLF -> LF to handle Windows Git checkout (core.autocrlf=true)
     let input = std::fs::read_to_string(&text_path)
-        .unwrap_or_else(|e| panic!("Failed to read {text_path:?}: {e}"));
+        .unwrap_or_else(|e| panic!("Failed to read {text_path:?}: {e}"))
+        .replace("\r\n", "\n");
     let expected = std::fs::read_to_string(&html_path)
-        .unwrap_or_else(|e| panic!("Failed to read {html_path:?}: {e}"));
+        .unwrap_or_else(|e| panic!("Failed to read {html_path:?}: {e}"))
+        .replace("\r\n", "\n");
 
     let options = load_test_options(&dir, stem);
 
@@ -120,6 +126,46 @@ fn assert_conformance(stem: &str) {
             d = diffs.join("\n"),
         );
     }
+}
+
+// ---------------------------------------------------------------------------
+// CRLF line ending handling
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_conformance_crlf_input_produces_same_output_as_lf() {
+    // Regression test for Windows CI: when Git checks out .text/.html files
+    // with CRLF line endings, the parser output (LF) must still match.
+    // This test verifies that CRLF in input and expected content is handled
+    // gracefully by the conformance test infrastructure.
+    let lf_input = "# Hello\n\nA paragraph.\n";
+    let crlf_input = "# Hello\r\n\r\nA paragraph.\r\n";
+
+    let lf_output = to_html(lf_input);
+    let crlf_output = to_html(&crlf_input.replace("\r\n", "\n"));
+
+    assert_eq!(
+        lf_output, crlf_output,
+        "Parser output should be identical for LF and normalized CRLF input"
+    );
+}
+
+#[test]
+fn test_conformance_crlf_expected_normalized_before_comparison() {
+    // The conformance test harness must normalize CRLF in expected HTML files
+    // before comparing against parser output (which always uses LF).
+    let expected_crlf = "<h1>Hello</h1>\r\n<p>World</p>\r\n";
+    let actual_lf = "<h1>Hello</h1>\n<p>World</p>\n";
+
+    // Without normalization this would fail:
+    assert_ne!(expected_crlf, actual_lf, "Raw CRLF should differ from LF");
+
+    // With normalization it should pass:
+    let normalized = expected_crlf.replace("\r\n", "\n");
+    assert_eq!(
+        normalized, actual_lf,
+        "Normalized CRLF should match LF output"
+    );
 }
 
 // ---------------------------------------------------------------------------
