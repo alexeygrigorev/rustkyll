@@ -4226,38 +4226,12 @@ fn strip_p_in_tag(html: &str, tag: &str) -> String {
     result
 }
 
-/// Issue 549: Mark standalone raw HTML `<img` tags in markdown source with a
-/// `data-raw-html="1"` attribute. This allows `unwrap_block_elements_from_p` to
-/// distinguish raw HTML images (which should be unwrapped from `<p>`) from
-/// markdown-syntax images `![alt](url)` (which Jekyll/kramdown keeps in `<p>`).
-///
-/// A "standalone" raw HTML img is one that appears on its own line. Lines that
-/// are markdown image syntax `![` are NOT marked.
+/// Issue 549: Previously marked standalone raw HTML `<img` tags with a
+/// `data-raw-html="1"` attribute to distinguish them from markdown images.
+/// Issue 550: No longer needed since standalone `<img>` should stay in `<p>`
+/// (matching Jekyll/kramdown). Now a passthrough for backward compatibility.
 pub fn mark_raw_html_img_tags(markdown: &str) -> String {
-    let mut result = String::with_capacity(markdown.len() + 64);
-    for line in markdown.split('\n') {
-        let trimmed = line.trim();
-        // Match lines that start with <img (raw HTML img tag) on their own
-        if trimmed.starts_with("<img")
-            && (trimmed.len() == 4
-                || trimmed
-                    .as_bytes()
-                    .get(4)
-                    .is_some_and(|&b| b == b' ' || b == b'/' || b == b'>'))
-            && trimmed.ends_with('>')
-        {
-            // Insert data-raw-html="1" after "<img"
-            result.push_str(&line.replace("<img", "<img data-raw-html=\"1\""));
-        } else {
-            result.push_str(line);
-        }
-        result.push('\n');
-    }
-    // Remove trailing newline if original didn't have one
-    if !markdown.ends_with('\n') {
-        result.pop();
-    }
-    result
+    markdown.to_string()
 }
 
 /// Unwrap block-level HTML elements that pulldown-cmark erroneously wraps in
@@ -4274,7 +4248,8 @@ fn unwrap_block_elements_from_p(html: &str) -> String {
 
     /// Issue 449: Void (self-closing) tags that should be unwrapped from `<p>`
     /// when they are the sole content of the paragraph.
-    const UNWRAP_VOID_TAGS: &[&str] = &["img"];
+    /// Issue 550: Removed "img" -- Jekyll/kramdown wraps standalone <img> in <p>.
+    const UNWRAP_VOID_TAGS: &[&str] = &[];
 
     let mut result = html.to_string();
     for &tag in UNWRAP_TAGS {
@@ -6090,12 +6065,10 @@ fn is_block_line(trimmed: &str, block_tags: &[&str]) -> bool {
         }
     }
 
-    // Issue 449: Standalone void elements (like <img>) that occupy the entire
-    // line are block-level. This prevents wrap_bare_text_in_paragraphs from
-    // re-wrapping them in <p> after unwrap_block_elements_from_p stripped the
-    // original <p> wrapper. Only matches lines that are entirely a single
-    // void element tag (starting with <img and ending with > or />).
-    const BLOCK_VOID_TAGS: &[&str] = &["img"];
+    // Issue 449: Standalone void elements that occupy the entire line are
+    // block-level. Issue 550: Removed "img" -- Jekyll/kramdown wraps
+    // standalone <img> in <p>, so they should not be treated as block-level.
+    const BLOCK_VOID_TAGS: &[&str] = &[];
     for tag in BLOCK_VOID_TAGS {
         let open = format!("<{}", tag);
         if trimmed.starts_with(&open) {
@@ -16644,13 +16617,14 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     #[test]
-    fn test_issue449_img_standalone_not_wrapped_in_p() {
-        // Standalone img on its own line should not be wrapped in <p>
+    fn test_issue449_img_standalone_wrapped_in_p() {
+        // Issue 550: Standalone img on its own line SHOULD be wrapped in <p>
+        // matching Jekyll/kramdown behavior (updated from original #449 assertion)
         let md = "Some text before.\n\n<img src=\"https://example.com/photo.jpg\" alt=\"A photo\" style=\"max-height: 20em;\">\n\nSome text after.\n";
         let html = crate::frontmatter::markdown_to_html(md);
         assert!(
-            !html.contains("<p><img"),
-            "Standalone img should NOT be wrapped in <p>. Got: {}",
+            html.contains("<p><img"),
+            "Standalone img should be wrapped in <p> (Jekyll behavior). Got: {}",
             html
         );
         assert!(
@@ -16661,13 +16635,13 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     #[test]
-    fn test_issue449_img_unicode_alt_standalone() {
-        // Standalone img with Unicode alt text
+    fn test_issue449_img_unicode_alt_standalone_wrapped_in_p() {
+        // Issue 550: Standalone img with Unicode alt text should be wrapped in <p>
         let md = "<img src=\"https://example.com/pic.jpg\" alt=\"Ein Bild mit Umlauten: \u{00e4}\u{00f6}\u{00fc}\" style=\"display: block;\">\n";
         let html = crate::frontmatter::markdown_to_html(md);
         assert!(
-            !html.contains("<p><img"),
-            "Standalone img with Unicode alt should NOT be wrapped in <p>. Got: {}",
+            html.contains("<p><img"),
+            "Standalone img with Unicode alt should be wrapped in <p>. Got: {}",
             html
         );
     }
@@ -16696,43 +16670,25 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     #[test]
-    fn test_issue449_unwrap_img_from_p_postprocess() {
-        // Direct test of the unwrap function for standalone raw HTML img in <p>
-        // Issue 549: Now requires data-raw-html="1" marker to distinguish from markdown images
-        let input = "<p><img data-raw-html=\"1\" src=\"https://example.com/photo.jpg\" alt=\"test\" style=\"max-height: 20em;\"></p>";
+    fn test_issue449_img_in_p_stays_postprocess() {
+        // Issue 550: img in <p> should stay (matching Jekyll/kramdown behavior)
+        let input = "<p><img src=\"https://example.com/photo.jpg\" alt=\"test\" style=\"max-height: 20em;\"></p>";
         let result = unwrap_block_elements_from_p(input);
         assert!(
-            !result.contains("<p><img"),
-            "Standalone raw HTML img should be unwrapped from <p>. Got: {}",
-            result
-        );
-        assert!(
-            result.contains("<img src="),
-            "img element should be preserved. Got: {}",
-            result
-        );
-        assert!(
-            !result.contains("data-raw-html"),
-            "Marker attribute should be stripped. Got: {}",
+            result.contains("<p><img"),
+            "img should stay in <p> (Jekyll behavior). Got: {}",
             result
         );
     }
 
     #[test]
-    fn test_issue449_unwrap_img_self_closing_from_p() {
-        // Self-closing img with /> should also be unwrapped when marked as raw HTML
-        // Issue 549: Now requires data-raw-html="1" marker
-        let input =
-            "<p><img data-raw-html=\"1\" src=\"https://example.com/photo.jpg\" alt=\"test\" /></p>";
+    fn test_issue449_img_self_closing_in_p_stays_postprocess() {
+        // Issue 550: Self-closing img in <p> should stay
+        let input = "<p><img src=\"https://example.com/photo.jpg\" alt=\"test\" /></p>";
         let result = unwrap_block_elements_from_p(input);
         assert!(
-            !result.contains("<p><img"),
-            "Self-closing raw HTML img should be unwrapped from <p>. Got: {}",
-            result
-        );
-        assert!(
-            !result.contains("data-raw-html"),
-            "Marker attribute should be stripped. Got: {}",
+            result.contains("<p><img"),
+            "Self-closing img should stay in <p>. Got: {}",
             result
         );
     }
@@ -16767,30 +16723,25 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     #[test]
-    fn test_issue549_raw_html_img_still_unwrapped() {
-        // Raw HTML <img> on its own line should NOT be in <p>
+    fn test_issue549_raw_html_img_wrapped_in_p() {
+        // Issue 550: Raw HTML <img> on its own line SHOULD be in <p> (matching Jekyll)
         let md = "Some text.\n\n<img src=\"https://example.com/photo.jpg\" alt=\"test\" style=\"max-height: 20em;\">\n\nMore text.\n";
         let html = crate::frontmatter::markdown_to_html(md);
         assert!(
-            !html.contains("<p><img"),
-            "Raw HTML img should NOT be wrapped in <p>. Got: {}",
-            html
-        );
-        assert!(
-            html.contains("<img src=\"https://example.com/photo.jpg\""),
-            "Raw HTML img should be preserved. Got: {}",
+            html.contains("<p><img"),
+            "Raw HTML img should be wrapped in <p> (Jekyll behavior). Got: {}",
             html
         );
     }
 
     #[test]
-    fn test_issue549_raw_html_img_self_closing_unwrapped() {
-        // Raw HTML <img .../> on its own line should NOT be in <p>
+    fn test_issue549_raw_html_img_self_closing_wrapped_in_p() {
+        // Issue 550: Raw HTML self-closing <img /> SHOULD be in <p> (matching Jekyll)
         let md = "Some text.\n\n<img src=\"https://example.com/photo.jpg\" alt=\"test\" />\n\nMore text.\n";
         let html = crate::frontmatter::markdown_to_html(md);
         assert!(
-            !html.contains("<p><img"),
-            "Raw HTML self-closing img should NOT be wrapped in <p>. Got: {}",
+            html.contains("<p><img"),
+            "Raw HTML self-closing img should be wrapped in <p> (Jekyll behavior). Got: {}",
             html
         );
     }
@@ -16808,32 +16759,95 @@ by <a href="/people/author.html">Author Name</a>
     }
 
     #[test]
-    fn test_issue549_unwrap_only_marked_img() {
-        // Direct test of unwrap_block_elements_from_p:
-        // Images with data-raw-html="1" should be unwrapped
-        let input = "<p><img src=\"x.jpg\" data-raw-html=\"1\" alt=\"test\" /></p>";
-        let result = unwrap_block_elements_from_p(input);
-        assert!(
-            !result.contains("<p>"),
-            "Marked img should be unwrapped from <p>. Got: {}",
-            result
-        );
-        assert!(
-            !result.contains("data-raw-html"),
-            "Marker attribute should be stripped. Got: {}",
-            result
-        );
-    }
-
-    #[test]
-    fn test_issue549_unwrap_preserves_unmarked_img_in_p() {
-        // Direct test: images WITHOUT data-raw-html="1" should NOT be unwrapped
+    fn test_issue549_all_img_stay_in_p() {
+        // Issue 550: ALL img elements should stay in <p> (matching Jekyll/kramdown)
+        // regardless of data-raw-html marker (which is no longer added)
         let input = "<p><img src=\"x.jpg\" alt=\"test\" /></p>";
         let result = unwrap_block_elements_from_p(input);
         assert!(
             result.contains("<p><img"),
-            "Unmarked img should stay in <p>. Got: {}",
+            "img should stay in <p>. Got: {}",
             result
+        );
+    }
+
+    // Issue 550: Standalone raw HTML <img> on its own line should be wrapped in <p>
+    // just like Jekyll/kramdown does. This is different from <img> inside <figure>
+    // which is already block-level and should NOT get an extra <p> wrapper.
+
+    #[test]
+    fn test_issue550_standalone_raw_html_img_wrapped_in_p() {
+        // Standalone raw HTML <img> on its own line should be wrapped in <p>
+        // matching Jekyll/kramdown behavior
+        let md = "Some text before.\n\n<img src=\"https://example.com/photo.jpg\" alt=\"A photo\" width=\"80%\">\n\nSome text after.\n";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains(
+                "<p><img src=\"https://example.com/photo.jpg\" alt=\"A photo\" width=\"80%\""
+            ),
+            "Standalone raw HTML img should be wrapped in <p>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue550_standalone_raw_html_img_self_closing_wrapped_in_p() {
+        // Self-closing raw HTML <img .../> should also be wrapped in <p>
+        let md =
+            "Text.\n\n<img src=\"https://example.com/photo.jpg\" alt=\"test\" />\n\nMore text.\n";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("<p><img src=\"https://example.com/photo.jpg\" alt=\"test\""),
+            "Self-closing raw HTML img should be wrapped in <p>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue550_raw_html_img_unicode_alt_wrapped_in_p() {
+        // Unicode alt text should not affect p-wrapping behavior
+        let md = "<img src=\"https://example.com/pic.jpg\" alt=\"\u{00c4}\u{00d6}\u{00dc} Bild\" width=\"80%\">\n";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("<p><img"),
+            "Raw HTML img with Unicode alt should be wrapped in <p>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue550_img_inside_figure_not_double_wrapped() {
+        // <img> inside <figure> should NOT get an extra <p> wrapper
+        let md = "<figure>\n<img src=\"/images/test.png\" />\n<figcaption><p>Caption</p></figcaption>\n</figure>\n";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            !html.contains("<p><img"),
+            "img inside figure should NOT be wrapped in <p>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue550_markdown_image_still_wrapped_in_p() {
+        // Markdown ![alt](url) should still be wrapped in <p> (no change from #549)
+        let md = "Before.\n\n![Crepe](https://example.com/crepe.jpg)\n\nAfter.\n";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("<p><img src=\"https://example.com/crepe.jpg\" alt=\"Crepe\""),
+            "Markdown image should be wrapped in <p>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue550_inline_raw_html_img_stays_in_paragraph() {
+        // Inline raw HTML img within text should stay in <p> with the text
+        let md = "Here is <img src=\"x.jpg\" alt=\"pic\"> inline.\n";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("<p>Here is <img") && html.contains("inline.</p>"),
+            "Inline raw HTML img should stay in paragraph with text. Got: {}",
+            html
         );
     }
 
