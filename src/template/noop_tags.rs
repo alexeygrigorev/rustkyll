@@ -180,46 +180,6 @@ macro_rules! noop_inline_tag {
     };
 }
 
-// ---------------------------------------------------------------------------
-// Macro for no-op block tags (produce empty output)
-// ---------------------------------------------------------------------------
-
-macro_rules! noop_block_tag {
-    ($struct_name:ident, $start:expr, $end:expr, $desc:expr) => {
-        #[derive(Copy, Clone, Debug, Default)]
-        pub struct $struct_name;
-
-        impl BlockReflection for $struct_name {
-            fn start_tag(&self) -> &str {
-                $start
-            }
-            fn end_tag(&self) -> &str {
-                $end
-            }
-            fn description(&self) -> &str {
-                $desc
-            }
-        }
-
-        impl ParseBlock for $struct_name {
-            fn parse(
-                &self,
-                mut arguments: TagTokenIter<'_>,
-                mut block: TagBlock<'_, '_>,
-                _options: &Language,
-            ) -> liquid_core::Result<Box<dyn Renderable>> {
-                consume_all_arguments(&mut arguments);
-                // Consume block body without parsing
-                let _body = block.escape_liquid(true)?;
-                Ok(Box::new(NoopRenderable))
-            }
-            fn reflection(&self) -> &dyn BlockReflection {
-                self
-            }
-        }
-    };
-}
-
 /// Renderable that produces no output.
 #[derive(Debug)]
 struct NoopRenderable;
@@ -244,12 +204,6 @@ impl Renderable for NoopRenderable {
 // No-op inline tags (jekyll-scholar and other plugins)
 // ---------------------------------------------------------------------------
 
-noop_inline_tag!(CiteTag, "cite", "No-op cite tag (jekyll-scholar)");
-noop_inline_tag!(
-    ReferenceTag,
-    "reference",
-    "No-op reference tag (jekyll-scholar)"
-);
 noop_inline_tag!(
     BibliographyTag,
     "bibliography",
@@ -262,19 +216,403 @@ noop_inline_tag!(
 );
 noop_inline_tag!(SocialLinksTag, "social_links", "No-op social_links tag");
 noop_inline_tag!(TwitterTag, "twitter", "No-op twitter tag");
-noop_inline_tag!(
-    BustFileCacheTag,
-    "bust_file_cache",
-    "No-op bust_file_cache tag"
-);
 
 // ---------------------------------------------------------------------------
-// No-op block tags
+// {% cite key1 key2 ... %} -- produces [key1, key2, ...]
 // ---------------------------------------------------------------------------
 
-noop_block_tag!(TabsBlock, "tabs", "endtabs", "No-op tabs block");
-noop_block_tag!(TabBlock, "tab", "endtab", "No-op tab block");
-noop_block_tag!(QuoteBlock, "quote", "endquote", "No-op quote block");
+#[derive(Copy, Clone, Debug, Default)]
+pub struct CiteTag;
+
+impl TagReflection for CiteTag {
+    fn tag(&self) -> &'static str {
+        "cite"
+    }
+    fn description(&self) -> &'static str {
+        "Citation stub tag (jekyll-scholar)"
+    }
+}
+
+impl ParseTag for CiteTag {
+    fn parse(
+        &self,
+        mut arguments: TagTokenIter<'_>,
+        _options: &Language,
+    ) -> liquid_core::Result<Box<dyn Renderable>> {
+        let mut keys = Vec::new();
+        while let Ok(token) = arguments.expect_next("") {
+            keys.push(token.as_str().to_string());
+        }
+        Ok(Box::new(CiteRenderable { keys }))
+    }
+    fn reflection(&self) -> &dyn TagReflection {
+        self
+    }
+}
+
+#[derive(Debug)]
+struct CiteRenderable {
+    keys: Vec<String>,
+}
+
+impl std::fmt::Display for CiteRenderable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "cite")
+    }
+}
+
+impl Renderable for CiteRenderable {
+    fn render_to(&self, writer: &mut dyn Write, _runtime: &dyn Runtime) -> liquid_core::Result<()> {
+        if self.keys.is_empty() {
+            return Ok(());
+        }
+        write!(writer, "[{}]", self.keys.join(", "))
+            .map_err(|e| liquid_core::Error::with_msg(format!("Write error: {}", e)))?;
+        Ok(())
+    }
+}
+
+// ---------------------------------------------------------------------------
+// {% reference key %} -- produces [key]
+// ---------------------------------------------------------------------------
+
+#[derive(Copy, Clone, Debug, Default)]
+pub struct ReferenceTag;
+
+impl TagReflection for ReferenceTag {
+    fn tag(&self) -> &'static str {
+        "reference"
+    }
+    fn description(&self) -> &'static str {
+        "Reference stub tag (jekyll-scholar)"
+    }
+}
+
+impl ParseTag for ReferenceTag {
+    fn parse(
+        &self,
+        mut arguments: TagTokenIter<'_>,
+        _options: &Language,
+    ) -> liquid_core::Result<Box<dyn Renderable>> {
+        let key = if let Ok(token) = arguments.expect_next("") {
+            token.as_str().to_string()
+        } else {
+            String::new()
+        };
+        consume_all_arguments(&mut arguments);
+        Ok(Box::new(ReferenceRenderable { key }))
+    }
+    fn reflection(&self) -> &dyn TagReflection {
+        self
+    }
+}
+
+#[derive(Debug)]
+struct ReferenceRenderable {
+    key: String,
+}
+
+impl std::fmt::Display for ReferenceRenderable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "reference")
+    }
+}
+
+impl Renderable for ReferenceRenderable {
+    fn render_to(&self, writer: &mut dyn Write, _runtime: &dyn Runtime) -> liquid_core::Result<()> {
+        if self.key.is_empty() {
+            return Ok(());
+        }
+        write!(writer, "[{}]", self.key)
+            .map_err(|e| liquid_core::Error::with_msg(format!("Write error: {}", e)))?;
+        Ok(())
+    }
+}
+
+// ---------------------------------------------------------------------------
+// {% quote [key] %}...{% endquote %} -- produces <blockquote>
+// ---------------------------------------------------------------------------
+
+#[derive(Copy, Clone, Debug, Default)]
+pub struct QuoteBlock;
+
+impl BlockReflection for QuoteBlock {
+    fn start_tag(&self) -> &str {
+        "quote"
+    }
+    fn end_tag(&self) -> &str {
+        "endquote"
+    }
+    fn description(&self) -> &str {
+        "Blockquote with optional citation (jekyll-scholar)"
+    }
+}
+
+impl ParseBlock for QuoteBlock {
+    fn parse(
+        &self,
+        mut arguments: TagTokenIter<'_>,
+        mut block: TagBlock<'_, '_>,
+        options: &Language,
+    ) -> liquid_core::Result<Box<dyn Renderable>> {
+        // Optional citation key argument
+        let cite_key = if let Ok(token) = arguments.expect_next("") {
+            Some(token.as_str().to_string())
+        } else {
+            None
+        };
+        consume_all_arguments(&mut arguments);
+
+        // Parse the block body as Liquid template nodes
+        let body = liquid_core::runtime::Template::new(block.parse_all(options)?);
+
+        Ok(Box::new(QuoteRenderable { cite_key, body }))
+    }
+    fn reflection(&self) -> &dyn BlockReflection {
+        self
+    }
+}
+
+#[derive(Debug)]
+struct QuoteRenderable {
+    cite_key: Option<String>,
+    body: liquid_core::Template,
+}
+
+impl std::fmt::Display for QuoteRenderable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "quote")
+    }
+}
+
+impl Renderable for QuoteRenderable {
+    fn render_to(&self, writer: &mut dyn Write, runtime: &dyn Runtime) -> liquid_core::Result<()> {
+        // Render body through Liquid
+        let mut body_buf = Vec::new();
+        self.body.render_to(&mut body_buf, runtime)?;
+        let body_text = String::from_utf8_lossy(&body_buf).to_string();
+
+        write!(writer, "<blockquote>{}", body_text.trim())
+            .map_err(|e| liquid_core::Error::with_msg(format!("Write error: {}", e)))?;
+
+        if let Some(ref key) = self.cite_key {
+            write!(writer, "<cite>[{}]</cite>", html_escape(key))
+                .map_err(|e| liquid_core::Error::with_msg(format!("Write error: {}", e)))?;
+        }
+
+        write!(writer, "</blockquote>")
+            .map_err(|e| liquid_core::Error::with_msg(format!("Write error: {}", e)))?;
+
+        Ok(())
+    }
+}
+
+// ---------------------------------------------------------------------------
+// {% tabs group %}...{% endtabs %} / {% tab group name %}...{% endtab %}
+// ---------------------------------------------------------------------------
+
+#[derive(Copy, Clone, Debug, Default)]
+pub struct TabsBlock;
+
+impl BlockReflection for TabsBlock {
+    fn start_tag(&self) -> &str {
+        "tabs"
+    }
+    fn end_tag(&self) -> &str {
+        "endtabs"
+    }
+    fn description(&self) -> &str {
+        "Tabbed content block (al-folio)"
+    }
+}
+
+impl ParseBlock for TabsBlock {
+    fn parse(
+        &self,
+        mut arguments: TagTokenIter<'_>,
+        mut block: TagBlock<'_, '_>,
+        _options: &Language,
+    ) -> liquid_core::Result<Box<dyn Renderable>> {
+        // First argument is the group name
+        let group = if let Ok(token) = arguments.expect_next("") {
+            token.as_str().to_string()
+        } else {
+            "tabs".to_string()
+        };
+        consume_all_arguments(&mut arguments);
+
+        // Get the raw body -- we'll parse tab blocks manually
+        let body = block.escape_liquid(true)?.to_owned();
+
+        Ok(Box::new(TabsRenderable { group, body }))
+    }
+    fn reflection(&self) -> &dyn BlockReflection {
+        self
+    }
+}
+
+#[derive(Debug)]
+struct TabsRenderable {
+    group: String,
+    body: String,
+}
+
+impl std::fmt::Display for TabsRenderable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "tabs")
+    }
+}
+
+/// Parse the raw body of a tabs block into (name, content) pairs.
+///
+/// Looks for `{% tab <group> <name> %}...{% endtab %}` sections.
+fn parse_tab_sections(body: &str, group: &str) -> Vec<(String, String)> {
+    let mut tabs = Vec::new();
+    let mut remaining = body;
+
+    // Pattern: {% tab <group> <name> %} ... {% endtab %}
+    while let Some(start_idx) = remaining.find("{%") {
+        let after_open = &remaining[start_idx + 2..];
+        // Find the closing %}
+        if let Some(close_idx) = after_open.find("%}") {
+            let tag_content = after_open[..close_idx].trim();
+            let parts: Vec<&str> = tag_content.split_whitespace().collect();
+
+            // Check if this is a tab tag for our group
+            if parts.len() >= 3 && parts[0] == "tab" && parts[1] == group {
+                let tab_name = parts[2..].join(" ");
+                let content_start = start_idx + 2 + close_idx + 2;
+                let content_remaining = &remaining[content_start..];
+
+                // Find matching {% endtab %}
+                if let Some(end_idx) = find_endtab(content_remaining) {
+                    let content = &content_remaining[..end_idx];
+                    tabs.push((tab_name, content.trim().to_string()));
+                    // Move past the {% endtab %}
+                    let endtab_end = content_remaining[end_idx..]
+                        .find("%}")
+                        .map(|i| end_idx + i + 2)
+                        .unwrap_or(content_remaining.len());
+                    remaining = &remaining[content_start + endtab_end..];
+                    continue;
+                }
+            }
+        }
+        // Not a tab tag, skip past this {% ... %}
+        remaining = &remaining[start_idx + 2..];
+    }
+
+    tabs
+}
+
+/// Find the start position of `{% endtab %}` in the given text.
+fn find_endtab(text: &str) -> Option<usize> {
+    let mut search_from = 0;
+    while search_from < text.len() {
+        if let Some(idx) = text[search_from..].find("{%") {
+            let abs_idx = search_from + idx;
+            let after = &text[abs_idx + 2..];
+            if let Some(close) = after.find("%}") {
+                let tag = after[..close].trim();
+                if tag == "endtab" {
+                    return Some(abs_idx);
+                }
+            }
+            search_from = abs_idx + 2;
+        } else {
+            break;
+        }
+    }
+    None
+}
+
+impl Renderable for TabsRenderable {
+    fn render_to(&self, writer: &mut dyn Write, _runtime: &dyn Runtime) -> liquid_core::Result<()> {
+        let tabs = parse_tab_sections(&self.body, &self.group);
+        if tabs.is_empty() {
+            return Ok(());
+        }
+
+        let group_escaped = html_escape(&self.group);
+
+        // Navigation: <ul id="group" class="tab" data-name="group">
+        write!(
+            writer,
+            "<ul id=\"{}\" class=\"tab\" data-name=\"{}\">",
+            group_escaped, group_escaped
+        )
+        .map_err(|e| liquid_core::Error::with_msg(format!("Write error: {}", e)))?;
+
+        for (i, (name, _)) in tabs.iter().enumerate() {
+            if i == 0 {
+                write!(writer, "<li class=\"active\">{}</li>", html_escape(name))
+            } else {
+                write!(writer, "<li>{}</li>", html_escape(name))
+            }
+            .map_err(|e| liquid_core::Error::with_msg(format!("Write error: {}", e)))?;
+        }
+        write!(writer, "</ul>")
+            .map_err(|e| liquid_core::Error::with_msg(format!("Write error: {}", e)))?;
+
+        // Content panels: <ul class="tab-content" data-name="group">
+        write!(
+            writer,
+            "<ul class=\"tab-content\" data-name=\"{}\">",
+            group_escaped
+        )
+        .map_err(|e| liquid_core::Error::with_msg(format!("Write error: {}", e)))?;
+
+        for (i, (_, content)) in tabs.iter().enumerate() {
+            // Render content through Markdown
+            let rendered = crate::frontmatter::markdown_to_html(content);
+            if i == 0 {
+                write!(writer, "<li class=\"active\">{}</li>", rendered.trim())
+            } else {
+                write!(writer, "<li>{}</li>", rendered.trim())
+            }
+            .map_err(|e| liquid_core::Error::with_msg(format!("Write error: {}", e)))?;
+        }
+        write!(writer, "</ul>")
+            .map_err(|e| liquid_core::Error::with_msg(format!("Write error: {}", e)))?;
+
+        Ok(())
+    }
+}
+
+/// The `{% tab %}` block is parsed inside `{% tabs %}` via raw body extraction.
+/// This stub exists only so the Liquid parser does not reject `{% tab %}` when
+/// encountered outside a `{% tabs %}` block (which should not happen in
+/// well-formed content, but we handle it gracefully as a no-op).
+#[derive(Copy, Clone, Debug, Default)]
+pub struct TabBlock;
+
+impl BlockReflection for TabBlock {
+    fn start_tag(&self) -> &str {
+        "tab"
+    }
+    fn end_tag(&self) -> &str {
+        "endtab"
+    }
+    fn description(&self) -> &str {
+        "Individual tab content block (al-folio)"
+    }
+}
+
+impl ParseBlock for TabBlock {
+    fn parse(
+        &self,
+        mut arguments: TagTokenIter<'_>,
+        mut block: TagBlock<'_, '_>,
+        _options: &Language,
+    ) -> liquid_core::Result<Box<dyn Renderable>> {
+        consume_all_arguments(&mut arguments);
+        let _body = block.escape_liquid(true)?;
+        Ok(Box::new(NoopRenderable))
+    }
+    fn reflection(&self) -> &dyn BlockReflection {
+        self
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -470,6 +808,230 @@ mod tests {
             out,
             r#"<a href="https://github.com/github/choosealicense.com/edit/gh-pages/_licenses/mit.txt">Improve this page</a>"#,
             "github_edit_link should produce correct URL for collection item"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // cite tag tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_cite_single_key() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng.parse_and_render("{% cite mykey %}", &ctx).unwrap();
+        assert_eq!(out, "[mykey]", "cite should produce [key]: {}", out);
+    }
+
+    #[test]
+    fn test_cite_multiple_keys() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render("{% cite key1 key2 key3 %}", &ctx)
+            .unwrap();
+        assert_eq!(
+            out, "[key1, key2, key3]",
+            "cite with multiple keys should produce [key1, key2, key3]: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_cite_no_arguments() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng.parse_and_render("{% cite %}", &ctx).unwrap();
+        assert_eq!(out, "", "cite with no args should produce empty: {}", out);
+    }
+
+    #[test]
+    fn test_cite_in_unicode_prose() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render("Über die Arbeit von {% cite einstein1905 %} hinaus", &ctx)
+            .unwrap();
+        assert_eq!(
+            out, "Über die Arbeit von [einstein1905] hinaus",
+            "cite should work in Unicode prose: {}",
+            out
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // reference tag tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_reference_single_key() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng.parse_and_render("{% reference mykey %}", &ctx).unwrap();
+        assert_eq!(out, "[mykey]", "reference should produce [key]: {}", out);
+    }
+
+    #[test]
+    fn test_reference_in_unicode_prose() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render("Vgl. {% reference einstein1905 %} für Details", &ctx)
+            .unwrap();
+        assert_eq!(
+            out, "Vgl. [einstein1905] für Details",
+            "reference should work in Unicode prose: {}",
+            out
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // quote block tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_quote_basic() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render("{% quote %}Some text{% endquote %}", &ctx)
+            .unwrap();
+        assert!(
+            out.contains("<blockquote>"),
+            "quote should produce <blockquote>: {}",
+            out
+        );
+        assert!(
+            out.contains("Some text"),
+            "quote should contain body text: {}",
+            out
+        );
+        assert!(
+            out.contains("</blockquote>"),
+            "quote should close </blockquote>: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_quote_with_citation() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render("{% quote einstein1905 %}Some text{% endquote %}", &ctx)
+            .unwrap();
+        assert!(
+            out.contains("<blockquote>"),
+            "quote should produce <blockquote>: {}",
+            out
+        );
+        assert!(
+            out.contains("<cite>[einstein1905]</cite>"),
+            "quote with key should produce <cite>: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_quote_unicode_content() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render(
+                "{% quote %}Über die Elektrodynamik bewegter Körper{% endquote %}",
+                &ctx,
+            )
+            .unwrap();
+        assert!(
+            out.contains("Über die Elektrodynamik bewegter Körper"),
+            "quote should preserve Unicode content: {}",
+            out
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // tabs block tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_tabs_basic_structure() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render(
+                "{% tabs mygroup %}{% tab mygroup Tab A %}Hello{% endtab %}{% tab mygroup Tab B %}World{% endtab %}{% endtabs %}",
+                &ctx,
+            )
+            .unwrap();
+        assert!(
+            out.contains("<ul") && out.contains("class=\"tab\""),
+            "tabs should produce <ul class=\"tab\">: {}",
+            out
+        );
+        assert!(
+            out.contains("Tab A"),
+            "tabs should contain tab name 'Tab A': {}",
+            out
+        );
+        assert!(
+            out.contains("Tab B"),
+            "tabs should contain tab name 'Tab B': {}",
+            out
+        );
+        assert!(
+            out.contains("Hello"),
+            "tabs should contain tab content 'Hello': {}",
+            out
+        );
+        assert!(
+            out.contains("World"),
+            "tabs should contain tab content 'World': {}",
+            out
+        );
+        assert!(
+            out.contains("class=\"tab-content\""),
+            "tabs should produce tab-content section: {}",
+            out
+        );
+    }
+
+    #[test]
+    fn test_tabs_first_active() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render(
+                "{% tabs g %}{% tab g A %}First{% endtab %}{% tab g B %}Second{% endtab %}{% endtabs %}",
+                &ctx,
+            )
+            .unwrap();
+        // The first tab nav item should have class="active"
+        // Find first <li in the tab nav section
+        let tab_nav_start = out.find("class=\"tab\"").expect("should have tab nav");
+        let after_nav = &out[tab_nav_start..];
+        let first_li = after_nav.find("<li").expect("should have li in nav");
+        let first_li_text = &after_nav[first_li..first_li + 80.min(after_nav.len() - first_li)];
+        assert!(
+            first_li_text.contains("active"),
+            "First tab nav item should have active class: {}",
+            first_li_text
+        );
+    }
+
+    #[test]
+    fn test_tabs_unicode_names() {
+        let eng = engine();
+        let ctx = Object::new();
+        let out = eng
+            .parse_and_render(
+                "{% tabs g %}{% tab g Ünïcödé %}Inhalt{% endtab %}{% endtabs %}",
+                &ctx,
+            )
+            .unwrap();
+        assert!(
+            out.contains("Ünïcödé"),
+            "tabs should handle Unicode tab names: {}",
+            out
         );
     }
 
