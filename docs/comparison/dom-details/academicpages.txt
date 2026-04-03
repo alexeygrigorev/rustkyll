@@ -3,21 +3,21 @@ Rustkyll directory: /home/alexey/git/rustkyl/websites/academicpages/_site_rustky
 Common HTML files:  45
 
 DIFF 404.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
-DIFF archive-layout-with-content/index.html (83 differences)
-  body > div > div > table > thead > tr > th: missing_text - expected: '\xa0', actual: '(none)'
-  body > div > div > child[27]: tag_name_differs - expected: 'address', actual: 'p'
-  body > div > div > p: text_differs - expected: 'The abbreviation', actual: 'The abbreviation CSS stands for “Cascading Style Sheets”.'
-  body > div > div > p > abbr: missing_element - expected: '<abbr>', actual: '(none)'
-  body > div > div > p: missing_text - expected: 'stands for “Cascading Style Sheets”.', actual: '(none)'
-  body > div > div > child[32]: tag_name_differs - expected: 'h3', actual: 'p'
-  body > div > div > child[33]: tag_name_differs - expected: 'p', actual: 'h3'
-  body > div > div > child[34]: tag_name_differs - expected: 'h3', actual: 'p'
-  body > div > div > child[35]: tag_name_differs - expected: 'p', actual: 'h3'
-  body > div > div > child[36]: tag_name_differs - expected: 'h3', actual: 'p'
-  ... and 73 more differences
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
+DIFF archive-layout-with-content/index.html (92 differences)
+  body > div > div > child[2]: tag_name_differs - expected: 'p', actual: 'pre'
+  body > div > div > child[3]: tag_name_differs - expected: 'h1', actual: 'h3'
+  body > div > div > child[4]: tag_name_differs - expected: 'h2', actual: 'p'
+  body > div > div > h3: attribute_differs - expected: "id='header-three'", actual: "id='strong-tag'"
+  body > div > div > h3: text_differs - expected: 'Header three', actual: 'Strong Tag'
+  body > div > div > child[6]: tag_name_differs - expected: 'h4', actual: 'p'
+  body > div > div > child[7]: tag_name_differs - expected: 'h5', actual: 'h3'
+  body > div > div > child[8]: tag_name_differs - expected: 'h6', actual: 'p'
+  body > div > div > child[9]: tag_name_differs - expected: 'h2', actual: 'h3'
+  body > div > div > p: text_differs - expected: 'Single line blockquote:', actual: 'Still sticking with science and Isaac Newton’s E = MC'
+  ... and 82 more differences
 DIFF categories/index.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF collection-archive/index.html (18 differences)
   body > div > div > h2: missing_element - expected: '<h2>', actual: '(none)'
   body > div > div > div: missing_element - expected: '<div>', actual: '(none)'
@@ -31,14 +31,12 @@ DIFF collection-archive/index.html (18 differences)
   body > div > div > h2: missing_element - expected: '<h2>', actual: '(none)'
   ... and 8 more differences
 DIFF cv-json/index.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF cv/index.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF index.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
-DIFF markdown/index.html (76 differences)
-  body > div > article > div > section > ul > li > ul > li > img: missing_element - expected: '<img>', actual: '(none)'
-  body > div > article > div > section > ul > li > ul > li: missing_text - expected: '.', actual: '(none)'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
+DIFF markdown/index.html (100 differences)
   body > div > article > div > section > ul > li > ul > li: expected_text_got_element - expected: 'The best list of the supported emoji can be found in the', actual: '<p>'
   body > div > article > div > section > ul > li > ul > li > child[1]: tag_name_differs - expected: 'a', actual: 'p'
   body > div > article > div > section > ul > li > ul > li: missing_text - expected: 'blog post.', actual: '(none)'
@@ -47,9 +45,11 @@ DIFF markdown/index.html (76 differences)
   body > div > article > div > section > ul > li > ul > li: missing_text - expected: 'should contain the most up-to-date information on getting it working.', actual: '(none)'
   body > div > article > div > section > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '```mermaid graph LR A-->B ```'
   body > div > article > div > section > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
-  ... and 66 more differences
+  body > div > article > div > section > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  body > div > article > div > section > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
+  ... and 90 more differences
 DIFF non-menu-page/index.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF page-archive/index.html (14 differences)
   body > div > div > div: missing_element - expected: '<div>', actual: '(none)'
   body > div > div > div: missing_element - expected: '<div>', actual: '(none)'
@@ -62,22 +62,12 @@ DIFF page-archive/index.html (14 differences)
   body > div > div > div: missing_element - expected: '<div>', actual: '(none)'
   body > div > div > div: missing_element - expected: '<div>', actual: '(none)'
   ... and 4 more differences
-DIFF portfolio/index.html (11 differences)
-  body > div > div > div > article > p: attribute_differs - expected: "class='archive__item-excerpt'", actual: "class='page__date'"
-  body > div > div > div > article > p: missing_attribute - expected: "itemprop='description'", actual: '(none)'
-  body > div > div > div > article > p > child[1]: tag_name_differs - expected: 'p', actual: 'strong'
-  body > div > div > div > article > p > time: extra_element - expected: '(none)', actual: '<time>'
-  body > div > div > div > article > p: extra_element - expected: '(none)', actual: '<p>'
-  body > div > div > div > article > p: attribute_differs - expected: "class='archive__item-excerpt'", actual: "class='page__date'"
-  body > div > div > div > article > p: missing_attribute - expected: "itemprop='description'", actual: '(none)'
-  body > div > div > div > article > p > child[1]: tag_name_differs - expected: 'p', actual: 'strong'
-  body > div > div > div > article > p > time: extra_element - expected: '(none)', actual: '<time>'
-  body > div > div > div > article > p: extra_element - expected: '(none)', actual: '<p>'
-  ... and 1 more differences
+DIFF portfolio/index.html (1 differences)
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF portfolio/portfolio-1/index.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF portfolio/portfolio-2/index.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF posts/2012/08/blog-post-1/index.html (7 differences)
   body > div > article > div > footer > p > span > a: attribute_differs - expected: "href='https://academicpages.github.io/tags/#category1'", actual: "href='https://academicpages.github.io/tags/#cool-posts'"
   body > div > article > div > footer > p > span > a: text_differs - expected: 'category1', actual: 'cool posts'
@@ -85,7 +75,7 @@ DIFF posts/2012/08/blog-post-1/index.html (7 differences)
   body > div > article > div > footer > p > span > a: text_differs - expected: 'category2', actual: 'category1'
   body > div > article > div > footer > p > span > a: attribute_differs - expected: "href='https://academicpages.github.io/tags/#cool-posts'", actual: "href='https://academicpages.github.io/tags/#category2'"
   body > div > article > div > footer > p > span > a: text_differs - expected: 'cool posts', actual: 'category2'
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF posts/2012/08/blog-post-4/index.html (39 differences)
   head > title: text_differs - expected: 'Future Blog Post - Your Name / Site Title', actual: 'Blog Post number 4 - Your Name / Site Title'
   head > meta: attribute_differs - expected: "content='This post will show up by default. To disable scheduling of future posts, edit config.yml and set future: false.'", actual: "content='This is a sample blog post. Lorem ipsum I can’t remember the rest of lorem ipsum and don’t have an internet connection right now. Testing testing testing this blog post. Blog posts are cool.'"
@@ -105,7 +95,7 @@ DIFF posts/2013/08/blog-post-2/index.html (7 differences)
   body > div > article > div > footer > p > span > a: text_differs - expected: 'category2', actual: 'category1'
   body > div > article > div > footer > p > span > a: attribute_differs - expected: "href='https://academicpages.github.io/tags/#cool-posts'", actual: "href='https://academicpages.github.io/tags/#category2'"
   body > div > article > div > footer > p > span > a: text_differs - expected: 'cool posts', actual: 'category2'
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF posts/2014/08/blog-post-3/index.html (7 differences)
   body > div > article > div > footer > p > span > a: attribute_differs - expected: "href='https://academicpages.github.io/tags/#category1'", actual: "href='https://academicpages.github.io/tags/#cool-posts'"
   body > div > article > div > footer > p > span > a: text_differs - expected: 'category1', actual: 'cool posts'
@@ -113,19 +103,19 @@ DIFF posts/2014/08/blog-post-3/index.html (7 differences)
   body > div > article > div > footer > p > span > a: text_differs - expected: 'category2', actual: 'category1'
   body > div > article > div > footer > p > span > a: attribute_differs - expected: "href='https://academicpages.github.io/tags/#cool-posts'", actual: "href='https://academicpages.github.io/tags/#category2'"
   body > div > article > div > footer > p > span > a: text_differs - expected: 'cool posts', actual: 'category2'
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF publication/2009-10-01-paper-title-number-1.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF publication/2010-10-01-paper-title-number-2.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF publication/2015-10-01-paper-title-number-3.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF publication/2024-02-17-paper-title-number-4.html (3 differences)
   body > div > article > div > section > p: text_differs - expected: 'in the description is supported - \\(E=mc^2\\) - however, the use must be mindful that the default delimiters are', actual: 'in the description is supported - $$E=mc^2$$ - however, the use must be mindful that the default delimiters are'
   body > div > article > div > section > p > code: text_differs - expected: '$...$', actual: '$…$'
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF publications/index.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF sitemap/index.html (57 differences)
   body > div > div > child[24]: tag_name_differs - expected: 'div', actual: 'h2'
   body > div > div > div > article > h2 > a: attribute_differs - expected: "href='https://academicpages.github.io/about.html'", actual: "href='https://academicpages.github.io/posts/2012/08/blog-post-4/'"
@@ -139,28 +129,28 @@ DIFF sitemap/index.html (57 differences)
   body > div > div > div > article > p: extra_element - expected: '(none)', actual: '<p>'
   ... and 47 more differences
 DIFF tags/index.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF talkmap.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF talks/2012-03-01-talk-1.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF talks/2013-03-01-tutorial-1.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF talks/2014-02-01-talk-2.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF talks/2014-03-01-talk-3.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF talks/index.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF teaching/2014-spring-teaching-1.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF teaching/2015-spring-teaching-1.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF teaching/index.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF terms/index.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 DIFF year-archive/index.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-03-30'
+  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-03'
 
-Summary: 10 files matched, 35 files with differences, 346 total differences (5 acceptable diffs filtered out)
+Summary: 10 files matched, 35 files with differences, 369 total differences (2 acceptable diffs filtered out)

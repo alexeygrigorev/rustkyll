@@ -51,7 +51,7 @@ DIFF posts/getting-started/index.html (48 differences)
   h2: extra_element - expected: '(none)', actual: '<h2>'
   p: extra_element - expected: '(none)', actual: '<p>'
   ... and 38 more differences
-DIFF posts/text-and-typography/index.html (62 differences)
+DIFF posts/text-and-typography/index.html (61 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'h1'
   h2: extra_element - expected: '(none)', actual: '<h2>'
@@ -62,7 +62,10 @@ DIFF posts/text-and-typography/index.html (62 differences)
   h2: extra_element - expected: '(none)', actual: '<h2>'
   h3: extra_element - expected: '(none)', actual: '<h3>'
   ol: extra_element - expected: '(none)', actual: '<ol>'
-  ... and 52 more differences
+  ... and 51 more differences
+DIFF posts/write-a-new-post/index.html (2 differences)
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
 DIFF tags/favicon/index.html (2 differences)
   head: missing_element - expected: '<head>', actual: '(none)'
   body: missing_element - expected: '<body>', actual: '(none)'
@@ -79,4 +82,4 @@ DIFF tags/writing/index.html (2 differences)
   head: missing_element - expected: '<head>', actual: '(none)'
   body: missing_element - expected: '<body>', actual: '(none)'
 
-Summary: 1 files matched, 16 files with differences, 149 total differences (138 acceptable diffs filtered out)
+Summary: 0 files matched, 17 files with differences, 150 total differences (1 acceptable diffs filtered out)

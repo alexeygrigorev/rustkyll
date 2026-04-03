@@ -51,6 +51,8 @@ DIFF index.php/Cancellation_Regions.html (2 differences)
   body > div > main > div > ul > li > ul > li > h2: missing_element - expected: '<h2>', actual: '(none)'
 DIFF index.php/Chi-Squared_Distribution.html (1 differences)
   body > div > main > div > child[3]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF index.php/Collocation_Extraction.html (1 differences)
+  body > div > main > div > ul > li: text_differs - expected: 'for Bernoulli, $\\mu = p$ and $\\sigma^2 = p\\, (1-p)$', actual: 'for Bernoulli, $\\mu = p$ and $\\sigma^2 = p, (1-p)$'
 DIFF index.php/Column-Oriented_Databases.html (4 differences)
   body > div > main > div > child[6]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > main > div > child[13]: tag_name_differs - expected: 'p', actual: 'img'
@@ -108,6 +110,18 @@ DIFF index.php/Data_Warehousing_(ULB).html (2 differences)
 DIFF index.php/Database.html (2 differences)
   body > div > main > div > child[12]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > main > div > child[27]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF index.php/Database_System_Catalog.html (12 differences)
+  body > div > main > div > ul > li > table > tbody: missing_element - expected: '<tbody>', actual: '(none)'
+  body > div > main > div > child[4]: tag_name_differs - expected: 'p', actual: 'tbody'
+  body > div > main > div > child[5]: tag_name_differs - expected: 'ul', actual: 'p'
+  body > div > main > div > child[6]: tag_name_differs - expected: 'h3', actual: 'ul'
+  body > div > main > div > child[7]: tag_name_differs - expected: 'ul', actual: 'h3'
+  body > div > main > div > child[8]: tag_name_differs - expected: 'p', actual: 'ul'
+  body > div > main > div > child[9]: tag_name_differs - expected: 'table', actual: 'p'
+  body > div > main > div > child[10]: tag_name_differs - expected: 'h2', actual: 'table'
+  body > div > main > div > child[11]: tag_name_differs - expected: 'ul', actual: 'h2'
+  body > div > main > div > child[12]: tag_name_differs - expected: 'h2', actual: 'ul'
+  ... and 2 more differences
 DIFF index.php/Database_Transaction_Log_Exercises.html (2 differences)
   body > div > main > div > ul > li: expected_element_got_text - expected: '<p>', actual: 'all $A$, $B$, $C$, $D$ might have changed their values'
   body > div > main > div > ul > li > p: missing_element - expected: '<p>', actual: '(none)'
@@ -171,7 +185,8 @@ DIFF index.php/Downloading_coursera_previews.html (272 differences)
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nn'"
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='nb'"
-  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='s'"
+  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='sh'", actual: "class='s'"  Progress: 200/644 files compared...
+
   body > div > main > div > div > div > pre > code > span: text_differs - expected: "'", actual: "'course-download.html'"
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='p'"
   body > div > main > div > div > div > pre > code > span: text_differs - expected: 'course-download.html', actual: ','
@@ -183,9 +198,7 @@ DIFF index.php/Enterprise_System_Architecture.html (18 differences)
   body > div > main > div > child[5]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > main > div > child[12]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > main > div > child[13]: tag_name_differs - expected: 'ul', actual: 'p'
-  body > div > main > div > child[17]: tag_name_differs - expected: 'p', actual: 'img'  Progress: 200/644 files compared...
-  Progress: 300/644 files compared...
-
+  body > div > main > div > child[17]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > main > div > child[18]: tag_name_differs - expected: 'ul', actual: 'p'
   body > div > main > div > child[19]: tag_name_differs - expected: 'h4', actual: 'img'
   body > div > main > div > p: expected_element_got_text - expected: '<img>', actual: '- each client connects to the Integration Application - IA dispatches the messages to the receivers '
@@ -214,6 +227,8 @@ DIFF index.php/Extensible_Hashing.html (5 differences)
   body > div > main > div > child[20]: tag_name_differs - expected: 'ul', actual: 'p'
   body > div > main > div > child[22]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > main > div > child[23]: tag_name_differs - expected: 'ul', actual: 'p'
+DIFF index.php/Gram_Matrices.html (1 differences)
+  body > div > main > div > ul > li: text_differs - expected: '$\\mathbf v^T A \\mathbf v = \\mathbf v^T R^T R \\, \\mathbf v = (R \\, \\mathbf v)^T R \\, \\mathbf v = | R \\, \\mathbf v |^2 > 0$', actual: '$\\mathbf v^T A \\mathbf v = \\mathbf v^T R^T R , \\mathbf v = (R , \\mathbf v)^T R , \\mathbf v = | R , \\mathbf v |^2 > 0$'
 DIFF index.php/Groovy_Java_in_Maven.html (293 differences)
   body > div > main > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '<| -- Test --> |'
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='err'", actual: "class='nt'"
@@ -253,18 +268,19 @@ DIFF index.php/Hive.html (5 differences)
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='k'", actual: "class='n'"
 DIFF index.php/Housing_Agency_Workflow.html (1 differences)
   body > div > main > div > child[18]: tag_name_differs - expected: 'p', actual: 'img'
-DIFF index.php/Java_Fork_Join.html (806 differences)
-  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='k'"
-  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='k'"
+DIFF index.php/Java_Fork_Join.html (794 differences)
+  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='kt'", actual: "class='kd'"
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
-  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='nc'", actual: "class='nb'"
   body > div > main > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'forkJoinPool'
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='o'"
   body > div > main > div > div > div > pre > code > span: text_differs - expected: 'forkJoinPool', actual: '='
-  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='k'"
+  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='k'"  Progress: 300/644 files compared...
+
   body > div > main > div > div > div > pre > code > span: text_differs - expected: '=', actual: 'new'
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='k'", actual: "class='nc'"
-  ... and 796 more differences
+  body > div > main > div > div > div > pre > code > span: text_differs - expected: 'new', actual: 'ForkJoinPool'
+  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='nc'", actual: "class='p'"
+  ... and 784 more differences
 DIFF index.php/Kd-Trees.html (28 differences)
   body > div > main > div > ul > li > table > tbody: missing_element - expected: '<tbody>', actual: '(none)'
   body > div > main > div > child[3]: tag_name_differs - expected: 'h2', actual: 'tbody'
@@ -334,18 +350,19 @@ DIFF index.php/Merge_Sort.html (188 differences)
   ... and 178 more differences
 DIFF index.php/Milestone_Pattern.html (1 differences)
   body > div > main > div > child[5]: tag_name_differs - expected: 'p', actual: 'img'
-DIFF index.php/Minimal_Cut_Problem.html (1371 differences)
+DIFF index.php/Minimal_Cut_Problem.html (1360 differences)
   body > div > main > div > child[3]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > main > div > child[9]: tag_name_differs - expected: 'p', actual: 'img'
-  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='k'"
-  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='k'"
-  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='nc'", actual: "class='nb'"
   body > div > main > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'graph'
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='o'"
   body > div > main > div > div > div > pre > code > span: text_differs - expected: 'graph', actual: ';'
-  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='k'"
-  body > div > main > div > div > div > pre > code > span: text_differs - expected: ';', actual: 'private'
-  ... and 1361 more differences
+  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='kd'"
+  body > div > main > div > div > div > pre > code > span: text_differs - expected: ';', actual: 'private'  Progress: 400/644 files compared...
+
+  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='nc'"
+  body > div > main > div > div > div > pre > code > span: text_differs - expected: 'private', actual: 'UndirectedGraph'
+  body > div > main > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'initialGraphCopy'
+  ... and 1350 more differences
 DIFF index.php/Modeling_Preferences.html (14 differences)
   body > div > main > div > ul > li > table > tbody: missing_element - expected: '<tbody>', actual: '(none)'
   body > div > main > div > child[10]: tag_name_differs - expected: 'p', actual: 'tbody'
@@ -356,8 +373,7 @@ DIFF index.php/Modeling_Preferences.html (14 differences)
   body > div > main > div > p > img: missing_element - expected: '<img>', actual: '(none)'
   body > div > main > div > child[15]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > main > div > child[16]: tag_name_differs - expected: 'ul', actual: 'p'
-  body > div > main > div > child[17]: tag_name_differs - expected: 'h2', actual: 'ul'  Progress: 400/644 files compared...
-
+  body > div > main > div > child[17]: tag_name_differs - expected: 'h2', actual: 'ul'
   ... and 4 more differences
 DIFF index.php/Mosaic_Plot.html (36 differences)
   body > div > main > div > child[9]: tag_name_differs - expected: 'p', actual: 'img'
@@ -404,7 +420,7 @@ DIFF index.php/OWL.html (134 differences)
 DIFF index.php/OpenIntro_Statistics_(book).html (2 differences)
   body > div > main > div > ul > li > ul > li > child[1]: tag_name_differs - expected: 'a', actual: 'p'
   body > div > main > div > ul > li > ul > li: missing_text - expected: 's', actual: '(none)'
-DIFF index.php/Open_Hashing_Index.html (7 differences)
+DIFF index.php/Open_Hashing_Index.html (9 differences)
   body > div > main > div > child[4]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > main > div > child[8]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > main > div > child[9]: tag_name_differs - expected: 'ul', actual: 'p'
@@ -412,8 +428,10 @@ DIFF index.php/Open_Hashing_Index.html (7 differences)
   body > div > main > div > child[23]: tag_name_differs - expected: 'ul', actual: 'p'
   body > div > main > div > table > tbody > tr > td: text_differs - expected: 'see', actual: 'see [#Reorganization](#Reorganization)'
   body > div > main > div > table > tbody > tr > td > a: missing_element - expected: '<a>', actual: '(none)'
-DIFF index.php/Outer_Product.html (1 differences)
-  body > div > main > div > ul > li: text_differs - expected: 'if $\\mathbf u$ is a unit vector, e.g. $| \\mathbf u |^2 = 1$', actual: 'if $\\mathbf u$ is a unit vector, e.g. $\\| \\mathbf u \\|^2 = 1$'
+  body > div > main > div > ul > li: text_differs - expected: 'if $u < 50\\%$ - lots of space wasted (many empty buckets)', actual: 'if $u < 50%$ - lots of space wasted (many empty buckets)'
+  body > div > main > div > ul > li: text_differs - expected: 'if $u > 80\\%$ - significant overflow', actual: 'if $u > 80%$ - significant overflow'
+DIFF index.php/Orthogonality.html (1 differences)
+  body > div > main > div > ul > li: text_differs - expected: '$\\mathbf x^T \\mathbf y = 0$ This relationship is denoted $\\mathbf x \\, \\bot \\, \\mathbf y$:', actual: '$\\mathbf x^T \\mathbf y = 0$ This relationship is denoted $\\mathbf x , \\bot , \\mathbf y$:'
 DIFF index.php/Partial_Order_Preference_Structure.html (1 differences)
   body > div > main > div > child[7]: tag_name_differs - expected: 'p', actual: 'img'
 DIFF index.php/Physical_Query_Plan_Optimization.html (1 differences)
@@ -424,7 +442,8 @@ DIFF index.php/Pig.html (41 differences)
   body > div > main > div > div > div > pre > code > span: text_differs - expected: 'c', actual: ','
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='p'", actual: "class='k'"
   body > div > main > div > div > div > pre > code > span: text_differs - expected: '.', actual: 'c'
-  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='p'"
+  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='p'"  Progress: 500/644 files compared...
+
   body > div > main > div > div > div > pre > code > span: text_differs - expected: 'City', actual: '.'
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='k'", actual: "class='n'"
   body > div > main > div > div > div > pre > code > span: text_differs - expected: 'FROM', actual: 'City'
@@ -436,6 +455,13 @@ DIFF index.php/Pipelining.html (5 differences)
   body > div > main > div > ul > li > p: missing_element - expected: '<p>', actual: '(none)'
   body > div > main > div > child[6]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > main > div > child[7]: tag_name_differs - expected: 'ul', actual: 'p'
+DIFF index.php/Playground.html (6 differences)
+  body > div > main > div > p > br: missing_element - expected: '<br>', actual: '(none)'
+  body > div > main > div > p > br: missing_element - expected: '<br>', actual: '(none)'
+  body > div > main > div > p > br: missing_element - expected: '<br>', actual: '(none)'
+  body > div > main > div > p > br: missing_element - expected: '<br>', actual: '(none)'
+  body > div > main > div > p > br: missing_element - expected: '<br>', actual: '(none)'
+  body > div > main > div > p > br: missing_element - expected: '<br>', actual: '(none)'
 DIFF index.php/Portfolio_Management.html (1 differences)
   body > div > main > div > child[5]: tag_name_differs - expected: 'p', actual: 'img'
 DIFF index.php/Process_Conformance.html (3 differences)
@@ -445,7 +471,6 @@ DIFF index.php/Process_Conformance.html (3 differences)
 DIFF index.php/Process_Mining.html (6 differences)
   body > div > main > div > child[17]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > main > div > child[18]: tag_name_differs - expected: 'ul', actual: 'p'
-  Progress: 500/644 files compared...
   body > div > main > div > child[35]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > main > div > child[36]: tag_name_differs - expected: 'ul', actual: 'p'
   body > div > main > div > child[38]: tag_name_differs - expected: 'p', actual: 'img'
@@ -462,18 +487,18 @@ DIFF index.php/Quad_Trees.html (2 differences)
   body > div > main > div > child[9]: tag_name_differs - expected: 'p', actual: 'img'
 DIFF index.php/Query_Processing.html (1 differences)
   body > div > main > div > child[2]: tag_name_differs - expected: 'p', actual: 'img'
-DIFF index.php/Quick_Sort.html (310 differences)
+DIFF index.php/Quick_Sort.html (324 differences)
   body > div > main > div > child[8]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > main > div > child[10]: tag_name_differs - expected: 'p', actual: 'img'
-  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='k'"
+  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='kt'", actual: "class='kd'"
   body > div > main > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'qsort'
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='o'"
   body > div > main > div > div > div > pre > code > span: text_differs - expected: 'qsort', actual: '('
-  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='kt'"
-  body > div > main > div > div > div > pre > code > span: text_differs - expected: '(', actual: 'int'
-  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='kt'", actual: "class='k'"
-  body > div > main > div > div > div > pre > code > span: text_differs - expected: 'int', actual: '[]'
-  ... and 300 more differences
+  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='kd'"
+  body > div > main > div > div > div > pre > code > span: text_differs - expected: '(', actual: 'int[]'
+  body > div > main > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'input'
+  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='kt'", actual: "class='p'"
+  ... and 314 more differences
 DIFF index.php/R_Visualization_Snippets.html (10 differences)
   body > div > main > div > child[5]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > main > div > child[9]: tag_name_differs - expected: 'p', actual: 'img'
@@ -517,10 +542,7 @@ DIFF index.php/Replication.html (23 differences)
   body > div > main > div > div > div > pre > code > span: text_differs - expected: 'NegDelta', actual: 'INTO'
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='p'", actual: "class='n'"
   ... and 13 more differences
-DIFF index.php/Rule-Based_Classifier.html (2 differences)
-  body > div > main > div > ul > li > ul > li: text_differs - expected: 'let $(a^', actual: 'let $(a^*, v^*)$ be the pair with the best accuracy'
-  body > div > main > div > ul > li > ul > li > em: missing_element - expected: '<em>', actual: '(none)'
-DIFF index.php/SPARQL.html (222 differences)
+DIFF index.php/SPARQL.html (221 differences)
   body > div > main > div > ul > li > ul > li > code: text_differs - expected: 'PREFIX foo: http://example.com/resources/...', actual: 'PREFIX foo: http://example.com/resources/…'
   body > div > main > div > ul > li > ul > li > code: text_differs - expected: 'FROM ...', actual: 'FROM …'
   body > div > main > div > ul > li > ul > li > code: text_differs - expected: 'SELECT ...', actual: 'SELECT …'
@@ -531,7 +553,7 @@ DIFF index.php/SPARQL.html (222 differences)
   body > div > main > div > child[23]: tag_name_differs - expected: 'p', actual: 'table'
   body > div > main > div > child[24]: tag_name_differs - expected: 'div', actual: 'p'
   body > div > main > div > table > tbody > tr > td: missing_text - expected: '\xa0', actual: '(none)'
-  ... and 212 more differences
+  ... and 211 more differences
 DIFF index.php/Sampling.html (7 differences)
   body > div > main > div > child[7]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > main > div > table > tbody > tr > td: missing_text - expected: '\xa0', actual: '(none)'
@@ -554,8 +576,6 @@ DIFF index.php/Semantic_Web.html (1 differences)
   body > div > main > div > child[9]: tag_name_differs - expected: 'p', actual: 'img'
 DIFF index.php/Semantic_Web_Application_Architecture.html (1 differences)
   body > div > main > div > child[19]: tag_name_differs - expected: 'p', actual: 'img'
-DIFF index.php/Separability.html (1 differences)
-  body > div > main > div > child[3]: tag_name_differs - expected: 'p', actual: 'img'
 DIFF index.php/Simulation_Basics_in_R.html (1 differences)
   body > div > main > div > child[3]: tag_name_differs - expected: 'p', actual: 'table'
 DIFF index.php/Sparse_Index.html (6 differences)
@@ -606,7 +626,8 @@ DIFF index.php/Summarizing_Data.html (15 differences)
   body > div > main > div > child[22]: tag_name_differs - expected: 'h2', actual: 'p'
   ... and 5 more differences
 DIFF index.php/T_Distribution.html (3 differences)
-  body > div > main > div > child[9]: tag_name_differs - expected: 'p', actual: 'img'
+  body > div > main > div > child[9]: tag_name_differs - expected: 'p', actual: 'img'  Progress: 600/644 files compared...
+
   body > div > main > div > child[11]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > main > div > child[12]: tag_name_differs - expected: 'ul', actual: 'p'
 DIFF index.php/Temporal_Entity-Relationship_Model.html (11 differences)
@@ -621,19 +642,18 @@ DIFF index.php/Temporal_Entity-Relationship_Model.html (11 differences)
   body > div > main > div > child[26]: tag_name_differs - expected: 'ul', actual: 'p'
   body > div > main > div > child[28]: tag_name_differs - expected: 'p', actual: 'img'
   ... and 1 more differences
-DIFF index.php/Topological_Ordering.html (317 differences)
-  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='k'"
-  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='k'"
-  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='k'"
-  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='nc'", actual: "class='nb'"
-  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='nc'", actual: "class='nb'"
-  body > div > main > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'vertices'  Progress: 600/644 files compared...
-
+DIFF index.php/Topological_Ordering.html (308 differences)
+  body > div > main > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'vertices'
   body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='o'"
   body > div > main > div > div > div > pre > code > span: text_differs - expected: 'vertices', actual: ';'
-  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='k'"
+  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='kd'"
   body > div > main > div > div > div > pre > code > span: text_differs - expected: ';', actual: 'private'
-  ... and 307 more differences
+  body > div > main > div > div > div > pre > code > span: text_differs - expected: 'private', actual: 'final'
+  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='nc'"
+  body > div > main > div > div > div > pre > code > span: text_differs - expected: 'final', actual: 'Graph'
+  body > div > main > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'graph'
+  body > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='nc'", actual: "class='o'"
+  ... and 298 more differences
 DIFF index.php/Tree.html (1 differences)
   body > div > main > div > child[3]: tag_name_differs - expected: 'p', actual: 'img'
 DIFF index.php/Turtle.html (20 differences)
@@ -671,18 +691,6 @@ DIFF index.php/Voting_Theory.html (62 differences)
   body > div > main > div > table > tbody > tr > td: expected_element_got_text - expected: '<a>', actual: "[Cond.](Condorcet's_Rule)"
   body > div > main > div > table > tbody > tr > td > a: missing_element - expected: '<a>', actual: '(none)'
   ... and 52 more differences
-DIFF index.php/Voting_Theory_Examples.html (26 differences)
-  body > div > main > div > ul > li > table > tbody: missing_element - expected: '<tbody>', actual: '(none)'
-  body > div > main > div > child[13]: tag_name_differs - expected: 'h3', actual: 'tbody'
-  body > div > main > div > p: text_differs - expected: 'Round 1:', actual: "- [Condorcet Fairness](Condorcet's_Rule#Fairness) criterion is not satisfied"
-  body > div > main > div > child[15]: tag_name_differs - expected: 'ul', actual: 'h3'
-  body > div > main > div > p: text_differs - expected: 'Round 2:', actual: 'Round 1:'
-  body > div > main > div > ul > li: text_differs - expected: 'remove all other candidates:', actual: '$x$ and $t$ are selected'
-  body > div > main > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  body > div > main > div > p: text_differs - expected: '$x$ wins', actual: 'Round 2:'
-  body > div > main > div > ul > li: expected_element_got_text - expected: '<table>', actual: 'remove all other candidates:'
-  body > div > main > div > ul > li > child[1]: tag_name_differs - expected: 'table', actual: 'ul'
-  ... and 16 more differences
 DIFF index.php/Web_Data_Management_(book).html (1 differences)
   body > div > main > div > child[1]: tag_name_differs - expected: 'p', actual: 'img'
 DIFF index.php/XML.html (50 differences)
@@ -719,4 +727,4 @@ DIFF index.php/YAWL.html (8 differences)
   body > div > main > div > child[60]: tag_name_differs - expected: 'ul', actual: 'p'
   body > div > main > div > child[85]: tag_name_differs - expected: 'p', actual: 'img'
 
-Summary: 535 files matched, 109 files with differences, 5583 total differences (11159 acceptable diffs filtered out)
+Summary: 534 files matched, 110 files with differences, 5557 total differences (12704 acceptable diffs filtered out)

@@ -3,47 +3,47 @@ Rustkyll directory: /home/alexey/git/rustkyl/websites/documentation-theme-jekyll
 Common HTML files:  98
 
 DIFF 404.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
-DIFF index.html (59 differences)
-  body > div > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
-  body > div > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
-  body > div > div > div > div > div > p > code: text_differs - expected: '{% unless page.comments == false %} ... {% endunless %}', actual: '{% unless page.comments == false and page.comments != nil %} ... {% endunless %}'
-  body > div > div > div > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '---'
-  body > div > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='na'"
-  body > div > div > div > div > div > div > div > pre > code > span: text_differs - expected: '---', actual: 'title'
-  body > div > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='na'", actual: "class='pi'"
-  body > div > div > div > div > div > div > div > pre > code > span: text_differs - expected: 'title', actual: ':'
-  body > div > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='pi'", actual: "class='s2'"
-  body > div > div > div > div > div > div > div > pre > code > span: text_differs - expected: ':', actual: '"'
-  ... and 49 more differences
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
+DIFF index.html (494 differences)
+  body > div > div > div > div > div > child[35]: tag_name_differs - expected: 'p', actual: 'pre'
+  body > div > div > div > div > div > p: text_differs - expected: 'This is perhaps the easiest way to see how your site would actually look.', actual: 'The'
+  body > div > div > div > div > div > p > code: extra_element - expected: '(none)', actual: '<code>'
+  body > div > div > div > div > div > p: extra_text - expected: '(none)', actual: 'refers to the _data/sidebars/mydoc_sidebar.yml file.'
+  body > div > div > div > div > div > child[37]: tag_name_differs - expected: 'h2', actual: 'p'
+  body > div > div > div > div > div > p: text_differs - expected: 'There are several products in this theme. Each product uses a different sidebar. This is the essence of what makes this theme unique – different sidebars for different product documentation. The idea ', actual: 'You can optionally turn off the sidebar on any page (e.g. landing pages). To turn off the sidebar for a page, you should set the page frontmatter tag as'
+  body > div > div > div > div > div > p > child[1]: tag_name_differs - expected: 'a', actual: 'code'
+  body > div > div > div > div > div > p: text_differs - expected: '.)', actual: '.'
+  body > div > div > div > div > div > p: text_differs - expected: 'The top navigation usually remains the same, because it allows users to navigate across products. But the sidebar navigation adapts to the product.', actual: 'If you don’t declare a sidebar, the'
+  body > div > div > div > div > div > p > code: extra_element - expected: '(none)', actual: '<code>'
+  ... and 484 more differences
 DIFF mydoc_about.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_about_ruby_gems_etc.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_adding_tooltips.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
-DIFF mydoc_alerts.html (23 differences)
-  body > div > div > div > div > div > div > div > pre > code: text_differs - expected: '<div markdown="span" class="alert alert-info" role="alert"><i class="fa fa-info-circle"></i> <b>Note:</b> {{include.content}}</div>', actual: '<div class="alert alert-info" role="alert"><i class="fa fa-info-circle"></i> <b>Note:</b> {{include.content}}</div>'
-  body > div > div > div > div > div > div > div > pre > code: text_differs - expected: '{% include note.html content="The {{site.company}} is pleased to announce an upcoming release." %}', actual: '{% include __DYNAMIC_INCLUDE__ "note.html" content="The site.company is pleased to announce an upcoming release." %}'
-  body > div > div > div > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '{% capture company_note %}The {{site.company_name}} company is pleased to announce an upcoming relea'
-  body > div > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
-  body > div > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
-  body > div > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
-  body > div > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
-  body > div > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
-  body > div > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
-  body > div > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
-  ... and 13 more differences
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
+DIFF mydoc_alerts.html (130 differences)
+  body > div > div > div > div > div > child[21]: tag_name_differs - expected: 'p', actual: 'pre'
+  body > div > div > div > div > div > div: missing_element - expected: '<div>', actual: '(none)'
+  body > div > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
+  body > div > div > div > div > div > h2: missing_element - expected: '<h2>', actual: '(none)'
+  body > div > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
+  body > div > div > div > div > div > ul: missing_element - expected: '<ul>', actual: '(none)'
+  body > div > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
+  body > div > div > div > div > div > div: missing_element - expected: '<div>', actual: '(none)'
+  body > div > div > div > div > div > div: missing_element - expected: '<div>', actual: '(none)'
+  body > div > div > div > div > div > div: missing_element - expected: '<div>', actual: '(none)'
+  ... and 120 more differences
 DIFF mydoc_atom_text_editor.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_build_arguments.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_code_samples.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_collections.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_commenting_on_files.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_conditional_logic.html (192 differences)
   body > div > div > div > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '{% if page.platform == "mac" %} Here\'s some info about the Mac. {% elsif page.platform == "windows" '
   body > div > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
@@ -69,23 +69,13 @@ DIFF mydoc_content_reuse.html (30 differences)
   body > div > div > div > div > div > div > div > pre > code > span: text_differs - expected: 'Page-level variables', actual: 'permalink'
   ... and 20 more differences
 DIFF mydoc_exluding_files.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_faq_layout.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_generating_pdfs.html (1 differences)
   body > div > div > div > div > div > div > code: missing_attribute - expected: "class='highlighter-rouge language-plaintext'", actual: '(none)'
-DIFF mydoc_glossary.html (29 differences)
-  body > div > div > div > div > div > child[5]: tag_name_differs - expected: 'dl', actual: 'p'
-  body > div > div > div > div > div > p: text_differs - expected: 'Here’s the code:', actual: 'gratuitous : Something that is unwarranted and uncouth, like the social equivalent of a flagrant foul.'
-  body > div > div > div > div > div > child[7]: tag_name_differs - expected: 'div', actual: 'p'
-  body > div > div > div > div > div > p: text_differs - expected: 'The glossary works well as a link in the top navigation bar.', actual: 'gratuitous : Something that is unwarranted and uncouth, like the social equivalent of a flagrant foul.'
-  body > div > div > div > div > div > child[9]: tag_name_differs - expected: 'h2', actual: 'p'
-  body > div > div > div > div > div > p: text_differs - expected: 'You can also change the definition list (', actual: 'Here’s the code:'
-  body > div > div > div > div > div > p > code: missing_element - expected: '<code>', actual: '(none)'
-  body > div > div > div > div > div > p: missing_text - expected: ') class to', actual: '(none)'
-  body > div > div > div > div > div > p > code: missing_element - expected: '<code>', actual: '(none)'
-  body > div > div > div > div > div > p: missing_text - expected: '. This is a Bootstrap specific class. If you do, the styling looks like this:', actual: '(none)'
-  ... and 19 more differences
+DIFF mydoc_glossary.html (1 differences)
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_help_api.html (740 differences)
   body > div > div > div > div > div > child[13]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > div > div > div > div > div > div > pre > code > span: text_differs - expected: 'Basketball', actual: 'Basketball is a sport involving two teams of five players each competing to put a ball through a small circular rim 10 feet above the ground. Basketball requires players to be in top physical conditio'
@@ -99,7 +89,7 @@ DIFF mydoc_help_api.html (740 differences)
   body > div > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 730 more differences
 DIFF mydoc_hyperlinks.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_icons.html (439 differences)
   body > div > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='c'", actual: "class='cm'"
   body > div > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nt'", actual: "class='na'"
@@ -149,7 +139,7 @@ DIFF mydoc_install_jekyll_on_windows.html (16 differences)
   body > div > div > div > div > div > ol > li: expected_text_got_element - expected: 'Save and close the file.', actual: '<p>'
   ... and 6 more differences
 DIFF mydoc_introduction.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_iterm_profiles.html (20 differences)
   body > div > div > div > div > div > ol > li: expected_text_got_element - expected: 'Open iTerm and go to', actual: '<p>'
   body > div > div > div > div > div > ol > li > child[1]: tag_name_differs - expected: 'strong', actual: 'p'
@@ -175,7 +165,7 @@ DIFF mydoc_kb_layout.html (19 differences)
   body > div > div > div > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '/" }}"'
   ... and 9 more differences
 DIFF mydoc_labels.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_lists.html (26 differences)
   body > div > div > div > div > div > ol > li: expected_element_got_text - expected: '<p>', actual: 'Sample first item.'
   body > div > div > div > div > div > ol > li > child[1]: tag_name_differs - expected: 'p', actual: 'ul'
@@ -237,11 +227,11 @@ DIFF mydoc_publishing_github_pages.html (22 differences)
   body > div > div > div > div > div > ol > li: expected_text_got_element - expected: 'Run', actual: '<p>'
   ... and 12 more differences
 DIFF mydoc_push_build_to_server.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_release_notes_50.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_release_notes_60.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_search_configuration.html (363 differences)
   body > div > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='w'", actual: "class='s2'"
   body > div > div > div > div > div > div > div > pre > code > span: extra_text - expected: '(none)', actual: '"body"'
@@ -267,13 +257,13 @@ DIFF mydoc_series.html (90 differences)
   body > div > div > div > div > div > div > div > pre > code > span: text_differs - expected: '<li', actual: '<ol'
   ... and 80 more differences
 DIFF mydoc_seriesdemo1.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_seriesdemo2.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_seriesdemo3.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_seriesdemo4.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_shuffle.html (7 differences)
   (root): expected_element_got_text - expected: '<head>', actual: '{% if site.output == "pdf" %} {{site.data.alerts.note}} The content on this page doesn\'t display wel'
   child[1]: tag_name_differs - expected: 'head', actual: 'script'
@@ -295,23 +285,23 @@ DIFF mydoc_sidebar_navigation.html (60 differences)
   body > div > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 50 more differences
 DIFF mydoc_special_layouts.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_support.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_supported_features.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
-DIFF mydoc_syntax_highlighting.html (161 differences)
-  body > div > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='kn'", actual: "class='k'"
-  body > div > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='nb'"
-  body > div > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='k'"
-  body > div > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='k'"
-  body > div > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='kd'", actual: "class='k'"
-  body > div > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nc'", actual: "class='nb'"
-  body > div > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='k'"
-  body > div > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nc'", actual: "class='nb'"
-  body > div > div > div > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 's'
-  body > div > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='o'"
-  ... and 151 more differences
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
+DIFF mydoc_syntax_highlighting.html (25 differences)
+  body > div > div > div > div > div > child[5]: tag_name_differs - expected: 'h2', actual: 'pre'
+  body > div > div > div > div > div > p: text_differs - expected: 'For syntax highlighting, use fenced code blocks optionally followed by the language syntax you want:', actual: 'This looks as follows:'
+  body > div > div > div > div > div > child[7]: tag_name_differs - expected: 'pre', actual: 'div'
+  body > div > div > div > div > div > child[8]: tag_name_differs - expected: 'p', actual: 'pre'
+  body > div > div > div > div > div > child[9]: tag_name_differs - expected: 'div', actual: 'p'
+  body > div > div > div > div > div > child[10]: tag_name_differs - expected: 'p', actual: 'figure'
+  body > div > div > div > div > div > p: text_differs - expected: 'If you’re using an HTML file, you can also use the', actual: 'The theme has syntax highlighting specified in the configuration file as follows:'
+  body > div > div > div > div > div > p > code: missing_element - expected: '<code>', actual: '(none)'
+  body > div > div > div > div > div > p: missing_text - expected: 'command with Liquid markup.', actual: '(none)'
+  body > div > div > div > div > div > child[12]: tag_name_differs - expected: 'pre', actual: 'div'
+  ... and 15 more differences
 DIFF mydoc_tables.html (93 differences)
   body > div > div > div > div > div > div > code: missing_attribute - expected: "class='highlighter-rouge language-plaintext'", actual: '(none)'
   body > div > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nt'", actual: "class='cm'"
@@ -325,7 +315,7 @@ DIFF mydoc_tables.html (93 differences)
   body > div > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 83 more differences
 DIFF mydoc_tag_archives_overview.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_tags.html (46 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'h2'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -340,13 +330,13 @@ DIFF mydoc_tags.html (46 differences)
   ... and 36 more differences
 DIFF mydoc_themes.html (2 differences)
   body > div > div > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nt'", actual: "class='p'"
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF mydoc_webstorm_text_editor.html (4 differences)
   body > div > div > div > div > div > ol > li: expected_text_got_element - expected: 'In the upper-left corner of the dialog box that appears, click the', actual: '<p>'
   body > div > div > div > div > div > ol > li > child[1]: tag_name_differs - expected: 'strong', actual: 'p'
   body > div > div > div > div > div > ol > li: missing_text - expected: 'button to create a new template.', actual: '(none)'
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
-DIFF mydoc_workflow_maps.html (117 differences)
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
+DIFF mydoc_workflow_maps.html (112 differences)
   body > div > div > div > div > div > ol > li > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > div > div > div > div > div > ol > li > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > div > div > div > div > div > ol > li > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
@@ -357,7 +347,7 @@ DIFF mydoc_workflow_maps.html (117 differences)
   body > div > div > div > div > div > ol > li > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > div > div > div > div > div > ol > li > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > div > div > div > div > div > ol > li > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
-  ... and 107 more differences
+  ... and 102 more differences
 DIFF mydoc_yaml_tutorial.html (473 differences)
   body > div > div > div > div > div > child[5]: tag_name_differs - expected: 'style', actual: 'p'
   body > div > div > div > div > div > div > div > pre > code: text_differs - expected: "<p>Husband's name:", actual: "<p>Husband's name: {{site.data.samplelist.name.husband}}</p> <p>Wife's name: {{site.data.samplelist.name.wife}}</p>"
@@ -371,64 +361,65 @@ DIFF mydoc_yaml_tutorial.html (473 differences)
   body > div > div > div > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 463 more differences
 DIFF myupdate.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
-DIFF news.html (3 differences)
-  body > div > div > div > div > div > div > div > p: text_differs - expected: 'Theme updates: Permalinks Kramdown URL specified in config file removed PDF output removed some of the alternative layouts added blog feature sidebars configurable per page', actual: 'Theme updates: Permalinks Kramdown URL specified in config file removed PDF output removed some of the alternative layouts added blog feature sidebars configurable per page {% include links.html %}'
-  body > div > div > div > div > div > div > div > p: text_differs - expected: 'This is just a test post from the previous year.', actual: 'This is just a test post from the previous year. {% include links.html %}'
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
+DIFF news.html (4 differences)
+  body > div > div > div > div > div > div > div > p: missing_text - expected: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the ', actual: '(none)'
+  body > div > div > div > div > div > div > div > p: missing_text - expected: 'Theme updates: Permalinks Kramdown URL specified in config file removed PDF output removed some of t', actual: '(none)'
+  body > div > div > div > div > div > div > div > p: missing_text - expected: 'This is just a test post from the previous year.', actual: '(none)'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF news_archive.html (4 differences)
   body > div > div > div > div > div > div > div > section > ul > child[2]: tag_name_differs - expected: 'li', actual: 'ul'
   body > div > div > div > div > div > div > div > section > h3: missing_element - expected: '<h3>', actual: '(none)'
   body > div > div > div > div > div > div > div > section > ul: missing_element - expected: '<ul>', actual: '(none)'
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p1_landing_page.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p1_sample1.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p1_sample2.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p1_sample3.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p1_sample4.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p1_sample5.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p1_sample6.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p1_sample7.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p2_landing_page.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p2_sample1.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p2_sample10.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p2_sample11.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p2_sample12.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p2_sample13.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p2_sample14.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p2_sample2.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p2_sample3.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p2_sample4.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p2_sample5.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p2_sample6.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p2_sample7.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p2_sample8.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF p2_sample9.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF samplepost.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF tag_collaboration.html (3 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
@@ -474,11 +465,11 @@ DIFF tag_troubleshooting.html (3 differences)
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
   script: missing_element - expected: '<script>', actual: '(none)'
 DIFF test-post-from-last-year.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF titlepage.html/index.html (2 differences)
-  body > div > div > div > div > div > div > div: text_differs - expected: 'Last generated: March 20, 2026', actual: 'Last generated: March 30, 2026'
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > div > div > div: text_differs - expected: 'Last generated: March 20, 2026', actual: 'Last generated: April 03, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 DIFF tocpage.html/index.html (1 differences)
-  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Mar 30, 2026'
+  body > div > div > div > div > footer > div > div: text_differs - expected: 'Site last generated: Mar 20, 2026', actual: 'Site last generated: Apr 3, 2026'
 
-Summary: 3 files matched, 95 files with differences, 3575 total differences (885 acceptable diffs filtered out)
+Summary: 3 files matched, 95 files with differences, 3949 total differences (872 acceptable diffs filtered out)

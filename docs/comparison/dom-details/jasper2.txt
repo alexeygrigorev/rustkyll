@@ -1,7 +1,7 @@
 Jekyll directory:   /home/alexey/git/rustkyl/websites/jasper2/_site_jekyll_cached
 Rustkyll directory: /home/alexey/git/rustkyl/websites/jasper2/_site_rustkyll_recount
-Common HTML files:  10
-Only in Jekyll:     19
+Common HTML files:  21
+Only in Jekyll:     8
 Only in rustkyll:   8
 
 DIFF 404.html (6 differences)
@@ -39,6 +39,66 @@ DIFF advanced-markdown.html (17 differences)
   head > link > script > jsonld.url: jsonld_value_differs - expected: '/jasper2/advanced-markdown', actual: '/jasper2/advanced-markdown.html'
   body > div > aside > div > div > article > a: attribute_differs - expected: "href='/jasper2/private-sites'", actual: "href='/jasper2/private-sites.html'"
   ... and 7 more differences
+DIFF author/abraham/index.html (6 differences)
+  head > link > link: attribute_differs - expected: "title='Author Page'", actual: "title='Ghost'"
+  body: attribute_differs - expected: "class='author-template'", actual: "class='home-template'"
+  body > div > header > div > nav > div > ul: missing_element - expected: '<ul>', actual: '(none)'
+  body > div > main > div > div > article: attribute_differs - expected: "class='author-template post-card'", actual: "class='post-card'"
+  body > div > main > div > div > article > a: attribute_differs - expected: "href='/jasper2/gettysburg-address'", actual: "href='/jasper2/gettysburg-address/'"
+  body > div > main > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/gettysburg-address'", actual: "href='/jasper2/gettysburg-address/'"
+DIFF author/edgar/index.html (6 differences)
+  head > link > link: attribute_differs - expected: "title='Author Page'", actual: "title='Ghost'"
+  body: attribute_differs - expected: "class='author-template'", actual: "class='home-template'"
+  body > div > header > div > nav > div > ul: missing_element - expected: '<ul>', actual: '(none)'
+  body > div > main > div > div > article: attribute_differs - expected: "class='author-template post-card'", actual: "class='post-card'"
+  body > div > main > div > div > article > a: attribute_differs - expected: "href='/jasper2/out-to-sea'", actual: "href='/jasper2/out-to-sea/'"
+  body > div > main > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/out-to-sea'", actual: "href='/jasper2/out-to-sea/'"
+DIFF author/ghost/index.html (24 differences)
+  head > link > link: attribute_differs - expected: "title='Author Page'", actual: "title='Ghost'"
+  body: attribute_differs - expected: "class='author-template'", actual: "class='home-template'"
+  body > div > header > div > nav > div > ul: missing_element - expected: '<ul>', actual: '(none)'
+  body > div > main > div > div > article: attribute_differs - expected: "class='author-template post-card'", actual: "class='post-card'"
+  body > div > main > div > div > article > a: attribute_differs - expected: "href='/jasper2/welcome'", actual: "href='/jasper2/welcome/'"
+  body > div > main > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/welcome'", actual: "href='/jasper2/welcome/'"
+  body > div > main > div > div > article: attribute_differs - expected: "class='author-template post-card'", actual: "class='post-card'"
+  body > div > main > div > div > article > a: attribute_differs - expected: "href='/jasper2/the-editor'", actual: "href='/jasper2/the-editor.html'"
+  body > div > main > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/the-editor'", actual: "href='/jasper2/the-editor.html'"
+  body > div > main > div > div > article: attribute_differs - expected: "class='author-template post-card'", actual: "class='post-card'"
+  ... and 14 more differences
+DIFF author/hannah/index.html (6 differences)
+  head > link > link: attribute_differs - expected: "title='Author Page'", actual: "title='Ghost'"
+  body: attribute_differs - expected: "class='author-template'", actual: "class='home-template'"
+  body > div > header > div > nav > div > ul: missing_element - expected: '<ul>', actual: '(none)'
+  body > div > main > div > div > article: attribute_differs - expected: "class='author-template post-card'", actual: "class='post-card'"
+  body > div > main > div > div > article > a: attribute_differs - expected: "href='/jasper2/the-businessman-and-fisherman'", actual: "href='/jasper2/the-businessman-and-fisherman/'"
+  body > div > main > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/the-businessman-and-fisherman'", actual: "href='/jasper2/the-businessman-and-fisherman/'"
+DIFF author/john/index.html (6 differences)
+  head > link > link: attribute_differs - expected: "title='Author Page'", actual: "title='Ghost'"
+  body: attribute_differs - expected: "class='author-template'", actual: "class='home-template'"
+  body > div > header > div > nav > div > ul: missing_element - expected: '<ul>', actual: '(none)'
+  body > div > main > div > div > article: attribute_differs - expected: "class='author-template post-card'", actual: "class='post-card'"
+  body > div > main > div > div > article > a: attribute_differs - expected: "href='/jasper2/a-full-and-comprehensive-style-test'", actual: "href='/jasper2/a-full-and-comprehensive-style-test.html'"
+  body > div > main > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/a-full-and-comprehensive-style-test'", actual: "href='/jasper2/a-full-and-comprehensive-style-test.html'"
+DIFF author/lewis/index.html (9 differences)
+  head > link > link: attribute_differs - expected: "title='Author Page'", actual: "title='Ghost'"
+  body: attribute_differs - expected: "class='author-template'", actual: "class='home-template'"
+  body > div > header > div > nav > div > ul: missing_element - expected: '<ul>', actual: '(none)'
+  body > div > main > div > div > article: attribute_differs - expected: "class='author-template post-card'", actual: "class='post-card'"
+  body > div > main > div > div > article > a: attribute_differs - expected: "href='/jasper2/looking-glass-house'", actual: "href='/jasper2/looking-glass-house/'"
+  body > div > main > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/looking-glass-house'", actual: "href='/jasper2/looking-glass-house/'"
+  body > div > main > div > div > article: attribute_differs - expected: "class='author-template post-card'", actual: "class='post-card'"
+  body > div > main > div > div > article > a: attribute_differs - expected: "href='/jasper2/down-the-rabbit-hole'", actual: "href='/jasper2/down-the-rabbit-hole/'"
+  body > div > main > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/down-the-rabbit-hole'", actual: "href='/jasper2/down-the-rabbit-hole/'"
+DIFF author/martin/index.html (9 differences)
+  head > link > link: attribute_differs - expected: "title='Author Page'", actual: "title='Ghost'"
+  body: attribute_differs - expected: "class='author-template'", actual: "class='home-template'"
+  body > div > header > div > nav > div > ul: missing_element - expected: '<ul>', actual: '(none)'
+  body > div > main > div > div > article: attribute_differs - expected: "class='author-template post-card'", actual: "class='post-card'"
+  body > div > main > div > div > article > a: attribute_differs - expected: "href='/jasper2/i-have-a-dream'", actual: "href='/jasper2/i-have-a-dream/'"
+  body > div > main > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/i-have-a-dream'", actual: "href='/jasper2/i-have-a-dream/'"
+  body > div > main > div > div > article: attribute_differs - expected: "class='author-template post-card'", actual: "class='post-card'"
+  body > div > main > div > div > article > a: attribute_differs - expected: "href='/jasper2/the-purpose-of-education'", actual: "href='/jasper2/the-purpose-of-education/'"
+  body > div > main > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/the-purpose-of-education'", actual: "href='/jasper2/the-purpose-of-education/'"
 DIFF index.html (30 differences)
   body > div > main > div > div > article > a: attribute_differs - expected: "href='/jasper2/welcome'", actual: "href='/jasper2/welcome/'"
   body > div > main > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/welcome'", actual: "href='/jasper2/welcome/'"
@@ -75,6 +135,53 @@ DIFF private-sites.html (18 differences)
   head > link > script > jsonld.url: jsonld_value_differs - expected: '/jasper2/private-sites', actual: '/jasper2/private-sites.html'
   body > div > aside > div > div > article > a: attribute_differs - expected: "href='/jasper2/managing-users'", actual: "href='/jasper2/managing-users.html'"
   ... and 8 more differences
+DIFF tag/fables/index.html (10 differences)
+  head > title: text_differs - expected: 'Fables - Ghost', actual: 'fables - Ghost'
+  head > link > meta: attribute_differs - expected: "content='Fables - Ghost'", actual: "content='fables - Ghost'"
+  head > link > meta: attribute_differs - expected: "content='Fables - Ghost'", actual: "content='fables - Ghost'"
+  head > link > link: attribute_differs - expected: "title='Tag Page'", actual: "title='Ghost'"
+  body: attribute_differs - expected: "class='tag-template'", actual: "class='home-template'"
+  body > div > header > div > nav > div > ul: missing_element - expected: '<ul>', actual: '(none)'
+  body > div > header > div > div > h1: text_differs - expected: 'Fables', actual: 'fables'
+  body > div > main > div > div > article: attribute_differs - expected: "class='post-card tag-template'", actual: "class='post-card'"
+  body > div > main > div > div > article > a: attribute_differs - expected: "href='/jasper2/the-businessman-and-fisherman'", actual: "href='/jasper2/the-businessman-and-fisherman/'"
+  body > div > main > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/the-businessman-and-fisherman'", actual: "href='/jasper2/the-businessman-and-fisherman/'"
+DIFF tag/fiction/index.html (16 differences)
+  head > title: text_differs - expected: 'Fiction - Ghost', actual: 'fiction - Ghost'
+  head > link > meta: attribute_differs - expected: "content='Fiction - Ghost'", actual: "content='fiction - Ghost'"
+  head > link > meta: attribute_differs - expected: "content='Fiction - Ghost'", actual: "content='fiction - Ghost'"
+  head > link > link: attribute_differs - expected: "title='Tag Page'", actual: "title='Ghost'"
+  body: attribute_differs - expected: "class='tag-template'", actual: "class='home-template'"
+  body > div > header > div > nav > div > ul: missing_element - expected: '<ul>', actual: '(none)'
+  body > div > header > div > div > h1: text_differs - expected: 'Fiction', actual: 'fiction'
+  body > div > main > div > div > article: attribute_differs - expected: "class='post-card tag-template'", actual: "class='post-card'"
+  body > div > main > div > div > article > a: attribute_differs - expected: "href='/jasper2/out-to-sea'", actual: "href='/jasper2/out-to-sea/'"
+  body > div > main > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/out-to-sea'", actual: "href='/jasper2/out-to-sea/'"
+  ... and 6 more differences
+DIFF tag/getting-started/index.html (28 differences)
+  head > title: text_differs - expected: 'Getting Started - Ghost', actual: 'getting started - Ghost'
+  head > link > meta: attribute_differs - expected: "content='Getting Started - Ghost'", actual: "content='getting started - Ghost'"
+  head > link > meta: attribute_differs - expected: "content='Getting Started - Ghost'", actual: "content='getting started - Ghost'"
+  head > link > link: attribute_differs - expected: "title='Tag Page'", actual: "title='Ghost'"
+  body: attribute_differs - expected: "class='tag-template'", actual: "class='home-template'"
+  body > div > header > div > nav > div > ul: missing_element - expected: '<ul>', actual: '(none)'
+  body > div > header > div > div > h1: text_differs - expected: 'Getting Started', actual: 'Getting started'
+  body > div > main > div > div > article: attribute_differs - expected: "class='post-card tag-template'", actual: "class='post-card'"
+  body > div > main > div > div > article > a: attribute_differs - expected: "href='/jasper2/welcome'", actual: "href='/jasper2/welcome/'"
+  body > div > main > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/welcome'", actual: "href='/jasper2/welcome/'"
+  ... and 18 more differences
+DIFF tag/speeches/index.html (13 differences)
+  head > title: text_differs - expected: 'Speeches - Ghost', actual: 'speeches - Ghost'
+  head > link > meta: attribute_differs - expected: "content='Speeches - Ghost'", actual: "content='speeches - Ghost'"
+  head > link > meta: attribute_differs - expected: "content='Speeches - Ghost'", actual: "content='speeches - Ghost'"
+  head > link > link: attribute_differs - expected: "title='Tag Page'", actual: "title='Ghost'"
+  body: attribute_differs - expected: "class='tag-template'", actual: "class='home-template'"
+  body > div > header > div > nav > div > ul: missing_element - expected: '<ul>', actual: '(none)'
+  body > div > header > div > div > h1: text_differs - expected: 'Speeches', actual: 'speeches'
+  body > div > main > div > div > article: attribute_differs - expected: "class='post-card tag-template'", actual: "class='post-card'"
+  body > div > main > div > div > article > a: attribute_differs - expected: "href='/jasper2/i-have-a-dream'", actual: "href='/jasper2/i-have-a-dream/'"
+  body > div > main > div > div > article > div > a: attribute_differs - expected: "href='/jasper2/i-have-a-dream'", actual: "href='/jasper2/i-have-a-dream/'"
+  ... and 3 more differences
 DIFF the-editor.html (18 differences)
   head > link > link: attribute_differs - expected: "href='/jasper2/the-editor'", actual: "href='/jasper2/the-editor.html'"
   head > link > meta: attribute_differs - expected: "content='Ghost uses a language called Markdown to format text. When you go to edit a post and see special characters and colours intertwined between the words, those are Markdown shortcuts which tell ", actual: "content='Home About Getting Started Try Ghost Subscribe 27 July 2017 / GETTING STARTED Using the Ghost editor Ghost uses a language called Markdown to format text. When you go to edit a post and see s"
@@ -112,4 +219,4 @@ DIFF using-tags.html (18 differences)
   body > div > aside > div > div > article > a: attribute_differs - expected: "href='/jasper2/the-editor'", actual: "href='/jasper2/the-editor.html'"
   ... and 8 more differences
 
-Summary: 0 files matched, 10 files with differences, 291 total differences (32 acceptable diffs filtered out)
+Summary: 0 files matched, 21 files with differences, 424 total differences (32 acceptable diffs filtered out)

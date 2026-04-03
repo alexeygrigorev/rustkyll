@@ -2,5 +2,9 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/type-theme/_site_jekyll_ca
 Rustkyll directory: /home/alexey/git/rustkyl/websites/type-theme/_site_rustkyll_recount
 Common HTML files:  8
 
+DIFF 2014/11/28/markdown-and-html.html (1 differences)
+  body > div > article > section > child[5]: tag_name_differs - expected: 'p', actual: 'img'
+DIFF search.html (1 differences)
+  body > div > article > section > script: text_differs - expected: 'window.store = { "2014-11-30-sample-post-html": { "title": "Sample post", "tags": "test, sample", "date": "November 30, 2014", "author": "", "category": "", "content": "Consectetur adipiscing elit. Do', actual: 'window.store = { "2014-11-30-sample-post-html": { "title": "Sample post", "tags": "test, sample", "date": "November 30, 2014", "author": "", "category": "", "content": "Consectetur adipiscing elit. Do'
 
-Summary: 8 files matched, 0 files with differences, 0 total differences (3 acceptable diffs filtered out)
+Summary: 6 files matched, 2 files with differences, 2 total differences

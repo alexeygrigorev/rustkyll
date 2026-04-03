@@ -4,169 +4,189 @@ Common HTML files:  17
 
 DIFF code-blocks/index.html (36 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_attribute - expected: "async=''", actual: '(none)'
+  head > script: missing_attribute - expected: "src='https://stats.paolino.me/js/pa-kKWXh2BX_OoLDvbRdD5wD.js'", actual: '(none)'
+  head > script: extra_text - expected: '(none)', actual: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib'
+  head > script: extra_attribute - expected: '(none)', actual: "defer=''"
+  head > script: extra_attribute - expected: '(none)', actual: "src='/assets/js/vitepress-theme.js'"
+  head > script: missing_text - expected: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
   body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='nl'", actual: "class='no'"
   body > div > div > div > div > div > div > div > main > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'puts "Hello, world!"'
-  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='p'"
-  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: text_differs - expected: 'puts', actual: '```'
   ... and 26 more differences
-DIFF configuration-reference/index.html (18 differences)
+DIFF configuration-reference/index.html (170 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_attribute - expected: "async=''", actual: '(none)'
+  head > script: missing_attribute - expected: "src='https://stats.paolino.me/js/pa-kKWXh2BX_OoLDvbRdD5wD.js'", actual: '(none)'
+  head > script: extra_text - expected: '(none)', actual: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib'
+  head > script: extra_attribute - expected: '(none)', actual: "defer=''"
+  head > script: extra_attribute - expected: '(none)', actual: "src='/assets/js/vitepress-theme.js'"
+  head > script: missing_text - expected: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
   body > div > div > div > div > div > div > div > main > div > p > a: attribute_differs - expected: "href='/vitepress-parity-and-extensions/'", actual: "href='/reference/vitepress-parity-and-extensions/'"
-  body > div > div > div > div > div > div > div > main > div > child[12]: tag_name_differs - expected: 'div', actual: 'pre'
-  body > div > div > div > div > div > div > div > main > div > child[15]: tag_name_differs - expected: 'div', actual: 'pre'
-  body > div > div > div > div > div > div > div > main > div > child[19]: tag_name_differs - expected: 'div', actual: 'pre'
-  ... and 8 more differences
-DIFF configuration/index.html (16 differences)
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
+  ... and 160 more differences
+DIFF configuration/index.html (56 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_attribute - expected: "async=''", actual: '(none)'
+  head > script: missing_attribute - expected: "src='https://stats.paolino.me/js/pa-kKWXh2BX_OoLDvbRdD5wD.js'", actual: '(none)'
+  head > script: extra_text - expected: '(none)', actual: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib'
+  head > script: extra_attribute - expected: '(none)', actual: "defer=''"
+  head > script: extra_attribute - expected: '(none)', actual: "src='/assets/js/vitepress-theme.js'"
+  head > script: missing_text - expected: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[5]: tag_name_differs - expected: 'div', actual: 'pre'
-  body > div > div > div > div > div > div > div > main > div > child[9]: tag_name_differs - expected: 'div', actual: 'pre'
-  body > div > div > div > div > div > div > div > main > div > child[13]: tag_name_differs - expected: 'div', actual: 'pre'
-  body > div > div > div > div > div > div > div > main > div > child[15]: tag_name_differs - expected: 'div', actual: 'pre'
-  ... and 6 more differences
-DIFF custom-blocks/index.html (58 differences)
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
+  ... and 46 more differences
+DIFF custom-blocks/index.html (60 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_attribute - expected: "async=''", actual: '(none)'
+  head > script: missing_attribute - expected: "src='https://stats.paolino.me/js/pa-kKWXh2BX_OoLDvbRdD5wD.js'", actual: '(none)'
+  head > script: extra_text - expected: '(none)', actual: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib'
+  head > script: extra_attribute - expected: '(none)', actual: "defer=''"
+  head > script: extra_attribute - expected: '(none)', actual: "src='/assets/js/vitepress-theme.js'"
+  head > script: missing_text - expected: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
   body > div > div > div > div > div > div > div > main > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '{% include alert.html type="tip" content="This is a helpful tip." %}'
   body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
-  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
-  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
-  ... and 48 more differences
-DIFF customizing-styles/index.html (8 differences)
+  ... and 50 more differences
+DIFF customizing-styles/index.html (36 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_attribute - expected: "async=''", actual: '(none)'
+  head > script: missing_attribute - expected: "src='https://stats.paolino.me/js/pa-kKWXh2BX_OoLDvbRdD5wD.js'", actual: '(none)'
+  head > script: extra_text - expected: '(none)', actual: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib'
+  head > script: extra_attribute - expected: '(none)', actual: "defer=''"
+  head > script: extra_attribute - expected: '(none)', actual: "src='/assets/js/vitepress-theme.js'"
+  head > script: missing_text - expected: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[5]: tag_name_differs - expected: 'div', actual: 'pre'
-  body > div > div > div > div > div > div > div > main > div > child[10]: tag_name_differs - expected: 'div', actual: 'pre'
-DIFF deployment/index.html (6 differences)
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: text_differs - expected: "'Inter',", actual: '\'Inter\', ui-sans-serif, system-ui, sans-serif"'
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='nv'", actual: "class='na'"
+  ... and 26 more differences
+DIFF deployment/index.html (8 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_attribute - expected: "async=''", actual: '(none)'
+  head > script: missing_attribute - expected: "src='https://stats.paolino.me/js/pa-kKWXh2BX_OoLDvbRdD5wD.js'", actual: '(none)'
+  head > script: extra_text - expected: '(none)', actual: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib'
+  head > script: extra_attribute - expected: '(none)', actual: "defer=''"
+  head > script: extra_attribute - expected: '(none)', actual: "src='/assets/js/vitepress-theme.js'"
+  head > script: missing_text - expected: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-DIFF extending-behavior/index.html (8 differences)
+DIFF extending-behavior/index.html (12 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_attribute - expected: "async=''", actual: '(none)'
+  head > script: missing_attribute - expected: "src='https://stats.paolino.me/js/pa-kKWXh2BX_OoLDvbRdD5wD.js'", actual: '(none)'
+  head > script: extra_text - expected: '(none)', actual: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib'
+  head > script: extra_attribute - expected: '(none)', actual: "defer=''"
+  head > script: extra_attribute - expected: '(none)', actual: "src='/assets/js/vitepress-theme.js'"
+  head > script: missing_text - expected: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[7]: tag_name_differs - expected: 'div', actual: 'pre'
-  body > div > div > div > div > div > div > div > main > div > child[17]: tag_name_differs - expected: 'div', actual: 'pre'
-DIFF frontmatter-reference/index.html (8 differences)
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='nt'", actual: "class='p'"
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: text_differs - expected: '></script>', actual: '></'
+  ... and 2 more differences
+DIFF frontmatter-reference/index.html (10 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_attribute - expected: "async=''", actual: '(none)'
+  head > script: missing_attribute - expected: "src='https://stats.paolino.me/js/pa-kKWXh2BX_OoLDvbRdD5wD.js'", actual: '(none)'
+  head > script: extra_text - expected: '(none)', actual: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib'
+  head > script: extra_attribute - expected: '(none)', actual: "defer=''"
+  head > script: extra_attribute - expected: '(none)', actual: "src='/assets/js/vitepress-theme.js'"
+  head > script: missing_text - expected: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[6]: tag_name_differs - expected: 'div', actual: 'pre'
-  body > div > div > div > div > div > div > div > main > div > child[13]: tag_name_differs - expected: 'div', actual: 'pre'
-DIFF getting-started/index.html (20 differences)
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
+DIFF getting-started/index.html (32 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_attribute - expected: "async=''", actual: '(none)'
+  head > script: missing_attribute - expected: "src='https://stats.paolino.me/js/pa-kKWXh2BX_OoLDvbRdD5wD.js'", actual: '(none)'
+  head > script: extra_text - expected: '(none)', actual: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib'
+  head > script: extra_attribute - expected: '(none)', actual: "defer=''"
+  head > script: extra_attribute - expected: '(none)', actual: "src='/assets/js/vitepress-theme.js'"
+  head > script: missing_text - expected: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[5]: tag_name_differs - expected: 'div', actual: 'pre'
-  body > div > div > div > div > div > div > div > main > div > div > div > pre > code: text_differs - expected: 'bundle', actual: 'bundle install'
-  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
-  body > div > div > div > div > div > div > div > main > div > child[10]: tag_name_differs - expected: 'div', actual: 'pre'
-  ... and 10 more differences
-DIFF index.html (6 differences)
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nf'"
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='s2'", actual: "class='dl'"
+  ... and 22 more differences
+DIFF index.html (8 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_attribute - expected: "async=''", actual: '(none)'
+  head > script: missing_attribute - expected: "src='https://stats.paolino.me/js/pa-kKWXh2BX_OoLDvbRdD5wD.js'", actual: '(none)'
+  head > script: extra_text - expected: '(none)', actual: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib'
+  head > script: extra_attribute - expected: '(none)', actual: "defer=''"
+  head > script: extra_attribute - expected: '(none)', actual: "src='/assets/js/vitepress-theme.js'"
+  head > script: missing_text - expected: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-DIFF markdown-extensions/index.html (93 differences)
+DIFF markdown-extensions/index.html (95 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_attribute - expected: "async=''", actual: '(none)'
+  head > script: missing_attribute - expected: "src='https://stats.paolino.me/js/pa-kKWXh2BX_OoLDvbRdD5wD.js'", actual: '(none)'
+  head > script: extra_text - expected: '(none)', actual: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib'
+  head > script: extra_attribute - expected: '(none)', actual: "defer=''"
+  head > script: extra_attribute - expected: '(none)', actual: "src='/assets/js/vitepress-theme.js'"
+  head > script: missing_text - expected: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
   body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='gu'", actual: "class='p'"
   body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: text_differs - expected: '## My Custom Section {#custom-id}', actual: '##'
-  body > div > div > div > div > div > div > div > main > div > div > div > pre > code: extra_text - expected: '(none)', actual: 'My Custom Section {#custom-id}'
-  body > div > div > div > div > div > div > div > main > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'Getting Started'
-  ... and 83 more differences
+  ... and 85 more differences
 DIFF navigation-layout/index.html (10 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_attribute - expected: "async=''", actual: '(none)'
+  head > script: missing_attribute - expected: "src='https://stats.paolino.me/js/pa-kKWXh2BX_OoLDvbRdD5wD.js'", actual: '(none)'
+  head > script: extra_text - expected: '(none)', actual: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib'
+  head > script: extra_attribute - expected: '(none)', actual: "defer=''"
+  head > script: extra_attribute - expected: '(none)', actual: "src='/assets/js/vitepress-theme.js'"
+  head > script: missing_text - expected: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
   body > div > div > div > div > div > div > div > main > div > child[5]: tag_name_differs - expected: 'div', actual: 'pre'
-  body > div > div > div > div > div > div > div > main > div > child[9]: tag_name_differs - expected: 'div', actual: 'pre'
-  body > div > div > div > div > div > div > div > main > div > child[13]: tag_name_differs - expected: 'div', actual: 'pre'
   body > div > div > div > div > div > div > div > main > div > p > a: attribute_differs - expected: "href='/frontmatter-reference/'", actual: "href='/reference/frontmatter-reference/'"
-DIFF overview/index.html (7 differences)
+DIFF overview/index.html (9 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_attribute - expected: "async=''", actual: '(none)'
+  head > script: missing_attribute - expected: "src='https://stats.paolino.me/js/pa-kKWXh2BX_OoLDvbRdD5wD.js'", actual: '(none)'
+  head > script: extra_text - expected: '(none)', actual: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib'
+  head > script: extra_attribute - expected: '(none)', actual: "defer=''"
+  head > script: extra_attribute - expected: '(none)', actual: "src='/assets/js/vitepress-theme.js'"
+  head > script: missing_text - expected: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
   body > div > div > div > div > div > div > div > main > div > p > a: attribute_differs - expected: "href='/vitepress-parity-and-extensions/'", actual: "href='/reference/vitepress-parity-and-extensions/'"
-DIFF search-and-outline/index.html (7 differences)
+DIFF search-and-outline/index.html (9 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_attribute - expected: "async=''", actual: '(none)'
+  head > script: missing_attribute - expected: "src='https://stats.paolino.me/js/pa-kKWXh2BX_OoLDvbRdD5wD.js'", actual: '(none)'
+  head > script: extra_text - expected: '(none)', actual: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib'
+  head > script: extra_attribute - expected: '(none)', actual: "defer=''"
+  head > script: extra_attribute - expected: '(none)', actual: "src='/assets/js/vitepress-theme.js'"
+  head > script: missing_text - expected: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[11]: tag_name_differs - expected: 'div', actual: 'pre'
-DIFF troubleshooting/index.html (41 differences)
+  body > div > div > div > div > div > div > div > main > div > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
+DIFF troubleshooting/index.html (42 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_attribute - expected: "async=''", actual: '(none)'
+  head > script: missing_attribute - expected: "src='https://stats.paolino.me/js/pa-kKWXh2BX_OoLDvbRdD5wD.js'", actual: '(none)'
+  head > script: extra_text - expected: '(none)', actual: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib'
+  head > script: extra_attribute - expected: '(none)', actual: "defer=''"
+  head > script: extra_attribute - expected: '(none)', actual: "src='/assets/js/vitepress-theme.js'"
+  head > script: missing_text - expected: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > div > div > div > div > div > main > div > child[10]: tag_name_differs - expected: 'div', actual: 'pre'
   body > div > div > div > div > div > div > div > main > div > ul > li: expected_text_got_element - expected: 'Confirm the gem is installed: run', actual: '<table>'
   body > div > div > div > div > div > div > div > main > div > ul > li > child[1]: tag_name_differs - expected: 'code', actual: 'table'
-  body > div > div > div > div > div > div > div > main > div > ul > li: missing_text - expected: 'and check the output.', actual: '(none)'
-  ... and 31 more differences
-DIFF vitepress-parity-and-extensions/index.html (6 differences)
+  ... and 32 more differences
+DIFF vitepress-parity-and-extensions/index.html (8 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_attribute - expected: "async=''", actual: '(none)'
+  head > script: missing_attribute - expected: "src='https://stats.paolino.me/js/pa-kKWXh2BX_OoLDvbRdD5wD.js'", actual: '(none)'
+  head > script: extra_text - expected: '(none)', actual: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib'
+  head > script: extra_attribute - expected: '(none)', actual: "defer=''"
+  head > script: extra_attribute - expected: '(none)', actual: "src='/assets/js/vitepress-theme.js'"
+  head > script: missing_text - expected: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-DIFF what-is-jekyll-vitepress-theme/index.html (6 differences)
+DIFF what-is-jekyll-vitepress-theme/index.html (8 differences)
   head > child[15]: tag_name_differs - expected: 'style', actual: 'script'
+  head > script: missing_attribute - expected: "async=''", actual: '(none)'
+  head > script: missing_attribute - expected: "src='https://stats.paolino.me/js/pa-kKWXh2BX_OoLDvbRdD5wD.js'", actual: '(none)'
+  head > script: extra_text - expected: '(none)', actual: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib'
+  head > script: extra_attribute - expected: '(none)', actual: "defer=''"
+  head > script: extra_attribute - expected: '(none)', actual: "src='/assets/js/vitepress-theme.js'"
+  head > script: missing_text - expected: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  head > script: missing_element - expected: '<script>', actual: '(none)'
-  body > div > div > header > div > div > div > div > div > nav > div > button > span > span: text_differs - expected: 'v1.1.1', actual: 'auto'
-  body > div > div > header > div > div > div > button > span: text_differs - expected: 'v1.1.1', actual: 'auto'
 
-Summary: 0 files matched, 17 files with differences, 354 total differences (4 acceptable diffs filtered out)
+Summary: 0 files matched, 17 files with differences, 609 total differences (4 acceptable diffs filtered out)

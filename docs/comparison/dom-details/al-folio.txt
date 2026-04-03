@@ -1,7 +1,7 @@
 Jekyll directory:   /home/alexey/git/rustkyl/websites/al-folio/_site_jekyll_cached
 Rustkyll directory: /home/alexey/git/rustkyl/websites/al-folio/_site_rustkyll_recount
-Common HTML files:  60
-Only in Jekyll:     48
+Common HTML files:  102
+Only in Jekyll:     6
 
 DIFF 404.html (72 differences)
   head > meta: attribute_differs - expected: "content='text/html; charset=UTF-8'", actual: "content='3; url=/al-folio/'"
@@ -75,6 +75,9 @@ DIFF blog/2015/images/index.html (92 differences)
   head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
   ... and 82 more differences
+DIFF blog/2015/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
 DIFF blog/2015/math/index.html (97 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
   head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
@@ -87,6 +90,9 @@ DIFF blog/2015/math/index.html (97 differences)
   head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
   ... and 87 more differences
+DIFF blog/2020/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
 DIFF blog/2020/twitter/index.html (98 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
   head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
@@ -123,6 +129,9 @@ DIFF blog/2021/distill/index.html (27 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='Content-Security-Policy'"
   head > meta: missing_attribute - expected: "name='keywords'", actual: '(none)'
   ... and 17 more differences
+DIFF blog/2021/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
 DIFF blog/2022/giscus-comments/index.html (75 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
   head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
@@ -135,6 +144,9 @@ DIFF blog/2022/giscus-comments/index.html (75 differences)
   head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
   ... and 65 more differences
+DIFF blog/2022/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
 DIFF blog/2022/redirect/index.html (95 differences)
   head > meta: attribute_differs - expected: "content='text/html; charset=UTF-8'", actual: "content='3; url=/al-folio/'"
   head > meta: attribute_differs - expected: "http-equiv='Content-Type'", actual: "http-equiv='refresh'"
@@ -159,7 +171,7 @@ DIFF blog/2023/audios/index.html (92 differences)
   head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
   ... and 82 more differences
-DIFF blog/2023/custom-blockquotes/index.html (298 differences)
+DIFF blog/2023/custom-blockquotes/index.html (292 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
   head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
   head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
@@ -170,7 +182,10 @@ DIFF blog/2023/custom-blockquotes/index.html (298 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
   head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
-  ... and 288 more differences
+  ... and 282 more differences
+DIFF blog/2023/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
 DIFF blog/2023/jupyter-notebook/index.html (150 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
   head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
@@ -183,7 +198,7 @@ DIFF blog/2023/jupyter-notebook/index.html (150 differences)
   head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
   ... and 140 more differences
-DIFF blog/2023/post-bibliography/index.html (87 differences)
+DIFF blog/2023/post-bibliography/index.html (92 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
   head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
   head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
@@ -194,7 +209,7 @@ DIFF blog/2023/post-bibliography/index.html (87 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
   head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
-  ... and 77 more differences
+  ... and 82 more differences
 DIFF blog/2023/sidebar-table-of-contents/index.html (95 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
   head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
@@ -315,6 +330,9 @@ DIFF blog/2024/geojson-map/index.html (106 differences)
   head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
   ... and 96 more differences
+DIFF blog/2024/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
 DIFF blog/2024/photo-gallery/index.html (139 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
   head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
@@ -351,7 +369,7 @@ DIFF blog/2024/pseudocode/index.html (115 differences)
   head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
   ... and 105 more differences
-DIFF blog/2024/tabs/index.html (146 differences)
+DIFF blog/2024/tabs/index.html (167 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
   head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
   head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
@@ -362,7 +380,7 @@ DIFF blog/2024/tabs/index.html (146 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
   head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
-  ... and 136 more differences
+  ... and 157 more differences
 DIFF blog/2024/typograms/index.html (108 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
   head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
@@ -387,6 +405,9 @@ DIFF blog/2024/vega-lite/index.html (103 differences)
   head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
   ... and 93 more differences
+DIFF blog/2025/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
 DIFF blog/2025/plotly/index.html (106 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
   head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
@@ -399,7 +420,13 @@ DIFF blog/2025/plotly/index.html (106 differences)
   head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
   ... and 96 more differences
-DIFF blog/index.html (72 differences)
+DIFF blog/category/external-services/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF blog/category/sample-posts/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF blog/index.html (118 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
   head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
   head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
@@ -410,7 +437,157 @@ DIFF blog/index.html (72 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
   head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
-  ... and 62 more differences
+  ... and 108 more differences
+DIFF blog/page/2/index.html (114 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='width=device-width, initial-scale=1, shrink-to-fit=no'"
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1, shrink-to-fit=no'", actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
+  head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
+  ... and 104 more differences
+DIFF blog/page/3/index.html (121 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='width=device-width, initial-scale=1, shrink-to-fit=no'"
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1, shrink-to-fit=no'", actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
+  head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
+  ... and 111 more differences
+DIFF blog/page/4/index.html (122 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='width=device-width, initial-scale=1, shrink-to-fit=no'"
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1, shrink-to-fit=no'", actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
+  head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
+  ... and 112 more differences
+DIFF blog/page/5/index.html (118 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='width=device-width, initial-scale=1, shrink-to-fit=no'"
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1, shrink-to-fit=no'", actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
+  head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
+  ... and 108 more differences
+DIFF blog/page/6/index.html (117 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='width=device-width, initial-scale=1, shrink-to-fit=no'"
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1, shrink-to-fit=no'", actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
+  head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
+  ... and 107 more differences
+DIFF blog/page/7/index.html (87 differences)
+  head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
+  head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
+  head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
+  head > meta: missing_attribute - expected: "charset='utf-8'", actual: '(none)'
+  head > meta: extra_attribute - expected: '(none)', actual: "content='width=device-width, initial-scale=1, shrink-to-fit=no'"
+  head > meta: extra_attribute - expected: '(none)', actual: "name='viewport'"
+  head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1, shrink-to-fit=no'", actual: "content='IE=edge'"
+  head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
+  head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
+  head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
+  ... and 77 more differences
+DIFF blog/tag/audios/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF blog/tag/bib/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF blog/tag/blockquotes/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF blog/tag/charts/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF blog/tag/citation/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF blog/tag/code/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF blog/tag/comments/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF blog/tag/diagrams/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF blog/tag/distill/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF blog/tag/formatting/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF blog/tag/images/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF blog/tag/jupyter/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF blog/tag/links/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF blog/tag/maps/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF blog/tag/math/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF blog/tag/sidebar/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF blog/tag/tables/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF blog/tag/toc/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF blog/tag/videos/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF books/2024/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF books/category/classics/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF books/category/crime/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF books/category/historical-fiction/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF books/category/mystery/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF books/category/novels/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
+DIFF books/category/thriller/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
 DIFF books/index.html (70 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
   head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
@@ -423,6 +600,9 @@ DIFF books/index.html (70 differences)
   head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
   ... and 60 more differences
+DIFF books/tag/top-100/index.html (2 differences)
+  child[1]: tag_name_differs - expected: 'head', actual: 'h1'
+  child[2]: tag_name_differs - expected: 'body', actual: 'ul'
 DIFF books/the_godfather/index.html (72 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
   head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
@@ -435,7 +615,7 @@ DIFF books/the_godfather/index.html (72 differences)
   head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
   ... and 62 more differences
-DIFF cv/index.html (82 differences)
+DIFF cv/index.html (84 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
   head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
   head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
@@ -446,8 +626,8 @@ DIFF cv/index.html (82 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
   head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
-  ... and 72 more differences
-DIFF index.html (90 differences)
+  ... and 74 more differences
+DIFF index.html (87 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
   head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
   head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
@@ -458,7 +638,7 @@ DIFF index.html (90 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
   head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
-  ... and 80 more differences
+  ... and 77 more differences
 DIFF news/announcement_1/index.html (71 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
   head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
@@ -483,7 +663,7 @@ DIFF news/announcement_2/index.html (75 differences)
   head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
   ... and 65 more differences
-DIFF news/announcement_3/index.html (74 differences)
+DIFF news/announcement_3/index.html (71 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
   head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
   head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
@@ -494,8 +674,8 @@ DIFF news/announcement_3/index.html (74 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
   head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
-  ... and 64 more differences
-DIFF news/index.html (73 differences)
+  ... and 61 more differences
+DIFF news/index.html (70 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
   head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
   head > meta: missing_attribute - expected: "http-equiv='Content-Type'", actual: '(none)'
@@ -506,7 +686,7 @@ DIFF news/index.html (73 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
   head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
-  ... and 63 more differences
+  ... and 60 more differences
 DIFF people/index.html (80 differences)
   head > meta: extra_attribute - expected: '(none)', actual: "charset='utf-8'"
   head > meta: missing_attribute - expected: "content='text/html; charset=UTF-8'", actual: '(none)'
@@ -625,6 +805,7 @@ DIFF projects/9_project/index.html (72 differences)
   head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1, shrink-to-fit=no'", actual: "content='IE=edge'"
   head > meta: extra_attribute - expected: '(none)', actual: "http-equiv='X-UA-Compatible'"
   head > meta: missing_attribute - expected: "name='viewport'", actual: '(none)'
+  Progress: 100/102 files compared...
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
   ... and 62 more differences
 DIFF projects/index.html (79 differences)
@@ -700,4 +881,4 @@ DIFF teachings/introduction-to-machine-learning/index.html (72 differences)
   head > child[4]: tag_name_differs - expected: 'meta', actual: 'title'
   ... and 62 more differences
 
-Summary: 2 files matched, 58 files with differences, 5709 total differences (57 acceptable diffs filtered out)
+Summary: 2 files matched, 100 files with differences, 6519 total differences (260 acceptable diffs filtered out)

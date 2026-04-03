@@ -2,11 +2,24 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/chirpy/_site_jekyll_cached
 Rustkyll directory: /home/alexey/git/rustkyl/websites/chirpy/_site_rustkyll_recount
 Common HTML files:  17
 
+DIFF 404.html (1 differences)
+  body > script: text_differs - expected: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as", actual: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as"
 DIFF about/index.html (2 differences)
-  body > div > div > div > main > article > div > blockquote: missing_attribute - expected: "class='prompt-tip'", actual: '(none)'
-  body > div > div > div > main > article > div > blockquote > p: extra_attribute - expected: '(none)', actual: "class='prompt-tip'"
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='2026-03-20T23:46:34+01:00'", actual: "content='2026-04-03T23:16:37+00:00'"
+  body > script: text_differs - expected: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as", actual: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as"
+DIFF archives/index.html (2 differences)
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='2026-03-20T23:46:34+01:00'", actual: "content='2026-04-03T23:16:37+00:00'"
+  body > script: text_differs - expected: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as", actual: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as"
+DIFF categories/blogging/index.html (1 differences)
+  body > script: text_differs - expected: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as", actual: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as"
+DIFF categories/demo/index.html (1 differences)
+  body > script: text_differs - expected: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as", actual: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as"
+DIFF categories/index.html (2 differences)
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='2026-03-20T23:46:34+01:00'", actual: "content='2026-04-03T23:16:37+00:00'"
+  body > script: text_differs - expected: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as", actual: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as"
+DIFF categories/tutorial/index.html (1 differences)
+  body > script: text_differs - expected: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as", actual: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as"
 DIFF index.html (14 differences)
-  body > div > div > div > main > div > article > a > div > div > img: attribute_differs - expected: "data-src='/commons/devices-mockup.png'", actual: "data-src='\\n\\n    \\n\\n    \\n      \\n        \\n      \\n    \\n  /commons/devices-mockup.png'"
   body > div > div > div > main > div > article > a: attribute_differs - expected: "href='/posts/customize-the-favicon/'", actual: "href='/posts/getting-started/'"
   body > div > div > div > main > div > article > a > div > div > h1: text_differs - expected: 'Customize the Favicon', actual: 'Getting Started'
   body > div > div > div > main > div > article > a > div > div > div > p: text_differs - expected: 'The favicons of Chirpy are placed in the directory assets/img/favicons/. You may want to replace them with your own. The following sections will guide you to create and replace the default favicons...', actual: 'Get started with Chirpy basics in this comprehensive overview. You will learn how to install, configure, and use your first Chirpy-based website, as well as deploy it to a web server.'
@@ -16,36 +29,50 @@ DIFF index.html (14 differences)
   body > div > div > div > main > div > article > a: attribute_differs - expected: "href='/posts/write-a-new-post/'", actual: "href='/posts/text-and-typography/'"
   body > div > div > div > main > div > article > a > div: attribute_differs - expected: "class='col-md-12'", actual: "class='col-md-5'"
   body > div > div > div > main > div > article > a > div > div: attribute_differs - expected: "class='card-body d-flex flex-column'", actual: "class='blur preview-img'"
+  body > div > div > div > main > div > article > a > div > div > child[1]: tag_name_differs - expected: 'h1', actual: 'img'
   ... and 4 more differences
-DIFF posts/customize-the-favicon/index.html (5 differences)
+DIFF posts/customize-the-favicon/index.html (4 differences)
   body > div > div > div > main > article > header > div > span > time: text_differs - expected: 'Aug 10, 2019', actual: 'Aug 11, 2019'
   body > div > div > div > main > article > header > div > div > div > span: attribute_differs - expected: "title='211 words'", actual: "title='203 words'"
-  body > div > div > div > main > article > div > blockquote: missing_attribute - expected: "class='prompt-info'", actual: '(none)'
-  body > div > div > div > main > article > div > blockquote > p: extra_attribute - expected: '(none)', actual: "class='prompt-info'"
   body > div > div > div > div > aside > nav > article > a > div > div > p: missing_text - expected: 'This tutorial will guide you on how to write a post in the Chirpy template, and it’s worth reading e', actual: '(none)'
-DIFF posts/getting-started/index.html (23 differences)
+  body > script: text_differs - expected: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as", actual: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as"
+DIFF posts/getting-started/index.html (14 differences)
   body > div > div > div > main > article > header > div > div > div > span: attribute_differs - expected: "title='798 words'", actual: "title='795 words'"
   body > div > div > div > main > article > div > child[22]: tag_name_differs - expected: 'div', actual: 'pre'
-  body > div > div > div > main > article > div > blockquote: missing_attribute - expected: "class='prompt-info'", actual: '(none)'
-  body > div > div > div > main > article > div > blockquote > p: extra_attribute - expected: '(none)', actual: "class='prompt-info'"
   body > div > div > div > main > article > div > ul > li: expected_text_got_element - expected: 'If you’re on the GitHub Free plan, keep your site repository public.', actual: '<p>'
   body > div > div > div > main > article > div > ul > li > p: extra_element - expected: '(none)', actual: '<p>'
   body > div > div > div > main > article > div > ul > li > div > div > code: expected_element_got_text - expected: '<table>', actual: '$ bundle lock'
   body > div > div > div > main > article > div > ul > li > div > div > code > child[1]: tag_name_differs - expected: 'table', actual: 'span'
   body > div > div > div > main > article > div > ul > li > div > div > code: extra_text - expected: '(none)', actual: 'x86_64-linux'
   body > div > div > div > main > article > div > ol > li > p > child[3]: tag_name_differs - expected: 'strong', actual: 'em'
-  ... and 13 more differences
-DIFF posts/text-and-typography/index.html (109 differences)
-  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='/commons/devices-mockup.png'", actual: "content='\\n\\n    \\n\\n    \\n      \\n        \\n      \\n    \\n  /commons/devices-mockup.png'"
-  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='/commons/devices-mockup.png'", actual: "content='\\n\\n    \\n\\n    \\n      \\n        \\n      \\n    \\n  /commons/devices-mockup.png'"
-  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='Responsive rendering of Chirpy theme on multiple devices.'", actual: "content='Text and Typography'"
-  head > meta > meta > meta > meta > meta > meta > meta: missing_attribute - expected: "name='twitter:image:alt'", actual: '(none)'
-  head > meta > meta > meta > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='twitter:title'"
-  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='Text and Typography'", actual: "content='@twitter_username'"
-  head > meta > meta > meta > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "name='twitter:site'"
-  head > meta > meta > meta > meta > meta > meta > meta: missing_attribute - expected: "property='twitter:title'", actual: '(none)'
-  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='@twitter_username'", actual: "content='@cotes'"
-  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "name='twitter:site'", actual: "name='twitter:creator'"
-  ... and 99 more differences
+  body > div > div > div > main > article > div > div > div > code: expected_element_got_text - expected: '<table>', actual: '$ JEKYLL_ENV=production bundle exec jekyll b'
+  body > div > div > div > main > article > div > div > div > code > table: missing_element - expected: '<table>', actual: '(none)'
+  ... and 4 more differences
+DIFF posts/text-and-typography/index.html (29 differences)
+  head > meta > meta > meta > meta > meta > meta > script > jsonld.image: jsonld_value_differs - expected: '{"lqip": "data:image/webp;base64,UklGRpoAAABXRUJQVlA4WAoAAAAQAAAADwAABwAAQUxQSDIAAAARL0AmbZurmr57yyIiqE8oiG0bejIYEQTgqiDA9vqnsUSI6H+oAERp2HZ65qP/VIAWAFZQOCBCAAAA8AEAnQEqEAAIAAVAfCWkAALp8sF8rgRgAP7o9FD', actual: '/commons/devices-mockup.png'
+  body > div > div > div > main > article > header > div > div > div > span: attribute_differs - expected: "title='592 words'", actual: "title='579 words'"
+  body > div > div > div > main > article > div > ul > li > ul: missing_attribute - expected: "class='task-list'", actual: '(none)'
+  body > div > div > div > main > article > div > div > div > code: expected_element_got_text - expected: '<table>', actual: 'This is a common code snippet, without syntax highlight and line number.'
+  body > div > div > div > main > article > div > div > div > code > table: missing_element - expected: '<table>', actual: '(none)'
+  body > div > div > div > main > article > div > div > div > code > child[1]: tag_name_differs - expected: 'table', actual: 'span'
+  body > div > div > div > main > article > div > div > div > code > span: extra_element - expected: '(none)', actual: '<span>'
+  body > div > div > div > main > article > div > div > div > code > span: extra_element - expected: '(none)', actual: '<span>'
+  body > div > div > div > main > article > div > div > div > code > span: extra_element - expected: '(none)', actual: '<span>'
+  body > div > div > div > main > article > div > div > div > code > span: extra_element - expected: '(none)', actual: '<span>'
+  ... and 19 more differences
+DIFF posts/write-a-new-post/index.html (2 differences)
+  head: missing_element - expected: '<head>', actual: '(none)'
+  body: missing_element - expected: '<body>', actual: '(none)'
+DIFF tags/favicon/index.html (1 differences)
+  body > script: text_differs - expected: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as", actual: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as"
+DIFF tags/getting-started/index.html (1 differences)
+  body > script: text_differs - expected: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as", actual: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as"
+DIFF tags/index.html (2 differences)
+  head > meta > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='2026-03-20T23:46:34+01:00'", actual: "content='2026-04-03T23:16:37+00:00'"
+  body > script: text_differs - expected: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as", actual: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as"
+DIFF tags/typography/index.html (1 differences)
+  body > script: text_differs - expected: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as", actual: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as"
+DIFF tags/writing/index.html (1 differences)
+  body > script: text_differs - expected: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as", actual: "document.addEventListener('DOMContentLoaded', () => { SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/as"
 
-Summary: 12 files matched, 5 files with differences, 153 total differences (150 acceptable diffs filtered out)
+Summary: 0 files matched, 17 files with differences, 79 total differences (8 acceptable diffs filtered out)

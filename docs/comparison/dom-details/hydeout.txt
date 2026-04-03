@@ -16,6 +16,18 @@ DIFF 2012/02/05/markup-syntax-highlighting.html (246 differences)
   body > main > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nl'", actual: "class='pi'"
   body > main > div > div > div > div > pre > code > span: text_differs - expected: 'margin', actual: ':'
   ... and 236 more differences
+DIFF 2012/02/07/example-content.html (45 differences)
+  body > main > div > div > figure > pre > child[1]: tag_name_differs - expected: 'code', actual: 'code<pre'
+  body > main > div > div > figure > script: extra_element - expected: '(none)', actual: '<script>'
+  body > main > div > div > figure > p: extra_element - expected: '(none)', actual: '<p>'
+  body > main > div > div > figure > h3: extra_element - expected: '(none)', actual: '<h3>'
+  body > main > div > div > figure > p: extra_element - expected: '(none)', actual: '<p>'
+  body > main > div > div > figure > ul: extra_element - expected: '(none)', actual: '<ul>'
+  body > main > div > div > figure > p: extra_element - expected: '(none)', actual: '<p>'
+  body > main > div > div > figure > ol: extra_element - expected: '(none)', actual: '<ol>'
+  body > main > div > div > figure > p: extra_element - expected: '(none)', actual: '<p>'
+  body > main > div > div > figure > dl: extra_element - expected: '(none)', actual: '<dl>'
+  ... and 35 more differences
 DIFF 2017/06/01/hello-hydeout.html (31 differences)
   body > main > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '$sidebar-bg-color: #202020 !default; $sidebar-fg-color: white !default; $sidebar-sticky: true !defau'
   body > main > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
@@ -50,7 +62,7 @@ DIFF edge case/2009/10/05/edge-case-title-should-not-overflow-the-content-area.h
   body > main > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: ';'
   body > main > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > main > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
-DIFF index.html (43 differences)
+DIFF index.html (79 differences)
   body > main > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '$sidebar-bg-color: #202020 !default; $sidebar-fg-color: white !default; $sidebar-sticky: true !defau'
   body > main > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > main > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
@@ -61,19 +73,19 @@ DIFF index.html (43 differences)
   body > main > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > main > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > main > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
-  ... and 33 more differences
-DIFF markup/2012/01/11/markup-html-elements-and-formatting.html (70 differences)
-  body > main > div > div > table > thead > tr > th: missing_text - expected: '\xa0', actual: '(none)'
-  body > main > div > div > child[18]: tag_name_differs - expected: 'dl', actual: 'p'
-  body > main > div > div > child[19]: tag_name_differs - expected: 'h2', actual: 'p'
-  body > main > div > div > child[20]: tag_name_differs - expected: 'ul', actual: 'p'
-  body > main > div > div > child[21]: tag_name_differs - expected: 'h2', actual: 'p'
-  body > main > div > div > child[22]: tag_name_differs - expected: 'ol', actual: 'h2'
-  body > main > div > div > child[23]: tag_name_differs - expected: 'h2', actual: 'ul'
-  body > main > div > div > child[24]: tag_name_differs - expected: 'address', actual: 'h2'
-  body > main > div > div > child[25]: tag_name_differs - expected: 'h2', actual: 'ol'
-  body > main > div > div > child[26]: tag_name_differs - expected: 'p', actual: 'h2'
-  ... and 60 more differences
+  ... and 69 more differences
+DIFF markup/2012/01/11/markup-html-elements-and-formatting.html (59 differences)
+  body > main > div > div > child[1]: tag_name_differs - expected: 'p', actual: 'pre'
+  body > main > div > div > child[2]: tag_name_differs - expected: 'h1', actual: 'h2'
+  body > main > div > div > child[3]: tag_name_differs - expected: 'h2', actual: 'p'
+  body > main > div > div > child[4]: tag_name_differs - expected: 'h3', actual: 'h2'
+  body > main > div > div > child[5]: tag_name_differs - expected: 'h4', actual: 'p'
+  body > main > div > div > child[6]: tag_name_differs - expected: 'h5', actual: 'h2'
+  body > main > div > div > child[7]: tag_name_differs - expected: 'h6', actual: 'p'
+  body > main > div > div > h2: attribute_differs - expected: "id='blockquotes'", actual: "id='superscript-element'"
+  body > main > div > div > h2: text_differs - expected: 'Blockquotes', actual: 'Superscript element'
+  body > main > div > div > p: text_differs - expected: 'Single line blockquote:', actual: 'Still sticking with science and Einstein’s E = MC'
+  ... and 49 more differences
 DIFF markup/2012/01/30/markup-title-with-markup.html (9 differences)
   body > main > div > div > div > div > pre > code > span: text_differs - expected: 'Markup:', actual: 'Markup: Title *with* **Markdown**"'
   body > main > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nv'", actual: "class='s2'"
@@ -107,4 +119,4 @@ DIFF post formats/2010/06/02/post-video-youtube.html (52 differences)
   body > main > div > div > div > div > pre > code > span: text_differs - expected: 'class=', actual: '<!-- 4:3 aspect ratio -->'
   ... and 42 more differences
 
-Summary: 20 files matched, 10 files with differences, 491 total differences (8 acceptable diffs filtered out)
+Summary: 19 files matched, 11 files with differences, 561 total differences (8 acceptable diffs filtered out)

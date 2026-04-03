@@ -2,5 +2,29 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/hyde/_site_jekyll_cached
 Rustkyll directory: /home/alexey/git/rustkyl/websites/hyde/_site_rustkyll_recount
 Common HTML files:  6
 
+DIFF 2012/02/07/example-content/index.html (43 differences)
+  body > div > div > figure > pre > child[1]: tag_name_differs - expected: 'code', actual: 'code<pre'
+  body > div > div > figure > script: extra_element - expected: '(none)', actual: '<script>'
+  body > div > div > figure > p: extra_element - expected: '(none)', actual: '<p>'
+  body > div > div > figure > h3: extra_element - expected: '(none)', actual: '<h3>'
+  body > div > div > figure > p: extra_element - expected: '(none)', actual: '<p>'
+  body > div > div > figure > ul: extra_element - expected: '(none)', actual: '<ul>'
+  body > div > div > figure > p: extra_element - expected: '(none)', actual: '<p>'
+  body > div > div > figure > ol: extra_element - expected: '(none)', actual: '<ol>'
+  body > div > div > figure > p: extra_element - expected: '(none)', actual: '<p>'
+  body > div > div > figure > dl: extra_element - expected: '(none)', actual: '<dl>'
+  ... and 33 more differences
+DIFF index.html (43 differences)
+  body > div > div > div > figure > pre > child[1]: tag_name_differs - expected: 'code', actual: 'code<pre'
+  body > div > div > div > figure > script: extra_element - expected: '(none)', actual: '<script>'
+  body > div > div > div > figure > p: extra_element - expected: '(none)', actual: '<p>'
+  body > div > div > div > figure > h3: extra_element - expected: '(none)', actual: '<h3>'
+  body > div > div > div > figure > p: extra_element - expected: '(none)', actual: '<p>'
+  body > div > div > div > figure > ul: extra_element - expected: '(none)', actual: '<ul>'
+  body > div > div > div > figure > p: extra_element - expected: '(none)', actual: '<p>'
+  body > div > div > div > figure > ol: extra_element - expected: '(none)', actual: '<ol>'
+  body > div > div > div > figure > p: extra_element - expected: '(none)', actual: '<p>'
+  body > div > div > div > figure > dl: extra_element - expected: '(none)', actual: '<dl>'
+  ... and 33 more differences
 
-Summary: 6 files matched, 0 files with differences, 0 total differences
+Summary: 4 files matched, 2 files with differences, 86 total differences

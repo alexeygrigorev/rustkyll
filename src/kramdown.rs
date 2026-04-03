@@ -1884,6 +1884,17 @@ pub fn process_markdown_attribute(content: &str) -> String {
         // Render inner content as markdown
         let trimmed_inner = inner_content.trim();
 
+        // Issue 547: For <details> tags, extract <summary>...</summary> and
+        // only process the body after it as markdown. The <summary> element
+        // causes pulldown-cmark to treat the entire content as an HTML block,
+        // so we must separate it out and reattach after rendering.
+        let (summary_prefix, trimmed_inner) = if tag_name == "details" {
+            extract_summary_from_details(trimmed_inner)
+        } else {
+            (String::new(), trimmed_inner.to_string())
+        };
+        let trimmed_inner: &str = &trimmed_inner;
+
         // Issue 489: Detect kramdown {:toc} pattern inside markdown="1" blocks.
         // The pattern is: `* <text>\n{:toc ...}` which kramdown replaces with
         // a generated table of contents. Replace with a placeholder that
@@ -1957,6 +1968,12 @@ pub fn process_markdown_attribute(content: &str) -> String {
             // For block containers like <aside> and <div>
             result.push_str(&clean_open_tag);
             result.push('\n');
+            // Issue 547: Re-insert extracted <summary> before the rendered body
+            if !summary_prefix.is_empty() {
+                result.push_str("  ");
+                result.push_str(&summary_prefix);
+                result.push('\n');
+            }
             result.push_str(&rendered_inner);
             result.push('\n');
             result.push_str(&close_tag);
@@ -2073,6 +2090,24 @@ fn mark_md1_headings_in_html(html: &str) -> String {
     }
 
     result
+}
+
+/// Issue 547: Extract `<summary>...</summary>` from the beginning of
+/// `<details>` inner content. Returns (summary_html, remaining_body).
+/// If no `<summary>` is found, returns empty summary and original content.
+fn extract_summary_from_details(content: &str) -> (String, String) {
+    let trimmed = content.trim();
+    if let Some(start) = trimmed.find("<summary") {
+        // Find the closing </summary>
+        let after_summary_open = &trimmed[start..];
+        if let Some(close_pos) = after_summary_open.find("</summary>") {
+            let summary_end = start + close_pos + "</summary>".len();
+            let summary = trimmed[start..summary_end].to_string();
+            let body = trimmed[summary_end..].to_string();
+            return (summary, body);
+        }
+    }
+    (String::new(), content.to_string())
 }
 
 /// Extract the tag name from an opening tag like `<aside markdown="1" class="foo">`.
@@ -13300,6 +13335,102 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             !result.contains("code-example label\""),
             "Div should NOT get the label class. Got: {}",
+            result
+        );
+    }
+
+    // ========================================================================
+    // Issue 547: <details markdown="1"> content rendering
+    // ========================================================================
+
+    #[test]
+    fn test_547_details_markdown_attr_bold() {
+        // <details markdown="1"><summary>Click</summary>\nText with **bold**\n</details>
+        // should render inner content as markdown, preserving <summary> as-is
+        let input = "<details markdown=\"1\">\n<summary>Click here!</summary>\nHere you can see an **expandable** section\n</details>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            !result.contains("markdown=\"1\""),
+            "markdown=\"1\" should be stripped. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<summary>Click here!</summary>"),
+            "Summary should be preserved as-is. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<strong>expandable</strong>"),
+            "Bold markdown should be rendered to <strong>. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<p>"),
+            "Body text should be wrapped in <p>. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_547_details_markdown_attr_list() {
+        // <details markdown="1"> with a list should render <ul><li> elements
+        let input =
+            "<details markdown=\"1\">\n<summary>Title</summary>\n- item 1\n- item 2\n</details>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            result.contains("<ul>"),
+            "List should be rendered as <ul>. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<li>"),
+            "List items should be rendered as <li>. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_547_details_no_markdown_attr_unchanged() {
+        // <details> WITHOUT markdown="1" should NOT process inner markdown
+        let input = "<details>\n<summary>Title</summary>\nText with **bold**\n</details>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            result.contains("**bold**"),
+            "Without markdown attr, **bold** should NOT be converted. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("<strong>"),
+            "Without markdown attr, no <strong> should appear. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_547_details_markdown_attr_unicode() {
+        // Unicode content inside <details markdown="1">
+        let input = "<details markdown=\"1\">\n<summary>\u{70B9}\u{51FB}\u{5C55}\u{5F00}</summary>\n\u{8FD9}\u{662F}**\u{7C97}\u{4F53}**\u{5185}\u{5BB9}\n</details>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            result.contains("<strong>\u{7C97}\u{4F53}</strong>"),
+            "Unicode bold should be rendered. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<summary>\u{70B9}\u{51FB}\u{5C55}\u{5F00}</summary>"),
+            "Unicode summary should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_547_details_markdown_attr_exact_jekyll_output() {
+        // Verify the output matches Jekyll's rendering for beautiful-jekyll
+        let input = "<details markdown=\"1\">\n<summary>Click here!</summary>\nHere you can see an **expandable** section\n</details>";
+        let result = process_markdown_attribute(input);
+        assert!(
+            result.contains("<details>\n  <summary>Click here!</summary>\n<p>Here you can see an <strong>expandable</strong> section</p>\n</details>"),
+            "Output should match Jekyll format. Got:\n{}",
             result
         );
     }

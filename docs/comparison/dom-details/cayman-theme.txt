@@ -14,7 +14,7 @@ DIFF another-page.html (18 differences)
   head > meta > child[9]: tag_name_differs - expected: 'script', actual: 'meta'
   head > meta > child[10]: tag_name_differs - expected: 'link', actual: 'meta'
   ... and 8 more differences
-DIFF index.html (20 differences)
+DIFF index.html (21 differences)
   head > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta: attribute_differs - expected: "content='website'", actual: "content='/'"
   head > meta > meta: attribute_differs - expected: "property='og:type'", actual: "property='og:url'"
@@ -25,6 +25,6 @@ DIFF index.html (20 differences)
   head > meta > meta: attribute_differs - expected: "property='twitter:title'", actual: "property='og:type'"
   head > meta > child[9]: tag_name_differs - expected: 'script', actual: 'meta'
   head > meta > child[10]: tag_name_differs - expected: 'link', actual: 'meta'
-  ... and 10 more differences
+  ... and 11 more differences
 
-Summary: 0 files matched, 2 files with differences, 38 total differences (2 acceptable diffs filtered out)
+Summary: 0 files matched, 2 files with differences, 39 total differences (2 acceptable diffs filtered out)

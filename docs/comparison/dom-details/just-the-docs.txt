@@ -21,7 +21,7 @@ DIFF MIGRATION/index.html (445 differences)
   head > meta > meta > meta > link > body > div > div > div > main > p > strong: extra_element - expected: '(none)', actual: '<strong>'
   head > meta > meta > meta > link > body > div > div > div > main > p: extra_text - expected: '(none)', actual: '.'
   ... and 435 more differences
-DIFF docs/configuration/index.html (165 differences)
+DIFF docs/configuration/index.html (159 differences)
   head > meta > meta > meta > link > body > div > div > div > main > ol: missing_attribute - expected: "id='markdown-toc'", actual: '(none)'
   head > meta > meta > meta > link > body > div > div > div > main > ol > li: expected_element_got_text - expected: '<a>', actual: 'TOC {:toc}'
   head > meta > meta > meta > link > body > div > div > div > main > ol > li > a: missing_element - expected: '<a>', actual: '(none)'
@@ -32,8 +32,8 @@ DIFF docs/configuration/index.html (165 differences)
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='s1'", actual: "class='s2'"
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='s1'"
-  ... and 155 more differences
-DIFF docs/customization/index.html (243 differences)
+  ... and 149 more differences
+DIFF docs/customization/index.html (231 differences)
   head > meta > meta > meta > link > body > div > div > div > main > ol: missing_attribute - expected: "id='markdown-toc'", actual: '(none)'
   head > meta > meta > meta > link > body > div > div > div > main > ol > li: expected_element_got_text - expected: '<a>', actual: 'TOC {:toc}'
   head > meta > meta > meta > link > body > div > div > div > main > ol > li > a: missing_element - expected: '<a>', actual: '(none)'
@@ -44,8 +44,9 @@ DIFF docs/customization/index.html (243 differences)
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '$link-color: $blue-000;'
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
-  ... and 233 more differences
-DIFF docs/index-test/index.html (323 differences)
+  ... and 221 more differences
+DIFF docs/index-test/index.html (322 differences)
+  head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='c1'", actual: "class='c'"
   head > meta > meta > meta > link > body > div > div > div > main > ul > li > ul: missing_attribute - expected: "class='task-list'", actual: '(none)'
   head > meta > meta > meta > link > body > div > div > div > main > ul > li > ul: missing_attribute - expected: "class='task-list'", actual: '(none)'
   head > meta > meta > meta > link > body > div > div > div > main > child[47]: tag_name_differs - expected: 'p', actual: 'img'
@@ -55,8 +56,7 @@ DIFF docs/index-test/index.html (323 differences)
   head > meta > meta > meta > link > body > div > div > div > main > p: missing_attribute - expected: "class='label label-green'", actual: '(none)'
   head > meta > meta > meta > link > body > div > div > div > main > p: expected_text_got_element - expected: 'green', actual: '<strong>'
   head > meta > meta > meta > link > body > div > div > div > main > p > strong: extra_element - expected: '(none)', actual: '<strong>'
-  head > meta > meta > meta > link > body > div > div > div > main > p > em: extra_element - expected: '(none)', actual: '<em>'
-  ... and 313 more differences
+  ... and 312 more differences
 DIFF docs/layout/layout/index.html (22 differences)
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '---'
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='na'"
@@ -142,7 +142,7 @@ DIFF docs/navigation/main/index.html (11 differences)
   head > meta > meta > meta > link > body > div > div > div > main > div > ol > li: extra_text - expected: '(none)', actual: 'parameter can usually be omitted.'
   ... and 1 more differences
 DIFF docs/navigation/main/levels/index.html (116 differences)
-  head > meta > meta > meta > link > body > div > div > div > main > child[3]: tag_name_differs - expected: 'div', actual: 'pre'
+  head > meta > meta > meta > link > body > div > div > div > main > div: attribute_differs - expected: "class='highlighter-rouge language-plaintext lh-0'", actual: "class='highlighter-rouge'"
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '---'
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='na'"
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: '---', actual: 'title'
@@ -173,7 +173,7 @@ DIFF docs/navigation/main/yt/index.html (1 differences)
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='kc'"
 DIFF docs/navigation/main/yu/index.html (1 differences)
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='kc'"
-DIFF docs/search/index.html (105 differences)
+DIFF docs/search/index.html (133 differences)
   head > meta > meta > meta > link > body > div > div > div > main > ol: missing_attribute - expected: "id='markdown-toc'", actual: '(none)'
   head > meta > meta > meta > link > body > div > div > div > main > ol > li: expected_element_got_text - expected: '<a>', actual: 'TOC {:toc}'
   head > meta > meta > meta > link > body > div > div > div > main > ol > li > a: missing_element - expected: '<a>', actual: '(none)'
@@ -184,7 +184,7 @@ DIFF docs/search/index.html (105 differences)
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='s1'", actual: "class='s2'"
-  ... and 95 more differences
+  ... and 123 more differences
 DIFF docs/ui-components/buttons/index.html (31 differences)
   head > meta > meta > meta > link > body > div > div > div > main > ol: missing_attribute - expected: "id='markdown-toc'", actual: '(none)'
   head > meta > meta > meta > link > body > div > div > div > main > ol > li: expected_element_got_text - expected: '<a>', actual: 'TOC {:toc}'
@@ -197,7 +197,7 @@ DIFF docs/ui-components/buttons/index.html (31 differences)
   head > meta > meta > meta > link > body > div > div > div > main > div > p > a: extra_element - expected: '(none)', actual: '<a>'
   head > meta > meta > meta > link > body > div > div > div > main > div > p > a: extra_element - expected: '(none)', actual: '<a>'
   ... and 21 more differences
-DIFF docs/ui-components/callouts/index.html (64 differences)
+DIFF docs/ui-components/callouts/index.html (57 differences)
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='gt'", actual: "class='p'"
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: '> My note title', actual: '>'
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'My note title'
@@ -208,7 +208,7 @@ DIFF docs/ui-components/callouts/index.html (64 differences)
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='gt'", actual: "class='p'"
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: text_differs - expected: '> A paragraph', actual: '>'
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'A paragraph'
-  ... and 54 more differences
+  ... and 47 more differences
 DIFF docs/ui-components/code/index.html (98 differences)
   head > meta > meta > meta > link > body > div > div > div > main > ol: missing_attribute - expected: "id='markdown-toc'", actual: '(none)'
   head > meta > meta > meta > link > body > div > div > div > main > ol > li: expected_element_got_text - expected: '<a>', actual: 'TOC {:toc}'
@@ -310,4 +310,4 @@ DIFF index.html (6 differences)
   head > meta > meta > meta > link > body > div > div > div > main > div > ol > li > child[2]: tag_name_differs - expected: 'li', actual: 'a'
   head > meta > meta > meta > link > body > div > div > div > main > div > ol > li > li: extra_element - expected: '(none)', actual: '<li>'
 
-Summary: 16 files matched, 31 files with differences, 2085 total differences (11 acceptable diffs filtered out)
+Summary: 16 files matched, 31 files with differences, 2087 total differences (11 acceptable diffs filtered out)

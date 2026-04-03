@@ -9,7 +9,7 @@ DIFF 404.html (5 differences)
   body > div > article > p > a: attribute_differs - expected: "href='https://github.com/programminghistorian/jekyll/issues/new?title=Broken%20link&body=I%20encountered%20an%20error%20when%20I%20tried%20to%20navigate%20to%20The%20Programming%20Historian%20using%20", actual: "href='https://github.com/programminghistorian/jekyll/issues/new?title=Broken%20link&body=I%20encountered%20an%20error%20when%20I%20tried%20to%20navigate%20to%20The%20Programming%20Historian%20using%20"
   body > div > article > p > a: attribute_differs - expected: "href='https://github.com/programminghistorian/jekyll/issues/new?title=Broken%20link&body=I%20encountered%20an%20error%20when%20I%20tried%20to%20navigate%20to%20The%20Programming%20Historian%20using%20", actual: "href='https://github.com/programminghistorian/jekyll/issues/new?title=Broken%20link&body=I%20encountered%20an%20error%20when%20I%20tried%20to%20navigate%20to%20The%20Programming%20Historian%20using%20"
   body > div > article > p > a: attribute_differs - expected: "href='https://github.com/programminghistorian/jekyll/issues/new?title=Broken%20link&body=I%20encountered%20an%20error%20when%20I%20tried%20to%20navigate%20to%20The%20Programming%20Historian%20using%20", actual: "href='https://github.com/programminghistorian/jekyll/issues/new?title=Broken%20link&body=I%20encountered%20an%20error%20when%20I%20tried%20to%20navigate%20to%20The%20Programming%20Historian%20using%20"
-  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 DIFF blog/index.html (16 differences)
   body > div > article > child[4]: tag_name_differs - expected: 'hr', actual: 'nav'
   body > div > article > div: missing_element - expected: '<div>', actual: '(none)'
@@ -221,7 +221,7 @@ DIFF blog/page9/index.html (10 differences)
   body > script: missing_element - expected: '<script>', actual: '(none)'
   body > script: missing_element - expected: '<script>', actual: '(none)'
 DIFF en/about.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 DIFF en/author-guidelines.html (36 differences)
   body > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > h2: attribute_differs - expected: "id='step-1-proposing-a-new-lesson'", actual: "id='step-1-proposing-a-new-lesson-1'"
@@ -240,7 +240,7 @@ DIFF en/contribute.html (6 differences)
   body > div > article > child[16]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > child[20]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > child[24]: tag_name_differs - expected: 'p', actual: 'img'
-  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 DIFF en/editor-guidelines.html (127 differences)
   body > div > article > ul > li > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   body > div > article > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-technical-processes-of-review---editorial-checklist'", actual: "id='markdown-toc-contents'"
@@ -254,16 +254,16 @@ DIFF en/editor-guidelines.html (127 differences)
   body > div > article > ul > li > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-1-create-an-author-bio'", actual: "id='markdown-toc-a-naming-the-lesson-file'"
   ... and 117 more differences
 DIFF en/events.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 DIFF en/feedback.html (3 differences)
   body > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > child[15]: tag_name_differs - expected: 'p', actual: 'img'
-  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 DIFF en/index.html (1 differences)
-  body > main > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > main > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 DIFF en/individual.html (2 differences)
   body > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
-  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 DIFF en/ipp.html (13 differences)
   body > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > ol > li: expected_text_got_element - expected: 'What budgets do other institutions draw this contribution from?', actual: '<p>'
@@ -277,7 +277,7 @@ DIFF en/ipp.html (13 differences)
   body > div > article > ol > li > ul: extra_element - expected: '(none)', actual: '<ul>'
   ... and 3 more differences
 DIFF en/jisc-tna-partnership.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 DIFF en/lesson-retirement-policy.html (18 differences)
   body > div > article > h2: missing_attribute - expected: "id='related-sustainability-guidelines'", actual: '(none)'
   body > div > article > h2: missing_attribute - expected: "id='retired-lessons'", actual: '(none)'
@@ -415,18 +415,18 @@ DIFF en/lessons/collaborative-blog-with-jekyll-github.html (95 differences)
   body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-reviewer-permissions'", actual: "id='markdown-toc-why-might-this-setup-fit-your-needs'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-authoring-and-editing'", actual: "id='markdown-toc-setup'"
   ... and 85 more differences
-DIFF en/lessons/common-similarity-measures.html (18 differences)
-  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
-  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
-  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
-  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
-  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
-  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
-  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
-  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
-  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
-  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
-  ... and 8 more differences
+DIFF en/lessons/common-similarity-measures.html (154 differences)
+  head > meta > meta > meta: attribute_differs - expected: "content='2020-05-05'", actual: "content='2020-05-05 00:00:00 +0200'"
+  body > main > header > div > div > div > div: text_differs - expected: '| Medium', actual: '|'
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-overview'", actual: "id='markdown-toc-contents'"
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-preparation'", actual: "id='markdown-toc-overview'"
+  body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-what-is-similarity-or-distance'", actual: "id='markdown-toc-preparation'"
+  body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-samples-and-features'", actual: "id='markdown-toc-suggested-prior-skills'"
+  body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-the-cartesian-coordinate-system'", actual: "id='markdown-toc-installation-and-setup'"
+  body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-distance-and-similarity'", actual: "id='markdown-toc-lesson-dataset'"
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-three-types-of-distancesimilarity'", actual: "id='markdown-toc-what-is-similarity-or-distance'"
+  ... and 144 more differences
 DIFF en/lessons/computer-vision-deep-learning-pt1.html (129 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2022-08-17'", actual: "content='2022-08-17 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| High', actual: '|'
@@ -439,7 +439,7 @@ DIFF en/lessons/computer-vision-deep-learning-pt1.html (129 differences)
   body > main > div > div > ul > li > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-loading-the-data'", actual: "id='markdown-toc-lesson-setup'"
   ... and 119 more differences
-DIFF en/lessons/computer-vision-deep-learning-pt2.html (725 differences)
+DIFF en/lessons/computer-vision-deep-learning-pt2.html (723 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2022-08-17'", actual: "content='2022-08-17 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| High', actual: '|'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-introduction'", actual: "id='markdown-toc-contents'"
@@ -450,7 +450,7 @@ DIFF en/lessons/computer-vision-deep-learning-pt2.html (725 differences)
   body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-looking-more-closely-at-the-data'", actual: "id='markdown-toc-the-deep-learning-pipeline'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-loading-data'", actual: "id='markdown-toc-the-data'"
   body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-fastai-dataloaders'", actual: "id='markdown-toc-wrangling-data-with-errors'"
-  ... and 715 more differences
+  ... and 713 more differences
 DIFF en/lessons/corpus-analysis-voyant-tools.html (317 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2019-04-20'", actual: "content='2019-04-20 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Low', actual: '|'
@@ -475,18 +475,18 @@ DIFF en/lessons/corpus-analysis-with-antconc.html (17 differences)
   body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-collocates-and-word-lists'", actual: "id='markdown-toc-working-with-plain-text-files'"
   body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-comparing-corpora'", actual: "id='markdown-toc-getting-started-with-antconc-the-antconc-user-interface-loading-corpora'"
   ... and 7 more differences
-DIFF en/lessons/corpus-analysis-with-spacy.html (14 differences)
-  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
-  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
-  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
-  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
-  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
-  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
-  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
-  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
-  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
-  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
-  ... and 4 more differences
+DIFF en/lessons/corpus-analysis-with-spacy.html (208 differences)
+  head > meta > meta > meta: attribute_differs - expected: "content='2023-11-02'", actual: "content='2023-11-02 00:00:00 +0100'"
+  body > main > header > div > div > div > div: text_differs - expected: '| Medium', actual: '|'
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-introduction'", actual: "id='markdown-toc-contents'"
+  body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-imports-uploads-and-preprocessing'", actual: "id='markdown-toc-introduction'"
+  body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-import-packages'", actual: "id='markdown-toc-lesson-goals'"
+  body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-upload-text-files'", actual: "id='markdown-toc-why-use-spacy-for-corpus-analysis'"
+  body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-pre-process-text-files'", actual: "id='markdown-toc-dataset-michigan-corpus-of-upper-level-student-papers'"
+  body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-upload-and-merge-metadata-files'", actual: "id='markdown-toc-research-questions-linguistic-differences-within-student-paper-genres-and-disciplines'"
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-text-enrichment-with-spacy'", actual: "id='markdown-toc-imports-uploads-and-preprocessing'"
+  ... and 198 more differences
 DIFF en/lessons/correspondence-analysis-in-R.html (767 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2017-09-13'", actual: "content='2017-09-13 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| High', actual: '|'
@@ -521,7 +521,7 @@ DIFF en/lessons/creating-an-omeka-exhibit.html (10 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-add-content-to-your-content-block'", actual: "id='markdown-toc-add-a-content-block-to-your-page'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-you-have-an-omeka-site'", actual: "id='markdown-toc-add-content-to-your-content-block'"
   body > main > div > div > div > p: text_differs - expected: 'Miriam Posner and Megan R. Brett, "Creating an Omeka Exhibit,"', actual: 'Miriam Posner, and Megan R. Brett, "Creating an Omeka Exhibit,"'
-  body > main > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > main > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 DIFF en/lessons/creating-apis-with-python-and-flask.html (1291 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2018-04-02'", actual: "content='2018-04-02 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Medium', actual: '|'
@@ -567,7 +567,7 @@ DIFF en/lessons/creating-network-diagrams-from-historical-sources.html (9 differ
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-visualize-network-data-in-palladio'", actual: "id='markdown-toc-developing-a-coding-scheme'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-the-added-value-of-network-visualizations'", actual: "id='markdown-toc-visualize-network-data-in-palladio'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-other-network-visualization-tools-to-consider'", actual: "id='markdown-toc-the-added-value-of-network-visualizations'"
-  body > main > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > main > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 DIFF en/lessons/crowdsourced-data-normalization-with-pandas.html (20 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2021-05-17'", actual: "content='2021-05-17 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Medium', actual: '|'
@@ -955,7 +955,7 @@ DIFF en/lessons/intro-to-bash.html (6 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-introduction-to-the-bash-command-line'", actual: "id='markdown-toc-contents'"
   body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   body > main > div > div > div > p: text_differs - expected: 'Ian Milligan and James Baker, "Introduction to the Bash Command Line,"', actual: 'Ian Milligan, and James Baker, "Introduction to the Bash Command Line,"'
-  body > main > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > main > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 DIFF en/lessons/intro-to-linked-data.html (17 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2017-05-07'", actual: "content='2017-05-07 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Low', actual: '|'
@@ -1076,18 +1076,18 @@ DIFF en/lessons/linux-installation.html (11 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-interacting-with-a-python-shell'", actual: "id='markdown-toc-step-2--hello-world-in-python'"
   body > main > div > div > div > p: text_differs - expected: 'William J. Turkel and Adam Crymble, "Setting up an Integrated Development Environment for Python (Linux),"', actual: 'William J. Turkel, and Adam Crymble, "Setting up an Integrated Development Environment for Python (Linux),"'
   ... and 1 more differences
-DIFF en/lessons/logistic-regression.html (54 differences)
-  body > main > div > div > ol > li > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
-  body > main > div > div > ol > li > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
-  body > main > div > div > ol > li > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
-  body > main > div > div > ol > li > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
-  body > main > div > div > ol > li > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
-  body > main > div > div > ol > li > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
-  body > main > div > div > ol > li > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
-  body > main > div > div > ol > li > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
-  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
-  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
-  ... and 44 more differences
+DIFF en/lessons/logistic-regression.html (182 differences)
+  head > meta > meta > meta: attribute_differs - expected: "content='2022-07-13'", actual: "content='2022-07-13 00:00:00 +0200'"
+  body > main > header > div > div > div > div: text_differs - expected: '| High', actual: '|'
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-lesson-overview'", actual: "id='markdown-toc-contents'"
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-preparation'", actual: "id='markdown-toc-lesson-overview'"
+  body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-logistic-regression-procedure'", actual: "id='markdown-toc-preparation'"
+  body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-step-1-loading-metadata'", actual: "id='markdown-toc-before-you-begin'"
+  body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-step-2-preparing-the-data-and-creating-binary-gender-labels'", actual: "id='markdown-toc-overview-of-logistic-regression'"
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-lesson-conclusion'", actual: "id='markdown-toc-logistic-regression-procedure'"
+  body > main > div > div > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
+  ... and 172 more differences
 DIFF en/lessons/mac-installation.html (8 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2012-07-17'", actual: "content='2012-07-17 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Low', actual: '|'
@@ -1096,7 +1096,7 @@ DIFF en/lessons/mac-installation.html (8 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-install-python-v3'", actual: "id='markdown-toc-step-2--hello-world-in-python'"
   body > main > div > div > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
   body > main > div > div > div > p: text_differs - expected: 'William J. Turkel and Adam Crymble, "Setting Up an Integrated Development Environment for Python (Mac),"', actual: 'William J. Turkel, and Adam Crymble, "Setting Up an Integrated Development Environment for Python (Mac),"'
-  body > main > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > main > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 DIFF en/lessons/manipulating-strings-in-python.html (64 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2012-07-17'", actual: "content='2012-07-17 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Medium', actual: '|'
@@ -1202,9 +1202,9 @@ DIFF en/lessons/research-data-with-unix.html (9 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-mining-files'", actual: "id='markdown-toc-counting-files'"
   body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   body > main > div > div > div > p: text_differs - expected: 'James Baker and Ian Milligan, "Counting and mining research data with Unix,"', actual: 'James Baker, and Ian Milligan, "Counting and mining research data with Unix,"'
-  body > main > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > main > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 DIFF en/lessons/retired/OCR-with-Tesseract-and-ScanTailor.html (1 differences)
-  body > main > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > main > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 DIFF en/lessons/retired/creating-new-items-in-zotero.html (68 differences)
   body > main > header > div > div > div > div: text_differs - expected: '| Low', actual: '|'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-using-python-to-create-an-new-zotero-item'", actual: "id='markdown-toc-contents'"
@@ -1277,18 +1277,18 @@ DIFF en/lessons/sentiment-analysis.html (13 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-determine-appropriate-scope-for-e-mail'", actual: "id='markdown-toc-using-python-with-the-natural-language-toolkit-nltk'"
   body > main > div > div > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
   ... and 3 more differences
-DIFF en/lessons/shiny-leaflet-newspaper-map-tutorial.html (74 differences)
-  head > meta > meta > meta: attribute_differs - expected: "content='2022-10-19'", actual: "content='2022-10-19 00:00:00 +0200'"
-  body > main > header > div > div > div > div: text_differs - expected: '| Medium', actual: '|'
-  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-introduction'", actual: "id='markdown-toc-contents'"
-  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-lesson-aims'", actual: "id='markdown-toc-introduction'"
-  body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-historical-background-and-data'", actual: "id='markdown-toc-lesson-aims'"
-  body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-getting-hold-of-the-data'", actual: "id='markdown-toc-graphical-user-interfaces-and-the-digital-humanities'"
-  body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-understanding-the-title-list'", actual: "id='markdown-toc-options-for-creating-a-gui'"
-  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-setting-up-your-coding-environment-and-creating-the-shiny-application'", actual: "id='markdown-toc-historical-background-and-data'"
-  body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-install-r-and-rstudio'", actual: "id='markdown-toc-getting-hold-of-the-data'"
-  ... and 64 more differences
+DIFF en/lessons/shiny-leaflet-newspaper-map-tutorial.html (12 differences)
+  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
+  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
+  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
+  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
+  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
+  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
+  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
+  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
+  body > main > div > div > div > ol > li: missing_attribute - expected: "role='doc-endnote'", actual: '(none)'
+  body > main > div > div > div > ol > li: missing_attribute - expected: "role='doc-endnote'", actual: '(none)'
+  ... and 2 more differences
 DIFF en/lessons/simulating-historical-communication-networks-python.html (2101 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2025-01-22'", actual: "content='2025-01-22 00:00:00 +0100'"
   body > main > header > div > div > div > div: text_differs - expected: '| High', actual: '|'
@@ -1395,14 +1395,14 @@ DIFF en/lessons/transcribing-handwritten-text-with-python-and-azure.html (19 dif
   body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-prerequisites'", actual: "id='markdown-toc-introducing-automated-transcription'"
   body > main > div > div > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
-  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-setting-up-azure-computer-vision'", actual: "id='markdown-toc-prerequisites'"
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-setting-up-azure-computer-vision'", actual: "id='markdown-toc-prerequisites'"  Progress: 200/529 files compared...
+
   body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-trying-out-various-transcription-projects'", actual: "id='markdown-toc-setting-up-azure-computer-vision'"
   ... and 9 more differences
 DIFF en/lessons/transforming-xml-with-xsl.html (640 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2016-07-07'", actual: "content='2016-07-07 00:00:00 +0200'"
-  body > main > header > div > div > div > div: text_differs - expected: '| Low', actual: '|'  Progress: 200/529 files compared...
-
+  body > main > header > div > div > div > div: text_differs - expected: '| Low', actual: '|'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-introduction'", actual: "id='markdown-toc-contents'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-what-is-xml'", actual: "id='markdown-toc-introduction'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-what-is-xsl'", actual: "id='markdown-toc-what-is-xml'"
@@ -1533,7 +1533,7 @@ DIFF en/lessons/working-with-web-pages.html (194 differences)
   body > main > div > div > div > div > pre > code: text_differs - expected: 'https://www.oldbaileyonline.org/search.jsp?form=searchHomePage', actual: 'https://www.oldbaileyonline.org/search.jsp?form=searchHomePage&_divs_fulltext=arsenic&kwparse=and&_persNames_surname=&_persNames_given=&_persNames_alias=&_offences_offenceCategory_offenceSubcategory=&'
   ... and 184 more differences
 DIFF en/privacy-policy.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 DIFF en/project-team.html (205 differences)
   body > div > article > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-programming-historian-in-english'", actual: "id='markdown-toc-contents'"
   body > div > article > ul > li > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
@@ -1547,7 +1547,7 @@ DIFF en/project-team.html (205 differences)
   body > div > article > div > div > p > span: attribute_differs - expected: "class='badge badge-success'", actual: "class='badge badge-primary'"
   ... and 195 more differences
 DIFF en/research.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 DIFF en/reviewer-guidelines.html (10 differences)
   body > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-review-philosophy'", actual: "id='markdown-toc-contents'"
@@ -1558,28 +1558,28 @@ DIFF en/reviewer-guidelines.html (10 differences)
   body > div > article > ul > li > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-skimmability'", actual: "id='markdown-toc-openness-and-inclusivity'"
   body > div > article > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-submitting-your-review'", actual: "id='markdown-toc-what-to-comment-on'"
   body > div > article > ul > li > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
-  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 DIFF en/supporters.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 DIFF en/translator-guidelines.html (2 differences)
   body > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
-  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 DIFF en/vacancies.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 DIFF es/acerca-de.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 04 April 2026'
 DIFF es/colaboradores.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 04 April 2026'
 DIFF es/contribuciones.html (6 differences)
   body > div > article > child[4]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > child[12]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > child[18]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > child[22]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > child[26]: tag_name_differs - expected: 'p', actual: 'img'
-  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 04 April 2026'
 DIFF es/donaciones.html (2 differences)
   body > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
-  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 04 April 2026'
 DIFF es/equipo-de-proyecto.html (205 differences)
   body > div > article > ul > li > a: attribute_differs - expected: "id='markdown-toc-programming-historian-in-english'", actual: "id='markdown-toc-contenidos'"
   body > div > article > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
@@ -1593,7 +1593,7 @@ DIFF es/equipo-de-proyecto.html (205 differences)
   body > div > article > div > div > p > span: attribute_differs - expected: "class='badge badge-success'", actual: "class='badge badge-primary'"
   ... and 195 more differences
 DIFF es/eventos.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 04 April 2026'
 DIFF es/guia-editor.html (162 differences)
   body > div > article > ul > li > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   body > div > article > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-aspectos-técnicos-del-proceso-de-revisión---lista-de-verificación'", actual: "id='markdown-toc-contenidos'"
@@ -1643,11 +1643,11 @@ DIFF es/guia-para-traductores.html (367 differences)
   body > div > article > ul > li: missing_text - expected: ': escribe la palabra completa la primera vez que la utilizas, por ejemplo, «Humanidades Digitales (H', actual: '(none)'
   ... and 357 more differences
 DIFF es/index.html (1 differences)
-  body > main > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 30 March 2026'
+  body > main > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 04 April 2026'
 DIFF es/investigacion.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 04 April 2026'
 DIFF es/jisc-tna-colaboracion.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 04 April 2026'
 DIFF es/lecciones/administracion-de-datos-en-r.html (70 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2017-07-31'", actual: "content='2017-07-31 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Media', actual: '|'
@@ -1780,7 +1780,7 @@ DIFF es/lecciones/corpus-paralelo-lfaligner.html (18 differences)
   body > main > div > div > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-edición-del-bitexto'", actual: "id='markdown-toc-resultados-de-la-alineación'"
   ... and 8 more differences
-DIFF es/lecciones/creacion-de-aplicacion-shiny.html (1976 differences)
+DIFF es/lecciones/creacion-de-aplicacion-shiny.html (1945 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2022-10-19'", actual: "content='2022-10-19 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Media', actual: '|'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-introducción'", actual: "id='markdown-toc-contenidos'"
@@ -1791,7 +1791,7 @@ DIFF es/lecciones/creacion-de-aplicacion-shiny.html (1976 differences)
   body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-entender-los-datos'", actual: "id='markdown-toc-opciones-para-crear-una-gui'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-configurar-el-entorno-r-y-creación-de-una-aplicación-shiny'", actual: "id='markdown-toc-contexto-histórico-y-datos'"
   body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-instalar-r-y-rstudio'", actual: "id='markdown-toc-descargar-los-datos'"
-  ... and 1966 more differences
+  ... and 1935 more differences
 DIFF es/lecciones/creando-diagramas-de-redes-desde-fuentes-historicas.html (9 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2015-02-18'", actual: "content='2015-02-18 00:00:00 +0100'"
   body > main > header > div > div > div > div: text_differs - expected: '| Media', actual: '|'
@@ -1801,7 +1801,7 @@ DIFF es/lecciones/creando-diagramas-de-redes-desde-fuentes-historicas.html (9 di
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-visualiza-datos-en-red-utilizando-palladio'", actual: "id='markdown-toc-desarrollando-un-esquema-de-codificación'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-el-valor-agregado-de-las-visualizaciones-de-redes'", actual: "id='markdown-toc-visualiza-datos-en-red-utilizando-palladio'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-otras-herramientas-de-visualización-para-tener-en-cuenta'", actual: "id='markdown-toc-el-valor-agregado-de-las-visualizaciones-de-redes'"
-  body > main > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 30 March 2026'
+  body > main > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 04 April 2026'
 DIFF es/lecciones/crear-exposicion-con-omeka.html (10 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2016-02-24'", actual: "content='2016-02-24 00:00:00 +0100'"
   body > main > header > div > div > div > div: text_differs - expected: '| Baja', actual: '|'
@@ -1812,7 +1812,7 @@ DIFF es/lecciones/crear-exposicion-con-omeka.html (10 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-agrega-contenido-a-tu-bloque-de-contenido'", actual: "id='markdown-toc-agrega-un-bloque-de-contenido-a-tu-página'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-tienes-una-página-en-omeka'", actual: "id='markdown-toc-agrega-contenido-a-tu-bloque-de-contenido'"
   body > main > div > div > div > p: text_differs - expected: 'Miriam Posner y Megan R. Brett, "Crear una exposición con Omeka", traducido por María José Cabra Montes,', actual: 'Miriam Posner, y Megan R. Brett, "Crear una exposición con Omeka", traducido por María José Cabra Montes,'
-  body > main > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 30 March 2026'
+  body > main > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 04 April 2026'
 DIFF es/lecciones/crear-y-ver-archivos-html-con-python.html (17 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2012-07-17'", actual: "content='2012-07-17 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Media', actual: '|'
@@ -1845,7 +1845,7 @@ DIFF es/lecciones/datos-de-investigacion-con-unix.html (8 differences)
   body > main > div > div > ul > li > a: missing_text - expected: 'datos de investigación con Unix', actual: '(none)'
   body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   body > main > div > div > div > p: text_differs - expected: 'James Baker y Ian Milligan, "Contabilizar y minar datos de investigación con Unix", traducido por Víctor Gayol,', actual: 'James Baker, y Ian Milligan, "Contabilizar y minar datos de investigación con Unix", traducido por Víctor Gayol,'
-  body > main > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 30 March 2026'
+  body > main > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 04 April 2026'
 DIFF es/lecciones/datos-tabulares-en-r.html (29 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2016-09-05'", actual: "content='2016-09-05 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Baja', actual: '|'
@@ -1918,7 +1918,7 @@ DIFF es/lecciones/editar-audio-con-audacity.html (61 differences)
   body > main > div > div > p: missing_element - expected: '<p>', actual: '(none)'
   body > main > div > div > p: missing_element - expected: '<p>', actual: '(none)'
   ... and 51 more differences
-DIFF es/lecciones/escritura-sostenible-usando-pandoc-y-markdown.html (178 differences)
+DIFF es/lecciones/escritura-sostenible-usando-pandoc-y-markdown.html (146 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2014-03-19'", actual: "content='2014-03-19 00:00:00 +0100'"
   body > main > header > div > div > div > div: text_differs - expected: '| Media', actual: '|'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-objetivos'", actual: "id='markdown-toc-contenidos'"
@@ -1929,7 +1929,7 @@ DIFF es/lecciones/escritura-sostenible-usando-pandoc-y-markdown.html (178 differ
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-bases-de-markdown'", actual: "id='markdown-toc-requisitos-de-software'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-estar-en-contacto-con-la-terminal-de-la-máquina'", actual: "id='markdown-toc-bases-de-markdown'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-usar-pandoc-para-convertir-markdown-a-un-documento-de-ms-word'", actual: "id='markdown-toc-estar-en-contacto-con-la-terminal-de-la-máquina'"
-  ... and 168 more differences
+  ... and 136 more differences
 DIFF es/lecciones/exhibicion-con-collection-builder.html (294 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2022-08-21'", actual: "content='2022-08-21 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Media', actual: '|'
@@ -1942,7 +1942,7 @@ DIFF es/lecciones/exhibicion-con-collection-builder.html (294 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-2-instalación-de-collectionbuilder'", actual: "id='markdown-toc-1-preparar-los-archivos-básicos-para-la-colección'"
   body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-clonar-el-repositorio-a-nuestra-cuenta-github'", actual: "id='markdown-toc-colección-de-objetos'"
   ... and 284 more differences
-DIFF es/lecciones/generadores-aventura.html (105 differences)
+DIFF es/lecciones/generadores-aventura.html (87 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2023-07-28'", actual: "content='2023-07-28 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Media', actual: '|'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-objetivos-de-la-lección'", actual: "id='markdown-toc-contenidos'"
@@ -1953,7 +1953,7 @@ DIFF es/lecciones/generadores-aventura.html (105 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-qué-son-las-gramáticas-libres-de-contexto'", actual: "id='markdown-toc-generadores-una-estrategia-mecánica-aleatoria'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-programar-un-generador-de-texto-con-aventurajs'", actual: "id='markdown-toc-qué-son-las-gramáticas-libres-de-contexto'"
   body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  ... and 95 more differences
+  ... and 77 more differences
 DIFF es/lecciones/georreferenciacion-visualizacion-con-recogito-y-visone.html (17 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2024-12-11'", actual: "content='2024-12-11 00:00:00 +0100'"
   body > main > header > div > div > div > div: text_differs - expected: '| Baja', actual: '|'
@@ -2023,7 +2023,7 @@ DIFF es/lecciones/instalacion-mac.html (9 differences)
   body > main > div > div > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
   body > main > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='n'"
   body > main > div > div > div > p: text_differs - expected: 'William J. Turkel y Adam Crymble, "Creación de un entorno de desarrollo integrado para Python (Mac)", traducido por Víctor Gayol,', actual: 'William J. Turkel, y Adam Crymble, "Creación de un entorno de desarrollo integrado para Python (Mac)", traducido por Víctor Gayol,'
-  body > main > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 30 March 2026'
+  body > main > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 04 April 2026'
 DIFF es/lecciones/instalacion-windows.html (13 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2012-07-17'", actual: "content='2012-07-17 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Baja', actual: '|'
@@ -2054,7 +2054,7 @@ DIFF es/lecciones/introduccion-a-bash.html (6 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-introducción-a-línea-de-comandos-en-bash'", actual: "id='markdown-toc-contenidos'"
   body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   body > main > div > div > div > p: text_differs - expected: 'Ian Milligan y James Baker, "Introducción a la línea de comandos en Bash", traducido por Víctor Gayol,', actual: 'Ian Milligan, y James Baker, "Introducción a la línea de comandos en Bash", traducido por Víctor Gayol,'
-  body > main > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 30 March 2026'
+  body > main > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 04 April 2026'
 DIFF es/lecciones/introduccion-a-ffmpeg.html (250 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2018-12-20'", actual: "content='2018-12-20 00:00:00 +0100'"
   body > main > header > div > div > div > div: text_differs - expected: '| Media', actual: '|'
@@ -2146,7 +2146,7 @@ DIFF es/lecciones/introduccion-datos-abiertos-enlazados.html (7 differences)
   body > main > div > div > child[108]: tag_name_differs - expected: 'div', actual: 'p'
   body > main > div > div > child[111]: tag_name_differs - expected: 'div', actual: 'p'
   body > main > div > div > child[113]: tag_name_differs - expected: 'div', actual: 'p'
-  body > main > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 30 March 2026'
+  body > main > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 04 April 2026'
 DIFF es/lecciones/introduccion-e-instalacion.html (19 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2012-07-17'", actual: "content='2012-07-17 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Baja', actual: '|'
@@ -2315,7 +2315,7 @@ DIFF es/lecciones/reutilizacion-de-codigo-y-modularidad.html (23 differences)
   body > main > div > div > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-lecturas-recomendadas'", actual: "id='markdown-toc-modularidad'"
   ... and 13 more differences
-DIFF es/lecciones/reutilizando-colecciones-digitales-glam-labs.html (451 differences)
+DIFF es/lecciones/reutilizando-colecciones-digitales-glam-labs.html (447 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2021-08-30'", actual: "content='2021-08-30 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Alta', actual: '|'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-objetivos-de-la-lección'", actual: "id='markdown-toc-contenidos'"
@@ -2326,7 +2326,7 @@ DIFF es/lecciones/reutilizando-colecciones-digitales-glam-labs.html (451 differe
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-crear-mapas-a-partir-de-linked-open-data'", actual: "id='markdown-toc-extracción-y-visualización-de-datos'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-discusión'", actual: "id='markdown-toc-crear-mapas-a-partir-de-linked-open-data'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-conclusiones'", actual: "id='markdown-toc-discusión'"
-  ... and 441 more differences
+  ... and 437 more differences
 DIFF es/lecciones/salida-de-datos-como-archivo-html.html (376 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2012-07-17'", actual: "content='2012-07-17 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Media', actual: '|'
@@ -2382,15 +2382,15 @@ DIFF es/lecciones/trabajar-con-archivos-de-texto.html (69 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-trabajar-con-archivos-de-texto'", actual: "id='markdown-toc-objetivos-de-la-lección'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-crear-y-escribir-en-un-archivo-de-texto'", actual: "id='markdown-toc-trabajar-con-archivos-de-texto'"
   body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-lecturas-recomendadas'", actual: "id='markdown-toc-crear-y-escribir-en-un-archivo-de-texto'"
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-lecturas-recomendadas'", actual: "id='markdown-toc-crear-y-escribir-en-un-archivo-de-texto'"  Progress: 300/529 files compared...
+
   body > main > div > div > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
   body > main > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '‘'
   body > main > div > div > div > div > pre > code > span: attribute_differs - expected: "class='err'", actual: "class='n'"
   ... and 59 more differences
 DIFF es/lecciones/trabajar-con-paginas-web.html (197 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2012-07-17'", actual: "content='2012-07-17 00:00:00 +0200'"
-  body > main > header > div > div > div > div: text_differs - expected: '| Media', actual: '|'  Progress: 300/529 files compared...
-
+  body > main > header > div > div > div > div: text_differs - expected: '| Media', actual: '|'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-objetivos-de-la-lección'", actual: "id='markdown-toc-contenidos'"
   body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-abrir-urls-con-python'", actual: "id='markdown-toc-objetivos-de-la-lección'"
@@ -2450,9 +2450,9 @@ DIFF es/lecciones/visualizacion-y-animacion-de-tablas-historicas-con-R.html (163
   ... and 1621 more differences
 DIFF es/pia.html (2 differences)
   body > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
-  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 04 April 2026'
 DIFF es/politica-de-privacidad.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 04 April 2026'
 DIFF es/politica-retirada-lecciones.html (18 differences)
   body > div > article > h2: missing_attribute - expected: "id='más-sobre-sostenibilidad'", actual: '(none)'
   body > div > article > h2: missing_attribute - expected: "id='lecciones-retiradas'", actual: '(none)'
@@ -2468,11 +2468,11 @@ DIFF es/politica-retirada-lecciones.html (18 differences)
 DIFF es/retroalimentacion.html (3 differences)
   body > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > child[13]: tag_name_differs - expected: 'p', actual: 'img'
-  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 04 April 2026'
 DIFF es/vacantes.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 04 April 2026'
 DIFF fr/apropos.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 04 April 2026'
 DIFF fr/consignes-auteurs.html (36 differences)
   body > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > h2: attribute_differs - expected: "id='étape-2-rédaction-et-mise-en-forme'", actual: "id='étape-2-rédaction-et-mise-en-forme-1'"
@@ -2495,7 +2495,7 @@ DIFF fr/consignes-evaluateurs.html (10 differences)
   body > div > article > ul > li > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-faciliter-la-lecture'", actual: "id='markdown-toc-ouverture-et-inclusion'"
   body > div > article > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-soumettre-votre-évaluation'", actual: "id='markdown-toc-que-faut-il-commenter-'"
   body > div > article > ul > li > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
-  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 04 April 2026'
 DIFF fr/consignes-redacteurs.html (136 differences)
   body > div > article > ul > li > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   body > div > article > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-questions-techniques-de-lévaluation---liste-de-vérification-éditoriale'", actual: "id='markdown-toc-contenus'"
@@ -2510,7 +2510,7 @@ DIFF fr/consignes-redacteurs.html (136 differences)
   ... and 126 more differences
 DIFF fr/consignes-traducteurs.html (2 differences)
   body > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
-  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 04 April 2026'
 DIFF fr/contribuer.html (8 differences)
   body > div > article > child[4]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > p: text_differs - expected: 'Nous sommes loin de simplement accepter ou rejeter des articles, comme le font les revues traditionnelles. Nos rédacteurs et rédactrices collaborent avec vous pour construire un texte aussi clair et u', actual: 'Nous sommes loin de simplement accepter ou rejeter des articles, comme le font les revues traditionnelles. Nos rédacteurs et rédactrices collaborent avec vous pour construire un texte aussi clair et u'
@@ -2519,10 +2519,10 @@ DIFF fr/contribuer.html (8 differences)
   body > div > article > child[16]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > child[20]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > child[24]: tag_name_differs - expected: 'p', actual: 'img'
-  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 04 April 2026'
 DIFF fr/dons.html (2 differences)
   body > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
-  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 04 April 2026'
 DIFF fr/equipe-projet.html (205 differences)
   body > div > article > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-programming-historian-in-english'", actual: "id='markdown-toc-contenus'"
   body > div > article > ul > li > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
@@ -2536,11 +2536,11 @@ DIFF fr/equipe-projet.html (205 differences)
   body > div > article > div > div > p > span: attribute_differs - expected: "class='badge badge-success'", actual: "class='badge badge-primary'"
   ... and 195 more differences
 DIFF fr/evenements.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 04 April 2026'
 DIFF fr/index.html (1 differences)
-  body > main > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 30 March 2026'
+  body > main > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 04 April 2026'
 DIFF fr/jisc-tna-partenariat.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 04 April 2026'
 DIFF fr/lecons/analyse-corpus-antconc.html (29 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2015-06-19'", actual: "content='2015-06-19 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Facile', actual: '|'
@@ -2589,18 +2589,18 @@ DIFF fr/lecons/analyse-reseau-python.html (216 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-indicateurs-disponibles-dans-networkx'", actual: "id='markdown-toc-premières-manipulations'"
   body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-la-forme-du-réseau'", actual: "id='markdown-toc-lire-les-fichiers-importer-les-données'"
   ... and 206 more differences
-DIFF fr/lecons/calibration-radiocarbone-avec-r.html (48 differences)
-  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
-  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
-  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
-  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
-  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
-  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
-  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
-  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
-  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
-  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
-  ... and 38 more differences
+DIFF fr/lecons/calibration-radiocarbone-avec-r.html (2120 differences)
+  head > meta > meta > meta: attribute_differs - expected: "content='2021-03-24'", actual: "content='2021-03-24 00:00:00 +0100'"
+  body > main > header > div > div > div > div: text_differs - expected: '| Moyen', actual: '|'
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-calibrer-des-âges-radiocarbone-avec-r'", actual: "id='markdown-toc-contenus'"
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-le-principe-de-la-datation-par-le-radiocarbone'", actual: "id='markdown-toc-calibrer-des-âges-radiocarbone-avec-r'"
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-pourquoi-calibrer-des-âges-radiocarbone-'", actual: "id='markdown-toc-le-principe-de-la-datation-par-le-radiocarbone'"
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-comment-calibrer-'", actual: "id='markdown-toc-pourquoi-calibrer-des-âges-radiocarbone-'"
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-applications-avec-r'", actual: "id='markdown-toc-comment-calibrer-'"
+  body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-conclusion'", actual: "id='markdown-toc-applications-avec-r'"
+  body > main > div > div > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
+  ... and 2110 more differences
 DIFF fr/lecons/comprendre-les-expressions-regulieres.html (130 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2013-06-22'", actual: "content='2013-06-22 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Moyen', actual: '|'
@@ -2757,7 +2757,7 @@ DIFF fr/lecons/gestion-manipulation-donnees-r.html (14 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-quest-ce-que-dplyr'", actual: "id='markdown-toc-il-nous-faut-un-nouveau-jeu-de-données'"
   body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   ... and 4 more differences
-DIFF fr/lecons/index.html (31 differences)
+DIFF fr/lecons/index.html (33 differences)
   head > child[3]: tag_name_differs - expected: 'link', actual: 'meta'
   head > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > link: missing_element - expected: '<link>', actual: '(none)'
@@ -2768,7 +2768,7 @@ DIFF fr/lecons/index.html (31 differences)
   head > link: missing_element - expected: '<link>', actual: '(none)'
   head > link: missing_element - expected: '<link>', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 21 more differences
+  ... and 23 more differences
 DIFF fr/lecons/installation-modules-python-pip.html (17 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2013-05-06'", actual: "content='2013-05-06 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Facile', actual: '|'
@@ -2925,7 +2925,7 @@ DIFF fr/lecons/preserver-ses-donnees-de-recherche.html (21 differences)
   body > main > div > div > ul > li > em: text_differs - expected: 'jour (2 chiffres)', actual: 'mots du titre séparés par des traits d’union'
   body > main > div > div > ul > li: missing_text - expected: '/', actual: '(none)'
   ... and 11 more differences
-DIFF fr/lecons/redaction-durable-avec-pandoc-et-markdown.html (99 differences)
+DIFF fr/lecons/redaction-durable-avec-pandoc-et-markdown.html (72 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2014-03-19'", actual: "content='2014-03-19 00:00:00 +0100'"
   body > main > header > div > div > div > div: text_differs - expected: '| Moyen', actual: '|'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-objectifs'", actual: "id='markdown-toc-contenus'"
@@ -2936,7 +2936,7 @@ DIFF fr/lecons/redaction-durable-avec-pandoc-et-markdown.html (99 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-découvrez-votre-terminal-intérieur'", actual: "id='markdown-toc-les-rudiments-de-markdown'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-utilisation-de-pandoc-pour-convertir-le-markdown-en-document-ms-word'", actual: "id='markdown-toc-découvrez-votre-terminal-intérieur'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-gestion-des-bibliographies'", actual: "id='markdown-toc-utilisation-de-pandoc-pour-convertir-le-markdown-en-document-ms-word'"
-  ... and 89 more differences
+  ... and 62 more differences
 DIFF fr/lecons/reutilisation-de-code-et-modularite.html (12 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2012-07-17'", actual: "content='2012-07-17 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Moyen', actual: '|'
@@ -2974,13 +2974,13 @@ DIFF fr/lecons/transcription-automatisee-graphies-non-latines.html (585 differen
   body > main > div > div > ul > li > ul > li > a: missing_text - expected: 'classique d’un OCR/HTR', actual: '(none)'
   ... and 575 more differences
 DIFF fr/lecons/travailler-avec-des-fichiers-texte.html (58 differences)
-  head > meta > meta > meta: attribute_differs - expected: "content='2012-07-17'", actual: "content='2012-07-17 00:00:00 +0200'"
+  head > meta > meta > meta: attribute_differs - expected: "content='2012-07-17'", actual: "content='2012-07-17 00:00:00 +0200'"  Progress: 400/529 files compared...
+
   body > main > header > div > div > div > div: text_differs - expected: '| Moyen', actual: '|'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-objectifs-de-la-leçon'", actual: "id='markdown-toc-contenus'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-travailler-avec-des-fichiers-texte'", actual: "id='markdown-toc-objectifs-de-la-leçon'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-créer-et-écrire-dans-un-fichier-texte'", actual: "id='markdown-toc-travailler-avec-des-fichiers-texte'"
-  body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'  Progress: 400/529 files compared...
-
+  body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-lectures-recommandées'", actual: "id='markdown-toc-créer-et-écrire-dans-un-fichier-texte'"
   body > main > div > div > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
   body > main > div > div > div > div > pre > code > span: text_differs - expected: "'I can", actual: "'I can\\'t eat pickles'"
@@ -2999,7 +2999,7 @@ DIFF fr/lecons/visualisations-interactives-plotly.html (1182 differences)
   body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-ajouter-des-animations-évolution-temporelle'", actual: "id='markdown-toc-configurer-plotly-express'"
   ... and 1172 more differences
 DIFF fr/nos-soutiens.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 04 April 2026'
 DIFF fr/pi.html (13 differences)
   body > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > ol > li: expected_text_got_element - expected: 'Comment les institutions financent-elles leur contribution?', actual: '<p>'
@@ -3025,33 +3025,33 @@ DIFF fr/politique-retrait-lecons.html (18 differences)
   body > div > article > p > a: text_differs - expected: 'Using SPARQL to access Linked Open Data', actual: 'Introduction to Mobile Augmented Reality Development in Unity'
   ... and 8 more differences
 DIFF fr/politique-vie-privee.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 04 April 2026'
 DIFF fr/postes-vacants.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 04 April 2026'
 DIFF fr/reaction.html (3 differences)
   body > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > child[14]: tag_name_differs - expected: 'p', actual: 'img'
-  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 04 April 2026'
 DIFF fr/recherche.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Dernière mise à jour le 29 March 2026', actual: 'Dernière mise à jour le 04 April 2026'
 DIFF index.html (3 differences)
   body > main > div > div > div > div > ul > li: text_differs - expected: '119 lessons', actual: '105 lessons'
   body > main > div > div > div > div > ul > li: text_differs - expected: '55 lições', actual: '56 lições'
-  body > main > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > main > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 DIFF posts/lanzamiento-PH-español.html (4 differences)
   link: attribute_differs - expected: "href='/posts/lanzamiento-PH-espanol'", actual: "href='posts/lanzamiento-PH-espanol/'"
   script: text_differs - expected: 'location="/posts/lanzamiento-PH-espanol"', actual: 'location="posts/lanzamiento-PH-espanol/"'
   meta: attribute_differs - expected: "content='0; url=/posts/lanzamiento-PH-espanol'", actual: "content='0; url=posts/lanzamiento-PH-espanol/'"
   a: attribute_differs - expected: "href='/posts/lanzamiento-PH-espanol'", actual: "href='posts/lanzamiento-PH-espanol/'"
 DIFF pt/apoiadores.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 04 April 2026'
 DIFF pt/contribua.html (6 differences)
   body > div > article > child[4]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > child[9]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > child[13]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > child[17]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > child[21]: tag_name_differs - expected: 'p', actual: 'img'
-  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 04 April 2026'
 DIFF pt/directrizes-autor.html (37 differences)
   body > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > h2: attribute_differs - expected: "id='etapa-1-propor-uma-nova-lição'", actual: "id='etapa-1-propor-uma-nova-lição-1'"
@@ -3086,7 +3086,7 @@ DIFF pt/directrizes-revisor.html (10 differences)
   body > div > article > ul > li > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-estrutura'", actual: "id='markdown-toc-abertura-e-inclusão'"
   body > div > article > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-submeter-a-revisão'", actual: "id='markdown-toc-o-que-comentar'"
   body > div > article > ul > li > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
-  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 04 April 2026'
 DIFF pt/directrizes-tradutor.html (7 differences)
   body > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > div: text_differs - expected: 'Se está familiarizado com o uso de comandos em linha do git e do GitHub, também pode enviar sua tradução e imagens como um _pull request_ no repositório `ph-submission` e fazer commit desde que esteja', actual: 'Se está familiarizado com o uso de comandos em linha do git e do GitHub, também pode enviar sua tradução e imagens como um'
@@ -3094,10 +3094,10 @@ DIFF pt/directrizes-tradutor.html (7 differences)
   body > div > article > div: extra_text - expected: '(none)', actual: 'no repositório `ph-submission` e fazer commit desde que esteja colocado como colaborador. Não envie '
   body > div > article > div > em: extra_element - expected: '(none)', actual: '<em>'
   body > div > article > div: extra_text - expected: '(none)', actual: 'para o repositório principal Jekyll, para que possamos visualizar as lições em andamento antes de se'
-  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 04 April 2026'
 DIFF pt/doacoes.html (2 differences)
   body > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
-  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 04 April 2026'
 DIFF pt/equipe.html (205 differences)
   body > div > article > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-programming-historian-in-english'", actual: "id='markdown-toc-conteúdos'"
   body > div > article > ul > li > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
@@ -3111,11 +3111,11 @@ DIFF pt/equipe.html (205 differences)
   body > div > article > div > div > p > span: attribute_differs - expected: "class='badge badge-success'", actual: "class='badge badge-primary'"
   ... and 195 more differences
 DIFF pt/eventos.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 04 April 2026'
 DIFF pt/index.html (1 differences)
-  body > main > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 30 March 2026'
+  body > main > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 04 April 2026'
 DIFF pt/jisc-tna-parceria.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 04 April 2026'
 DIFF pt/licoes-politica-remocao.html (33 differences)
   head > child[3]: tag_name_differs - expected: 'link', actual: 'meta'
   head > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3200,19 +3200,19 @@ DIFF pt/licoes/analise-sentimento-exploracao-dados.html (798 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-determine-o-escopo-apropriado-para-e-mail'", actual: "id='markdown-toc-usando-python-com-o-natural-language-toolkit-nltk'"
   body > main > div > div > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
   ... and 788 more differences
-DIFF pt/licoes/aplicacao-web-interativa-r-shiny-leaflet.html (92 differences)
-  head > meta > meta > meta: attribute_differs - expected: "content='2022-10-19'", actual: "content='2022-10-19 00:00:00 +0200'"
-  body > main > header > div > div > div > div: text_differs - expected: '| Médio', actual: '|'
-  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-introdução'", actual: "id='markdown-toc-conteúdos'"
-  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-objetivos-da-lição'", actual: "id='markdown-toc-introdução'"
-  body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-contexto-histórico-e-dados'", actual: "id='markdown-toc-objetivos-da-lição'"
-  body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-obtendo-os-dados'", actual: "id='markdown-toc-interfaces-gráficas-do-utilizador-e-humanidades-digitais'"
-  body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-entender-a-lista-de-títulos'", actual: "id='markdown-toc-opções-para-criar-uma-gui'"
-  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-configurando-o-seu-ambiente-de-codificação-e-criando-a-aplicação-shiny'", actual: "id='markdown-toc-contexto-histórico-e-dados'"
-  body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-instalar-o-r-e-o-rstudio'", actual: "id='markdown-toc-obtendo-os-dados'"
-  ... and 82 more differences
-DIFF pt/licoes/autoria-sustentavel-texto-simples-pandoc-markdown.html (86 differences)
+DIFF pt/licoes/aplicacao-web-interativa-r-shiny-leaflet.html (12 differences)
+  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
+  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
+  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
+  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
+  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
+  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
+  body > main > div > div > ol > li > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
+  body > main > div > div > ol > li > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
+  body > main > div > div > div > ol > li: missing_attribute - expected: "role='doc-endnote'", actual: '(none)'
+  body > main > div > div > div > ol > li: missing_attribute - expected: "role='doc-endnote'", actual: '(none)'
+  ... and 2 more differences
+DIFF pt/licoes/autoria-sustentavel-texto-simples-pandoc-markdown.html (62 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2014-03-19'", actual: "content='2014-03-19 00:00:00 +0100'"
   body > main > header > div > div > div > div: text_differs - expected: '| Médio', actual: '|'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-objetivos'", actual: "id='markdown-toc-conteúdos'"
@@ -3223,7 +3223,7 @@ DIFF pt/licoes/autoria-sustentavel-texto-simples-pandoc-markdown.html (86 differ
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-entrando-em-contato-com-a-linha-de-comendos-do-seu-computador'", actual: "id='markdown-toc-básico-do-markdown'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-usando-pandoc-para-converter-markdown-em-um-documento-do-ms-word'", actual: "id='markdown-toc-entrando-em-contato-com-a-linha-de-comendos-do-seu-computador'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-trabalhando-com-bibliografias'", actual: "id='markdown-toc-usando-pandoc-para-converter-markdown-em-um-documento-do-ms-word'"
-  ... and 76 more differences
+  ... and 52 more differences
 DIFF pt/licoes/camadas-vetoriais-qgis.html (8 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2013-12-13'", actual: "content='2013-12-13 00:00:00 +0100'"
   body > main > header > div > div > div > div: text_differs - expected: '| Médio', actual: '|'
@@ -3232,14 +3232,14 @@ DIFF pt/licoes/camadas-vetoriais-qgis.html (8 differences)
   body > main > div > div: text_differs - expected: '(original) |', actual: '() |'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-objetivos-da-lição'", actual: "id='markdown-toc-conteúdos'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-começando'", actual: "id='markdown-toc-objetivos-da-lição'"
-  body > main > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 30 March 2026'
+  body > main > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 04 April 2026'
 DIFF pt/licoes/contagem-mineracao-dados-investigacao-unix.html (6 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2014-09-20'", actual: "content='2014-09-20 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Médio', actual: '|'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-contagem-e-mineração-de-dados-de-investigação-com-unix'", actual: "id='markdown-toc-conteúdos'"
   body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   body > main > div > div > div > p: text_differs - expected: 'James Baker e Ian Milligan, "Contagem e mineração de dados de investigação com Unix", traduzido por Felipe Lamarca,', actual: 'James Baker, e Ian Milligan, "Contagem e mineração de dados de investigação com Unix", traduzido por Felipe Lamarca,'
-  body > main > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 30 March 2026'
+  body > main > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 04 April 2026'
 DIFF pt/licoes/contar-frequencias-palavras-python.html (424 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2012-07-17'", actual: "content='2012-07-17 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Médio', actual: '|'
@@ -3274,7 +3274,7 @@ DIFF pt/licoes/criar-exposicao-omeka.html (10 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-adicione-conteúdo-ao-seu-bloco-de-conteúdo'", actual: "id='markdown-toc-adicione-um-bloco-de-conteúdo-na-página'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-temos-um-site-do-omeka'", actual: "id='markdown-toc-adicione-conteúdo-ao-seu-bloco-de-conteúdo'"
   body > main > div > div > div > p: text_differs - expected: 'Miriam Posner e Megan R. Brett, "Criar uma Exposição Omeka", traduzido por Gabriela Kucuruza,', actual: 'Miriam Posner, e Megan R. Brett, "Criar uma Exposição Omeka", traduzido por Gabriela Kucuruza,'
-  body > main > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 30 March 2026'
+  body > main > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 04 April 2026'
 DIFF pt/licoes/download-automatico-wget.html (62 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2012-06-27'", actual: "content='2012-06-27 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Baixo', actual: '|'
@@ -3579,9 +3579,9 @@ DIFF pt/licoes/manipulacao-transformacao-dados-r.html (19 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-um-exemplo-do-dplyr-em-ação'", actual: "id='markdown-toc-introdução'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-operador-pipe'", actual: "id='markdown-toc-um-exemplo-do-dplyr-em-ação'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-o-que-é-dplyr'", actual: "id='markdown-toc-operador-pipe'"
-  body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-juntando-tudo'", actual: "id='markdown-toc-o-que-é-dplyr'"  Progress: 500/529 files compared...
+  body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'  Progress: 500/529 files compared...
 
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-juntando-tudo'", actual: "id='markdown-toc-o-que-é-dplyr'"
   ... and 9 more differences
 DIFF pt/licoes/manipular-strings-python.html (64 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2012-07-17'", actual: "content='2012-07-17 00:00:00 +0200'"
@@ -3776,20 +3776,20 @@ DIFF pt/licoes/visualizacao-basica-dados-tabulares-r.html (49 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-mais-operações-sobre-folhas-de-registo'", actual: "id='markdown-toc-gráficos-de-caixa'"
   ... and 39 more differences
 DIFF pt/pesquisa.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 04 April 2026'
 DIFF pt/politica-de-privacidade.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 04 April 2026'
 DIFF pt/ppi.html (2 differences)
   body > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
-  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 04 April 2026'
 DIFF pt/reportar-um-erro.html (3 differences)
   body > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
   body > div > article > child[15]: tag_name_differs - expected: 'p', actual: 'img'
-  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 04 April 2026'
 DIFF pt/sobre.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 04 April 2026'
 DIFF pt/vagas.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Última atualização em 29 March 2026', actual: 'Última atualização em 04 April 2026'
 DIFF translation-concordance.html (7 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
   child[2]: tag_name_differs - expected: 'body', actual: 'table'
@@ -3799,6 +3799,6 @@ DIFF translation-concordance.html (7 differences)
   h2: extra_element - expected: '(none)', actual: '<h2>'
   table: extra_element - expected: '(none)', actual: '<table>'
 DIFF troubleshooting.html (1 differences)
-  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 30 March 2026'
+  body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 
-Summary: 164 files matched, 365 files with differences, 76321 total differences (16881 acceptable diffs filtered out)
+Summary: 164 files matched, 365 files with differences, 78573 total differences (14356 acceptable diffs filtered out)

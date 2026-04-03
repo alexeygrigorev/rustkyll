@@ -2,6 +2,20 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/mojombo-blog/_site_jekyll_
 Rustkyll directory: /home/alexey/git/rustkyl/websites/mojombo-blog/_site_rustkyll_recount
 Common HTML files:  17
 
+DIFF 2008/11/17/blogging-like-a-hacker.html (1 differences)
+  body > div > div > child[16]: tag_name_differs - expected: 'pre', actual: 'div'
+DIFF 2010/05/11/tomdoc-reasonable-ruby-documentation.html (11 differences)
+  body > div > div > div > div > pre > code > span: attribute_differs - expected: "class='c1'", actual: "class='c'"
+  body > div > div > div > div > pre > code > span: attribute_differs - expected: "class='c1'", actual: "class='c'"
+  body > div > div > div > div > pre > code > span: attribute_differs - expected: "class='c1'", actual: "class='c'"
+  body > div > div > div > div > pre > code > span: attribute_differs - expected: "class='c1'", actual: "class='c'"
+  body > div > div > div > div > pre > code > span: attribute_differs - expected: "class='c1'", actual: "class='c'"
+  body > div > div > div > div > pre > code > span: attribute_differs - expected: "class='c1'", actual: "class='c'"
+  body > div > div > div > div > pre > code > span: attribute_differs - expected: "class='c1'", actual: "class='c'"
+  body > div > div > div > div > pre > code > span: attribute_differs - expected: "class='c1'", actual: "class='c'"
+  body > div > div > div > div > pre > code > span: attribute_differs - expected: "class='c1'", actual: "class='c'"
+  body > div > div > div > div > pre > code > span: attribute_differs - expected: "class='c1'", actual: "class='c'"
+  ... and 1 more differences
 DIFF 2016/11/10/snyk.html (28 differences)
   body > div > div > p > a > img: missing_element - expected: '<img>', actual: '(none)'
   body > div > div > child[6]: tag_name_differs - expected: 'p', actual: 'img'
@@ -15,4 +29,4 @@ DIFF 2016/11/10/snyk.html (28 differences)
   body > div > div > p: missing_text - expected: 'painfully demonstrate the idea that “given enough eyeballs, all bugs are shallow” is completely fals', actual: '(none)'
   ... and 18 more differences
 
-Summary: 16 files matched, 1 files with differences, 28 total differences
+Summary: 14 files matched, 3 files with differences, 40 total differences

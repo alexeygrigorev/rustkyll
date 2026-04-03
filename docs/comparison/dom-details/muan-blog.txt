@@ -4,7 +4,7 @@ Common HTML files:  39
 Only in Jekyll:     2179
 Only in rustkyll:   2180
 
-DIFF notes.html (1786 differences)
+DIFF notes.html (1782 differences)
   body > main > ul > li > div > button: attribute_differs - expected: "data-share-url='/notes/2026-03-12-cc'", actual: "data-share-url='/notes/2026-03-12-cc/'"
   body > main > ul > li > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2026-03-12-cc'", actual: "href='https://likes.muan.dev/?id=/notes/2026-03-12-cc/'"
   body > main > ul > li > div > button: attribute_differs - expected: "data-share-url='/notes/2026-03-12-aa'", actual: "data-share-url='/notes/2026-03-12-aa/'"
@@ -15,7 +15,7 @@ DIFF notes.html (1786 differences)
   body > main > ul > li > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2026-03-09-aa'", actual: "href='https://likes.muan.dev/?id=/notes/2026-03-09-aa/'"
   body > main > ul > li > div > button: attribute_differs - expected: "data-share-url='/notes/2026-03-08-aa'", actual: "data-share-url='/notes/2026-03-08-aa/'"
   body > main > ul > li > div > open-heart: attribute_differs - expected: "href='https://likes.muan.dev/?id=/notes/2026-03-08-aa'", actual: "href='https://likes.muan.dev/?id=/notes/2026-03-08-aa/'"
-  ... and 1776 more differences
+  ... and 1772 more differences
 DIFF pages/hacking-with-swift/index.html (23 differences)
   body > main > article > ul > li > div > div > pre > code > span: attribute_differs - expected: "class='p'", actual: "class='o'"
   body > main > article > ul > li > div > div > pre > code > span: attribute_differs - expected: "class='nt'", actual: "class='na'"
@@ -40,4 +40,4 @@ DIFF photos.html (10 differences)
   body > main > div > figure > figcaption > p > br: missing_element - expected: '<br>', actual: '(none)'
   body > main > div > figure > figcaption > p: missing_text - expected: '“Yes, I think they look very authentic.”', actual: '(none)'
 
-Summary: 36 files matched, 3 files with differences, 1819 total differences (247 acceptable diffs filtered out)
+Summary: 36 files matched, 3 files with differences, 1815 total differences (247 acceptable diffs filtered out)
