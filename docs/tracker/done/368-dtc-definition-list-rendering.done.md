@@ -134,3 +134,19 @@ Issues to fix:
 - `docs/tracker/368-dtc-definition-list-rendering.in-progress.md` -- this log entry
 
 **Issue stays in-progress for a different approach.** The `break_mixed_list_nesting()` heuristic was too aggressive and must not be re-attempted without a more targeted strategy that avoids regressing pages where Jekyll keeps mixed list types nested.
+
+### [PM] 2026-04-02 15:00
+- Investigated current state of target page
+- Built DTC site from current main branch (commit 9eb2027)
+- DOM comparison: 596/790 matched (matches recorded baseline, no regression)
+- Target page `books/20210405-the-practitioners-guide-to-graph-data.html`: **0 diffs** -- fully matches Jekyll output
+- Previously regressed pages (`effective-data-science-infrastructure.html`, `llm-engineer-s-handbook.html`): both clean, 0 diffs
+- The original 7 diffs on the target page were resolved by subsequent commits to the codebase (likely improvements to list rendering, kramdown handling, or related fixes in later issues)
+- All 6 acceptance criteria are now satisfied:
+  1. Definition syntax rendering matches Jekyll: PASS (0 diffs)
+  2. Graph-data book page renders correctly: PASS (0 diffs)
+  3. mailto links with pipe characters: PASS (no diff detected)
+  4. DTC DOM match count at baseline: PASS (596/790)
+  5. Existing tests pass: PASS
+  6. No site-specific hardcoding: PASS (no #368-specific code exists)
+- VERDICT: ACCEPT -- closing as done. The issue was resolved organically by other improvements to the rendering pipeline.
