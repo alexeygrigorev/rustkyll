@@ -19,7 +19,12 @@ impl Text {
 
 impl Renderable for Text {
     fn render_to(&self, writer: &mut dyn Write, _runtime: &dyn Runtime) -> Result<()> {
-        write!(writer, "{}", &self.text).replace("Failed to render")?;
+        // Use write_all for raw text output instead of write!/Display formatting.
+        // Text nodes are the most common renderable element and this avoids the
+        // overhead of the format machinery.
+        writer
+            .write_all(self.text.as_bytes())
+            .replace("Failed to render")?;
         Ok(())
     }
 }

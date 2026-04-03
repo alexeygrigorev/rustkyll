@@ -305,6 +305,10 @@ struct LenientObject<'a> {
     site_with_overrides: Option<SiteWithOverrides<'a>>,
     /// A Nil value we can hand out references to for missing keys.
     nil: Value,
+    /// Optional borrowed reference to a pre-built page LenientValue.
+    /// When set, this takes priority over the `page` field, avoiding the
+    /// expensive `to_value()` clone in `with_cached_site()`.
+    page_lenient_ref: Option<&'a LenientValue>,
 }
 
 /// Wrapper that overrides specific keys in a cached site LenientValue.
@@ -416,6 +420,7 @@ impl<'a> LenientObject<'a> {
             site,
             site_with_overrides: None,
             nil: Value::Nil,
+            page_lenient_ref: None,
         }
     }
 
@@ -438,6 +443,7 @@ impl<'a> LenientObject<'a> {
             site: CachedOrOwned::Cached(cached_site),
             site_with_overrides: None,
             nil: Value::Nil,
+            page_lenient_ref: None,
         }
     }
 
@@ -468,6 +474,60 @@ impl<'a> LenientObject<'a> {
             site: CachedOrOwned::Cached(cached_site),
             site_with_overrides,
             nil: Value::Nil,
+            page_lenient_ref: None,
+        }
+    }
+
+    /// Create with a pre-built page `LenientValue` and cached site context.
+    ///
+    /// This avoids the expensive `to_value()` clone on the page object that
+    /// happens in `with_cached_site()`. The caller pre-builds the page
+    /// `LenientValue` once and passes it by reference for each render.
+    fn with_prebuilt_page(
+        inner: &'a Object,
+        page_lenient: &'a LenientValue,
+        cached_site: &'a LenientValue,
+    ) -> Self {
+        let include = inner
+            .get("include")
+            .map(|v| LenientValue::from_value(v.to_value()));
+        Self {
+            inner,
+            page: None, // Not used -- page_lenient_ref replaces it
+            include,
+            site: CachedOrOwned::Cached(cached_site),
+            site_with_overrides: None,
+            nil: Value::Nil,
+            page_lenient_ref: Some(page_lenient),
+        }
+    }
+
+    /// Create with a pre-built page `LenientValue`, cached site, and overrides.
+    fn with_prebuilt_page_overrides(
+        inner: &'a Object,
+        page_lenient: &'a LenientValue,
+        cached_site: &'a LenientValue,
+        site_overrides: &'a HashMap<String, LenientValue>,
+    ) -> Self {
+        let include = inner
+            .get("include")
+            .map(|v| LenientValue::from_value(v.to_value()));
+        let site_with_overrides = if site_overrides.is_empty() {
+            None
+        } else {
+            Some(SiteWithOverrides {
+                base: cached_site,
+                overrides: site_overrides,
+            })
+        };
+        Self {
+            inner,
+            page: None,
+            include,
+            site: CachedOrOwned::Cached(cached_site),
+            site_with_overrides,
+            nil: Value::Nil,
+            page_lenient_ref: Some(page_lenient),
         }
     }
 }
@@ -548,7 +608,13 @@ impl ObjectView for LenientObject<'_> {
         // Use pre-wrapped lenient versions for page, include, and site.
         // This enables lenient key access and hash integer indexing.
         match index {
-            "page" => self.page.as_ref().map(|v| v as &dyn ValueView),
+            "page" => {
+                // Prefer pre-built page reference (avoids to_value() clone)
+                if let Some(plr) = self.page_lenient_ref {
+                    return Some(plr as &dyn ValueView);
+                }
+                self.page.as_ref().map(|v| v as &dyn ValueView)
+            }
             "include" => self.include.as_ref().map(|v| v as &dyn ValueView),
             "site" => {
                 if let Some(ref overrides) = self.site_with_overrides {
@@ -1220,6 +1286,47 @@ impl TemplateEngine {
     ) -> Result<String, TemplateError> {
         let lenient = LenientObject::with_cached_site_overrides(
             context,
+            &cached_site.site_lenient,
+            site_overrides,
+        );
+        template
+            .inner
+            .render(&lenient)
+            .map_err(|e| TemplateError::RenderError(e.to_string()))
+    }
+
+    /// Render with a pre-built page LenientValue and cached site context.
+    ///
+    /// This avoids the expensive `to_value()` clone on the page object that
+    /// happens in `render_with_cached_site()`. The caller pre-builds the page
+    /// `LenientValue` once and reuses it for layout rendering.
+    pub fn render_with_prebuilt_page_lenient(
+        &self,
+        template: &Template,
+        context: &Object,
+        cached_site: &CachedSiteContext,
+        page_lenient: &LenientValue,
+    ) -> Result<String, TemplateError> {
+        let lenient =
+            LenientObject::with_prebuilt_page(context, page_lenient, &cached_site.site_lenient);
+        template
+            .inner
+            .render(&lenient)
+            .map_err(|e| TemplateError::RenderError(e.to_string()))
+    }
+
+    /// Render with a pre-built page LenientValue, cached site, and overrides.
+    pub(crate) fn render_with_prebuilt_page_overrides(
+        &self,
+        template: &Template,
+        context: &Object,
+        cached_site: &CachedSiteContext,
+        page_lenient: &LenientValue,
+        site_overrides: &HashMap<String, LenientValue>,
+    ) -> Result<String, TemplateError> {
+        let lenient = LenientObject::with_prebuilt_page_overrides(
+            context,
+            page_lenient,
             &cached_site.site_lenient,
             site_overrides,
         );
@@ -7588,5 +7695,123 @@ title: "Test Book"
 
         let map = load_includes_merged(&default_dir, &custom_dir).unwrap();
         assert_eq!(map.get("ヘッダー.html").unwrap(), "custom-header");
+    }
+
+    // ========================================================================
+    // Issue 544: render_with_prebuilt_page_lenient optimization tests
+    // ========================================================================
+
+    #[test]
+    fn test_render_with_prebuilt_page_lenient_matches_cached_site() {
+        // Verify that rendering with a pre-built page LenientValue produces
+        // the same output as the standard cached site path.
+        let eng = engine();
+        let template = eng
+            .parse("Title: {{ page.title }} by {{ page.author }}")
+            .unwrap();
+
+        // Build a page object with front matter
+        let mut page = Object::new();
+        page.insert("title".into(), LiquidValue::scalar("My Post"));
+        page.insert("author".into(), LiquidValue::scalar("Alice"));
+
+        // Standard path: build context, use cached site render
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page.clone()));
+        let site = Object::new();
+        let cached = CachedSiteContext::from_object(site);
+
+        let standard_output = eng
+            .render_with_cached_site(&template, &ctx, &cached)
+            .unwrap();
+
+        // Optimized path: pre-build page LenientValue
+        let page_value = Value::Object(page);
+        let page_lenient = LenientValue::from_value(page_value);
+        let optimized_output = eng
+            .render_with_prebuilt_page_lenient(&template, &ctx, &cached, &page_lenient)
+            .unwrap();
+
+        assert_eq!(standard_output, optimized_output);
+        assert_eq!(standard_output, "Title: My Post by Alice");
+    }
+
+    #[test]
+    fn test_render_with_prebuilt_page_lenient_empty_front_matter() {
+        let eng = engine();
+        let template = eng.parse("Empty: {{ page.missing }}").unwrap();
+
+        let page = Object::new();
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page.clone()));
+        let site = Object::new();
+        let cached = CachedSiteContext::from_object(site);
+
+        let standard_output = eng
+            .render_with_cached_site(&template, &ctx, &cached)
+            .unwrap();
+
+        let page_lenient = LenientValue::from_value(Value::Object(page));
+        let optimized_output = eng
+            .render_with_prebuilt_page_lenient(&template, &ctx, &cached, &page_lenient)
+            .unwrap();
+
+        assert_eq!(standard_output, optimized_output);
+    }
+
+    #[test]
+    fn test_render_with_prebuilt_page_lenient_unicode_content() {
+        let eng = engine();
+        let template = eng.parse("{{ page.title }} - {{ page.lang }}").unwrap();
+
+        let mut page = Object::new();
+        page.insert("title".into(), LiquidValue::scalar("日本語のタイトル"));
+        page.insert("lang".into(), LiquidValue::scalar("ja"));
+
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page.clone()));
+        let cached = CachedSiteContext::from_object(Object::new());
+
+        let standard = eng
+            .render_with_cached_site(&template, &ctx, &cached)
+            .unwrap();
+
+        let page_lenient = LenientValue::from_value(Value::Object(page));
+        let optimized = eng
+            .render_with_prebuilt_page_lenient(&template, &ctx, &cached, &page_lenient)
+            .unwrap();
+
+        assert_eq!(standard, optimized);
+        assert_eq!(optimized, "日本語のタイトル - ja");
+    }
+
+    #[test]
+    fn test_render_with_prebuilt_page_lenient_nested_objects() {
+        let eng = engine();
+        let template = eng.parse("{{ page.meta.description }}").unwrap();
+
+        let mut meta = Object::new();
+        meta.insert(
+            "description".into(),
+            LiquidValue::scalar("A great post about Rust"),
+        );
+        let mut page = Object::new();
+        page.insert("meta".into(), LiquidValue::Object(meta));
+
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(page.clone()));
+        let cached = CachedSiteContext::from_object(Object::new());
+
+        let standard = eng
+            .render_with_cached_site(&template, &ctx, &cached)
+            .unwrap();
+
+        let page_lenient = LenientValue::from_value(Value::Object(page));
+        let optimized = eng
+            .render_with_prebuilt_page_lenient(&template, &ctx, &cached, &page_lenient)
+            .unwrap();
+
+        assert_eq!(standard, optimized);
+        assert_eq!(optimized, "A great post about Rust");
     }
 }

@@ -381,6 +381,11 @@ impl LayoutEngine {
     ///
     /// Jekyll deep-merges the current layout's front matter into the accumulated
     /// layout data from child layouts (child keys win on conflict).
+    ///
+    /// Optimization: builds the page `LenientValue` once from the owned page Object
+    /// (no clone), then passes it by reference to the engine. This avoids the
+    /// `to_value()` deep-clone that previously happened inside
+    /// `LenientObject::with_cached_site()` for every layout render.
     fn render_with_cached_site_prebuilt(
         &self,
         layout_name: &str,
@@ -395,12 +400,19 @@ impl LayoutEngine {
             .ok_or_else(|| TemplateError::LayoutNotFound(layout_name.to_string()))?;
 
         let has_parent = layout.parent_layout.is_some();
-        let page_obj_for_chaining = if has_parent {
-            Some(page_obj.clone())
+        // Build context + page LenientValue in one step (no extra clone).
+        // For chaining, we need the page Object again, so clone before consuming.
+        let (mut ctx, page_lenient) = if has_parent {
+            let page_clone = page_obj.clone();
+            let (ctx, pl) = build_render_context_with_page_lenient(content, page_obj);
+            // Store clone for chaining -- will be consumed in recursive call
+            (ctx, (pl, Some(page_clone)))
         } else {
-            None
+            let (ctx, pl) = build_render_context_with_page_lenient(content, page_obj);
+            (ctx, (pl, None))
         };
-        let mut ctx = build_render_context_from_page_object(content, page_obj);
+        let (page_lenient, page_obj_for_chaining) = page_lenient;
+
         // Jekyll: payload["layout"] = deep_merge(layout.data, payload["layout"] || {})
         let current_obj = self
             .layout_objects
@@ -418,8 +430,12 @@ impl LayoutEngine {
         );
 
         let result = if let Some(compiled) = self.compiled_layouts.get(layout_name) {
-            self.engine
-                .render_with_cached_site(compiled, &ctx, cached_site)?
+            self.engine.render_with_prebuilt_page_lenient(
+                compiled,
+                &ctx,
+                cached_site,
+                &page_lenient,
+            )?
         } else {
             self.engine
                 .parse_and_render_with_cached_site(&layout.source, &ctx, cached_site)?
@@ -441,9 +457,7 @@ impl LayoutEngine {
     /// Like render_with_cached_site but with per-render site key overrides.
     ///
     /// Takes ownership of the page Object on the first call to avoid cloning.
-    /// For layout chaining, the page Object is reconstructed from the inner Value
-    /// stored in the context (which is cheaper than a full clone since the original
-    /// page data is still available via reference).
+    /// For layout chaining, the page Object is cloned before consumption.
     fn render_with_prebuilt_page(
         &self,
         layout_name: &str,
@@ -458,13 +472,15 @@ impl LayoutEngine {
             .get(layout_name)
             .ok_or_else(|| TemplateError::LayoutNotFound(layout_name.to_string()))?;
         let has_parent = layout.parent_layout.is_some();
-        // Clone page_obj only if we need it for layout chaining; otherwise move it.
-        let page_obj_for_chaining = if has_parent {
-            Some(page_obj.clone())
+        // Build context + page LenientValue in one step (no extra clone).
+        let (mut ctx, page_lenient, page_obj_for_chaining) = if has_parent {
+            let page_clone = page_obj.clone();
+            let (ctx, pl) = build_render_context_with_page_lenient(content, page_obj);
+            (ctx, pl, Some(page_clone))
         } else {
-            None
+            let (ctx, pl) = build_render_context_with_page_lenient(content, page_obj);
+            (ctx, pl, None)
         };
-        let mut ctx = build_render_context_from_page_object(content, page_obj);
         // Jekyll: payload["layout"] = deep_merge(layout.data, payload["layout"] || {})
         let current_obj = self
             .layout_objects
@@ -481,8 +497,13 @@ impl LayoutEngine {
             LiquidValue::Object(merged_layout_obj.clone()),
         );
         let result = if let Some(compiled) = self.compiled_layouts.get(layout_name) {
-            self.engine
-                .render_with_site_overrides(compiled, &ctx, cached_site, site_overrides)?
+            self.engine.render_with_prebuilt_page_overrides(
+                compiled,
+                &ctx,
+                cached_site,
+                &page_lenient,
+                site_overrides,
+            )?
         } else {
             self.engine.parse_and_render_with_site_overrides(
                 &layout.source,
@@ -1339,13 +1360,19 @@ use std::sync::LazyLock;
 static JEKYLL_ENV: LazyLock<String> =
     LazyLock::new(|| std::env::var("JEKYLL_ENV").unwrap_or_else(|_| "development".to_string()));
 
-fn inject_jekyll_object(ctx: &mut Object) {
+/// Pre-built `jekyll` value: `LiquidValue::Object({"environment": "..."})`.
+/// Built once on first access and cloned (cheap for a 1-key Object) into each context.
+static JEKYLL_VALUE: LazyLock<LiquidValue> = LazyLock::new(|| {
     let mut jekyll = Object::new();
     jekyll.insert(
         "environment".into(),
         LiquidValue::scalar(JEKYLL_ENV.as_str()),
     );
-    ctx.insert("jekyll".into(), LiquidValue::Object(jekyll));
+    LiquidValue::Object(jekyll)
+});
+
+fn inject_jekyll_object(ctx: &mut Object) {
+    ctx.insert("jekyll".into(), JEKYLL_VALUE.clone());
 }
 
 /// Pre-build the Liquid `Object` representing the `page` namespace from front matter.
@@ -1389,6 +1416,37 @@ pub fn build_render_context_from_page_object(content: &str, mut page: Object) ->
     inject_jekyll_object(&mut ctx);
 
     ctx
+}
+
+/// Build a render context and pre-built page LenientValue in one step.
+///
+/// This is the optimized version of `build_render_context_from_page_object` that
+/// avoids the `to_value()` deep-clone in `LenientObject::with_cached_site()`.
+///
+/// The page Object is consumed to build the `LenientValue` directly. The returned
+/// context contains `content` and `jekyll` but NOT `page` -- the page is served
+/// entirely from the returned `LenientValue` via `LenientObject::with_prebuilt_page`.
+pub fn build_render_context_with_page_lenient(
+    content: &str,
+    mut page: Object,
+) -> (Object, super::engine::LenientValue) {
+    let mut ctx = Object::new();
+
+    let content_normalized = crate::frontmatter::normalize_block_whitespace(content);
+    let content_escaped = crate::frontmatter::escape_quotes_in_text_nodes(&content_normalized);
+    let content_string = content_escaped.into_owned();
+    let content_val = LiquidValue::scalar(content_string);
+    page.insert("content".into(), content_val.clone());
+
+    // Build the LenientValue from the owned page Object -- O(1), no deep clone.
+    // The page is NOT inserted into the context; instead, the LenientObject will
+    // serve page.* lookups directly from this LenientValue.
+    let page_lenient = super::engine::LenientValue::from_value(LiquidValue::Object(page));
+
+    ctx.insert("content".into(), content_val);
+    inject_jekyll_object(&mut ctx);
+
+    (ctx, page_lenient)
 }
 
 #[cfg(test)]
