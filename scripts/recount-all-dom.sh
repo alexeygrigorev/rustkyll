@@ -195,10 +195,15 @@ for site in "${SITES[@]}"; do
         fi
     done <<< "$(cd "$rustkyll_site" && find . -name '*.html')"
 
+    # Compute only-in-jekyll and only-in-rustkyll counts
+    only_j_files=$(comm -23 <(echo "$jekyll_files") <(echo "$rustkyll_files") | grep -c '.' || true)
+    only_r_files=$(comm -13 <(echo "$jekyll_files") <(echo "$rustkyll_files") | grep -c '.' || true)
+    total_unique=$((common_count + only_j_files + only_r_files))
+
     if [[ "$common_count" -eq 0 ]]; then
         echo "  No common HTML files"
         rm -rf "$rustkyll_site"
-        RESULTS+=("$site|0|0|$jekyll_count|$rustkyll_count|$liquid_leaks")
+        RESULTS+=("$site|0|$total_unique|0|$only_j_files|$only_r_files|$liquid_leaks")
         continue
     fi
 
@@ -213,20 +218,26 @@ for site in "${SITES[@]}"; do
 
     echo "$dom_output" > "$detail_file"
 
-    # Parse DOM match count from summary line
+    # Parse DOM match count and total from summary line
+    # New format: "Summary: N matched / M total ..."
     dom_match=0
+    dom_total=0
     summary_line=$(echo "$dom_output" | grep "^Summary:" || true)
     if [[ -n "$summary_line" ]]; then
-        dom_match=$(echo "$summary_line" | grep -oP '(\d+) files matched' | grep -oP '^\d+' || echo 0)
+        dom_match=$(echo "$summary_line" | grep -oP '(\d+) matched' | grep -oP '^\d+' || echo 0)
+        dom_total=$(echo "$summary_line" | grep -oP '(\d+) total' | head -1 | grep -oP '^\d+' || echo 0)
     fi
 
     # Extract diff categories (type counts) - only match known diff types
     diff_cats=$(echo "$dom_output" | grep "^  " | grep -oP ': \K(text_differs|attribute_differs|tag_name_differs|missing_element|extra_element|missing_text|extra_text|missing_attribute|extra_attribute|expected_element_got_text|expected_text_got_element|jsonld_value_differs|jsonld_missing_field|jsonld_extra_field|jsonld_extra_item|jsonld_missing_item)' | sort | uniq -c | sort -rn)
     DIFF_CATEGORIES["$site"]="$diff_cats"
 
-    echo "  DOM: $dom_match/$common_count | Files: $rustkyll_count/$jekyll_count | Liquid leaks: $liquid_leaks"
+    only_j_count=$(echo "$dom_output" | grep -oP 'Only in Jekyll:\s+\K\d+' || echo 0)
+    only_r_count=$(echo "$dom_output" | grep -oP 'Only in rustkyll:\s+\K\d+' || echo 0)
 
-    RESULTS+=("$site|$dom_match|$common_count|$jekyll_count|$rustkyll_count|$liquid_leaks")
+    echo "  DOM: $dom_match/$dom_total | Common: $common_count | Only-J: $only_j_count | Only-R: $only_r_count | Liquid leaks: $liquid_leaks"
+
+    RESULTS+=("$site|$dom_match|$dom_total|$common_count|$only_j_count|$only_r_count|$liquid_leaks")
 
     # Clean up rustkyll build output (Jekyll cache is kept)
     rm -rf "$rustkyll_site"
@@ -264,24 +275,24 @@ Jekyll output is deterministic and cached in \`_site_jekyll_cached/\` per site d
 
 ## All Sites
 
-| Site | DOM Match | File Match | Liquid Leaks |
-|------|-----------|------------|-------------|
+| Site | DOM Match | Common / Total | Only-Jekyll | Only-Rustkyll | Liquid Leaks |
+|------|-----------|----------------|-------------|---------------|-------------|
 HEADER
 
 total_dom=0
-total_common=0
+total_pages=0
 total_sites=0
 
 for r in "${RESULTS[@]}"; do
-    IFS='|' read -r site f1 f2 f3 f4 f5 <<< "$r"
+    IFS='|' read -r site f1 f2 f3 f4 f5 f6 <<< "$r"
 
     if [[ "$f1" == "SKIP" ]]; then
-        echo "| $site | SKIP | - | - |" >> "$OUTPUT_FILE"
+        echo "| $site | SKIP | - | - | - | - |" >> "$OUTPUT_FILE"
         continue
     fi
 
     if [[ "$f1" == "BOTH_FAIL" ]]; then
-        echo "| $site | BOTH_FAIL | - | - |" >> "$OUTPUT_FILE"
+        echo "| $site | BOTH_FAIL | - | - | - | - |" >> "$OUTPUT_FILE"
         continue
     fi
 
@@ -290,32 +301,34 @@ for r in "${RESULTS[@]}"; do
         rustkyll_count="$f2"
         liquid_leaks="$f3"
         empty_files="$f4"
-        echo "| $site | JEKYLL_FAIL | $rustkyll_count pages (rustkyll-only) | $liquid_leaks |" >> "$OUTPUT_FILE"
+        echo "| $site | JEKYLL_FAIL | $rustkyll_count (rustkyll-only) | - | - | $liquid_leaks |" >> "$OUTPUT_FILE"
         continue
     fi
 
     if [[ "$f1" == "RUSTKYLL_FAIL" ]]; then
-        echo "| $site | RUSTKYLL_FAIL | - | - |" >> "$OUTPUT_FILE"
+        echo "| $site | RUSTKYLL_FAIL | - | - | - | - |" >> "$OUTPUT_FILE"
         continue
     fi
 
+    # New format: f1=dom_match, f2=dom_total, f3=common_count, f4=only_j, f5=only_r, f6=liquid_leaks
     dom_match="$f1"
-    common_count="$f2"
-    jekyll_count="$f3"
-    rustkyll_count="$f4"
-    liquid_leaks="$f5"
+    dom_total="$f2"
+    common_count="$f3"
+    only_j="$f4"
+    only_r="$f5"
+    liquid_leaks="$f6"
 
-    if [[ "$common_count" -eq 0 ]]; then
+    if [[ "$dom_total" -eq 0 ]]; then
         pct="N/A"
     else
-        pct=$(awk "BEGIN {printf \"%.0f\", ($dom_match/$common_count)*100}")
+        pct=$(awk "BEGIN {printf \"%.0f\", ($dom_match/$dom_total)*100}")
     fi
 
-    echo "| $site | $dom_match/$common_count ($pct%) | $rustkyll_count/$jekyll_count | $liquid_leaks |" >> "$OUTPUT_FILE"
+    echo "| $site | $dom_match/$dom_total ($pct%) | $common_count / $dom_total | $only_j | $only_r | $liquid_leaks |" >> "$OUTPUT_FILE"
 
-    if [[ "$dom_match" =~ ^[0-9]+$ ]] && [[ "$common_count" =~ ^[0-9]+$ ]]; then
+    if [[ "$dom_match" =~ ^[0-9]+$ ]] && [[ "$dom_total" =~ ^[0-9]+$ ]]; then
         total_dom=$((total_dom + dom_match))
-        total_common=$((total_common + common_count))
+        total_pages=$((total_pages + dom_total))
         total_sites=$((total_sites + 1))
     fi
 done
@@ -325,7 +338,7 @@ cat >> "$OUTPUT_FILE" << EOF
 ## Summary
 
 - Sites compared: $total_sites
-- Total DOM matches: $total_dom / $total_common
+- Total DOM matches: $total_dom / $total_pages
 
 ## Diff Categories by Site
 

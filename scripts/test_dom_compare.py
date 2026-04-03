@@ -1,4 +1,7 @@
 #!/usr/bin/env -S uv run python
+# /// script
+# dependencies = ["beautifulsoup4"]
+# ///
 """Tests for dom_compare.py"""
 
 import os
@@ -274,8 +277,158 @@ class TestDirectoryComparison(unittest.TestCase):
         with redirect_stdout(f):
             compare_directories(self.jekyll_dir, self.rustkyll_dir)
         output = f.getvalue()
-        self.assertIn("2 files matched", output)
-        self.assertIn("1 files with differences", output)
+        self.assertIn("2 matched", output)
+        self.assertIn("3 total", output)
+        self.assertIn("1 with-diffs", output)
+
+
+class TestUnionCounting(unittest.TestCase):
+    """Tests for union-based file counting in compare_directories.
+
+    The summary should count matched pages against the total unique pages
+    (union of Jekyll and rustkyll), not just common files. Files that only
+    exist in one output directory count as unmatched.
+    """
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        self.jekyll_dir = os.path.join(self.tmpdir, "jekyll")
+        self.rustkyll_dir = os.path.join(self.tmpdir, "rustkyll")
+        os.makedirs(self.jekyll_dir)
+        os.makedirs(self.rustkyll_dir)
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmpdir)
+
+    def _write_file(self, base_dir, rel_path, content):
+        full_path = os.path.join(base_dir, rel_path)
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        with open(full_path, "w") as f:
+            f.write(content)
+
+    def _capture_output(self):
+        import io
+        from contextlib import redirect_stdout
+        return io.StringIO(), redirect_stdout
+
+    def test_summary_counts_only_jekyll_files_as_unmatched(self):
+        """Files only in Jekyll should appear in summary as unmatched."""
+        html = '<html><body><p>Hello</p></body></html>'
+        self._write_file(self.jekyll_dir, "common.html", html)
+        self._write_file(self.rustkyll_dir, "common.html", html)
+        self._write_file(self.jekyll_dir, "only_j1.html", html)
+        self._write_file(self.jekyll_dir, "only_j2.html", html)
+
+        f, redirect = self._capture_output()
+        buf = f
+        with redirect(buf):
+            compare_directories(self.jekyll_dir, self.rustkyll_dir)
+        output = buf.getvalue()
+        # Total unique files = 3 (1 common + 2 only-jekyll)
+        # Matched = 1, so summary should say "1 matched / 3 total"
+        self.assertIn("1 matched", output)
+        self.assertIn("3 total", output)
+        self.assertIn("2 only-Jekyll", output)
+
+    def test_summary_counts_only_rustkyll_files_as_unmatched(self):
+        """Files only in rustkyll should appear in summary as unmatched."""
+        html = '<html><body><p>Hello</p></body></html>'
+        self._write_file(self.jekyll_dir, "common.html", html)
+        self._write_file(self.rustkyll_dir, "common.html", html)
+        self._write_file(self.rustkyll_dir, "only_r1.html", html)
+
+        f, redirect = self._capture_output()
+        buf = f
+        with redirect(buf):
+            compare_directories(self.jekyll_dir, self.rustkyll_dir)
+        output = buf.getvalue()
+        # Total = 2 (1 common + 1 only-rustkyll), matched = 1
+        self.assertIn("1 matched", output)
+        self.assertIn("2 total", output)
+        self.assertIn("1 only-rustkyll", output)
+
+    def test_summary_counts_both_sides_only_files(self):
+        """Both only-Jekyll and only-rustkyll files inflate total."""
+        html = '<html><body><p>Hello</p></body></html>'
+        html_j = '<html><body><p>J</p></body></html>'
+        html_r = '<html><body><p>R</p></body></html>'
+        # 2 common matching, 1 common differing, 3 only-j, 1 only-r
+        self._write_file(self.jekyll_dir, "m1.html", html)
+        self._write_file(self.rustkyll_dir, "m1.html", html)
+        self._write_file(self.jekyll_dir, "m2.html", html)
+        self._write_file(self.rustkyll_dir, "m2.html", html)
+        self._write_file(self.jekyll_dir, "diff.html", html_j)
+        self._write_file(self.rustkyll_dir, "diff.html", html_r)
+        self._write_file(self.jekyll_dir, "j1.html", html)
+        self._write_file(self.jekyll_dir, "j2.html", html)
+        self._write_file(self.jekyll_dir, "j3.html", html)
+        self._write_file(self.rustkyll_dir, "r1.html", html)
+
+        f, redirect = self._capture_output()
+        buf = f
+        with redirect(buf):
+            compare_directories(self.jekyll_dir, self.rustkyll_dir)
+        output = buf.getvalue()
+        # Total = 3 common + 3 only-j + 1 only-r = 7
+        # Matched = 2 (m1, m2)
+        self.assertIn("2 matched", output)
+        self.assertIn("7 total", output)
+        self.assertIn("3 only-Jekyll", output)
+        self.assertIn("1 only-rustkyll", output)
+        self.assertIn("1 with-diffs", output)
+
+    def test_summary_all_matched_no_only_files(self):
+        """When all files are common and match, total equals matched."""
+        html = '<html><body><p>Hello</p></body></html>'
+        self._write_file(self.jekyll_dir, "a.html", html)
+        self._write_file(self.rustkyll_dir, "a.html", html)
+        self._write_file(self.jekyll_dir, "b.html", html)
+        self._write_file(self.rustkyll_dir, "b.html", html)
+
+        f, redirect = self._capture_output()
+        buf = f
+        with redirect(buf):
+            compare_directories(self.jekyll_dir, self.rustkyll_dir)
+        output = buf.getvalue()
+        self.assertIn("2 matched", output)
+        self.assertIn("2 total", output)
+        # No only-X lines when counts are 0
+        self.assertNotIn("only-Jekyll", output)
+        self.assertNotIn("only-rustkyll", output)
+
+    def test_summary_no_common_files(self):
+        """When no files are common, all are unmatched."""
+        html = '<html><body><p>Hello</p></body></html>'
+        self._write_file(self.jekyll_dir, "j.html", html)
+        self._write_file(self.rustkyll_dir, "r.html", html)
+
+        f, redirect = self._capture_output()
+        buf = f
+        with redirect(buf):
+            compare_directories(self.jekyll_dir, self.rustkyll_dir)
+        output = buf.getvalue()
+        self.assertIn("0 matched", output)
+        self.assertIn("2 total", output)
+        self.assertIn("1 only-Jekyll", output)
+        self.assertIn("1 only-rustkyll", output)
+
+    def test_unicode_file_paths(self):
+        """File path matching should handle Unicode filenames."""
+        html = '<html><body><p>Hej</p></body></html>'
+        self._write_file(self.jekyll_dir, "caf\u00e9.html", html)
+        self._write_file(self.rustkyll_dir, "caf\u00e9.html", html)
+        self._write_file(self.jekyll_dir, "\u00fc\u00f6.html", html)
+
+        f, redirect = self._capture_output()
+        buf = f
+        with redirect(buf):
+            compare_directories(self.jekyll_dir, self.rustkyll_dir)
+        output = buf.getvalue()
+        # 1 common matched + 1 only-jekyll = 2 total
+        self.assertIn("1 matched", output)
+        self.assertIn("2 total", output)
+        self.assertIn("1 only-Jekyll", output)
 
 
 class TestRegressionDetection(unittest.TestCase):
@@ -1134,7 +1287,7 @@ class TestJekyllMathBugIntegration(unittest.TestCase):
                 exit_code = compare_directories(j_dir, r_dir)
             self.assertEqual(exit_code, 0, "Page with only math bug diffs should match")
             output = buf.getvalue()
-            self.assertIn("1 files matched", output)
+            self.assertIn("1 matched", output)
             self.assertIn("acceptable diffs filtered out", output)
         finally:
             shutil.rmtree(tmpdir)

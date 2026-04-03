@@ -459,4 +459,4 @@ DIFF podcast/urban-data-science.html (2 differences)
 DIFF podcast/visualizing-machine-learning-concepts-to-explain-ml.html (1 differences)
   body > script > jsonld.@graph[1].endDate: jsonld_value_differs - expected: '2026-03-29 11:31:35 +0200', actual: '2025-11-07 00:00:00 +0100'
 
-Summary: 596 files matched, 194 files with differences, 255 total differences (868 acceptable diffs filtered out)
+Summary: 596 matched / 790 total (194 with-diffs) 255 total differences (868 acceptable diffs filtered out)

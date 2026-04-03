@@ -503,6 +503,14 @@ pub fn generate_url_with_context(pattern: &str, ctx: &PermalinkContext) -> Strin
         .join("/");
     let path_str = ctx.source_path_stem.as_deref().unwrap_or(&ctx.title);
 
+    // Issue 548: Jekyll separates the URL from the output file path.
+    // :output_ext in the permalink pattern determines the OUTPUT FILE extension
+    // (.html), but item.url strips :output_ext, returning the URL without .html.
+    // Example: permalink /:collection/:path:output_ext
+    //   -> item.url = /notes/slug (no .html)
+    //   -> output file = notes/slug.html (url_to_output_path adds .html)
+    let has_output_ext = expanded.contains(":output_ext");
+
     let mut url = expanded
         .replace(":collection", &ctx.collection)
         .replace(":name", &ctx.title)
@@ -515,7 +523,8 @@ pub fn generate_url_with_context(pattern: &str, ctx: &PermalinkContext) -> Strin
         .replace(":month", &month)
         .replace(":day", &day)
         .replace(":categories", &categories_str)
-        .replace(":path", path_str);
+        .replace(":path", path_str)
+        .replace(":output_ext", "");
 
     // Collapse double (or more) slashes to single, preserving leading slash
     while url.contains("//") {
@@ -528,7 +537,10 @@ pub fn generate_url_with_context(pattern: &str, ctx: &PermalinkContext) -> Strin
     // append `/` to produce a directory-based pretty URL.
     // This ensures `permalink: /:title` produces `/my-post/` (not `/my-post`),
     // which maps to output file `my-post/index.html`.
-    if !url.ends_with('/') && !url_has_extension(&url) {
+    //
+    // Issue 548: Skip trailing slash for :output_ext patterns -- these produce
+    // bare URLs like /notes/slug where url_to_output_path handles the .html.
+    if !has_output_ext && !url.ends_with('/') && !url_has_extension(&url) {
         url.push('/');
     }
 
@@ -865,7 +877,7 @@ pub fn load_collection(
                     .and_then(|v| v.as_str())
                     .map(|s| s.to_string())
             })
-            .unwrap_or_else(|| "/:collection/:path".to_string())
+            .unwrap_or_else(|| "/:collection/:path:output_ext".to_string())
     };
 
     // Phase 1: Collect all file paths (fast, sequential directory walk)
@@ -3609,8 +3621,8 @@ mod tests {
 
     #[test]
     fn test_default_collection_permalink_no_html() {
-        // Jekyll's default permalink for non-post collections is /:collection/:path
-        // (no .html extension). Sites that explicitly set permalink in collection
+        // Jekyll's default permalink for non-post collections is /:collection/:path:output_ext
+        // which produces .html URLs. Sites that explicitly set permalink in collection
         // config keep their setting; only the fallback default changes.
         let dir = tempfile::tempdir().unwrap();
         let site = dir.path();
@@ -3631,8 +3643,9 @@ mod tests {
         let config = SiteConfig::from_file(&site.join("_config.yml")).unwrap();
         let (items, _) = load_collection("pages", site, &config).unwrap();
         assert_eq!(items.len(), 1);
-        // Should be /pages/banners/ (pretty URL), matching Jekyll's /:collection/:path default
-        assert_eq!(items[0].url, "/pages/banners/");
+        // Jekyll strips :output_ext from item.url, so no .html
+        // Output file will still be /pages/banners.html via url_to_output_path
+        assert_eq!(items[0].url, "/pages/banners");
     }
 
     #[test]
@@ -3678,6 +3691,143 @@ mod tests {
         };
         let url = generate_url_with_context("/:collection/:path", &ctx);
         assert_eq!(url, "/pages/über-uns/");
+    }
+
+    // ========================================================================
+    // Issue 548: Default collection permalink uses :output_ext
+    // ========================================================================
+
+    #[test]
+    fn test_default_collection_permalink_uses_output_ext() {
+        // Jekyll's actual default collection permalink is /:collection/:path:output_ext
+        // which produces .html URLs, not pretty URLs with trailing slash.
+        let dir = tempfile::tempdir().unwrap();
+        let site = dir.path();
+
+        // Create a collection with NO explicit permalink in config
+        std::fs::write(
+            site.join("_config.yml"),
+            "collections:\n  notes:\n    output: true\n",
+        )
+        .unwrap();
+        std::fs::create_dir_all(site.join("_notes")).unwrap();
+        std::fs::write(
+            site.join("_notes/2026-03-12-cc.md"),
+            "---\ntitle: \"Test Note\"\n---\nSome content",
+        )
+        .unwrap();
+
+        let config = SiteConfig::from_file(&site.join("_config.yml")).unwrap();
+        let (items, _) = load_collection("notes", site, &config).unwrap();
+        assert_eq!(items.len(), 1);
+        // Issue 548 fix: item.url should NOT include .html -- Jekyll strips :output_ext from URL
+        // The output file should be notes/2026-03-12-cc.html, but the URL is /notes/2026-03-12-cc
+        assert_eq!(items[0].url, "/notes/2026-03-12-cc");
+    }
+
+    #[test]
+    fn test_default_collection_url_vs_output_path_diverge() {
+        // Jekyll separates item.url from the output file path:
+        // - item.url = /notes/slug (no .html)
+        // - output file = notes/slug.html
+        // This test verifies both are correct.
+        let dir = tempfile::tempdir().unwrap();
+        let site = dir.path();
+
+        std::fs::write(
+            site.join("_config.yml"),
+            "collections:\n  notes:\n    output: true\n",
+        )
+        .unwrap();
+        std::fs::create_dir_all(site.join("_notes")).unwrap();
+        std::fs::write(
+            site.join("_notes/2026-03-12-cc.md"),
+            "---\ntitle: \"Test Note\"\n---\nSome content",
+        )
+        .unwrap();
+
+        let config = SiteConfig::from_file(&site.join("_config.yml")).unwrap();
+        let (items, _) = load_collection("notes", site, &config).unwrap();
+        assert_eq!(items.len(), 1);
+
+        // URL should NOT have .html
+        assert_eq!(items[0].url, "/notes/2026-03-12-cc");
+
+        // But output path should be .html (not index.html in a directory)
+        let out_dir = std::path::Path::new("/tmp/test_site");
+        let out_path = crate::generator::url_to_output_path(out_dir, &items[0].url);
+        assert_eq!(out_path, out_dir.join("notes/2026-03-12-cc.html"));
+    }
+
+    #[test]
+    fn test_default_collection_permalink_unicode_output_ext() {
+        // Unicode filenames should also get .html extension with default permalink
+        let dir = tempfile::tempdir().unwrap();
+        let site = dir.path();
+
+        std::fs::write(
+            site.join("_config.yml"),
+            "collections:\n  pages:\n    output: true\n",
+        )
+        .unwrap();
+        std::fs::create_dir_all(site.join("_pages")).unwrap();
+        std::fs::write(
+            site.join("_pages/über-uns.md"),
+            "---\ntitle: \"Über Uns\"\n---\nInhalt",
+        )
+        .unwrap();
+
+        let config = SiteConfig::from_file(&site.join("_config.yml")).unwrap();
+        let (items, _) = load_collection("pages", site, &config).unwrap();
+        assert_eq!(items.len(), 1);
+        // Jekyll strips :output_ext from URL, so no .html
+        assert_eq!(items[0].url, "/pages/%C3%BCber-uns");
+    }
+
+    #[test]
+    fn test_generate_url_collection_path_output_ext() {
+        // generate_url replaces :output_ext with empty string for the URL
+        let url = generate_url("/:collection/:path:output_ext", "notes", "2018-06-04-aa");
+        assert_eq!(url, "/notes/2018-06-04-aa");
+    }
+
+    #[test]
+    fn test_generate_url_output_ext_unicode() {
+        // Unicode with :output_ext pattern
+        let ctx = PermalinkContext {
+            collection: "notes".to_string(),
+            title: "заметка".to_string(),
+            source_path_stem: Some("заметка".to_string()),
+            ..Default::default()
+        };
+        let url = generate_url_with_context("/:collection/:path:output_ext", &ctx);
+        // :output_ext is stripped from URL
+        assert_eq!(url, "/notes/заметка");
+    }
+
+    #[test]
+    fn test_explicit_permalink_not_affected_by_output_ext_default() {
+        // Collections with explicit permalink should NOT be affected
+        let dir = tempfile::tempdir().unwrap();
+        let site = dir.path();
+
+        std::fs::write(
+            site.join("_config.yml"),
+            "collections:\n  books:\n    output: true\n    permalink: /:collection/:title/\n",
+        )
+        .unwrap();
+        std::fs::create_dir_all(site.join("_books")).unwrap();
+        std::fs::write(
+            site.join("_books/my-book.md"),
+            "---\ntitle: My Book\n---\nContent",
+        )
+        .unwrap();
+
+        let config = SiteConfig::from_file(&site.join("_config.yml")).unwrap();
+        let (items, _) = load_collection("books", site, &config).unwrap();
+        assert_eq!(items.len(), 1);
+        // Explicit trailing-slash permalink should still produce pretty URL
+        assert_eq!(items[0].url, "/books/my-book/");
     }
 
     // ========================================================================

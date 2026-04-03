@@ -1351,10 +1351,22 @@ def compare_directories(jekyll_dir: str, rustkyll_dir: str,
                 log(f"  ... and {len(diffs) - 10} more differences")
 
     log("")
-    summary = f"Summary: {matched} files matched, {differing} files with differences, {total_diffs} total differences"
+    total_unique = len(common_files) + len(only_jekyll) + len(only_rustkyll)
+    summary_parts = [f"Summary: {matched} matched / {total_unique} total"]
+    detail_parts = []
+    if only_jekyll:
+        detail_parts.append(f"{len(only_jekyll)} only-Jekyll")
+    if only_rustkyll:
+        detail_parts.append(f"{len(only_rustkyll)} only-rustkyll")
+    if differing:
+        detail_parts.append(f"{differing} with-diffs")
+    if detail_parts:
+        summary_parts.append(f"({', '.join(detail_parts)})")
+    if total_diffs:
+        summary_parts.append(f"{total_diffs} total differences")
     if total_accepted > 0:
-        summary += f" ({total_accepted} acceptable diffs filtered out)"
-    log(summary)
+        summary_parts.append(f"({total_accepted} acceptable diffs filtered out)")
+    log(" ".join(summary_parts))
 
     if output_path:
         with open(output_path, "w", encoding="utf-8") as f:
