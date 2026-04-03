@@ -63,6 +63,24 @@ fn build_scope_map() -> Vec<ScopeMapping> {
             "source.ruby string.quoted.single punctuation.definition.string",
             "s1",
         ),
+        // Ruby: Rouge classifies `# comment` as `c` (generic comment).
+        // Syntect scopes it as comment.line.number-sign -> c1. Override for Ruby.
+        ("source.ruby comment.line.number-sign", "c"),
+        // Java: Rouge classifies `public`, `static`, `void`, `int`, `class`, etc. as `kd`
+        // (keyword.declaration). Syntect scopes these as storage.type -> kt or
+        // storage.modifier -> k. Override for Java.
+        ("source.java storage.type", "kd"),
+        ("source.java storage.modifier", "kd"),
+        // Java: Rouge classifies package/import paths as `nn` (name.namespace).
+        // Syntect scopes these as support.class.import.java. Must come BEFORE
+        // the generic support.class rule so import paths get `nn` not `nc`.
+        ("source.java support.class.import", "nn"),
+        // Java: Rouge classifies class names (String, List, etc.) as `nc` (name.class).
+        // Syntect scopes these as support.class -> nb. Override for Java.
+        ("source.java support.class", "nc"),
+        // Java: Rouge classifies `import` as `kn` (keyword.namespace).
+        // Syntect scopes it as keyword.other.import.java. Override for Java.
+        ("source.java keyword.other.import", "kn"),
         // PHP: Rouge classifies $variable as `nv` (Name.Variable).
         // Syntect scopes PHP variables as variable.other -> n. Override for PHP.
         ("source.php variable.other", "nv"),
@@ -4039,8 +4057,8 @@ tests:\n\
         );
         let html = highlight_code("ruby", code).unwrap();
         assert!(
-            html.contains("<span class=\"c1\"># Ruby code with syntax highlighting"),
-            "Ruby comment should be c1: {html}"
+            html.contains("<span class=\"c\"># Ruby code with syntax highlighting"),
+            "Ruby comment should be c (Rouge uses generic comment for Ruby #): {html}"
         );
         assert!(
             html.contains("<span class=\"no\">GitHubPages</span>"),
@@ -5173,6 +5191,116 @@ u = df['user'].unique()\n";
         assert!(
             html.contains("<span class=\"nb\">min</span>"),
             "min() in nested call should be 'nb'. Got:\n{html}"
+        );
+    }
+
+    // ── Issue 471: Java scope mapping fixes ──
+
+    #[test]
+    fn test_issue471_java_storage_type_is_kd() {
+        // Rouge classifies `public`, `static`, `void`, `int` as `kd` (keyword.declaration)
+        let html = highlight_code("java", "public static void main(String[] args) {\n}\n").unwrap();
+        assert!(
+            html.contains("<span class=\"kd\">public</span>"),
+            "Java 'public' should be kd (keyword.declaration): {html}"
+        );
+        assert!(
+            html.contains("<span class=\"kd\">static</span>"),
+            "Java 'static' should be kd (keyword.declaration): {html}"
+        );
+        assert!(
+            html.contains("<span class=\"kd\">void</span>"),
+            "Java 'void' should be kd (keyword.declaration): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue471_java_int_type_is_kd() {
+        let html = highlight_code("java", "int x = 42;\n").unwrap();
+        assert!(
+            html.contains("<span class=\"kd\">int</span>"),
+            "Java 'int' should be kd (keyword.declaration): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue471_java_string_class_is_nc() {
+        // Rouge classifies `String` as `nc` (name.class), not `nb` (name.builtin)
+        let html = highlight_code("java", "String s = \"hello\";\n").unwrap();
+        assert!(
+            html.contains("<span class=\"nc\">String</span>"),
+            "Java 'String' should be nc (name.class): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue471_java_import_keyword_is_kn() {
+        // Rouge classifies `import` as `kn` (keyword.namespace)
+        let html = highlight_code("java", "import java.util.List;\n").unwrap();
+        assert!(
+            html.contains("<span class=\"kn\">import</span>"),
+            "Java 'import' should be kn (keyword.namespace): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue471_java_package_name_is_nn() {
+        // Rouge classifies package/import paths as `nn` (name.namespace)
+        let html = highlight_code("java", "import java.util.List;\n").unwrap();
+        // The package path portion should contain nn spans
+        assert!(
+            html.contains("class=\"nn\""),
+            "Java import path should contain nn (name.namespace) spans: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue471_java_unicode_class_name() {
+        // Non-ASCII: Japanese class name
+        let html = highlight_code("java", "public class \u{30c6}\u{30b9}\u{30c8} {\n}\n").unwrap();
+        assert!(
+            html.contains("<span class=\"kd\">public</span>"),
+            "Java 'public' should be kd even with Unicode class name: {html}"
+        );
+    }
+
+    // ── Issue 471: Ruby comment class fix ──
+
+    #[test]
+    fn test_issue471_ruby_line_comment_is_c() {
+        // Rouge classifies `# comment` in Ruby as `c` (generic comment), not `c1` (line comment)
+        let html = highlight_code("ruby", "# this is a comment\n").unwrap();
+        assert!(
+            html.contains("<span class=\"c\""),
+            "Ruby '# comment' should be c (generic comment), not c1: {html}"
+        );
+        assert!(
+            !html.contains("<span class=\"c1\""),
+            "Ruby '# comment' should NOT be c1 (line comment): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue471_ruby_comment_unicode() {
+        // Non-ASCII: Ruby comment with Unicode
+        let html = highlight_code(
+            "ruby",
+            "# \u{30b3}\u{30e1}\u{30f3}\u{30c8}\u{3067}\u{3059}\n",
+        )
+        .unwrap();
+        assert!(
+            html.contains("<span class=\"c\""),
+            "Ruby Unicode comment should be c: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue471_python_comment_still_c1() {
+        // Python `# comment` should remain `c1` -- no cross-language regression
+        let html = highlight_code("python", "# this is a comment\n").unwrap();
+        assert!(
+            html.contains("<span class=\"c1\""),
+            "Python '# comment' should remain c1: {html}"
         );
     }
 }
