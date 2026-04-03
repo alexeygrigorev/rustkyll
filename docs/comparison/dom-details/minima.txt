@@ -93,4 +93,4 @@ DIFF misc/2016/05/20/super-long-article.html (13 differences)
   head > meta > meta > meta > child[8]: tag_name_differs - expected: 'link', actual: 'meta'
   ... and 3 more differences
 
-Summary: 0 files matched, 9 files with differences, 303 total differences
+Summary: 0 matched / 9 total (9 with-diffs) 303 total differences

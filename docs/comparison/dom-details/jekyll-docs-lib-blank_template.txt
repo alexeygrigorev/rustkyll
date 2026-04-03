@@ -3,4 +3,4 @@ Rustkyll directory: /home/alexey/git/rustkyl/websites/jekyll-docs/lib/blank_temp
 Common HTML files:  1
 
 
-Summary: 1 files matched, 0 files with differences, 0 total differences
+Summary: 1 matched / 1 total

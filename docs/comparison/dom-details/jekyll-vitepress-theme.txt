@@ -189,4 +189,4 @@ DIFF what-is-jekyll-vitepress-theme/index.html (8 differences)
   head > script: missing_text - expected: 'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausib', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
 
-Summary: 0 files matched, 17 files with differences, 609 total differences (4 acceptable diffs filtered out)
+Summary: 0 matched / 17 total (17 with-diffs) 609 total differences (4 acceptable diffs filtered out)

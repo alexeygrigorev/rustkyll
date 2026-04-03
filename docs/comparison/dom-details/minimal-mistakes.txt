@@ -16,4 +16,4 @@ DIFF index.html (38 differences)
   head > link: attribute_differs - expected: "href='https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css'", actual: "href='/assets/css/main.css'"
   ... and 28 more differences
 
-Summary: 0 files matched, 1 files with differences, 38 total differences
+Summary: 0 matched / 32 total (31 only-rustkyll, 1 with-diffs) 38 total differences

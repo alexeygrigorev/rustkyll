@@ -727,4 +727,4 @@ DIFF index.php/YAWL.html (8 differences)
   body > div > main > div > child[60]: tag_name_differs - expected: 'ul', actual: 'p'
   body > div > main > div > child[85]: tag_name_differs - expected: 'p', actual: 'img'
 
-Summary: 534 files matched, 110 files with differences, 5557 total differences (12704 acceptable diffs filtered out)
+Summary: 534 matched / 645 total (1 only-rustkyll, 110 with-diffs) 5557 total differences (12707 acceptable diffs filtered out)

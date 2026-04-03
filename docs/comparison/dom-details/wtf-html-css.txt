@@ -15,4 +15,4 @@ DIFF index.html (178 differences)
   body > div > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nb'"
   ... and 168 more differences
 
-Summary: 0 files matched, 1 files with differences, 178 total differences
+Summary: 0 matched / 1 total (1 with-diffs) 178 total differences

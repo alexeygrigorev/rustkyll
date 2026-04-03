@@ -8,14 +8,12 @@ DIFF another-page.html (5 differences)
   head > meta > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-DIFF index.html (8 differences)
+DIFF index.html (6 differences)
   head > meta > meta > meta > child[3]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   body > div > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='c1'", actual: "class='c'"
-  body > div > div > div > article > child[27]: tag_name_differs - expected: 'p', actual: 'img'
-  body > div > div > div > article > child[29]: tag_name_differs - expected: 'p', actual: 'img'
 
-Summary: 0 files matched, 2 files with differences, 13 total differences (2 acceptable diffs filtered out)
+Summary: 0 matched / 2 total (2 with-diffs) 11 total differences (2 acceptable diffs filtered out)

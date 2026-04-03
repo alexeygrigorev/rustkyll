@@ -186,4 +186,4 @@ DIFF snippets/python/threaded_map_tqdm.html (220 differences)
 DIFF snippets/tools/uv-path-dependencies.html (1 differences)
   body > div > main > article > div > child[6]: tag_name_differs - expected: 'div', actual: 'pre'
 
-Summary: 8 files matched, 17 files with differences, 4530 total differences
+Summary: 8 matched / 25 total (17 with-diffs) 4530 total differences

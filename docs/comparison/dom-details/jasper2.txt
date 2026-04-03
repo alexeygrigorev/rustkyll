@@ -219,4 +219,4 @@ DIFF using-tags.html (18 differences)
   body > div > aside > div > div > article > a: attribute_differs - expected: "href='/jasper2/the-editor'", actual: "href='/jasper2/the-editor.html'"
   ... and 8 more differences
 
-Summary: 0 files matched, 21 files with differences, 424 total differences (32 acceptable diffs filtered out)
+Summary: 0 matched / 37 total (8 only-Jekyll, 8 only-rustkyll, 21 with-diffs) 424 total differences (32 acceptable diffs filtered out)

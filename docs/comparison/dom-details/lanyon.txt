@@ -3,4 +3,4 @@ Rustkyll directory: /home/alexey/git/rustkyl/websites/lanyon/_site_rustkyll_reco
 Common HTML files:  6
 
 
-Summary: 6 files matched, 0 files with differences, 0 total differences
+Summary: 6 matched / 6 total

@@ -76,7 +76,7 @@ DIFF faqs/export-paper-art/index.html (3 differences)
   p: extra_element - expected: '(none)', actual: '<p>'
 DIFF faqs/glitching-images/index.html (4 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
-  child[2]: tag_name_differs - expected: 'body', actual: 'img'
+  child[2]: tag_name_differs - expected: 'body', actual: 'p'
   p: extra_element - expected: '(none)', actual: '<p>'
   ul: extra_element - expected: '(none)', actual: '<ul>'
 DIFF faqs/index.html (5 differences)
@@ -328,7 +328,7 @@ DIFF notes/romance-egg-engagement/index.html (6 differences)
   child[2]: tag_name_differs - expected: 'body', actual: 'p'
   p: extra_element - expected: '(none)', actual: '<p>'
   p: extra_element - expected: '(none)', actual: '<p>'
-  img: extra_element - expected: '(none)', actual: '<img>'
+  p: extra_element - expected: '(none)', actual: '<p>'
   p: extra_element - expected: '(none)', actual: '<p>'
 DIFF notes/rriiccee-show-last-night-soundlab/index.html (6 differences)
   child[1]: tag_name_differs - expected: 'head', actual: 'p'
@@ -3273,4 +3273,4 @@ DIFF work/so-simple-jekyll-theme/index.html (9 differences)
   h2: extra_element - expected: '(none)', actual: '<h2>'
   p: extra_element - expected: '(none)', actual: '<p>'
 
-Summary: 1 files matched, 1038 files with differences, 2367 total differences (1 acceptable diffs filtered out)
+Summary: 1 matched / 1303 total (264 only-Jekyll, 1038 with-diffs) 2367 total differences (1 acceptable diffs filtered out)

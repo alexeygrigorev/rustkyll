@@ -33,4 +33,4 @@ Rustkyll directory: /home/alexey/git/rustkyl/websites/large-blog-3000/_site_rust
 Common HTML files:  3001
 
 
-Summary: 3001 files matched, 0 files with differences, 0 total differences
+Summary: 3001 matched / 3001 total

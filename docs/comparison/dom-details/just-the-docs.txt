@@ -45,18 +45,18 @@ DIFF docs/customization/index.html (231 differences)
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '$link-color: $blue-000;'
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 221 more differences
-DIFF docs/index-test/index.html (322 differences)
+DIFF docs/index-test/index.html (320 differences)
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='c1'", actual: "class='c'"
   head > meta > meta > meta > link > body > div > div > div > main > ul > li > ul: missing_attribute - expected: "class='task-list'", actual: '(none)'
   head > meta > meta > meta > link > body > div > div > div > main > ul > li > ul: missing_attribute - expected: "class='task-list'", actual: '(none)'
-  head > meta > meta > meta > link > body > div > div > div > main > child[47]: tag_name_differs - expected: 'p', actual: 'img'
-  head > meta > meta > meta > link > body > div > div > div > main > child[49]: tag_name_differs - expected: 'p', actual: 'img'
   head > meta > meta > meta > link > body > div > div > div > main > p: attribute_differs - expected: "class='label label-blue'", actual: "class='label label-red'"
   head > meta > meta > meta > link > body > div > div > div > main > p: text_differs - expected: 'blue', actual: 'blue {: .label .label-blue } green {: .label .label-green } purple {: .label .label-purple } yellow {: .label .label-yellow } red'
   head > meta > meta > meta > link > body > div > div > div > main > p: missing_attribute - expected: "class='label label-green'", actual: '(none)'
   head > meta > meta > meta > link > body > div > div > div > main > p: expected_text_got_element - expected: 'green', actual: '<strong>'
   head > meta > meta > meta > link > body > div > div > div > main > p > strong: extra_element - expected: '(none)', actual: '<strong>'
-  ... and 312 more differences
+  head > meta > meta > meta > link > body > div > div > div > main > p > em: extra_element - expected: '(none)', actual: '<em>'
+  head > meta > meta > meta > link > body > div > div > div > main > p > em: extra_element - expected: '(none)', actual: '<em>'
+  ... and 310 more differences
 DIFF docs/layout/layout/index.html (22 differences)
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '---'
   head > meta > meta > meta > link > body > div > div > div > main > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='na'"
@@ -310,4 +310,4 @@ DIFF index.html (6 differences)
   head > meta > meta > meta > link > body > div > div > div > main > div > ol > li > child[2]: tag_name_differs - expected: 'li', actual: 'a'
   head > meta > meta > meta > link > body > div > div > div > main > div > ol > li > li: extra_element - expected: '(none)', actual: '<li>'
 
-Summary: 16 files matched, 31 files with differences, 2087 total differences (11 acceptable diffs filtered out)
+Summary: 16 matched / 47 total (31 with-diffs) 2085 total differences (11 acceptable diffs filtered out)

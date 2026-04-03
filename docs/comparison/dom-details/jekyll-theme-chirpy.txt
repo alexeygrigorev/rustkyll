@@ -82,4 +82,4 @@ DIFF tags/writing/index.html (2 differences)
   head: missing_element - expected: '<head>', actual: '(none)'
   body: missing_element - expected: '<body>', actual: '(none)'
 
-Summary: 0 files matched, 17 files with differences, 150 total differences (1 acceptable diffs filtered out)
+Summary: 0 matched / 17 total (17 with-diffs) 150 total differences (1 acceptable diffs filtered out)

@@ -17,4 +17,4 @@ Common HTML files:  1344
 Only in Jekyll:     1
 
 
-Summary: 1344 files matched, 0 files with differences, 0 total differences
+Summary: 1344 matched / 1345 total (1 only-Jekyll)

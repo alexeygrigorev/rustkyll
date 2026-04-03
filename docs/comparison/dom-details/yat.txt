@@ -237,4 +237,4 @@ DIFF tags.html (58 differences)
   head > meta: attribute_differs - expected: "content='width=device-width, initial-scale=1'", actual: "content='108d9124921d80c3-80e20d618ff053c8-g4f02ec6f3dba68b7-c'"
   ... and 48 more differences
 
-Summary: 0 files matched, 20 files with differences, 1113 total differences (279 acceptable diffs filtered out)
+Summary: 0 matched / 20 total (20 with-diffs) 1113 total differences (278 acceptable diffs filtered out)

@@ -5,4 +5,4 @@ Only in Jekyll:     11
 Only in rustkyll:   11
 
 
-Summary: 4 files matched, 0 files with differences, 0 total differences (1 acceptable diffs filtered out)
+Summary: 4 matched / 26 total (11 only-Jekyll, 11 only-rustkyll) (1 acceptable diffs filtered out)

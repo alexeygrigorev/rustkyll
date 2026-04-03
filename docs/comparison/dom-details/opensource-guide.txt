@@ -3,7 +3,7 @@ Rustkyll directory: /home/alexey/git/rustkyl/websites/opensource-guide/_site_rus
 Common HTML files:  388
 Only in rustkyll:   2
 
-DIFF ar/best-practices/index.html (13 differences)
+DIFF ar/best-practices/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -14,8 +14,8 @@ DIFF ar/best-practices/index.html (13 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 3 more differences
-DIFF ar/building-community/index.html (110 differences)
+  ... and 2 more differences
+DIFF ar/building-community/index.html (15 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -26,7 +26,7 @@ DIFF ar/building-community/index.html (110 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 100 more differences
+  ... and 5 more differences
 DIFF ar/code-of-conduct/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -39,7 +39,7 @@ DIFF ar/code-of-conduct/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF ar/finding-users/index.html (52 differences)
+DIFF ar/finding-users/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -50,7 +50,7 @@ DIFF ar/finding-users/index.html (52 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 42 more differences
+  ... and 2 more differences
 DIFF ar/getting-paid/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -99,7 +99,7 @@ DIFF ar/leadership-and-governance/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 4 more differences
-DIFF ar/legal/index.html (58 differences)
+DIFF ar/legal/index.html (19 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -110,7 +110,7 @@ DIFF ar/legal/index.html (58 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 48 more differences
+  ... and 9 more differences
 DIFF ar/maintaining-balance-for-open-source-maintainers/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -123,7 +123,7 @@ DIFF ar/maintaining-balance-for-open-source-maintainers/index.html (12 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF ar/metrics/index.html (47 differences)
+DIFF ar/metrics/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -134,7 +134,7 @@ DIFF ar/metrics/index.html (47 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 37 more differences
+  ... and 2 more differences
 DIFF ar/security-best-practices-for-your-project/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -147,19 +147,7 @@ DIFF ar/security-best-practices-for-your-project/index.html (13 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 3 more differences
-DIFF ar/starting-a-project/index.html (15 differences)
-  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 5 more differences
-DIFF best-practices/index.html (13 differences)
+DIFF ar/starting-a-project/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -171,6 +159,18 @@ DIFF best-practices/index.html (13 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 3 more differences
+DIFF best-practices/index.html (12 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  ... and 2 more differences
 DIFF bg/best-practices/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -183,7 +183,7 @@ DIFF bg/best-practices/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF bg/building-community/index.html (110 differences)
+DIFF bg/building-community/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -194,7 +194,7 @@ DIFF bg/building-community/index.html (110 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 100 more differences
+  ... and 3 more differences
 DIFF bg/code-of-conduct/index.html (14 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -207,7 +207,7 @@ DIFF bg/code-of-conduct/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 4 more differences
-DIFF bg/finding-users/index.html (52 differences)
+DIFF bg/finding-users/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -218,7 +218,7 @@ DIFF bg/finding-users/index.html (52 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 42 more differences
+  ... and 2 more differences
 DIFF bg/getting-paid/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -267,7 +267,7 @@ DIFF bg/leadership-and-governance/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF bg/legal/index.html (57 differences)
+DIFF bg/legal/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -278,7 +278,7 @@ DIFF bg/legal/index.html (57 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 47 more differences
+  ... and 2 more differences
 DIFF bg/maintaining-balance-for-open-source-maintainers/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -291,7 +291,7 @@ DIFF bg/maintaining-balance-for-open-source-maintainers/index.html (12 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF bg/metrics/index.html (47 differences)
+DIFF bg/metrics/index.html (16 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -302,7 +302,7 @@ DIFF bg/metrics/index.html (47 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 37 more differences
+  ... and 6 more differences
 DIFF bg/security-best-practices-for-your-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -315,7 +315,7 @@ DIFF bg/security-best-practices-for-your-project/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF bg/starting-a-project/index.html (14 differences)
+DIFF bg/starting-a-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -326,8 +326,8 @@ DIFF bg/starting-a-project/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 4 more differences
-DIFF bn/best-practices/index.html (27 differences)
+  ... and 2 more differences
+DIFF bn/best-practices/index.html (26 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -338,8 +338,8 @@ DIFF bn/best-practices/index.html (27 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 17 more differences
-DIFF bn/building-community/index.html (110 differences)
+  ... and 16 more differences
+DIFF bn/building-community/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -350,7 +350,7 @@ DIFF bn/building-community/index.html (110 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 100 more differences
+  ... and 3 more differences
 DIFF bn/code-of-conduct/index.html (14 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -363,7 +363,7 @@ DIFF bn/code-of-conduct/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 4 more differences
-DIFF bn/finding-users/index.html (52 differences)
+DIFF bn/finding-users/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -374,7 +374,7 @@ DIFF bn/finding-users/index.html (52 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 42 more differences
+  ... and 2 more differences
 DIFF bn/getting-paid/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -423,7 +423,7 @@ DIFF bn/leadership-and-governance/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF bn/legal/index.html (57 differences)
+DIFF bn/legal/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -434,7 +434,7 @@ DIFF bn/legal/index.html (57 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 47 more differences
+  ... and 2 more differences
 DIFF bn/maintaining-balance-for-open-source-maintainers/index.html (24 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -447,7 +447,7 @@ DIFF bn/maintaining-balance-for-open-source-maintainers/index.html (24 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 14 more differences
-DIFF bn/metrics/index.html (47 differences)
+DIFF bn/metrics/index.html (16 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -458,7 +458,7 @@ DIFF bn/metrics/index.html (47 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 37 more differences
+  ... and 6 more differences
 DIFF bn/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -471,7 +471,7 @@ DIFF bn/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF bn/starting-a-project/index.html (14 differences)
+DIFF bn/starting-a-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -482,8 +482,8 @@ DIFF bn/starting-a-project/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 4 more differences
-DIFF building-community/index.html (110 differences)
+  ... and 2 more differences
+DIFF building-community/index.html (15 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -494,7 +494,7 @@ DIFF building-community/index.html (110 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 100 more differences
+  ... and 5 more differences
 DIFF code-of-conduct/index.html (14 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -507,7 +507,7 @@ DIFF code-of-conduct/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 4 more differences
-DIFF de/best-practices/index.html (23 differences)
+DIFF de/best-practices/index.html (22 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -518,8 +518,8 @@ DIFF de/best-practices/index.html (23 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 13 more differences
-DIFF de/building-community/index.html (110 differences)
+  ... and 12 more differences
+DIFF de/building-community/index.html (21 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -530,7 +530,7 @@ DIFF de/building-community/index.html (110 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 100 more differences
+  ... and 11 more differences
 DIFF de/code-of-conduct/index.html (14 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -543,7 +543,7 @@ DIFF de/code-of-conduct/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 4 more differences
-DIFF de/finding-users/index.html (52 differences)
+DIFF de/finding-users/index.html (21 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -554,7 +554,7 @@ DIFF de/finding-users/index.html (52 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 42 more differences
+  ... and 11 more differences
 DIFF de/getting-paid/index.html (21 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -603,7 +603,7 @@ DIFF de/leadership-and-governance/index.html (26 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 16 more differences
-DIFF de/legal/index.html (56 differences)
+DIFF de/legal/index.html (17 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -614,7 +614,7 @@ DIFF de/legal/index.html (56 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 46 more differences
+  ... and 7 more differences
 DIFF de/maintaining-balance-for-open-source-maintainers/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -627,7 +627,7 @@ DIFF de/maintaining-balance-for-open-source-maintainers/index.html (12 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF de/metrics/index.html (46 differences)
+DIFF de/metrics/index.html (15 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -638,7 +638,7 @@ DIFF de/metrics/index.html (46 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 36 more differences
+  ... and 5 more differences
 DIFF de/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -651,7 +651,7 @@ DIFF de/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF de/starting-a-project/index.html (23 differences)
+DIFF de/starting-a-project/index.html (21 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -662,8 +662,8 @@ DIFF de/starting-a-project/index.html (23 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 13 more differences
-DIFF el/best-practices/index.html (19 differences)
+  ... and 11 more differences
+DIFF el/best-practices/index.html (18 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -674,8 +674,8 @@ DIFF el/best-practices/index.html (19 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 9 more differences
-DIFF el/building-community/index.html (110 differences)
+  ... and 8 more differences
+DIFF el/building-community/index.html (29 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -686,7 +686,7 @@ DIFF el/building-community/index.html (110 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 100 more differences
+  ... and 19 more differences
 DIFF el/code-of-conduct/index.html (18 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -699,7 +699,7 @@ DIFF el/code-of-conduct/index.html (18 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 8 more differences
-DIFF el/finding-users/index.html (52 differences)
+DIFF el/finding-users/index.html (26 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -710,7 +710,7 @@ DIFF el/finding-users/index.html (52 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 42 more differences
+  ... and 16 more differences
 DIFF el/getting-paid/index.html (24 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -759,7 +759,7 @@ DIFF el/leadership-and-governance/index.html (24 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 14 more differences
-DIFF el/legal/index.html (56 differences)
+DIFF el/legal/index.html (20 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -770,7 +770,7 @@ DIFF el/legal/index.html (56 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 46 more differences
+  ... and 10 more differences
 DIFF el/maintaining-balance-for-open-source-maintainers/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -783,7 +783,7 @@ DIFF el/maintaining-balance-for-open-source-maintainers/index.html (11 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF el/metrics/index.html (47 differences)
+DIFF el/metrics/index.html (18 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -794,7 +794,7 @@ DIFF el/metrics/index.html (47 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 37 more differences
+  ... and 8 more differences
 DIFF el/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -807,7 +807,7 @@ DIFF el/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF el/starting-a-project/index.html (28 differences)
+DIFF el/starting-a-project/index.html (26 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -818,7 +818,7 @@ DIFF el/starting-a-project/index.html (28 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 18 more differences
+  ... and 16 more differences
 DIFF es/best-practices/index.html (16 differences)
   head > meta > title: text_differs - expected: 'Buenas Prácticas para Mantenedores de Código. | Open Source Guides', actual: 'Buenas Pr&aacute;cticas para Mantenedores de C&oacute;digo. | Open Source Guides'
   head > meta > meta > meta: attribute_differs - expected: "content='Buenas Prácticas para Mantenedores de Código.'", actual: "content='Buenas Pr&aacute;cticas para Mantenedores de C&oacute;digo.'"
@@ -831,7 +831,7 @@ DIFF es/best-practices/index.html (16 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 6 more differences
-DIFF es/building-community/index.html (110 differences)
+DIFF es/building-community/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -842,7 +842,7 @@ DIFF es/building-community/index.html (110 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 100 more differences
+  ... and 3 more differences
 DIFF es/code-of-conduct/index.html (18 differences)
   head > meta > title: text_differs - expected: 'Tu Código de Conducta | Open Source Guides', actual: 'Tu C&oacute;digo de Conducta | Open Source Guides'
   head > meta > meta > meta: attribute_differs - expected: "content='Tu Código de Conducta'", actual: "content='Tu C&oacute;digo de Conducta'"
@@ -855,7 +855,7 @@ DIFF es/code-of-conduct/index.html (18 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 8 more differences
-DIFF es/finding-users/index.html (54 differences)
+DIFF es/finding-users/index.html (14 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='Ayuda a tu proyecto de código abierto a crecer poniéndolo en manos de usuarios satisfechos.'", actual: "content='Ayuda a tu proyecto de c&oacute;digo abierto a crecer poni&eacute;ndolo en manos de usuarios satisfechos.'"
   head > meta > meta > meta: attribute_differs - expected: "content='Ayuda a tu proyecto de código abierto a crecer poniéndolo en manos de usuarios satisfechos.'", actual: "content='Ayuda a tu proyecto de c&oacute;digo abierto a crecer poni&eacute;ndolo en manos de usuarios satisfechos.'"
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
@@ -866,7 +866,7 @@ DIFF es/finding-users/index.html (54 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  ... and 44 more differences
+  ... and 4 more differences
 DIFF es/getting-paid/index.html (17 differences)
   head > meta > title: text_differs - expected: 'Recibir Pagos por Trabajos en Código Abierto | Open Source Guides', actual: 'Recibir Pagos por Trabajos en C&oacute;digo Abierto | Open Source Guides'
   head > meta > meta > meta: attribute_differs - expected: "content='Recibir Pagos por Trabajos en Código Abierto'", actual: "content='Recibir Pagos por Trabajos en C&oacute;digo Abierto'"
@@ -915,7 +915,7 @@ DIFF es/leadership-and-governance/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   ... and 4 more differences
-DIFF es/legal/index.html (59 differences)
+DIFF es/legal/index.html (14 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='Todo lo que te has preguntado sobre la parte legal de código abierto.'", actual: "content='Todo lo que te has preguntado sobre la parte legal de c&oacute;digo abierto.'"
   head > meta > meta > meta: attribute_differs - expected: "content='Todo lo que te has preguntado sobre la parte legal de código abierto.'", actual: "content='Todo lo que te has preguntado sobre la parte legal de c&oacute;digo abierto.'"
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
@@ -926,7 +926,7 @@ DIFF es/legal/index.html (59 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  ... and 49 more differences
+  ... and 4 more differences
 DIFF es/maintaining-balance-for-open-source-maintainers/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -939,7 +939,7 @@ DIFF es/maintaining-balance-for-open-source-maintainers/index.html (12 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF es/metrics/index.html (50 differences)
+DIFF es/metrics/index.html (18 differences)
   head > meta > title: text_differs - expected: 'Métricas de código abierto | Open Source Guides', actual: 'M&eacute;tricas de c&oacute;digo abierto | Open Source Guides'
   head > meta > meta > meta: attribute_differs - expected: "content='Métricas de código abierto'", actual: "content='M&eacute;tricas de c&oacute;digo abierto'"
   head > meta > meta > meta: attribute_differs - expected: "content='Tomar decisiones informadas para ayudar a tu proyecto de código abierto a prosperar mediante la medición y el seguimiento de su éxito.'", actual: "content='Tomar decisiones informadas para ayudar a tu proyecto de c&oacute;digo abierto a prosperar mediante la medici&oacute;n y el seguimiento de su &eacute;xito.'"
@@ -950,7 +950,7 @@ DIFF es/metrics/index.html (50 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  ... and 40 more differences
+  ... and 8 more differences
 DIFF es/security-best-practices-for-your-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -963,7 +963,7 @@ DIFF es/security-best-practices-for-your-project/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF es/starting-a-project/index.html (18 differences)
+DIFF es/starting-a-project/index.html (16 differences)
   head > meta > title: text_differs - expected: 'Comenzando un proyecto de Código Abierto | Open Source Guides', actual: 'Comenzando un proyecto de C&oacute;digo Abierto | Open Source Guides'
   head > meta > meta > meta: attribute_differs - expected: "content='Comenzando un proyecto de Código Abierto'", actual: "content='Comenzando un proyecto de C&oacute;digo Abierto'"
   head > meta > meta > meta: attribute_differs - expected: "content='Aprende más acerca del mundo del Código Abierto y prepárate a lanzar tu propio proyecto.'", actual: "content='Aprende m&aacute;s acerca del mundo del Código Abierto y prep&aacute;rate a lanzar tu propio proyecto.'"
@@ -974,8 +974,20 @@ DIFF es/starting-a-project/index.html (18 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  ... and 8 more differences
-DIFF fa/best-practices/index.html (13 differences)
+  ... and 6 more differences
+DIFF fa/best-practices/index.html (12 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  ... and 2 more differences
+DIFF fa/building-community/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -987,18 +999,6 @@ DIFF fa/best-practices/index.html (13 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 3 more differences
-DIFF fa/building-community/index.html (110 differences)
-  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 100 more differences
 DIFF fa/code-of-conduct/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1011,7 +1011,7 @@ DIFF fa/code-of-conduct/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF fa/finding-users/index.html (50 differences)
+DIFF fa/finding-users/index.html (15 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1022,7 +1022,7 @@ DIFF fa/finding-users/index.html (50 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 40 more differences
+  ... and 5 more differences
 DIFF fa/getting-paid/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1071,7 +1071,7 @@ DIFF fa/leadership-and-governance/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF fa/legal/index.html (56 differences)
+DIFF fa/legal/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1082,7 +1082,7 @@ DIFF fa/legal/index.html (56 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 46 more differences
+  ... and 2 more differences
 DIFF fa/maintaining-balance-for-open-source-maintainers/index.html (18 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1095,7 +1095,7 @@ DIFF fa/maintaining-balance-for-open-source-maintainers/index.html (18 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 8 more differences
-DIFF fa/metrics/index.html (45 differences)
+DIFF fa/metrics/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1107,7 +1107,7 @@ DIFF fa/metrics/index.html (45 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 35 more differences
+  ... and 2 more differences
 DIFF fa/security-best-practices-for-your-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1120,7 +1120,7 @@ DIFF fa/security-best-practices-for-your-project/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF fa/starting-a-project/index.html (14 differences)
+DIFF fa/starting-a-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1131,8 +1131,8 @@ DIFF fa/starting-a-project/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 4 more differences
-DIFF finding-users/index.html (52 differences)
+  ... and 2 more differences
+DIFF finding-users/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1143,7 +1143,7 @@ DIFF finding-users/index.html (52 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 42 more differences
+  ... and 2 more differences
 DIFF fr/best-practices/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1156,7 +1156,7 @@ DIFF fr/best-practices/index.html (13 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 3 more differences
-DIFF fr/building-community/index.html (110 differences)
+DIFF fr/building-community/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1167,7 +1167,7 @@ DIFF fr/building-community/index.html (110 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 100 more differences
+  ... and 3 more differences
 DIFF fr/code-of-conduct/index.html (14 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1180,7 +1180,7 @@ DIFF fr/code-of-conduct/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 4 more differences
-DIFF fr/finding-users/index.html (52 differences)
+DIFF fr/finding-users/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1191,7 +1191,7 @@ DIFF fr/finding-users/index.html (52 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 42 more differences
+  ... and 3 more differences
 DIFF fr/getting-paid/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1240,7 +1240,7 @@ DIFF fr/leadership-and-governance/index.html (13 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 3 more differences
-DIFF fr/legal/index.html (56 differences)
+DIFF fr/legal/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1251,7 +1251,7 @@ DIFF fr/legal/index.html (56 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 46 more differences
+  ... and 3 more differences
 DIFF fr/maintaining-balance-for-open-source-maintainers/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1264,7 +1264,7 @@ DIFF fr/maintaining-balance-for-open-source-maintainers/index.html (12 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF fr/metrics/index.html (46 differences)
+DIFF fr/metrics/index.html (16 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1275,7 +1275,7 @@ DIFF fr/metrics/index.html (46 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 36 more differences
+  ... and 6 more differences
 DIFF fr/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1288,7 +1288,7 @@ DIFF fr/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF fr/starting-a-project/index.html (14 differences)
+DIFF fr/starting-a-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1299,7 +1299,7 @@ DIFF fr/starting-a-project/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 4 more differences
+  ... and 2 more differences
 DIFF getting-paid/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1312,7 +1312,7 @@ DIFF getting-paid/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF hi/best-practices/index.html (26 differences)
+DIFF hi/best-practices/index.html (25 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1323,8 +1323,8 @@ DIFF hi/best-practices/index.html (26 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 16 more differences
-DIFF hi/building-community/index.html (111 differences)
+  ... and 15 more differences
+DIFF hi/building-community/index.html (27 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1335,7 +1335,7 @@ DIFF hi/building-community/index.html (111 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 101 more differences
+  ... and 17 more differences
 DIFF hi/code-of-conduct/index.html (21 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1348,7 +1348,7 @@ DIFF hi/code-of-conduct/index.html (21 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 11 more differences
-DIFF hi/finding-users/index.html (53 differences)
+DIFF hi/finding-users/index.html (17 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1359,7 +1359,7 @@ DIFF hi/finding-users/index.html (53 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 43 more differences
+  ... and 7 more differences
 DIFF hi/getting-paid/index.html (23 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1408,7 +1408,7 @@ DIFF hi/leadership-and-governance/index.html (20 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 10 more differences
-DIFF hi/legal/index.html (59 differences)
+DIFF hi/legal/index.html (20 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1419,7 +1419,7 @@ DIFF hi/legal/index.html (59 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 49 more differences
+  ... and 10 more differences
 DIFF hi/maintaining-balance-for-open-source-maintainers/index.html (19 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1432,7 +1432,7 @@ DIFF hi/maintaining-balance-for-open-source-maintainers/index.html (19 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 9 more differences
-DIFF hi/metrics/index.html (48 differences)
+DIFF hi/metrics/index.html (18 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1443,7 +1443,7 @@ DIFF hi/metrics/index.html (48 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 38 more differences
+  ... and 8 more differences
 DIFF hi/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1456,7 +1456,7 @@ DIFF hi/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF hi/starting-a-project/index.html (30 differences)
+DIFF hi/starting-a-project/index.html (28 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1467,7 +1467,7 @@ DIFF hi/starting-a-project/index.html (30 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 20 more differences
+  ... and 18 more differences
 DIFF how-to-contribute/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1480,7 +1480,19 @@ DIFF how-to-contribute/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF hu/best-practices/index.html (13 differences)
+DIFF hu/best-practices/index.html (12 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  ... and 2 more differences
+DIFF hu/building-community/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1492,18 +1504,6 @@ DIFF hu/best-practices/index.html (13 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 3 more differences
-DIFF hu/building-community/index.html (110 differences)
-  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 100 more differences
 DIFF hu/code-of-conduct/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1516,7 +1516,7 @@ DIFF hu/code-of-conduct/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF hu/finding-users/index.html (52 differences)
+DIFF hu/finding-users/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1527,7 +1527,7 @@ DIFF hu/finding-users/index.html (52 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 42 more differences
+  ... and 2 more differences
 DIFF hu/getting-paid/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1576,7 +1576,7 @@ DIFF hu/leadership-and-governance/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF hu/legal/index.html (56 differences)
+DIFF hu/legal/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1587,7 +1587,7 @@ DIFF hu/legal/index.html (56 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 46 more differences
+  ... and 2 more differences
 DIFF hu/maintaining-balance-for-open-source-maintainers/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1600,7 +1600,7 @@ DIFF hu/maintaining-balance-for-open-source-maintainers/index.html (11 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF hu/metrics/index.html (46 differences)
+DIFF hu/metrics/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1611,7 +1611,7 @@ DIFF hu/metrics/index.html (46 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 36 more differences
+  ... and 2 more differences
 DIFF hu/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1624,7 +1624,7 @@ DIFF hu/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF hu/starting-a-project/index.html (17 differences)
+DIFF hu/starting-a-project/index.html (15 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1635,8 +1635,20 @@ DIFF hu/starting-a-project/index.html (17 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 7 more differences
-DIFF id/best-practices/index.html (13 differences)
+  ... and 5 more differences
+DIFF id/best-practices/index.html (12 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  ... and 2 more differences
+DIFF id/building-community/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1648,18 +1660,6 @@ DIFF id/best-practices/index.html (13 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 3 more differences
-DIFF id/building-community/index.html (110 differences)
-  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 100 more differences
 DIFF id/code-of-conduct/index.html (14 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1672,7 +1672,7 @@ DIFF id/code-of-conduct/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 4 more differences
-DIFF id/finding-users/index.html (53 differences)
+DIFF id/finding-users/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1683,7 +1683,7 @@ DIFF id/finding-users/index.html (53 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 43 more differences
+  ... and 2 more differences
 DIFF id/getting-paid/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1732,7 +1732,7 @@ DIFF id/leadership-and-governance/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF id/legal/index.html (56 differences)
+DIFF id/legal/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1743,7 +1743,7 @@ DIFF id/legal/index.html (56 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 46 more differences
+  ... and 2 more differences
 DIFF id/maintaining-balance-for-open-source-maintainers/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1756,7 +1756,7 @@ DIFF id/maintaining-balance-for-open-source-maintainers/index.html (11 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF id/metrics/index.html (46 differences)
+DIFF id/metrics/index.html (14 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1767,7 +1767,7 @@ DIFF id/metrics/index.html (46 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 36 more differences
+  ... and 4 more differences
 DIFF id/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1780,7 +1780,7 @@ DIFF id/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF id/starting-a-project/index.html (14 differences)
+DIFF id/starting-a-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1791,7 +1791,7 @@ DIFF id/starting-a-project/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 4 more differences
+  ... and 2 more differences
 DIFF index.html (10 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1815,7 +1815,7 @@ DIFF it/best-practices/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF it/building-community/index.html (110 differences)
+DIFF it/building-community/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1826,7 +1826,7 @@ DIFF it/building-community/index.html (110 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 100 more differences
+  ... and 3 more differences
 DIFF it/code-of-conduct/index.html (14 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1839,7 +1839,7 @@ DIFF it/code-of-conduct/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 4 more differences
-DIFF it/finding-users/index.html (52 differences)
+DIFF it/finding-users/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1850,7 +1850,7 @@ DIFF it/finding-users/index.html (52 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 42 more differences
+  ... and 2 more differences
 DIFF it/getting-paid/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1899,7 +1899,7 @@ DIFF it/leadership-and-governance/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF it/legal/index.html (57 differences)
+DIFF it/legal/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1910,7 +1910,7 @@ DIFF it/legal/index.html (57 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 47 more differences
+  ... and 2 more differences
 DIFF it/maintaining-balance-for-open-source-maintainers/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1923,7 +1923,7 @@ DIFF it/maintaining-balance-for-open-source-maintainers/index.html (12 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF it/metrics/index.html (47 differences)
+DIFF it/metrics/index.html (16 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1934,7 +1934,7 @@ DIFF it/metrics/index.html (47 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 37 more differences
+  ... and 6 more differences
 DIFF it/security-best-practices-for-your-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1947,7 +1947,7 @@ DIFF it/security-best-practices-for-your-project/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF it/starting-a-project/index.html (14 differences)
+DIFF it/starting-a-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1958,8 +1958,20 @@ DIFF it/starting-a-project/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 4 more differences
-DIFF ja/best-practices/index.html (13 differences)
+  ... and 2 more differences
+DIFF ja/best-practices/index.html (12 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  ... and 2 more differences
+DIFF ja/building-community/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1971,18 +1983,6 @@ DIFF ja/best-practices/index.html (13 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 3 more differences
-DIFF ja/building-community/index.html (110 differences)
-  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 100 more differences
 DIFF ja/code-of-conduct/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -1995,7 +1995,7 @@ DIFF ja/code-of-conduct/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF ja/finding-users/index.html (52 differences)
+DIFF ja/finding-users/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2006,7 +2006,7 @@ DIFF ja/finding-users/index.html (52 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 42 more differences
+  ... and 2 more differences
 DIFF ja/getting-paid/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2055,7 +2055,7 @@ DIFF ja/leadership-and-governance/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF ja/legal/index.html (56 differences)
+DIFF ja/legal/index.html (15 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2066,7 +2066,7 @@ DIFF ja/legal/index.html (56 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 46 more differences
+  ... and 5 more differences
 DIFF ja/maintaining-balance-for-open-source-maintainers/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2079,7 +2079,7 @@ DIFF ja/maintaining-balance-for-open-source-maintainers/index.html (12 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF ja/metrics/index.html (46 differences)
+DIFF ja/metrics/index.html (17 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2090,7 +2090,7 @@ DIFF ja/metrics/index.html (46 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 36 more differences
+  ... and 7 more differences
 DIFF ja/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2103,7 +2103,7 @@ DIFF ja/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF ja/starting-a-project/index.html (14 differences)
+DIFF ja/starting-a-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2114,8 +2114,8 @@ DIFF ja/starting-a-project/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 4 more differences
-DIFF ko/best-practices/index.html (21 differences)
+  ... and 2 more differences
+DIFF ko/best-practices/index.html (20 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2126,8 +2126,8 @@ DIFF ko/best-practices/index.html (21 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 11 more differences
-DIFF ko/building-community/index.html (110 differences)
+  ... and 10 more differences
+DIFF ko/building-community/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2138,7 +2138,7 @@ DIFF ko/building-community/index.html (110 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 100 more differences
+  ... and 3 more differences
 DIFF ko/code-of-conduct/index.html (14 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2151,7 +2151,7 @@ DIFF ko/code-of-conduct/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 4 more differences
-DIFF ko/finding-users/index.html (52 differences)
+DIFF ko/finding-users/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2162,7 +2162,7 @@ DIFF ko/finding-users/index.html (52 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 42 more differences
+  ... and 2 more differences
 DIFF ko/getting-paid/index.html (23 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2211,7 +2211,7 @@ DIFF ko/leadership-and-governance/index.html (21 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 11 more differences
-DIFF ko/legal/index.html (56 differences)
+DIFF ko/legal/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2222,7 +2222,7 @@ DIFF ko/legal/index.html (56 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 46 more differences
+  ... and 2 more differences
 DIFF ko/maintaining-balance-for-open-source-maintainers/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2235,7 +2235,7 @@ DIFF ko/maintaining-balance-for-open-source-maintainers/index.html (12 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF ko/metrics/index.html (46 differences)
+DIFF ko/metrics/index.html (20 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2246,7 +2246,7 @@ DIFF ko/metrics/index.html (46 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 36 more differences
+  ... and 10 more differences
 DIFF ko/security-best-practices-for-your-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2259,7 +2259,7 @@ DIFF ko/security-best-practices-for-your-project/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF ko/starting-a-project/index.html (14 differences)
+DIFF ko/starting-a-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2270,7 +2270,7 @@ DIFF ko/starting-a-project/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 4 more differences
+  ... and 2 more differences
 DIFF leadership-and-governance/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2283,7 +2283,7 @@ DIFF leadership-and-governance/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF legal/index.html (58 differences)
+DIFF legal/index.html (16 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2294,7 +2294,7 @@ DIFF legal/index.html (58 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 48 more differences
+  ... and 6 more differences
 DIFF maintaining-balance-for-open-source-maintainers/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2307,7 +2307,7 @@ DIFF maintaining-balance-for-open-source-maintainers/index.html (11 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF metrics/index.html (47 differences)
+DIFF metrics/index.html (16 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2318,8 +2318,20 @@ DIFF metrics/index.html (47 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 37 more differences
-DIFF ms/best-practices/index.html (13 differences)
+  ... and 6 more differences
+DIFF ms/best-practices/index.html (12 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  ... and 2 more differences
+DIFF ms/building-community/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2331,18 +2343,6 @@ DIFF ms/best-practices/index.html (13 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 3 more differences
-DIFF ms/building-community/index.html (110 differences)
-  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 100 more differences
 DIFF ms/code-of-conduct/index.html (14 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2355,7 +2355,7 @@ DIFF ms/code-of-conduct/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 4 more differences
-DIFF ms/finding-users/index.html (52 differences)
+DIFF ms/finding-users/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2366,7 +2366,7 @@ DIFF ms/finding-users/index.html (52 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 42 more differences
+  ... and 2 more differences
 DIFF ms/getting-paid/index.html (14 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2374,10 +2374,10 @@ DIFF ms/getting-paid/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'  Progress: 200/388 files compared...
 
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 4 more differences
 DIFF ms/how-to-contribute/index.html (12 differences)
@@ -2416,7 +2416,7 @@ DIFF ms/leadership-and-governance/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF ms/legal/index.html (56 differences)
+DIFF ms/legal/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2427,7 +2427,7 @@ DIFF ms/legal/index.html (56 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 46 more differences
+  ... and 2 more differences
 DIFF ms/maintaining-balance-for-open-source-maintainers/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2440,7 +2440,7 @@ DIFF ms/maintaining-balance-for-open-source-maintainers/index.html (11 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF ms/metrics/index.html (47 differences)
+DIFF ms/metrics/index.html (16 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2451,7 +2451,7 @@ DIFF ms/metrics/index.html (47 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 37 more differences
+  ... and 6 more differences
 DIFF ms/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2464,7 +2464,7 @@ DIFF ms/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF ms/starting-a-project/index.html (14 differences)
+DIFF ms/starting-a-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2475,8 +2475,20 @@ DIFF ms/starting-a-project/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 4 more differences
-DIFF nl/best-practices/index.html (13 differences)
+  ... and 2 more differences
+DIFF nl/best-practices/index.html (12 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  ... and 2 more differences
+DIFF nl/building-community/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2488,18 +2500,6 @@ DIFF nl/best-practices/index.html (13 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 3 more differences
-DIFF nl/building-community/index.html (108 differences)
-  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 98 more differences
 DIFF nl/code-of-conduct/index.html (19 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2512,7 +2512,7 @@ DIFF nl/code-of-conduct/index.html (19 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 9 more differences
-DIFF nl/finding-users/index.html (52 differences)
+DIFF nl/finding-users/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2523,7 +2523,7 @@ DIFF nl/finding-users/index.html (52 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 42 more differences
+  ... and 2 more differences
 DIFF nl/getting-paid/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2572,7 +2572,7 @@ DIFF nl/leadership-and-governance/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 4 more differences
-DIFF nl/legal/index.html (56 differences)
+DIFF nl/legal/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2583,7 +2583,7 @@ DIFF nl/legal/index.html (56 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 46 more differences
+  ... and 2 more differences
 DIFF nl/maintaining-balance-for-open-source-maintainers/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2596,7 +2596,7 @@ DIFF nl/maintaining-balance-for-open-source-maintainers/index.html (11 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF nl/metrics/index.html (46 differences)
+DIFF nl/metrics/index.html (16 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2607,7 +2607,7 @@ DIFF nl/metrics/index.html (46 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 36 more differences
+  ... and 6 more differences
 DIFF nl/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2620,7 +2620,7 @@ DIFF nl/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF nl/starting-a-project/index.html (14 differences)
+DIFF nl/starting-a-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2631,7 +2631,7 @@ DIFF nl/starting-a-project/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 4 more differences
+  ... and 2 more differences
 DIFF notices/index.html (9 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2642,7 +2642,19 @@ DIFF notices/index.html (9 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-DIFF pcm/best-practices/index.html (13 differences)
+DIFF pcm/best-practices/index.html (12 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  ... and 2 more differences
+DIFF pcm/building-community/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2654,18 +2666,6 @@ DIFF pcm/best-practices/index.html (13 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 3 more differences
-DIFF pcm/building-community/index.html (106 differences)
-  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 96 more differences
 DIFF pcm/code-of-conduct/index.html (14 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2678,7 +2678,7 @@ DIFF pcm/code-of-conduct/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 4 more differences
-DIFF pcm/finding-users/index.html (51 differences)
+DIFF pcm/finding-users/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2689,7 +2689,7 @@ DIFF pcm/finding-users/index.html (51 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 41 more differences
+  ... and 2 more differences
 DIFF pcm/getting-paid/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2738,7 +2738,7 @@ DIFF pcm/leadership-and-governance/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF pcm/legal/index.html (57 differences)
+DIFF pcm/legal/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2749,7 +2749,7 @@ DIFF pcm/legal/index.html (57 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 47 more differences
+  ... and 2 more differences
 DIFF pcm/maintaining-balance-for-open-source-maintainers/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2762,7 +2762,7 @@ DIFF pcm/maintaining-balance-for-open-source-maintainers/index.html (11 differen
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF pcm/metrics/index.html (47 differences)
+DIFF pcm/metrics/index.html (16 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2773,7 +2773,7 @@ DIFF pcm/metrics/index.html (47 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 37 more differences
+  ... and 6 more differences
 DIFF pcm/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2786,7 +2786,7 @@ DIFF pcm/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF pcm/starting-a-project/index.html (14 differences)
+DIFF pcm/starting-a-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2797,8 +2797,8 @@ DIFF pcm/starting-a-project/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 4 more differences
-DIFF pl/best-practices/index.html (33 differences)
+  ... and 2 more differences
+DIFF pl/best-practices/index.html (32 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2809,8 +2809,8 @@ DIFF pl/best-practices/index.html (33 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 23 more differences
-DIFF pl/building-community/index.html (110 differences)
+  ... and 22 more differences
+DIFF pl/building-community/index.html (37 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2821,7 +2821,7 @@ DIFF pl/building-community/index.html (110 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 100 more differences
+  ... and 27 more differences
 DIFF pl/code-of-conduct/index.html (14 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2834,7 +2834,7 @@ DIFF pl/code-of-conduct/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 4 more differences
-DIFF pl/finding-users/index.html (52 differences)
+DIFF pl/finding-users/index.html (30 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2845,7 +2845,7 @@ DIFF pl/finding-users/index.html (52 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 42 more differences
+  ... and 20 more differences
 DIFF pl/getting-paid/index.html (29 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2894,7 +2894,7 @@ DIFF pl/leadership-and-governance/index.html (26 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 16 more differences
-DIFF pl/legal/index.html (56 differences)
+DIFF pl/legal/index.html (21 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2905,7 +2905,7 @@ DIFF pl/legal/index.html (56 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 46 more differences
+  ... and 11 more differences
 DIFF pl/maintaining-balance-for-open-source-maintainers/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2918,7 +2918,7 @@ DIFF pl/maintaining-balance-for-open-source-maintainers/index.html (12 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF pl/metrics/index.html (46 differences)
+DIFF pl/metrics/index.html (19 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2929,7 +2929,7 @@ DIFF pl/metrics/index.html (46 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 36 more differences
+  ... and 9 more differences
 DIFF pl/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2942,7 +2942,7 @@ DIFF pl/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF pl/starting-a-project/index.html (31 differences)
+DIFF pl/starting-a-project/index.html (29 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2953,8 +2953,20 @@ DIFF pl/starting-a-project/index.html (31 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 21 more differences
-DIFF pt/best-practices/index.html (13 differences)
+  ... and 19 more differences
+DIFF pt/best-practices/index.html (12 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  ... and 2 more differences
+DIFF pt/building-community/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2966,18 +2978,6 @@ DIFF pt/best-practices/index.html (13 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 3 more differences
-DIFF pt/building-community/index.html (109 differences)
-  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 99 more differences
 DIFF pt/code-of-conduct/index.html (14 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -2990,7 +2990,7 @@ DIFF pt/code-of-conduct/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 4 more differences
-DIFF pt/finding-users/index.html (52 differences)
+DIFF pt/finding-users/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3001,7 +3001,7 @@ DIFF pt/finding-users/index.html (52 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 42 more differences
+  ... and 2 more differences
 DIFF pt/getting-paid/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3050,19 +3050,7 @@ DIFF pt/leadership-and-governance/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF pt/legal/index.html (56 differences)
-  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 46 more differences
-DIFF pt/maintaining-balance-for-open-source-maintainers/index.html (12 differences)
+DIFF pt/legal/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3074,7 +3062,7 @@ DIFF pt/maintaining-balance-for-open-source-maintainers/index.html (12 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF pt/metrics/index.html (46 differences)
+DIFF pt/maintaining-balance-for-open-source-maintainers/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3085,7 +3073,19 @@ DIFF pt/metrics/index.html (46 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 36 more differences
+  ... and 3 more differences
+DIFF pt/metrics/index.html (16 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  ... and 6 more differences
 DIFF pt/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3098,7 +3098,7 @@ DIFF pt/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF pt/starting-a-project/index.html (14 differences)
+DIFF pt/starting-a-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3109,8 +3109,8 @@ DIFF pt/starting-a-project/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 4 more differences
-DIFF ro/best-practices/index.html (23 differences)
+  ... and 2 more differences
+DIFF ro/best-practices/index.html (22 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3121,8 +3121,8 @@ DIFF ro/best-practices/index.html (23 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 13 more differences
-DIFF ro/building-community/index.html (110 differences)
+  ... and 12 more differences
+DIFF ro/building-community/index.html (21 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3133,7 +3133,7 @@ DIFF ro/building-community/index.html (110 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 100 more differences
+  ... and 11 more differences
 DIFF ro/code-of-conduct/index.html (14 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3146,7 +3146,7 @@ DIFF ro/code-of-conduct/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 4 more differences
-DIFF ro/finding-users/index.html (52 differences)
+DIFF ro/finding-users/index.html (18 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3157,7 +3157,7 @@ DIFF ro/finding-users/index.html (52 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 42 more differences
+  ... and 8 more differences
 DIFF ro/getting-paid/index.html (21 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3206,7 +3206,7 @@ DIFF ro/leadership-and-governance/index.html (20 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 10 more differences
-DIFF ro/legal/index.html (56 differences)
+DIFF ro/legal/index.html (15 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3217,7 +3217,7 @@ DIFF ro/legal/index.html (56 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 46 more differences
+  ... and 5 more differences
 DIFF ro/maintaining-balance-for-open-source-maintainers/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3230,7 +3230,7 @@ DIFF ro/maintaining-balance-for-open-source-maintainers/index.html (11 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF ro/metrics/index.html (46 differences)
+DIFF ro/metrics/index.html (17 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3241,7 +3241,7 @@ DIFF ro/metrics/index.html (46 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 36 more differences
+  ... and 7 more differences
 DIFF ro/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3254,7 +3254,7 @@ DIFF ro/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF ro/starting-a-project/index.html (23 differences)
+DIFF ro/starting-a-project/index.html (21 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3265,8 +3265,8 @@ DIFF ro/starting-a-project/index.html (23 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 13 more differences
-DIFF ru/best-practices/index.html (27 differences)
+  ... and 11 more differences
+DIFF ru/best-practices/index.html (26 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3277,8 +3277,8 @@ DIFF ru/best-practices/index.html (27 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 17 more differences
-DIFF ru/building-community/index.html (110 differences)
+  ... and 16 more differences
+DIFF ru/building-community/index.html (59 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3289,7 +3289,7 @@ DIFF ru/building-community/index.html (110 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 100 more differences
+  ... and 49 more differences
 DIFF ru/code-of-conduct/index.html (20 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3302,7 +3302,7 @@ DIFF ru/code-of-conduct/index.html (20 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 10 more differences
-DIFF ru/finding-users/index.html (52 differences)
+DIFF ru/finding-users/index.html (26 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3313,7 +3313,7 @@ DIFF ru/finding-users/index.html (52 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 42 more differences
+  ... and 16 more differences
 DIFF ru/getting-paid/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3362,7 +3362,7 @@ DIFF ru/leadership-and-governance/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF ru/legal/index.html (56 differences)
+DIFF ru/legal/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3373,7 +3373,7 @@ DIFF ru/legal/index.html (56 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 46 more differences
+  ... and 2 more differences
 DIFF ru/maintaining-balance-for-open-source-maintainers/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3386,7 +3386,7 @@ DIFF ru/maintaining-balance-for-open-source-maintainers/index.html (12 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF ru/metrics/index.html (47 differences)
+DIFF ru/metrics/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3397,7 +3397,7 @@ DIFF ru/metrics/index.html (47 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 37 more differences
+  ... and 2 more differences
 DIFF ru/security-best-practices-for-your-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3410,7 +3410,7 @@ DIFF ru/security-best-practices-for-your-project/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF ru/starting-a-project/index.html (14 differences)
+DIFF ru/starting-a-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3421,8 +3421,8 @@ DIFF ru/starting-a-project/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 4 more differences
-DIFF sa/best-practices/index.html (24 differences)
+  ... and 2 more differences
+DIFF sa/best-practices/index.html (23 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3433,8 +3433,8 @@ DIFF sa/best-practices/index.html (24 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 14 more differences
-DIFF sa/building-community/index.html (87 differences)
+  ... and 13 more differences
+DIFF sa/building-community/index.html (49 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3445,7 +3445,7 @@ DIFF sa/building-community/index.html (87 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 77 more differences
+  ... and 39 more differences
 DIFF sa/code-of-conduct/index.html (19 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3544,12 +3544,12 @@ DIFF sa/maintaining-balance-for-open-source-maintainers/index.html (16 differenc
   ... and 6 more differences
 DIFF sa/metrics/index.html (16 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'  Progress: 300/388 files compared...
 
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3591,7 +3591,7 @@ DIFF security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF starting-a-project/index.html (14 differences)
+DIFF starting-a-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3602,8 +3602,20 @@ DIFF starting-a-project/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 4 more differences
-DIFF sw/best-practices/index.html (13 differences)
+  ... and 2 more differences
+DIFF sw/best-practices/index.html (12 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  ... and 2 more differences
+DIFF sw/building-community/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3615,18 +3627,6 @@ DIFF sw/best-practices/index.html (13 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 3 more differences
-DIFF sw/building-community/index.html (110 differences)
-  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 100 more differences
 DIFF sw/code-of-conduct/index.html (14 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3639,7 +3639,7 @@ DIFF sw/code-of-conduct/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 4 more differences
-DIFF sw/finding-users/index.html (52 differences)
+DIFF sw/finding-users/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3650,7 +3650,7 @@ DIFF sw/finding-users/index.html (52 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 42 more differences
+  ... and 2 more differences
 DIFF sw/getting-paid/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3699,7 +3699,7 @@ DIFF sw/leadership-and-governance/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF sw/legal/index.html (57 differences)
+DIFF sw/legal/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3710,7 +3710,7 @@ DIFF sw/legal/index.html (57 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 47 more differences
+  ... and 2 more differences
 DIFF sw/maintaining-balance-for-open-source-maintainers/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3723,7 +3723,7 @@ DIFF sw/maintaining-balance-for-open-source-maintainers/index.html (12 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF sw/metrics/index.html (47 differences)
+DIFF sw/metrics/index.html (16 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3734,7 +3734,7 @@ DIFF sw/metrics/index.html (47 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 37 more differences
+  ... and 6 more differences
 DIFF sw/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3747,7 +3747,7 @@ DIFF sw/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF sw/starting-a-project/index.html (15 differences)
+DIFF sw/starting-a-project/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3758,8 +3758,8 @@ DIFF sw/starting-a-project/index.html (15 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 5 more differences
-DIFF ta/best-practices/index.html (30 differences)
+  ... and 3 more differences
+DIFF ta/best-practices/index.html (29 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3770,8 +3770,8 @@ DIFF ta/best-practices/index.html (30 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 20 more differences
-DIFF ta/building-community/index.html (112 differences)
+  ... and 19 more differences
+DIFF ta/building-community/index.html (32 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3782,7 +3782,7 @@ DIFF ta/building-community/index.html (112 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 102 more differences
+  ... and 22 more differences
 DIFF ta/code-of-conduct/index.html (22 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3795,7 +3795,7 @@ DIFF ta/code-of-conduct/index.html (22 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 12 more differences
-DIFF ta/finding-users/index.html (54 differences)
+DIFF ta/finding-users/index.html (19 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3806,7 +3806,7 @@ DIFF ta/finding-users/index.html (54 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 44 more differences
+  ... and 9 more differences
 DIFF ta/getting-paid/index.html (24 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3855,7 +3855,7 @@ DIFF ta/leadership-and-governance/index.html (20 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 10 more differences
-DIFF ta/legal/index.html (59 differences)
+DIFF ta/legal/index.html (20 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3866,7 +3866,7 @@ DIFF ta/legal/index.html (59 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 49 more differences
+  ... and 10 more differences
 DIFF ta/maintaining-balance-for-open-source-maintainers/index.html (19 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3879,7 +3879,7 @@ DIFF ta/maintaining-balance-for-open-source-maintainers/index.html (19 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 9 more differences
-DIFF ta/metrics/index.html (48 differences)
+DIFF ta/metrics/index.html (23 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3890,7 +3890,7 @@ DIFF ta/metrics/index.html (48 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 38 more differences
+  ... and 13 more differences
 DIFF ta/security-best-practices-for-your-project/index.html (29 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3903,7 +3903,7 @@ DIFF ta/security-best-practices-for-your-project/index.html (29 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 19 more differences
-DIFF ta/starting-a-project/index.html (31 differences)
+DIFF ta/starting-a-project/index.html (29 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3914,8 +3914,8 @@ DIFF ta/starting-a-project/index.html (31 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 21 more differences
-DIFF tr/best-practices/index.html (17 differences)
+  ... and 19 more differences
+DIFF tr/best-practices/index.html (16 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3926,8 +3926,8 @@ DIFF tr/best-practices/index.html (17 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 7 more differences
-DIFF tr/building-community/index.html (111 differences)
+  ... and 6 more differences
+DIFF tr/building-community/index.html (14 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3938,7 +3938,7 @@ DIFF tr/building-community/index.html (111 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 101 more differences
+  ... and 4 more differences
 DIFF tr/code-of-conduct/index.html (14 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3951,7 +3951,7 @@ DIFF tr/code-of-conduct/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 4 more differences
-DIFF tr/finding-users/index.html (52 differences)
+DIFF tr/finding-users/index.html (27 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -3962,7 +3962,7 @@ DIFF tr/finding-users/index.html (52 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 42 more differences
+  ... and 17 more differences
 DIFF tr/getting-paid/index.html (24 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4011,7 +4011,7 @@ DIFF tr/leadership-and-governance/index.html (24 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 14 more differences
-DIFF tr/legal/index.html (57 differences)
+DIFF tr/legal/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4022,7 +4022,7 @@ DIFF tr/legal/index.html (57 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 47 more differences
+  ... and 3 more differences
 DIFF tr/maintaining-balance-for-open-source-maintainers/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4035,7 +4035,7 @@ DIFF tr/maintaining-balance-for-open-source-maintainers/index.html (13 differenc
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 3 more differences
-DIFF tr/metrics/index.html (46 differences)
+DIFF tr/metrics/index.html (15 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4046,7 +4046,7 @@ DIFF tr/metrics/index.html (46 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 36 more differences
+  ... and 5 more differences
 DIFF tr/security-best-practices-for-your-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4059,19 +4059,7 @@ DIFF tr/security-best-practices-for-your-project/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF tr/starting-a-project/index.html (14 differences)
-  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 4 more differences
-DIFF zh-hans/best-practices/index.html (13 differences)
+DIFF tr/starting-a-project/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4083,7 +4071,7 @@ DIFF zh-hans/best-practices/index.html (13 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 3 more differences
-DIFF zh-hans/building-community/index.html (110 differences)
+DIFF zh-hans/best-practices/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4094,7 +4082,19 @@ DIFF zh-hans/building-community/index.html (110 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 100 more differences
+  ... and 2 more differences
+DIFF zh-hans/building-community/index.html (14 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  ... and 4 more differences
 DIFF zh-hans/code-of-conduct/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4107,7 +4107,7 @@ DIFF zh-hans/code-of-conduct/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF zh-hans/finding-users/index.html (52 differences)
+DIFF zh-hans/finding-users/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4118,7 +4118,7 @@ DIFF zh-hans/finding-users/index.html (52 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 42 more differences
+  ... and 2 more differences
 DIFF zh-hans/getting-paid/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4167,7 +4167,7 @@ DIFF zh-hans/leadership-and-governance/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF zh-hans/legal/index.html (55 differences)
+DIFF zh-hans/legal/index.html (70 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4178,7 +4178,7 @@ DIFF zh-hans/legal/index.html (55 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 45 more differences
+  ... and 60 more differences
 DIFF zh-hans/maintaining-balance-for-open-source-maintainers/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4191,7 +4191,7 @@ DIFF zh-hans/maintaining-balance-for-open-source-maintainers/index.html (12 diff
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF zh-hans/metrics/index.html (46 differences)
+DIFF zh-hans/metrics/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4202,7 +4202,7 @@ DIFF zh-hans/metrics/index.html (46 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 36 more differences
+  ... and 2 more differences
 DIFF zh-hans/security-best-practices-for-your-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4215,7 +4215,7 @@ DIFF zh-hans/security-best-practices-for-your-project/index.html (12 differences
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF zh-hans/starting-a-project/index.html (14 differences)
+DIFF zh-hans/starting-a-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4226,8 +4226,20 @@ DIFF zh-hans/starting-a-project/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 4 more differences
-DIFF zh-hant/best-practices/index.html (13 differences)
+  ... and 2 more differences
+DIFF zh-hant/best-practices/index.html (12 differences)
+  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
+  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
+  ... and 2 more differences
+DIFF zh-hant/building-community/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4239,18 +4251,6 @@ DIFF zh-hant/best-practices/index.html (13 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 3 more differences
-DIFF zh-hant/building-community/index.html (110 differences)
-  head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
-  head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 100 more differences
 DIFF zh-hant/code-of-conduct/index.html (15 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4263,7 +4263,7 @@ DIFF zh-hant/code-of-conduct/index.html (15 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 5 more differences
-DIFF zh-hant/finding-users/index.html (52 differences)
+DIFF zh-hant/finding-users/index.html (24 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4274,7 +4274,7 @@ DIFF zh-hant/finding-users/index.html (52 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 42 more differences
+  ... and 14 more differences
 DIFF zh-hant/getting-paid/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4323,7 +4323,7 @@ DIFF zh-hant/leadership-and-governance/index.html (12 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 2 more differences
-DIFF zh-hant/legal/index.html (54 differences)
+DIFF zh-hant/legal/index.html (73 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4334,7 +4334,7 @@ DIFF zh-hant/legal/index.html (54 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 44 more differences
+  ... and 63 more differences
 DIFF zh-hant/maintaining-balance-for-open-source-maintainers/index.html (13 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4347,7 +4347,7 @@ DIFF zh-hant/maintaining-balance-for-open-source-maintainers/index.html (13 diff
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 3 more differences
-DIFF zh-hant/metrics/index.html (46 differences)
+DIFF zh-hant/metrics/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4358,7 +4358,7 @@ DIFF zh-hant/metrics/index.html (46 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 36 more differences
+  ... and 2 more differences
 DIFF zh-hant/security-best-practices-for-your-project/index.html (11 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4371,7 +4371,7 @@ DIFF zh-hant/security-best-practices-for-your-project/index.html (11 differences
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   ... and 1 more differences
-DIFF zh-hant/starting-a-project/index.html (14 differences)
+DIFF zh-hant/starting-a-project/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -4382,6 +4382,6 @@ DIFF zh-hant/starting-a-project/index.html (14 differences)
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 4 more differences
+  ... and 2 more differences
 
-Summary: 23 files matched, 365 files with differences, 11147 total differences (479 acceptable diffs filtered out)
+Summary: 23 matched / 390 total (2 only-rustkyll, 365 with-diffs) 5722 total differences (553 acceptable diffs filtered out)

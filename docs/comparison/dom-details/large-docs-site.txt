@@ -11,4 +11,4 @@ Rustkyll directory: /home/alexey/git/rustkyl/websites/large-docs-site/_site_rust
 Common HTML files:  801
 
 
-Summary: 801 files matched, 0 files with differences, 0 total differences
+Summary: 801 matched / 801 total

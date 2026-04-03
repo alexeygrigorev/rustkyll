@@ -35,4 +35,4 @@ DIFF index.html (8 differences)
   h1: missing_element - expected: '<h1>', actual: '(none)'
   a: missing_element - expected: '<a>', actual: '(none)'
 
-Summary: 8 files matched, 3 files with differences, 3180 total differences (6 acceptable diffs filtered out)
+Summary: 8 matched / 31 total (10 only-Jekyll, 10 only-rustkyll, 3 with-diffs) 3180 total differences (6 acceptable diffs filtered out)

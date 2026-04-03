@@ -384,7 +384,7 @@ DIFF components/data-visualizations/index.html (122 differences)
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "property='article:published_time'", actual: "property='og:image'"
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='article'"
   ... and 112 more differences
-DIFF components/date-picker/accessibility-tests/index.html (226 differences)
+DIFF components/date-picker/accessibility-tests/index.html (101 differences)
   head > meta > meta > meta > meta > meta > child[2]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='/img/uswds-logo/lg-black.png'", actual: "content='/components/date-picker/accessibility-tests/'"
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "property='og:image'", actual: "property='og:url'"
@@ -395,7 +395,7 @@ DIFF components/date-picker/accessibility-tests/index.html (226 differences)
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='article'"
   head > meta > meta > meta > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
   head > meta > meta > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:type'"
-  ... and 216 more differences
+  ... and 91 more differences
 DIFF components/date-picker/index.html (2 differences)
   head: missing_element - expected: '<head>', actual: '(none)'
   body: missing_element - expected: '<body>', actual: '(none)'
@@ -457,7 +457,7 @@ DIFF components/form/index.html (111 differences)
   head > meta > meta > meta > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
   head > meta > meta > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:type'"
   ... and 101 more differences
-DIFF components/header/accessibility-tests/index.html (268 differences)
+DIFF components/header/accessibility-tests/index.html (101 differences)
   head > meta > meta > meta > meta > meta > child[2]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='/img/uswds-logo/lg-black.png'", actual: "content='/components/header/accessibility-tests/'"
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "property='og:image'", actual: "property='og:url'"
@@ -468,7 +468,7 @@ DIFF components/header/accessibility-tests/index.html (268 differences)
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='article'"
   head > meta > meta > meta > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
   head > meta > meta > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:type'"
-  ... and 258 more differences
+  ... and 91 more differences
 DIFF components/header/extended-mega/index.html (3 differences)
   (root): expected_element_got_text - expected: '<head>', actual: '{% include component.html level="h3" %}'
   head: missing_element - expected: '<head>', actual: '(none)'
@@ -995,7 +995,7 @@ DIFF design-principles/index.html (90 differences)
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='/img/uswds-logo/lg-black.png'", actual: "content='website'"
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='og:type'"
   ... and 80 more differences
-DIFF design-tokens/color/overview/index.html (145 differences)
+DIFF design-tokens/color/overview/index.html (120 differences)
   head > meta > meta > meta > meta > meta > child[2]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='/img/uswds-logo/lg-black.png'", actual: "content='/design-tokens/color/overview/'"
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "property='og:image'", actual: "property='og:url'"
@@ -1006,7 +1006,7 @@ DIFF design-tokens/color/overview/index.html (145 differences)
   head > meta > meta > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:image'"
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='/img/uswds-logo/lg-black.png'", actual: "content='website'"
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='og:type'"
-  ... and 135 more differences
+  ... and 110 more differences
 DIFF design-tokens/color/state-tokens/index.html (92 differences)
   head > meta > meta > meta > meta > meta > child[2]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='/img/uswds-logo/lg-black.png'", actual: "content='/design-tokens/color/state-tokens/'"
@@ -2363,7 +2363,7 @@ DIFF website-standards/index.html (96 differences)
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='/img/uswds-logo/lg-black.png'", actual: "content='website'"
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "property='twitter:image'", actual: "property='og:type'"
   ... and 86 more differences
-DIFF whats-new/updates/2017/03/01/post-1-0-research-strategy-workshop/index.html (112 differences)
+DIFF whats-new/updates/2017/03/01/post-1-0-research-strategy-workshop/index.html (98 differences)
   head > meta > meta > meta > meta > meta > child[2]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='/img/uswds-logo/lg-black.png'", actual: "content='/whats-new/updates/2017/03/01/post-1-0-research-strategy-workshop/'"
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "property='og:image'", actual: "property='og:url'"
@@ -2374,7 +2374,7 @@ DIFF whats-new/updates/2017/03/01/post-1-0-research-strategy-workshop/index.html
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='article'"
   head > meta > meta > meta > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
   head > meta > meta > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:type'"
-  ... and 102 more differences
+  ... and 88 more differences
 DIFF whats-new/updates/2017/03/21/nasa-journey-with-us-web-design-standards/index.html (77 differences)
   head > meta > meta > meta > meta: attribute_differs - expected: "content='julia'", actual: "content='en_US'"
   head > meta > meta > meta > meta: missing_attribute - expected: "name='author'", actual: '(none)'
@@ -2387,7 +2387,7 @@ DIFF whats-new/updates/2017/03/21/nasa-journey-with-us-web-design-standards/inde
   head > meta > meta > meta > meta > meta > child[2]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='U.S. Web Design System (USWDS)'", actual: "content='/whats-new/updates/2017/03/21/nasa-journey-with-us-web-design-standards/'"
   ... and 67 more differences
-DIFF whats-new/updates/2017/03/21/update-design-assets/index.html (100 differences)
+DIFF whats-new/updates/2017/03/21/update-design-assets/index.html (98 differences)
   head > meta > meta > meta > meta > meta > child[2]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='/img/uswds-logo/lg-black.png'", actual: "content='/whats-new/updates/2017/03/21/update-design-assets/'"
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "property='og:image'", actual: "property='og:url'"
@@ -2398,7 +2398,7 @@ DIFF whats-new/updates/2017/03/21/update-design-assets/index.html (100 differenc
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='article'"
   head > meta > meta > meta > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
   head > meta > meta > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:type'"
-  ... and 90 more differences
+  ... and 88 more differences
 DIFF whats-new/updates/2017/03/27/u-s-web-design-standards-exposure-analytics/index.html (98 differences)
   head > meta > meta > meta > meta > meta > child[2]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='/img/uswds-logo/lg-black.png'", actual: "content='/whats-new/updates/2017/03/27/u-s-web-design-standards-exposure-analytics/'"
@@ -2592,7 +2592,7 @@ DIFF whats-new/updates/2019/04/08/introducing-uswds-2-0/index.html (153 differen
   head > meta > meta > meta > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
   head > meta > meta > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:type'"
   ... and 143 more differences
-DIFF whats-new/updates/2020/09/08/Improvements-banner/index.html (140 differences)
+DIFF whats-new/updates/2020/09/08/Improvements-banner/index.html (107 differences)
   head > meta > meta > meta > meta > meta > child[3]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='/img/banner-blog/banner-blog-post.jpg'", actual: "content='/whats-new/updates/2020/09/08/Improvements-banner/'"
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "property='og:image'", actual: "property='og:url'"
@@ -2603,8 +2603,8 @@ DIFF whats-new/updates/2020/09/08/Improvements-banner/index.html (140 difference
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='article'"
   head > meta > meta > meta > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
   head > meta > meta > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:type'"
-  ... and 130 more differences
-DIFF whats-new/updates/2021/02/05/sharing-the-govlove/index.html (114 differences)
+  ... and 97 more differences
+DIFF whats-new/updates/2021/02/05/sharing-the-govlove/index.html (106 differences)
   head > meta > title: text_differs - expected: 'Sharing the #GovLove | U.S. Web Design System (USWDS)', actual: 'Sharing the &#x23;GovLove | U.S. Web Design System (USWDS)'
   head > meta > meta > meta: attribute_differs - expected: "content='Sharing the #GovLove'", actual: "content='Sharing the &#x23;GovLove'"
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='In this digital age, it’s simpler than ever to share the #GovLove virtually on Valentine’s Day, and the U.S. Web Design System (USWDS) is here to help you do just that.'", actual: "content='In this digital age, it’s simpler than ever to share the &#x23;GovLove virtually on Valentine’s Day, and the U.S. Web Design System (USWDS) is here to help you do just that.'"
@@ -2615,8 +2615,8 @@ DIFF whats-new/updates/2021/02/05/sharing-the-govlove/index.html (114 difference
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='article'", actual: "content='U.S. Web Design System (USWDS)'"
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "property='og:type'", actual: "property='og:site_name'"
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='2021-02-05T00:00:00+01:00'", actual: "content='/img/2021-govlove-blog/WDS_valentines_2021_SocialArtwork_1.png'"
-  ... and 104 more differences
-DIFF whats-new/updates/2021/03/01/improving-emergency-response/index.html (145 differences)
+  ... and 96 more differences
+DIFF whats-new/updates/2021/03/01/improving-emergency-response/index.html (101 differences)
   head > meta > meta > meta > meta > meta > child[3]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='/img/2021-next-blog/post-1-social-share.jpg'", actual: "content='/whats-new/updates/2021/03/01/improving-emergency-response/'"
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "property='og:image'", actual: "property='og:url'"
@@ -2627,7 +2627,7 @@ DIFF whats-new/updates/2021/03/01/improving-emergency-response/index.html (145 d
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='summary_large_image'", actual: "content='article'"
   head > meta > meta > meta > meta > meta > meta: missing_attribute - expected: "name='twitter:card'", actual: '(none)'
   head > meta > meta > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:type'"
-  ... and 135 more differences
+  ... and 91 more differences
 DIFF whats-new/updates/2021/03/11/whats-next-for-uswds/index.html (111 differences)
   head > meta > meta > meta > meta > meta > child[3]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta > meta > meta > meta: attribute_differs - expected: "content='/img/2021-next-blog/post-2-social-share.jpg'", actual: "content='/whats-new/updates/2021/03/11/whats-next-for-uswds/'"
@@ -2665,4 +2665,4 @@ DIFF whats-new/updates/2022/04/28/introducing-uswds-3-0/index.html (133 differen
   head > meta > meta > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:type'"
   ... and 123 more differences
 
-Summary: 135 files matched, 269 files with differences, 28032 total differences (23426 acceptable diffs filtered out)
+Summary: 135 matched / 764 total (360 only-rustkyll, 269 with-diffs) 27614 total differences (23402 acceptable diffs filtered out)

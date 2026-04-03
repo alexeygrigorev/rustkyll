@@ -3,4 +3,4 @@ Rustkyll directory: /home/alexey/git/rustkyl/websites/alexeygrigorev/little-book
 Common HTML files:  48
 
 
-Summary: 48 files matched, 0 files with differences, 0 total differences (45 acceptable diffs filtered out)
+Summary: 48 matched / 48 total (45 acceptable diffs filtered out)

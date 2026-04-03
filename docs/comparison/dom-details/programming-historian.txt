@@ -5,7 +5,7 @@ Only in Jekyll:     168
 Only in rustkyll:   124
 
 DIFF 404.html (5 differences)
-  body > div > article > child[1]: tag_name_differs - expected: 'p', actual: 'img'
+  body > div > article > p > img: attribute_differs - expected: 'alt="British Library: Image taken from page 20 of \'Saint Paul\'s to the Highlands and back\'."', actual: "alt='British Library: Image taken from page 20 of ‘Saint Paul’s to the Highlands and back’.'"
   body > div > article > p > a: attribute_differs - expected: "href='https://github.com/programminghistorian/jekyll/issues/new?title=Broken%20link&body=I%20encountered%20an%20error%20when%20I%20tried%20to%20navigate%20to%20The%20Programming%20Historian%20using%20", actual: "href='https://github.com/programminghistorian/jekyll/issues/new?title=Broken%20link&body=I%20encountered%20an%20error%20when%20I%20tried%20to%20navigate%20to%20The%20Programming%20Historian%20using%20"
   body > div > article > p > a: attribute_differs - expected: "href='https://github.com/programminghistorian/jekyll/issues/new?title=Broken%20link&body=I%20encountered%20an%20error%20when%20I%20tried%20to%20navigate%20to%20The%20Programming%20Historian%20using%20", actual: "href='https://github.com/programminghistorian/jekyll/issues/new?title=Broken%20link&body=I%20encountered%20an%20error%20when%20I%20tried%20to%20navigate%20to%20The%20Programming%20Historian%20using%20"
   body > div > article > p > a: attribute_differs - expected: "href='https://github.com/programminghistorian/jekyll/issues/new?title=Broken%20link&body=I%20encountered%20an%20error%20when%20I%20tried%20to%20navigate%20to%20The%20Programming%20Historian%20using%20", actual: "href='https://github.com/programminghistorian/jekyll/issues/new?title=Broken%20link&body=I%20encountered%20an%20error%20when%20I%20tried%20to%20navigate%20to%20The%20Programming%20Historian%20using%20"
@@ -340,9 +340,9 @@ DIFF en/lessons/basic-text-processing-in-r.html (95 differences)
   ... and 85 more differences
 DIFF en/lessons/beginners-guide-to-twitter-data.html (107 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2019-10-16'", actual: "content='2019-10-16 00:00:00 +0200'"
-  body > main > header > div > div > div > div: text_differs - expected: '| Low', actual: '|'
-  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-overview'", actual: "id='markdown-toc-contents'"  Progress: 100/529 files compared...
+  body > main > header > div > div > div > div: text_differs - expected: '| Low', actual: '|'  Progress: 100/529 files compared...
 
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-overview'", actual: "id='markdown-toc-contents'"
   body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   body > main > div > div > figure > img: extra_attribute - expected: '(none)', actual: "a=''"
   body > main > div > div > figure > img: attribute_differs - expected: 'alt=\'A quick sketch of the "place" data in Tableau. The tweets are taken from just a few days surrounding the storm. One could perhaps argue that these maps show discourse around the storm forming equ', actual: "alt='A quick sketch of the '"
@@ -820,7 +820,7 @@ DIFF en/lessons/geoparsing-text-with-edinburgh.html (249 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-geo-parsing-a-text-file'", actual: "id='markdown-toc-setting-up-mapping'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-other-useful-options-for-running-the-geoparser'", actual: "id='markdown-toc-geo-parsing-a-text-file'"
   ... and 239 more differences
-DIFF en/lessons/geospatial-data-analysis.html (8 differences)
+DIFF en/lessons/geospatial-data-analysis.html (27 differences)
   body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
   body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
   body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
@@ -829,7 +829,10 @@ DIFF en/lessons/geospatial-data-analysis.html (8 differences)
   body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
   body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
   body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
-DIFF en/lessons/getting-started-with-markdown.html (68 differences)
+  body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
+  body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
+  ... and 17 more differences
+DIFF en/lessons/getting-started-with-markdown.html (71 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2015-11-13'", actual: "content='2015-11-13 00:00:00 +0100'"
   body > main > header > div > div > div > div: text_differs - expected: '| Low', actual: '|'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-lesson-goals'", actual: "id='markdown-toc-contents'"
@@ -840,7 +843,7 @@ DIFF en/lessons/getting-started-with-markdown.html (68 differences)
   body > main > div > div > child[58]: tag_name_differs - expected: 'div', actual: 'p'
   body > main > div > div > child[59]: tag_name_differs - expected: 'p', actual: 'div'
   body > main > div > div > child[60]: tag_name_differs - expected: 'h3', actual: 'p'
-  ... and 58 more differences
+  ... and 61 more differences
 DIFF en/lessons/getting-started-with-mysql-using-r.html (6 differences)
   body > main > div > div > p > sup: missing_attribute - expected: "role='doc-noteref'", actual: '(none)'
   body > main > div > div > p > sup > a: extra_attribute - expected: '(none)', actual: "role='doc-noteref'"
@@ -865,7 +868,7 @@ DIFF en/lessons/image-classification-neural-networks.html (172 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-creating-your-own-model'", actual: "id='markdown-toc-understanding-neural-networks'"
   body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-export-the-model'", actual: "id='markdown-toc-a-basic-neural-network'"
   ... and 162 more differences
-DIFF en/lessons/index.html (444 differences)
+DIFF en/lessons/index.html (442 differences)
   head > child[3]: tag_name_differs - expected: 'link', actual: 'meta'
   head > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > link: missing_element - expected: '<link>', actual: '(none)'
@@ -876,7 +879,7 @@ DIFF en/lessons/index.html (444 differences)
   head > link: missing_element - expected: '<link>', actual: '(none)'
   head > link: missing_element - expected: '<link>', actual: '(none)'
   head > script: missing_element - expected: '<script>', actual: '(none)'
-  ... and 434 more differences
+  ... and 432 more differences
 DIFF en/lessons/installing-omeka.html (59 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2016-07-24'", actual: "content='2016-07-24 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Medium', actual: '|'
@@ -1390,13 +1393,13 @@ DIFF en/lessons/topic-modeling-and-mallet.html (19 differences)
 DIFF en/lessons/transcribing-handwritten-text-with-python-and-azure.html (19 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2023-12-06'", actual: "content='2023-12-06 00:00:00 +0100'"
   body > main > header > div > div > div > div: text_differs - expected: '| Medium', actual: '|'
-  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-lesson-objectives'", actual: "id='markdown-toc-contents'"
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-lesson-objectives'", actual: "id='markdown-toc-contents'"  Progress: 200/529 files compared...
+
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-introducing-automated-transcription'", actual: "id='markdown-toc-lesson-objectives'"
   body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-prerequisites'", actual: "id='markdown-toc-introducing-automated-transcription'"
   body > main > div > div > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
-  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-setting-up-azure-computer-vision'", actual: "id='markdown-toc-prerequisites'"  Progress: 200/529 files compared...
-
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-setting-up-azure-computer-vision'", actual: "id='markdown-toc-prerequisites'"
   body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-trying-out-various-transcription-projects'", actual: "id='markdown-toc-setting-up-azure-computer-vision'"
   ... and 9 more differences
@@ -1906,7 +1909,7 @@ DIFF es/lecciones/descarga-multiples-registros-usando-cadenas-de-consulta.html (
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-descarga-sistemática-de-archivos'", actual: "id='markdown-toc-comprender-las-consultas-en-urls'"
   body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   ... and 998 more differences
-DIFF es/lecciones/editar-audio-con-audacity.html (61 differences)
+DIFF es/lecciones/editar-audio-con-audacity.html (8 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2016-08-05'", actual: "content='2016-08-05 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Baja', actual: '|'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-objetivos-del-módulo'", actual: "id='markdown-toc-contenidos'"
@@ -1914,10 +1917,7 @@ DIFF es/lecciones/editar-audio-con-audacity.html (61 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-grabar-audio'", actual: "id='markdown-toc-trabajar-con-audacity'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-editar-audio'", actual: "id='markdown-toc-grabar-audio'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-exportar'", actual: "id='markdown-toc-editar-audio'"
-  body > main > div > div > child[15]: tag_name_differs - expected: 'p', actual: 'img'
-  body > main > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  body > main > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  ... and 51 more differences
+  body > main > footer > div > div > a: text_differs - expected: 'Última actualización el 29 March 2026', actual: 'Última actualización el 04 April 2026'
 DIFF es/lecciones/escritura-sostenible-usando-pandoc-y-markdown.html (146 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2014-03-19'", actual: "content='2014-03-19 00:00:00 +0100'"
   body > main > header > div > div > div > div: text_differs - expected: '| Media', actual: '|'
@@ -2079,7 +2079,7 @@ DIFF es/lecciones/introduccion-a-imageplot-y-la-visualizacion-de-metadatos.html 
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-metadatos-y-visualizaciones'", actual: "id='markdown-toc-imageplot'"
   body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-visualizar-la-colección-y-ajustes-opcionales'", actual: "id='markdown-toc-macros-y-medidas'"
   ... and 21 more differences
-DIFF es/lecciones/introduccion-a-markdown.html (63 differences)
+DIFF es/lecciones/introduccion-a-markdown.html (66 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2015-11-13'", actual: "content='2015-11-13 00:00:00 +0100'"
   body > main > header > div > div > div > div: text_differs - expected: '| Baja', actual: '|'
   body > main > div > div > div > div > pre > code: text_differs - expected: '```html <html> <head> <title>Título del sitio Web</title> </head> <body> </body> </html> ```', actual: '```html'
@@ -2090,7 +2090,7 @@ DIFF es/lecciones/introduccion-a-markdown.html (63 differences)
   body > main > div > div > child[62]: tag_name_differs - expected: 'h4', actual: 'p'
   body > main > div > div > child[63]: tag_name_differs - expected: 'p', actual: 'h4'
   body > main > div > div > child[64]: tag_name_differs - expected: 'div', actual: 'p'
-  ... and 53 more differences
+  ... and 56 more differences
 DIFF es/lecciones/introduccion-a-powershell.html (45 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2016-07-21'", actual: "content='2016-07-21 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Baja', actual: '|'
@@ -2382,8 +2382,7 @@ DIFF es/lecciones/trabajar-con-archivos-de-texto.html (69 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-trabajar-con-archivos-de-texto'", actual: "id='markdown-toc-objetivos-de-la-lección'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-crear-y-escribir-en-un-archivo-de-texto'", actual: "id='markdown-toc-trabajar-con-archivos-de-texto'"
   body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
-  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-lecturas-recomendadas'", actual: "id='markdown-toc-crear-y-escribir-en-un-archivo-de-texto'"  Progress: 300/529 files compared...
-
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-lecturas-recomendadas'", actual: "id='markdown-toc-crear-y-escribir-en-un-archivo-de-texto'"
   body > main > div > div > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
   body > main > div > div > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '‘'
   body > main > div > div > div > div > pre > code > span: attribute_differs - expected: "class='err'", actual: "class='n'"
@@ -2442,7 +2441,8 @@ DIFF es/lecciones/visualizacion-y-animacion-de-tablas-historicas-con-R.html (163
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-resumen'", actual: "id='markdown-toc-contenidos'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-objetivos'", actual: "id='markdown-toc-resumen'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-introducción'", actual: "id='markdown-toc-objetivos'"
-  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-requisitos'", actual: "id='markdown-toc-introducción'"
+  body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-requisitos'", actual: "id='markdown-toc-introducción'"  Progress: 300/529 files compared...
+
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-los-datos-explorados'", actual: "id='markdown-toc-requisitos'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-tratamiento-y-limpieza-de-los-datos-con-r'", actual: "id='markdown-toc-los-datos-explorados'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-explorando-los-datos'", actual: "id='markdown-toc-tratamiento-y-limpieza-de-los-datos-con-r'"
@@ -2649,7 +2649,7 @@ DIFF fr/lecons/concevoir-base-donnees-nodegoat.html (76 differences)
   body > main > div > div > ul > li > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-conclusion'", actual: "id='markdown-toc-construire-une-base-de-données-avec-nodegoat'"
   ... and 66 more differences
-DIFF fr/lecons/debuter-avec-markdown.html (68 differences)
+DIFF fr/lecons/debuter-avec-markdown.html (71 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2015-11-13'", actual: "content='2015-11-13 00:00:00 +0100'"
   body > main > header > div > div > div > div: text_differs - expected: '| Facile', actual: '|'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-objectifs-de-la-leçon'", actual: "id='markdown-toc-contenus'"
@@ -2660,7 +2660,7 @@ DIFF fr/lecons/debuter-avec-markdown.html (68 differences)
   body > main > div > div > child[59]: tag_name_differs - expected: 'div', actual: 'p'
   body > main > div > div > child[60]: tag_name_differs - expected: 'p', actual: 'div'
   body > main > div > div > child[61]: tag_name_differs - expected: 'h3', actual: 'p'
-  ... and 58 more differences
+  ... and 61 more differences
 DIFF fr/lecons/decomptes-de-frequences-de-mots-en-python.html (530 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2012-07-17'", actual: "content='2012-07-17 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Moyen', actual: '|'
@@ -2961,7 +2961,7 @@ DIFF fr/lecons/telecharger-des-pages-web-avec-python.html (227 differences)
   body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   body > main > div > div > div > div > pre > code: text_differs - expected: 'https://www.oldbaileyonline.org/search.jsp?form=searchHomePage', actual: 'https://www.oldbaileyonline.org/search.jsp?form=searchHomePage&_divs_fulltext=arsenic&kwparse=and&_persNames_surname=&_persNames_given=&_persNames_alias=&_offences_offenceCategory_offenceSubcategory=&'
   ... and 217 more differences
-DIFF fr/lecons/transcription-automatisee-graphies-non-latines.html (585 differences)
+DIFF fr/lecons/transcription-automatisee-graphies-non-latines.html (579 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2023-01-30'", actual: "content='2023-01-30 00:00:00 +0100'"
   body > main > header > div > div > div > div: text_differs - expected: '| Difficile', actual: '|'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-cadre-détude-et-objectifs-de-la-leçon'", actual: "id='markdown-toc-contenus'"
@@ -2972,10 +2972,9 @@ DIFF fr/lecons/transcription-automatisee-graphies-non-latines.html (585 differen
   body > main > div > div > ul > li > ul > li > a: expected_element_got_text - expected: '<em>', actual: 'La reconnaissance de caractères'
   body > main > div > div > ul > li > ul > li > a > em: missing_element - expected: '<em>', actual: '(none)'
   body > main > div > div > ul > li > ul > li > a: missing_text - expected: 'classique d’un OCR/HTR', actual: '(none)'
-  ... and 575 more differences
+  ... and 569 more differences
 DIFF fr/lecons/travailler-avec-des-fichiers-texte.html (58 differences)
-  head > meta > meta > meta: attribute_differs - expected: "content='2012-07-17'", actual: "content='2012-07-17 00:00:00 +0200'"  Progress: 400/529 files compared...
-
+  head > meta > meta > meta: attribute_differs - expected: "content='2012-07-17'", actual: "content='2012-07-17 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Moyen', actual: '|'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-objectifs-de-la-leçon'", actual: "id='markdown-toc-contenus'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-travailler-avec-des-fichiers-texte'", actual: "id='markdown-toc-objectifs-de-la-leçon'"
@@ -3037,7 +3036,8 @@ DIFF fr/recherche.html (1 differences)
 DIFF index.html (3 differences)
   body > main > div > div > div > div > ul > li: text_differs - expected: '119 lessons', actual: '105 lessons'
   body > main > div > div > div > div > ul > li: text_differs - expected: '55 lições', actual: '56 lições'
-  body > main > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
+  body > main > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'  Progress: 400/529 files compared...
+
 DIFF posts/lanzamiento-PH-español.html (4 differences)
   link: attribute_differs - expected: "href='/posts/lanzamiento-PH-espanol'", actual: "href='posts/lanzamiento-PH-espanol/'"
   script: text_differs - expected: 'location="/posts/lanzamiento-PH-espanol"', actual: 'location="posts/lanzamiento-PH-espanol/"'
@@ -3443,7 +3443,7 @@ DIFF pt/licoes/instalacao-windows.html (13 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-passo-2--olá-mundo-em-python'", actual: "id='markdown-toc-inicie-o-komodo-edit'"
   body > main > div > div > ul > li > ul: extra_element - expected: '(none)', actual: '<ul>'
   ... and 3 more differences
-DIFF pt/licoes/introducao-ao-markdown.html (65 differences)
+DIFF pt/licoes/introducao-ao-markdown.html (68 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2015-11-13'", actual: "content='2015-11-13 00:00:00 +0100'"
   body > main > header > div > div > div > div: text_differs - expected: '| Baixo', actual: '|'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-objetivos-da-lição'", actual: "id='markdown-toc-conteúdos'"
@@ -3454,7 +3454,7 @@ DIFF pt/licoes/introducao-ao-markdown.html (65 differences)
   body > main > div > div > child[58]: tag_name_differs - expected: 'div', actual: 'p'
   body > main > div > div > child[59]: tag_name_differs - expected: 'p', actual: 'div'
   body > main > div > div > child[60]: tag_name_differs - expected: 'h3', actual: 'p'
-  ... and 55 more differences
+  ... and 58 more differences
 DIFF pt/licoes/introducao-codificacao-textos-tei-1.html (71 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2021-07-27'", actual: "content='2021-07-27 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Médio', actual: '|'
@@ -3572,15 +3572,15 @@ DIFF pt/licoes/limpar-dados-openrefine.html (16 differences)
   ... and 6 more differences
 DIFF pt/licoes/manipulacao-transformacao-dados-r.html (19 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2017-08-01'", actual: "content='2017-08-01 00:00:00 +0200'"
-  body > main > header > div > div > div > div: text_differs - expected: '| Médio', actual: '|'
+  body > main > header > div > div > div > div: text_differs - expected: '| Médio', actual: '|'  Progress: 500/529 files compared...
+
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-requisitos'", actual: "id='markdown-toc-conteúdos'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-objetivos-da-lição'", actual: "id='markdown-toc-requisitos'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-introdução'", actual: "id='markdown-toc-objetivos-da-lição'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-um-exemplo-do-dplyr-em-ação'", actual: "id='markdown-toc-introdução'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-operador-pipe'", actual: "id='markdown-toc-um-exemplo-do-dplyr-em-ação'"
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-o-que-é-dplyr'", actual: "id='markdown-toc-operador-pipe'"
-  body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'  Progress: 500/529 files compared...
-
+  body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-juntando-tudo'", actual: "id='markdown-toc-o-que-é-dplyr'"
   ... and 9 more differences
 DIFF pt/licoes/manipular-strings-python.html (64 differences)
@@ -3595,7 +3595,7 @@ DIFF pt/licoes/manipular-strings-python.html (64 differences)
   body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-encontrar'", actual: "id='markdown-toc-multiplicar'"
   body > main > div > div > ul > li > ul > li > a: attribute_differs - expected: "id='markdown-toc-minúscula'", actual: "id='markdown-toc-apêndice'"
   ... and 54 more differences
-DIFF pt/licoes/nocoes-basicas-R-dados-tabulares.html (78 differences)
+DIFF pt/licoes/nocoes-basicas-R-dados-tabulares.html (40 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2016-09-05'", actual: "content='2016-09-05 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Baixo', actual: '|'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-objetivos-da-lição'", actual: "id='markdown-toc-conteúdos'"
@@ -3606,7 +3606,7 @@ DIFF pt/licoes/nocoes-basicas-R-dados-tabulares.html (78 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-funções-básicas'", actual: "id='markdown-toc-usar-conjuntos-de-dados'"
   body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-trabalhar-com-bases-de-dados-maiores'", actual: "id='markdown-toc-funções-básicas'"
-  ... and 68 more differences
+  ... and 30 more differences
 DIFF pt/licoes/nocoes-basicas-paginas-web-html.html (47 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2012-07-17'", actual: "content='2012-07-17 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Médio', actual: '|'
@@ -3739,7 +3739,7 @@ DIFF pt/licoes/trabalhando-ficheiros-texto-python.html (43 differences)
   body > main > div > div > div > div > pre > code > span: text_differs - expected: "'O meu nome é John O", actual: "'O meu nome é John O\\'Brian'"
   body > main > div > div > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 33 more differences
-DIFF pt/licoes/transcricao-automatica-grafias-nao-latinas.html (568 differences)
+DIFF pt/licoes/transcricao-automatica-grafias-nao-latinas.html (562 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2023-01-30'", actual: "content='2023-01-30 00:00:00 +0100'"
   body > main > header > div > div > div > div: text_differs - expected: '| Alto', actual: '|'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-estrutura-do-estudo-e-objetivos-da-lição'", actual: "id='markdown-toc-conteúdos'"
@@ -3750,7 +3750,7 @@ DIFF pt/licoes/transcricao-automatica-grafias-nao-latinas.html (568 differences)
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-dados-sim-mas-para-quê'", actual: "id='markdown-toc-o-caso-das-línguas-e-grafias-não-latinas'"
   body > main > div > div > ul > li > ul: missing_element - expected: '<ul>', actual: '(none)'
   body > main > div > div > ul > li > a: attribute_differs - expected: "id='markdown-toc-cadeia-de-processamento-produção-de-conjuntos-de-dados-e-processamento-de-documentos'", actual: "id='markdown-toc-dados-sim-mas-para-quê'"
-  ... and 558 more differences
+  ... and 552 more differences
 DIFF pt/licoes/visualizacao-animacao-tabelas-historicas-R.html (1606 differences)
   head > meta > meta > meta: attribute_differs - expected: "content='2021-06-28'", actual: "content='2021-06-28 00:00:00 +0200'"
   body > main > header > div > div > div > div: text_differs - expected: '| Médio', actual: '|'
@@ -3801,4 +3801,4 @@ DIFF translation-concordance.html (7 differences)
 DIFF troubleshooting.html (1 differences)
   body > footer > div > div > a: text_differs - expected: 'Site last updated 29 March 2026', actual: 'Site last updated 04 April 2026'
 
-Summary: 164 files matched, 365 files with differences, 78573 total differences (14356 acceptable diffs filtered out)
+Summary: 164 matched / 821 total (168 only-Jekyll, 124 only-rustkyll, 365 with-diffs) 78499 total differences (15726 acceptable diffs filtered out)

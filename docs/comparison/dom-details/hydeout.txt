@@ -119,4 +119,4 @@ DIFF post formats/2010/06/02/post-video-youtube.html (52 differences)
   body > main > div > div > div > div > pre > code > span: text_differs - expected: 'class=', actual: '<!-- 4:3 aspect ratio -->'
   ... and 42 more differences
 
-Summary: 19 files matched, 11 files with differences, 561 total differences (8 acceptable diffs filtered out)
+Summary: 19 matched / 38 total (4 only-Jekyll, 4 only-rustkyll, 11 with-diffs) 561 total differences (8 acceptable diffs filtered out)

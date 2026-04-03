@@ -4,11 +4,5 @@ Common HTML files:  5
 Only in Jekyll:     1
 Only in rustkyll:   1
 
-DIFF 2020-02-28-sample-markdown/index.html (5 differences)
-  body > main > div > div > div > child[9]: tag_name_differs - expected: 'p', actual: 'img'
-  body > main > div > div > div > child[28]: tag_name_differs - expected: 'p', actual: 'img'
-  body > main > div > div > div > child[30]: tag_name_differs - expected: 'p', actual: 'img'
-  body > main > div > div > div > details: expected_element_got_text - expected: '<p>', actual: 'Here you can see an **expandable** section'
-  body > main > div > div > div > details > p: missing_element - expected: '<p>', actual: '(none)'
 
-Summary: 4 files matched, 1 files with differences, 5 total differences (7 acceptable diffs filtered out)
+Summary: 5 matched / 7 total (1 only-Jekyll, 1 only-rustkyll) (7 acceptable diffs filtered out)

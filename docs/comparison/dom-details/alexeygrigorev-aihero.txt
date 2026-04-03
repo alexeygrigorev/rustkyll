@@ -3,4 +3,4 @@ Rustkyll directory: /home/alexey/git/rustkyl/websites/alexeygrigorev/aihero/_sit
 Common HTML files:  2
 
 
-Summary: 2 files matched, 0 files with differences, 0 total differences (2 acceptable diffs filtered out)
+Summary: 2 matched / 2 total (2 acceptable diffs filtered out)

@@ -29,4 +29,4 @@ DIFF 2016/11/10/snyk.html (28 differences)
   body > div > div > p: missing_text - expected: 'painfully demonstrate the idea that “given enough eyeballs, all bugs are shallow” is completely fals', actual: '(none)'
   ... and 18 more differences
 
-Summary: 14 files matched, 3 files with differences, 40 total differences
+Summary: 14 matched / 17 total (3 with-diffs) 40 total differences

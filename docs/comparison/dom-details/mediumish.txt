@@ -104,7 +104,7 @@ DIFF customer-service/index.html (14 differences)
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
   ... and 4 more differences
-DIFF education/index.html (23 differences)
+DIFF education/index.html (17 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -115,7 +115,7 @@ DIFF education/index.html (23 differences)
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  ... and 13 more differences
+  ... and 7 more differences
 DIFF first-mass-produced/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -188,7 +188,7 @@ DIFF page2/index.html (51 differences)
   body > div > div > div > section > div > div > div > div > h2 > a: text_differs - expected: 'Tree of Codes', actual: 'Never stopped worrying or loving the bomb'
   body > div > div > div > section > div > div > div > div > h4: text_differs - expected: 'The first mass-produced book to deviate from a rectilinear format, at least in the United States, is thought to be this 1863 edition of Red Riding Hood, cut into the...', actual: 'I’ve been through fire and water, I tell you! From my earliest pebblehood the wildest things you could imagine have been happening to this world of ours, and I have...'
   ... and 41 more differences
-DIFF powerful-things-markdown-editor/index.html (138 differences)
+DIFF powerful-things-markdown-editor/index.html (132 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -199,7 +199,7 @@ DIFF powerful-things-markdown-editor/index.html (138 differences)
   head > meta > meta > script: missing_element - expected: '<script>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
-  ... and 128 more differences
+  ... and 122 more differences
 DIFF press-and-education/index.html (12 differences)
   head > meta > meta > child[5]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta: missing_element - expected: '<meta>', actual: '(none)'
@@ -273,4 +273,4 @@ DIFF we-all-wait-for-summer/index.html (12 differences)
   head > meta > meta > link: missing_element - expected: '<link>', actual: '(none)'
   ... and 2 more differences
 
-Summary: 0 files matched, 23 files with differences, 543 total differences (11 acceptable diffs filtered out)
+Summary: 0 matched / 24 total (1 only-rustkyll, 23 with-diffs) 531 total differences (11 acceptable diffs filtered out)

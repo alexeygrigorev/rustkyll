@@ -3,4 +3,4 @@ Rustkyll directory: /home/alexey/git/rustkyl/websites/alexeygrigorev/alexeygrigo
 Common HTML files:  8
 
 
-Summary: 8 files matched, 0 files with differences, 0 total differences
+Summary: 8 matched / 8 total

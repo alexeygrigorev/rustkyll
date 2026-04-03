@@ -1975,66 +1975,66 @@ DIFF en/bitcoin-core/features/index.html (39 differences)
   body > div > div > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
   body > div > div > div > div > div > div > p: extra_text - expected: '(none)', actual: '## Better Privacy {#privacy} Bitcoin Core provides'
   ... and 29 more differences
-DIFF en/bitcoin-core/features/network-support.html (16 differences)
-  body > div > div > div > div > child[1]: tag_name_differs - expected: 'p', actual: 'img'
-  body > div > div > div > div > div: missing_element - expected: '<div>', actual: '(none)'
+DIFF en/bitcoin-core/features/network-support.html (18 differences)
+  body > div > div > div > div > div > a: attribute_differs - expected: "href='/en/download'", actual: "href='/en/'"
+  body > div > div > div > div > div > div > span: text_differs - expected: 'Bitcoin Core 28.1', actual: 'Bitcoin Core'
+  body > div > div > div > div: expected_element_got_text - expected: '<p>', actual: 'The Bitcoin peer-to-peer network serves both Bitcoin Core and many other Bitcoin programs (mostly li'
+  body > div > div > div > div > child[3]: tag_name_differs - expected: 'p', actual: 'br'
+  body > div > div > div > div > child[4]: tag_name_differs - expected: 'p', actual: 'div'
+  body > div > div > div > div > child[5]: tag_name_differs - expected: 'h2', actual: 'br'
+  body > div > div > div > div: expected_element_got_text - expected: '<p>', actual: '[bitcoin URI]: # "A URI which allows receivers to encode payment details so spenders don\'t have to m'
   body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
   body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
   body > div > div > div > div > h2: missing_element - expected: '<h2>', actual: '(none)'
-  body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > h2: missing_element - expected: '<h2>', actual: '(none)'
-  body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  ... and 6 more differences
-DIFF en/bitcoin-core/features/privacy.html (37 differences)
-  body > div > div > div > div > child[1]: tag_name_differs - expected: 'p', actual: 'img'
-  body > div > div > div > div > div: missing_element - expected: '<div>', actual: '(none)'
-  body > div > div > div > div > blockquote: missing_element - expected: '<blockquote>', actual: '(none)'
-  body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > h2: missing_element - expected: '<h2>', actual: '(none)'
-  body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div: missing_element - expected: '<div>', actual: '(none)'
-  ... and 27 more differences
-DIFF en/bitcoin-core/features/requirements.html (18 differences)
-  body > div > div > div > div > child[1]: tag_name_differs - expected: 'p', actual: 'img'
-  body > div > div > div > div > div: missing_element - expected: '<div>', actual: '(none)'
-  body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div: missing_element - expected: '<div>', actual: '(none)'
-  body > div > div > div > div > h2: missing_element - expected: '<h2>', actual: '(none)'
-  body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > ul: missing_element - expected: '<ul>', actual: '(none)'
-  body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > h2: missing_element - expected: '<h2>', actual: '(none)'
-  body > div > div > div > div > div: missing_element - expected: '<div>', actual: '(none)'
   ... and 8 more differences
-DIFF en/bitcoin-core/features/user-interface.html (19 differences)
-  body > div > div > div > div > child[1]: tag_name_differs - expected: 'p', actual: 'img'
-  body > div > div > div > div > div: missing_element - expected: '<div>', actual: '(none)'
-  body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > h2: missing_element - expected: '<h2>', actual: '(none)'
-  body > div > div > div > div > div: missing_element - expected: '<div>', actual: '(none)'
-  body > div > div > div > div > h2: missing_element - expected: '<h2>', actual: '(none)'
-  body > div > div > div > div > div: missing_element - expected: '<div>', actual: '(none)'
-  body > div > div > div > div > div: missing_element - expected: '<div>', actual: '(none)'
-  ... and 9 more differences
-DIFF en/bitcoin-core/features/validation.html (36 differences)
-  body > div > div > div > div > child[1]: tag_name_differs - expected: 'p', actual: 'img'
-  body > div > div > div > div > div: missing_element - expected: '<div>', actual: '(none)'
-  body > div > div > div > div > blockquote: missing_element - expected: '<blockquote>', actual: '(none)'
-  body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > h2: missing_element - expected: '<h2>', actual: '(none)'
-  body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > p: missing_element - expected: '<p>', actual: '(none)'
-  ... and 26 more differences
+DIFF en/bitcoin-core/features/privacy.html (48 differences)
+  body > div > div > div > div > div > a: attribute_differs - expected: "href='/en/download'", actual: "href='/en/'"
+  body > div > div > div > div > div > div > span: text_differs - expected: 'Bitcoin Core 28.1', actual: 'Bitcoin Core'
+  body > div > div > div > div: expected_element_got_text - expected: '<blockquote>', actual: '> What if every time you spent or received cash, all the transaction > details were published to you'
+  body > div > div > div > div > child[3]: tag_name_differs - expected: 'blockquote', actual: 'em'
+  body > div > div > div > div: expected_element_got_text - expected: '<p>', actual: 'And why do many of them believe that Bitcoin is a private way of sending money? One reason is that B'
+  body > div > div > div > div > child[4]: tag_name_differs - expected: 'p', actual: 'div'
+  body > div > div > div > div > child[5]: tag_name_differs - expected: 'p', actual: 'table'
+  body > div > div > div > div: expected_element_got_text - expected: '<p>', actual: '## Perfect Privacy for Received Transactions There are 230 million transactions on the Bitcoin block'
+  body > div > div > div > div > child[6]: tag_name_differs - expected: 'p', actual: 'table'
+  body > div > div > div > div: expected_element_got_text - expected: '<p>', actual: 'Bitcoin Core downloads all 230 million transactions on the Bitcoin block chain and processes them to'
+  ... and 38 more differences
+DIFF en/bitcoin-core/features/requirements.html (38 differences)
+  body > div > div > div > div > div > a: attribute_differs - expected: "href='/en/download'", actual: "href='/en/'"
+  body > div > div > div > div > div > div > span: text_differs - expected: 'Bitcoin Core 28.1', actual: 'Bitcoin Core'
+  body > div > div > div > div: expected_element_got_text - expected: '<p>', actual: 'Bitcoin Core gives you increased [security][bcc validation] and [privacy][bcc privacy] at a cost. Yo'
+  body > div > div > div > div > child[3]: tag_name_differs - expected: 'p', actual: 'div'
+  body > div > div > div > div: expected_element_got_text - expected: '<div>', actual: '## Wallet Responsibility Checklist Bitcoin Core puts you in charge of your wallet, which means your '
+  body > div > div > div > div > child[4]: tag_name_differs - expected: 'div', actual: 'button'
+  body > div > div > div > div: expected_element_got_text - expected: '<h2>', actual: '- Make sure your'
+  body > div > div > div > div > child[5]: tag_name_differs - expected: 'h2', actual: 'button'
+  body > div > div > div > div: expected_element_got_text - expected: '<p>', actual: '- Setup an'
+  body > div > div > div > div > child[6]: tag_name_differs - expected: 'p', actual: 'button'
+  ... and 28 more differences
+DIFF en/bitcoin-core/features/user-interface.html (81 differences)
+  body > div > div > div > div > div > a: attribute_differs - expected: "href='/en/download'", actual: "href='/en/'"
+  body > div > div > div > div > div > div > span: text_differs - expected: 'Bitcoin Core 28.1', actual: 'Bitcoin Core'
+  body > div > div > div > div: expected_element_got_text - expected: '<p>', actual: 'Bitcoin Core has a built in wallet with [graphical](#graphical) and [command line/API](#cli) modes. '
+  body > div > div > div > div > child[3]: tag_name_differs - expected: 'p', actual: 'em'
+  body > div > div > div > div: expected_element_got_text - expected: '<p>', actual: 'you only get the security and privacy benefits in supported lightweight wallets if they make a secur'
+  body > div > div > div > div > child[4]: tag_name_differs - expected: 'p', actual: 'em'
+  body > div > div > div > div: expected_element_got_text - expected: '<p>', actual: 'time you use them. This usually requires special configuration. ## Bitcoin Core Wallet GUI (Graphica'
+  body > div > div > div > div > child[5]: tag_name_differs - expected: 'p', actual: 'div'
+  body > div > div > div > div: expected_element_got_text - expected: '<h2>', actual: '## Bitcoin Core Wallet RPC/REST (CLI) {#cli}'
+  body > div > div > div > div > child[6]: tag_name_differs - expected: 'h2', actual: 'div'
+  ... and 71 more differences
+DIFF en/bitcoin-core/features/validation.html (82 differences)
+  body > div > div > div > div > div > a: attribute_differs - expected: "href='/en/download'", actual: "href='/en/'"
+  body > div > div > div > div > div > div > span: text_differs - expected: 'Bitcoin Core 28.1', actual: 'Bitcoin Core'
+  body > div > div > div > div: expected_element_got_text - expected: '<blockquote>', actual: '> Imagine a scientist reading about an experimental result and then > repeating the experiment for h'
+  body > div > div > div > div > child[3]: tag_name_differs - expected: 'blockquote', actual: 'em'
+  body > div > div > div > div: expected_element_got_text - expected: '<p>', actual: 'Bitcoin Core checks each block of transactions it receives to ensure that everything in that block i'
+  body > div > div > div > div > child[4]: tag_name_differs - expected: 'p', actual: 'em'
+  body > div > div > div > div: expected_element_got_text - expected: '<p>', actual: 'along with additional security against other easier attacks (see below for details). ## How Validati'
+  body > div > div > div > div > child[5]: tag_name_differs - expected: 'p', actual: 'button'
+  body > div > div > div > div: expected_element_got_text - expected: '<p>', actual: 'and'
+  body > div > div > div > div > child[6]: tag_name_differs - expected: 'p', actual: 'button'
+  ... and 72 more differences
 DIFF en/bitcoin-core/help.html (17 differences)
   body > div > div > div > div > div > p > em: text_differs - expected: 'To report an issue, please see the', actual: 'To report an issue, please see the [bug reporting][bcc contribute issues] page.'
   body > div > div > div > div > div > p > em > a: missing_element - expected: '<a>', actual: '(none)'
@@ -2219,7 +2219,8 @@ DIFF en/how-it-works.html (66 differences)
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/en/how-it-works'", actual: "value='/en/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/es/como-funciona'", actual: "value='/es/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/fr/comment-ca-marche'", actual: "value='/fr/'"
-  body > div > div > div > label > select > option: attribute_differs - expected: "value='/it/come-funziona'", actual: "value='/it/'"
+  body > div > div > div > label > select > option: attribute_differs - expected: "value='/it/come-funziona'", actual: "value='/it/'"  Progress: 200/960 files compared...
+
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/hu/hogyan-mukodik'", actual: "value='/hu/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/nl/hoe-het-werkt'", actual: "value='/nl/'"
   ... and 56 more differences
@@ -2235,8 +2236,7 @@ DIFF en/index.html (10 differences)
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/press'", actual: "href='/en/'"
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/about-us'", actual: "href='/en/'"
 DIFF en/innovation.html (66 differences)
-  body > div > div > div > label > select > option: attribute_differs - expected: "value='/id/inovasi'", actual: "value='/id/'"  Progress: 200/960 files compared...
-
+  body > div > div > div > label > select > option: attribute_differs - expected: "value='/id/inovasi'", actual: "value='/id/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/ca/innovacio'", actual: "value='/ca/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/da/innovation'", actual: "value='/da/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/de/innovation'", actual: "value='/de/'"
@@ -2331,35 +2331,21 @@ DIFF en/posts/bitcoin-exchanges-options-for-newcomers.html (17 differences)
   body > div > div > div > div > div > article > div > p > a: extra_element - expected: '(none)', actual: '<a>'
   body > div > div > div > div > div > article > div > p: extra_text - expected: '(none)', actual: '.'
   ... and 7 more differences
-DIFF en/posts/content-now-available-in-over-25-languages.html (13 differences)
-  body > div > div > div > div > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > ul: missing_element - expected: '<ul>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
+DIFF en/posts/content-now-available-in-over-25-languages.html (4 differences)
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/scams'", actual: "href='/en/'"
-  ... and 3 more differences
+  body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/legal'", actual: "href='/en/'"
+  body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/press'", actual: "href='/en/'"
+  body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/about-us'", actual: "href='/en/'"
 DIFF en/posts/denounce-segwit2x.html (4 differences)
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/scams'", actual: "href='/en/'"
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/legal'", actual: "href='/en/'"
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/press'", actual: "href='/en/'"
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/about-us'", actual: "href='/en/'"
-DIFF en/posts/developer-docs-glossary-and-search.html (20 differences)
-  body > div > div > div > div > div > article > child[4]: tag_name_differs - expected: 'p', actual: 'img'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > h3: missing_element - expected: '<h3>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > ul: missing_element - expected: '<ul>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > h3: missing_element - expected: '<h3>', actual: '(none)'
-  ... and 10 more differences
+DIFF en/posts/developer-docs-glossary-and-search.html (4 differences)
+  body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/scams'", actual: "href='/en/'"
+  body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/legal'", actual: "href='/en/'"
+  body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/press'", actual: "href='/en/'"
+  body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/about-us'", actual: "href='/en/'"
 DIFF en/posts/hard-fork-policy.html (4 differences)
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/scams'", actual: "href='/en/'"
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/legal'", actual: "href='/en/'"
@@ -2416,47 +2402,27 @@ DIFF en/posts/repository-move.html (6 differences)
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/legal'", actual: "href='/en/'"
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/press'", actual: "href='/en/'"
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/about-us'", actual: "href='/en/'"
-DIFF en/posts/site-updates-april-2015.html (10 differences)
-  body > div > div > div > div > div > article > child[6]: tag_name_differs - expected: 'p', actual: 'img'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > ul: missing_element - expected: '<ul>', actual: '(none)'
-  body > div > div > div > div > div > article > h2: missing_element - expected: '<h2>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
+DIFF en/posts/site-updates-april-2015.html (4 differences)
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/scams'", actual: "href='/en/'"
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/legal'", actual: "href='/en/'"
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/press'", actual: "href='/en/'"
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/about-us'", actual: "href='/en/'"
-DIFF en/posts/ten-year-anniversary.html (13 differences)
-  body > div > div > div > div > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > ul: missing_element - expected: '<ul>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > h2: missing_element - expected: '<h2>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
+DIFF en/posts/ten-year-anniversary.html (4 differences)
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/scams'", actual: "href='/en/'"
-  ... and 3 more differences
+  body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/legal'", actual: "href='/en/'"
+  body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/press'", actual: "href='/en/'"
+  body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/about-us'", actual: "href='/en/'"
 DIFF en/posts/test-the-new-site-design.html (5 differences)
   body > div > div > div > div > div > article > p > a: attribute_differs - expected: 'href=\'mailto:will@bitcoin.org?subject=Redesign%20Feedback"\'', actual: "href='mailto:will@bitcoin.org?subject=Redesign%20Feedback%22'"
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/scams'", actual: "href='/en/'"
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/legal'", actual: "href='/en/'"
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/press'", actual: "href='/en/'"
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/about-us'", actual: "href='/en/'"
-DIFF en/posts/thanks-to-recent-translators.html (15 differences)
-  body > div > div > div > div > div > article > child[2]: tag_name_differs - expected: 'p', actual: 'img'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > ul: missing_element - expected: '<ul>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  body > div > div > div > div > div > article > p: missing_element - expected: '<p>', actual: '(none)'
-  ... and 5 more differences
+DIFF en/posts/thanks-to-recent-translators.html (4 differences)
+  body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/scams'", actual: "href='/en/'"
+  body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/legal'", actual: "href='/en/'"
+  body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/press'", actual: "href='/en/'"
+  body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/en/about-us'", actual: "href='/en/'"
 DIFF en/posts/vote-on-the-new-site-design.html (16 differences)
   body > div > div > div > div > div > article > div > p: missing_attribute - expected: "class='center'", actual: '(none)'
   body > div > div > div > div > div > article > div > p: expected_element_got_text - expected: '<img>', actual: '{:.center}'
@@ -3220,8 +3186,7 @@ DIFF en/releases/28.1/index.html (38 differences)
   body > div > div > div > div > div > article > div > p: missing_element - expected: '<p>', actual: '(none)'
   ... and 28 more differences
 DIFF en/resources.html (66 differences)
-  body > div > div > div > label > select > option: attribute_differs - expected: "value='/id/sumber-daya'", actual: "value='/id/'"  Progress: 300/960 files compared...
-
+  body > div > div > div > label > select > option: attribute_differs - expected: "value='/id/sumber-daya'", actual: "value='/id/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/ca/recursos'", actual: "value='/ca/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/da/ressourcer'", actual: "value='/da/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/de/ressourcen'", actual: "value='/de/'"
@@ -3233,7 +3198,8 @@ DIFF en/resources.html (66 differences)
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/nl/hulpmiddelen'", actual: "value='/nl/'"
   ... and 56 more differences
 DIFF en/scams.html (92 differences)
-  body > div > div > div > label > select > option: attribute_differs - expected: "value='/id/scam'", actual: "value='/id/'"
+  body > div > div > div > label > select > option: attribute_differs - expected: "value='/id/scam'", actual: "value='/id/'"  Progress: 300/960 files compared...
+
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/ca/estafes'", actual: "value='/ca/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/de/scams'", actual: "value='/de/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/en/scams'", actual: "value='/en/'"
@@ -4364,8 +4330,7 @@ DIFF he/how-it-works.html (66 differences)
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/es/como-funciona'", actual: "value='/es/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/fr/comment-ca-marche'", actual: "value='/fr/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/it/come-funziona'", actual: "value='/it/'"
-  body > div > div > div > label > select > option: attribute_differs - expected: "value='/hu/hogyan-mukodik'", actual: "value='/hu/'"  Progress: 400/960 files compared...
-
+  body > div > div > div > label > select > option: attribute_differs - expected: "value='/hu/hogyan-mukodik'", actual: "value='/hu/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/nl/hoe-het-werkt'", actual: "value='/nl/'"
   ... and 56 more differences
 DIFF he/index.html (9 differences)
@@ -4377,7 +4342,8 @@ DIFF he/index.html (9 differences)
   body > div > div > div > div > div > a: attribute_differs - expected: "href='/he/getting-started'", actual: "href='/he/'"
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/he/legal'", actual: "href='/he/'"
   body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/he/press'", actual: "href='/he/'"
-  body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/he/about-us'", actual: "href='/he/'"
+  body > div > div > div > div > div > div > a: attribute_differs - expected: "href='/he/about-us'", actual: "href='/he/'"  Progress: 400/960 files compared...
+
 DIFF he/innovation.html (65 differences)
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/id/inovasi'", actual: "value='/id/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/ca/innovacio'", actual: "value='/ca/'"
@@ -5502,8 +5468,7 @@ DIFF id/bitcoin-untuk-perorangan.html (66 differences)
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/ca/bitcoin-per-persones'", actual: "value='/ca/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/da/bitcoin-for-enkeltpersoner'", actual: "value='/da/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/de/bitcoin-fuer-einzelpersonen'", actual: "value='/de/'"
-  body > div > div > div > label > select > option: attribute_differs - expected: "value='/en/bitcoin-for-individuals'", actual: "value='/en/'"  Progress: 500/960 files compared...
-
+  body > div > div > div > label > select > option: attribute_differs - expected: "value='/en/bitcoin-for-individuals'", actual: "value='/en/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/es/bitcoin-para-personas'", actual: "value='/es/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/fr/bitcoin-pour-particuliers'", actual: "value='/fr/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/it/bitcoin-per-privati'", actual: "value='/it/'"
@@ -5514,7 +5479,8 @@ DIFF id/bursa.html (66 differences)
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/id/bursa'", actual: "value='/id/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/ca/cases-de-canvi'", actual: "value='/ca/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/da/udvekslinger'", actual: "value='/da/'"
-  body > div > div > div > label > select > option: attribute_differs - expected: "value='/de/boersen'", actual: "value='/de/'"
+  body > div > div > div > label > select > option: attribute_differs - expected: "value='/de/boersen'", actual: "value='/de/'"  Progress: 500/960 files compared...
+
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/en/exchanges'", actual: "value='/en/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/es/intercambios'", actual: "value='/es/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/fr/des-echanges'", actual: "value='/fr/'"
@@ -6655,8 +6621,7 @@ DIFF km/privacy.html (57 differences)
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/pl/prywatnosc'", actual: "value='/pl/'"
   ... and 47 more differences
 DIFF km/protect-your-privacy.html (65 differences)
-  body > div > div > div > label > select > option: attribute_differs - expected: "value='/id/lindungi-privasi-anda'", actual: "value='/id/'"  Progress: 600/960 files compared...
-
+  body > div > div > div > label > select > option: attribute_differs - expected: "value='/id/lindungi-privasi-anda'", actual: "value='/id/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/ca/protegeix-la-teva-privacitat'", actual: "value='/ca/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/da/beskyt-dit-privatliv'", actual: "value='/da/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/de/schuetzen-sie-ihre-privatsphaere'", actual: "value='/de/'"
@@ -6668,7 +6633,8 @@ DIFF km/protect-your-privacy.html (65 differences)
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/nl/bescherm-uw-privacy'", actual: "value='/nl/'"
   ... and 55 more differences
 DIFF km/resources.html (65 differences)
-  body > div > div > div > label > select > option: attribute_differs - expected: "value='/id/sumber-daya'", actual: "value='/id/'"
+  body > div > div > div > label > select > option: attribute_differs - expected: "value='/id/sumber-daya'", actual: "value='/id/'"  Progress: 600/960 files compared...
+
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/ca/recursos'", actual: "value='/ca/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/da/ressourcer'", actual: "value='/da/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/de/ressourcen'", actual: "value='/de/'"
@@ -7791,8 +7757,7 @@ DIFF pt_BR/escolha-sua-carteira.html (2 differences)
   body: missing_element - expected: '<body>', actual: '(none)'
 DIFF pt_BR/eventos.html (65 differences)
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/id/acara'", actual: "value='/id/'"
-  body > div > div > div > label > select > option: attribute_differs - expected: "value='/ca/events'", actual: "value='/ca/'"  Progress: 700/960 files compared...
-
+  body > div > div > div > label > select > option: attribute_differs - expected: "value='/ca/events'", actual: "value='/ca/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/da/begivenheder'", actual: "value='/da/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/de/events'", actual: "value='/de/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/en/events'", actual: "value='/en/'"
@@ -7807,7 +7772,8 @@ DIFF pt_BR/faq.html (65 differences)
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/ca/faq'", actual: "value='/ca/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/da/faq'", actual: "value='/da/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/de/faq'", actual: "value='/de/'"
-  body > div > div > div > label > select > option: attribute_differs - expected: "value='/en/faq'", actual: "value='/en/'"
+  body > div > div > div > label > select > option: attribute_differs - expected: "value='/en/faq'", actual: "value='/en/'"  Progress: 700/960 files compared...
+
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/es/faq'", actual: "value='/es/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/fr/faq'", actual: "value='/fr/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/it/faq'", actual: "value='/it/'"
@@ -8929,8 +8895,7 @@ DIFF sr/bitkoin-za-programere.html (65 differences)
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/fr/bitcoin-pour-developpeurs'", actual: "value='/fr/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/it/bitcoin-per-sviluppatori'", actual: "value='/it/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/hu/bitcoin-fejlesztoknek'", actual: "value='/hu/'"
-  body > div > div > div > label > select > option: attribute_differs - expected: "value='/nl/bitcoin-voor-ontwikkelaars'", actual: "value='/nl/'"  Progress: 800/960 files compared...
-
+  body > div > div > div > label > select > option: attribute_differs - expected: "value='/nl/bitcoin-voor-ontwikkelaars'", actual: "value='/nl/'"
   ... and 55 more differences
 DIFF sr/cesto-postavljanja-pitanja.html (65 differences)
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/id/faq'", actual: "value='/id/'"
@@ -8947,7 +8912,8 @@ DIFF sr/cesto-postavljanja-pitanja.html (65 differences)
 DIFF sr/dogadaji.html (65 differences)
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/id/acara'", actual: "value='/id/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/ca/events'", actual: "value='/ca/'"
-  body > div > div > div > label > select > option: attribute_differs - expected: "value='/da/begivenheder'", actual: "value='/da/'"
+  body > div > div > div > label > select > option: attribute_differs - expected: "value='/da/begivenheder'", actual: "value='/da/'"  Progress: 800/960 files compared...
+
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/de/events'", actual: "value='/de/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/en/events'", actual: "value='/en/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/es/eventos'", actual: "value='/es/'"
@@ -10078,8 +10044,7 @@ DIFF uk/secure-your-wallet.html (65 differences)
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/da/sikr-din-tegnebog'", actual: "value='/da/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/de/sichern-sie-ihre-wallet'", actual: "value='/de/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/en/secure-your-wallet'", actual: "value='/en/'"
-  body > div > div > div > label > select > option: attribute_differs - expected: "value='/es/asegure-su-monedero'", actual: "value='/es/'"  Progress: 900/960 files compared...
-
+  body > div > div > div > label > select > option: attribute_differs - expected: "value='/es/asegure-su-monedero'", actual: "value='/es/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/fr/securiser-porte-monnaie'", actual: "value='/fr/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/it/proteggi-il-portafoglio'", actual: "value='/it/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/hu/vedje-meg-penztarcajat'", actual: "value='/hu/'"
@@ -10092,7 +10057,8 @@ DIFF uk/spend-bitcoin.html (65 differences)
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/de/bitcoins-ausgeben'", actual: "value='/de/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/en/spend-bitcoin'", actual: "value='/en/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/es/gastar-bitcoin'", actual: "value='/es/'"
-  body > div > div > div > label > select > option: attribute_differs - expected: "value='/fr/depenser-bitcoin'", actual: "value='/fr/'"
+  body > div > div > div > label > select > option: attribute_differs - expected: "value='/fr/depenser-bitcoin'", actual: "value='/fr/'"  Progress: 900/960 files compared...
+
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/it/spendi-bitcoin'", actual: "value='/it/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/hu/fizess-bitcoinnal'", actual: "value='/hu/'"
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/nl/bitcoin-uitgeven'", actual: "value='/nl/'"
@@ -10780,4 +10746,4 @@ DIFF zh_TW/you-need-to-know.html (65 differences)
   body > div > div > div > label > select > option: attribute_differs - expected: "value='/nl/wat-u-moet-weten'", actual: "value='/nl/'"
   ... and 55 more differences
 
-Summary: 1 files matched, 959 files with differences, 55715 total differences (87310 acceptable diffs filtered out)
+Summary: 1 matched / 3577 total (2602 only-Jekyll, 15 only-rustkyll, 959 with-diffs) 55805 total differences (87337 acceptable diffs filtered out)

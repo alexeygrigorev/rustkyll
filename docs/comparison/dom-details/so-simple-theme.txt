@@ -84,7 +84,7 @@ DIFF recipes/index.html (24 differences)
   head > meta > meta > meta > meta: extra_attribute - expected: '(none)', actual: "property='og:site_name'"
   head > meta > meta > meta > meta: attribute_differs - expected: "content='Recipes'", actual: "content='article'"
   head > meta > meta > meta > meta: attribute_differs - expected: "property='twitter:title'", actual: "property='og:type'"
-  head > meta > meta > meta > meta: attribute_differs - expected: "content='@'", actual: "content='2026-04-03T23:19:44+02:00'"
+  head > meta > meta > meta > meta: attribute_differs - expected: "content='@'", actual: "content='2026-04-04T00:51:44+02:00'"
   head > meta > meta > meta > meta: missing_attribute - expected: "name='twitter:site'", actual: '(none)'
   ... and 14 more differences
 DIFF search/index.html (31 differences)
@@ -123,7 +123,7 @@ DIFF tags/markup/index.html (33 differences)
   head > meta > meta > meta > meta: attribute_differs - expected: "content='@'", actual: "content='summary'"
   head > meta > meta > meta > meta: attribute_differs - expected: "name='twitter:site'", actual: "name='twitter:card'"
   ... and 23 more differences
-DIFF theme-setup/index.html (184 differences)
+DIFF theme-setup/index.html (183 differences)
   head > meta > meta > meta > child[3]: tag_name_differs - expected: 'meta', actual: 'link'
   head > meta > meta > meta > meta: attribute_differs - expected: "content='website'", actual: "content='/theme-setup/'"
   head > meta > meta > meta > meta: attribute_differs - expected: "property='og:type'", actual: "property='og:url'"
@@ -134,6 +134,6 @@ DIFF theme-setup/index.html (184 differences)
   head > meta > meta > meta > meta: attribute_differs - expected: "property='twitter:title'", actual: "property='og:type'"
   head > meta > meta > meta > meta: attribute_differs - expected: "content='@'", actual: "content='summary'"
   head > meta > meta > meta > meta: attribute_differs - expected: "name='twitter:site'", actual: "name='twitter:card'"
-  ... and 174 more differences
+  ... and 173 more differences
 
-Summary: 0 files matched, 11 files with differences, 530 total differences (75 acceptable diffs filtered out)
+Summary: 0 matched / 66 total (55 only-Jekyll, 11 with-diffs) 529 total differences (75 acceptable diffs filtered out)

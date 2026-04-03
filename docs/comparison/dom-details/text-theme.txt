@@ -3,5 +3,8 @@ Rustkyll directory: /home/alexey/git/rustkyl/websites/text-theme/_site_rustkyll_
 Common HTML files:  6
 Only in rustkyll:   5
 
+DIFF about.html (2 differences)
+  body > div > div > div > div > div > div > div > div > article > meta > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='kd'"
+  body > div > div > div > div > div > div > div > div > article > meta > div > div > div > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='nx'"
 
-Summary: 6 files matched, 0 files with differences, 0 total differences (15 acceptable diffs filtered out)
+Summary: 5 matched / 11 total (5 only-rustkyll, 1 with-diffs) 2 total differences (12 acceptable diffs filtered out)

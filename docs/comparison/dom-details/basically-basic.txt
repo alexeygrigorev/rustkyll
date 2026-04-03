@@ -89,4 +89,4 @@ DIFF tags/markup/index.html (51 differences)
   head > meta > meta > meta > meta: attribute_differs - expected: "property='og:description'", actual: "property='og:site_name'"
   ... and 41 more differences
 
-Summary: 0 files matched, 7 files with differences, 410 total differences (154 acceptable diffs filtered out)
+Summary: 0 matched / 44 total (31 only-Jekyll, 6 only-rustkyll, 7 with-diffs) 410 total differences (154 acceptable diffs filtered out)

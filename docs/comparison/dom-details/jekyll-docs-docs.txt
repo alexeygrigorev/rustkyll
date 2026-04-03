@@ -5,7 +5,7 @@ Only in Jekyll:     103
 Only in rustkyll:   6
 
 DIFF docs/assets/index.html (14 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > p > child[6]: tag_name_differs - expected: 'strong', actual: 'em'
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '-'
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nt'", actual: "class='o'"
@@ -17,9 +17,9 @@ DIFF docs/assets/index.html (14 differences)
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'font-size: 1.2em'
   ... and 4 more differences
 DIFF docs/code_of_conduct/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/collections/index.html (128 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='p'"
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'name: Jane Doe position: Developer'
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='na'", actual: "class='p'"
@@ -31,13 +31,13 @@ DIFF docs/collections/index.html (128 differences)
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='s'", actual: "class='p'"
   ... and 118 more differences
 DIFF docs/community/bug/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/community/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/conduct/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/configuration/default/index.html (182 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='se'", actual: "class='s'"
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: '\\n\\n', actual: '\\n\\n"'
@@ -49,7 +49,7 @@ DIFF docs/configuration/default/index.html (182 differences)
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: ':', actual: 'false'
   ... and 172 more differences
 DIFF docs/configuration/environments/index.html (28 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '{% if jekyll.environment == "production" %} {% include disqus.html %} {% endif %}'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
@@ -61,7 +61,7 @@ DIFF docs/configuration/environments/index.html (28 differences)
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 18 more differences
 DIFF docs/configuration/front-matter-defaults/index.html (87 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: 'Mr.', actual: 'Mr. Hyde"'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
@@ -73,13 +73,13 @@ DIFF docs/configuration/front-matter-defaults/index.html (87 differences)
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: ':', actual: '-'
   ... and 77 more differences
 DIFF docs/configuration/incremental-regeneration/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/configuration/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/configuration/liquid/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/configuration/markdown/index.html (83 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nf'"
@@ -91,13 +91,13 @@ DIFF docs/configuration/markdown/index.html (83 differences)
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: '=', actual: "'"
   ... and 73 more differences
 DIFF docs/configuration/options/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/configuration/sass/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/configuration/webrick/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/continuous-integration/buddyworks/index.html (71 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: 'Build', actual: 'Build and Deploy Jekyll site"'
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nv'", actual: "class='na'"
   body > section > div > div > article > div > div > pre > code > span: extra_text - expected: '(none)', actual: 'trigger_mode'
@@ -111,7 +111,7 @@ DIFF docs/continuous-integration/buddyworks/index.html (71 differences)
 DIFF docs/continuous-integration/circleci/index.html (25 differences)
   head > link > meta > meta > meta: attribute_differs - expected: "content='Building, testing, and deploying your Jekyll-generated website can quickly be done with CircleCI, a continuous integration & delivery tool. CircleCI supports GitHub and Bitbucket, and you can", actual: "content='Building, testing, and deploying your Jekyll-generated website can quickly be done with CircleCI, a continuous integration &amp; delivery tool. CircleCI supports GitHub and Bitbucket, and you"
   head > link > meta > meta > meta: attribute_differs - expected: "content='Building, testing, and deploying your Jekyll-generated website can quickly be done with CircleCI, a continuous integration & delivery tool. CircleCI supports GitHub and Bitbucket, and you can", actual: "content='Building, testing, and deploying your Jekyll-generated website can quickly be done with CircleCI, a continuous integration &amp; delivery tool. CircleCI supports GitHub and Bitbucket, and you"
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='s1'", actual: "class='dl'"
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: "'https://rubygems.org'", actual: "'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='s1'"
@@ -121,7 +121,7 @@ DIFF docs/continuous-integration/circleci/index.html (25 differences)
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: 'gem', actual: 'ruby'
   ... and 15 more differences
 DIFF docs/continuous-integration/github-actions/index.html (70 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: 'Jekyll', actual: 'Jekyll Actions Demo"'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
@@ -133,9 +133,9 @@ DIFF docs/continuous-integration/github-actions/index.html (70 differences)
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 60 more differences
 DIFF docs/continuous-integration/razorops/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/continuous-integration/travis-ci/index.html (48 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='c'", actual: "class='c1'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='c'", actual: "class='c1'"
   body > section > div > div > article > div > div > pre > code: text_differs - expected: 'bundle', actual: 'bundle exec jekyll build bundle exec htmlproofer ./_site'
@@ -147,12 +147,12 @@ DIFF docs/continuous-integration/travis-ci/index.html (48 differences)
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nt'"
   ... and 38 more differences
 DIFF docs/contributing/index.html (4 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: text_differs - expected: 'script/test', actual: 'script/test test/blah_test.rb'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > section > div > div > article > div > div > pre > code: missing_text - expected: '/blah_test.rb', actual: '(none)'
 DIFF docs/datafiles/index.html (151 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: text_differs - expected: '<ul>', actual: '<ul> {% for member in site.data.members %} <li> <a href="https://github.com/{{ member.github }}"> {{ member.name }} </a> </li> {% endfor %} </ul>'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
@@ -164,13 +164,13 @@ DIFF docs/datafiles/index.html (151 differences)
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 141 more differences
 DIFF docs/deployment/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/deployment/manual/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/deployment/third-party/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/front-matter/index.html (26 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '---'
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='na'"
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: '---', actual: 'layout'
@@ -182,7 +182,7 @@ DIFF docs/front-matter/index.html (26 differences)
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: 'post', actual: 'title'
   ... and 16 more differences
 DIFF docs/github-pages/index.html (41 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: text_differs - expected: '<!-- For styles with static names... --> <link href="', actual: '<!-- For styles with static names... --> <link href="{{ \'assets/css/style.css\' | relative_url }}" rel="stylesheet"> <!-- For documents/pages whose URLs can change... --> [{{ page.title }}]("{{ page.ur'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
@@ -194,7 +194,7 @@ DIFF docs/github-pages/index.html (41 differences)
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 31 more differences
 DIFF docs/history/index.html (651 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > h2: attribute_differs - expected: "id='v4-4-1'", actual: "id='441--2025-01-29'"
   body > section > div > div > article > h3: attribute_differs - expected: "id='bug-fixes-v4-4-1'", actual: "id='bug-fixes'"
   body > section > div > div > article > h2: attribute_differs - expected: "id='v4-4-0'", actual: "id='440--2025-01-27'"
@@ -206,7 +206,7 @@ DIFF docs/history/index.html (651 differences)
   body > section > div > div > article > h3: attribute_differs - expected: "id='bug-fixes-v4-3-4'", actual: "id='bug-fixes-2'"
   ... and 641 more differences
 DIFF docs/includes/index.html (207 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '{% include footer.html %}'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
@@ -218,7 +218,7 @@ DIFF docs/includes/index.html (207 differences)
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '{% include_relative somedir/footer.html %}'
   ... and 197 more differences
 DIFF docs/index.html (18 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > ol > li > div: missing_element - expected: '<div>', actual: '(none)'
   body > section > div > div > article > ol > li: missing_element - expected: '<li>', actual: '(none)'
   body > section > div > div > article > ol > li: missing_element - expected: '<li>', actual: '(none)'
@@ -230,7 +230,7 @@ DIFF docs/index.html (18 differences)
   body > section > div > div > article > child[13]: tag_name_differs - expected: 'p', actual: 'ol'
   ... and 8 more differences
 DIFF docs/installation/freebsd/index.html (37 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'sudo pkg'
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: 'sudo', actual: 'install'
   body > section > div > div > article > div > div > pre > code: text_differs - expected: 'pkg', actual: 'ruby'
@@ -242,9 +242,9 @@ DIFF docs/installation/freebsd/index.html (37 differences)
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 27 more differences
 DIFF docs/installation/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/installation/macos/index.html (41 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: '"', actual: '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > section > div > div > article > div > div > pre > code: missing_text - expected: 'curl', actual: '(none)'
@@ -256,7 +256,7 @@ DIFF docs/installation/macos/index.html (41 differences)
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='si'", actual: "class='o'"
   ... and 31 more differences
 DIFF docs/installation/other-linux/index.html (56 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'sudo dnf'
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: 'sudo', actual: 'install'
   body > section > div > div > article > div > div > pre > code: text_differs - expected: 'dnf', actual: 'ruby ruby-devel openssl-devel redhat-rpm-config gcc-c++ @development-tools'
@@ -268,7 +268,7 @@ DIFF docs/installation/other-linux/index.html (56 differences)
   body > section > div > div > article > div > div > pre > code: expected_text_got_element - expected: 'ruby ruby-devel', actual: '<span>'
   ... and 46 more differences
 DIFF docs/installation/ubuntu/index.html (32 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'sudo apt-get'
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: 'sudo', actual: 'install'
   body > section > div > div > article > div > div > pre > code: text_differs - expected: 'apt-get', actual: 'ruby-full build-essential zlib1g-dev'
@@ -280,7 +280,7 @@ DIFF docs/installation/ubuntu/index.html (32 differences)
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '/.bashrc'
   ... and 22 more differences
 DIFF docs/installation/windows/index.html (68 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'sudo apt-get update'
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='nt'"
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: 'sudo', actual: '-y'
@@ -292,7 +292,7 @@ DIFF docs/installation/windows/index.html (68 differences)
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: '&&', actual: '-y'
   ... and 58 more differences
 DIFF docs/layouts/index.html (156 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: text_differs - expected: '<!doctype html> <html lang="en"> <head> <meta charset="utf-8"> <title>', actual: '<!doctype html> <html lang="en"> <head> <meta charset="utf-8"> <title>{{ page.title }}</title> <link rel="stylesheet" href="/css/style.css"> </head> <body> <nav> <a href="/">Home</a> <a href="/blog/">'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
@@ -304,7 +304,7 @@ DIFF docs/layouts/index.html (156 differences)
   body > section > div > div > article > div > div > pre > code: missing_text - expected: '</title> <link rel="stylesheet" href="/css/style.css"> </head> <body> <nav> <a href="/">Home</a> <a ', actual: '(none)'
   ... and 146 more differences
 DIFF docs/liquid/filters/index.html (85 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: text_differs - expected: '// Using `nil` to select posts that either do not have `my_prop` // defined or `my_prop` has been set to `nil` explicitly.', actual: "// Using `nil` to select posts that either do not have `my_prop` // defined or `my_prop` has been set to `nil` explicitly. {% assign filtered_posts = site.posts | where: 'my_prop', nil %}"
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
@@ -316,9 +316,9 @@ DIFF docs/liquid/filters/index.html (85 differences)
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 75 more differences
 DIFF docs/liquid/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/liquid/tags/index.html (253 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: "{% highlight ruby %} def foo puts 'foo' end {% endhighlight %}"
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
@@ -330,17 +330,17 @@ DIFF docs/liquid/tags/index.html (253 differences)
   body > section > div > div > article > div > div > pre > code: missing_text - expected: "def foo puts 'foo' end", actual: '(none)'
   ... and 243 more differences
 DIFF docs/maintaining/affinity-team-captain/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/maintaining/avoiding-burnout/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/maintaining/becoming-a-maintainer/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/maintaining/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/maintaining/merging-a-pull-request/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/maintaining/releasing-a-new-version/index.html (12 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: text_differs - expected: 'bundle', actual: 'bundle exec rake site:releases:new'
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nb'", actual: "class='o'"
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: 'exec', actual: '['
@@ -352,21 +352,21 @@ DIFF docs/maintaining/releasing-a-new-version/index.html (12 differences)
   body > section > div > div > article > div > div > pre > code: text_differs - expected: 'bundle', actual: 'bundle exec rake site:generate'
   ... and 2 more differences
 DIFF docs/maintaining/releasing-off-stable-branches/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/maintaining/reviewing-a-pull-request/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/maintaining/special-labels/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/maintaining/triaging-an-issue/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/markdown-101/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/migrations/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/pages/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/pagination/index.html (339 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='m'", actual: "class='s'"
   body > section > div > div > article > div > div > pre > code: text_differs - expected: '--- layout: default title: My Blog --- <!-- This loops through the paginated posts -->', actual: '--- layout: default title: My Blog --- <!-- This loops through the paginated posts --> {% for post in paginator.posts %} <h1><a href="{{ post.url }}">{{ post.title }}</a></h1> <p class="author"> <span'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
@@ -378,7 +378,7 @@ DIFF docs/pagination/index.html (339 differences)
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 329 more differences
 DIFF docs/permalinks/index.html (11 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '---'
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='na'"
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: '---', actual: 'permalink'
@@ -392,7 +392,7 @@ DIFF docs/permalinks/index.html (11 differences)
 DIFF docs/plugins/commands/index.html (125 differences)
   head > link > meta > meta > meta: attribute_differs - expected: "content='As of version 2.5.0 , Jekyll can be extended with plugins which provide subcommands for the jekyll executable. This is possible by including the relevant plugins in a Gemfile group called :je", actual: "content='As of version {% include docs_version_badge.html version=”2.5.0”%}, Jekyll can be extended with plugins which provide subcommands for the jekyll executable. This is possible by including the "
   head > link > meta > meta > meta: attribute_differs - expected: "content='As of version 2.5.0 , Jekyll can be extended with plugins which provide subcommands for the jekyll executable. This is possible by including the relevant plugins in a Gemfile group called :je", actual: "content='As of version {% include docs_version_badge.html version=”2.5.0”%}, Jekyll can be extended with plugins which provide subcommands for the jekyll executable. This is possible by including the "
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   head > link > meta > meta > link > script > jsonld.description: jsonld_value_differs - expected: 'As of version 2.5.0 , Jekyll can be extended with plugins which provide subcommands for the jekyll executable. This is possible by including the relevant plugins in a Gemfile group called :jekyll_plug', actual: 'As of version {% include docs_version_badge.html version=”2.5.0”%}, Jekyll can be extended with plugins which provide subcommands for the jekyll executable. This is possible by including the relevant '
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nf'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='s2'", actual: "class='dl'"
@@ -402,7 +402,7 @@ DIFF docs/plugins/commands/index.html (125 differences)
   body > section > div > div > article > div > div > pre > code > span: extra_element - expected: '(none)', actual: '<span>'
   ... and 115 more differences
 DIFF docs/plugins/converters/index.html (27 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='n'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='no'", actual: "class='nb'"
@@ -414,7 +414,7 @@ DIFF docs/plugins/converters/index.html (27 differences)
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='k'", actual: "class='dl'"
   ... and 17 more differences
 DIFF docs/plugins/filters/index.html (38 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='n'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='n'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='p'", actual: "class='n'"
@@ -426,7 +426,7 @@ DIFF docs/plugins/filters/index.html (38 differences)
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nf'", actual: "class='k'"
   ... and 28 more differences
 DIFF docs/plugins/generators/index.html (386 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='n'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='no'", actual: "class='nb'"
@@ -438,7 +438,7 @@ DIFF docs/plugins/generators/index.html (386 differences)
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='k'", actual: "class='p'"
   ... and 376 more differences
 DIFF docs/plugins/hooks/index.html (138 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='c1'", actual: "class='c'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='n'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
@@ -450,9 +450,9 @@ DIFF docs/plugins/hooks/index.html (138 differences)
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: 'Excerpt', actual: 'initialize'
   ... and 128 more differences
 DIFF docs/plugins/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/plugins/installation/index.html (144 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='s2'", actual: "class='dl'"
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: '"https://rubygems.org"', actual: '"'
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='c1'", actual: "class='s2'"
@@ -464,7 +464,7 @@ DIFF docs/plugins/installation/index.html (144 differences)
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='c1'", actual: "class='nf'"
   ... and 134 more differences
 DIFF docs/plugins/tags/index.html (195 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='n'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='no'", actual: "class='nb'"
@@ -476,13 +476,13 @@ DIFF docs/plugins/tags/index.html (195 differences)
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='k'", actual: "class='p'"
   ... and 185 more differences
 DIFF docs/plugins/your-first-plugin/index.html (5 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='n'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='o'", actual: "class='p'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='no'", actual: "class='nb'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='kp'", actual: "class='kc'"
 DIFF docs/posts/index.html (202 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='p'"
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'layout: post title: "Welcome to Jekyll!"'
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='na'", actual: "class='p'"
@@ -494,9 +494,9 @@ DIFF docs/posts/index.html (202 differences)
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: 'post', actual: '**'
   ... and 192 more differences
 DIFF docs/rendering-process/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/ruby-101/index.html (31 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='s2'", actual: "class='dl'"
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: '"https://rubygems.org"', actual: '"'
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='s2'"
@@ -508,9 +508,9 @@ DIFF docs/ruby-101/index.html (31 differences)
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='ss'", actual: "class='dl'"
   ... and 21 more differences
 DIFF docs/security/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/static-files/index.html (48 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '{% assign image_files = site.static_files | where: "image", true %} {% for myimage in image_files %}'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
@@ -522,7 +522,7 @@ DIFF docs/static-files/index.html (48 differences)
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 38 more differences
 DIFF docs/step-by-step/01-setup/index.html (37 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='n'", actual: "class='nf'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='s2'", actual: "class='dl'"
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: '"jekyll"', actual: '"'
@@ -534,7 +534,7 @@ DIFF docs/step-by-step/01-setup/index.html (37 differences)
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: '<html>', actual: 'DOCTYPE'
   ... and 27 more differences
 DIFF docs/step-by-step/02-liquid/index.html (75 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '{% if page.show_sidebar %} <div class="sidebar"> sidebar content </div> {% endif %}'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
@@ -546,7 +546,7 @@ DIFF docs/step-by-step/02-liquid/index.html (75 differences)
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 65 more differences
 DIFF docs/step-by-step/03-front-matter/index.html (41 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '---'
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='na'"
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: '---', actual: 'my_number'
@@ -558,7 +558,7 @@ DIFF docs/step-by-step/03-front-matter/index.html (41 differences)
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 31 more differences
 DIFF docs/step-by-step/04-layouts/index.html (41 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: text_differs - expected: '<!doctype html> <html> <head> <meta charset="utf-8"> <title>', actual: '<!doctype html> <html> <head> <meta charset="utf-8"> <title>{{ page.title }}</title> </head> <body> {{ content }} </body> </html>'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
@@ -570,7 +570,7 @@ DIFF docs/step-by-step/04-layouts/index.html (41 differences)
   body > section > div > div > article > div > div > pre > code: missing_text - expected: '</title> </head> <body>', actual: '(none)'
   ... and 31 more differences
 DIFF docs/step-by-step/05-includes/index.html (64 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: text_differs - expected: '<!doctype html> <html> <head> <meta charset="utf-8"> <title>', actual: '<!doctype html> <html> <head> <meta charset="utf-8"> <title>{{ page.title }}</title> </head> <body> {% include navigation.html %} {{ content }} </body> </html>'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
@@ -582,7 +582,7 @@ DIFF docs/step-by-step/05-includes/index.html (64 differences)
   body > section > div > div > article > div > div > pre > code: missing_text - expected: '</title> </head> <body>', actual: '(none)'
   ... and 54 more differences
 DIFF docs/step-by-step/06-data-files/index.html (62 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: text_differs - expected: '<nav>', actual: '<nav> {% for item in site.data.navigation %} <a href="{{ item.link }}" {% if page.url == item.link %}style="color: red;"{% endif %}> {{ item.name }} </a> {% endfor %} </nav>'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
@@ -594,7 +594,7 @@ DIFF docs/step-by-step/06-data-files/index.html (62 differences)
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 52 more differences
 DIFF docs/step-by-step/07-assets/index.html (101 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: text_differs - expected: '<nav>', actual: '<nav> {% for item in site.data.navigation %} <a href="{{ item.link }}"{% if page.url == item.link %} class="current"{% endif %}>{{ item.name }}</a> {% endfor %} </nav>'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
@@ -606,7 +606,7 @@ DIFF docs/step-by-step/07-assets/index.html (101 differences)
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 91 more differences
 DIFF docs/step-by-step/08-blogging/index.html (116 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='p'"
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'layout: post author: jill'
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='na'", actual: "class='p'"
@@ -618,7 +618,7 @@ DIFF docs/step-by-step/08-blogging/index.html (116 differences)
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 106 more differences
 DIFF docs/step-by-step/09-collections/index.html (325 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='p'"
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'short_name: jill name: Jill Smith position: Chief Editor'
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='na'", actual: "class='p'"
@@ -630,7 +630,7 @@ DIFF docs/step-by-step/09-collections/index.html (325 differences)
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 315 more differences
 DIFF docs/step-by-step/10-deployment/index.html (109 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='c1'", actual: "class='c'"
   body > section > div > div > article > div > div > pre > code > span: attribute_differs - expected: "class='s2'", actual: "class='dl'"
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: '"https://rubygems.org"', actual: '"'
@@ -642,11 +642,11 @@ DIFF docs/step-by-step/10-deployment/index.html (109 differences)
   body > section > div > div > article > div > div > pre > code > span: extra_element - expected: '(none)', actual: '<span>'
   ... and 99 more differences
 DIFF docs/structure/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/support/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/themes/index.html (120 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > ol > li > div > div > pre > code > span: attribute_differs - expected: "class='c'", actual: "class='c1'"
   body > section > div > div > article > ol > li > div > div > pre > code > span: attribute_differs - expected: "class='si'", actual: "class='p'"
   body > section > div > div > article > ol > li > div > div > pre > code > span: attribute_differs - expected: "class='si'", actual: "class='p'"
@@ -658,7 +658,7 @@ DIFF docs/themes/index.html (120 differences)
   body > section > div > div > article > ol > li > div > div > pre > code > span: attribute_differs - expected: "class='c'", actual: "class='c1'"
   ... and 110 more differences
 DIFF docs/troubleshooting/index.html (183 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: 'sudo apt-get'
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: 'sudo', actual: 'install'
   body > section > div > div > article > div > div > pre > code: text_differs - expected: 'apt-get', actual: 'ruby2.6-dev'
@@ -671,7 +671,7 @@ DIFF docs/troubleshooting/index.html (183 differences)
 
   ... and 173 more differences
 DIFF docs/upgrading/0-to-2/index.html (19 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > p > code: missing_attribute - expected: "class='highlighter-rouge language-plaintext'", actual: '(none)'
   body > section > div > div > article > div > p > code: missing_attribute - expected: "class='highlighter-rouge language-plaintext'", actual: '(none)'
   body > section > div > div > article > div > p > code: missing_attribute - expected: "class='highlighter-rouge language-plaintext'", actual: '(none)'
@@ -683,7 +683,7 @@ DIFF docs/upgrading/0-to-2/index.html (19 differences)
   body > section > div > div > article > div > p > code: missing_attribute - expected: "class='highlighter-rouge language-plaintext'", actual: '(none)'
   ... and 9 more differences
 DIFF docs/upgrading/2-to-3/index.html (49 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: expected_element_got_text - expected: '<span>', actual: '{% assign myCollection = site.collections | where: "label", "myCollection" | first %}'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
@@ -695,7 +695,7 @@ DIFF docs/upgrading/2-to-3/index.html (49 differences)
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   ... and 39 more differences
 DIFF docs/upgrading/3-to-4/index.html (49 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > div > div > pre > code: text_differs - expected: 'ruby 3.4.1', actual: 'ruby 3.4.1 (2024-12-25 revision 48d4efcb85)'
   body > section > div > div > article > div > div > pre > code > span: missing_element - expected: '<span>', actual: '(none)'
   body > section > div > div > article > div > div > pre > code: missing_text - expected: '2024-12-25 revision 48d4efcb85', actual: '(none)'
@@ -707,11 +707,11 @@ DIFF docs/upgrading/3-to-4/index.html (49 differences)
   body > section > div > div > article > ul > li > div > div > pre > code > span: attribute_differs - expected: "class='nn'", actual: "class='n'"
   ... and 39 more differences
 DIFF docs/upgrading/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/usage/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF docs/variables/index.html (2 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
   body > section > div > div > article > h2: attribute_differs - expected: "id='theme-variables'", actual: "id='theme-variables430'"
 DIFF jekyllconf/index.html (4 differences)
   body > section > div > div > article > p > strong: text_differs - expected: 'Comparing Jekyll with the Competition', actual: 'GitHub Pages behind the scenes'
@@ -802,7 +802,7 @@ DIFF tutorials/custom-404-page/index.html (21 differences)
   body > section > div > div > article > div > div > pre > code > span: text_differs - expected: ':', actual: '#'
   ... and 11 more differences
 DIFF tutorials/home/index.html (1 differences)
-  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-03T23:17:28-07:00'"
+  head > link > meta > meta > link > meta: attribute_differs - expected: "content='2026-03-20T15:48:38-07:00'", actual: "content='2026-04-04T00:49:20-07:00'"
 DIFF tutorials/navigation/index.html (1402 differences)
   body > section > div > div > article > header > div > a > img: attribute_differs - expected: "src='https://avatars1.githubusercontent.com/tomjoht?v=3&s=24'", actual: "src='https://avatars.githubusercontent.com/tomjoht?v=4&s=24'"
   body > section > div > div > article > header > div > a > img: attribute_differs - expected: "srcset='https://avatars1.githubusercontent.com/tomjoht?v=3&s=24 1x, https://avatars1.githubusercontent.com/tomjoht?v=3&s=48 2x, https://avatars1.githubusercontent.com/tomjoht?v=3&s=72 3x, https://avat", actual: "srcset='https://avatars.githubusercontent.com/tomjoht?v=4&s=24 1x, https://avatars.githubusercontent.com/tomjoht?v=4&s=48 2x, https://avatars.githubusercontent.com/tomjoht?v=4&s=72 3x, https://avatars"
@@ -843,4 +843,4 @@ DIFF tutorials/video-walkthroughs/index.html (2 differences)
   body > section > div > div > article > header > div > a > img: attribute_differs - expected: "src='https://avatars3.githubusercontent.com/giraffeacademy?v=3&s=24'", actual: "src='https://avatars.githubusercontent.com/giraffeacademy?v=4&s=24'"
   body > section > div > div > article > header > div > a > img: attribute_differs - expected: "srcset='https://avatars3.githubusercontent.com/giraffeacademy?v=3&s=24 1x, https://avatars3.githubusercontent.com/giraffeacademy?v=3&s=48 2x, https://avatars3.githubusercontent.com/giraffeacademy?v=3&", actual: "srcset='https://avatars.githubusercontent.com/giraffeacademy?v=4&s=24 1x, https://avatars.githubusercontent.com/giraffeacademy?v=4&s=48 2x, https://avatars.githubusercontent.com/giraffeacademy?v=4&s=7"
 
-Summary: 22 files matched, 103 files with differences, 8827 total differences (227 acceptable diffs filtered out)
+Summary: 22 matched / 234 total (103 only-Jekyll, 6 only-rustkyll, 103 with-diffs) 8827 total differences (227 acceptable diffs filtered out)

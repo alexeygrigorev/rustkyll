@@ -48,4 +48,4 @@ DIFF general/guidelines/promotion/index.html (2 differences)
   head > meta > meta > meta > link > body > div > div > div > main > child[17]: tag_name_differs - expected: 'p', actual: 'img'
   head > meta > meta > meta > link > body > div > div > div > main > child[25]: tag_name_differs - expected: 'p', actual: 'img'
 
-Summary: 38 files matched, 19 files with differences, 26 total differences (1 acceptable diffs filtered out)
+Summary: 38 matched / 57 total (19 with-diffs) 26 total differences (1 acceptable diffs filtered out)

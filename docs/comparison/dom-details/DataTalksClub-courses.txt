@@ -3,4 +3,4 @@ Rustkyll directory: /home/alexey/git/rustkyl/websites/DataTalksClub/courses/_sit
 Common HTML files:  5
 
 
-Summary: 5 files matched, 0 files with differences, 0 total differences
+Summary: 5 matched / 5 total

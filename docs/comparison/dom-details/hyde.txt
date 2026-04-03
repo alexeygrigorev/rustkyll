@@ -27,4 +27,4 @@ DIFF index.html (43 differences)
   body > div > div > div > figure > dl: extra_element - expected: '(none)', actual: '<dl>'
   ... and 33 more differences
 
-Summary: 4 files matched, 2 files with differences, 86 total differences
+Summary: 4 matched / 6 total (2 with-diffs) 86 total differences

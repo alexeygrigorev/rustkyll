@@ -4,10 +4,8 @@ Common HTML files:  2
 
 DIFF another-page.html (1 differences)
   head > meta > meta > meta > meta > meta > child[1]: tag_name_differs - expected: 'meta', actual: 'link'
-DIFF index.html (4 differences)
+DIFF index.html (2 differences)
   head > meta > meta > meta > meta > meta > child[1]: tag_name_differs - expected: 'meta', actual: 'link'
   body > div > section > div > div > pre > code > span: attribute_differs - expected: "class='c1'", actual: "class='c'"
-  body > div > section > child[27]: tag_name_differs - expected: 'p', actual: 'img'
-  body > div > section > child[29]: tag_name_differs - expected: 'p', actual: 'img'
 
-Summary: 0 files matched, 2 files with differences, 5 total differences (2 acceptable diffs filtered out)
+Summary: 0 matched / 2 total (2 with-diffs) 3 total differences (2 acceptable diffs filtered out)
