@@ -1283,10 +1283,40 @@ pub fn load_pages(
         return Ok((Vec::new(), Vec::new()));
     }
 
+    let mut file_paths = Vec::new();
+    collect_page_paths(site_dir, site_dir, config, &mut file_paths)?;
+
+    let add_code_classes = config
+        .extras
+        .get("markdown")
+        .and_then(|v| v.as_str())
+        .map(|m| m.eq_ignore_ascii_case("kramdown"))
+        .unwrap_or(true);
+    let enable_hardbreaks = has_commonmark_hardbreaks(config);
+    let enable_autolink = config.has_commonmark_autolink();
+
+    let processed: Vec<_> = file_paths
+        .par_iter()
+        .filter_map(|path| {
+            process_page_file(
+                path,
+                site_dir,
+                config,
+                add_code_classes,
+                enable_hardbreaks,
+                enable_autolink,
+            )
+        })
+        .collect();
+
     let mut pages = Vec::new();
     let mut errors = Vec::new();
-
-    load_pages_recursive(site_dir, site_dir, config, &mut pages, &mut errors)?;
+    for result in processed {
+        match result {
+            Ok(page) => pages.push(page),
+            Err(err) => errors.push(err),
+        }
+    }
 
     // Sort pages by filename (page.name) to match Jekyll's site.pages order.
     // Jekyll sorts pages by filename rather than by full path. This means
@@ -1366,17 +1396,12 @@ fn has_front_matter(content: &str) -> bool {
     rest.starts_with("---") || rest.contains("\n---")
 }
 
-/// Recursively discover and load pages from a directory.
-///
-/// Loads `.md` files and also non-`.md` files (`.xml`, `.html`, etc.) that
-/// have YAML front matter, matching Jekyll's behavior of processing any file
-/// with front matter through its template engine.
-fn load_pages_recursive(
+/// Recursively collect page file paths before parallel processing.
+fn collect_page_paths(
     current_dir: &Path,
     site_dir: &Path,
     config: &SiteConfig,
-    pages: &mut Vec<Page>,
-    errors: &mut Vec<CollectionError>,
+    file_paths: &mut Vec<PathBuf>,
 ) -> Result<(), CollectionError> {
     let entries = fs::read_dir(current_dir).map_err(|e| CollectionError::ReadDir {
         path: current_dir.display().to_string(),
@@ -1394,7 +1419,7 @@ fn load_pages_recursive(
 
         if path.is_dir() {
             if !should_skip_directory(&name, config) {
-                load_pages_recursive(&path, site_dir, config, pages, errors)?;
+                collect_page_paths(&path, site_dir, config, file_paths)?;
             }
             continue;
         }
@@ -1403,7 +1428,7 @@ fn load_pages_recursive(
             continue;
         }
 
-        let ext = match is_processable_extension(&name) {
+        let _ext = match is_processable_extension(&name) {
             Some(ext) => ext,
             None => continue,
         };
@@ -1418,184 +1443,156 @@ fn load_pages_recursive(
             continue;
         }
 
-        let is_markdown = ext == ".md";
-
-        let raw = match fs::read_to_string(&path) {
-            Ok(content) => content,
-            Err(e) => {
-                errors.push(CollectionError::ReadFile {
-                    path: path.display().to_string(),
-                    source: e,
-                });
-                continue;
-            }
-        };
-
-        // Jekyll only processes files that have YAML front matter (starting with ---)
-        // This applies to all file types including .md files.
-        // Exception: README.md files are processed even without front matter
-        // if config defaults target that path specifically (matching Jekyll's
-        // behavior when README.md is explicitly configured via defaults in
-        // _config.yml). A catch-all default (type: pages, path: "") does NOT
-        // cause README.md to be discovered -- only path-specific defaults do.
-        if !has_front_matter(&raw) {
-            if is_readme {
-                let rel = path.strip_prefix(site_dir).unwrap_or(&path);
-                let rel_str = rel.to_string_lossy().replace('\\', "/");
-                // Check if there's a path-specific default targeting this file.
-                // Type-only defaults (type: pages, path: "") don't count --
-                // they apply to already-discovered pages, not README.md files.
-                let has_path_specific_default = config
-                    .defaults
-                    .iter()
-                    .any(|d| !d.scope.path.is_empty() && rel_str.starts_with(&d.scope.path));
-                if !has_path_specific_default {
-                    continue;
-                }
-            } else {
-                continue;
-            }
-        }
-
-        let doc = if has_front_matter(&raw) {
-            match frontmatter::parse_document(&raw) {
-                Ok(doc) => doc,
-                Err(e) => {
-                    errors.push(CollectionError::Parse {
-                        path: path.display().to_string(),
-                        source: e,
-                    });
-                    continue;
-                }
-            }
-        } else {
-            // README.md without front matter: treat entire content as body
-            frontmatter::Document {
-                front_matter: FrontMatter::new(),
-                content: raw.clone(),
-                excerpt: None,
-            }
-        };
-
-        // Skip pages with `published: false` (matching Jekyll behavior)
-        if is_published_false(&doc.front_matter) {
-            continue;
-        }
-
-        // Compute relative path from site_dir for URL generation
-        let rel_path = path
-            .strip_prefix(site_dir)
-            .map(|p| p.to_string_lossy().replace('\\', "/"))
-            .unwrap_or_else(|_| path.to_string_lossy().replace('\\', "/"));
-
-        let stem = name.strip_suffix(ext).unwrap_or(&name);
-
-        // Use front matter `permalink` if present, otherwise derive from relative path.
-        // Ensure permalink always starts with `/` to match Jekyll's behavior
-        // where `page.url` always has a leading slash.
-        let url = doc
-            .front_matter
-            .get("permalink")
-            .and_then(|v| v.as_str())
-            .map(|s| {
-                if s.starts_with('/') {
-                    s.to_string()
-                } else {
-                    format!("/{}", s)
-                }
-            })
-            .unwrap_or_else(|| {
-                if is_markdown {
-                    let rel_stem = rel_path.strip_suffix(".md").unwrap_or(&rel_path);
-                    // Index pages and README.md always get directory URL (e.g. "/" or "/subdir/")
-                    // README.md -> index.html (matching jekyll-readme-index behavior)
-                    if stem == "index" || stem == "README" {
-                        let dir = rel_path.rsplit_once('/').map(|(d, _)| d).unwrap_or("");
-                        if dir.is_empty() {
-                            "/".to_string()
-                        } else {
-                            format!("/{}/", dir)
-                        }
-                    } else {
-                        // Inline the Jekyll Utils.add_permalink_suffix logic here.
-                        // See jekyll/lib/jekyll/utils.rb:253-267 for reference.
-                        let pl = &config.permalink;
-                        let suffix = match pl.as_str() {
-                            "pretty" => "/",
-                            "date" | "ordinal" | "none" => ".html",
-                            s if s.ends_with('/') => "/",
-                            s if s.ends_with(":output_ext") => ".html",
-                            _ => "",
-                        };
-                        format!("/{}{}", rel_stem, suffix)
-                    }
-                } else {
-                    // Non-markdown files keep their original extension in the URL
-                    // (e.g. podcast.xml -> /podcast.xml)
-                    // Exception: index.html files get directory URL (Jekyll behavior)
-                    //   index.html -> /
-                    //   subdir/index.html -> /subdir/
-                    // Exception: .scss files are output as .css (Jekyll compiles SCSS)
-                    if stem == "index" && ext == ".html" {
-                        let dir = rel_path.rsplit_once('/').map(|(d, _)| d).unwrap_or("");
-                        if dir.is_empty() {
-                            "/".to_string()
-                        } else {
-                            format!("/{}/", dir)
-                        }
-                    } else if rel_path.ends_with(".scss") {
-                        format!("/{}css", rel_path.strip_suffix("scss").unwrap_or(&rel_path))
-                    } else {
-                        format!("/{}", rel_path)
-                    }
-                }
-            });
-
-        // Percent-encode non-ASCII characters in URLs, matching Jekyll behavior.
-        let url = crate::template::filters::relative_url::encode_url_path(&url);
-
-        // Issue 216: Respect markdown processor setting for inline code classes
-        let add_code_classes = config
-            .extras
-            .get("markdown")
-            .and_then(|v| v.as_str())
-            .map(|m| m.eq_ignore_ascii_case("kramdown"))
-            .unwrap_or(true);
-
-        // Issue 223: Check if HARDBREAKS option is enabled in commonmark.options.
-        let enable_hardbreaks = has_commonmark_hardbreaks(config);
-
-        // Issue 294: Check if autolink extension is enabled.
-        let enable_autolink = config.has_commonmark_autolink();
-
-        let html_content = if is_markdown {
-            // Pre-render {% highlight %}...{% endhighlight %} blocks before markdown
-            // conversion, matching Jekyll's Liquid-before-markdown order of operations.
-            let preprocessed = pre_render_highlight_blocks(&doc.content);
-            frontmatter::markdown_to_html_with_options(
-                &preprocessed,
-                add_code_classes,
-                add_code_classes,
-                enable_hardbreaks,
-                enable_autolink,
-            )
-        } else {
-            // Non-markdown files: content is used as-is (will be rendered
-            // through Liquid but not converted from markdown to HTML)
-            doc.content.clone()
-        };
-
-        pages.push(Page {
-            slug: stem.to_string(),
-            front_matter: doc.front_matter,
-            content: doc.content,
-            html_content,
-            url,
-            source_path: rel_path,
-        });
+        file_paths.push(path);
     }
 
     Ok(())
+}
+
+fn process_page_file(
+    path: &Path,
+    site_dir: &Path,
+    config: &SiteConfig,
+    add_code_classes: bool,
+    enable_hardbreaks: bool,
+    enable_autolink: bool,
+) -> Option<Result<Page, CollectionError>> {
+    let name = path.file_name().and_then(|n| n.to_str())?.to_string();
+    let ext = is_processable_extension(&name)?;
+    let is_markdown = ext == ".md";
+    let is_readme = name == "README.md";
+
+    let raw = match fs::read_to_string(path) {
+        Ok(content) => content,
+        Err(e) => {
+            return Some(Err(CollectionError::ReadFile {
+                path: path.display().to_string(),
+                source: e,
+            }));
+        }
+    };
+
+    // Jekyll only processes files that have YAML front matter (starting with ---)
+    // This applies to all file types including .md files.
+    // Exception: README.md files are processed even without front matter
+    // if config defaults target that path specifically (matching Jekyll's
+    // behavior when README.md is explicitly configured via defaults in
+    // _config.yml). A catch-all default (type: pages, path: "") does NOT
+    // cause README.md to be discovered -- only path-specific defaults do.
+    if !has_front_matter(&raw) {
+        if is_readme {
+            let rel = path.strip_prefix(site_dir).unwrap_or(path);
+            let rel_str = rel.to_string_lossy().replace('\\', "/");
+            let has_path_specific_default = config
+                .defaults
+                .iter()
+                .any(|d| !d.scope.path.is_empty() && rel_str.starts_with(&d.scope.path));
+            if !has_path_specific_default {
+                return None;
+            }
+        } else {
+            return None;
+        }
+    }
+
+    let doc = if has_front_matter(&raw) {
+        match frontmatter::parse_document(&raw) {
+            Ok(doc) => doc,
+            Err(e) => {
+                return Some(Err(CollectionError::Parse {
+                    path: path.display().to_string(),
+                    source: e,
+                }));
+            }
+        }
+    } else {
+        frontmatter::Document {
+            front_matter: FrontMatter::new(),
+            content: raw.clone(),
+            excerpt: None,
+        }
+    };
+
+    if is_published_false(&doc.front_matter) {
+        return None;
+    }
+
+    let rel_path = path
+        .strip_prefix(site_dir)
+        .map(|p| p.to_string_lossy().replace('\\', "/"))
+        .unwrap_or_else(|_| path.to_string_lossy().replace('\\', "/"));
+
+    let stem = name.strip_suffix(ext).unwrap_or(&name);
+
+    let url = doc
+        .front_matter
+        .get("permalink")
+        .and_then(|v| v.as_str())
+        .map(|s| {
+            if s.starts_with('/') {
+                s.to_string()
+            } else {
+                format!("/{}", s)
+            }
+        })
+        .unwrap_or_else(|| {
+            if is_markdown {
+                let rel_stem = rel_path.strip_suffix(".md").unwrap_or(&rel_path);
+                if stem == "index" || stem == "README" {
+                    let dir = rel_path.rsplit_once('/').map(|(d, _)| d).unwrap_or("");
+                    if dir.is_empty() {
+                        "/".to_string()
+                    } else {
+                        format!("/{}/", dir)
+                    }
+                } else {
+                    let pl = &config.permalink;
+                    let suffix = match pl.as_str() {
+                        "pretty" => "/",
+                        "date" | "ordinal" | "none" => ".html",
+                        s if s.ends_with('/') => "/",
+                        s if s.ends_with(":output_ext") => ".html",
+                        _ => "",
+                    };
+                    format!("/{}{}", rel_stem, suffix)
+                }
+            } else if stem == "index" && ext == ".html" {
+                let dir = rel_path.rsplit_once('/').map(|(d, _)| d).unwrap_or("");
+                if dir.is_empty() {
+                    "/".to_string()
+                } else {
+                    format!("/{}/", dir)
+                }
+            } else if rel_path.ends_with(".scss") {
+                format!("/{}css", rel_path.strip_suffix("scss").unwrap_or(&rel_path))
+            } else {
+                format!("/{}", rel_path)
+            }
+        });
+
+    let url = crate::template::filters::relative_url::encode_url_path(&url);
+
+    let html_content = if is_markdown {
+        let preprocessed = pre_render_highlight_blocks(&doc.content);
+        frontmatter::markdown_to_html_with_options(
+            &preprocessed,
+            add_code_classes,
+            add_code_classes,
+            enable_hardbreaks,
+            enable_autolink,
+        )
+    } else {
+        doc.content.clone()
+    };
+
+    Some(Ok(Page {
+        slug: stem.to_string(),
+        front_matter: doc.front_matter,
+        content: doc.content,
+        html_content,
+        url,
+        source_path: rel_path,
+    }))
 }
 
 /// A URL collision: multiple source files resolving to the same output URL.

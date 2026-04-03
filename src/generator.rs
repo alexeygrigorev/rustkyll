@@ -9441,7 +9441,12 @@ defaults:
             scss_raw
         };
 
-        let result = compile_scss(scss_source, "assets/css/main.scss", Some(site), Some(&config));
+        let result = compile_scss(
+            scss_source,
+            "assets/css/main.scss",
+            Some(site),
+            Some(&config),
+        );
         assert!(
             result.is_ok(),
             "Mediumish SCSS compilation failed: {:?}",

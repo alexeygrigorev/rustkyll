@@ -120,11 +120,7 @@ fn load_data_internal(
     Ok(tree)
 }
 
-fn postprocess_data(
-    tree: &mut DataTree,
-    site_source: &Path,
-    config: &crate::config::SiteConfig,
-) {
+fn postprocess_data(tree: &mut DataTree, site_source: &Path, config: &crate::config::SiteConfig) {
     let Some(theme_name) = config.extras.get("theme").and_then(|v| v.as_str()) else {
         return;
     };
@@ -868,8 +864,8 @@ mod tests {
         )
         .unwrap();
 
-        let config = crate::config::SiteConfig::from_yaml_str("theme: jekyll-vitepress-theme\n")
-            .unwrap();
+        let config =
+            crate::config::SiteConfig::from_yaml_str("theme: jekyll-vitepress-theme\n").unwrap();
         let tree = load_data_with_config(&data_dir, dir.path(), &config).unwrap();
 
         let versions = tree["versions"].as_mapping().unwrap();
@@ -893,8 +889,8 @@ mod tests {
         )
         .unwrap();
 
-        let config = crate::config::SiteConfig::from_yaml_str("theme: jekyll-vitepress-theme\n")
-            .unwrap();
+        let config =
+            crate::config::SiteConfig::from_yaml_str("theme: jekyll-vitepress-theme\n").unwrap();
         let tree = load_data_with_config(&data_dir, dir.path(), &config).unwrap();
 
         let versions = tree["versions"].as_mapping().unwrap();
@@ -913,8 +909,8 @@ mod tests {
         fs::create_dir_all(&data_dir).unwrap();
         fs::write(data_dir.join("versions.yml"), "current: auto\n").unwrap();
 
-        let config = crate::config::SiteConfig::from_yaml_str("theme: jekyll-vitepress-theme\n")
-            .unwrap();
+        let config =
+            crate::config::SiteConfig::from_yaml_str("theme: jekyll-vitepress-theme\n").unwrap();
         let tree = load_data_with_config(&data_dir, dir.path(), &config).unwrap();
 
         let versions = tree["versions"].as_mapping().unwrap();
@@ -938,8 +934,8 @@ mod tests {
         )
         .unwrap();
 
-        let config = crate::config::SiteConfig::from_yaml_str("theme: jekyll-vitepress-theme\n")
-            .unwrap();
+        let config =
+            crate::config::SiteConfig::from_yaml_str("theme: jekyll-vitepress-theme\n").unwrap();
         let tree = load_data_with_config(&data_dir, dir.path(), &config).unwrap();
 
         let versions = tree["versions"].as_mapping().unwrap();
@@ -963,8 +959,8 @@ mod tests {
         )
         .unwrap();
 
-        let config = crate::config::SiteConfig::from_yaml_str("theme: jekyll-vitepress-theme\n")
-            .unwrap();
+        let config =
+            crate::config::SiteConfig::from_yaml_str("theme: jekyll-vitepress-theme\n").unwrap();
         let tree = load_data_with_config(&data_dir, dir.path(), &config).unwrap();
 
         let versions = tree["versions"].as_mapping().unwrap();
