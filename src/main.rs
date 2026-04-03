@@ -409,10 +409,28 @@ fn build_site(
     // 4. Load standalone pages
     progress.phase("Loading pages...");
     let phase_start = Instant::now();
-    let (pages, page_errors) = collection::load_pages(source, &config)?;
+    let (mut pages, page_errors) = collection::load_pages(source, &config)?;
     for err in &page_errors {
         all_load_errors.push(format!("pages: {}", err));
     }
+
+    // 4a2. Generate template translation pages (bitcoin-org style generators)
+    // Must happen before site context is built so generated pages are in site.pages.
+    if rustkyll::template_generators::should_activate_template_generator(source) {
+        match rustkyll::template_generators::generate_template_pages(source) {
+            Ok(template_pages) => {
+                let count = template_pages.len();
+                pages.extend(template_pages);
+                if count > 0 {
+                    eprintln!("Template generator: {} translated pages generated", count);
+                }
+            }
+            Err(e) => {
+                eprintln!("Warning: template generator failed: {}", e);
+            }
+        }
+    }
+
     summary.timing.pages = phase_start.elapsed();
 
     // 4b. Detect URL collisions (Issue 225)

@@ -24,6 +24,7 @@ pub mod layout;
 pub mod noop_tags;
 pub mod octicon_tag;
 pub mod seo_tag;
+pub mod translate_tag;
 
 pub use context::{
     build_context, normalize_frontmatter_date, yaml_mapping_to_object,

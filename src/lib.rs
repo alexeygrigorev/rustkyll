@@ -20,6 +20,7 @@ pub mod sitemap;
 pub mod static_files;
 pub mod syntax;
 pub mod template;
+pub mod template_generators;
 pub mod yaml;
 
 /// Returns the name of this project.

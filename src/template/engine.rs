@@ -669,6 +669,7 @@ impl TemplateEngine {
             .block(super::noop_tags::QuoteBlock)
             .block(super::details_tag::DetailsBlock)
             .tag(super::file_exists_tag::FileExistsTag)
+            .tag(super::translate_tag::TranslateTag)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
         Ok(Self {
@@ -718,7 +719,8 @@ impl TemplateEngine {
             .block(super::noop_tags::TabBlock)
             .block(super::noop_tags::QuoteBlock)
             .block(super::details_tag::DetailsBlock)
-            .tag(super::file_exists_tag::FileExistsTag);
+            .tag(super::file_exists_tag::FileExistsTag)
+            .tag(super::translate_tag::TranslateTag);
         for name in &passthrough_set {
             builder = builder.filter(filters::passthrough::PassthroughFilter::new(name.clone()));
         }
@@ -784,7 +786,8 @@ impl TemplateEngine {
             .block(super::noop_tags::TabBlock)
             .block(super::noop_tags::QuoteBlock)
             .block(super::details_tag::DetailsBlock)
-            .tag(super::file_exists_tag::FileExistsTag);
+            .tag(super::file_exists_tag::FileExistsTag)
+            .tag(super::translate_tag::TranslateTag);
         for name in &passthrough_set {
             builder = builder.filter(filters::passthrough::PassthroughFilter::new(name.clone()));
         }
@@ -939,6 +942,7 @@ impl TemplateEngine {
             .block(super::noop_tags::QuoteBlock)
             .block(super::details_tag::DetailsBlock)
             .tag(super::file_exists_tag::FileExistsTag)
+            .tag(super::translate_tag::TranslateTag)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
 
@@ -1112,7 +1116,8 @@ impl TemplateEngine {
             .block(super::noop_tags::TabBlock)
             .block(super::noop_tags::QuoteBlock)
             .block(super::details_tag::DetailsBlock)
-            .tag(super::file_exists_tag::FileExistsTag);
+            .tag(super::file_exists_tag::FileExistsTag)
+            .tag(super::translate_tag::TranslateTag);
         if self.has_include_tag {
             builder = builder.tag(super::include_tag::LenientIncludeTag);
             builder = builder.tag(super::include_tag::LenientIncludeCachedTag);
