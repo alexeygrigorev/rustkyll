@@ -935,6 +935,14 @@ impl TemplateEngine {
             .filter(filters::Join)
             // Render YAML mapping values like Jekyll/Ruby hash strings (Issue 348)
             .filter(filters::RenderMapping)
+            // Character-count size filter (Issue 517): Ruby/Jekyll `size` returns
+            // character count, not byte count. The stdlib version uses str::len()
+            // which is bytes. This matters for `size` + `slice` on non-ASCII content.
+            .filter(filters::Size)
+            // Character-based slice filter (Issue 517): stdlib `slice` uses byte count
+            // for bounds-checking but chars for iteration, causing incorrect slicing
+            // on non-ASCII content. This uses character count consistently.
+            .filter(filters::Slice)
     }
 
     /// Pre-scan include sources to discover unknown Liquid filter names.
@@ -3094,6 +3102,137 @@ mod tests {
             .parse_and_render("  {%- assign x = \"hi\" -%}  {{ x }}", &ctx)
             .unwrap();
         assert_eq!(out, "hi");
+    }
+
+    /// Issue 517: capture with whitespace-stripping dashes should strip
+    /// the captured content's leading/trailing whitespace.
+    #[test]
+    fn test_517_capture_whitespace_stripping() {
+        let eng = engine();
+        let ctx = Object::new();
+        // {%- capture -%} should strip whitespace from captured content
+        let out = eng
+            .parse_and_render(
+                "{%- capture val -%}\n  hello\n{%- endcapture -%}[{{ val }}]",
+                &ctx,
+            )
+            .unwrap();
+        assert_eq!(
+            out, "[hello]",
+            "Capture with dashes should strip inner whitespace"
+        );
+    }
+
+    /// Issue 517: capture with include should strip whitespace from the include output.
+    /// This simulates the chirpy media-url.html pattern:
+    ///   {%- capture img_url -%}
+    ///     {% include media-url.html src=... %}
+    ///   {%- endcapture -%}
+    #[test]
+    fn test_517_capture_include_whitespace_stripping() {
+        let mut includes = std::collections::HashMap::new();
+        // Simulate media-url.html that uses assigns and outputs with dashes
+        includes.insert(
+            "media-url.html".to_string(),
+            "\n{% assign url = include.src %}\n\n{{- url -}}\n".to_string(),
+        );
+        let eng = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let template = "{%- capture img_url -%}\n  {% include \"media-url.html\" src=\"/path/to/image.png\" %}\n{%- endcapture -%}[{{ img_url }}]";
+        let out = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(
+            out, "[/path/to/image.png]",
+            "Issue 517: Capture+include should produce clean path without whitespace"
+        );
+    }
+
+    /// Issue 517: assign then {{- strips static whitespace but not the leading \n
+    /// before the assign tag (known limitation: {{- only strips static template text,
+    /// not runtime-generated whitespace).
+    #[test]
+    fn test_517_assign_then_dash_output() {
+        let eng = engine();
+        let ctx = Object::new();
+        // The leading \n before {% assign %} is static text that's NOT adjacent to {{-
+        // so it's preserved. This is a known limitation of the liquid crate's compile-time
+        // whitespace stripping. The chirpy workaround is to use capture blocks.
+        let template = "\n{% assign url = \"hello\" %}\n\n{{- url -}}\n";
+        let out = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(
+            out, "\nhello",
+            "Leading \\n before assign is preserved (known liquid limitation)"
+        );
+    }
+
+    /// Issue 517: endcomment with dash should eat whitespace up to next tag
+    #[test]
+    fn test_517_endcomment_dash_then_assign() {
+        let eng = engine();
+        let ctx = Object::new();
+        let template =
+            "{%- comment -%}foo{%- endcomment -%}\n\n{% assign url = \"hello\" %}\n\n{{- url -}}\n";
+        let out = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(
+            out, "hello",
+            "endcomment dash should eat subsequent whitespace"
+        );
+    }
+
+    /// Issue 517: test with full media-url.html-like template for whitespace
+    #[test]
+    fn test_517_media_url_full_template() {
+        let mut includes = std::collections::HashMap::new();
+        let media_url = r#"{%- comment -%}
+  Generate media resource final URL
+{%- endcomment -%}
+
+{% assign url = include.src %}
+
+{%- if url -%}
+  {% unless url contains ':' %}
+    {% assign url = include.subpath | default: '' | append: '/' | append: url %}
+
+    {% assign url = url | replace: '///', '/' | replace: '//', '/' | replace: ':/', '://' %}
+
+    {% unless url contains '://' %}
+      {% assign url = url %}
+    {% endunless %}
+  {% endunless %}
+{%- endif -%}
+
+{{- url -}}
+"#;
+        includes.insert("media-url.html".to_string(), media_url.to_string());
+        let eng = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        let template = "{%- capture img_url -%}\n  {% include \"media-url.html\" src=\"/path/img.png\" %}\n{%- endcapture -%}[{{ img_url }}]";
+        let out = eng.parse_and_render(template, &ctx).unwrap();
+        // The captured value should be the clean URL without whitespace
+        assert!(
+            !out.contains('\n'),
+            "Issue 517: media-url include should not produce newlines. Got: {:?}",
+            out,
+        );
+    }
+
+    /// Issue 517: include without capture preserves runtime whitespace
+    /// (known limitation -- use capture blocks to trim include output)
+    #[test]
+    fn test_517_include_output_dash_stripping() {
+        let mut includes = std::collections::HashMap::new();
+        includes.insert(
+            "simple.html".to_string(),
+            "\n{% assign url = include.val %}\n\n{{- url -}}\n".to_string(),
+        );
+        let eng = TemplateEngine::with_includes_map(&includes).unwrap();
+        let ctx = Object::new();
+        // Without capture, the leading \n from the include template is preserved
+        let template = "[{% include \"simple.html\" val=\"hello\" %}]";
+        let out = eng.parse_and_render(template, &ctx).unwrap();
+        assert_eq!(
+            out, "[\nhello]",
+            "Issue 517: Include without capture preserves leading whitespace (known limitation)"
+        );
     }
 
     // ========================================================================

@@ -2780,10 +2780,20 @@ pub fn mark_forward_ial(content: &str) -> String {
             let prev_blank = i == 0 || lines[i - 1].trim().is_empty();
             // Check if next line is blank
             let next_blank = i + 1 < lines.len() && lines[i + 1].trim().is_empty();
+            // Issue 517: If the blank line was inserted to break lazy continuation
+            // after a blockquote, this is a BACKWARD IAL (applies to the
+            // preceding blockquote), not a forward IAL.
+            let prev_is_blockquote = if prev_blank && i >= 2 {
+                lines[i - 2].trim().starts_with('>')
+            } else {
+                false
+            };
+
             // Forward IAL: standalone IAL with a blank line (or start) before it.
             // In kramdown, {: .class} on its own line preceded by a blank applies
-            // to the following block element.
-            if prev_blank {
+            // to the following block element -- unless the preceding non-blank
+            // line is a blockquote (backward IAL separated by lazy-break blank line).
+            if prev_blank && !prev_is_blockquote {
                 // Insert forward marker before the IAL
                 result.push_str("<!-- IAL:FWD -->\n");
                 result.push_str(lines[i]);
@@ -3400,7 +3410,12 @@ pub fn convert_kramdown_pipe_tables(content: &str) -> String {
 /// Inline markdown (links, emphasis) within terms and definitions is rendered.
 pub fn convert_kramdown_definition_lists(content: &str) -> String {
     // Quick check: if no definition marker pattern exists, return early.
-    if !content.contains("\n:   ") && !content.starts_with(":   ") {
+    // Kramdown accepts `: ` (colon + 1+ spaces) or `:\t` as definition markers.
+    if !content.contains("\n: ")
+        && !content.contains("\n:\t")
+        && !content.starts_with(": ")
+        && !content.starts_with(":\t")
+    {
         return content.to_string();
     }
 
@@ -3508,7 +3523,8 @@ pub fn convert_kramdown_definition_lists(content: &str) -> String {
 
 /// Check if a line could be a definition list term.
 /// Must be non-blank, not a code fence, not a definition marker,
-/// and not an ATX heading (but `#hashtag` without space is OK).
+/// not an ATX heading (but `#hashtag` without space is OK),
+/// and not an ordered list item (which could be confused with a term).
 fn is_potential_dl_term_line(line: &str) -> bool {
     let trimmed = line.trim();
     if trimmed.is_empty() {
@@ -3530,13 +3546,41 @@ fn is_potential_dl_term_line(line: &str) -> bool {
     {
         return false;
     }
+    // Reject ordered list items (e.g., "3. Or, this GitHub") to avoid
+    // treating list items followed by `: text` as definition lists.
+    if is_ordered_list_item(trimmed) {
+        return false;
+    }
     true
 }
 
+/// Check if a line is an ordered list item (number + dot + space).
+fn is_ordered_list_item(trimmed: &str) -> bool {
+    let mut chars = trimmed.chars();
+    // Must start with at least one digit
+    let first = chars.next();
+    if !first.is_some_and(|c| c.is_ascii_digit()) {
+        return false;
+    }
+    // Skip remaining digits
+    let mut rest = chars;
+    loop {
+        match rest.next() {
+            Some(c) if c.is_ascii_digit() => continue,
+            Some('.') => {
+                // Must be followed by a space
+                return rest.next() == Some(' ');
+            }
+            _ => return false,
+        }
+    }
+}
+
 /// Check if a line is a kramdown definition marker (starts with `:` + spaces).
+/// Kramdown accepts `:` followed by one or more spaces (or a tab) as a definition marker.
 fn is_definition_marker_line(line: &str) -> bool {
     if let Some(rest) = line.strip_prefix(':') {
-        rest.starts_with("   ") || rest.starts_with('\t')
+        rest.starts_with(' ') || rest.starts_with('\t')
     } else {
         false
     }
@@ -4554,7 +4598,7 @@ fn apply_block_ial(html: &str) -> String {
 
                 // Adjust position of the next tag after removal
                 let adjusted_pos = next_tag_pos - removed_len;
-                insert_attributes_at(&mut result, adjusted_pos, &attrs);
+                insert_block_ial_attributes_at(&mut result, adjusted_pos, &attrs);
             }
         } else {
             // Backward direction (original behavior): apply to the preceding element
@@ -4575,7 +4619,7 @@ fn apply_block_ial(html: &str) -> String {
                         result.replace_range(remove_start..end, "");
 
                         // Apply attributes to the opening tag
-                        insert_attributes_at(&mut result, open_pos, &attrs);
+                        insert_block_ial_attributes_at(&mut result, open_pos, &attrs);
                     }
                 }
             }
@@ -4726,7 +4770,7 @@ fn apply_merged_ial(html: &mut String) {
 
         // Apply attributes to the opening tag
         let attrs = parse_ial_attributes(&attr_str);
-        insert_attributes_at(html, open_pos, &attrs);
+        insert_block_ial_attributes_at(html, open_pos, &attrs);
     }
 }
 
@@ -4877,6 +4921,65 @@ fn find_last_opening_tag(html: &str, tag_name: &str) -> Option<usize> {
 }
 
 /// Insert parsed attributes into the opening tag at `open_pos`.
+/// Insert IAL attributes right after the tag name, BEFORE any existing attributes.
+/// This matches kramdown behavior where IAL-specified attributes appear before
+/// auto-generated ones (like `id`). Used for block-level IAL application.
+fn insert_block_ial_attributes_at(html: &mut String, open_pos: usize, attrs: &[(String, String)]) {
+    // Find the end of the opening tag (the `>`)
+    let tag_start = &html[open_pos..];
+    if let Some(gt_offset) = tag_start.find('>') {
+        let gt_pos = open_pos + gt_offset;
+        let existing_tag = &html[open_pos..gt_pos];
+
+        // Merge all class values into a single space-separated string.
+        let mut classes: Vec<&str> = Vec::new();
+        let mut other_attrs = String::new();
+        for (key, value) in attrs {
+            if key == "class" {
+                classes.push(value);
+            } else if key == "id" {
+                other_attrs.push_str(&format!(" id=\"{}\"", value));
+            } else {
+                other_attrs.push_str(&format!(" {}=\"{}\"", key, value));
+            }
+        }
+
+        // Handle classes: sort alphabetically and merge
+        if !classes.is_empty() {
+            classes.sort_unstable();
+            let merged = classes.join(" ");
+            if let Some(class_start) = existing_tag.find("class=\"") {
+                // Append to existing class attribute
+                let class_val_start = open_pos + class_start + 7;
+                if let Some(class_val_end) = html[class_val_start..].find('"') {
+                    let insert_pos = class_val_start + class_val_end;
+                    html.insert_str(insert_pos, &format!(" {}", merged));
+                    // Also insert other attrs after the tag name
+                    if !other_attrs.is_empty() {
+                        let after_lt = &html[open_pos + 1..];
+                        let tag_name_end = after_lt
+                            .find(|c: char| c.is_whitespace() || c == '/' || c == '>')
+                            .unwrap_or(after_lt.len());
+                        let insert_pos = open_pos + 1 + tag_name_end;
+                        html.insert_str(insert_pos, &other_attrs);
+                    }
+                    return;
+                }
+            } else {
+                other_attrs = format!(" class=\"{}\"", merged) + &other_attrs;
+            }
+        }
+
+        // Insert after the tag name (before existing attributes like id)
+        let after_lt = &html[open_pos + 1..];
+        let tag_name_end = after_lt
+            .find(|c: char| c.is_whitespace() || c == '/' || c == '>')
+            .unwrap_or(after_lt.len());
+        let insert_pos = open_pos + 1 + tag_name_end;
+        html.insert_str(insert_pos, &other_attrs);
+    }
+}
+
 fn insert_attributes_at(html: &mut String, open_pos: usize, attrs: &[(String, String)]) {
     // Find the end of the opening tag (the `>`)
     let tag_start = &html[open_pos..];
@@ -5018,6 +5121,28 @@ fn parse_ial_attributes(attr_str: &str) -> Vec<(String, String)> {
                         let value = &after_eq[value_start..value_start + end_quote];
                         attrs.push((key.to_string(), value.to_string()));
                         remaining = &after_eq[value_start + end_quote + 1..];
+                    } else {
+                        break; // Malformed
+                    }
+                } else if after_eq.starts_with('\u{2018}') || after_eq.starts_with('\u{2019}') {
+                    // Curly single-quoted value: smart-quote processing may convert
+                    // kramdown IAL single quotes (e.g., data-toc-skip='') into curly
+                    // quotes (\u{2019}\u{2019}). Treat any curly single quote as a
+                    // delimiter, matching the straight single-quote behavior.
+                    let open_quote = after_eq.chars().next().unwrap();
+                    let open_len = open_quote.len_utf8();
+                    let value_start = open_len;
+                    // Find the next curly single quote (either left or right) as closing delimiter
+                    if let Some(end_offset) = after_eq[value_start..].find(['\u{2018}', '\u{2019}'])
+                    {
+                        let value = &after_eq[value_start..value_start + end_offset];
+                        let close_quote_len = after_eq[value_start + end_offset..]
+                            .chars()
+                            .next()
+                            .unwrap()
+                            .len_utf8();
+                        attrs.push((key.to_string(), value.to_string()));
+                        remaining = &after_eq[value_start + end_offset + close_quote_len..];
                     } else {
                         break; // Malformed
                     }
@@ -8698,6 +8823,24 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_517_block_ial_on_blockquote() {
+        // Block IAL after blockquote should apply to <blockquote>, not inner <p>
+        let html =
+            "<blockquote>\n<p>An example prompt.</p>\n</blockquote>\n<p>{: .prompt-tip }</p>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("<blockquote class=\"prompt-tip\">"),
+            "Block IAL should apply to blockquote, not inner p. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("<p class=\"prompt-tip\">"),
+            "Class should NOT be on inner p. Got: {}",
+            result
+        );
+    }
+
     // ======================================================================
     // Issue 246: Block-level IAL (e.g., `{: .fs-9 }` on its own line)
     // ======================================================================
@@ -8804,6 +8947,30 @@ mod tests {
         assert!(
             result.contains("Ubersicht"),
             "Unicode content should be preserved. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_517_ial_empty_single_quoted_value() {
+        // IAL: `data-toc-skip=''` should produce `data-toc-skip=""` (empty value),
+        // not `data-toc-skip="''"` (literal single quotes as value).
+        // This is how kramdown (Jekyll) handles single-quoted empty strings in IALs.
+        let html = "<h2>H2 — heading\n{: data-toc-skip='' .mt-4 .mb-0 }</h2>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("data-toc-skip=\"\""),
+            "Single-quoted empty IAL value should produce empty attribute. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("data-toc-skip=\"''\""),
+            "Should not have literal single quotes in attribute value. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("class=\"mb-0 mt-4\""),
+            "Classes should be applied. Got: {}",
             result
         );
     }
@@ -15856,6 +16023,19 @@ by <a href="/people/author.html">Author Name</a>
     // --- Issue 496: Kramdown inline attribute lists ---
 
     #[test]
+    fn test_517_parse_ial_empty_single_quoted_value() {
+        // data-toc-skip='' should parse as ("data-toc-skip", "")
+        let attrs = parse_ial_attributes("data-toc-skip='' .mt-4 .mb-0");
+        let toc_skip = attrs.iter().find(|(k, _)| k == "data-toc-skip");
+        assert_eq!(
+            toc_skip,
+            Some(&("data-toc-skip".to_string(), "".to_string())),
+            "data-toc-skip='' should have empty value. Got attrs: {:?}",
+            attrs
+        );
+    }
+
+    #[test]
     fn test_parse_ial_trailing_colon() {
         // Kramdown allows optional trailing colon: {: .class :}
         let attrs = parse_ial_attributes(".mx-auto.d-block :");
@@ -16583,6 +16763,60 @@ Do It Live\n\
         assert!(
             result.contains("<dt>#dowork</dt>"),
             "Issue 491: Hash term. Got: {result}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 517: Definition list with single space after colon
+    // ========================================================================
+
+    #[test]
+    fn test_517_definition_list_single_space() {
+        // Kramdown accepts `: ` (colon + 1 space) as definition marker,
+        // not just `:   ` (colon + 3 spaces). Chirpy uses this format.
+        let input = "Sun\n: the star around which the earth orbits\n\nMoon\n: the natural satellite of the earth, visible by reflected light from the sun\n";
+        let result = convert_kramdown_definition_lists(input);
+        assert!(
+            result.contains("<dl>"),
+            "Issue 517: Should produce <dl> with single-space definition marker. Got: {result}"
+        );
+        assert!(
+            result.contains("<dt>Sun</dt>"),
+            "Issue 517: Should produce <dt>Sun</dt>. Got: {result}"
+        );
+        assert!(
+            result.contains("<dd>the star around which the earth orbits</dd>"),
+            "Issue 517: Should produce <dd> for Sun. Got: {result}"
+        );
+        assert!(
+            result.contains("<dt>Moon</dt>"),
+            "Issue 517: Should produce <dt>Moon</dt>. Got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_517_ordered_list_not_definition_list() {
+        // An ordered list item followed by `: text` should NOT be a definition list
+        let input = "3. Or, this GitHub\n\n: [https://example.com](https://example.com)\n";
+        let result = convert_kramdown_definition_lists(input);
+        assert!(
+            !result.contains("<dl>"),
+            "Issue 517: Ordered list item should not become definition list term. Got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_517_definition_list_single_space_unicode() {
+        // Non-ASCII terms and definitions
+        let input = "太陽\n: 地球が回る恒星\n\nLune\n: le satellite naturel de la Terre\n";
+        let result = convert_kramdown_definition_lists(input);
+        assert!(
+            result.contains("<dt>太陽</dt>"),
+            "Issue 517: Unicode term. Got: {result}"
+        );
+        assert!(
+            result.contains("<dd>地球が回る恒星</dd>"),
+            "Issue 517: Unicode definition. Got: {result}"
         );
     }
 

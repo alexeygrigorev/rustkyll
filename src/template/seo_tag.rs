@@ -675,6 +675,13 @@ impl Renderable for SeoRenderable {
                 "<meta property=\"twitter:image\" content=\"{}\" />\n",
                 html_escape(&absolute_img)
             ));
+            // 11b. twitter:image:alt (when page.image has an alt key)
+            if let Some(ref alt) = page_image_alt {
+                output.push_str(&format!(
+                    "<meta name=\"twitter:image:alt\" content=\"{}\" />\n",
+                    html_escape(alt)
+                ));
+            }
         } else {
             output.push_str("<meta name=\"twitter:card\" content=\"summary\" />\n");
         }
@@ -4950,6 +4957,36 @@ mod tests {
                 "<meta property=\"twitter:image\" content=\"https://example.com/img/test.png\" />"
             ),
             "twitter:image should extract path from hash. Got: {}",
+            out
+        );
+    }
+
+    /// Issue 517: twitter:image:alt should be emitted when page.image has an alt key
+    #[test]
+    fn test_517_twitter_image_alt() {
+        let eng = engine();
+        let ctx = make_context_with_hash_image(
+            Some("https://example.com"),
+            &[("path", "/img/test.png"), ("alt", "テスト画像の説明")],
+        );
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("<meta name=\"twitter:image:alt\" content=\"テスト画像の説明\" />"),
+            "Issue 517: Should emit twitter:image:alt when hash has alt key. Got: {}",
+            out
+        );
+    }
+
+    /// Issue 517: twitter:image:alt should NOT be emitted when page.image has no alt
+    #[test]
+    fn test_517_twitter_image_alt_absent() {
+        let eng = engine();
+        let ctx =
+            make_context_with_hash_image(Some("https://example.com"), &[("path", "/img/test.png")]);
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            !out.contains("twitter:image:alt"),
+            "Issue 517: Should NOT emit twitter:image:alt without alt key. Got: {}",
             out
         );
     }

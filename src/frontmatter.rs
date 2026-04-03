@@ -602,6 +602,13 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // an actual generated TOC during kramdown postprocessing.
     let markdown = crate::kramdown::replace_toc_pattern_in_markdown(&markdown);
 
+    // Issue 517: Break lazy continuation for IALs after blockquotes.
+    // In CommonMark, a line after `> text` without `>` prefix is a lazy
+    // continuation. This causes `{: .class }` IALs to be merged into the
+    // blockquote paragraph instead of being a separate paragraph that
+    // `apply_block_ial` can apply to the blockquote.
+    let markdown = break_ial_lazy_continuation_after_blockquote(&markdown);
+
     // Issue 301: Mark forward-direction IALs (standalone {: .class} with blank
     // lines on both sides) so apply_block_ial can detect them.
     let markdown = crate::kramdown::mark_forward_ial(&markdown);
@@ -807,6 +814,13 @@ pub fn markdown_to_html_with_options(
     // Issue 489: Replace standalone {:toc} patterns with a placeholder
     let markdown = if has_ial {
         crate::kramdown::replace_toc_pattern_in_markdown(&markdown)
+    } else {
+        markdown
+    };
+
+    // Issue 517: Break lazy continuation for IALs after blockquotes
+    let markdown = if has_ial {
+        break_ial_lazy_continuation_after_blockquote(&markdown)
     } else {
         markdown
     };
@@ -1098,6 +1112,9 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     // pulldown-cmark handles ---- as two en-dashes (--+--), but kramdown handles
     // it as em-dash + hyphen (---+-).
     let markdown = preprocess_kramdown_dashes(&markdown);
+
+    // Issue 517: Break lazy continuation for IALs after blockquotes
+    let markdown = break_ial_lazy_continuation_after_blockquote(&markdown);
 
     // Issue 301: Mark forward-direction IALs
     let markdown = crate::kramdown::mark_forward_ial(&markdown);
@@ -1795,6 +1812,46 @@ fn protect_url_link_text_emphasis(markdown: &str) -> String {
 ///
 /// Replace `'''` and `''` with placeholders before markdown processing,
 /// restore after. Single `'` is left alone for normal smart quote conversion.
+/// Break lazy continuation for IAL lines that follow blockquote lines.
+///
+/// In CommonMark, a line after `> text` without a `>` prefix is treated as
+/// lazy continuation of the blockquote. This causes standalone IAL lines like
+/// `{: .prompt-tip }` to be merged into the blockquote paragraph, preventing
+/// `apply_block_ial` from applying the class to the `<blockquote>` element.
+///
+/// In kramdown, the IAL is NOT a lazy continuation -- it applies to the
+/// preceding blockquote element. This function inserts a blank line between
+/// the blockquote and the IAL to match kramdown behavior.
+fn break_ial_lazy_continuation_after_blockquote(input: &str) -> String {
+    if !input.contains("{:") {
+        return input.to_string();
+    }
+
+    let lines: Vec<&str> = input.split('\n').collect();
+    let mut result = String::with_capacity(input.len() + 64);
+
+    for (i, line) in lines.iter().enumerate() {
+        let trimmed = line.trim();
+        // Check if this line is a standalone IAL
+        if trimmed.starts_with("{:") && trimmed.ends_with('}') {
+            // Check if the previous non-blank line starts with '>'
+            if i > 0 {
+                let prev = lines[i - 1].trim();
+                if prev.starts_with('>') {
+                    // Insert blank line to break lazy continuation
+                    result.push('\n');
+                }
+            }
+        }
+        result.push_str(line);
+        if i + 1 < lines.len() {
+            result.push('\n');
+        }
+    }
+
+    result
+}
+
 fn protect_consecutive_single_quotes(input: &str) -> String {
     if !input.contains("''") {
         return input.to_string();
@@ -10171,6 +10228,37 @@ More text.
         assert!(
             html.contains("id=\"custom-id\""),
             "IAL should be applied. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_517_ial_empty_single_quoted_value_full_pipeline() {
+        // IAL `data-toc-skip=''` should produce `data-toc-skip=""` (empty value)
+        // after full markdown_to_html pipeline including protect/restore of
+        // consecutive single quotes.
+        let md = "## H2 — heading\n{: data-toc-skip='' .mt-4 .mb-0 }\n";
+        let html = markdown_to_html(md);
+        assert!(
+            html.contains("data-toc-skip=\"\""),
+            "Single-quoted empty IAL value should produce empty attribute after full pipeline. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains("data-toc-skip=\"''\""),
+            "Should not have literal single quotes in attribute value. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_517_blockquote_ial_class_full_pipeline() {
+        // IAL `{: .prompt-tip }` after blockquote should apply to <blockquote>
+        let md = "> An example prompt.\n{: .prompt-tip }\n";
+        let html = markdown_to_html(md);
+        assert!(
+            html.contains("<blockquote class=\"prompt-tip\">"),
+            "Block IAL should apply to blockquote. Got: {}",
             html
         );
     }

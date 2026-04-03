@@ -84,6 +84,11 @@ impl Renderable for Capture {
             .trace_with(|| self.trace().into())?;
 
         let output = String::from_utf8(captured).expect("render only writes UTF-8");
+        // Trim the captured value. Jekyll's {%- capture -%} strips inner whitespace,
+        // but our Liquid parser only strips static text, not runtime-generated whitespace
+        // from includes and conditional blocks. Trimming here matches Jekyll's behavior
+        // for the common pattern of capturing include output.
+        let output = output.trim().to_owned();
         runtime.set_global(self.id.clone(), Value::scalar(output));
         Ok(())
     }
