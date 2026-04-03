@@ -1,3 +1,7 @@
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::sync::Arc;
+
 use liquid_core::Expression;
 use liquid_core::Result;
 use liquid_core::Runtime;
@@ -5,6 +9,13 @@ use liquid_core::{
     Display_filter, Filter, FilterParameters, FilterReflection, FromFilterParameters, ParseFilter,
 };
 use liquid_core::{Value, ValueView};
+
+thread_local! {
+    static WHERE_INDEX_CACHE: RefCell<HashMap<usize, HashMap<String, HashMap<String, Arc<Vec<Value>>>>>> =
+        RefCell::new(HashMap::new());
+}
+
+const INDEX_MIN_SIZE: i64 = 16;
 
 #[derive(Debug, FilterParameters)]
 struct WhereArgs {
@@ -50,6 +61,27 @@ impl Filter for WhereFilter {
             }
         };
 
+        if array.size() >= INDEX_MIN_SIZE && !is_year_target(target_value.as_str()) {
+            let array_key = (input as *const dyn ValueView as *const ()) as usize;
+            let property_key = property.to_string();
+            let target_key = target_value.to_string();
+
+            let cached = WHERE_INDEX_CACHE.with(|cache| {
+                let mut cache = cache.borrow_mut();
+                let by_array = cache.entry(array_key).or_default();
+                let by_property = by_array
+                    .entry(property_key.clone())
+                    .or_insert_with(|| build_index(array, property.as_str()));
+                by_property.get(&target_key).cloned()
+            });
+
+            if let Some(values) = cached {
+                return Ok(Value::Array(values.as_ref().clone()));
+            }
+
+            return Ok(Value::Array(vec![]));
+        }
+
         let mut result = Vec::new();
         for item in array.values() {
             if let Some(obj) = item.as_object() {
@@ -75,6 +107,26 @@ impl Filter for WhereFilter {
 
         Ok(Value::Array(result))
     }
+}
+
+fn build_index(array: &dyn liquid_core::model::ArrayView, property: &str) -> HashMap<String, Arc<Vec<Value>>> {
+    let mut grouped: HashMap<String, Vec<Value>> = HashMap::new();
+    for item in array.values() {
+        let Some(obj) = item.as_object() else {
+            continue;
+        };
+        let Some(val) = obj.get(property) else {
+            continue;
+        };
+
+        let key = val.to_kstr().to_string();
+        grouped.entry(key).or_default().push(item.to_value());
+    }
+
+    grouped
+        .into_iter()
+        .map(|(k, v)| (k, Arc::new(v)))
+        .collect()
 }
 
 /// Returns true if the target string is a 4-digit year (e.g. "2018").
@@ -176,6 +228,27 @@ mod tests {
         let result = liquid_core::call_filter!(Where, input, "status", "active").unwrap();
         let arr = result.as_array().unwrap();
         assert_eq!(arr.size(), 2);
+    }
+
+    #[test]
+    fn test_where_filter_large_array_uses_indexed_path_consistently() {
+        let mut rows = Vec::new();
+        for i in 0..32 {
+            let mut o = liquid::Object::new();
+            o.insert("url".into(), Value::scalar(format!("/docs/{i}/")));
+            o.insert("title".into(), Value::scalar(format!("Doc {i}")));
+            rows.push(Value::Object(o));
+        }
+        let input = Value::Array(rows);
+
+        for _ in 0..3 {
+            let result = liquid_core::call_filter!(Where, input.clone(), "url", "/docs/17/").unwrap();
+            let arr = result.as_array().unwrap();
+            assert_eq!(arr.size(), 1);
+            let first = arr.values().next().unwrap();
+            let obj = first.as_object().unwrap();
+            assert_eq!(obj.get("title").unwrap().to_kstr().as_str(), "Doc 17");
+        }
     }
 
     #[test]

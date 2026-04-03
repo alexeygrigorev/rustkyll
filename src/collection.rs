@@ -1153,7 +1153,14 @@ fn process_collection_file(
     // Jekyll outputs percent-encoded URLs for Cyrillic and other non-ASCII chars.
     let url = crate::template::filters::relative_url::encode_url_path(&url);
 
-    let html_content = if is_markdown {
+    let has_non_highlight_liquid = contains_non_highlight_liquid(&doc.content);
+
+    let html_content = if is_markdown && has_non_highlight_liquid {
+        // Markdown documents with Liquid are rendered again during page
+        // generation with the full site context. Avoid paying the markdown
+        // conversion cost twice up front.
+        String::new()
+    } else if is_markdown {
         // Pre-render {% highlight %}...{% endhighlight %} blocks before markdown
         // conversion, matching Jekyll's Liquid-before-markdown order of operations.
         let preprocessed = pre_render_highlight_blocks(&doc.content);
@@ -1235,6 +1242,26 @@ fn process_collection_file(
         source_path,
         id,
     }))
+}
+
+fn contains_non_highlight_liquid(content: &str) -> bool {
+    if content.contains("{{") {
+        return true;
+    }
+
+    let mut remaining = content;
+    while let Some(pos) = remaining.find("{%") {
+        let after = &remaining[pos + 2..];
+        let trimmed = after.trim_start_matches([' ', '\t', '\n', '\r', '-']);
+        if !(trimmed.starts_with("highlight")
+            || trimmed.starts_with("endhighlight"))
+        {
+            return true;
+        }
+        remaining = &after["".len()..];
+    }
+
+    false
 }
 
 /// A standalone page (root-level `.md` file, not part of any collection).

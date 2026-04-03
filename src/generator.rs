@@ -1999,7 +1999,19 @@ pub fn generate_collection_pages_cached_with_progress(
                             .map(|html| (html, None))
                     }
                 } else {
-                    if item.html_content.is_empty() {
+                    let is_markdown_source =
+                        item.source_path.ends_with(".md") || item.source_path.ends_with(".markdown");
+                    let has_liquid_tags =
+                        item.content.contains("{{") || item.content.contains("{%");
+                    if item.html_content.is_empty() && is_markdown_source && has_liquid_tags {
+                        layout_engine
+                            .render_markdown_content_with_cached_site(
+                                &item.content,
+                                &page_fm,
+                                cached_site,
+                            )
+                            .map(|html| (html, None))
+                    } else if item.html_content.is_empty() {
                         Ok(("\n".to_string(), None))
                     } else {
                         Ok((item.html_content.clone(), None))
