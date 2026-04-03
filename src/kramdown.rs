@@ -923,9 +923,16 @@ fn extract_first_td_content(tr_html: &str) -> Option<&str> {
 /// 2 spaces to match Jekyll's kramdown renderer. When false (CommonMarkGhPages),
 /// list items are NOT indented, matching Jekyll's CommonMark renderer.
 pub fn postprocess_with_options(html: &str, indent_lists: bool) -> String {
+    // Pre-scan for features to skip no-op passes.
+    let has_emphasis_tags = html.contains("<em>") || html.contains("<strong>");
+
     // Issue 275b: Fix mis-balanced emphasis tags from pulldown-cmark before other
     // postprocessing steps that depend on correct tag nesting.
-    let html = fix_nested_emphasis_tags(html);
+    let html = if has_emphasis_tags {
+        fix_nested_emphasis_tags(html)
+    } else {
+        html.to_string()
+    };
     // Issue 332: Fix literal asterisks that should have been emphasis.
     // Only for kramdown mode -- CommonMarkGhPages handles emphasis correctly.
     let html = if indent_lists {
@@ -2425,6 +2432,15 @@ fn collapse_blank_lines(content: &str) -> String {
 /// pulldown-cmark (CommonMark) requires indentation equal to the marker
 /// width (3 spaces for `N. `, 4 for `NN. `, etc.).
 pub fn fix_kramdown_list_indentation(content: &str) -> String {
+    // Fast path: if no ordered list markers (digit followed by period), skip.
+    // This avoids per-line scanning for content without ordered lists.
+    let has_ordered_list = content
+        .as_bytes()
+        .windows(2)
+        .any(|w| w[0].is_ascii_digit() && w[1] == b'.');
+    if !has_ordered_list {
+        return content.to_string();
+    }
     let lines: Vec<&str> = content.split('\n').collect();
     let mut result = String::with_capacity(content.len() + 256);
     let mut in_code_block = false;

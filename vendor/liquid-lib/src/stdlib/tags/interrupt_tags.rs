@@ -47,10 +47,9 @@ struct Break;
 
 impl Renderable for Break {
     fn render_to(&self, _writer: &mut dyn Write, runtime: &dyn Runtime) -> Result<()> {
-        runtime
-            .registers()
-            .get_mut::<InterruptRegister>()
-            .set(Interrupt::Break);
+        let regs = runtime.registers();
+        regs.get_mut::<InterruptRegister>().set(Interrupt::Break);
+        regs.interrupted_fast.set(true);
         Ok(())
     }
 }
@@ -95,10 +94,9 @@ struct Continue;
 
 impl Renderable for Continue {
     fn render_to(&self, _writer: &mut dyn Write, runtime: &dyn Runtime) -> Result<()> {
-        runtime
-            .registers()
-            .get_mut::<InterruptRegister>()
-            .set(Interrupt::Continue);
+        let regs = runtime.registers();
+        regs.get_mut::<InterruptRegister>().set(Interrupt::Continue);
+        regs.interrupted_fast.set(true);
         Ok(())
     }
 }

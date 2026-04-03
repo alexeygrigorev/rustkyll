@@ -213,10 +213,13 @@ impl Renderable for For {
                     // already, dealing with a `continue` signal is just
                     // clearing the interrupt and carrying on as normal. A
                     // `break` requires some special handling, though.
-                    let current_interrupt =
-                        scope.registers().get_mut::<InterruptRegister>().reset();
-                    if let Some(Interrupt::Break) = current_interrupt {
-                        break;
+                    let regs = scope.registers();
+                    if regs.interrupted_fast.get() {
+                        regs.interrupted_fast.set(false);
+                        let current_interrupt = regs.get_mut::<InterruptRegister>().reset();
+                        if let Some(Interrupt::Break) = current_interrupt {
+                            break;
+                        }
                     }
                 }
             }

@@ -290,10 +290,15 @@ impl LayoutEngine {
         } else {
             current_obj
         };
-        ctx.insert(
-            "layout".into(),
-            LiquidValue::Object(merged_layout_obj.clone()),
-        );
+        let has_parent = layout.parent_layout.is_some();
+        let merged_for_chain = if has_parent {
+            let clone = merged_layout_obj.clone();
+            ctx.insert("layout".into(), LiquidValue::Object(merged_layout_obj));
+            Some(clone)
+        } else {
+            ctx.insert("layout".into(), LiquidValue::Object(merged_layout_obj));
+            None
+        };
 
         // Use pre-compiled template if available, otherwise parse on the fly
         let result = if let Some(compiled) = self.compiled_layouts.get(layout_name) {
@@ -309,7 +314,7 @@ impl LayoutEngine {
                 &result,
                 page_front_matter,
                 site_context,
-                Some(merged_layout_obj),
+                merged_for_chain,
             )
         } else {
             Ok(result)
@@ -424,10 +429,18 @@ impl LayoutEngine {
         } else {
             current_obj
         };
-        ctx.insert(
-            "layout".into(),
-            LiquidValue::Object(merged_layout_obj.clone()),
-        );
+
+        // When there's a parent layout, we need `merged_layout_obj` for the recursive
+        // call, so we must clone it for the context insertion. When there's no parent,
+        // we consume it directly to avoid the clone.
+        let merged_for_chain = if has_parent {
+            let clone = merged_layout_obj.clone();
+            ctx.insert("layout".into(), LiquidValue::Object(merged_layout_obj));
+            Some(clone)
+        } else {
+            ctx.insert("layout".into(), LiquidValue::Object(merged_layout_obj));
+            None
+        };
 
         let result = if let Some(compiled) = self.compiled_layouts.get(layout_name) {
             self.engine.render_with_prebuilt_page_lenient(
@@ -447,7 +460,7 @@ impl LayoutEngine {
                 &result,
                 page_obj_for_chaining.unwrap(),
                 cached_site,
-                Some(merged_layout_obj),
+                merged_for_chain,
             )
         } else {
             Ok(result)
@@ -492,10 +505,14 @@ impl LayoutEngine {
         } else {
             current_obj
         };
-        ctx.insert(
-            "layout".into(),
-            LiquidValue::Object(merged_layout_obj.clone()),
-        );
+        let merged_for_chain = if has_parent {
+            let clone = merged_layout_obj.clone();
+            ctx.insert("layout".into(), LiquidValue::Object(merged_layout_obj));
+            Some(clone)
+        } else {
+            ctx.insert("layout".into(), LiquidValue::Object(merged_layout_obj));
+            None
+        };
         let result = if let Some(compiled) = self.compiled_layouts.get(layout_name) {
             self.engine.render_with_prebuilt_page_overrides(
                 compiled,
@@ -519,7 +536,7 @@ impl LayoutEngine {
                 page_obj_for_chaining.unwrap(),
                 cached_site,
                 site_overrides,
-                Some(merged_layout_obj),
+                merged_for_chain,
             )
         } else {
             Ok(result)
@@ -672,10 +689,15 @@ impl LayoutEngine {
         } else {
             current_obj
         };
-        ctx.insert(
-            "layout".into(),
-            LiquidValue::Object(merged_layout_obj.clone()),
-        );
+        let has_parent = layout.parent_layout.is_some();
+        let merged_for_chain = if has_parent {
+            let clone = merged_layout_obj.clone();
+            ctx.insert("layout".into(), LiquidValue::Object(merged_layout_obj));
+            Some(clone)
+        } else {
+            ctx.insert("layout".into(), LiquidValue::Object(merged_layout_obj));
+            None
+        };
 
         let result = if let Some(compiled) = self.compiled_layouts.get(layout_name) {
             self.engine
@@ -693,7 +715,7 @@ impl LayoutEngine {
                 page_front_matter,
                 cached_site,
                 paginator,
-                Some(merged_layout_obj),
+                merged_for_chain,
             )
         } else {
             Ok(result)
@@ -749,10 +771,15 @@ impl LayoutEngine {
         } else {
             current_obj
         };
-        ctx.insert(
-            "layout".into(),
-            LiquidValue::Object(merged_layout_obj.clone()),
-        );
+        let has_parent = layout.parent_layout.is_some();
+        let merged_for_chain = if has_parent {
+            let clone = merged_layout_obj.clone();
+            ctx.insert("layout".into(), LiquidValue::Object(merged_layout_obj));
+            Some(clone)
+        } else {
+            ctx.insert("layout".into(), LiquidValue::Object(merged_layout_obj));
+            None
+        };
 
         // Inject extra fields into the page object
         if let Some(LiquidValue::Object(mut page_obj)) = ctx.remove("page") {
@@ -777,7 +804,7 @@ impl LayoutEngine {
                 page_front_matter,
                 extra_page_fields,
                 cached_site,
-                Some(merged_layout_obj),
+                merged_for_chain,
             )
         } else {
             Ok(result)

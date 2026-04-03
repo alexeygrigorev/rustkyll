@@ -783,33 +783,73 @@ pub fn markdown_to_html_with_options(
         options.insert(Options::ENABLE_SMART_PUNCTUATION);
     }
 
+    // Pre-scan content features to skip inapplicable preprocessing passes.
+    // For large documents (e.g., 4000+ line history.md), avoiding 30+ string
+    // copies when features aren't present saves significant time.
+    let has_markdown_attr = markdown.contains("markdown=");
+    let has_ial = markdown.contains("{:");
+    let has_details = markdown.contains("<details");
+    let has_table_html = markdown.contains("<table");
+    let has_curly_quotes = markdown.contains('\u{201C}')
+        || markdown.contains('\u{201D}')
+        || markdown.contains('\u{2018}')
+        || markdown.contains('\u{2019}');
+    let has_math = markdown.contains("$$") || markdown.contains("\\(");
+    let has_pipe = markdown.contains('|');
+
     // Issue 228: Process markdown="1" attribute on HTML elements
-    let markdown = crate::kramdown::process_markdown_attribute(markdown);
+    let markdown = if has_markdown_attr {
+        crate::kramdown::process_markdown_attribute(markdown)
+    } else {
+        markdown.to_string()
+    };
 
     // Issue 489: Replace standalone {:toc} patterns with a placeholder
-    let markdown = crate::kramdown::replace_toc_pattern_in_markdown(&markdown);
+    let markdown = if has_ial {
+        crate::kramdown::replace_toc_pattern_in_markdown(&markdown)
+    } else {
+        markdown
+    };
 
     // Issue 301: Mark forward-direction IALs
-    let markdown = crate::kramdown::mark_forward_ial(&markdown);
+    let markdown = if has_ial {
+        crate::kramdown::mark_forward_ial(&markdown)
+    } else {
+        markdown
+    };
 
     // Issue 329: Protect <details> blocks (kramdown mode only).
     // Issue 330: For CommonMarkGhPages, mark inline content after </summary>
     // so we can strip the <p> wrapping in post-processing.
-    let (markdown, details_saved) = if add_code_classes {
+    let (markdown, details_saved) = if has_details && add_code_classes {
         protect_details_blocks(&markdown)
-    } else {
+    } else if has_details {
         (mark_details_inline_content(&markdown), Vec::new())
+    } else {
+        (markdown, Vec::new())
     };
 
     // Issue 516: Protect raw HTML <table> blocks from pulldown-cmark processing.
-    let (markdown, table_saved) = protect_raw_html_tables(&markdown);
+    let (markdown, table_saved) = if has_table_html {
+        protect_raw_html_tables(&markdown)
+    } else {
+        (markdown, Vec::new())
+    };
 
     // Protect pre-existing curly quotes from fix_smart_quote_directions
-    let markdown = protect_preexisting_curly_quotes(&markdown);
+    let markdown = if has_curly_quotes {
+        protect_preexisting_curly_quotes(&markdown)
+    } else {
+        markdown
+    };
 
     let markdown = escape_paren_list_markers(&markdown);
     // Issue 227: Protect math content from backslash-escape processing
-    let (markdown, math_saved) = protect_math_content(&markdown);
+    let (markdown, math_saved) = if has_math {
+        protect_math_content(&markdown)
+    } else {
+        (markdown, Vec::new())
+    };
     // Issue 329: Fix kramdown list indentation for ordered lists (kramdown mode only)
     let markdown = if add_code_classes {
         crate::kramdown::fix_kramdown_list_indentation(&markdown)
@@ -819,7 +859,11 @@ pub fn markdown_to_html_with_options(
     let markdown = crate::kramdown::escape_headings_in_list_context(&markdown);
     let markdown = crate::kramdown::mark_simple_partial_loose_list_items(&markdown);
     let markdown = crate::kramdown::collapse_blank_lines_between_list_items(&markdown);
-    let markdown = crate::kramdown::convert_kramdown_pipe_tables(&markdown);
+    let markdown = if has_pipe {
+        crate::kramdown::convert_kramdown_pipe_tables(&markdown)
+    } else {
+        markdown
+    };
     // Issue 491: Convert kramdown definition lists to HTML before pulldown-cmark
     let markdown = if add_code_classes {
         crate::kramdown::convert_kramdown_definition_lists(&markdown)
@@ -858,12 +902,16 @@ pub fn markdown_to_html_with_options(
         add_code_classes,
         enable_hardbreaks,
     );
-    let mut html_output = String::new();
+    let mut html_output = String::with_capacity(markdown.len() + markdown.len() / 4);
     html::push_html(&mut html_output, events.into_iter());
 
     // Issue 515: Restructure kramdown full-width table separator rows into
     // proper <tbody> splits and <tfoot> sections.
-    let html_output = crate::kramdown::restructure_kramdown_table_separators(&html_output);
+    let html_output = if has_pipe {
+        crate::kramdown::restructure_kramdown_table_separators(&html_output)
+    } else {
+        html_output
+    };
 
     // Issue 503: Convert pulldown-cmark footnotes to kramdown-style HTML
     let html_output = convert_footnotes_to_kramdown(&html_output);
@@ -875,8 +923,11 @@ pub fn markdown_to_html_with_options(
     let html_output = restore_consecutive_single_quotes(&html_output);
     // Issue 302: Apply ellipsis conversion in math content only when smart
     // punctuation is enabled (kramdown mode).
-    let html_output =
-        restore_math_content_impl(&html_output, &math_saved, enable_smart_punctuation);
+    let html_output = if !math_saved.is_empty() {
+        restore_math_content_impl(&html_output, &math_saved, enable_smart_punctuation)
+    } else {
+        html_output
+    };
     let html_output = decode_pulldown_url_encoding(&html_output);
     // Issue 384: Strip mailto: prefix from autolink display text
     let html_output = strip_mailto_from_display_text(&html_output);
@@ -4019,6 +4070,10 @@ fn escape_fenced_code_after_br(markdown: &str) -> String {
 }
 
 fn escape_paren_list_markers(markdown: &str) -> String {
+    // Fast path: if no `)` character, no paren list markers to escape
+    if !markdown.contains(')') {
+        return markdown.to_string();
+    }
     let mut result = String::with_capacity(markdown.len());
     let mut in_code_block = false;
     let mut in_html_block = false;
@@ -10089,6 +10144,51 @@ More text.
         assert!(
             !html.contains("<ul>"),
             "Escaped dash should not produce an unordered list. Got: {html}"
+        );
+    }
+
+    // ========================================================================
+    // Performance optimization: markdown preprocessing skip tests
+    // ========================================================================
+
+    #[test]
+    fn test_markdown_to_html_simple_content_no_special_features() {
+        // Simple markdown without IALs, details, tables, math, etc.
+        // should produce identical output whether features are pre-scanned or not
+        let md = "# Hello\n\nSome **bold** and *italic* text.\n\n- item 1\n- item 2\n";
+        let html = markdown_to_html_with_options(md, true, true, false, false);
+        assert!(html.contains("<h1"), "should have heading");
+        assert!(html.contains("<strong>bold</strong>"), "should have bold");
+        assert!(html.contains("<em>italic</em>"), "should have italic");
+        assert!(html.contains("<li>"), "should have list items");
+    }
+
+    #[test]
+    fn test_markdown_to_html_with_ial_still_works() {
+        // Content with IAL markers should still be processed
+        let md = "# Heading\n{: #custom-id}\n\nParagraph.\n";
+        let html = markdown_to_html_with_options(md, true, true, false, false);
+        assert!(
+            html.contains("id=\"custom-id\""),
+            "IAL should be applied. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_markdown_to_html_unicode_content_preserved() {
+        // Unicode content should be preserved through the optimized pipeline
+        let md = "# Привет мир\n\nМультиязычный текст с 日本語 и العربية.\n";
+        let html = markdown_to_html_with_options(md, true, true, false, false);
+        assert!(
+            html.contains("Привет"),
+            "Cyrillic should be preserved. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("日本語"),
+            "CJK should be preserved. Got: {}",
+            html
         );
     }
 }

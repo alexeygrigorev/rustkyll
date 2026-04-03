@@ -27,11 +27,12 @@ impl Renderable for Template {
             // need to abandon the rest of our child elements and just
             // return what we've got. This is usually in response to a
             // `break` or `continue` tag being rendered.
-            if runtime
-                .registers()
-                .get_mut::<super::InterruptRegister>()
-                .interrupted()
-            {
+            //
+            // Optimization: check the fast Cell<bool> flag first to avoid
+            // the expensive AnyMap lookup on every element. The flag is only
+            // set when break/continue actually fires, so this is a simple
+            // branch prediction win for the common (no-interrupt) case.
+            if runtime.registers().interrupted_fast.get() {
                 break;
             }
         }

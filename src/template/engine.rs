@@ -1052,60 +1052,7 @@ impl TemplateEngine {
     /// Returns `TemplateError::ParseError` if the template contains syntax errors
     /// that are not related to unknown filters.
     pub fn parse(&self, template_str: &str) -> Result<Template, TemplateError> {
-        // Pre-process include paths with subdirectory separators (e.g.,
-        // `{% include subdir/file.html %}` -> `{% include "subdir/file.html" %}`).
-        // The Liquid parser cannot handle `/` in unquoted tag arguments.
-        let preprocessed = super::include_tag::preprocess_include_paths(template_str);
-        // Pre-process capture tags to strip extra tokens after the variable name.
-        // Jekyll silently ignores extra tokens (e.g., `{% capture var do %}`),
-        // but the Liquid parser rejects them.
-        let preprocessed = preprocess_capture_tags(&preprocessed);
-        // Pre-process Jekyll-specific tags ({% link %}, {% post_url %}) that
-        // the Liquid parser does not support. These are replaced with their
-        // approximate URL output.
-        let preprocessed = preprocess_jekyll_tags(&preprocessed);
-        // Pre-process {% octicon %} tags (jekyll-octicons plugin). These use
-        // key:value syntax (e.g., height:24) that the Liquid parser cannot
-        // handle. Replace with inline SVG HTML.
-        let preprocessed = super::octicon_tag::preprocess_octicon_tags(&preprocessed);
-        // Pre-process `contains` in if/elsif conditions to add nil guards.
-        // Jekyll treats `nil contains "x"` as false, but the liquid crate
-        // raises an error. We rewrite `EXPR contains "STR"` to
-        // `EXPR and EXPR contains "STR"` so the `and` short-circuits on nil.
-        // (Issue 171)
-        let preprocessed = preprocess_nil_contains(&preprocessed);
-        // Pre-process `== false` comparisons to add nil guards.
-        // The Liquid crate treats `nil == false` as true, but Ruby Liquid
-        // treats it as false. We rewrite `VAR == false` to
-        // `VAR == false and VAR != nil` so nil doesn't match false.
-        let preprocessed = preprocess_nil_eq_false(&preprocessed);
-        // Pre-process filter chains in if/elsif/unless conditions.
-        // Jekyll allows `{% if x and y | default: false %}` but Rust liquid
-        // does not. We extract filter chains into preceding assigns.
-        let preprocessed = preprocess_if_condition_filters(&preprocessed);
-        // Pre-process `{{var}}` inside `{% %}` tags. Some themes use
-        // `{% if {{include.url}} %}` which is non-standard but tolerated by
-        // Jekyll. We strip the inner `{{` / `}}` so the Liquid parser sees
-        // a plain variable reference.
-        let preprocessed = preprocess_nested_braces(&preprocessed);
-        // Pre-process `{% for var in expr | filter %}` to extract the filter
-        // chain into a separate assign. Jekyll supports filter chains in for
-        // loops but the Liquid crate does not. (Issue 328)
-        let preprocessed = preprocess_for_loop_filters(&preprocessed);
-        // Pre-process `{% assign var = (expr | filter) %}` to strip parens.
-        // Jekyll allows parenthesized expressions but Liquid crate does not.
-        // (Issue 328)
-        let preprocessed = preprocess_parenthesized_assign(&preprocessed);
-        // Strip stray `}` inside `{% assign ... %}` tags. Some themes
-        // (e.g., text-theme) have a typo `{% assign x = y } %}` where the
-        // `}` causes a parse error. Jekyll ignores it. (Issue 441)
-        let preprocessed = preprocess_stray_brace_in_tags(&preprocessed);
-        // Rewrite `{{ a or b }}` to `{{ a | default: b }}` to match Jekyll's
-        // `or` operator in output tags. (Issue 441)
-        let preprocessed = preprocess_output_or(&preprocessed);
-        // Rewrite bare `{{ expr }}` to `{{ expr | render_mapping }}` so YAML
-        // mapping values render as Ruby-style hash strings (Issue 348).
-        let preprocessed = preprocess_bare_output_render_mapping(&preprocessed);
+        let preprocessed = preprocess_all(template_str);
         let template_str = &preprocessed;
         loop {
             let parser_guard = self
@@ -1341,6 +1288,47 @@ impl TemplateEngine {
     ) -> Result<String, TemplateError> {
         let template = self.parse(template_str)?;
         self.render_with_site_overrides(&template, context, cached_site, site_overrides)
+    }
+}
+
+/// Run all Liquid preprocessing passes on a template string.
+///
+/// This consolidates the 13 preprocessing passes into a single function with
+/// fast-path short-circuits. When the content has no Liquid markers (`{{` or
+/// `{%`), all preprocessing is skipped entirely since none of the passes
+/// would modify the content.
+fn preprocess_all(template: &str) -> String {
+    let has_tag = template.contains("{%");
+    let has_output = template.contains("{{");
+
+    // Fast path: no Liquid markers at all -- skip all preprocessing.
+    if !has_tag && !has_output {
+        return template.to_string();
+    }
+
+    // Run tag-related preprocessors only when {%  is present.
+    let preprocessed = if has_tag {
+        let preprocessed = super::include_tag::preprocess_include_paths(template);
+        let preprocessed = preprocess_capture_tags(&preprocessed);
+        let preprocessed = preprocess_jekyll_tags(&preprocessed);
+        let preprocessed = super::octicon_tag::preprocess_octicon_tags(&preprocessed);
+        let preprocessed = preprocess_nil_contains(&preprocessed);
+        let preprocessed = preprocess_nil_eq_false(&preprocessed);
+        let preprocessed = preprocess_if_condition_filters(&preprocessed);
+        let preprocessed = preprocess_nested_braces(&preprocessed);
+        let preprocessed = preprocess_for_loop_filters(&preprocessed);
+        let preprocessed = preprocess_parenthesized_assign(&preprocessed);
+        preprocess_stray_brace_in_tags(&preprocessed)
+    } else {
+        template.to_string()
+    };
+
+    // Run output-related preprocessors only when {{ is present.
+    if has_output {
+        let preprocessed = preprocess_output_or(&preprocessed);
+        preprocess_bare_output_render_mapping(&preprocessed)
+    } else {
+        preprocessed
     }
 }
 
@@ -2645,19 +2633,7 @@ fn inject_render_mapping(text: &str) -> String {
 fn build_partials(includes: &HashMap<String, String>) -> EagerCompiler<InMemorySource> {
     let mut partials = EagerCompiler::<InMemorySource>::empty();
     for (name, content) in includes {
-        let preprocessed = super::include_tag::preprocess_include_paths(content);
-        let preprocessed = preprocess_capture_tags(&preprocessed);
-        let preprocessed = preprocess_jekyll_tags(&preprocessed);
-        let preprocessed = super::octicon_tag::preprocess_octicon_tags(&preprocessed);
-        let preprocessed = preprocess_nil_contains(&preprocessed);
-        let preprocessed = preprocess_nil_eq_false(&preprocessed);
-        let preprocessed = preprocess_if_condition_filters(&preprocessed);
-        let preprocessed = preprocess_nested_braces(&preprocessed);
-        let preprocessed = preprocess_for_loop_filters(&preprocessed);
-        let preprocessed = preprocess_parenthesized_assign(&preprocessed);
-        let preprocessed = preprocess_stray_brace_in_tags(&preprocessed);
-        let preprocessed = preprocess_output_or(&preprocessed);
-        let preprocessed = preprocess_bare_output_render_mapping(&preprocessed);
+        let preprocessed = preprocess_all(content);
         partials.add(name.clone(), preprocessed);
     }
     partials
@@ -7808,5 +7784,89 @@ title: "Test Book"
 
         assert_eq!(standard, optimized);
         assert_eq!(optimized, "A great post about Rust");
+    }
+
+    #[test]
+    fn test_parse_plain_html_no_liquid_markers() {
+        // Content with no {{ or {% should still parse and render correctly
+        // (this exercises the fast-path when no preprocessing is needed)
+        let eng = engine();
+        let plain_html = "<h1>Hello World</h1>\n<p>Some plain content with special chars: &amp; \"quotes\" and unicode: Привет</p>";
+        let template = eng.parse(plain_html).unwrap();
+        let result = template.inner.render(&liquid::Object::new()).unwrap();
+        assert_eq!(result, plain_html);
+    }
+
+    #[test]
+    fn test_parse_content_with_curly_brace_not_liquid() {
+        // Content that has { but not {{ or {% should not be treated as Liquid
+        let eng = engine();
+        let content = "function() { return 42; }";
+        let template = eng.parse(content).unwrap();
+        let result = template.inner.render(&liquid::Object::new()).unwrap();
+        assert_eq!(result, content);
+    }
+
+    #[test]
+    fn test_preprocess_all_noop_for_plain_content() {
+        // Verify that preprocess_all returns the input unchanged for plain content
+        let plain = "<div>No liquid here, just HTML with unicode: 日本語</div>";
+        let result = preprocess_all(plain);
+        assert_eq!(result, plain);
+    }
+
+    #[test]
+    fn test_preprocess_all_processes_liquid_content() {
+        // Verify that preprocess_all still transforms Liquid content correctly
+        let content = "{% link _posts/2020-01-01-hello.md %}";
+        let result = preprocess_all(content);
+        // The link tag should be preprocessed (replaced with a URL)
+        assert!(
+            !result.contains("{% link"),
+            "link tag should be preprocessed"
+        );
+    }
+
+    #[test]
+    fn test_preprocess_all_output_only_skips_tag_preprocessors() {
+        // Content with {{ but not {% should skip tag-related preprocessors
+        // but still process output-related preprocessors
+        let content = "{{ page.title }}";
+        let result = preprocess_all(content);
+        // Output should be processed (render_mapping filter added)
+        assert!(
+            result.contains("render_mapping"),
+            "output should be preprocessed: got {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_preprocess_all_tag_only_skips_output_preprocessors() {
+        // Content with {% but not {{ should skip output-related preprocessors
+        let content = "{% if true %}hello{% endif %}";
+        let result = preprocess_all(content);
+        // Tag content should remain (it's valid Liquid)
+        assert!(
+            result.contains("if true"),
+            "tag content should be preserved"
+        );
+        // No render_mapping should be added since no {{ }}
+        assert!(
+            !result.contains("render_mapping"),
+            "output preprocessors should be skipped"
+        );
+    }
+
+    #[test]
+    fn test_preprocess_all_unicode_content_preserved() {
+        // Ensure Unicode content is not corrupted by preprocessing
+        let content = "Привет мир 日本語 🎉 {{ page.title }}";
+        let result = preprocess_all(content);
+        assert!(
+            result.contains("Привет мир"),
+            "Cyrillic should be preserved"
+        );
+        assert!(result.contains("日本語"), "CJK should be preserved");
     }
 }

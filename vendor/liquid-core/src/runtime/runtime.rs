@@ -282,6 +282,10 @@ impl Default for RuntimeCore<'_> {
 /// Unnamed state for plugins during rendering
 pub struct Registers {
     registers: std::cell::RefCell<anymap2::AnyMap>,
+    /// Fast interrupt flag. Set to true when a break/continue tag fires.
+    /// Checked by the template loop to avoid the expensive AnyMap lookup
+    /// on every element when no interrupt is active.
+    pub interrupted_fast: std::cell::Cell<bool>,
 }
 
 impl Registers {
@@ -300,6 +304,7 @@ impl Default for Registers {
     fn default() -> Self {
         Self {
             registers: std::cell::RefCell::new(anymap2::AnyMap::new()),
+            interrupted_fast: std::cell::Cell::new(false),
         }
     }
 }
