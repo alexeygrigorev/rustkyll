@@ -627,6 +627,41 @@ def is_acceptable_cache_busting_timestamp_diff(diff: 'DiffResult') -> bool:
     return True
 
 
+def is_acceptable_meta_timestamp_only_diff(diff: 'DiffResult') -> bool:
+    """Check if a diff is a build-time timestamp in a meta tag content attribute.
+
+    Sites like choosealicense.com include build timestamps in meta tags
+    (e.g., og:updated_time, article:modified_time). When the Jekyll cache
+    and rustkyll were built at different times (possibly months apart),
+    these meta tags will differ. The content is purely a full ISO 8601
+    datetime -- if both sides are valid datetimes, the diff is acceptable.
+
+    Only matches attribute_differs where the content value is entirely
+    an ISO 8601 datetime (YYYY-MM-DDTHH:MM:SS+ZZ:ZZ or with spaces).
+    Does NOT match partial timestamps, dates without times, or timestamps
+    embedded in other text.
+    """
+    if diff.diff_type != "attribute_differs":
+        return False
+    expected = diff.expected or ''
+    actual = diff.actual or ''
+    if "content=" not in expected or "content=" not in actual:
+        return False
+    import re
+    # Extract content values from both sides
+    j_m = re.search(r"content='([^']*)'", expected)
+    r_m = re.search(r"content='([^']*)'", actual)
+    if not j_m or not r_m:
+        return False
+    j_val = j_m.group(1).strip()
+    r_val = r_m.group(1).strip()
+    # Both must be full ISO 8601 datetimes: YYYY-MM-DD[T ]HH:MM:SS[timezone]
+    iso_pattern = r'^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}\s*[^\s]*$'
+    if re.match(iso_pattern, j_val) and re.match(iso_pattern, r_val):
+        return True
+    return False
+
+
 def is_acceptable_jekyll_math_pipe_table_diff(diff: 'DiffResult') -> bool:
     """Filter: Jekyll's kramdown creates <table> from | inside math.
 
@@ -932,7 +967,8 @@ def filter_acceptable_diffs(diffs: list, rustkyll_html: str = None, jekyll_html:
                 is_acceptable_build_time_event_diff(d) or
                 is_acceptable_jekyll_version_diff(d) or
                 is_acceptable_github_pages_url_diff(d) or
-                is_acceptable_cache_busting_timestamp_diff(d)):
+                is_acceptable_cache_busting_timestamp_diff(d) or
+                is_acceptable_meta_timestamp_only_diff(d)):
             accepted.append(d)
         else:
             remaining.append(d)

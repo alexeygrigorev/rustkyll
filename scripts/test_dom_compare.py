@@ -30,6 +30,7 @@ from dom_compare import (
     is_acceptable_jekyll_version_diff,
     is_acceptable_github_pages_url_diff,
     is_acceptable_jsonld_markdown_link_diff,
+    is_acceptable_meta_timestamp_only_diff,
     is_acceptable_sexagesimal_diff,
     is_acceptable_trailing_newline_diff,
     normalize_text,
@@ -1868,6 +1869,191 @@ class TestCacheBustingTimestampFilter(unittest.TestCase):
         self.assertEqual(accepted[0].expected, "href='/css/main.css?1774771914'")
         self.assertEqual(len(remaining), 1)
         self.assertEqual(remaining[0].diff_type, "text_differs")
+
+
+class TestMetaTimestampOnlyDiff(unittest.TestCase):
+    """Tests for is_acceptable_meta_timestamp_only_diff -- filters build-time
+    timestamp false positives in meta tag content attributes (issue #552).
+    """
+
+    def test_different_month_iso8601_timestamps_accepted(self):
+        """Meta content with ISO 8601 timestamps differing across months should be accepted.
+
+        This is the choosealicense.com pattern: Jekyll cache built in March,
+        rustkyll built in April.
+        """
+        diff = DiffResult(
+            "html > head > meta", "attribute_differs",
+            "content='2026-03-20T23:47:36+01:00'",
+            "content='2026-04-04T00:48:27+02:00'"
+        )
+        self.assertTrue(is_acceptable_meta_timestamp_only_diff(diff))
+
+    def test_same_month_iso8601_timestamps_accepted(self):
+        """Timestamps in same month should also be accepted."""
+        diff = DiffResult(
+            "html > head > meta", "attribute_differs",
+            "content='2026-03-20T23:47:36+01:00'",
+            "content='2026-03-25T12:30:00+01:00'"
+        )
+        self.assertTrue(is_acceptable_meta_timestamp_only_diff(diff))
+
+    def test_different_year_timestamps_accepted(self):
+        """Even different years are acceptable if both are full ISO timestamps."""
+        diff = DiffResult(
+            "html > head > meta", "attribute_differs",
+            "content='2025-03-20T23:47:36+01:00'",
+            "content='2026-04-04T00:48:27+02:00'"
+        )
+        self.assertTrue(is_acceptable_meta_timestamp_only_diff(diff))
+
+    def test_space_separated_datetime_accepted(self):
+        """Space-separated datetime format should also be accepted."""
+        diff = DiffResult(
+            "html > head > meta", "attribute_differs",
+            "content='2026-03-20 23:47:36 +0100'",
+            "content='2026-04-04 00:48:27 +0200'"
+        )
+        self.assertTrue(is_acceptable_meta_timestamp_only_diff(diff))
+
+    def test_non_timestamp_content_not_accepted(self):
+        """Meta content with non-timestamp values must NOT be filtered."""
+        diff = DiffResult(
+            "html > head > meta", "attribute_differs",
+            "content='My Website Title'",
+            "content='Different Title'"
+        )
+        self.assertFalse(is_acceptable_meta_timestamp_only_diff(diff))
+
+    def test_partial_timestamp_not_accepted(self):
+        """Content that is only a date (no time) should not be accepted."""
+        diff = DiffResult(
+            "html > head > meta", "attribute_differs",
+            "content='2026-03-20'",
+            "content='2026-04-04'"
+        )
+        self.assertFalse(is_acceptable_meta_timestamp_only_diff(diff))
+
+    def test_non_attribute_diff_not_accepted(self):
+        """Only attribute_differs type should be handled."""
+        diff = DiffResult(
+            "html > head > meta", "text_differs",
+            "2026-03-20T23:47:36+01:00",
+            "2026-04-04T00:48:27+02:00"
+        )
+        self.assertFalse(is_acceptable_meta_timestamp_only_diff(diff))
+
+    def test_mixed_timestamp_and_text_not_accepted(self):
+        """Content with timestamp embedded in other text should not be accepted."""
+        diff = DiffResult(
+            "html > head > meta", "attribute_differs",
+            "content='Built on 2026-03-20T23:47:36+01:00 by Jekyll'",
+            "content='Built on 2026-04-04T00:48:27+02:00 by rustkyll'"
+        )
+        self.assertFalse(is_acceptable_meta_timestamp_only_diff(diff))
+
+    def test_unicode_timestamp_content_not_accepted(self):
+        """Content with Unicode characters is not a timestamp."""
+        diff = DiffResult(
+            "html > head > meta", "attribute_differs",
+            "content='\u00e9v\u00e9nement 2026-03-20'",
+            "content='\u00e9v\u00e9nement 2026-04-04'"
+        )
+        self.assertFalse(is_acceptable_meta_timestamp_only_diff(diff))
+
+    def test_filter_integration_with_filter_acceptable_diffs(self):
+        """Meta timestamp diffs should be filtered by the main filter_acceptable_diffs function."""
+        diffs = [
+            DiffResult(
+                "html > head > meta", "attribute_differs",
+                "content='2026-03-20T23:47:36+01:00'",
+                "content='2026-04-04T00:48:27+02:00'"
+            ),
+            DiffResult(
+                "html > body > p", "text_differs",
+                "Hello", "World"
+            ),
+        ]
+        remaining, accepted = filter_acceptable_diffs(diffs)
+        self.assertEqual(len(accepted), 1)
+        self.assertEqual(len(remaining), 1)
+        self.assertEqual(remaining[0].diff_type, "text_differs")
+
+    def test_full_html_timestamp_meta_diff_filtered(self):
+        """Full HTML comparison: two docs identical except for meta timestamp.
+
+        compare_html_files returns raw diffs; filter_acceptable_diffs removes
+        the timestamp false positive.
+        """
+        jekyll_html = """<!DOCTYPE html>
+<html>
+<head>
+<meta content="2026-03-20T23:47:36+01:00" name="date"/>
+<title>Test</title>
+</head>
+<body><p>Hello</p></body>
+</html>"""
+        rustkyll_html = """<!DOCTYPE html>
+<html>
+<head>
+<meta content="2026-04-04T00:48:27+02:00" name="date"/>
+<title>Test</title>
+</head>
+<body><p>Hello</p></body>
+</html>"""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as jf:
+            jf.write(jekyll_html)
+            jf.flush()
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as rf:
+                rf.write(rustkyll_html)
+                rf.flush()
+                try:
+                    raw_diffs = compare_html_files(jf.name, rf.name)
+                    # Raw comparison finds the diff
+                    self.assertGreater(len(raw_diffs), 0,
+                                       "Raw comparison should detect the timestamp diff")
+                    # filter_acceptable_diffs removes it
+                    remaining, accepted = filter_acceptable_diffs(raw_diffs)
+                    self.assertEqual(len(remaining), 0,
+                                     f"Expected 0 remaining diffs after filtering, got: {remaining}")
+                    self.assertEqual(len(accepted), 1,
+                                     f"Expected 1 accepted diff, got: {accepted}")
+                finally:
+                    os.unlink(jf.name)
+                    os.unlink(rf.name)
+
+    def test_full_html_real_meta_diff_not_filtered(self):
+        """Full HTML comparison: meta content with real differences should still be reported."""
+        jekyll_html = """<!DOCTYPE html>
+<html>
+<head>
+<meta content="My Site" name="title"/>
+<title>Test</title>
+</head>
+<body><p>Hello</p></body>
+</html>"""
+        rustkyll_html = """<!DOCTYPE html>
+<html>
+<head>
+<meta content="Different Site" name="title"/>
+<title>Test</title>
+</head>
+<body><p>Hello</p></body>
+</html>"""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as jf:
+            jf.write(jekyll_html)
+            jf.flush()
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as rf:
+                rf.write(rustkyll_html)
+                rf.flush()
+                try:
+                    raw_diffs = compare_html_files(jf.name, rf.name)
+                    remaining, accepted = filter_acceptable_diffs(raw_diffs)
+                    self.assertGreater(len(remaining), 0,
+                                       "Expected real diff for non-timestamp meta content to remain")
+                finally:
+                    os.unlink(jf.name)
+                    os.unlink(rf.name)
 
 
 if __name__ == "__main__":
