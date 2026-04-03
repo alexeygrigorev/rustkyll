@@ -27,3 +27,24 @@ pulldown-cmark treats these as HTML blocks and stops processing markdown inside 
 ## Priority
 
 LOW — These are the hardest 3 pages and each has 100+ diffs. Fixing them likely requires deep changes to how HTML blocks interact with markdown parsing.
+
+## Investigation 2026-04-02
+
+All three pages now produce **zero DOM diffs** against Jekyll output. The original 139-204 diffs per page have been resolved by subsequent improvements to kramdown/HTML-block handling.
+
+### Current state (2026-04-02)
+- `blog/ml-deployment-lambda.html` -- 0 DOM diffs (was 204)
+- `blog/practical-guide-better-code.html` -- 0 DOM diffs (was 153)
+- `blog/how-to-run-postgresql-and-pgadmin-with-docker.html` -- 0 DOM diffs (was 139, also confirmed zero in #349)
+
+### Remaining textual differences (non-DOM)
+Only cosmetic whitespace differences remain:
+- Blank line count differences between Jekyll and rustkyll output
+- HTML attribute formatting (`allowfullscreen=""` vs `allowfullscreen`)
+- `language-plaintext highlighter-rouge` vs `highlighter-rouge` class names
+- Minor indentation differences in blockquotes
+
+None of these affect the rendered DOM tree or visual output.
+
+### Recommendation
+**Close this issue as already resolved.** No code changes needed. The fixes that resolved these pages were likely part of earlier kramdown and HTML-block processing improvements.
