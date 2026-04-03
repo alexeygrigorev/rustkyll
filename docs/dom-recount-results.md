@@ -1,6 +1,6 @@
 # DOM Comparison Results
 
-Generated: 2026-04-03 23:12 UTC
+Generated: 2026-04-03 23:42 UTC
 
 rustkyll version: rustkyll 0.3.0
 
@@ -27,21 +27,14 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
 
 | Site | DOM Match | Common / Total | Only-Jekyll | Only-Rustkyll | Liquid Leaks |
 |------|-----------|----------------|-------------|---------------|-------------|
-| DataTalksClub/datatalksclub.github.io | 596/790 (75%) | 790 / 790 | 0 | 0 | 1 |
+| academicpages/academicpages.github.io | SKIP | - | - | - | - |
 
 ## Summary
 
-- Sites compared: 1
-- Total DOM matches: 596 / 790
+- Sites compared: 0
+- Total DOM matches: 0 / 0
 
 ## Diff Categories by Site
-
-### DataTalksClub/datatalksclub.github.io
-
-```
-    133 jsonld_value_differs
-    122 jsonld_missing_field
-```
 
 
 Per-site full diff output is in `docs/comparison/dom-details/`.

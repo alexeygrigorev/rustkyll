@@ -62,8 +62,18 @@ DIFF page-archive/index.html (14 differences)
   body > div > div > div: missing_element - expected: '<div>', actual: '(none)'
   body > div > div > div: missing_element - expected: '<div>', actual: '(none)'
   ... and 4 more differences
-DIFF portfolio/index.html (1 differences)
-  body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-04'
+DIFF portfolio/index.html (11 differences)
+  body > div > div > div > article > p: attribute_differs - expected: "class='archive__item-excerpt'", actual: "class='page__date'"
+  body > div > div > div > article > p: missing_attribute - expected: "itemprop='description'", actual: '(none)'
+  body > div > div > div > article > p > child[1]: tag_name_differs - expected: 'p', actual: 'strong'
+  body > div > div > div > article > p > time: extra_element - expected: '(none)', actual: '<time>'
+  body > div > div > div > article > p: extra_element - expected: '(none)', actual: '<p>'
+  body > div > div > div > article > p: attribute_differs - expected: "class='archive__item-excerpt'", actual: "class='page__date'"
+  body > div > div > div > article > p: missing_attribute - expected: "itemprop='description'", actual: '(none)'
+  body > div > div > div > article > p > child[1]: tag_name_differs - expected: 'p', actual: 'strong'
+  body > div > div > div > article > p > time: extra_element - expected: '(none)', actual: '<time>'
+  body > div > div > div > article > p: extra_element - expected: '(none)', actual: '<p>'
+  ... and 1 more differences
 DIFF portfolio/portfolio-1/index.html (1 differences)
   body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-04'
 DIFF portfolio/portfolio-2/index.html (1 differences)
@@ -76,18 +86,18 @@ DIFF posts/2012/08/blog-post-1/index.html (7 differences)
   body > div > article > div > footer > p > span > a: attribute_differs - expected: "href='https://academicpages.github.io/tags/#cool-posts'", actual: "href='https://academicpages.github.io/tags/#category2'"
   body > div > article > div > footer > p > span > a: text_differs - expected: 'cool posts', actual: 'category2'
   body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-04'
-DIFF posts/2012/08/blog-post-4/index.html (39 differences)
-  head > title: text_differs - expected: 'Future Blog Post - Your Name / Site Title', actual: 'Blog Post number 4 - Your Name / Site Title'
-  head > meta: attribute_differs - expected: "content='This post will show up by default. To disable scheduling of future posts, edit config.yml and set future: false.'", actual: "content='This is a sample blog post. Lorem ipsum I can’t remember the rest of lorem ipsum and don’t have an internet connection right now. Testing testing testing this blog post. Blog posts are cool.'"
-  head > meta: attribute_differs - expected: "content='2199-01-01T00:00:00+00:00'", actual: "content='2015-08-14T00:00:00+00:00'"
-  head > meta: attribute_differs - expected: "content='Future Blog Post'", actual: "content='Blog Post number 4'"
-  head > meta: attribute_differs - expected: "content='This post will show up by default. To disable scheduling of future posts, edit config.yml and set future: false.'", actual: "content='This is a sample blog post. Lorem ipsum I can’t remember the rest of lorem ipsum and don’t have an internet connection right now. Testing testing testing this blog post. Blog posts are cool.'"
-  body > div > article > meta: attribute_differs - expected: "content='Future Blog Post'", actual: "content='Blog Post number 4'"
-  body > div > article > meta: attribute_differs - expected: "content='This post will show up by default. To disable scheduling of future posts, edit config.yml and set future: false.'", actual: "content='This is a sample blog post. Lorem ipsum I can’t remember the rest of lorem ipsum and don’t have an internet connection right now. Testing testing testing this blog post. Blog posts are cool.'"
-  body > div > article > meta: attribute_differs - expected: "content='January 01, 2199'", actual: "content='August 14, 2015'"
-  body > div > article > div > header > h1: text_differs - expected: 'Future Blog Post', actual: 'Blog Post number 4'
-  body > div > article > div > header > p > time: attribute_differs - expected: "datetime='2199-01-01T00:00:00+00:00'", actual: "datetime='2015-08-14T00:00:00+00:00'"
-  ... and 29 more differences
+DIFF posts/2012/08/blog-post-4/index.html (15 differences)
+  body > div > article > div > footer > p > span > a: attribute_differs - expected: "href='https://academicpages.github.io/tags/#category1'", actual: "href='https://academicpages.github.io/tags/#cool-posts'"
+  body > div > article > div > footer > p > span > a: text_differs - expected: 'category1', actual: 'cool posts'
+  body > div > article > div > footer > p > span > a: attribute_differs - expected: "href='https://academicpages.github.io/tags/#category2'", actual: "href='https://academicpages.github.io/tags/#category1'"
+  body > div > article > div > footer > p > span > a: text_differs - expected: 'category2', actual: 'category1'
+  body > div > article > div > footer > p > span > a: attribute_differs - expected: "href='https://academicpages.github.io/tags/#cool-posts'", actual: "href='https://academicpages.github.io/tags/#category2'"
+  body > div > article > div > footer > p > span > a: text_differs - expected: 'cool posts', actual: 'category2'
+  body > div > div > div > div > article > h2 > a: text_differs - expected: 'Blog Post number 4', actual: 'Future Blog Post'
+  body > div > div > div > div > article > p > time: attribute_differs - expected: "datetime='2015-08-14T00:00:00+00:00'", actual: "datetime='2199-01-01T00:00:00+00:00'"
+  body > div > div > div > div > article > p > time: text_differs - expected: 'August 14, 2015', actual: 'January 01, 2199'
+  body > div > div > div > div > article > p > p: text_differs - expected: 'This is a sample blog post. Lorem ipsum I can’t remember the rest of lorem ipsum and don’t have an internet connection right now. Testing testing testing this blog post. Blog posts are cool.', actual: 'This post will show up by default. To disable scheduling of future posts, edit'
+  ... and 5 more differences
 DIFF posts/2013/08/blog-post-2/index.html (7 differences)
   body > div > article > div > footer > p > span > a: attribute_differs - expected: "href='https://academicpages.github.io/tags/#category1'", actual: "href='https://academicpages.github.io/tags/#cool-posts'"
   body > div > article > div > footer > p > span > a: text_differs - expected: 'category1', actual: 'cool posts'
@@ -153,4 +163,4 @@ DIFF terms/index.html (1 differences)
 DIFF year-archive/index.html (1 differences)
   body > div > footer > div: text_differs - expected: 'Site last updated 2026-03-29', actual: 'Site last updated 2026-04-04'
 
-Summary: 10 matched / 45 total (35 with-diffs) 369 total differences (2 acceptable diffs filtered out)
+Summary: 10 matched / 45 total (35 with-diffs) 355 total differences (2 acceptable diffs filtered out)

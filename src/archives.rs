@@ -513,14 +513,10 @@ fn collection_item_to_liquid_full(item: &CollectionItem) -> LiquidValue {
         )),
     );
 
-    // Issue #518: Only include date for posts or items with explicit date in
-    // front matter. Non-post items with backfilled dates should not expose date.
-    let should_include_date =
-        item.collection_name == "posts" || item.front_matter.contains_key("date");
-    if should_include_date {
-        if let Some(ref date) = item.date {
-            obj.insert("date".into(), LiquidValue::scalar(date.clone()));
-        }
+    // Issue #551: Always include date (reverses #518 restriction).
+    // Jekyll exposes date for all collection items as a rendering side effect.
+    if let Some(ref date) = item.date {
+        obj.insert("date".into(), LiquidValue::scalar(date.clone()));
     }
 
     obj.insert(

@@ -1004,18 +1004,18 @@ def _is_build_time_only_diff(j_str: str, r_str: str) -> bool:
 
     Build-time fields like endDate/startDate use the current time when built,
     so Jekyll and rustkyll will always differ. We consider it acceptable if
-    both are valid datetimes with the same year-month and timezone, differing
-    only in day and/or time (builds may happen on different days).
+    both are valid datetimes with the same year, differing only in month,
+    day, and/or time (builds may happen weeks apart, crossing month boundaries).
 
-    Month or year differences are considered real diffs (not build artifacts).
+    Year differences are considered real diffs (not build artifacts).
 
     Examples that match:
       '2026-03-21 07:24:03 +0100' vs '2026-03-23 09:47:32 +0100'  (different day)
       '2026-03-21 07:24:03 +0100' vs '2026-03-21 07:24:38 +0100'  (same day)
       '2026-03-21T07:24:03+01:00' vs '2026-03-23T09:47:32+01:00'  (ISO format)
+      '2026-03-29 11:31:35 +0200' vs '2026-04-04 01:24:37 +0200'  (cross-month)
 
     Examples that do NOT match:
-      '2026-02-21 07:24:03 +0100' vs '2026-03-23 09:47:32 +0100'  (different month)
       '2025-03-21 07:24:03 +0100' vs '2026-03-21 09:47:32 +0100'  (different year)
     """
     import re
@@ -1025,10 +1025,10 @@ def _is_build_time_only_diff(j_str: str, r_str: str) -> bool:
     r_m = re.match(pattern, r_str.strip())
     if not j_m or not r_m:
         return False
-    # Same year, same month = build-time diff (day, time, and timezone may differ).
+    # Same year = build-time diff (month, day, time, and timezone may differ).
     # Timezone can differ due to DST changes between Jekyll and rustkyll build times.
-    return (j_m.group(1) == r_m.group(1) and  # year
-            j_m.group(2) == r_m.group(2))      # month
+    # Month can differ when builds cross month boundaries (e.g., March 29 -> April 4).
+    return j_m.group(1) == r_m.group(1)  # year
 
 
 def compare_jsonld(jekyll_text: str, rustkyll_text: str, path: str) -> Optional[List[DiffResult]]:
