@@ -893,14 +893,19 @@ fn collection_item_to_liquid_slim(
     // Expand bare YYYY-MM-DD dates to include time component,
     // matching Jekyll's behavior where Ruby YAML parses dates as Time objects.
     // Jekyll uses the site timezone (or system timezone) for the offset.
-    // Note: We include date for ALL collection items here (including non-posts
-    // with backfilled dates). In Jekyll, DocumentDrop exposes `document.date`
-    // on all documents (falling back to site.time). The #474 fix only suppressed
-    // backfilled dates from the page rendering context (page.date), not from
-    // the site-level cross-reference context (site.<collection> | map: "date").
-    if let Some(ref date) = item.date {
-        let expanded = crate::template::context::expand_date_only_string_with_tz(date, site_tz);
-        obj.insert("date".into(), LiquidValue::scalar(expanded));
+    //
+    // Issue #518: Only include date for posts or items with explicit date in
+    // front matter. Non-post items with backfilled dates (set to build_time)
+    // should NOT expose date in the iteration context, matching Jekyll's
+    // behavior where portfolio items don't have dates in listing templates
+    // (the date is only set as a side effect of layout rendering order).
+    let should_include_date =
+        item.collection_name == "posts" || item.front_matter.contains_key("date");
+    if should_include_date {
+        if let Some(ref date) = item.date {
+            let expanded = crate::template::context::expand_date_only_string_with_tz(date, site_tz);
+            obj.insert("date".into(), LiquidValue::scalar(expanded));
+        }
     }
 
     // Jekyll's `document.content` returns rendered HTML for the current page,
@@ -7757,11 +7762,18 @@ defaults:
     fn test_slim_bare_date_expanded_no_tz() {
         // Bare YYYY-MM-DD dates must be expanded to include time component.
         // Without a site timezone, UTC (+0000) is used.
+        // Note: date must be in front_matter for non-post items to appear in
+        // liquid context (issue #518).
+        let mut fm = HashMap::new();
+        fm.insert(
+            "date".to_string(),
+            serde_yaml::Value::String("2025-11-07".to_string()),
+        );
         let item = CollectionItem {
             slug: "ep1".to_string(),
             url: "/podcast/ep1.html".to_string(),
             date: Some("2025-11-07".to_string()),
-            front_matter: HashMap::new(),
+            front_matter: fm,
             content: String::new(),
             html_content: String::new(),
             excerpt: None,
@@ -7787,12 +7799,18 @@ defaults:
     #[test]
     fn test_slim_bare_date_expanded_with_tz() {
         // With Europe/Berlin timezone, winter date should get +0100
+        // Note: date must be in front_matter for non-post items (issue #518).
         let tz: chrono_tz::Tz = "Europe/Berlin".parse().unwrap();
+        let mut fm = HashMap::new();
+        fm.insert(
+            "date".to_string(),
+            serde_yaml::Value::String("2025-11-07".to_string()),
+        );
         let item = CollectionItem {
             slug: "ep2".to_string(),
             url: "/podcast/ep2.html".to_string(),
             date: Some("2025-11-07".to_string()),
-            front_matter: HashMap::new(),
+            front_matter: fm,
             content: String::new(),
             html_content: String::new(),
             excerpt: None,
@@ -7818,11 +7836,17 @@ defaults:
     #[test]
     fn test_slim_already_expanded_date_unchanged() {
         // Already-expanded dates should pass through unchanged
+        // Note: date must be in front_matter for non-post items (issue #518).
+        let mut fm = HashMap::new();
+        fm.insert(
+            "date".to_string(),
+            serde_yaml::Value::String("2025-11-07 00:00:00 +0200".to_string()),
+        );
         let item = CollectionItem {
             slug: "ep3".to_string(),
             url: "/podcast/ep3.html".to_string(),
             date: Some("2025-11-07 00:00:00 +0200".to_string()),
-            front_matter: HashMap::new(),
+            front_matter: fm,
             content: String::new(),
             html_content: String::new(),
             excerpt: None,
@@ -7874,12 +7898,17 @@ defaults:
     #[test]
     fn test_slim_bare_date_unicode_title_preserved() {
         // Verify that date handling works correctly alongside non-ASCII content
+        // Note: date must be in front_matter for non-post items (issue #518).
         let mut fm = HashMap::new();
         fm.insert(
             "title".to_string(),
             serde_yaml::Value::String(
                 "Buchrezension \u{00fc}ber K\u{00fc}nstliche Intelligenz".to_string(),
             ),
+        );
+        fm.insert(
+            "date".to_string(),
+            serde_yaml::Value::String("2025-11-07".to_string()),
         );
         let item = CollectionItem {
             slug: "ep-unicode".to_string(),
@@ -9619,11 +9648,12 @@ defaults:
     }
 
     #[test]
-    fn test_issue485_portfolio_items_have_backfilled_date() {
-        // In Jekyll, all collection documents (including portfolio) have a date
-        // in the site-level Liquid context. Non-post items get the build time as
-        // their date via Document#date fallback. This is needed for templates that
-        // use `site.<collection> | map: "date"` (like DTC podcast season dates).
+    fn test_issue485_portfolio_items_backfilled_date_excluded_from_liquid() {
+        // Issue #518: Non-post collection items with backfilled dates should NOT
+        // expose date in the site-level Liquid context. In Jekyll, portfolio items
+        // don't have dates in listing templates (the date is only set as a side
+        // effect of layout rendering order). This matches the academicpages
+        // portfolio/index.html behavior where `{% if post.date %}` should be false.
         let config = SiteConfig::from_yaml_str("").unwrap();
         let item = CollectionItem {
             slug: "portfolio-1".to_string(),
@@ -9654,11 +9684,10 @@ defaults:
         if let LiquidValue::Array(arr) = portfolio {
             assert_eq!(arr.len(), 1);
             if let LiquidValue::Object(obj) = &arr[0] {
-                // Portfolio items SHOULD have a date in site-level Liquid context
-                // (matching Jekyll's Document#date fallback to site.time)
+                // Portfolio items should NOT have backfilled date in Liquid context
                 assert!(
-                    obj.get("date").is_some(),
-                    "Portfolio item should have backfilled date in site-level Liquid context"
+                    obj.get("date").is_none(),
+                    "Non-post item with backfilled date should NOT have date in site-level Liquid context"
                 );
             } else {
                 panic!("Expected Object");
@@ -10193,5 +10222,118 @@ defaults:
                 i
             );
         }
+    }
+
+    #[test]
+    fn test_non_post_backfilled_date_excluded_from_liquid_slim() {
+        // Non-post collection items with backfilled dates (not in front matter)
+        // should NOT expose date in the liquid iteration context.
+        // This matches Jekyll behavior where portfolio items don't show dates
+        // in listing templates (academicpages portfolio/index.html).
+        let item = CollectionItem {
+            slug: "portfolio-1".to_string(),
+            front_matter: HashMap::new(), // no date in front matter
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            excerpt_html: None,
+            url: "/portfolio/portfolio-1.html".to_string(),
+            date: Some("2026-04-02 00:00:00 +0000".to_string()), // backfilled
+            collection_name: "portfolio".to_string(),
+            source_path: "_portfolio/portfolio-1.md".to_string(),
+            id: String::new(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item, None, &SiteConfig::default());
+        let obj = liquid_val.as_object().unwrap();
+        let has_date = obj.iter().any(|(k, _)| k.as_str() == "date");
+        assert!(
+            !has_date,
+            "Non-post item with backfilled date should NOT have date in liquid slim context"
+        );
+    }
+
+    #[test]
+    fn test_non_post_explicit_date_included_in_liquid_slim() {
+        // Non-post collection items WITH explicit date in front matter
+        // SHOULD expose date in the liquid iteration context.
+        let mut fm = HashMap::new();
+        fm.insert(
+            "date".to_string(),
+            serde_yaml::Value::String("2024-06-15".to_string()),
+        );
+        let item = CollectionItem {
+            slug: "portfolio-2".to_string(),
+            front_matter: fm,
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            excerpt_html: None,
+            url: "/portfolio/portfolio-2.html".to_string(),
+            date: Some("2024-06-15".to_string()),
+            collection_name: "portfolio".to_string(),
+            source_path: "_portfolio/portfolio-2.md".to_string(),
+            id: String::new(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item, None, &SiteConfig::default());
+        let obj = liquid_val.as_object().unwrap();
+        let has_date = obj.iter().any(|(k, _)| k.as_str() == "date");
+        assert!(
+            has_date,
+            "Non-post item with explicit date in front matter should have date in liquid slim"
+        );
+    }
+
+    #[test]
+    fn test_post_backfilled_date_always_included_in_liquid_slim() {
+        // Posts should ALWAYS include date in liquid context, even if backfilled.
+        let item = CollectionItem {
+            slug: "test-post".to_string(),
+            front_matter: HashMap::new(), // no date in front matter
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            excerpt_html: None,
+            url: "/posts/test-post.html".to_string(),
+            date: Some("2026-04-02 00:00:00 +0000".to_string()), // backfilled
+            collection_name: "posts".to_string(),
+            source_path: "_posts/test-post.md".to_string(),
+            id: String::new(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item, None, &SiteConfig::default());
+        let obj = liquid_val.as_object().unwrap();
+        let has_date = obj.iter().any(|(k, _)| k.as_str() == "date");
+        assert!(
+            has_date,
+            "Posts should always include date in liquid slim context"
+        );
+    }
+
+    #[test]
+    fn test_non_post_unicode_slug_backfilled_date_excluded() {
+        // Unicode content test: non-post with unicode slug, backfilled date excluded
+        let item = CollectionItem {
+            slug: "проект-портфолио".to_string(),
+            front_matter: HashMap::new(),
+            content: "Описание проекта".to_string(),
+            html_content: "<p>Описание проекта</p>".to_string(),
+            excerpt: None,
+            excerpt_html: None,
+            url: "/portfolio/проект-портфолио.html".to_string(),
+            date: Some("2026-04-02 00:00:00 +0000".to_string()),
+            collection_name: "portfolio".to_string(),
+            source_path: "_portfolio/проект-портфолио.md".to_string(),
+            id: String::new(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item, None, &SiteConfig::default());
+        let obj = liquid_val.as_object().unwrap();
+        let has_date = obj.iter().any(|(k, _)| k.as_str() == "date");
+        assert!(
+            !has_date,
+            "Non-post unicode item with backfilled date should NOT have date in liquid slim"
+        );
     }
 }

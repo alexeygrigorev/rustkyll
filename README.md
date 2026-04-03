@@ -92,7 +92,7 @@ Starts a local dev server with live reload. Flags:
 
 ## What's supported
 
-138 of 166 Jekyll features are fully implemented. See [docs/jekyll-compatibility.md](docs/jekyll-compatibility.md) for the full matrix.
+138 of 166 Jekyll features are fully implemented, with 7 more partially implemented. See [docs/jekyll-compatibility.md](docs/jekyll-compatibility.md) for the full matrix.
 
 Core:
 - Config parsing, front matter, Markdown (GFM)
@@ -113,7 +113,7 @@ Liquid:
 - 70+ filters including `where`, `where_exp`, `group_by`, `group_by_exp`, `markdownify`, `slugify`, `jsonify`, `relative_url`, `absolute_url`, `sample`, `cgi_escape`, `uri_escape`, and all Liquid stdlib filters
 
 Plugins (built-in):
-- jekyll-seo-tag, jekyll-feed, jekyll-sitemap, jekyll-paginate, jekyll-avatar, jekyll-archives
+- jekyll-seo-tag, jekyll-feed, jekyll-sitemap, jekyll-paginate, jekyll-avatar, jekyll-archives, jekyll-redirect-from
 
 Extras:
 - Parallel page generation with rayon

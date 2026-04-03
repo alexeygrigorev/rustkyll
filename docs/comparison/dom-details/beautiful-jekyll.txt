@@ -4,12 +4,11 @@ Common HTML files:  5
 Only in Jekyll:     1
 Only in rustkyll:   1
 
-DIFF 2020-02-28-sample-markdown/index.html (6 differences)
-  body > main > div > div > div > p: text_differs - expected: 'to write LaTeX expressions. For example: When \\(a \\ne 0\\), there are two solutions to \\(ax^2 + bx + c = 0\\) and they are \\(x = {-b \\pm \\sqrt{b^2-4ac} \\over 2a}.\\)', actual: 'to write LaTeX expressions. For example: When \\(a \\ne 0\\), there are two solutions to \\(ax^2 + bx + c = 0\\) and they are $$x = {-b \\pm \\sqrt{b^2-4ac} \\over 2a}.$$'
+DIFF 2020-02-28-sample-markdown/index.html (5 differences)
   body > main > div > div > div > child[9]: tag_name_differs - expected: 'p', actual: 'img'
   body > main > div > div > div > child[28]: tag_name_differs - expected: 'p', actual: 'img'
   body > main > div > div > div > child[30]: tag_name_differs - expected: 'p', actual: 'img'
   body > main > div > div > div > details: expected_element_got_text - expected: '<p>', actual: 'Here you can see an **expandable** section'
   body > main > div > div > div > details > p: missing_element - expected: '<p>', actual: '(none)'
 
-Summary: 4 files matched, 1 files with differences, 6 total differences (7 acceptable diffs filtered out)
+Summary: 4 files matched, 1 files with differences, 5 total differences (7 acceptable diffs filtered out)

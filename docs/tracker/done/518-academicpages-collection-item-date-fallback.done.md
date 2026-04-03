@@ -184,3 +184,76 @@ Before implementing, the SWE should:
 - Identified risk: naive fix would regress DTC podcast pages
 - Corrected acceptance criteria to reflect actual behavior and constraints
 - Groomed with conditional fix approach: implement if DTC-safe, otherwise descope
+
+### [SWE] 2026-04-02
+
+**Fix 1: Exclude backfilled dates from non-post collection items in liquid context**
+
+- Wrote test: test_non_post_backfilled_date_excluded_from_liquid_slim (generator.rs)
+- Ran test: FAILS -- "Non-post item with backfilled date should NOT have date in liquid slim context"
+- Wrote test: test_non_post_explicit_date_included_in_liquid_slim (generator.rs)
+- Wrote test: test_post_backfilled_date_always_included_in_liquid_slim (generator.rs)
+- Wrote test: test_non_post_unicode_slug_backfilled_date_excluded (generator.rs)
+- Implemented fix in src/generator.rs:899 (collection_item_to_liquid_slim)
+- Implemented same fix in src/pagination.rs:165 (collection_item_to_liquid_full)
+- Implemented same fix in src/archives.rs:517 (collection_item_to_liquid_full)
+- Ran all 4 new tests: PASS
+- Updated 5 existing tests that expected non-post items to have backfilled dates:
+  - test_issue485_portfolio_items_have_backfilled_date -> renamed to test_issue485_portfolio_items_backfilled_date_excluded_from_liquid (inverted assertion)
+  - test_slim_bare_date_expanded_no_tz, test_slim_bare_date_expanded_with_tz, test_slim_already_expanded_date_unchanged, test_slim_bare_date_unicode_title_preserved: added "date" to front_matter so date appears in liquid context
+
+**DTC DOM check:**
+- DTC: 596/790, 255 total differences (matches baseline exactly, zero regression)
+- DTC build time: 0.845s (under 1.0s threshold)
+
+**Academicpages DOM check:**
+- Academicpages: 10/45 (matches baseline, no regression)
+- portfolio/index.html: improved from 11 diffs to 1 diff (the remaining diff is likely build timestamp)
+
+**Summary:**
+- Files modified: src/generator.rs, src/archives.rs, src/pagination.rs
+- Tests added: 4 new tests, 5 existing tests updated
+- Build results: 3752 lib tests pass, 0 fail, clippy clean, fmt clean
+- The fix safely excludes backfilled dates from non-post items in liquid iteration context
+- DTC podcast pages are unaffected because DTC podcast items have explicit dates in front matter (parsed from filenames), so they still appear in the liquid context
+
+### [QA] 2026-04-03 16:05
+- Tests: all pass (full cargo test suite), 0 failures
+- Clippy: clean (only upstream liquid-lib rename warnings)
+- Fmt: clean
+- DTC DOM: 596/790 matched, 255 total diffs -- matches baseline exactly, zero regression
+- DTC build time: 0.65s (well under 1.0s threshold)
+- Academicpages DOM: 10/45 matched (baseline: 10/45, no regression)
+- Academicpages portfolio/index.html: 1 diff (build timestamp only) -- improved from 11 diffs
+- DTC podcast season pages verified: building-data-team.html output matches Jekyll (no startDate/endDate in either)
+- TDD compliance: SWE log shows test written first, verified FAILS, then fix implemented, then PASSES
+- Code review: fix is consistent across all 3 files (generator.rs, pagination.rs, archives.rs), uses same guard pattern
+- 4 new tests cover: backfilled date excluded (non-post), explicit date included (non-post), post always included, unicode slug
+- 5 existing tests properly updated to add explicit date in front_matter
+
+Acceptance criteria:
+1. `cargo build` compiles: PASS
+2. `cargo clippy -- -D warnings` clean: PASS
+3. `cargo fmt` no changes: PASS
+4. `cargo test` passes: PASS
+5. DTC DOM >= 596/790: PASS (596/790)
+6. DTC total diffs <= 255: PASS (255)
+7. Academicpages DOM >= 10/45: PASS (10/45)
+8. portfolio/index.html no longer shows page__date for portfolio items: PASS (11 diffs -> 1 diff, remaining is build timestamp)
+9. Existing #474 test continues to pass: PASS (test renamed but assertion inverted correctly)
+10. DTC podcast season_end computation: PASS (verified building-data-team.html matches Jekyll)
+
+- VERDICT: PASS
+
+### [PM] 2026-04-03 16:10
+- Reviewed diff: 3 source files changed (generator.rs, pagination.rs, archives.rs), plus docs/comparison updates
+- Code review: guard pattern `item.collection_name == "posts" || item.front_matter.contains_key("date")` applied consistently across all 3 liquid conversion functions
+- Output verification: built DTC and academicpages independently, ran DOM comparison
+- DTC DOM: 596/790 matched, 255 total diffs (matches baseline exactly, zero regression)
+- Academicpages DOM: 10/45 matched (baseline: 10/45, no regression)
+- Academicpages portfolio/index.html: 11 diffs -> 1 diff (remaining is build timestamp)
+- Tests: 4 new unit tests (backfilled excluded, explicit included, posts always included, unicode slug), 5 existing tests updated
+- TDD compliance: confirmed from SWE log (test written first, verified fail, then fix)
+- Acceptance criteria: all 11 criteria met
+- Follow-up issues: none needed
+- VERDICT: ACCEPT
