@@ -592,6 +592,12 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // autolinks http:, https:, ftp:, and mailto:.
     let markdown = escape_non_standard_autolink_schemes(markdown);
 
+    // Issue 549: Mark standalone raw HTML <img> tags with data-raw-html="1"
+    // before pulldown-cmark processes them. This distinguishes them from
+    // markdown-syntax ![alt](url) images so that only raw HTML images get
+    // unwrapped from <p> tags during postprocessing.
+    let markdown = crate::kramdown::mark_raw_html_img_tags(&markdown);
+
     // Issue 228: Process markdown="1" attribute on HTML elements before the
     // main markdown pass. This renders markdown inside <aside markdown="1">,
     // <div markdown="1">, etc. and strips the attribute.
@@ -804,11 +810,14 @@ pub fn markdown_to_html_with_options(
     let has_math = markdown.contains("$$") || markdown.contains("\\(");
     let has_pipe = markdown.contains('|');
 
+    // Issue 549: Mark standalone raw HTML <img> tags with data-raw-html="1"
+    let markdown = crate::kramdown::mark_raw_html_img_tags(markdown);
+
     // Issue 228: Process markdown="1" attribute on HTML elements
     let markdown = if has_markdown_attr {
-        crate::kramdown::process_markdown_attribute(markdown)
+        crate::kramdown::process_markdown_attribute(&markdown)
     } else {
-        markdown.to_string()
+        markdown
     };
 
     // Issue 489: Replace standalone {:toc} patterns with a placeholder

@@ -4226,6 +4226,40 @@ fn strip_p_in_tag(html: &str, tag: &str) -> String {
     result
 }
 
+/// Issue 549: Mark standalone raw HTML `<img` tags in markdown source with a
+/// `data-raw-html="1"` attribute. This allows `unwrap_block_elements_from_p` to
+/// distinguish raw HTML images (which should be unwrapped from `<p>`) from
+/// markdown-syntax images `![alt](url)` (which Jekyll/kramdown keeps in `<p>`).
+///
+/// A "standalone" raw HTML img is one that appears on its own line. Lines that
+/// are markdown image syntax `![` are NOT marked.
+pub fn mark_raw_html_img_tags(markdown: &str) -> String {
+    let mut result = String::with_capacity(markdown.len() + 64);
+    for line in markdown.split('\n') {
+        let trimmed = line.trim();
+        // Match lines that start with <img (raw HTML img tag) on their own
+        if trimmed.starts_with("<img")
+            && (trimmed.len() == 4
+                || trimmed
+                    .as_bytes()
+                    .get(4)
+                    .is_some_and(|&b| b == b' ' || b == b'/' || b == b'>'))
+            && trimmed.ends_with('>')
+        {
+            // Insert data-raw-html="1" after "<img"
+            result.push_str(&line.replace("<img", "<img data-raw-html=\"1\""));
+        } else {
+            result.push_str(line);
+        }
+        result.push('\n');
+    }
+    // Remove trailing newline if original didn't have one
+    if !markdown.ends_with('\n') {
+        result.pop();
+    }
+    result
+}
+
 /// Unwrap block-level HTML elements that pulldown-cmark erroneously wraps in
 /// `<p>` tags. For example, `<p><noscript>...</noscript>\n</p>` becomes
 /// `<noscript>...</noscript>`.
@@ -4293,10 +4327,13 @@ fn unwrap_block_elements_from_p(html: &str) -> String {
         }
     }
 
-    // Issue 449: Unwrap void (self-closing) elements like <img> from <p> when
-    // they are the sole content. Pattern: <p><img ... /></p> or <p><img ...></p>
+    // Issue 449/549: Unwrap void (self-closing) elements like <img> from <p>
+    // when they are the sole content AND have the data-raw-html="1" marker.
+    // Pattern: <p><img data-raw-html="1" ... /></p> or <p><img data-raw-html="1" ...></p>
+    // Images from markdown syntax ![alt](url) do NOT have this marker and stay in <p>.
     for &tag in UNWRAP_VOID_TAGS {
         let open_tag = format!("<{}", tag);
+        let raw_marker = "data-raw-html=\"1\"";
         let mut search_from = 0;
         loop {
             let haystack = &result[search_from..];
@@ -4320,6 +4357,14 @@ fn unwrap_block_elements_from_p(html: &str) -> String {
                 continue;
             };
             let tag_end = after_p_start + gt_rel + 1;
+
+            // Issue 549: Only unwrap if the tag has the raw HTML marker
+            let tag_content = &result[after_p_start..tag_end];
+            if !tag_content.contains(raw_marker) {
+                search_from = after_p_start;
+                continue;
+            }
+
             let after_tag = &result[tag_end..];
 
             // Check for </p> immediately after the void tag (with optional newline)
@@ -4331,7 +4376,10 @@ fn unwrap_block_elements_from_p(html: &str) -> String {
             let p_close_end = result.len() - trimmed.len() + 4; // len("</p>")
 
             // Extract the void element (without the <p>...</p> wrapper)
-            let element_content = result[after_p_start..tag_end].to_string();
+            // and strip the data-raw-html="1" marker attribute
+            let element_content = result[after_p_start..tag_end]
+                .replace(" data-raw-html=\"1\"", "")
+                .to_string();
             result = format!(
                 "{}{}{}",
                 &result[..p_pos],
@@ -4342,7 +4390,9 @@ fn unwrap_block_elements_from_p(html: &str) -> String {
         }
     }
 
-    result
+    // Issue 549: Strip any remaining data-raw-html="1" markers that were not
+    // unwrapped (e.g., inline raw HTML images within text paragraphs).
+    result.replace(" data-raw-html=\"1\"", "")
 }
 
 /// Find the position of the matching closing tag, handling nesting.
@@ -16647,12 +16697,13 @@ by <a href="/people/author.html">Author Name</a>
 
     #[test]
     fn test_issue449_unwrap_img_from_p_postprocess() {
-        // Direct test of the unwrap function for standalone img in <p>
-        let input = "<p><img src=\"https://example.com/photo.jpg\" alt=\"test\" style=\"max-height: 20em;\"></p>";
+        // Direct test of the unwrap function for standalone raw HTML img in <p>
+        // Issue 549: Now requires data-raw-html="1" marker to distinguish from markdown images
+        let input = "<p><img data-raw-html=\"1\" src=\"https://example.com/photo.jpg\" alt=\"test\" style=\"max-height: 20em;\"></p>";
         let result = unwrap_block_elements_from_p(input);
         assert!(
             !result.contains("<p><img"),
-            "Standalone img should be unwrapped from <p>. Got: {}",
+            "Standalone raw HTML img should be unwrapped from <p>. Got: {}",
             result
         );
         assert!(
@@ -16660,16 +16711,128 @@ by <a href="/people/author.html">Author Name</a>
             "img element should be preserved. Got: {}",
             result
         );
+        assert!(
+            !result.contains("data-raw-html"),
+            "Marker attribute should be stripped. Got: {}",
+            result
+        );
     }
 
     #[test]
     fn test_issue449_unwrap_img_self_closing_from_p() {
-        // Self-closing img with /> should also be unwrapped
-        let input = "<p><img src=\"https://example.com/photo.jpg\" alt=\"test\" /></p>";
+        // Self-closing img with /> should also be unwrapped when marked as raw HTML
+        // Issue 549: Now requires data-raw-html="1" marker
+        let input =
+            "<p><img data-raw-html=\"1\" src=\"https://example.com/photo.jpg\" alt=\"test\" /></p>";
         let result = unwrap_block_elements_from_p(input);
         assert!(
             !result.contains("<p><img"),
-            "Self-closing img should be unwrapped from <p>. Got: {}",
+            "Self-closing raw HTML img should be unwrapped from <p>. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("data-raw-html"),
+            "Marker attribute should be stripped. Got: {}",
+            result
+        );
+    }
+
+    // ========================================================================
+    // Issue 549: Selective img p-unwrapping
+    // Markdown ![alt](url) should stay in <p>, raw HTML <img> should be unwrapped
+    // ========================================================================
+
+    #[test]
+    fn test_issue549_markdown_image_stays_in_p() {
+        // Markdown ![alt](url) on its own line should produce <p><img ...></p>
+        let md = "Some text.\n\n![Crepe](https://example.com/crepe.jpg)\n\nMore text.\n";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("<p><img src=\"https://example.com/crepe.jpg\" alt=\"Crepe\" /></p>"),
+            "Markdown image should be wrapped in <p>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue549_markdown_image_with_text_stays_in_p() {
+        // Markdown image with text before it should stay in paragraph
+        let md = "Here is an image: ![photo](https://example.com/photo.jpg)\n";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("<p>Here is an image: <img"),
+            "Markdown image with text should stay in paragraph. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue549_raw_html_img_still_unwrapped() {
+        // Raw HTML <img> on its own line should NOT be in <p>
+        let md = "Some text.\n\n<img src=\"https://example.com/photo.jpg\" alt=\"test\" style=\"max-height: 20em;\">\n\nMore text.\n";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            !html.contains("<p><img"),
+            "Raw HTML img should NOT be wrapped in <p>. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<img src=\"https://example.com/photo.jpg\""),
+            "Raw HTML img should be preserved. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue549_raw_html_img_self_closing_unwrapped() {
+        // Raw HTML <img .../> on its own line should NOT be in <p>
+        let md = "Some text.\n\n<img src=\"https://example.com/photo.jpg\" alt=\"test\" />\n\nMore text.\n";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            !html.contains("<p><img"),
+            "Raw HTML self-closing img should NOT be wrapped in <p>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue549_markdown_image_unicode_alt_stays_in_p() {
+        // Markdown image with Unicode alt text should stay in <p>
+        let md = "![Sch\u{00f6}nes Bild](https://example.com/bild.jpg)\n";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("<p><img"),
+            "Markdown image with Unicode alt should be wrapped in <p>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue549_unwrap_only_marked_img() {
+        // Direct test of unwrap_block_elements_from_p:
+        // Images with data-raw-html="1" should be unwrapped
+        let input = "<p><img src=\"x.jpg\" data-raw-html=\"1\" alt=\"test\" /></p>";
+        let result = unwrap_block_elements_from_p(input);
+        assert!(
+            !result.contains("<p>"),
+            "Marked img should be unwrapped from <p>. Got: {}",
+            result
+        );
+        assert!(
+            !result.contains("data-raw-html"),
+            "Marker attribute should be stripped. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue549_unwrap_preserves_unmarked_img_in_p() {
+        // Direct test: images WITHOUT data-raw-html="1" should NOT be unwrapped
+        let input = "<p><img src=\"x.jpg\" alt=\"test\" /></p>";
+        let result = unwrap_block_elements_from_p(input);
+        assert!(
+            result.contains("<p><img"),
+            "Unmarked img should stay in <p>. Got: {}",
             result
         );
     }
