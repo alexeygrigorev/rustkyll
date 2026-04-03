@@ -1834,6 +1834,8 @@ pub fn generate_collection_pages_cached_with_progress(
         None
     };
 
+    let jemoji_enabled = crate::jemoji::has_jemoji_plugin(config);
+
     let item_results: Vec<PerItemResult> = items
         .par_iter()
         .map(|item| {
@@ -2031,6 +2033,12 @@ pub fn generate_collection_pages_cached_with_progress(
                         html
                     };
 
+                    let html = if jemoji_enabled {
+                        crate::jemoji::process_jemoji(&html)
+                    } else {
+                        html
+                    };
+
                     let out_path = url_to_output_path(output_dir, &item.url);
 
                     match fs::write(&out_path, &html) {
@@ -2214,6 +2222,8 @@ pub fn generate_pages_cached_with_config_and_progress(
         }
     });
 
+    let jemoji_enabled = config.is_some_and(crate::jemoji::has_jemoji_plugin);
+
     let page_results: Vec<PerItemResult> = pages
         .par_iter()
         .map(|page| {
@@ -2309,6 +2319,12 @@ pub fn generate_pages_cached_with_config_and_progress(
 
                     let html = if let Some(ref base_url) = mentions_base_url {
                         crate::mentions::process_mentions(&html, base_url)
+                    } else {
+                        html
+                    };
+
+                    let html = if jemoji_enabled {
+                        crate::jemoji::process_jemoji(&html)
                     } else {
                         html
                     };
