@@ -118,3 +118,43 @@ Descoped from #508.
 
 - DTC DOM: 596/790 matched (must not regress)
 - al-folio DOM: 2/100 matched, 6506 total differences (improvement expected but not required as acceptance criterion)
+
+## Log
+
+### [SWE] 2026-04-02
+
+**Fix 1: Implement {% cite %} tag**
+- Wrote tests: test_cite_single_key, test_cite_multiple_keys, test_cite_no_arguments, test_cite_in_unicode_prose
+- Ran tests: ALL FAIL -- got "" (empty), expected "[mykey]", "[key1, key2, key3]", etc.
+- Replaced noop_inline_tag!(CiteTag) with full CiteTag implementation that collects keys and outputs [key1, key2, ...]
+- Ran tests: ALL PASS
+
+**Fix 2: Implement {% reference %} tag**
+- Wrote tests: test_reference_single_key, test_reference_in_unicode_prose
+- Ran tests: ALL FAIL -- got "" (empty), expected "[mykey]"
+- Replaced noop_inline_tag!(ReferenceTag) with full ReferenceTag implementation that outputs [key]
+- Ran tests: ALL PASS
+
+**Fix 3: Implement {% quote %} block**
+- Wrote tests: test_quote_basic, test_quote_with_citation, test_quote_unicode_content
+- Ran tests: ALL FAIL -- got "" (empty), expected "<blockquote>..."
+- Replaced noop_block_tag!(QuoteBlock) with full QuoteBlock implementation that renders content through Liquid and wraps in <blockquote>, with optional <cite>[key]</cite>
+- Ran tests: ALL PASS
+
+**Fix 4: Implement {% tabs %}/{% tab %} blocks**
+- Wrote tests: test_tabs_basic_structure, test_tabs_first_active, test_tabs_unicode_names
+- Ran tests: ALL FAIL -- got "" (empty), expected "<ul class=\"tab\">..."
+- Replaced noop_block_tag!(TabsBlock) with full implementation that parses tab sections from raw body, builds <ul class="tab"> navigation with <li> items and <ul class="tab-content"> panels with Markdown-rendered content. First tab/panel gets class="active". TabBlock kept as stub (only needed for Liquid parser registration).
+- Ran tests: ALL PASS
+
+**Fix 5: Remove BustFileCacheTag dead code**
+- Removed BustFileCacheTag noop_inline_tag definition from noop_tags.rs
+- Removed all 5 BustFileCacheTag registrations from engine.rs (new(), with_includes(), with_includes_and_extra_sources(), discover_unknown_filters_in_includes(), rebuild_parser_with_filter())
+- Removed unused noop_block_tag macro (no longer used after tabs/tab/quote were implemented directly)
+
+**Summary:**
+- Files modified: src/template/noop_tags.rs, src/template/engine.rs
+- Tests added: 12 new tests (cite: 4, reference: 2, quote: 3, tabs: 3)
+- Build results: 3701 lib tests pass, 0 fail; clippy clean; fmt clean
+- DTC DOM: 596/790 matched, 255 total differences (matches baseline exactly)
+- DTC build time: 0.664s (under 1.0s limit)
