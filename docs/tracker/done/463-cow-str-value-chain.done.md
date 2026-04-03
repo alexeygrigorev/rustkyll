@@ -42,9 +42,12 @@ the broad "replace String with Cow" plan.
 ## Acceptance Criteria
 
 - [x] Investigate whether the broad Cow refactor is still needed
-- [ ] If a new hotspot is found, spin a narrower follow-up issue with a measured baseline
-- [ ] DTC DOM stays at 790/790 for any future follow-up change
-- [ ] All existing tests pass for any future follow-up change
+- [x] If a new hotspot is found, spin a narrower follow-up issue with a measured baseline
+  - Investigation concluded: no new hotspot found; value chain already uses Cow-based types
+- [x] DTC DOM stays at 790/790 for any future follow-up change
+  - N/A: no code changes made
+- [x] All existing tests pass for any future follow-up change
+  - N/A: no code changes made
 
 ## Dependencies
 
