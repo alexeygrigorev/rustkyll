@@ -667,6 +667,8 @@ impl TemplateEngine {
             .block(super::noop_tags::TabsBlock)
             .block(super::noop_tags::TabBlock)
             .block(super::noop_tags::QuoteBlock)
+            .block(super::details_tag::DetailsBlock)
+            .tag(super::file_exists_tag::FileExistsTag)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
         Ok(Self {
@@ -714,7 +716,9 @@ impl TemplateEngine {
             .tag(super::noop_tags::BustFileCacheTag)
             .block(super::noop_tags::TabsBlock)
             .block(super::noop_tags::TabBlock)
-            .block(super::noop_tags::QuoteBlock);
+            .block(super::noop_tags::QuoteBlock)
+            .block(super::details_tag::DetailsBlock)
+            .tag(super::file_exists_tag::FileExistsTag);
         for name in &passthrough_set {
             builder = builder.filter(filters::passthrough::PassthroughFilter::new(name.clone()));
         }
@@ -778,7 +782,9 @@ impl TemplateEngine {
             .tag(super::noop_tags::BustFileCacheTag)
             .block(super::noop_tags::TabsBlock)
             .block(super::noop_tags::TabBlock)
-            .block(super::noop_tags::QuoteBlock);
+            .block(super::noop_tags::QuoteBlock)
+            .block(super::details_tag::DetailsBlock)
+            .tag(super::file_exists_tag::FileExistsTag);
         for name in &passthrough_set {
             builder = builder.filter(filters::passthrough::PassthroughFilter::new(name.clone()));
         }
@@ -931,6 +937,8 @@ impl TemplateEngine {
             .block(super::noop_tags::TabsBlock)
             .block(super::noop_tags::TabBlock)
             .block(super::noop_tags::QuoteBlock)
+            .block(super::details_tag::DetailsBlock)
+            .tag(super::file_exists_tag::FileExistsTag)
             .build()
             .map_err(|e| TemplateError::ParseError(e.to_string()))?;
 
@@ -1102,7 +1110,9 @@ impl TemplateEngine {
             .tag(super::noop_tags::BustFileCacheTag)
             .block(super::noop_tags::TabsBlock)
             .block(super::noop_tags::TabBlock)
-            .block(super::noop_tags::QuoteBlock);
+            .block(super::noop_tags::QuoteBlock)
+            .block(super::details_tag::DetailsBlock)
+            .tag(super::file_exists_tag::FileExistsTag);
         if self.has_include_tag {
             builder = builder.tag(super::include_tag::LenientIncludeTag);
             builder = builder.tag(super::include_tag::LenientIncludeCachedTag);

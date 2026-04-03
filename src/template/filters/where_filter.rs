@@ -10,8 +10,10 @@ use liquid_core::{
 };
 use liquid_core::{Value, ValueView};
 
+type WhereIndexMap = HashMap<usize, HashMap<String, HashMap<String, Arc<Vec<Value>>>>>;
+
 thread_local! {
-    static WHERE_INDEX_CACHE: RefCell<HashMap<usize, HashMap<String, HashMap<String, Arc<Vec<Value>>>>>> =
+    static WHERE_INDEX_CACHE: RefCell<WhereIndexMap> =
         RefCell::new(HashMap::new());
 }
 
@@ -109,7 +111,10 @@ impl Filter for WhereFilter {
     }
 }
 
-fn build_index(array: &dyn liquid_core::model::ArrayView, property: &str) -> HashMap<String, Arc<Vec<Value>>> {
+fn build_index(
+    array: &dyn liquid_core::model::ArrayView,
+    property: &str,
+) -> HashMap<String, Arc<Vec<Value>>> {
     let mut grouped: HashMap<String, Vec<Value>> = HashMap::new();
     for item in array.values() {
         let Some(obj) = item.as_object() else {
@@ -123,10 +128,7 @@ fn build_index(array: &dyn liquid_core::model::ArrayView, property: &str) -> Has
         grouped.entry(key).or_default().push(item.to_value());
     }
 
-    grouped
-        .into_iter()
-        .map(|(k, v)| (k, Arc::new(v)))
-        .collect()
+    grouped.into_iter().map(|(k, v)| (k, Arc::new(v))).collect()
 }
 
 /// Returns true if the target string is a 4-digit year (e.g. "2018").
@@ -242,7 +244,8 @@ mod tests {
         let input = Value::Array(rows);
 
         for _ in 0..3 {
-            let result = liquid_core::call_filter!(Where, input.clone(), "url", "/docs/17/").unwrap();
+            let result =
+                liquid_core::call_filter!(Where, input.clone(), "url", "/docs/17/").unwrap();
             let arr = result.as_array().unwrap();
             assert_eq!(arr.size(), 1);
             let first = arr.values().next().unwrap();

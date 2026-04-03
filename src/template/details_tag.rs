@@ -44,7 +44,7 @@ impl ParseBlock for DetailsBlock {
         let summary = summary_parts.join(" ");
 
         // Parse the block body as Liquid template nodes
-        let body = block.parse_all(options)?;
+        let body = liquid_core::runtime::Template::new(block.parse_all(options)?);
 
         Ok(Box::new(Details { summary, body }))
     }
@@ -72,7 +72,7 @@ impl Renderable for Details {
         let summary_html = if self.summary.is_empty() {
             String::new()
         } else {
-            let md_html = crate::markdown::render_markdown(&self.summary);
+            let md_html = crate::frontmatter::markdown_to_html(&self.summary);
             // Strip wrapping <p>...</p> tags, matching Jekyll's gsub(/<\/?p[^>]*>/, '')
             strip_p_tags(&md_html).trim().to_string()
         };
@@ -83,7 +83,7 @@ impl Renderable for Details {
         let body_text = String::from_utf8_lossy(&body_buf).to_string();
 
         // Render body through Markdown
-        let body_html = crate::markdown::render_markdown(&body_text);
+        let body_html = crate::frontmatter::markdown_to_html(&body_text);
 
         write!(
             writer,

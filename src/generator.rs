@@ -1999,8 +1999,8 @@ pub fn generate_collection_pages_cached_with_progress(
                             .map(|html| (html, None))
                     }
                 } else {
-                    let is_markdown_source =
-                        item.source_path.ends_with(".md") || item.source_path.ends_with(".markdown");
+                    let is_markdown_source = item.source_path.ends_with(".md")
+                        || item.source_path.ends_with(".markdown");
                     let has_liquid_tags =
                         item.content.contains("{{") || item.content.contains("{%");
                     if item.html_content.is_empty() && is_markdown_source && has_liquid_tags {

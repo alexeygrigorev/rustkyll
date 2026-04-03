@@ -1253,9 +1253,7 @@ fn contains_non_highlight_liquid(content: &str) -> bool {
     while let Some(pos) = remaining.find("{%") {
         let after = &remaining[pos + 2..];
         let trimmed = after.trim_start_matches([' ', '\t', '\n', '\r', '-']);
-        if !(trimmed.starts_with("highlight")
-            || trimmed.starts_with("endhighlight"))
-        {
+        if !(trimmed.starts_with("highlight") || trimmed.starts_with("endhighlight")) {
             return true;
         }
         remaining = &after["".len()..];

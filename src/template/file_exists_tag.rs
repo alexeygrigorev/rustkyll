@@ -7,7 +7,9 @@
 use std::io::Write;
 use std::path::PathBuf;
 
-use liquid_core::{Language, ParseTag, Renderable, Runtime, TagReflection, TagTokenIter, ValueView};
+use liquid_core::{
+    Language, ParseTag, Renderable, Runtime, TagReflection, TagTokenIter, ValueView,
+};
 
 /// The `{% file_exists %}` tag.
 #[derive(Copy, Clone, Debug, Default)]
