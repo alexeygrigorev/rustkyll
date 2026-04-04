@@ -4269,9 +4269,10 @@ pub fn mark_raw_html_for_commonmark(markdown: &str) -> String {
     let lines: Vec<&str> = markdown.lines().collect();
     let mut result = Vec::with_capacity(lines.len());
     let len = lines.len();
+    let mut i = 0;
 
-    for (i, line) in lines.iter().enumerate() {
-        let trimmed = line.trim();
+    while i < len {
+        let trimmed = lines[i].trim();
         let prev_blank = i == 0 || lines[i - 1].trim().is_empty();
         let next_blank = i + 1 >= len || lines[i + 1].trim().is_empty();
 
@@ -4281,21 +4282,31 @@ pub fn mark_raw_html_for_commonmark(markdown: &str) -> String {
             && prev_blank
             && next_blank
         {
-            // Add marker attribute
             let marked = trimmed.replacen("<img ", "<img data-raw-html-560=\"1\" ", 1);
             result.push(marked);
+            i += 1;
             continue;
         }
 
         // Standalone <br> on its own line preceded by a blank line.
-        // Wrap in a <div> marker so pulldown-cmark treats it as an HTML block
-        // rather than wrapping it in <p>.
+        // Wrap the <br> and all following non-blank lines in a <div> marker
+        // so pulldown-cmark treats them as a single HTML block (matching
+        // cmark-gfm's HTML block type 6 behavior for <br>).
         if (trimmed == "<br>" || trimmed == "<br/>" || trimmed == "<br />") && prev_blank {
-            result.push(format!("<div data-raw-br-560>{}</div>", trimmed));
+            let mut block_lines = vec![trimmed.to_string()];
+            let mut j = i + 1;
+            while j < len && !lines[j].trim().is_empty() {
+                block_lines.push(lines[j].to_string());
+                j += 1;
+            }
+            let inner = block_lines.join("\n");
+            result.push(format!("<div data-raw-br-560>{}</div>", inner));
+            i = j; // Skip past all consumed lines
             continue;
         }
 
-        result.push((*line).to_string());
+        result.push(lines[i].to_string());
+        i += 1;
     }
 
     result.join("\n")
