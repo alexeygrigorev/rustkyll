@@ -198,7 +198,10 @@ fn get_nested_str_allow_empty_non_nil(runtime: &dyn Runtime, parts: &[&str]) -> 
         .map(|p| liquid_core::model::ScalarCow::new(*p))
         .collect();
     let val = runtime.try_get(&path)?;
-    if val.is_nil() {
+    // Issue 579: check both is_nil() and type_name() == "nil" as a safety net.
+    // LenientValue now properly delegates is_nil(), but the type_name check
+    // guards against any other ValueView wrapper that might have the same issue.
+    if val.is_nil() || val.type_name() == "nil" {
         return None;
     }
     Some(val.to_kstr().to_string())
@@ -4156,6 +4159,97 @@ mod tests {
             !out.contains("og:url"),
             "Should NOT emit og:url when site.url is absent. Got:\n{}",
             out
+        );
+    }
+
+    /// Issue 579: When site.url is explicitly set to Nil (as the generator does
+    /// when url: is absent from _config.yml), canonical/og:url must be suppressed.
+    /// This differs from the test above where site.url is simply missing from the
+    /// object -- here it exists as a Nil value, which LenientValue wraps.
+    #[test]
+    fn test_no_canonical_with_nil_site_url() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        page.insert("url".into(), Value::scalar("/"));
+        let mut site = Object::new();
+        site.insert("title".into(), Value::scalar("Hacker theme"));
+        site.insert(
+            "description".into(),
+            Value::scalar("Hacker is a theme for GitHub Pages."),
+        );
+        // Explicitly insert Nil -- this is what build_site_context does when
+        // url_explicitly_set is false.
+        site.insert("url".into(), Value::Nil);
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            !out.contains("rel=\"canonical\""),
+            "Should NOT emit canonical link when site.url is Nil. Got:\n{}",
+            out
+        );
+        assert!(
+            !out.contains("og:url"),
+            "Should NOT emit og:url when site.url is Nil. Got:\n{}",
+            out
+        );
+    }
+
+    /// Issue 579: site.url=Nil should NOT suppress canonical when url: "" is
+    /// explicitly configured (site.url should be empty string, not Nil).
+    #[test]
+    fn test_canonical_emitted_with_empty_string_site_url() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        page.insert("url".into(), Value::scalar("/"));
+        let mut site = Object::new();
+        site.insert("title".into(), Value::scalar("Test Site"));
+        // Explicitly set to empty string (url: "" in _config.yml)
+        site.insert("url".into(), Value::scalar(""));
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            out.contains("rel=\"canonical\""),
+            "Should emit canonical link when site.url is empty string. Got:\n{}",
+            out
+        );
+        assert!(
+            out.contains("og:url"),
+            "Should emit og:url when site.url is empty string. Got:\n{}",
+            out
+        );
+    }
+
+    /// Issue 579: Unicode site titles should work correctly with nil site.url
+    #[test]
+    fn test_no_canonical_with_nil_url_unicode_title() {
+        let eng = engine();
+        let mut ctx = Object::new();
+        let mut page = Object::new();
+        page.insert("url".into(), Value::scalar("/"));
+        let mut site = Object::new();
+        site.insert(
+            "title".into(),
+            Value::scalar("\u{30c6}\u{30b9}\u{30c8}\u{30b5}\u{30a4}\u{30c8}"),
+        ); // テストサイト
+        site.insert("url".into(), Value::Nil);
+        ctx.insert("page".into(), Value::Object(page));
+        ctx.insert("site".into(), Value::Object(site));
+
+        let out = eng.parse_and_render("{% seo %}", &ctx).unwrap();
+        assert!(
+            !out.contains("rel=\"canonical\""),
+            "Should NOT emit canonical with nil URL even with Unicode title. Got:\n{}",
+            out
+        );
+        assert!(
+            out.contains("\u{30c6}\u{30b9}\u{30c8}\u{30b5}\u{30a4}\u{30c8}"),
+            "Unicode title should still appear in output"
         );
     }
 

@@ -143,6 +143,17 @@ impl ValueView for LenientValue {
         self.inner.query_state(state)
     }
 
+    /// Issue 579: Delegate is_nil() to the wrapped value.
+    ///
+    /// The default `ValueView::is_nil()` always returns `false`. Without
+    /// this override, a `LenientValue` wrapping `Value::Nil` (e.g.,
+    /// `site.url` when `url:` is absent from `_config.yml`) would report
+    /// `is_nil() == false`, preventing the SEO tag from detecting the
+    /// absent URL and suppressing canonical/og:url.
+    fn is_nil(&self) -> bool {
+        self.inner.is_nil()
+    }
+
     fn to_kstr(&self) -> KStringCow<'_> {
         self.inner.to_kstr()
     }
@@ -8150,6 +8161,67 @@ title: "Test Book"
             out2, "hello hello",
             "Issue 569: Trailing space from expression should NOT be stripped by {{-. Got: {:?}",
             out2,
+        );
+    }
+
+    /// Issue 579: LenientValue wrapping Nil must report is_nil() == true.
+    /// Without this, the SEO tag cannot detect that site.url is absent
+    /// (Nil) vs explicitly empty (""), causing spurious canonical/og:url
+    /// tags on sites that don't configure url: in _config.yml.
+    #[test]
+    fn test_lenient_value_nil_is_nil() {
+        let lv = LenientValue::from_value(Value::Nil);
+        assert!(
+            lv.is_nil(),
+            "LenientValue wrapping Value::Nil must return is_nil() == true"
+        );
+        assert_eq!(lv.type_name(), "nil");
+    }
+
+    /// Issue 579: LenientValue wrapping a non-nil value must NOT report is_nil().
+    #[test]
+    fn test_lenient_value_scalar_not_nil() {
+        let lv = LenientValue::from_value(Value::scalar("hello"));
+        assert!(
+            !lv.is_nil(),
+            "LenientValue wrapping a scalar must not be nil"
+        );
+        let lv_empty = LenientValue::from_value(Value::scalar(""));
+        assert!(
+            !lv_empty.is_nil(),
+            "LenientValue wrapping empty string must not be nil"
+        );
+    }
+
+    /// Issue 579: site.url=Nil in CachedSiteContext should render as empty
+    /// in templates ({{ site.url }} -> "") but be detectable as nil.
+    #[test]
+    fn test_cached_site_nil_url_renders_empty() {
+        let mut site = Object::new();
+        site.insert("url".into(), LiquidValue::Nil);
+        site.insert("title".into(), LiquidValue::scalar("Test"));
+
+        let cached = CachedSiteContext::new(&site);
+        let eng = engine();
+        let mut ctx = Object::new();
+        ctx.insert("page".into(), LiquidValue::Object(Object::new()));
+
+        // {{ site.url }} should render as empty string (not error)
+        let tpl = eng.parse("URL:{{ site.url }}:END").unwrap();
+        let out = eng.render_with_cached_site(&tpl, &ctx, &cached).unwrap();
+        assert_eq!(
+            out, "URL::END",
+            "Nil site.url should render as empty string in templates"
+        );
+
+        // {% if site.url %} should be falsy for nil
+        let tpl2 = eng
+            .parse("{% if site.url %}HAS_URL{% else %}NO_URL{% endif %}")
+            .unwrap();
+        let out2 = eng.render_with_cached_site(&tpl2, &ctx, &cached).unwrap();
+        assert_eq!(
+            out2, "NO_URL",
+            "Nil site.url should be falsy in conditionals"
         );
     }
 }
