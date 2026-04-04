@@ -1258,6 +1258,107 @@ mod test {
     }
 
     #[test]
+    fn test_parse_variable_dot_bracket_access() {
+        // Test `hash.tabs.[tab_name]` -- dot-bracket dynamic key access
+        let variable = LiquidParser::parse(Rule::Variable, "hash.tabs.[tab_name]")
+            .unwrap()
+            .next()
+            .unwrap();
+
+        let indexes = vec![
+            Expression::with_literal("tabs".to_owned()),
+            Expression::Variable(Variable::with_literal("tab_name")),
+        ];
+
+        let mut expected = Variable::with_literal("hash");
+        expected.extend(indexes);
+
+        assert_eq!(parse_variable_pair(variable), expected);
+    }
+
+    #[test]
+    fn test_parse_variable_chained_dot_bracket() {
+        // Test `a.b.[c].d` -- chained dot-bracket with trailing dot access
+        let variable = LiquidParser::parse(Rule::Variable, "a.b.[c].d")
+            .unwrap()
+            .next()
+            .unwrap();
+
+        let indexes = vec![
+            Expression::with_literal("b".to_owned()),
+            Expression::Variable(Variable::with_literal("c")),
+            Expression::with_literal("d".to_owned()),
+        ];
+
+        let mut expected = Variable::with_literal("a");
+        expected.extend(indexes);
+
+        assert_eq!(parse_variable_pair(variable), expected);
+    }
+
+    #[test]
+    fn test_parse_variable_nested_dot_bracket() {
+        // Test `a.[b].[c]` -- consecutive dot-bracket access
+        let variable = LiquidParser::parse(Rule::Variable, "a.[b].[c]")
+            .unwrap()
+            .next()
+            .unwrap();
+
+        let indexes = vec![
+            Expression::Variable(Variable::with_literal("b")),
+            Expression::Variable(Variable::with_literal("c")),
+        ];
+
+        let mut expected = Variable::with_literal("a");
+        expected.extend(indexes);
+
+        assert_eq!(parse_variable_pair(variable), expected);
+    }
+
+    #[test]
+    fn test_parse_variable_dot_bracket_with_dotted_var() {
+        // Test `site.data.locales[include.lang].tabs.[tab_name]` -- the chirpy pattern
+        let variable = LiquidParser::parse(
+            Rule::Variable,
+            "site.data.locales[include.lang].tabs.[tab_name]",
+        )
+        .unwrap()
+        .next()
+        .unwrap();
+
+        let indexes = vec![
+            Expression::with_literal("data".to_owned()),
+            Expression::with_literal("locales".to_owned()),
+            Expression::Variable(Variable::with_literal("include").push_literal("lang")),
+            Expression::with_literal("tabs".to_owned()),
+            Expression::Variable(Variable::with_literal("tab_name")),
+        ];
+
+        let mut expected = Variable::with_literal("site");
+        expected.extend(indexes);
+
+        assert_eq!(parse_variable_pair(variable), expected);
+    }
+
+    #[test]
+    fn test_parse_variable_page_dot_bracket_include_id() {
+        // Test `page.[include.id]` -- the academicpages pattern
+        let variable = LiquidParser::parse(Rule::Variable, "page.[include.id]")
+            .unwrap()
+            .next()
+            .unwrap();
+
+        let indexes = vec![Expression::Variable(
+            Variable::with_literal("include").push_literal("id"),
+        )];
+
+        let mut expected = Variable::with_literal("page");
+        expected.extend(indexes);
+
+        assert_eq!(parse_variable_pair(variable), expected);
+    }
+
+    #[test]
     fn test_whitespace_control() {
         let options = Language::default();
 
