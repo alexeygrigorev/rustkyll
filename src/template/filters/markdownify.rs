@@ -1567,4 +1567,103 @@ mod tests {
             "Should have blockquote with unicode content. Got: {html}"
         );
     }
+
+    // ========================================================================
+    // Issue 560: Smart ellipsis disabled for CommonMark in markdownify
+    // ========================================================================
+
+    #[test]
+    fn test_issue560_commonmark_no_smart_ellipsis_in_markdownify() {
+        // When the site uses CommonMark (not kramdown), the markdownify filter
+        // should NOT convert ... to ellipsis character.
+        // Set up CommonMark mode (no smart punctuation, no code classes)
+        crate::frontmatter::set_markdownify_smart_punctuation(false);
+        crate::frontmatter::set_markdownify_code_classes(false);
+        crate::frontmatter::set_markdownify_indent_lists(false);
+
+        let html = crate::frontmatter::markdown_to_html_for_filter("Wait for it...\n");
+        assert!(
+            html.contains("..."),
+            "CommonMark markdownify should preserve literal '...' not convert to ellipsis. Got: {html}"
+        );
+        assert!(
+            !html.contains('\u{2026}'),
+            "CommonMark markdownify should NOT produce ellipsis character. Got: {html}"
+        );
+
+        // Restore defaults
+        crate::frontmatter::set_markdownify_smart_punctuation(true);
+        crate::frontmatter::set_markdownify_code_classes(true);
+        crate::frontmatter::set_markdownify_indent_lists(true);
+    }
+
+    #[test]
+    fn test_issue560_commonmark_no_smart_ellipsis_unicode() {
+        // Unicode content with ellipsis in CommonMark mode
+        crate::frontmatter::set_markdownify_smart_punctuation(false);
+        crate::frontmatter::set_markdownify_code_classes(false);
+
+        let html = crate::frontmatter::markdown_to_html_for_filter("待って...\n");
+        assert!(
+            html.contains("..."),
+            "CommonMark markdownify should preserve literal '...' in Unicode context. Got: {html}"
+        );
+
+        // Restore defaults
+        crate::frontmatter::set_markdownify_smart_punctuation(true);
+        crate::frontmatter::set_markdownify_code_classes(true);
+    }
+
+    // ========================================================================
+    // Issue 560: HARDBREAKS in markdownify for CommonMark sites
+    // ========================================================================
+
+    #[test]
+    fn test_issue560_hardbreaks_via_with_options() {
+        // Test HARDBREAKS via markdown_to_html_with_options which takes it as a parameter
+        // (no global state race conditions).
+        let html = crate::frontmatter::markdown_to_html_with_options(
+            "line one\nline two\n",
+            false, // add_code_classes (CommonMark)
+            false, // enable_smart_punctuation (CommonMark)
+            true,  // enable_hardbreaks
+            false, // enable_autolink
+        );
+        assert!(
+            html.contains("<br"),
+            "HARDBREAKS should convert newline to <br>. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue560_no_hardbreaks_via_with_options() {
+        // Without HARDBREAKS, newlines should NOT become <br>
+        let html = crate::frontmatter::markdown_to_html_with_options(
+            "line one\nline two\n",
+            false, // add_code_classes (CommonMark)
+            false, // enable_smart_punctuation
+            false, // enable_hardbreaks
+            false, // enable_autolink
+        );
+        assert!(
+            !html.contains("<br"),
+            "Without HARDBREAKS, should not produce <br>. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue560_hardbreaks_unicode_content() {
+        // HARDBREAKS with Unicode content
+        let html = crate::frontmatter::markdown_to_html_with_options(
+            "第一行\n第二行\n",
+            false,
+            true,
+            true,
+            false,
+        );
+        assert!(
+            html.contains("<br"),
+            "HARDBREAKS should work with Unicode content. Got: {html}"
+        );
+    }
 }

@@ -589,7 +589,16 @@ fn build_site(
     rustkyll::frontmatter::set_markdownify_code_classes(is_kramdown);
 
     // Issue 223: Enable HARDBREAKS if the site config has commonmark.options: ["HARDBREAKS"]
-    layout_engine.set_hardbreaks(config.has_commonmark_hardbreaks());
+    let has_hardbreaks = config.has_commonmark_hardbreaks();
+    layout_engine.set_hardbreaks(has_hardbreaks);
+
+    // Issue 560: Set markdownify smart punctuation mode.
+    // CommonMark sites should NOT enable smart punctuation (no ellipsis, etc.).
+    rustkyll::frontmatter::set_markdownify_smart_punctuation(is_kramdown);
+
+    // Issue 560: Set markdownify HARDBREAKS mode.
+    // CommonMark sites with HARDBREAKS should convert newlines to <br> in markdownify.
+    rustkyll::frontmatter::set_markdownify_hardbreaks(has_hardbreaks);
 
     // Issue 294: Enable autolink if the site config has commonmark.extensions: ["autolink"]
     let has_autolink = config.has_commonmark_autolink();

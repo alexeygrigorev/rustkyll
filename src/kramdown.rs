@@ -964,7 +964,13 @@ pub fn postprocess_with_options(html: &str, indent_lists: bool) -> String {
     let html = replace_toc_placeholders(&html);
     let html = apply_block_ial(&html);
     let html = apply_inline_attributes(&html);
-    let html = wrap_fenced_code_blocks(&html);
+    // Issue 560: Only wrap fenced code blocks in kramdown-style div structure
+    // for kramdown mode. CommonMark sites should have plain <pre><code>.
+    let html = if indent_lists {
+        wrap_fenced_code_blocks(&html)
+    } else {
+        html
+    };
     // Note: inline code classes are now added during markdown rendering
     // (in frontmatter::add_inline_code_class_to_events) rather than here,
     // so that only backtick-generated <code> gets the class -- not raw HTML
@@ -1004,6 +1010,14 @@ pub fn postprocess_with_options(html: &str, indent_lists: bool) -> String {
     // Issue 475: Convert remaining inline $$...$$ to \(...\) after display math
     // has been consumed. Jekyll/kramdown converts inline $$...$$ to MathJax \(...\).
     let html = convert_inline_double_dollar_math(&html);
+    // Issue 560: In CommonMark mode, unwrap standalone <img> and <br> from <p>.
+    // Must run AFTER wrap_bare_text_in_paragraphs and add_block_spacing to avoid
+    // the unwrapped elements being re-wrapped.
+    let html = if !indent_lists {
+        unwrap_standalone_inline_html_from_p(&html)
+    } else {
+        html
+    };
     // D2, D12: Normalize boolean attributes in the markdown output early
     // (during collection loading). This ensures that the final
     // normalize_html_output() call after layout wrapping finds nothing to change
@@ -4226,12 +4240,65 @@ fn strip_p_in_tag(html: &str, tag: &str) -> String {
     result
 }
 
-/// Issue 549: Previously marked standalone raw HTML `<img` tags with a
-/// `data-raw-html="1"` attribute to distinguish them from markdown images.
-/// Issue 550: No longer needed since standalone `<img>` should stay in `<p>`
-/// (matching Jekyll/kramdown). Now a passthrough for backward compatibility.
+/// Mark standalone raw HTML `<img>` tags in markdown with a data attribute
+/// so post-processing can distinguish them from markdown-rendered images.
+///
+/// In kramdown mode (issue 550), standalone `<img>` stays in `<p>`.
+/// In CommonMark mode (issue 560), standalone `<img>` on its own line
+/// should be unwrapped from `<p>`, matching Jekyll's commonmarker behavior.
+///
+/// A standalone `<img>` is one that appears on its own line surrounded by
+/// blank lines (or at the start/end of content).
+/// Passthrough for kramdown mode. Standalone `<img>` stays in `<p>` in kramdown.
 pub fn mark_raw_html_img_tags(markdown: &str) -> String {
     markdown.to_string()
+}
+
+/// Issue 560: Mark standalone raw HTML `<img>` and `<br>` tags in CommonMark mode.
+///
+/// Adds `data-raw-html-560="1"` to standalone `<img>` tags and `data-raw-br-560`
+/// markers to standalone `<br>` tags so they can be unwrapped from `<p>` during
+/// post-processing.
+///
+/// Standalone means the tag is on its own line with blank lines around it.
+pub fn mark_raw_html_for_commonmark(markdown: &str) -> String {
+    if !markdown.contains("<img ") && !markdown.contains("<br>") && !markdown.contains("<br ") {
+        return markdown.to_string();
+    }
+
+    let lines: Vec<&str> = markdown.lines().collect();
+    let mut result = Vec::with_capacity(lines.len());
+    let len = lines.len();
+
+    for (i, line) in lines.iter().enumerate() {
+        let trimmed = line.trim();
+        let prev_blank = i == 0 || lines[i - 1].trim().is_empty();
+        let next_blank = i + 1 >= len || lines[i + 1].trim().is_empty();
+
+        // Standalone <img> on its own line with blank lines around it
+        if trimmed.starts_with("<img ")
+            && (trimmed.ends_with('>') || trimmed.ends_with("/>"))
+            && prev_blank
+            && next_blank
+        {
+            // Add marker attribute
+            let marked = trimmed.replacen("<img ", "<img data-raw-html-560=\"1\" ", 1);
+            result.push(marked);
+            continue;
+        }
+
+        // Standalone <br> on its own line preceded by a blank line.
+        // Wrap in a <div> marker so pulldown-cmark treats it as an HTML block
+        // rather than wrapping it in <p>.
+        if (trimmed == "<br>" || trimmed == "<br/>" || trimmed == "<br />") && prev_blank {
+            result.push(format!("<div data-raw-br-560>{}</div>", trimmed));
+            continue;
+        }
+
+        result.push((*line).to_string());
+    }
+
+    result.join("\n")
 }
 
 /// Unwrap block-level HTML elements that pulldown-cmark erroneously wraps in
@@ -4368,6 +4435,100 @@ fn unwrap_block_elements_from_p(html: &str) -> String {
     // Issue 549: Strip any remaining data-raw-html="1" markers that were not
     // unwrapped (e.g., inline raw HTML images within text paragraphs).
     result.replace(" data-raw-html=\"1\"", "")
+}
+
+/// Issue 560: Unwrap standalone raw HTML `<img>` and `<br>` elements from `<p>`
+/// tags in CommonMark mode.
+///
+/// Only unwraps elements that were marked with `data-raw-html-560="1"` during
+/// markdown preprocessing (by `mark_raw_html_img_tags`). Markdown-rendered
+/// images from `![alt](url)` syntax are NOT unwrapped.
+///
+/// Also handles `data-raw-br-560` markers for standalone `<br>` elements.
+///
+/// Only called in CommonMark mode (not kramdown, where `<img>` stays in `<p>`).
+fn unwrap_standalone_inline_html_from_p(html: &str) -> String {
+    const IMG_MARKER: &str = "data-raw-html-560=\"1\" ";
+    const BR_DIV_OPEN: &str = "<div data-raw-br-560>";
+    const BR_DIV_CLOSE: &str = "</div>";
+
+    let has_img = html.contains(IMG_MARKER);
+    let has_br = html.contains(BR_DIV_OPEN);
+
+    if !has_img && !has_br {
+        return html.to_string();
+    }
+
+    let mut result = html.to_string();
+
+    // Handle marked <img> tags in <p> wrappers
+    if has_img {
+        let mut out = String::with_capacity(result.len());
+        let mut remaining = result.as_str();
+
+        while !remaining.is_empty() {
+            if let Some(p_pos) = remaining.find("<p>") {
+                out.push_str(&remaining[..p_pos]);
+                let after_p = &remaining[p_pos + 3..];
+
+                if after_p.starts_with("<img ") && after_p.contains(IMG_MARKER) {
+                    if let Some(close_p) = after_p.find("</p>") {
+                        let inner = &after_p[..close_p];
+                        let trimmed = inner.trim();
+                        if trimmed.contains(IMG_MARKER) {
+                            let clean = trimmed.replace(IMG_MARKER, "");
+                            // Normalize self-closing /> to > for CommonMark HTML5 output
+                            let clean = if let Some(s) = clean.strip_suffix(" />") {
+                                format!("{}>", s.trim_end())
+                            } else if let Some(s) = clean.strip_suffix("/>") {
+                                format!("{}>", s.trim_end())
+                            } else {
+                                clean
+                            };
+                            out.push_str(&clean);
+                            remaining = &after_p[close_p + 4..];
+                            continue;
+                        }
+                    }
+                }
+                out.push_str("<p>");
+                remaining = after_p;
+            } else {
+                out.push_str(remaining);
+                break;
+            }
+        }
+        result = out;
+    }
+
+    // Handle <div data-raw-br-560><br></div> wrappers
+    // Replace them with just the inner <br> content
+    if has_br {
+        let mut out = String::with_capacity(result.len());
+        let mut remaining = result.as_str();
+
+        while !remaining.is_empty() {
+            if let Some(div_pos) = remaining.find(BR_DIV_OPEN) {
+                out.push_str(&remaining[..div_pos]);
+                let after_open = &remaining[div_pos + BR_DIV_OPEN.len()..];
+                if let Some(close_pos) = after_open.find(BR_DIV_CLOSE) {
+                    let inner = &after_open[..close_pos];
+                    out.push_str(inner);
+                    remaining = &after_open[close_pos + BR_DIV_CLOSE.len()..];
+                } else {
+                    out.push_str(BR_DIV_OPEN);
+                    remaining = after_open;
+                }
+            } else {
+                out.push_str(remaining);
+                break;
+            }
+        }
+        result = out;
+    }
+
+    // Clean up any remaining img markers
+    result.replace(IMG_MARKER, "")
 }
 
 /// Find the position of the matching closing tag, handling nesting.
@@ -5779,7 +5940,9 @@ fn wrap_fenced_code_blocks(html: &str) -> String {
 
             // Now check if the content starts with <code
             if !after_pre_open.starts_with("<code") {
-                // Not a code block, copy the <pre> tag and continue
+                // Issue 563: Not a code block -- copy everything before <pre>,
+                // then copy the <pre> tag itself, and continue scanning.
+                result.push_str(&remaining[..pre_pos]);
                 if pre_attrs.is_empty() {
                     result.push_str("<pre>");
                 } else {
@@ -17498,6 +17661,143 @@ Do It Live\n\
         assert_eq!(
             result, input,
             "pre with class and unicode content should pass through. Got:\n{}",
+            result
+        );
+    }
+
+    // ========================================================================
+    // Issue 560: unwrap_standalone_inline_html_from_p tests
+    // ========================================================================
+
+    #[test]
+    fn test_issue560_unwrap_marked_img_from_p() {
+        // Only marked images get unwrapped
+        let html = "<p><img data-raw-html-560=\"1\" src=\"test.jpg\" alt=\"test\" style=\"width:100%\"></p>";
+        let result = unwrap_standalone_inline_html_from_p(html);
+        assert!(
+            !result.contains("<p>"),
+            "Marked <img> should be unwrapped from <p>. Got: {result}"
+        );
+        assert!(
+            result.contains("<img src=\"test.jpg\""),
+            "Marker should be stripped. Got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue560_unmarked_img_stays_in_p() {
+        // Unmarked images (from markdown ![]) should NOT be unwrapped
+        let html = "<p><img src=\"test.jpg\" alt=\"test\" /></p>";
+        let result = unwrap_standalone_inline_html_from_p(html);
+        assert!(
+            result.contains("<p>"),
+            "Unmarked <img> should stay in <p>. Got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue560_unwrap_br_div_marker() {
+        // <div data-raw-br-560><br></div> should be unwrapped to just <br>
+        let html = "<p>text</p>\n<div data-raw-br-560><br></div>\nMore text";
+        let result = unwrap_standalone_inline_html_from_p(html);
+        assert!(
+            !result.contains("data-raw-br-560"),
+            "BR div marker should be removed. Got: {result}"
+        );
+        assert!(
+            result.contains("<br>"),
+            "<br> should be preserved. Got: {result}"
+        );
+        assert!(
+            result.contains("More text"),
+            "Text after <br> should be preserved. Got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue560_unwrap_marked_unicode_img_from_p() {
+        let html = "<p><img data-raw-html-560=\"1\" src=\"photo.jpg\" alt=\"写真\" style=\"display:block\" /></p>";
+        let result = unwrap_standalone_inline_html_from_p(html);
+        assert!(
+            !result.contains("<p>"),
+            "Marked Unicode <img> should be unwrapped from <p>. Got: {result}"
+        );
+        assert!(
+            !result.contains("data-raw-html-560"),
+            "Marker should be stripped. Got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue560_mark_raw_html_for_commonmark() {
+        // Standalone <img> on its own line with blank lines around it should be marked
+        let md =
+            "Some text\n\n<img src=\"test.jpg\" alt=\"test\" style=\"width:100%\">\n\nMore text";
+        let result = mark_raw_html_for_commonmark(md);
+        assert!(
+            result.contains("data-raw-html-560"),
+            "Standalone <img> should be marked. Got: {result}"
+        );
+
+        // Markdown image should NOT be marked (it doesn't start with <img)
+        let md2 = "Some text\n\n![alt](test.jpg)\n\nMore text";
+        let result2 = mark_raw_html_for_commonmark(md2);
+        assert!(
+            !result2.contains("data-raw-html-560"),
+            "Markdown image should not be marked. Got: {result2}"
+        );
+
+        // mark_raw_html_img_tags (kramdown path) should be a no-op
+        let result3 = mark_raw_html_img_tags(md);
+        assert!(
+            !result3.contains("data-raw-html-560"),
+            "Kramdown path should not add markers. Got: {result3}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 563: wrap_fenced_code_blocks must not drop content before bare <pre>
+    // ========================================================================
+
+    #[test]
+    fn test_issue563_wrap_fenced_preserves_content_before_bare_pre() {
+        // When <pre> is NOT followed by <code>, content before <pre> was being dropped.
+        let input = "<h1>Header</h1>\n<p>Paragraph before pre.</p>\n<pre>\n.style { margin: 0; }\n</pre>\n<h2>After pre</h2>\n";
+        let result = wrap_fenced_code_blocks(input);
+        assert!(
+            result.contains("<h1>Header</h1>"),
+            "Content before bare <pre> must be preserved. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("Paragraph before pre"),
+            "Paragraph before bare <pre> must be preserved. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("<pre>"),
+            "<pre> block must be preserved. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("After pre"),
+            "Content after </pre> must be preserved. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue563_wrap_fenced_preserves_unicode_before_bare_pre() {
+        let input = "<h1>Заголовок</h1>\n<p>Текст перед pre блоком.</p>\n<pre>\n.стиль { отступ: 0; }\n</pre>\n<h2>После pre</h2>\n";
+        let result = wrap_fenced_code_blocks(input);
+        assert!(
+            result.contains("Заголовок"),
+            "Unicode content before bare <pre> must be preserved. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("После pre"),
+            "Unicode content after bare <pre> must be preserved. Got:\n{}",
             result
         );
     }

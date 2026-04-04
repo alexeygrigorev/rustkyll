@@ -66,6 +66,38 @@ pub fn get_markdownify_code_classes() -> bool {
 }
 
 /// Global flag controlling whether the `markdownify` filter should
+/// enable smart punctuation (convert `...` to ellipsis, `--` to en-dash, etc.).
+/// True for kramdown sites (default), false for CommonMark/CommonMarkGhPages.
+static MARKDOWNIFY_SMART_PUNCTUATION: AtomicBool = AtomicBool::new(true);
+
+/// Set whether the `markdownify` filter should enable smart punctuation.
+///
+/// Call this from `main.rs` with `false` for CommonMarkGhPages sites.
+pub fn set_markdownify_smart_punctuation(enabled: bool) {
+    MARKDOWNIFY_SMART_PUNCTUATION.store(enabled, Ordering::Relaxed);
+}
+
+/// Get whether the `markdownify` filter should enable smart punctuation.
+pub fn get_markdownify_smart_punctuation() -> bool {
+    MARKDOWNIFY_SMART_PUNCTUATION.load(Ordering::Relaxed)
+}
+
+/// Global flag controlling whether the `markdownify` filter should convert
+/// soft line breaks (single newlines) to `<br>` elements.
+/// False by default; set to true for CommonMark sites with HARDBREAKS option.
+static MARKDOWNIFY_HARDBREAKS: AtomicBool = AtomicBool::new(false);
+
+/// Set whether the `markdownify` filter should enable HARDBREAKS.
+pub fn set_markdownify_hardbreaks(enabled: bool) {
+    MARKDOWNIFY_HARDBREAKS.store(enabled, Ordering::Relaxed);
+}
+
+/// Get whether the `markdownify` filter should enable HARDBREAKS.
+pub fn get_markdownify_hardbreaks() -> bool {
+    MARKDOWNIFY_HARDBREAKS.load(Ordering::Relaxed)
+}
+
+/// Global flag controlling whether the `markdownify` filter should
 /// auto-link bare URLs. True for CommonMark sites with autolink extension,
 /// false by default (kramdown doesn't auto-link in markdownify).
 static MARKDOWNIFY_AUTOLINK: AtomicBool = AtomicBool::new(false);
@@ -818,8 +850,14 @@ pub fn markdown_to_html_with_options(
     let has_math = markdown.contains("$$") || markdown.contains("\\(");
     let has_pipe = markdown.contains('|');
 
-    // Issue 549: Mark standalone raw HTML <img> tags with data-raw-html="1"
-    let markdown = crate::kramdown::mark_raw_html_img_tags(markdown);
+    // Issue 560: Mark standalone raw HTML <img> and <br> tags in CommonMark mode
+    // so they can be unwrapped from <p> in post-processing. In kramdown mode,
+    // standalone <img> stays in <p> (matching Jekyll/kramdown behavior).
+    let markdown = if !add_code_classes {
+        crate::kramdown::mark_raw_html_for_commonmark(markdown)
+    } else {
+        crate::kramdown::mark_raw_html_img_tags(markdown)
+    };
 
     // Issue 228: Process markdown="1" attribute on HTML elements
     let markdown = if has_markdown_attr {
@@ -1105,7 +1143,11 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TABLES);
     options.insert(Options::ENABLE_STRIKETHROUGH);
-    options.insert(Options::ENABLE_SMART_PUNCTUATION);
+    // Issue 560: Only enable smart punctuation when the site uses kramdown.
+    // CommonMarkGhPages does not enable smart punctuation by default.
+    if get_markdownify_smart_punctuation() {
+        options.insert(Options::ENABLE_SMART_PUNCTUATION);
+    }
     // Issue 503: Enable footnotes so [^1] references and [^1]: definitions are processed.
     options.insert(Options::ENABLE_FOOTNOTES);
     // Issue 535: Enable GFM task list checkboxes (- [ ] / - [x]).
@@ -1193,11 +1235,14 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
 
     let parser = Parser::new_ext(&protected, options);
     let add_code_classes = get_markdownify_code_classes();
+    // Issue 560: Pass HARDBREAKS flag to event processing so soft breaks
+    // become <br> elements when the site uses CommonMark with HARDBREAKS.
+    let enable_hardbreaks = get_markdownify_hardbreaks();
     let events = add_inline_code_class_to_events_impl(
         parser.into_offset_iter(),
         &protected,
         add_code_classes,
-        false,
+        enable_hardbreaks,
     );
     let mut html_output = String::new();
     html::push_html(&mut html_output, events.into_iter());
@@ -1272,7 +1317,15 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     let html_output = convert_tasklist_to_kramdown(&html_output);
 
     // Issue 516: Restore raw HTML <table> blocks after all processing
-    restore_raw_html_tables(&html_output, &table_saved)
+    let html_output = restore_raw_html_tables(&html_output, &table_saved);
+
+    // Issue 560: Convert <br /> to <br> for CommonMark HARDBREAKS mode.
+    // Jekyll's CommonMarkGhPages renderer outputs HTML5-style <br>.
+    if enable_hardbreaks {
+        normalize_br_to_html5(&html_output)
+    } else {
+        html_output
+    }
 }
 
 /// Rewrite malformed markdown links where `{:target="_blank"}` is embedded
@@ -10545,6 +10598,229 @@ Last paragraph."#;
             html.contains("Следующий"),
             "Unicode paragraph after gist should be preserved. Got: {}",
             html
+        );
+    }
+
+    #[test]
+    fn test_issue563_content_before_pre_block_preserved() {
+        // Issue 563: Content before <pre> HTML blocks was being completely dropped.
+        // The hydeout "HTML Elements and Formatting" post has headers, blockquotes,
+        // tables, lists, etc. before a <pre> block, and only the content after <pre>
+        // was rendering.
+        let md = r#"# Header one
+
+## Header two
+
+### Header three
+
+Some paragraph text.
+
+## Blockquotes
+
+> Stay hungry. Stay foolish.
+
+## Preformatted element
+
+This element styles large blocks of code.
+
+<pre>
+.post-title {
+	margin: 0 0 5px;
+	font-weight: bold;
+}
+</pre>
+
+## Quote element
+
+Some more text after pre.
+"#;
+        let html = markdown_to_html(md);
+
+        // All content before <pre> must be present
+        assert!(
+            html.contains("Header one"),
+            "h1 before <pre> should be preserved. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("Header two"),
+            "h2 before <pre> should be preserved. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("Header three"),
+            "h3 before <pre> should be preserved. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("Some paragraph text"),
+            "Paragraph before <pre> should be preserved. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("Stay hungry"),
+            "Blockquote before <pre> should be preserved. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("<pre>"),
+            "Pre block should be present. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("Quote element"),
+            "Content after <pre> should be present. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("Some more text after pre"),
+            "Paragraph after <pre> should be present. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue563_content_before_pre_block_with_unicode() {
+        // Same issue but with non-ASCII content to verify no encoding issues
+        let md = r#"# Заголовок первый
+
+## 标题二
+
+Текст параграфа с кириллицей.
+
+<pre>
+.стиль {
+	отступ: 0;
+}
+</pre>
+
+## Элемент цитаты
+
+Ещё текст после pre.
+"#;
+        let html = markdown_to_html(md);
+
+        assert!(
+            html.contains("Заголовок первый"),
+            "Unicode h1 before <pre> should be preserved. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("标题二"),
+            "CJK h2 before <pre> should be preserved. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("Текст параграфа"),
+            "Unicode paragraph before <pre> should be preserved. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("Элемент цитаты"),
+            "Unicode content after <pre> should be preserved. Got:\n{}",
+            html
+        );
+    }
+
+    // ========================================================================
+    // Issue 560: CommonMark fenced code blocks should NOT get highlighter-rouge wrapper
+    // ========================================================================
+
+    #[test]
+    fn test_issue560_commonmark_fenced_code_no_highlighter_rouge_wrapper() {
+        // In CommonMark mode, fenced code blocks should render as plain <pre><code>
+        // without the kramdown-style <div class="highlighter-rouge"> wrapper.
+        let input = "```\nsome code\n```\n";
+        let html = markdown_to_html_with_options(input, false, false, false, false);
+        assert!(
+            !html.contains("highlighter-rouge"),
+            "CommonMark fenced code should NOT have highlighter-rouge wrapper. Got: {html}"
+        );
+        assert!(
+            html.contains("<pre><code>"),
+            "CommonMark fenced code should have plain <pre><code>. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue560_commonmark_fenced_code_with_lang_no_wrapper() {
+        // Even with a language, CommonMark should not wrap in highlighter-rouge
+        let input = "```python\nprint('hello')\n```\n";
+        let html = markdown_to_html_with_options(input, false, false, false, false);
+        assert!(
+            !html.contains("highlighter-rouge"),
+            "CommonMark fenced code with language should NOT have highlighter-rouge wrapper. Got: {html}"
+        );
+        // Should still have language class on the code element
+        assert!(
+            html.contains("language-python"),
+            "CommonMark fenced code should keep language class on code element. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue560_kramdown_fenced_code_still_has_wrapper() {
+        // Kramdown mode should still wrap code blocks in highlighter-rouge
+        let input = "```\nsome code\n```\n";
+        let html = markdown_to_html_with_options(input, true, true, false, false);
+        assert!(
+            html.contains("highlighter-rouge"),
+            "Kramdown fenced code should have highlighter-rouge wrapper. Got: {html}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 560: Standalone <img> and <br> should not be wrapped in <p> in CommonMark
+    // ========================================================================
+
+    #[test]
+    fn test_issue560_commonmark_standalone_img_not_wrapped_in_p() {
+        // A standalone <img> on its own line with blank lines around it should
+        // be treated as raw HTML passthrough, not wrapped in <p>
+        let input =
+            "Some text\n\n<img src=\"test.jpg\" alt=\"test\" style=\"width:100%\">\n\nMore text\n";
+        let html = markdown_to_html_with_options(input, false, false, false, false);
+        assert!(
+            !html.contains("<p><img"),
+            "Standalone <img> should NOT be wrapped in <p>. Got: {html}"
+        );
+        assert!(
+            html.contains("<img src=\"test.jpg\""),
+            "Standalone <img> should be passed through as raw HTML. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue560_commonmark_standalone_br_not_wrapped_in_p() {
+        // A standalone <br> followed by text should not be wrapped in <p>
+        let input = "Some text\n\n<br>\nP.S. More text\n\nEnd\n";
+        let html = markdown_to_html_with_options(input, false, false, false, false);
+        assert!(
+            !html.contains("<p><br"),
+            "Standalone <br> should NOT be wrapped in <p>. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue560_commonmark_inline_img_stays_in_p() {
+        // An <img> that's part of a paragraph (inline) SHOULD stay in <p>
+        let input = "Text with <img src=\"test.jpg\"> inline\n";
+        let html = markdown_to_html_with_options(input, false, false, false, false);
+        assert!(
+            html.contains("<p>Text with <img"),
+            "Inline <img> should stay inside <p>. Got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue560_commonmark_unicode_img_alt_not_wrapped() {
+        // Unicode alt text in standalone img should be passed through
+        let input =
+            "テスト\n\n<img src=\"photo.jpg\" alt=\"写真\" style=\"display:block\">\n\nテスト\n";
+        let html = markdown_to_html_with_options(input, false, false, false, false);
+        assert!(
+            !html.contains("<p><img"),
+            "Standalone <img> with Unicode alt should NOT be wrapped in <p>. Got: {html}"
         );
     }
 }

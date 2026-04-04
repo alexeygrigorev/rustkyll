@@ -332,7 +332,16 @@ pub fn generate_pagination_pages(
             }
         };
 
-        let out_path = url_to_output_path(output_dir, &page_url);
+        // Issue 563: Jekyll always generates directory-style output for pagination
+        // pages (e.g., page2/index.html, not page2.html), even though the URL in
+        // templates doesn't have a trailing slash. Ensure the output path URL ends
+        // with "/" so url_to_output_path creates the directory structure.
+        let output_url = if page_num > 1 && !page_url.ends_with('/') {
+            format!("{}/", page_url)
+        } else {
+            page_url.clone()
+        };
+        let out_path = url_to_output_path(output_dir, &output_url);
         if let Some(parent) = out_path.parent() {
             let _ = fs::create_dir_all(parent);
         }
@@ -942,6 +951,38 @@ mod tests {
         let yaml = "paginate: 0\n";
         let config = SiteConfig::from_yaml_str(yaml).unwrap();
         assert!(PaginationConfig::from_config(&config).is_none());
+    }
+
+    #[test]
+    fn test_pagination_default_path_not_normalized() {
+        // Issue 563: paginate_path is stored as-is (without trailing slash).
+        // The directory-style output is handled in generate_pagination_pages.
+        let yaml = "paginate: 5\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let pagination = PaginationConfig::from_config(&config).unwrap();
+        assert_eq!(
+            pagination.paginate_path, "/page:num",
+            "paginate_path should be stored as-is from config"
+        );
+    }
+
+    #[test]
+    fn test_paginator_paths_no_trailing_slash_in_urls() {
+        // Issue 563: Jekyll uses URLs without trailing slash in paginator nav paths
+        // (e.g., /page2, not /page2/), even though file output is directory-style.
+        let posts = vec![
+            make_post("Post 1", "2024-01-03", "post-1"),
+            make_post("Post 2", "2024-01-02", "post-2"),
+        ];
+        let post_refs: Vec<&CollectionItem> = posts.iter().collect();
+
+        let paginator = build_paginator_object(&post_refs, 1, 2, 5, 3, "/page:num");
+        let obj = paginator.as_object().unwrap();
+        assert_eq!(
+            obj.get("next_page_path").unwrap().to_value(),
+            LiquidValue::scalar("/page2"),
+            "next_page_path should be /page2 (no trailing slash) matching Jekyll URLs"
+        );
     }
 
     // ========================================================================
