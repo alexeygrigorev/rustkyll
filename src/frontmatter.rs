@@ -637,6 +637,11 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // by breaking out of HTML block context and inserting code blocks.
     let (markdown, table_saved) = protect_raw_html_tables(&markdown);
 
+    // Issue 558: Protect gist tag output (<noscript>...<script>...) from
+    // pulldown-cmark processing. The <noscript> element triggers HTML block
+    // absorption that swallows surrounding headings and paragraphs.
+    let (markdown, gist_saved) = protect_gist_output(&markdown);
+
     // Issue 227: Protect math content from backslash-escape processing.
     let (markdown, math_saved) = protect_math_content(&markdown);
 
@@ -755,6 +760,9 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // Issue 516: Restore raw HTML <table> blocks after all processing
     let html_output = restore_raw_html_tables(&html_output, &table_saved);
 
+    // Issue 558: Restore gist output blocks after all processing
+    let html_output = restore_gist_output(&html_output, &gist_saved);
+
     // Issue 329: Restore <details> blocks after all processing
     restore_details_blocks(&html_output, &details_saved)
 }
@@ -855,6 +863,15 @@ pub fn markdown_to_html_with_options(
     // Issue 516: Protect raw HTML <table> blocks from pulldown-cmark processing.
     let (markdown, table_saved) = if has_table_html {
         protect_raw_html_tables(&markdown)
+    } else {
+        (markdown, Vec::new())
+    };
+
+    // Issue 558: Protect gist tag output (<noscript>...<script>...) from
+    // pulldown-cmark processing.
+    let has_noscript = markdown.contains("<noscript>");
+    let (markdown, gist_saved) = if has_noscript {
+        protect_gist_output(&markdown)
     } else {
         (markdown, Vec::new())
     };
@@ -977,6 +994,8 @@ pub fn markdown_to_html_with_options(
     let html_output = convert_tasklist_to_kramdown(&html_output);
     // Issue 516: Restore raw HTML <table> blocks after all processing
     let html_output = restore_raw_html_tables(&html_output, &table_saved);
+    // Issue 558: Restore gist output blocks after all processing
+    let html_output = restore_gist_output(&html_output, &gist_saved);
     // Issue 329: Restore <details> blocks after all processing
     let html_output = restore_details_blocks(&html_output, &details_saved);
     // Issue 330: Fix inline content in <details> blocks for CommonMarkGhPages
@@ -2083,6 +2102,94 @@ fn restore_details_blocks(html: &str, saved: &[String]) -> String {
         let wrapped_placeholder = format!("<p>{}</p>", placeholder);
         if result.contains(&wrapped_placeholder) {
             result = result.replace(&wrapped_placeholder, block);
+        } else {
+            result = result.replace(&placeholder, block);
+        }
+    }
+    result
+}
+
+/// Issue 558: Protect gist tag output (`<noscript>...<script>...`) from
+/// pulldown-cmark processing.
+///
+/// The `<noscript>` element is a CommonMark Type 1 HTML block element, which
+/// causes pulldown-cmark to absorb surrounding markdown content into the HTML
+/// block. This strips headings and paragraphs before and after gist embeds.
+///
+/// This function replaces the gist output block (noscript + script) with a
+/// placeholder comment before markdown parsing, then `restore_gist_output`
+/// restores the original HTML after parsing.
+fn protect_gist_output(input: &str) -> (String, Vec<String>) {
+    if !input.contains("<noscript>") {
+        return (input.to_string(), Vec::new());
+    }
+
+    let mut result = String::with_capacity(input.len());
+    let mut saved = Vec::new();
+    let mut remaining = input;
+
+    while !remaining.is_empty() {
+        if let Some(start) = remaining.find("<noscript>") {
+            // Look for the closing </noscript> followed by a script tag on the
+            // next line that points to gist.github.com
+            if let Some(noscript_end_offset) = remaining[start..].find("</noscript>") {
+                let noscript_end = start + noscript_end_offset + "</noscript>".len();
+                // Check if the next line contains a gist script tag
+                let after_noscript = &remaining[noscript_end..];
+                if let Some(script_start) = after_noscript.strip_prefix('\n') {
+                    if let Some(script_tag_end) = script_start.find("</script>") {
+                        let full_end = noscript_end + 1 + script_tag_end + "</script>".len();
+                        let block = &remaining[start..full_end];
+                        if block.contains("gist.github.com") {
+                            result.push_str(&remaining[..start]);
+                            let idx = saved.len();
+                            saved.push(block.to_string());
+                            result.push_str(&format!("\n\n<!-- GIST_PLACEHOLDER_{} -->\n\n", idx));
+                            remaining = &remaining[full_end..];
+                            continue;
+                        }
+                    }
+                    // Also check for <script> on same line (no newline between)
+                } else if let Some(script_rest) = after_noscript.strip_prefix("\r\n") {
+                    if let Some(script_tag_end) = script_rest.find("</script>") {
+                        let full_end = noscript_end + 2 + script_tag_end + "</script>".len();
+                        let block = &remaining[start..full_end];
+                        if block.contains("gist.github.com") {
+                            result.push_str(&remaining[..start]);
+                            let idx = saved.len();
+                            saved.push(block.to_string());
+                            result.push_str(&format!("\n\n<!-- GIST_PLACEHOLDER_{} -->\n\n", idx));
+                            remaining = &remaining[full_end..];
+                            continue;
+                        }
+                    }
+                }
+            }
+            // Not a gist noscript block; skip past this occurrence
+            result.push_str(&remaining[..start + "<noscript>".len()]);
+            remaining = &remaining[start + "<noscript>".len()..];
+        } else {
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    (result, saved)
+}
+
+/// Issue 558: Restore protected gist output blocks after markdown processing.
+fn restore_gist_output(html: &str, saved: &[String]) -> String {
+    if saved.is_empty() {
+        return html.to_string();
+    }
+
+    let mut result = html.to_string();
+    for (idx, block) in saved.iter().enumerate() {
+        let placeholder = format!("<!-- GIST_PLACEHOLDER_{} -->", idx);
+        // pulldown-cmark may wrap the placeholder in a <p> tag
+        let wrapped = format!("<p>{}</p>", placeholder);
+        if result.contains(&wrapped) {
+            result = result.replace(&wrapped, block);
         } else {
             result = result.replace(&placeholder, block);
         }
@@ -10285,6 +10392,158 @@ More text.
         assert!(
             html.contains("日本語"),
             "CJK should be preserved. Got: {}",
+            html
+        );
+    }
+
+    // ========================================================================
+    // Issue 558: Gist tag noscript markdown absorption
+    // ========================================================================
+
+    #[test]
+    fn test_gist_output_preserves_surrounding_content() {
+        // Gist output embedded in markdown should not absorb surrounding headings/paragraphs
+        let input = r#"### Gists via GitHub Pages
+
+Vestibulum id ligula porta felis euismod semper.
+
+<noscript><pre>400: Invalid request</pre></noscript>
+<script src="https://gist.github.com/5555251.js?file=gist.md"> </script>
+
+Aenean eu leo quam."#;
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("<h3"),
+            "Heading before gist should be preserved. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("Vestibulum"),
+            "Paragraph before gist should be preserved. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<noscript>"),
+            "noscript opening tag should be preserved. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("</noscript>"),
+            "noscript closing tag should be preserved. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("gist.github.com/5555251.js"),
+            "script tag should be preserved. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("Aenean"),
+            "Paragraph after gist should be preserved. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_gist_output_noscript_tag_complete() {
+        // Gist as first element: noscript should be complete
+        let input = r#"<noscript><pre>400: Invalid request</pre></noscript>
+<script src="https://gist.github.com/abc123.js"> </script>"#;
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("<noscript>"),
+            "noscript opening tag should be present. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("</noscript>"),
+            "noscript closing tag should be present. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_gist_output_as_last_element() {
+        let input = r#"Some paragraph text.
+
+<noscript><pre>400: Invalid request</pre></noscript>
+<script src="https://gist.github.com/abc123.js"> </script>"#;
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("Some paragraph"),
+            "Paragraph before gist should be preserved. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<noscript>"),
+            "noscript opening tag should be present. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_multiple_gist_outputs() {
+        let input = r#"First paragraph.
+
+<noscript><pre>400: Invalid request</pre></noscript>
+<script src="https://gist.github.com/111.js"> </script>
+
+Middle paragraph.
+
+<noscript><pre>400: Invalid request</pre></noscript>
+<script src="https://gist.github.com/222.js"> </script>
+
+Last paragraph."#;
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("First paragraph"),
+            "First paragraph should be preserved. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("Middle paragraph"),
+            "Middle paragraph should be preserved. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("Last paragraph"),
+            "Last paragraph should be preserved. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("111.js"),
+            "First gist should be preserved. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("222.js"),
+            "Second gist should be preserved. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_gist_output_unicode_filename() {
+        let input = r#"### Пример кода
+
+<noscript><pre>400: Invalid request</pre></noscript>
+<script src="https://gist.github.com/abc123.js?file=тест.md"> </script>
+
+Следующий параграф."#;
+        let html = markdown_to_html(input);
+        assert!(
+            html.contains("Пример"),
+            "Unicode heading before gist should be preserved. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<noscript>"),
+            "noscript tag should be preserved with unicode filename. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("Следующий"),
+            "Unicode paragraph after gist should be preserved. Got: {}",
             html
         );
     }
