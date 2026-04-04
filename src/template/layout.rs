@@ -23,6 +23,15 @@ use super::engine::{CachedSiteContext, Template, TemplateEngine};
 use super::error::TemplateError;
 use crate::frontmatter::FrontMatter;
 
+/// Check if Liquid rendering should be skipped for this page.
+/// Returns `true` when `render_with_liquid` is explicitly set to `false` in front matter.
+fn should_skip_liquid(page_front_matter: &FrontMatter) -> bool {
+    page_front_matter
+        .get("render_with_liquid")
+        .and_then(|v| v.as_bool())
+        == Some(false)
+}
+
 /// A loaded layout template with its source and optional parent layout name.
 #[derive(Debug, Clone)]
 pub struct Layout {
@@ -557,8 +566,9 @@ impl LayoutEngine {
     ) -> Result<String, TemplateError> {
         // Pre-build the page Object once for reuse across content + layout renders.
         let page_obj = build_page_object(page_front_matter);
+        let skip_liquid = should_skip_liquid(page_front_matter);
         let (rendered_content, page_obj): (std::borrow::Cow<'_, str>, Object) =
-            if raw_content.contains("{{") || raw_content.contains("{%") {
+            if !skip_liquid && (raw_content.contains("{{") || raw_content.contains("{%")) {
                 let page_ctx = build_render_context_from_page_object("", page_obj.clone());
                 let rendered = self.engine.parse_and_render_with_site_overrides(
                     raw_content,
@@ -600,18 +610,20 @@ impl LayoutEngine {
     ) -> Result<String, TemplateError> {
         // Pre-build the page Object once for reuse across content + layout renders.
         let page_obj = build_page_object(page_front_matter);
-        let (after_liquid, page_obj) = if raw_content.contains("{{") || raw_content.contains("{%") {
-            let page_ctx = build_render_context_from_page_object("", page_obj.clone());
-            let rendered = self.engine.parse_and_render_with_site_overrides(
-                raw_content,
-                &page_ctx,
-                cached_site,
-                site_overrides,
-            )?;
-            (rendered, page_obj)
-        } else {
-            (raw_content.to_string(), page_obj)
-        };
+        let skip_liquid = should_skip_liquid(page_front_matter);
+        let (after_liquid, page_obj) =
+            if !skip_liquid && (raw_content.contains("{{") || raw_content.contains("{%")) {
+                let page_ctx = build_render_context_from_page_object("", page_obj.clone());
+                let rendered = self.engine.parse_and_render_with_site_overrides(
+                    raw_content,
+                    &page_ctx,
+                    cached_site,
+                    site_overrides,
+                )?;
+                (rendered, page_obj)
+            } else {
+                (raw_content.to_string(), page_obj)
+            };
         let dedented = crate::frontmatter::dedent_html_lines(&after_liquid);
         let marked = crate::kramdown::mark_existing_html_headings(&dedented);
         let collapsed = crate::kramdown::collapse_blank_lines_in_html_blocks(&marked);
@@ -829,11 +841,14 @@ impl LayoutEngine {
         // with no Liquid tags. Parsing plain HTML through the Liquid parser is
         // pure overhead.
         //
+        // Also skip Liquid when render_with_liquid: false is set in front matter.
+        //
         // Use Cow to avoid allocating a String copy when the content is plain HTML.
         // render_with_cached_site_prebuilt takes &str, so the owned String from
         // Liquid rendering or the borrowed reference both work without extra copies.
+        let skip_liquid = should_skip_liquid(page_front_matter);
         let (rendered_content, page_obj): (std::borrow::Cow<'_, str>, Object) =
-            if raw_content.contains("{{") || raw_content.contains("{%") {
+            if !skip_liquid && (raw_content.contains("{{") || raw_content.contains("{%")) {
                 let page_ctx = build_render_context_from_page_object("", page_obj.clone());
                 let rendered = self.engine.parse_and_render_with_cached_site(
                     raw_content,
@@ -877,18 +892,20 @@ impl LayoutEngine {
     ) -> Result<String, TemplateError> {
         // Pre-build the page Object once for reuse across content + layout renders.
         let page_obj = build_page_object(page_front_matter);
-        // Step 1: Process Liquid tags in the raw content
-        let (after_liquid, page_obj) = if raw_content.contains("{{") || raw_content.contains("{%") {
-            let page_ctx = build_render_context_from_page_object("", page_obj.clone());
-            let rendered = self.engine.parse_and_render_with_cached_site(
-                raw_content,
-                &page_ctx,
-                cached_site,
-            )?;
-            (rendered, page_obj)
-        } else {
-            (raw_content.to_string(), page_obj)
-        };
+        // Step 1: Process Liquid tags in the raw content (skip if render_with_liquid: false)
+        let skip_liquid = should_skip_liquid(page_front_matter);
+        let (after_liquid, page_obj) =
+            if !skip_liquid && (raw_content.contains("{{") || raw_content.contains("{%")) {
+                let page_ctx = build_render_context_from_page_object("", page_obj.clone());
+                let rendered = self.engine.parse_and_render_with_cached_site(
+                    raw_content,
+                    &page_ctx,
+                    cached_site,
+                )?;
+                (rendered, page_obj)
+            } else {
+                (raw_content.to_string(), page_obj)
+            };
 
         // Step 2: Dedent HTML lines to prevent pulldown-cmark from treating
         // indented include output as code blocks. Liquid includes (like
@@ -951,17 +968,19 @@ impl LayoutEngine {
         cached_site: &CachedSiteContext,
     ) -> Result<(String, String), TemplateError> {
         let page_obj = build_page_object(page_front_matter);
-        let (after_liquid, page_obj) = if raw_content.contains("{{") || raw_content.contains("{%") {
-            let page_ctx = build_render_context_from_page_object("", page_obj.clone());
-            let rendered = self.engine.parse_and_render_with_cached_site(
-                raw_content,
-                &page_ctx,
-                cached_site,
-            )?;
-            (rendered, page_obj)
-        } else {
-            (raw_content.to_string(), page_obj)
-        };
+        let skip_liquid = should_skip_liquid(page_front_matter);
+        let (after_liquid, page_obj) =
+            if !skip_liquid && (raw_content.contains("{{") || raw_content.contains("{%")) {
+                let page_ctx = build_render_context_from_page_object("", page_obj.clone());
+                let rendered = self.engine.parse_and_render_with_cached_site(
+                    raw_content,
+                    &page_ctx,
+                    cached_site,
+                )?;
+                (rendered, page_obj)
+            } else {
+                (raw_content.to_string(), page_obj)
+            };
 
         let dedented = crate::frontmatter::dedent_html_lines(&after_liquid);
         let marked = crate::kramdown::mark_existing_html_headings(&dedented);
@@ -1005,18 +1024,20 @@ impl LayoutEngine {
         site_overrides: &HashMap<String, super::engine::LenientValue>,
     ) -> Result<(String, String), TemplateError> {
         let page_obj = build_page_object(page_front_matter);
-        let (after_liquid, page_obj) = if raw_content.contains("{{") || raw_content.contains("{%") {
-            let page_ctx = build_render_context_from_page_object("", page_obj.clone());
-            let rendered = self.engine.parse_and_render_with_site_overrides(
-                raw_content,
-                &page_ctx,
-                cached_site,
-                site_overrides,
-            )?;
-            (rendered, page_obj)
-        } else {
-            (raw_content.to_string(), page_obj)
-        };
+        let skip_liquid = should_skip_liquid(page_front_matter);
+        let (after_liquid, page_obj) =
+            if !skip_liquid && (raw_content.contains("{{") || raw_content.contains("{%")) {
+                let page_ctx = build_render_context_from_page_object("", page_obj.clone());
+                let rendered = self.engine.parse_and_render_with_site_overrides(
+                    raw_content,
+                    &page_ctx,
+                    cached_site,
+                    site_overrides,
+                )?;
+                (rendered, page_obj)
+            } else {
+                (raw_content.to_string(), page_obj)
+            };
 
         let dedented = crate::frontmatter::dedent_html_lines(&after_liquid);
         let marked = crate::kramdown::mark_existing_html_headings(&dedented);
@@ -1061,7 +1082,9 @@ impl LayoutEngine {
         page_front_matter: &FrontMatter,
         cached_site: &CachedSiteContext,
     ) -> Result<String, TemplateError> {
-        if raw_content.contains("{{") || raw_content.contains("{%") {
+        if !should_skip_liquid(page_front_matter)
+            && (raw_content.contains("{{") || raw_content.contains("{%"))
+        {
             let page_ctx = build_render_context_page_only("", page_front_matter);
             self.engine
                 .parse_and_render_with_cached_site(raw_content, &page_ctx, cached_site)
@@ -1085,8 +1108,10 @@ impl LayoutEngine {
         page_front_matter: &FrontMatter,
         cached_site: &CachedSiteContext,
     ) -> Result<String, TemplateError> {
-        // Step 1: Process Liquid tags in the raw content
-        let after_liquid = if raw_content.contains("{{") || raw_content.contains("{%") {
+        // Step 1: Process Liquid tags in the raw content (skip if render_with_liquid: false)
+        let after_liquid = if !should_skip_liquid(page_front_matter)
+            && (raw_content.contains("{{") || raw_content.contains("{%"))
+        {
             let page_ctx = build_render_context_page_only("", page_front_matter);
             self.engine
                 .parse_and_render_with_cached_site(raw_content, &page_ctx, cached_site)?
@@ -4880,6 +4905,192 @@ mod tests {
         assert!(
             result.is_ok(),
             "Layout with regex_replace and special chars should not fail"
+        );
+    }
+
+    #[test]
+    fn test_render_with_liquid_false_skips_liquid_processing() {
+        // When render_with_liquid: false is set, Liquid tags in the content
+        // should be preserved as literal text, not executed.
+        let layouts = {
+            let mut map = HashMap::new();
+            map.insert(
+                "page".to_string(),
+                Layout {
+                    source: "<html><body>{{ content }}</body></html>".to_string(),
+                    parent_layout: None,
+                    front_matter: HashMap::new(),
+                },
+            );
+            map
+        };
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+        let cached_site = crate::template::engine::CachedSiteContext::new(&liquid::Object::new());
+
+        let raw_content = "# Hello\n\nUse `{{ site.title }}` to show the title.\n\nUse `{% if page.math %}` for conditionals.";
+        let mut fm = HashMap::new();
+        fm.insert(
+            "title".to_string(),
+            serde_yaml::Value::String("Test Page".to_string()),
+        );
+        fm.insert(
+            "render_with_liquid".to_string(),
+            serde_yaml::Value::Bool(false),
+        );
+
+        let result = engine
+            .render_markdown_page_with_cached_site("page", raw_content, &fm, &cached_site)
+            .unwrap();
+
+        // The Liquid tags should appear as literal text in the output
+        assert!(
+            result.contains("{{ site.title }}") || result.contains("site.title"),
+            "Liquid variable should be preserved as literal text, got: {}",
+            result
+        );
+        assert!(
+            result.contains("{% if page.math %}") || result.contains("if page.math"),
+            "Liquid tag should be preserved as literal text, got: {}",
+            result
+        );
+        // Layout should still be applied
+        assert!(
+            result.contains("<html>"),
+            "Layout should still be applied, got: {}",
+            result
+        );
+        // Markdown should still be rendered
+        assert!(
+            result.contains("<h1"),
+            "Markdown should still be converted to HTML, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_render_with_liquid_true_processes_liquid_normally() {
+        // When render_with_liquid is not set or true, Liquid processing should happen normally.
+        let layouts = {
+            let mut map = HashMap::new();
+            map.insert(
+                "page".to_string(),
+                Layout {
+                    source: "<html><body>{{ content }}</body></html>".to_string(),
+                    parent_layout: None,
+                    front_matter: HashMap::new(),
+                },
+            );
+            map
+        };
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+        let mut site_obj = liquid::Object::new();
+        site_obj.insert("title".into(), LiquidValue::scalar("My Site"));
+        let cached_site = crate::template::engine::CachedSiteContext::new(&site_obj);
+
+        let raw_content = "# Hello\n\nTitle: {{ site.title }}";
+        let mut fm = HashMap::new();
+        fm.insert(
+            "title".to_string(),
+            serde_yaml::Value::String("Test Page".to_string()),
+        );
+
+        let result = engine
+            .render_markdown_page_with_cached_site("page", raw_content, &fm, &cached_site)
+            .unwrap();
+
+        // Liquid should be processed - site.title should be replaced
+        assert!(
+            result.contains("My Site"),
+            "Liquid variable should be processed, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_render_with_liquid_false_non_markdown_page() {
+        // Non-markdown pages with render_with_liquid: false should also skip Liquid.
+        let layouts = {
+            let mut map = HashMap::new();
+            map.insert(
+                "page".to_string(),
+                Layout {
+                    source: "<html><body>{{ content }}</body></html>".to_string(),
+                    parent_layout: None,
+                    front_matter: HashMap::new(),
+                },
+            );
+            map
+        };
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+        let cached_site = crate::template::engine::CachedSiteContext::new(&liquid::Object::new());
+
+        let raw_content = "<div>Use {{ site.title }} in templates</div>";
+        let mut fm = HashMap::new();
+        fm.insert(
+            "render_with_liquid".to_string(),
+            serde_yaml::Value::Bool(false),
+        );
+
+        let result = engine
+            .render_page_with_cached_site("page", raw_content, &fm, &cached_site)
+            .unwrap();
+
+        // Liquid tags should be preserved as literal text
+        assert!(
+            result.contains("{{ site.title }}"),
+            "Liquid variable should be preserved as literal text in HTML page, got: {}",
+            result
+        );
+        // Layout should still be applied
+        assert!(
+            result.contains("<html>"),
+            "Layout should still be applied, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_render_with_liquid_false_unicode_content() {
+        // Ensure non-ASCII content works correctly with render_with_liquid: false
+        let layouts = {
+            let mut map = HashMap::new();
+            map.insert(
+                "page".to_string(),
+                Layout {
+                    source: "<html><body>{{ content }}</body></html>".to_string(),
+                    parent_layout: None,
+                    front_matter: HashMap::new(),
+                },
+            );
+            map
+        };
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+        let cached_site = crate::template::engine::CachedSiteContext::new(&liquid::Object::new());
+
+        let raw_content = "# Привет мир\n\nИспользуйте `{{ site.title }}` для заголовка сайта.";
+        let mut fm = HashMap::new();
+        fm.insert(
+            "render_with_liquid".to_string(),
+            serde_yaml::Value::Bool(false),
+        );
+
+        let result = engine
+            .render_markdown_page_with_cached_site("page", raw_content, &fm, &cached_site)
+            .unwrap();
+
+        assert!(
+            result.contains("Привет мир"),
+            "Unicode heading should be preserved, got: {}",
+            result
+        );
+        assert!(
+            result.contains("{{ site.title }}") || result.contains("site.title"),
+            "Liquid tag should be literal in Unicode content, got: {}",
+            result
         );
     }
 }
