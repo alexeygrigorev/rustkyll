@@ -509,8 +509,6 @@ pub fn generate_url_with_context(pattern: &str, ctx: &PermalinkContext) -> Strin
     // Example: permalink /:collection/:path:output_ext
     //   -> item.url = /notes/slug (no .html)
     //   -> output file = notes/slug.html (url_to_output_path adds .html)
-    let has_output_ext = expanded.contains(":output_ext");
-
     let mut url = expanded
         .replace(":collection", &ctx.collection)
         .replace(":name", &ctx.title)
@@ -531,18 +529,10 @@ pub fn generate_url_with_context(pattern: &str, ctx: &PermalinkContext) -> Strin
         url = url.replace("//", "/");
     }
 
-    // Issue 347: Jekyll treats permalink patterns without a file extension as
-    // "pretty" URLs. If the resulting URL doesn't end with a recognized file
-    // extension (like .html, .xml, etc.) and doesn't already end with `/`,
-    // append `/` to produce a directory-based pretty URL.
-    // This ensures `permalink: /:title` produces `/my-post/` (not `/my-post`),
-    // which maps to output file `my-post/index.html`.
-    //
-    // Issue 548: Skip trailing slash for :output_ext patterns -- these produce
-    // bare URLs like /notes/slug where url_to_output_path handles the .html.
-    if !has_output_ext && !url.ends_with('/') && !url_has_extension(&url) {
-        url.push('/');
-    }
+    // Issue 557: Jekyll does NOT append a trailing slash to permalink patterns
+    // that lack an extension. The URL stays as-is (e.g., /stories/foo) and
+    // url_to_output_path converts it to stories/foo.html.
+    // Only patterns that explicitly end with / (like "pretty") get trailing slash.
 
     url
 }
@@ -1792,8 +1782,9 @@ mod tests {
     // ========================================================================
 
     #[test]
-    fn test_permalink_title_no_ext_produces_pretty_url() {
-        // permalink: /:title -> URL should be /my-post/ (trailing slash)
+    fn test_permalink_title_no_ext_no_trailing_slash_347() {
+        // Issue 557: permalink: /:title -> URL should be /my-post (NO trailing slash)
+        // Jekyll does not auto-append trailing slash to patterns without extension
         let ctx = PermalinkContext {
             collection: "posts".to_string(),
             title: "my-post".to_string(),
@@ -1801,12 +1792,12 @@ mod tests {
             ..Default::default()
         };
         let url = generate_url_with_context("/:title", &ctx);
-        assert_eq!(url, "/my-post/");
+        assert_eq!(url, "/my-post");
     }
 
     #[test]
-    fn test_permalink_categories_title_no_ext_produces_pretty_url() {
-        // permalink: /:categories/:title -> URL should be /tech/intro/ (trailing slash)
+    fn test_permalink_categories_title_no_ext_no_trailing_slash_347() {
+        // Issue 557: permalink: /:categories/:title -> URL should be /tech/intro (NO trailing slash)
         let ctx = PermalinkContext {
             collection: "posts".to_string(),
             title: "intro".to_string(),
@@ -1815,7 +1806,7 @@ mod tests {
             ..Default::default()
         };
         let url = generate_url_with_context("/:categories/:title", &ctx);
-        assert_eq!(url, "/tech/intro/");
+        assert_eq!(url, "/tech/intro");
     }
 
     #[test]
@@ -1858,8 +1849,8 @@ mod tests {
     }
 
     #[test]
-    fn test_permalink_year_month_title_no_ext_produces_pretty_url() {
-        // permalink: /:year/:month/:title -> URL should be /2024/01/my-post/
+    fn test_permalink_year_month_title_no_ext_no_trailing_slash_347() {
+        // Issue 557: permalink: /:year/:month/:title -> URL should be /2024/01/my-post (NO trailing slash)
         let ctx = PermalinkContext {
             collection: "posts".to_string(),
             title: "my-post".to_string(),
@@ -1867,7 +1858,67 @@ mod tests {
             ..Default::default()
         };
         let url = generate_url_with_context("/:year/:month/:title", &ctx);
-        assert_eq!(url, "/2024/01/my-post/");
+        assert_eq!(url, "/2024/01/my-post");
+    }
+
+    // ========================================================================
+    // Issue 557: Permalink no-extension should NOT get trailing slash
+    // ========================================================================
+
+    #[test]
+    fn test_permalink_stories_title_no_trailing_slash() {
+        // permalink: /stories/:title -> URL should be /stories/foo (NO trailing slash)
+        // Jekyll outputs stories/foo.html, NOT stories/foo/index.html
+        let ctx = PermalinkContext {
+            collection: "posts".to_string(),
+            title: "foo".to_string(),
+            date: Some("2024-01-15".to_string()),
+            ..Default::default()
+        };
+        let url = generate_url_with_context("/stories/:title", &ctx);
+        assert_eq!(url, "/stories/foo");
+    }
+
+    #[test]
+    fn test_permalink_stories_title_with_trailing_slash_preserved() {
+        // permalink: /stories/:title/ -> URL should be /stories/foo/ (trailing slash preserved)
+        let ctx = PermalinkContext {
+            collection: "posts".to_string(),
+            title: "foo".to_string(),
+            date: Some("2024-01-15".to_string()),
+            ..Default::default()
+        };
+        let url = generate_url_with_context("/stories/:title/", &ctx);
+        assert_eq!(url, "/stories/foo/");
+    }
+
+    #[test]
+    fn test_permalink_blog_title_html_still_works() {
+        // permalink: /blog/:title.html -> URL should be /blog/foo.html (extension preserved)
+        let ctx = PermalinkContext {
+            collection: "posts".to_string(),
+            title: "foo".to_string(),
+            date: Some("2024-01-15".to_string()),
+            ..Default::default()
+        };
+        let url = generate_url_with_context("/blog/:title.html", &ctx);
+        assert_eq!(url, "/blog/foo.html");
+    }
+
+    #[test]
+    fn test_permalink_unicode_title_no_trailing_slash() {
+        // Non-ASCII: permalink with Unicode title, no extension
+        let ctx = PermalinkContext {
+            collection: "posts".to_string(),
+            title: "\u{043F}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}".to_string(),
+            date: Some("2024-01-15".to_string()),
+            ..Default::default()
+        };
+        let url = generate_url_with_context("/stories/:title", &ctx);
+        assert_eq!(
+            url,
+            "/stories/\u{043F}\u{0440}\u{0438}\u{0432}\u{0435}\u{0442}"
+        );
     }
 
     // ========================================================================
@@ -3675,9 +3726,10 @@ mod tests {
 
     #[test]
     fn test_generate_url_collection_path_pattern() {
-        // The /:collection/:path pattern produces pretty URLs (trailing slash)
+        // Issue 557: /:collection/:path produces URL without trailing slash
+        // url_to_output_path adds .html for the output file
         let url = generate_url("/:collection/:path", "notes", "2018-06-04-aa");
-        assert_eq!(url, "/notes/2018-06-04-aa/");
+        assert_eq!(url, "/notes/2018-06-04-aa");
     }
 
     #[test]
@@ -3690,7 +3742,7 @@ mod tests {
             ..Default::default()
         };
         let url = generate_url_with_context("/:collection/:path", &ctx);
-        assert_eq!(url, "/pages/über-uns/");
+        assert_eq!(url, "/pages/über-uns");
     }
 
     // ========================================================================

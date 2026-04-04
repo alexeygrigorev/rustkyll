@@ -1591,11 +1591,8 @@ fn resolve_link_post_url(post_filename: &str) -> String {
         while cleaned.contains("//") {
             cleaned = cleaned.replace("//", "/");
         }
-        // Issue 347: Apply pretty URL rule -- if the resolved URL has no file
-        // extension and doesn't end with /, append / to match Jekyll behavior.
-        if !cleaned.ends_with('/') && !crate::collection::url_has_extension(&cleaned) {
-            cleaned.push('/');
-        }
+        // Issue 557: Jekyll does NOT append trailing slash to permalink patterns
+        // without an extension. url_to_output_path handles adding .html.
         cleaned
     } else {
         // Fallback: strip extension and use as-is
@@ -5268,11 +5265,11 @@ title: "Test Book"
         // Test /posts/:title pattern (like muan-blog)
         crate::frontmatter::set_post_permalink_pattern("/posts/:title");
         let result = preprocess_jekyll_tags(r#"{% link _posts/2020-06-06-reparations.md %}"#);
-        assert_eq!(result, "/posts/reparations/");
+        assert_eq!(result, "/posts/reparations");
 
         // Also test with a different post
         let result2 = preprocess_jekyll_tags(r#"{% link _posts/2024-11-02-javascript.md %}"#);
-        assert_eq!(result2, "/posts/javascript/");
+        assert_eq!(result2, "/posts/javascript");
 
         // Test date-based permalink pattern
         crate::frontmatter::set_post_permalink_pattern(
@@ -5302,8 +5299,11 @@ title: "Test Book"
     #[test]
     fn test_link_tag_html_root_page_keeps_extension() {
         // Root-level .html files (no _ prefix) -> keep .html extension
+        // Explicitly set non-pretty permalink to avoid test pollution
+        crate::collection::set_page_permalink_style("date");
         let result = preprocess_jekyll_tags(r#"{% link about.html %}"#);
         assert_eq!(result, "/about.html");
+        crate::collection::set_page_permalink_style("");
     }
 
     #[test]
