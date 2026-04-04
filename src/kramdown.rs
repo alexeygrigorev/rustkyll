@@ -5719,6 +5719,64 @@ fn wrap_fenced_code_blocks(html: &str) -> String {
                 continue;
             };
 
+            // If <pre> already has a class= attribute, it's user-authored raw HTML
+            // (e.g. <pre class="terminal"><code>), not a pulldown-cmark fenced code
+            // block. Preserve it as-is. IAL attributes (data-title, id) don't have
+            // class=, so they still get wrapped.
+            if pre_attrs.contains("class=") {
+                result.push_str(&remaining[..pre_pos]);
+                if let Some(end_pos) = after_pre_open.find("</pre>") {
+                    result.push_str(&format!("<pre {}>", pre_attrs));
+                    result.push_str(&after_pre_open[..end_pos + 6]);
+                    remaining = &after_pre_open[end_pos + 6..];
+                } else {
+                    result.push_str(&format!("<pre {}>", pre_attrs));
+                    remaining = after_pre_open;
+                }
+                continue;
+            }
+
+            // Skip <pre><code> blocks already inside <figure class="highlight">
+            // (produced by the {% highlight %} tag). These are already fully
+            // syntax-highlighted and must not be re-wrapped.
+            {
+                let before_pre = &remaining[..pre_pos];
+                let trimmed = before_pre.trim_end_matches('\n');
+                if trimmed.ends_with("<figure class=\"highlight\">") {
+                    // Pass through everything up to </code></pre></figure>
+                    // (with optional newlines between closing tags)
+                    // to avoid re-processing the already-highlighted content
+                    let figure_end = after_pre_open
+                        .find("</code></pre></figure>")
+                        .map(|p| p + "</code></pre></figure>".len())
+                        .or_else(|| {
+                            after_pre_open
+                                .find("</code></pre>\n</figure>")
+                                .map(|p| p + "</code></pre>\n</figure>".len())
+                        });
+                    if let Some(end) = figure_end {
+                        result.push_str(&remaining[..pre_pos]);
+                        if pre_attrs.is_empty() {
+                            result.push_str("<pre>");
+                        } else {
+                            result.push_str(&format!("<pre {}>", pre_attrs));
+                        }
+                        result.push_str(&after_pre_open[..end]);
+                        remaining = &after_pre_open[end..];
+                    } else {
+                        // No closing tag found, just pass through <pre>
+                        result.push_str(&remaining[..pre_pos]);
+                        if pre_attrs.is_empty() {
+                            result.push_str("<pre>");
+                        } else {
+                            result.push_str(&format!("<pre {}>", pre_attrs));
+                        }
+                        remaining = after_pre_open;
+                    }
+                    continue;
+                }
+            }
+
             // Now check if the content starts with <code
             if !after_pre_open.starts_with("<code") {
                 // Not a code block, copy the <pre> tag and continue
@@ -5744,6 +5802,9 @@ fn wrap_fenced_code_blocks(html: &str) -> String {
                     let after_quote = &rest[quote_end + 1..];
                     if let Some(inner) = after_quote.strip_prefix('>') {
                         (lang, inner)
+                    } else if let Some(gt_pos) = after_quote.find('>') {
+                        // Skip extra attributes (e.g. data-lang="js") to find closing >
+                        (lang, &after_quote[gt_pos + 1..])
                     } else {
                         result.push_str("<pre><code");
                         remaining = after_code;
@@ -17233,6 +17294,211 @@ Do It Live\n\
         assert_eq!(
             result,
             "<p>The value is \\(\\alpha + \\beta = \\gamma\\).</p>"
+        );
+    }
+
+    #[test]
+    fn test_issue553_code_block_data_lang_attribute() {
+        // Issue 553: wrap_fenced_code_blocks must handle <code class="language-X" data-lang="X">
+        // without corrupting the output. The data-lang attribute follows the class attribute.
+        let input = "<pre><code class=\"language-js\" data-lang=\"js\">var x = 1;</code></pre>";
+        let result = wrap_fenced_code_blocks(input);
+        // Must produce proper highlighter-rouge wrapper, not broken <pre><code without closing >
+        assert!(
+            result.contains("language-js highlighter-rouge"),
+            "Must produce proper highlighter-rouge wrapper for js code with data-lang. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("var</span>") && result.contains("1</span>"),
+            "Code content must be preserved when data-lang attribute is present. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue553_code_block_multiple_extra_attributes() {
+        // Multiple extra attributes after class="language-..."
+        let input = "<pre><code class=\"language-python\" data-lang=\"python\" other=\"y\">print('hi')</code></pre>";
+        let result = wrap_fenced_code_blocks(input);
+        assert!(
+            result.contains("language-python highlighter-rouge"),
+            "Must produce proper wrapper with multiple extra attributes. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue553_two_pre_blocks_first_with_data_lang() {
+        // Two <pre> blocks where the first has data-lang -- both must be preserved
+        let input = "<pre><code class=\"language-js\" data-lang=\"js\">hello</code></pre>\n<pre>world</pre>";
+        let result = wrap_fenced_code_blocks(input);
+        assert!(
+            result.contains("hello"),
+            "First block content must be preserved. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("world"),
+            "Second block content must be preserved. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue553_no_data_lang_still_works() {
+        // Ensure normal <code class="language-X"> without data-lang still works
+        let input = "<pre><code class=\"language-ruby\">puts 'hello'</code></pre>";
+        let result = wrap_fenced_code_blocks(input);
+        assert!(
+            result.contains("puts"),
+            "Normal code block without data-lang must still work. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue553_unicode_content_with_data_lang() {
+        // Unicode content with data-lang attribute
+        let input = "<pre><code class=\"language-python\" data-lang=\"python\">print('Привет мир 你好')</code></pre>";
+        let result = wrap_fenced_code_blocks(input);
+        assert!(
+            result.contains("language-python highlighter-rouge"),
+            "Must produce proper wrapper for unicode content with data-lang. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("Привет мир 你好"),
+            "Unicode content must be preserved with data-lang. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue553_figure_highlight_pre_code_not_rewrapped() {
+        // <pre><code> inside <figure class="highlight"> (from {% highlight %} tag)
+        // must NOT be re-wrapped by wrap_fenced_code_blocks
+        let input = "<figure class=\"highlight\"><pre><code class=\"language-js\" data-lang=\"js\"><span class=\"c1\">// comment</span></code></pre></figure>";
+        let result = wrap_fenced_code_blocks(input);
+        // Must pass through unchanged -- no highlighter-rouge div wrapper added
+        assert!(
+            !result.contains("highlighter-rouge"),
+            "Figure highlight block must not be re-wrapped. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("<span class=\"c1\">// comment</span>"),
+            "Content inside figure highlight must be preserved. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("<figure class=\"highlight\"><pre><code"),
+            "Original figure structure must be preserved. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue553_figure_highlight_with_newline_before_pre() {
+        // Some templates put a newline between <figure> and <pre>
+        let input = "<figure class=\"highlight\">\n<pre><code class=\"language-js\" data-lang=\"js\">code</code></pre></figure>";
+        let result = wrap_fenced_code_blocks(input);
+        assert!(
+            !result.contains("highlighter-rouge"),
+            "Figure highlight with newline must not be re-wrapped. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue553_figure_highlight_with_newline_before_closing_figure() {
+        // When post.content is embedded, </pre> and </figure> may be on separate lines
+        let input = "<figure class=\"highlight\">\n<pre><code class=\"language-js\" data-lang=\"js\">code</code></pre>\n</figure>\n<p>after</p>";
+        let result = wrap_fenced_code_blocks(input);
+        assert!(
+            !result.contains("highlighter-rouge"),
+            "Figure highlight with newline before </figure> must not be re-wrapped. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("code"),
+            "Code content must be preserved. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("<p>after</p>"),
+            "Content after figure must be preserved. Got:\n{}",
+            result
+        );
+    }
+
+    // ── Issue 554: pre with user-specified class should not be wrapped ──
+
+    #[test]
+    fn test_issue554_pre_terminal_class_not_wrapped() {
+        let input =
+            "<pre class=\"terminal\"><code>$ jekyll /path/to/raw/site\n/path/to/place/generated/site</code></pre>";
+        let result = wrap_fenced_code_blocks(input);
+        assert_eq!(
+            result, input,
+            "pre with class='terminal' should pass through unchanged. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue554_pre_custom_class_not_wrapped() {
+        let input = "<pre class=\"output\"><code>result here</code></pre>";
+        let result = wrap_fenced_code_blocks(input);
+        assert_eq!(
+            result, input,
+            "pre with class='output' should pass through unchanged. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue554_bare_pre_still_wrapped() {
+        let input = "<pre><code>plain text</code></pre>";
+        let result = wrap_fenced_code_blocks(input);
+        assert!(
+            result.contains("highlighter-rouge"),
+            "Bare pre>code should still be wrapped. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue554_pre_with_language_still_wrapped() {
+        let input = "<pre><code class=\"language-python\">print('hi')</code></pre>";
+        let result = wrap_fenced_code_blocks(input);
+        assert!(
+            result.contains("highlighter-rouge"),
+            "pre>code with language class should still be wrapped. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue554_pre_data_title_still_wrapped() {
+        let input =
+            "<pre data-title=\"example\"><code class=\"language-ruby\">puts 'hi'</code></pre>";
+        let result = wrap_fenced_code_blocks(input);
+        assert!(
+            result.contains("highlighter-rouge"),
+            "pre with data-title (IAL) should still be wrapped. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue554_pre_class_unicode_content() {
+        let input = "<pre class=\"terminal\"><code>$ echo 'Привет мир 你好世界'</code></pre>";
+        let result = wrap_fenced_code_blocks(input);
+        assert_eq!(
+            result, input,
+            "pre with class and unicode content should pass through. Got:\n{}",
+            result
         );
     }
 }

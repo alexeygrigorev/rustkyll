@@ -63,9 +63,6 @@ fn build_scope_map() -> Vec<ScopeMapping> {
             "source.ruby string.quoted.single punctuation.definition.string",
             "s1",
         ),
-        // Ruby: Rouge classifies `# comment` as `c` (generic comment).
-        // Syntect scopes it as comment.line.number-sign -> c1. Override for Ruby.
-        ("source.ruby comment.line.number-sign", "c"),
         // Java: Rouge classifies `public`, `static`, `void`, `int`, `class`, etc. as `kd`
         // (keyword.declaration). Syntect scopes these as storage.type -> kt or
         // storage.modifier -> k. Override for Java.
@@ -4057,8 +4054,8 @@ tests:\n\
         );
         let html = highlight_code("ruby", code).unwrap();
         assert!(
-            html.contains("<span class=\"c\"># Ruby code with syntax highlighting"),
-            "Ruby comment should be c (Rouge uses generic comment for Ruby #): {html}"
+            html.contains("<span class=\"c1\"># Ruby code with syntax highlighting"),
+            "Ruby comment should be c1 (Rouge uses Comment.Single for Ruby #): {html}"
         );
         assert!(
             html.contains("<span class=\"no\">GitHubPages</span>"),
@@ -5267,30 +5264,27 @@ u = df['user'].unique()\n";
     // ── Issue 471: Ruby comment class fix ──
 
     #[test]
-    fn test_issue471_ruby_line_comment_is_c() {
-        // Rouge classifies `# comment` in Ruby as `c` (generic comment), not `c1` (line comment)
+    fn test_issue471_ruby_line_comment_is_c1() {
+        // Issue 555 corrected: Rouge classifies Ruby `# comment` as `c1` (Comment.Single),
+        // verified against actual Jekyll/Rouge output on mojombo-blog.
         let html = highlight_code("ruby", "# this is a comment\n").unwrap();
         assert!(
-            html.contains("<span class=\"c\""),
-            "Ruby '# comment' should be c (generic comment), not c1: {html}"
-        );
-        assert!(
-            !html.contains("<span class=\"c1\""),
-            "Ruby '# comment' should NOT be c1 (line comment): {html}"
+            html.contains("<span class=\"c1\""),
+            "Ruby '# comment' should be c1 (Comment.Single): {html}"
         );
     }
 
     #[test]
     fn test_issue471_ruby_comment_unicode() {
-        // Non-ASCII: Ruby comment with Unicode
+        // Non-ASCII: Ruby comment with Unicode -- should also be c1
         let html = highlight_code(
             "ruby",
             "# \u{30b3}\u{30e1}\u{30f3}\u{30c8}\u{3067}\u{3059}\n",
         )
         .unwrap();
         assert!(
-            html.contains("<span class=\"c\""),
-            "Ruby Unicode comment should be c: {html}"
+            html.contains("<span class=\"c1\""),
+            "Ruby Unicode comment should be c1: {html}"
         );
     }
 
@@ -5301,6 +5295,48 @@ u = df['user'].unique()\n";
         assert!(
             html.contains("<span class=\"c1\""),
             "Python '# comment' should remain c1: {html}"
+        );
+    }
+
+    // ── Issue 555: Additional comment class tests ──
+
+    #[test]
+    fn test_issue555_ruby_comment_is_c1() {
+        // Ruby `# comment` should be classified as `c1` (Comment.Single)
+        let html = highlight_code("ruby", "# comment\n").unwrap();
+        assert!(
+            html.contains("<span class=\"c1\">"),
+            "Ruby '# comment' should be c1 (Comment.Single): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue555_ruby_comment_unicode_c1() {
+        // Ruby `# comment` with Unicode content should be `c1`
+        let html = highlight_code("ruby", "# Unicode comment \u{65e5}\u{672c}\u{8a9e}\n").unwrap();
+        assert!(
+            html.contains("<span class=\"c1\">"),
+            "Ruby '# Unicode comment \u{65e5}\u{672c}\u{8a9e}' should be c1: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue555_javascript_comment_c1() {
+        // JavaScript `// comment` should be classified as `c1` (Comment.Single)
+        let html = highlight_code("js", "// comment\n").unwrap();
+        assert!(
+            html.contains("<span class=\"c1\">"),
+            "JS '// comment' should be c1 (Comment.Single): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue555_multiline_comment_still_cm() {
+        // Multi-line `/* ... */` comments should be `cm` (Comment.Multiline)
+        let html = highlight_code("js", "/* multi-line */\n").unwrap();
+        assert!(
+            html.contains("<span class=\"cm\">"),
+            "JS '/* multi-line */' should be cm (Comment.Multiline): {html}"
         );
     }
 }
