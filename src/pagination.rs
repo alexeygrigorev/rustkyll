@@ -173,18 +173,19 @@ fn collection_item_to_liquid_full(item: &CollectionItem) -> LiquidValue {
     );
 
     // Excerpt -- Jekyll provides post.excerpt as rendered HTML in paginator.posts.
-    // Prefer the pre-rendered excerpt_html (markdown already converted to HTML),
-    // then fall back to generating from html_content.
-    if let Some(ref html_excerpt) = item.excerpt_html {
-        obj.insert("excerpt".into(), LiquidValue::scalar(html_excerpt.clone()));
-    } else if let Some(ref raw_excerpt) = item.excerpt {
-        // If excerpt_html was not generated but raw excerpt exists,
-        // render it through markdown now.
-        let rendered = crate::frontmatter::markdown_to_html(raw_excerpt);
-        obj.insert("excerpt".into(), LiquidValue::scalar(rendered));
-    } else if !item.front_matter.contains_key("excerpt") {
-        let excerpt = generate_excerpt(&item.html_content);
-        obj.insert("excerpt".into(), LiquidValue::scalar(excerpt));
+    // If front matter defines `excerpt:`, use that value as-is (already set above
+    // from front_matter copy). Otherwise, prefer pre-rendered excerpt_html, then
+    // fall back to generating from html_content.
+    if !item.front_matter.contains_key("excerpt") {
+        if let Some(ref html_excerpt) = item.excerpt_html {
+            obj.insert("excerpt".into(), LiquidValue::scalar(html_excerpt.clone()));
+        } else if let Some(ref raw_excerpt) = item.excerpt {
+            let rendered = crate::frontmatter::markdown_to_html(raw_excerpt);
+            obj.insert("excerpt".into(), LiquidValue::scalar(rendered));
+        } else {
+            let excerpt = generate_excerpt(&item.html_content);
+            obj.insert("excerpt".into(), LiquidValue::scalar(excerpt));
+        }
     }
 
     // Ensure "short" is set from slug if not in front matter
@@ -1237,6 +1238,54 @@ mod tests {
         assert!(
             excerpt_str.contains("<p>"),
             "Fallback excerpt should be generated from HTML. Got: {}",
+            excerpt_str
+        );
+    }
+
+    // ========================================================================
+    // Issue #568: Front matter excerpt takes precedence over auto-generated
+    // ========================================================================
+
+    #[test]
+    fn test_paginator_post_front_matter_excerpt_overrides_auto_generated() {
+        // When a post has excerpt: in front matter AND excerpt_html is set,
+        // the front matter value should win (Jekyll behavior).
+        let mut post = make_post("Test Post", "2024-01-01", "test-post");
+        post.front_matter.insert(
+            "excerpt".to_string(),
+            serde_yaml::Value::String(
+                "This is a user-defined post excerpt with Unicode: Ünïcödé.".to_string(),
+            ),
+        );
+        post.excerpt = Some("raw excerpt from content".to_string());
+        post.excerpt_html = Some("<p>Auto-generated excerpt from first paragraph.</p>".to_string());
+
+        let liquid_post = collection_item_to_liquid_full(&post);
+        let obj = liquid_post.as_object().expect("should be object");
+        let excerpt_val = obj.get("excerpt").expect("should have excerpt");
+        let excerpt_str = excerpt_val.to_kstr().into_string();
+
+        assert_eq!(
+            excerpt_str, "This is a user-defined post excerpt with Unicode: Ünïcödé.",
+            "Front matter excerpt should take precedence over auto-generated. Got: {}",
+            excerpt_str
+        );
+    }
+
+    #[test]
+    fn test_paginator_post_no_front_matter_excerpt_uses_auto_generated() {
+        // When a post does NOT have excerpt: in front matter, auto-generated works
+        let mut post = make_post("Test Post", "2024-01-01", "test-post");
+        post.excerpt_html = Some("<p>Auto-generated excerpt from first paragraph.</p>".to_string());
+
+        let liquid_post = collection_item_to_liquid_full(&post);
+        let obj = liquid_post.as_object().expect("should be object");
+        let excerpt_val = obj.get("excerpt").expect("should have excerpt");
+        let excerpt_str = excerpt_val.to_kstr().into_string();
+
+        assert_eq!(
+            excerpt_str, "<p>Auto-generated excerpt from first paragraph.</p>",
+            "Without front matter excerpt, auto-generated should be used. Got: {}",
             excerpt_str
         );
     }

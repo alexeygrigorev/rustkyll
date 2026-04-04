@@ -299,11 +299,15 @@ fn collection_item_to_liquid_for_generator(item: &CollectionItem) -> LiquidValue
         LiquidValue::scalar(item.html_content.clone()),
     );
 
-    if let Some(ref html_excerpt) = item.excerpt_html {
-        obj.insert("excerpt".into(), LiquidValue::scalar(html_excerpt.clone()));
-    } else if let Some(ref raw_excerpt) = item.excerpt {
-        let rendered = crate::frontmatter::markdown_to_html(raw_excerpt);
-        obj.insert("excerpt".into(), LiquidValue::scalar(rendered));
+    // Issue #568: Only override excerpt with auto-generated if front matter
+    // does not define an explicit `excerpt:` value.
+    if !item.front_matter.contains_key("excerpt") {
+        if let Some(ref html_excerpt) = item.excerpt_html {
+            obj.insert("excerpt".into(), LiquidValue::scalar(html_excerpt.clone()));
+        } else if let Some(ref raw_excerpt) = item.excerpt {
+            let rendered = crate::frontmatter::markdown_to_html(raw_excerpt);
+            obj.insert("excerpt".into(), LiquidValue::scalar(rendered));
+        }
     }
 
     if !item.front_matter.contains_key("short") {
