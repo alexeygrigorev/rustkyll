@@ -8548,6 +8548,142 @@ fn apply_single_sq_rule(prev: Option<char>, next: Option<char>) -> char {
 }
 
 // ============================================================================
+// Issue 576: Kramdown abbreviation support for the build pipeline
+// ============================================================================
+
+/// Abbreviation definition extracted from markdown content.
+/// Stores the abbreviation text and its full expansion.
+#[derive(Debug, Clone)]
+pub struct AbbreviationDef {
+    pub abbr: String,
+    pub full: String,
+}
+
+/// Extract kramdown abbreviation definitions from markdown content.
+///
+/// Abbreviation definitions have the format `*[ABBR]: Full Text` and must
+/// appear at 0-3 spaces indent (4+ is a code block). Returns the abbreviation
+/// definitions and the markdown with definition lines removed.
+pub fn extract_abbreviation_definitions(markdown: &str) -> (String, Vec<AbbreviationDef>) {
+    let mut defs = Vec::new();
+    let mut output_lines = Vec::new();
+
+    for line in markdown.lines() {
+        let trimmed = line.trim_start();
+        let indent = line.len() - trimmed.len();
+
+        if indent <= 3 {
+            if let Some(rest) = trimmed.strip_prefix("*[") {
+                if let Some(close) = rest.find("]:") {
+                    let abbr = &rest[..close];
+                    let full = rest[close + 2..].trim();
+                    if !abbr.is_empty() {
+                        defs.push(AbbreviationDef {
+                            abbr: abbr.to_string(),
+                            full: full.to_string(),
+                        });
+                        continue; // Skip this line in output
+                    }
+                }
+            }
+        }
+
+        output_lines.push(line);
+    }
+
+    // Preserve trailing newline if original had one
+    let mut result = output_lines.join("\n");
+    if markdown.ends_with('\n') {
+        result.push('\n');
+    }
+
+    (result, defs)
+}
+
+/// Apply abbreviation definitions to HTML output, wrapping matching text
+/// in `<abbr title="...">` tags. Only replaces text outside HTML tags
+/// and respects word boundaries.
+pub fn apply_abbreviations(html: &str, defs: &[AbbreviationDef]) -> String {
+    if defs.is_empty() {
+        return html.to_string();
+    }
+
+    let mut result = html.to_string();
+
+    // Sort by length (longest first) to avoid partial matches
+    let mut sorted_defs: Vec<&AbbreviationDef> = defs.iter().collect();
+    sorted_defs.sort_by(|a, b| b.abbr.len().cmp(&a.abbr.len()));
+
+    for def in sorted_defs {
+        let replacement = if def.full.is_empty() {
+            format!("<abbr>{}</abbr>", def.abbr)
+        } else {
+            let escaped_full = escape_html_attr_for_abbr(&def.full);
+            format!("<abbr title=\"{}\">{}</abbr>", escaped_full, def.abbr)
+        };
+        result = replace_abbr_outside_tags(&result, &def.abbr, &replacement);
+    }
+
+    result
+}
+
+/// Escape HTML attribute value for abbreviation titles.
+fn escape_html_attr_for_abbr(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('"', "&quot;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
+/// Replace text outside of HTML tags, respecting word boundaries.
+/// Does not replace text inside `<...>` (tag names, attributes, etc.)
+/// or inside existing `<abbr>` elements.
+fn replace_abbr_outside_tags(html: &str, search: &str, replacement: &str) -> String {
+    let mut result = String::with_capacity(html.len());
+    let chars: Vec<char> = html.chars().collect();
+    let search_chars: Vec<char> = search.chars().collect();
+    let mut i = 0;
+
+    while i < chars.len() {
+        // Skip HTML tags
+        if chars[i] == '<' {
+            let tag_start = i;
+            i += 1;
+            while i < chars.len() && chars[i] != '>' {
+                i += 1;
+            }
+            if i < chars.len() {
+                i += 1; // skip >
+            }
+            let tag: String = chars[tag_start..i].iter().collect();
+            result.push_str(&tag);
+            continue;
+        }
+
+        // Try to match abbreviation at this position
+        if i + search_chars.len() <= chars.len() {
+            let candidate: String = chars[i..i + search_chars.len()].iter().collect();
+            if candidate == *search {
+                // Check word boundaries
+                let before_ok = i == 0 || !chars[i - 1].is_alphanumeric();
+                let after_ok = i + search_chars.len() >= chars.len()
+                    || !chars[i + search_chars.len()].is_alphanumeric();
+                if before_ok && after_ok {
+                    result.push_str(replacement);
+                    i += search_chars.len();
+                    continue;
+                }
+            }
+        }
+
+        result.push(chars[i]);
+        i += 1;
+    }
+
+    result
+}
+
+// ============================================================================
 // Tests
 // ============================================================================
 

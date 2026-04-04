@@ -619,10 +619,14 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // Issue 535: Enable GFM task list checkboxes (- [ ] / - [x]).
     options.insert(Options::ENABLE_TASKLISTS);
 
+    // Issue 576: Extract kramdown abbreviation definitions before other processing.
+    // The definitions are stripped from the markdown and applied to the HTML output later.
+    let (markdown, abbr_defs) = crate::kramdown::extract_abbreviation_definitions(markdown);
+
     // Issue 364: Escape non-standard autolink URI schemes (tel:, ssh:, sip:, etc.)
     // so pulldown-cmark doesn't treat them as CommonMark autolinks. Kramdown only
     // autolinks http:, https:, ftp:, and mailto:.
-    let markdown = escape_non_standard_autolink_schemes(markdown);
+    let markdown = escape_non_standard_autolink_schemes(&markdown);
 
     // Issue 549: Mark standalone raw HTML <img> tags with data-raw-html="1"
     // before pulldown-cmark processes them. This distinguishes them from
@@ -802,7 +806,12 @@ pub fn markdown_to_html(markdown: &str) -> String {
     let html_output = restore_gist_output(&html_output, &gist_saved);
 
     // Issue 329: Restore <details> blocks after all processing
-    restore_details_blocks(&html_output, &details_saved)
+    let html_output = restore_details_blocks(&html_output, &details_saved);
+
+    // Issue 576: Apply kramdown abbreviation definitions to the final HTML output.
+    // Must run after all other processing so abbreviations are applied to the
+    // final text content (not to intermediate markers or placeholders).
+    crate::kramdown::apply_abbreviations(&html_output, &abbr_defs)
 }
 
 /// Convert Markdown to HTML with configurable inline code class, smart punctuation,
@@ -855,14 +864,24 @@ pub fn markdown_to_html_with_options(
         || markdown.contains('\u{2019}');
     let has_math = markdown.contains("$$") || markdown.contains("\\(");
     let has_pipe = markdown.contains('|');
+    let has_abbr_def = markdown.contains("*[");
+
+    // Issue 576: Extract kramdown abbreviation definitions before other processing.
+    // Only in kramdown mode (add_code_classes=true) and only if definitions are present.
+    let (markdown, abbr_defs) = if add_code_classes && has_abbr_def {
+        let (md, defs) = crate::kramdown::extract_abbreviation_definitions(markdown);
+        (md, defs)
+    } else {
+        (markdown.to_string(), Vec::new())
+    };
 
     // Issue 560: Mark standalone raw HTML <img> and <br> tags in CommonMark mode
     // so they can be unwrapped from <p> in post-processing. In kramdown mode,
     // standalone <img> stays in <p> (matching Jekyll/kramdown behavior).
     let markdown = if !add_code_classes {
-        crate::kramdown::mark_raw_html_for_commonmark(markdown)
+        crate::kramdown::mark_raw_html_for_commonmark(&markdown)
     } else {
-        crate::kramdown::mark_raw_html_img_tags(markdown)
+        crate::kramdown::mark_raw_html_img_tags(&markdown)
     };
 
     // Issue 228: Process markdown="1" attribute on HTML elements
@@ -1050,11 +1069,14 @@ pub fn markdown_to_html_with_options(
     // Issue 329: Restore <details> blocks after all processing
     let html_output = restore_details_blocks(&html_output, &details_saved);
     // Issue 330: Fix inline content in <details> blocks for CommonMarkGhPages
-    if !add_code_classes {
+    let html_output = if !add_code_classes {
         fix_details_inline_content(&html_output)
     } else {
         html_output
-    }
+    };
+
+    // Issue 576: Apply kramdown abbreviation definitions to the final HTML output.
+    crate::kramdown::apply_abbreviations(&html_output, &abbr_defs)
 }
 
 /// Issue 330: Mark inline content that directly follows `</summary>` on the same line.
@@ -10461,6 +10483,85 @@ More text.
         assert!(
             html.contains("日本語"),
             "CJK should be preserved. Got: {}",
+            html
+        );
+    }
+
+    // ========================================================================
+    // Issue 576: Kramdown abbreviations applied in build pipeline
+    // ========================================================================
+
+    #[test]
+    fn test_markdown_to_html_abbreviation_applied() {
+        // Abbreviation definitions should be stripped and abbreviations wrapped in <abbr>
+        let md = "The abbreviation CSS stands for Cascading Style Sheets.\n\n*[CSS]: Cascading Style Sheets\n";
+        let html = markdown_to_html(md);
+        assert!(
+            html.contains("<abbr title=\"Cascading Style Sheets\">CSS</abbr>"),
+            "CSS should be wrapped in <abbr> tag. Got: {}",
+            html
+        );
+        assert!(
+            !html.contains("*[CSS]"),
+            "Abbreviation definition should be stripped from output. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_markdown_to_html_abbreviation_definition_stripped() {
+        // The abbreviation definition line should not appear in the output at all
+        let md = "HTML is great.\n\n*[HTML]: Hyper Text Markup Language\n";
+        let html = markdown_to_html(md);
+        assert!(
+            !html.contains("*[HTML]"),
+            "Abbreviation definition should not appear in output. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<abbr title=\"Hyper Text Markup Language\">HTML</abbr>"),
+            "HTML should be wrapped in <abbr> tag. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_markdown_to_html_abbreviation_unicode() {
+        // Abbreviation with unicode content should work
+        let md = "Язык CSS очень полезен.\n\n*[CSS]: Каскадные таблицы стилей\n";
+        let html = markdown_to_html(md);
+        assert!(
+            html.contains("<abbr title=\"Каскадные таблицы стилей\">CSS</abbr>"),
+            "CSS should be wrapped in <abbr> with unicode title. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_markdown_to_html_multiple_abbreviations() {
+        // Multiple abbreviation definitions should all be applied
+        let md = "HTML and CSS are web technologies.\n\n*[HTML]: Hyper Text Markup Language\n*[CSS]: Cascading Style Sheets\n";
+        let html = markdown_to_html(md);
+        assert!(
+            html.contains("<abbr title=\"Hyper Text Markup Language\">HTML</abbr>"),
+            "HTML should be wrapped in <abbr>. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<abbr title=\"Cascading Style Sheets\">CSS</abbr>"),
+            "CSS should be wrapped in <abbr>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_markdown_to_html_abbreviation_empty_title() {
+        // Empty abbreviation title should produce <abbr> without title attribute
+        let md = "The MD format is nice.\n\n*[MD]:\n";
+        let html = markdown_to_html(md);
+        assert!(
+            html.contains("<abbr>MD</abbr>"),
+            "MD should be wrapped in <abbr> without title. Got: {}",
             html
         );
     }
