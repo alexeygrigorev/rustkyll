@@ -251,3 +251,62 @@ Standard YAML parsers handle this automatically, but verify it works with the
 wallet files' merge key (`<<`) pattern.
 
 ## Log
+
+### [SWE] 2026-04-02 14:00
+
+**Fix 1: Wallet generator detection**
+- Wrote tests: test_should_activate_with_all_present, test_should_not_activate_without_wallets_rb, test_should_not_activate_without_wallets_dir, test_should_not_activate_without_platforms_dir, test_should_not_activate_without_translations_dir
+- Tests verify activation only when all 4 conditions met (_plugins/wallets.rb with WalletsPageGenerator, _wallets/, _platforms/, _translations/)
+- Implemented should_activate() in src/wallet_generator.rs
+- All 5 detection tests: PASS
+
+**Fix 2: Platform page generation**
+- Wrote tests: test_platform_pages_generated, test_platform_page_url_same_name, test_platform_page_url_different_name, test_platform_page_layout, test_platform_page_id_format, test_platform_page_title_composed
+- Tests verify URL patterns, layout assignment, page.id format, title composition
+- Implemented platform page generation in generate_wallet_pages()
+- All 6 platform tests: PASS
+
+**Fix 3: Wallet page generation**
+- Wrote tests: test_wallet_pages_generated, test_wallet_page_url_platform_ne_os, test_wallet_page_url_platform_eq_os, test_wallet_page_layout, test_wallet_page_has_wallet_data, test_wallet_page_has_platform_and_os, test_wallet_page_id_format, test_wallet_page_lang_set
+- Tests verify URL patterns, layout, wallet/platform/os data, page.id, page.lang
+- Implemented wallet page generation loop
+- All 8 wallet tests: PASS
+
+**Fix 4: Multi-language and edge cases**
+- Wrote tests: test_multi_language_generation, test_wallet_with_no_valid_platform_name, test_unicode_wallet_title
+- Tests verify pages generated per language, graceful handling of empty platform names, Unicode preservation
+- All 3 tests: PASS
+
+**Fix 5: Integration into main.rs**
+- Added wallet generator activation after template generator (step 4a3)
+- Wallet pages are injected into pages vec before site context is built
+
+**Summary:**
+- Files created: src/wallet_generator.rs (new module)
+- Files modified: src/lib.rs (added module), src/main.rs (integration)
+- Tests added: 22 unit tests covering detection, platform pages, wallet pages, multi-language, edge cases
+- Build results: All tests pass, clippy clean, fmt clean
+- DTC DOM: 790/790 (no regression)
+- DTC build time: 0.871s (under 1.0s threshold)
+- bitcoin-org file count: 3534 HTML files (up from 975, target was 3000+)
+- bitcoin-org DOM: 1/3562 matched (baseline maintained)
+- bitcoin-org standalone pages: 3431 (wallet generator added ~2456 pages)
+
+### [PM] 2026-04-02 16:30
+- Reviewed diff: 3 files changed (src/wallet_generator.rs new, src/lib.rs, src/main.rs)
+- cargo test: all tests pass (22 new wallet generator tests)
+- cargo clippy -- -D warnings: clean
+- Output verification: built bitcoin-org site, 3534 HTML files (up from 975, target 3000+)
+  - /en/wallets/desktop/linux/electrum/index.html: exists, correct title "Electrum - Desktop - Linux - Choose your wallet - Bitcoin"
+  - /en/wallets/hardware/ledgernanos/index.html: exists
+  - /fr/wallets/desktop/linux/electrum/index.html: exists (French)
+  - /en/wallets/desktop/index.html: exists (platform page)
+  - /en/wallets/desktop/linux/index.html: exists (platform/OS page)
+  - Generated HTML is well-formed with correct layout, meta tags, and content
+- DTC DOM: 790/790 (no regression, verified via recount-all-dom.sh)
+- bitcoin-org DOM: baseline maintained (1/3562)
+- Detection is generic: based on _plugins/wallets.rb + _wallets/ + _platforms/ + _translations/ presence
+- Code review: clean architecture with proper structs (PlatformDef, WalletDef, WalletPlatform, WalletOs), good error handling, sorted deterministic output
+- Acceptance criteria: all met
+- Follow-up issues created: none needed
+- VERDICT: ACCEPT

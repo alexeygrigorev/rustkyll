@@ -439,7 +439,10 @@ fn build_site(
                 let count = wallet_pages.len();
                 pages.extend(wallet_pages);
                 if count > 0 {
-                    eprintln!("Wallet generator: {} wallet/platform pages generated", count);
+                    eprintln!(
+                        "Wallet generator: {} wallet/platform pages generated",
+                        count
+                    );
                 }
             }
             Err(e) => {
@@ -456,6 +459,23 @@ fn build_site(
         if count > 0 {
             pages.extend(redirect_pages);
             eprintln!("Redirect generator: {} redirect pages generated", count);
+        }
+    }
+
+    // 4a5. Generate alert shorturl pages (alerts.rb shorturl emulation)
+    // Must happen before site context is built so generated pages are in site.pages.
+    if rustkyll::alert_shorturl_generator::should_activate(source, &config) {
+        if let Some(alerts) = collections.get("alerts") {
+            let shorturl_pages =
+                rustkyll::alert_shorturl_generator::generate_shorturl_pages(alerts);
+            let count = shorturl_pages.len();
+            if count > 0 {
+                pages.extend(shorturl_pages);
+                eprintln!(
+                    "Alert shorturl generator: {} shorturl pages generated",
+                    count
+                );
+            }
         }
     }
 

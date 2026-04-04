@@ -1,3 +1,4 @@
+pub mod alert_shorturl_generator;
 pub mod archives;
 pub mod collection;
 pub mod compare;
