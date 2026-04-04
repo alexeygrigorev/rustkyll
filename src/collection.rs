@@ -137,7 +137,7 @@ pub struct CollectionItem {
 /// rustkyll pre-computes `html_content` before the Liquid engine runs. This function
 /// handles just the highlight blocks so they produce proper `<figure>` HTML instead
 /// of being mangled by the markdown parser into `<p>` tags.
-fn pre_render_highlight_blocks(content: &str) -> String {
+pub fn pre_render_highlight_blocks(content: &str) -> String {
     // Fast path: no highlight tags present
     if !content.contains("{% highlight") {
         return content.to_string();

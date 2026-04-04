@@ -913,7 +913,25 @@ fn collection_item_to_liquid_slim(
     // accessed via `to_liquid` (the cross-reference path) has no trailing newline.
     // Without trimming, templates like `content | strip_html | jsonify` produce
     // a JSON string with a trailing `\n` that doesn't match Jekyll's output.
-    let escaped_content = crate::frontmatter::escape_quotes_in_text_nodes(item.html_content.trim());
+    //
+    // Issue 559: When html_content is empty because the post contains non-highlight
+    // Liquid tags (e.g., {{ site.baseurl }}), we fall back to rendering the raw
+    // markdown content. The Liquid variables won't be processed, but the text
+    // content will be available for filters like strip_html. This is critical for
+    // templates like type-theme's search.html that use
+    // `post.content | strip_html | strip_newlines | jsonify`.
+    let content_html = if item.html_content.trim().is_empty()
+        && !item.content.is_empty()
+        && (item.source_path.ends_with(".md") || item.source_path.ends_with(".markdown"))
+    {
+        // Pre-process highlight blocks, then convert markdown to HTML.
+        // This mirrors what collection loading does for posts without non-highlight Liquid.
+        let preprocessed = crate::collection::pre_render_highlight_blocks(&item.content);
+        std::borrow::Cow::Owned(crate::frontmatter::markdown_to_html(&preprocessed))
+    } else {
+        std::borrow::Cow::Borrowed(&item.html_content)
+    };
+    let escaped_content = crate::frontmatter::escape_quotes_in_text_nodes(content_html.trim());
     obj.insert(
         "content".into(),
         LiquidValue::scalar(escaped_content.into_owned()),
@@ -6015,6 +6033,101 @@ defaults:
         assert_eq!(
             content_val, "<p>First paragraph.</p>\n<p>Second paragraph.</p>",
             "Content should be rendered HTML with paragraph tags, no trailing newline, got: {:?}",
+            content_val
+        );
+    }
+
+    // ========================================================================
+    // Issue 559: Posts with Liquid tags should have non-empty content in
+    // cross-reference context (site.posts). When html_content is empty
+    // (because the post has non-highlight Liquid requiring full site context),
+    // the slim function should fall back to rendering the raw markdown.
+    // ========================================================================
+
+    #[test]
+    fn test_slim_content_fallback_when_html_content_empty_due_to_liquid() {
+        // Issue 559: type-theme search.html uses `post.content | strip_html`.
+        // Posts with {{ site.baseurl }} have empty html_content (deferred to
+        // page generation). The cross-reference content must not be empty.
+        let item = CollectionItem {
+            slug: "markdown-and-html".to_string(),
+            url: "/2014/11/28/markdown-and-html.html".to_string(),
+            date: Some("2014-11-28".to_string()),
+            front_matter: HashMap::new(),
+            content: "Jekyll supports [Markdown](http://example.com) with inline HTML.\n\nTables:\n\nFirst | Second\n--- | ---\nA | B\n\n![img]({{ site.baseurl }}/img.png)\n\n{% highlight js %}\nconsole.log(1);\n{% endhighlight %}\n\nMore text with KaTeX: $$x^2$$\n".to_string(),
+            html_content: String::new(), // Empty because post has {{ site.baseurl }}
+            excerpt: None,
+            excerpt_html: None,
+            collection_name: "posts".to_string(),
+            source_path: "_posts/2014-11-28-markdown-and-html.md".to_string(),
+            id: "/2014/11/28/markdown-and-html".to_string(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item, None, &SiteConfig::default());
+        let content_val = liquid_val
+            .as_object()
+            .unwrap()
+            .iter()
+            .find(|(k, _)| k.as_str() == "content")
+            .map(|(_, v)| v.to_kstr().to_string())
+            .unwrap();
+
+        // Content must not be empty -- it should contain rendered HTML
+        assert!(
+            !content_val.is_empty(),
+            "Content should not be empty for posts with Liquid tags, got empty string"
+        );
+        // Should contain some of the text from the post
+        assert!(
+            content_val.contains("Jekyll supports"),
+            "Content should contain post text, got: {}",
+            content_val
+        );
+        assert!(
+            content_val.contains("More text"),
+            "Content should contain text after highlight block, got: {}",
+            content_val
+        );
+    }
+
+    #[test]
+    fn test_slim_content_fallback_unicode_post_with_liquid() {
+        // Issue 559: Unicode content should be preserved in fallback rendering
+        let item = CollectionItem {
+            slug: "unicode-post".to_string(),
+            url: "/2024/01/01/unicode-post.html".to_string(),
+            date: Some("2024-01-01".to_string()),
+            front_matter: HashMap::new(),
+            content: "Привет мир! 你好世界\n\n![img]({{ site.baseurl }}/photo.png)\n\nMore content here.\n".to_string(),
+            html_content: String::new(),
+            excerpt: None,
+            excerpt_html: None,
+            collection_name: "posts".to_string(),
+            source_path: "_posts/2024-01-01-unicode-post.md".to_string(),
+            id: "/2024/01/01/unicode-post".to_string(),
+        };
+
+        let liquid_val = collection_item_to_liquid_slim(&item, None, &SiteConfig::default());
+        let content_val = liquid_val
+            .as_object()
+            .unwrap()
+            .iter()
+            .find(|(k, _)| k.as_str() == "content")
+            .map(|(_, v)| v.to_kstr().to_string())
+            .unwrap();
+
+        assert!(
+            !content_val.is_empty(),
+            "Unicode content should not be empty"
+        );
+        assert!(
+            content_val.contains("Привет мир!"),
+            "Should contain Cyrillic text, got: {}",
+            content_val
+        );
+        assert!(
+            content_val.contains("你好世界"),
+            "Should contain Chinese text, got: {}",
             content_val
         );
     }
