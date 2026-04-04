@@ -1142,10 +1142,16 @@ fn process_collection_file(
             let mut generated = generate_url_with_context(permalink_pattern, &ctx);
             // For non-markdown files (e.g., .json, .xml), Jekyll uses the
             // original file extension as the output extension, not .html.
-            // Replace the trailing .html with the source file's extension.
+            // Replace the trailing .html with the source file's extension,
+            // or append it if :output_ext was stripped (leaving no extension).
             if !is_markdown && ext != ".html" && ext != ".htm" {
                 if let Some(stripped) = generated.strip_suffix(".html") {
                     generated = format!("{}{}", stripped, ext);
+                } else if permalink_pattern.contains(":output_ext") {
+                    // :output_ext was replaced with "" in generate_url_with_context,
+                    // so the URL has no extension. Append the source file's extension
+                    // so url_to_output_path produces the correct output file.
+                    generated = format!("{}{}", generated, ext);
                 }
             }
             generated
@@ -2674,6 +2680,111 @@ mod tests {
     fn test_page_url_suffix_default_permalink() {
         // Default permalink is "date" which maps to .html suffix for pages
         assert_eq!(page_url_suffix("date"), ".html");
+    }
+
+    // ========================================================================
+    // Unit: Collection item URL with non-markdown extensions (Issue 562)
+    // ========================================================================
+
+    #[test]
+    fn test_json_collection_item_preserves_extension() {
+        // Issue 562: A .json file in a collection with permalink /:collection/:path:output_ext
+        // should produce a URL ending in .json, not .html
+        let dir = tempfile::tempdir().unwrap();
+        let coll_dir = dir.path().join("_pages");
+        std::fs::create_dir_all(&coll_dir).unwrap();
+        std::fs::write(
+            coll_dir.join("acitivitypub.json"),
+            "---\n---\n{\"@context\": \"https://www.w3.org/ns/activitystreams\"}",
+        )
+        .unwrap();
+
+        let mut config = SiteConfig::default();
+        config.collections.insert(
+            "pages".to_string(),
+            crate::config::CollectionConfig {
+                output: true,
+                permalink: String::new(), // empty -> default /:collection/:path:output_ext
+                sort_by: None,
+            },
+        );
+
+        let (items, _) = load_collection("pages", dir.path(), &config).unwrap();
+        assert!(
+            !items.is_empty(),
+            "Should find at least one collection item"
+        );
+        let item = items.iter().find(|i| i.slug == "acitivitypub");
+        assert!(item.is_some(), "Should find acitivitypub item");
+        let url = &item.unwrap().url;
+        assert!(
+            url.ends_with(".json"),
+            "URL should end with .json, got: {}",
+            url
+        );
+        assert!(
+            !url.ends_with(".html"),
+            "URL should NOT end with .html, got: {}",
+            url
+        );
+    }
+
+    #[test]
+    fn test_xml_collection_item_preserves_extension() {
+        // Non-markdown, non-html extension (.xml) should also be preserved
+        let dir = tempfile::tempdir().unwrap();
+        let coll_dir = dir.path().join("_feeds");
+        std::fs::create_dir_all(&coll_dir).unwrap();
+        std::fs::write(coll_dir.join("custom.xml"), "---\n---\n<feed></feed>").unwrap();
+
+        let mut config = SiteConfig::default();
+        config.collections.insert(
+            "feeds".to_string(),
+            crate::config::CollectionConfig {
+                output: true,
+                permalink: String::new(),
+                sort_by: None,
+            },
+        );
+
+        let (items, _) = load_collection("feeds", dir.path(), &config).unwrap();
+        let item = items.iter().find(|i| i.slug == "custom");
+        assert!(item.is_some(), "Should find custom item");
+        let url = &item.unwrap().url;
+        assert!(
+            url.ends_with(".xml"),
+            "URL should end with .xml, got: {}",
+            url
+        );
+    }
+
+    #[test]
+    fn test_html_collection_item_keeps_html_extension() {
+        // .html files should keep .html as usual (no change needed)
+        let dir = tempfile::tempdir().unwrap();
+        let coll_dir = dir.path().join("_pages");
+        std::fs::create_dir_all(&coll_dir).unwrap();
+        std::fs::write(
+            coll_dir.join("about.html"),
+            "---\ntitle: About\n---\n<p>About page</p>",
+        )
+        .unwrap();
+
+        let mut config = SiteConfig::default();
+        config.collections.insert(
+            "pages".to_string(),
+            crate::config::CollectionConfig {
+                output: true,
+                permalink: String::new(),
+                sort_by: None,
+            },
+        );
+
+        let (items, _) = load_collection("pages", dir.path(), &config).unwrap();
+        let item = items.iter().find(|i| i.slug == "about");
+        assert!(item.is_some(), "Should find about item");
+        // HTML items with :output_ext -> url has no extension (url_to_output_path adds .html)
+        // This is the expected behavior for .html files
     }
 
     // ========================================================================

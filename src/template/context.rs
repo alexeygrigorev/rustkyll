@@ -103,6 +103,110 @@ fn normalize_iso8601_date_with_tz(s: &str) -> Option<String> {
     ))
 }
 
+/// Map common timezone abbreviations to their UTC offset in seconds.
+///
+/// Ruby's `Time.parse` supports these abbreviations. We only include the most
+/// common ones that appear in Jekyll front matter.
+pub(crate) fn tz_abbreviation_to_offset_secs(abbrev: &str) -> Option<i32> {
+    match abbrev {
+        "UTC" | "GMT" => Some(0),
+        "EST" => Some(-5 * 3600),
+        "EDT" => Some(-4 * 3600),
+        "CST" => Some(-6 * 3600),
+        "CDT" => Some(-5 * 3600),
+        "MST" => Some(-7 * 3600),
+        "MDT" => Some(-6 * 3600),
+        "PST" => Some(-8 * 3600),
+        "PDT" => Some(-7 * 3600),
+        "HST" => Some(-10 * 3600),
+        "AKST" => Some(-9 * 3600),
+        "AKDT" => Some(-8 * 3600),
+        "CET" => Some(3600),
+        "CEST" => Some(2 * 3600),
+        "EET" => Some(2 * 3600),
+        "EEST" => Some(3 * 3600),
+        "JST" => Some(9 * 3600),
+        "KST" => Some(9 * 3600),
+        "IST" => Some(5 * 3600 + 30 * 60),
+        "CST6" => Some(8 * 3600), // China Standard Time (disambiguation)
+        "SGT" => Some(8 * 3600),
+        "AEST" => Some(10 * 3600),
+        "AEDT" => Some(11 * 3600),
+        "NZST" => Some(12 * 3600),
+        "NZDT" => Some(13 * 3600),
+        _ => None,
+    }
+}
+
+/// Parse a datetime string with a timezone abbreviation suffix.
+///
+/// Handles strings like "2013-07-24 14:34:00 PST" by:
+/// 1. Parsing the abbreviation to a UTC offset
+/// 2. Computing the UTC equivalent
+/// 3. Converting to the site timezone
+///
+/// Returns the date formatted as "YYYY-MM-DD HH:MM:SS +HHMM" in the site timezone.
+fn parse_datetime_with_tz_abbreviation(s: &str, site_tz: Option<chrono_tz::Tz>) -> Option<String> {
+    use chrono::TimeZone;
+    // Pattern: "YYYY-MM-DD HH:MM:SS ABBREV"
+    let parts: Vec<&str> = s.rsplitn(2, ' ').collect();
+    if parts.len() != 2 {
+        return None;
+    }
+    let abbrev = parts[0];
+    let datetime_part = parts[1];
+
+    let offset_secs = tz_abbreviation_to_offset_secs(abbrev)?;
+    let naive = chrono::NaiveDateTime::parse_from_str(datetime_part, "%Y-%m-%d %H:%M:%S").ok()?;
+
+    // Convert to UTC first
+    let offset = chrono::FixedOffset::east_opt(offset_secs)?;
+    let dt_with_tz = offset.from_local_datetime(&naive).single()?;
+    let utc_dt = dt_with_tz.with_timezone(&chrono::Utc);
+
+    // Convert to site timezone
+    format_utc_to_site_tz(utc_dt, site_tz)
+}
+
+/// Convert a naive "YYYY-MM-DD HH:MM:SS" datetime (treated as UTC per Ruby YAML)
+/// to the site timezone.
+///
+/// Returns the date formatted as "YYYY-MM-DD HH:MM:SS +HHMM" in the site timezone.
+fn convert_naive_datetime_to_site_tz(s: &str, site_tz: Option<chrono_tz::Tz>) -> Option<String> {
+    use chrono::TimeZone;
+    // Only match exactly "YYYY-MM-DD HH:MM:SS" (19 chars)
+    if s.len() != 19 {
+        return None;
+    }
+    let naive = chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S").ok()?;
+    let utc_dt = chrono::Utc.from_utc_datetime(&naive);
+
+    format_utc_to_site_tz(utc_dt, site_tz)
+}
+
+/// Format a UTC datetime to the site timezone as "YYYY-MM-DD HH:MM:SS +HHMM".
+fn format_utc_to_site_tz(
+    utc_dt: chrono::DateTime<chrono::Utc>,
+    site_tz: Option<chrono_tz::Tz>,
+) -> Option<String> {
+    use chrono::Offset;
+
+    if let Some(tz) = site_tz {
+        let local_dt = utc_dt.with_timezone(&tz);
+        let offset = local_dt.offset().fix();
+        let total_secs = offset.local_minus_utc();
+        let sign = if total_secs >= 0 { '+' } else { '-' };
+        let abs_secs = total_secs.unsigned_abs();
+        let hours = abs_secs / 3600;
+        let minutes = (abs_secs % 3600) / 60;
+        let date_str = local_dt.format("%Y-%m-%d %H:%M:%S").to_string();
+        Some(format!("{date_str} {sign}{hours:02}{minutes:02}"))
+    } else {
+        let date_str = utc_dt.format("%Y-%m-%d %H:%M:%S").to_string();
+        Some(format!("{date_str} +0000"))
+    }
+}
+
 pub(crate) fn expand_date_only_string_with_tz(s: &str, site_tz: Option<chrono_tz::Tz>) -> String {
     // Try to parse as a date or date+time that needs expansion to full datetime.
     // Already-complete datetimes (with timezone offset) pass through unchanged.
@@ -168,6 +272,16 @@ pub(crate) fn expand_date_only_string_with_tz(s: &str, site_tz: Option<chrono_tz
         // e.g. "2024-11-23T20:16:52+08:00" -> "2024-11-23 20:16:52 +0800"
         if let Some(normalized) = normalize_iso8601_date_with_tz(s) {
             return normalized;
+        }
+        // Issue 561: Handle timezone abbreviations (e.g., "2013-07-24 14:34:00 PST").
+        // Parse the abbreviation to a UTC offset, convert to UTC, then to site timezone.
+        if let Some(converted) = parse_datetime_with_tz_abbreviation(s, site_tz) {
+            return converted;
+        }
+        // Issue 561: Handle naive YAML timestamps "YYYY-MM-DD HH:MM:SS" (no timezone).
+        // Ruby's YAML parser treats these as UTC. Convert to site timezone.
+        if let Some(converted) = convert_naive_datetime_to_site_tz(s, site_tz) {
+            return converted;
         }
         s.to_string()
     }
@@ -880,6 +994,86 @@ title: Not a date
         );
         // title should be unchanged
         assert_eq!(fm.get("title").unwrap().as_str().unwrap(), "Not a date");
+    }
+
+    #[test]
+    fn test_pst_timezone_abbreviation_parsed() {
+        // Issue 561: "2013-07-24 14:34:00 PST" should be parsed as UTC-8
+        // and converted to site timezone Asia/Taipei (+08:00)
+        // UTC time: 2013-07-24 22:34:00
+        // Asia/Taipei: 2013-07-25 06:34:00 +0800
+        let tz: chrono_tz::Tz = "Asia/Taipei".parse().unwrap();
+        let result = expand_date_only_string_with_tz("2013-07-24 14:34:00 PST", Some(tz));
+        assert_eq!(result, "2013-07-25 06:34:00 +0800");
+    }
+
+    #[test]
+    fn test_est_timezone_abbreviation_parsed() {
+        // EST = UTC-5
+        let tz: chrono_tz::Tz = "Asia/Taipei".parse().unwrap();
+        let result = expand_date_only_string_with_tz("2013-07-24 14:34:00 EST", Some(tz));
+        // UTC: 2013-07-24 19:34:00, Asia/Taipei: 2013-07-25 03:34:00 +0800
+        assert_eq!(result, "2013-07-25 03:34:00 +0800");
+    }
+
+    #[test]
+    fn test_utc_timezone_abbreviation_parsed() {
+        let tz: chrono_tz::Tz = "Asia/Taipei".parse().unwrap();
+        let result = expand_date_only_string_with_tz("2013-07-24 14:34:00 UTC", Some(tz));
+        // UTC: 2013-07-24 14:34:00, Asia/Taipei: 2013-07-24 22:34:00 +0800
+        assert_eq!(result, "2013-07-24 22:34:00 +0800");
+    }
+
+    #[test]
+    fn test_naive_datetime_converted_to_site_timezone() {
+        // Issue 561B: "2013-05-05 20:38:50" is a naive YAML timestamp (treated as UTC)
+        // With site timezone Asia/Taipei (+08:00):
+        // UTC: 2013-05-05 20:38:50, Asia/Taipei: 2013-05-06 04:38:50 +0800
+        let tz: chrono_tz::Tz = "Asia/Taipei".parse().unwrap();
+        let result = expand_date_only_string_with_tz("2013-05-05 20:38:50", Some(tz));
+        assert_eq!(result, "2013-05-06 04:38:50 +0800");
+    }
+
+    #[test]
+    fn test_naive_datetime_no_day_rollover() {
+        // "2013-05-05 03:00:00" with Asia/Taipei (+08:00):
+        // UTC: 2013-05-05 03:00:00, Asia/Taipei: 2013-05-05 11:00:00 +0800
+        let tz: chrono_tz::Tz = "Asia/Taipei".parse().unwrap();
+        let result = expand_date_only_string_with_tz("2013-05-05 03:00:00", Some(tz));
+        assert_eq!(result, "2013-05-05 11:00:00 +0800");
+    }
+
+    #[test]
+    fn test_naive_datetime_no_site_tz_defaults_utc() {
+        // Without site timezone, naive datetimes get +0000
+        let result = expand_date_only_string_with_tz("2013-05-05 20:38:50", None);
+        assert_eq!(result, "2013-05-05 20:38:50 +0000");
+    }
+
+    #[test]
+    fn test_pst_timezone_abbreviation_unicode_context() {
+        // Non-ASCII: verify timezone handling doesn't break with unicode dates
+        // in the same frontmatter context
+        use std::collections::HashMap;
+        let mut fm: HashMap<String, serde_yaml::Value> = HashMap::new();
+        fm.insert(
+            "date".into(),
+            serde_yaml::Value::String("2013-07-24 14:34:00 PST".into()),
+        );
+        fm.insert(
+            "title".into(),
+            serde_yaml::Value::String("Bücher über Zürich".into()),
+        );
+        let tz: chrono_tz::Tz = "Asia/Taipei".parse().unwrap();
+        normalize_frontmatter_date(&mut fm, Some(tz));
+        assert_eq!(
+            fm.get("date").unwrap().as_str().unwrap(),
+            "2013-07-25 06:34:00 +0800"
+        );
+        assert_eq!(
+            fm.get("title").unwrap().as_str().unwrap(),
+            "Bücher über Zürich"
+        );
     }
 
     #[test]

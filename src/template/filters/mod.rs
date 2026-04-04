@@ -162,6 +162,10 @@ pub(crate) fn parse_date_string_with_tz(
     if let Ok(dt) = chrono::DateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S %z") {
         return Some(dt.naive_local());
     }
+    // Issue 561: Try "YYYY-MM-DD HH:MM:SS ABBREV" (timezone abbreviation like PST, EST)
+    if let Some(dt) = parse_tz_abbreviation_date(s) {
+        return Some(dt);
+    }
     // Try "YYYY-MM-DDTHH:MM:SS" without timezone -- kept as-is (UTC per Ruby YAML)
     if let Ok(dt) = NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S") {
         return Some(dt);
@@ -189,6 +193,26 @@ pub(crate) fn parse_date_string_with_tz(
         return Some(dt);
     }
     None
+}
+
+/// Parse a datetime string with a timezone abbreviation (e.g., "2013-07-24 14:34:00 PST").
+///
+/// Returns the NaiveDateTime in the abbreviation's local time (via naive_local on the
+/// timezone-aware datetime), matching how parse_date_string_with_tz handles explicit offsets.
+fn parse_tz_abbreviation_date(s: &str) -> Option<NaiveDateTime> {
+    use chrono::TimeZone;
+    let parts: Vec<&str> = s.rsplitn(2, ' ').collect();
+    if parts.len() != 2 {
+        return None;
+    }
+    let abbrev = parts[0];
+    let datetime_part = parts[1];
+
+    let offset_secs = crate::template::context::tz_abbreviation_to_offset_secs(abbrev)?;
+    let naive = NaiveDateTime::parse_from_str(datetime_part, "%Y-%m-%d %H:%M:%S").ok()?;
+    let offset = chrono::FixedOffset::east_opt(offset_secs)?;
+    let dt_with_tz = offset.from_local_datetime(&naive).single()?;
+    Some(dt_with_tz.naive_local())
 }
 
 /// Format a naive datetime with the correct timezone offset for the given site timezone.
