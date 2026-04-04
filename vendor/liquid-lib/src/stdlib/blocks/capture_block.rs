@@ -84,11 +84,9 @@ impl Renderable for Capture {
             .trace_with(|| self.trace().into())?;
 
         let output = String::from_utf8(captured).expect("render only writes UTF-8");
-        // Trim the captured value. Jekyll's {%- capture -%} strips inner whitespace,
-        // but our Liquid parser only strips static text, not runtime-generated whitespace
-        // from includes and conditional blocks. Trimming here matches Jekyll's behavior
-        // for the common pattern of capturing include output.
-        let output = output.trim().to_owned();
+        // Jekyll preserves all whitespace inside {% capture %}...{% endcapture %} verbatim.
+        // Do NOT trim here -- whitespace-stripping tags ({%- capture -%}) are handled
+        // by the parser's whitespace control, not by the capture block itself.
         runtime.set_global(self.id.clone(), Value::scalar(output));
         Ok(())
     }
@@ -130,6 +128,40 @@ mod test {
             "potato-42-color"
         );
         assert_eq!(output, "");
+    }
+
+    #[test]
+    fn test_capture_preserves_leading_trailing_whitespace() {
+        let text = "{% capture foo %}  hello  {% endcapture %}{{ foo }}";
+        let options = options();
+        let template = parser::parse(text, &options).map(Template::new).unwrap();
+
+        let rt = RuntimeBuilder::new().build();
+        let output = template.render(&rt).unwrap();
+        assert_eq!(output, "  hello  ");
+    }
+
+    #[test]
+    fn test_capture_preserves_newlines() {
+        let text = "{% capture foo %}\n  <article>hello</article>\n{% endcapture %}{{ foo }}";
+        let options = options();
+        let template = parser::parse(text, &options).map(Template::new).unwrap();
+
+        let rt = RuntimeBuilder::new().build();
+        let output = template.render(&rt).unwrap();
+        assert_eq!(output, "\n  <article>hello</article>\n");
+    }
+
+    #[test]
+    fn test_capture_with_unicode_whitespace() {
+        // Ensure non-ASCII content is preserved along with whitespace
+        let text = "{% capture foo %}  \u{00e9}l\u{00e8}ve  {% endcapture %}{{ foo }}";
+        let options = options();
+        let template = parser::parse(text, &options).map(Template::new).unwrap();
+
+        let rt = RuntimeBuilder::new().build();
+        let output = template.render(&rt).unwrap();
+        assert_eq!(output, "  \u{00e9}l\u{00e8}ve  ");
     }
 
     #[test]
