@@ -61,3 +61,47 @@ impl Renderable for FilterChain {
         Ok(())
     }
 }
+
+/// A `FilterChain` wrapped with whitespace-control flags from `{{-` / `-}}`.
+///
+/// This implements runtime whitespace stripping: when `lstrip` is true,
+/// `Template::render_to` will strip trailing whitespace from the output buffer
+/// before rendering this expression. This matches Ruby Liquid's behavior where
+/// `{{-` strips whitespace from the output, not just from adjacent template text.
+#[derive(Debug)]
+pub struct WhitespaceControlledExpression {
+    inner: FilterChain,
+    lstrip: bool,
+    rstrip: bool,
+}
+
+impl WhitespaceControlledExpression {
+    /// Create a new whitespace-controlled expression.
+    pub fn new(inner: FilterChain, lstrip: bool, rstrip: bool) -> Self {
+        Self {
+            inner,
+            lstrip,
+            rstrip,
+        }
+    }
+}
+
+impl fmt::Display for WhitespaceControlledExpression {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.inner)
+    }
+}
+
+impl Renderable for WhitespaceControlledExpression {
+    fn render_to(&self, writer: &mut dyn Write, runtime: &dyn Runtime) -> Result<()> {
+        self.inner.render_to(writer, runtime)
+    }
+
+    fn needs_leading_whitespace_strip(&self) -> bool {
+        self.lstrip
+    }
+
+    fn needs_trailing_whitespace_strip(&self) -> bool {
+        self.rstrip
+    }
+}

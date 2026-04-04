@@ -661,6 +661,11 @@ impl<'a> From<Pair<'a>> for Exp<'a> {
 impl Exp<'_> {
     /// Parses the expression just as if it weren't inside any block.
     pub fn parse(self, options: &Language) -> Result<Box<dyn Renderable>> {
+        // Detect leading/trailing whitespace-control dashes
+        let raw = self.element.as_str();
+        let lstrip = raw.contains("{{-");
+        let rstrip = raw.contains("-}}");
+
         let filter_chain = self
             .element
             .into_inner()
@@ -671,7 +676,20 @@ impl Exp<'_> {
             .expect("An expression consists of one filterchain.");
 
         let filter_chain = parse_filter_chain(filter_chain, options)?;
-        Ok(Box::new(filter_chain))
+
+        // Wrap in WhitespaceControlledExpression if dash tags are used,
+        // so that Template::render_to can perform runtime whitespace stripping.
+        if lstrip || rstrip {
+            Ok(Box::new(
+                super::filter_chain::WhitespaceControlledExpression::new(
+                    filter_chain,
+                    lstrip,
+                    rstrip,
+                ),
+            ))
+        } else {
+            Ok(Box::new(filter_chain))
+        }
     }
 
     /// Returns the expression as a str.

@@ -19,4 +19,23 @@ pub trait Renderable: Send + Sync + Debug {
 
     /// Renders the Renderable instance given a Liquid runtime.
     fn render_to(&self, writer: &mut dyn Write, runtime: &dyn Runtime) -> Result<()>;
+
+    /// Returns `true` if this element uses `{{-` (left-strip) whitespace control.
+    ///
+    /// When `true`, `Template::render_to` will strip trailing whitespace from the
+    /// output buffer before rendering this element. This implements runtime
+    /// whitespace stripping that matches Ruby Liquid's behavior, where `{{-`
+    /// strips whitespace from the output buffer (not just adjacent template text).
+    fn needs_leading_whitespace_strip(&self) -> bool {
+        false
+    }
+
+    /// Returns `true` if this element uses `-}}` (right-strip) whitespace control.
+    ///
+    /// When `true`, `Template::render_to` will strip leading whitespace from the
+    /// output of subsequent elements. This implements runtime whitespace stripping
+    /// that matches Ruby Liquid's behavior.
+    fn needs_trailing_whitespace_strip(&self) -> bool {
+        false
+    }
 }
