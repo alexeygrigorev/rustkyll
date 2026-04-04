@@ -1547,11 +1547,20 @@ fn replace_toc_pattern_with_placeholder(content: &str) -> String {
             let next_line = lines[i + 1].trim();
             if next_line.starts_with("{:toc") && next_line.ends_with('}') {
                 let current_trimmed = lines[i].trim();
-                // Check if current line is a list item
-                if current_trimmed.starts_with("* ")
+                // Check if current line is a list item (unordered or ordered)
+                let is_unordered = current_trimmed.starts_with("* ")
                     || current_trimmed.starts_with("- ")
-                    || current_trimmed.starts_with("+ ")
-                {
+                    || current_trimmed.starts_with("+ ");
+                let is_ordered = !is_unordered && {
+                    // Match ordered list markers: digits followed by `. `
+                    let mut chars = current_trimmed.chars();
+                    let has_digits = chars.next().is_some_and(|c| c.is_ascii_digit());
+                    has_digits && {
+                        let rest = current_trimmed.trim_start_matches(|c: char| c.is_ascii_digit());
+                        rest.starts_with(". ")
+                    }
+                };
+                if is_unordered || is_ordered {
                     // Extract classes from {:toc .class1 .class2}
                     let ial_content = &next_line[1..next_line.len() - 1]; // strip { and }
                     let ial_content = ial_content.strip_prefix(':').unwrap_or(ial_content).trim();
@@ -1566,6 +1575,9 @@ fn replace_toc_pattern_with_placeholder(content: &str) -> String {
                     }
                     let class_str = classes.join(" ");
                     result.push_str(KRAMDOWN_TOC_PLACEHOLDER_PREFIX);
+                    if is_ordered {
+                        result.push_str("ordered:");
+                    }
                     result.push_str(&class_str);
                     result.push_str(KRAMDOWN_TOC_PLACEHOLDER_SUFFIX);
                     result.push('\n');
@@ -1587,12 +1599,13 @@ fn replace_toc_pattern_with_placeholder(content: &str) -> String {
     result
 }
 
-/// Issue 489: Generate a TOC `<ul>` from heading IDs already present in the
+/// Issue 489: Generate a TOC list from heading IDs already present in the
 /// HTML. This scans for `<hN id="...">` tags and builds a nested list.
 ///
 /// `extra_classes` is an optional space-separated class list to add to the
-/// outer `<ul>` (from `{:toc .toc__menu}` => `class="toc__menu"`).
-fn generate_toc_from_headings(html: &str, extra_classes: &str) -> String {
+/// outer list (from `{:toc .toc__menu}` => `class="toc__menu"`).
+/// `ordered` controls whether the outer list uses `<ol>` or `<ul>`.
+fn generate_toc_from_headings(html: &str, extra_classes: &str, ordered: bool) -> String {
     // Collect all headings with IDs: (level, id, text)
     let mut headings: Vec<(usize, String, String)> = Vec::new();
 
@@ -1667,14 +1680,18 @@ fn generate_toc_from_headings(html: &str, extra_classes: &str) -> String {
     } else {
         format!(" class=\"{}\"", extra_classes)
     };
-    output.push_str(&format!("<ul{} id=\"markdown-toc\">\n", class_attr));
+    let outer_tag = if ordered { "ol" } else { "ul" };
+    output.push_str(&format!(
+        "<{}{} id=\"markdown-toc\">\n",
+        outer_tag, class_attr
+    ));
 
     let mut stack: Vec<usize> = Vec::new();
 
     for (i, (level, id, text)) in headings.iter().enumerate() {
         let level = *level;
 
-        // Close nested lists as needed
+        // Close nested lists as needed (inner lists are always <ul>)
         while stack.last().is_some_and(|&l| l >= level) {
             stack.pop();
             let indent = 2 + stack.len() * 4;
@@ -1704,7 +1721,7 @@ fn generate_toc_from_headings(html: &str, extra_classes: &str) -> String {
         }
     }
 
-    // Close remaining open lists
+    // Close remaining open lists (inner lists are always <ul>)
     while stack.pop().is_some() {
         let indent = 2 + stack.len() * 4;
         output.push_str(&" ".repeat(indent + 2));
@@ -1713,7 +1730,7 @@ fn generate_toc_from_headings(html: &str, extra_classes: &str) -> String {
         output.push_str("</li>\n");
     }
 
-    output.push_str("</ul>\n");
+    output.push_str(&format!("</{}>\n", outer_tag));
     output
 }
 
@@ -1746,8 +1763,15 @@ fn replace_toc_placeholders(html: &str) -> String {
     while let Some(start) = result.find(KRAMDOWN_TOC_PLACEHOLDER_PREFIX) {
         let after_prefix = start + KRAMDOWN_TOC_PLACEHOLDER_PREFIX.len();
         if let Some(suffix_offset) = result[after_prefix..].find(KRAMDOWN_TOC_PLACEHOLDER_SUFFIX) {
-            let classes = result[after_prefix..after_prefix + suffix_offset].to_string();
+            let raw_payload = result[after_prefix..after_prefix + suffix_offset].to_string();
             let end = after_prefix + suffix_offset + KRAMDOWN_TOC_PLACEHOLDER_SUFFIX.len();
+
+            // Parse ordered: prefix from payload
+            let (ordered, classes) = if let Some(rest) = raw_payload.strip_prefix("ordered:") {
+                (true, rest.to_string())
+            } else {
+                (false, raw_payload)
+            };
 
             // The placeholder might be wrapped in <p> tags by pulldown-cmark
             // or inside a <li>. Check for surrounding wrappers and remove.
@@ -1768,26 +1792,33 @@ fn replace_toc_placeholders(html: &str) -> String {
             // Also check if the wrapper is itself inside a <ul>/<ol> that should be removed
             let before_wrapper = &result[..remove_start];
             let after_wrapper = &result[remove_end..];
-            let (final_start, final_end) = if before_wrapper.trim_end().ends_with("<ul>")
-                && after_wrapper.trim_start().starts_with("</ul>")
-            {
-                let pre_ws = before_wrapper.len() - before_wrapper.trim_end().len();
-                let ul_start = before_wrapper.trim_end().len() - 4;
-                let post_ws = after_wrapper.len() - after_wrapper.trim_start().len();
-                // Also remove any newline before <ul>
-                let final_start = if ul_start > 0
-                    && result.as_bytes().get(ul_start - 1).copied() == Some(b'\n')
-                {
-                    ul_start - 1 - pre_ws
+            let (final_start, final_end) = {
+                // Check for <ul>...</ul> or <ol>...</ol> wrapper
+                let ul_match = before_wrapper.trim_end().ends_with("<ul>")
+                    && after_wrapper.trim_start().starts_with("</ul>");
+                let ol_match = before_wrapper.trim_end().ends_with("<ol>")
+                    && after_wrapper.trim_start().starts_with("</ol>");
+                if ul_match || ol_match {
+                    let tag_len = 4; // <ul> and <ol> are both 4 chars
+                    let close_len = 5; // </ul> and </ol> are both 5 chars
+                    let pre_ws = before_wrapper.len() - before_wrapper.trim_end().len();
+                    let tag_start = before_wrapper.trim_end().len() - tag_len;
+                    let post_ws = after_wrapper.len() - after_wrapper.trim_start().len();
+                    // Also remove any newline before the list tag
+                    let final_start = if tag_start > 0
+                        && result.as_bytes().get(tag_start - 1).copied() == Some(b'\n')
+                    {
+                        tag_start - 1 - pre_ws
+                    } else {
+                        tag_start - pre_ws
+                    };
+                    (final_start, remove_end + post_ws + close_len)
                 } else {
-                    ul_start - pre_ws
-                };
-                (final_start, remove_end + post_ws + 5)
-            } else {
-                (remove_start, remove_end)
+                    (remove_start, remove_end)
+                }
             };
 
-            let toc_html = generate_toc_from_headings(&result, &classes);
+            let toc_html = generate_toc_from_headings(&result, &classes, ordered);
             result.replace_range(final_start..final_end, &toc_html);
         } else {
             break; // malformed placeholder
@@ -17191,6 +17222,178 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             result.contains("markdown-toc-second-section"),
             "TOC should contain link to second-section. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue571_ordered_list_toc_pattern() {
+        // Issue 571: `1. TOC\n{:toc}` should produce a TOC just like `* TOC\n{:toc}`
+        let input = concat!(
+            "1. TOC\n",
+            "{:toc}\n",
+            "\n",
+            "## First Section\n",
+            "\n",
+            "Content here.\n",
+            "\n",
+            "## Second Section\n",
+            "\n",
+            "More content.\n",
+        );
+        let html = crate::frontmatter::markdown_to_html(input);
+        let result = postprocess(&html);
+        assert!(
+            result.contains("id=\"markdown-toc\""),
+            "Ordered list TOC pattern should generate a TOC. Got: {}",
+            result
+        );
+        // Jekyll uses <ol> for ordered list TOC markers
+        assert!(
+            result.contains("<ol"),
+            "Ordered list TOC should use <ol> tag. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("markdown-toc-first-section"),
+            "TOC should contain link to first-section. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("markdown-toc-second-section"),
+            "TOC should contain link to second-section. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue571_dash_toc_pattern() {
+        // Issue 571: `- TOC\n{:toc}` should produce a TOC (unordered)
+        let input = concat!(
+            "- TOC\n",
+            "{:toc}\n",
+            "\n",
+            "## Alpha\n",
+            "\n",
+            "Text.\n",
+            "\n",
+            "## Beta\n",
+            "\n",
+            "Text.\n",
+        );
+        let html = crate::frontmatter::markdown_to_html(input);
+        let result = postprocess(&html);
+        assert!(
+            result.contains("id=\"markdown-toc\""),
+            "Dash list TOC pattern should generate a TOC. Got: {}",
+            result
+        );
+        // Dash marker is unordered, so should use <ul>
+        assert!(
+            result.contains("<ul") && result.contains("id=\"markdown-toc\""),
+            "Dash list TOC should use <ul> tag. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue571_ordered_toc_with_classes() {
+        // Issue 571: `1. TOC\n{:toc .custom-class}` should preserve custom class on <ol>
+        let input = concat!(
+            "1. TOC\n",
+            "{:toc .my-toc}\n",
+            "\n",
+            "## Heading A\n",
+            "\n",
+            "Content.\n",
+        );
+        let html = crate::frontmatter::markdown_to_html(input);
+        let result = postprocess(&html);
+        assert!(
+            result.contains("id=\"markdown-toc\""),
+            "Ordered TOC with classes should generate TOC. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("class=\"my-toc\""),
+            "TOC should have custom class. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("<ol"),
+            "Ordered list TOC should use <ol>. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue571_unordered_toc_still_uses_ul() {
+        // Regression check: `* TOC\n{:toc}` should still use <ul>
+        let input = concat!(
+            "* TOC\n",
+            "{:toc}\n",
+            "\n",
+            "## Heading X\n",
+            "\n",
+            "Content.\n",
+        );
+        let html = crate::frontmatter::markdown_to_html(input);
+        let result = postprocess(&html);
+        assert!(
+            result.contains("<ul") && result.contains("id=\"markdown-toc\""),
+            "Unordered list TOC should still use <ul>. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue571_ordered_toc_unicode_headings() {
+        // Issue 571: Ordered TOC with non-ASCII headings
+        let input = concat!(
+            "1. TOC\n",
+            "{:toc}\n",
+            "\n",
+            "## \u{00dc}berblick\n",
+            "\n",
+            "German overview.\n",
+            "\n",
+            "## \u{65e5}\u{672c}\u{8a9e}\n",
+            "\n",
+            "Japanese heading.\n",
+        );
+        let html = crate::frontmatter::markdown_to_html(input);
+        let result = postprocess(&html);
+        assert!(
+            result.contains("id=\"markdown-toc\""),
+            "Ordered TOC with Unicode headings should work. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("\u{00dc}berblick"),
+            "TOC should contain German heading text. Got: {}",
+            result
+        );
+        assert!(
+            result.contains("\u{65e5}\u{672c}\u{8a9e}"),
+            "TOC should contain Japanese heading text. Got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue571_replace_toc_pattern_ordered_list() {
+        // Unit test for pattern recognition: ordered list markers
+        let content = "1. TOC\n{:toc}\n";
+        let result = replace_toc_pattern_with_placeholder(content);
+        assert!(
+            result.contains(KRAMDOWN_TOC_PLACEHOLDER_PREFIX),
+            "Should recognize '1. TOC' as TOC pattern. Got: {}",
+            result
+        );
+        // Should encode ordered list type
+        assert!(
+            result.contains("ordered"),
+            "Placeholder should indicate ordered list type. Got: {}",
             result
         );
     }
