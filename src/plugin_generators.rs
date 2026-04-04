@@ -154,9 +154,9 @@ pub fn posts_by_author<'a>(posts: &'a [CollectionItem], author: &str) -> Vec<&'a
         .collect();
 
     filtered.sort_by(|a, b| {
-        let date_a = a.date.as_deref().unwrap_or("");
-        let date_b = b.date.as_deref().unwrap_or("");
-        date_b.cmp(date_a).then_with(|| b.slug.cmp(&a.slug))
+        let date_a = crate::collection::date_sort_key(a.date.as_deref().unwrap_or(""));
+        let date_b = crate::collection::date_sort_key(b.date.as_deref().unwrap_or(""));
+        date_b.cmp(&date_a).then_with(|| b.slug.cmp(&a.slug))
     });
 
     filtered
@@ -176,9 +176,9 @@ pub fn posts_by_tag<'a>(posts: &'a [CollectionItem], tag: &str) -> Vec<&'a Colle
         .collect();
 
     filtered.sort_by(|a, b| {
-        let date_a = a.date.as_deref().unwrap_or("");
-        let date_b = b.date.as_deref().unwrap_or("");
-        date_b.cmp(date_a).then_with(|| b.slug.cmp(&a.slug))
+        let date_a = crate::collection::date_sort_key(a.date.as_deref().unwrap_or(""));
+        let date_b = crate::collection::date_sort_key(b.date.as_deref().unwrap_or(""));
+        date_b.cmp(&date_a).then_with(|| b.slug.cmp(&a.slug))
     });
 
     filtered

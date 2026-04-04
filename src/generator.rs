@@ -990,10 +990,10 @@ fn build_related_posts(
     // same-date posts (matching the reverse chronological order of site.posts).
     let mut sorted: Vec<&CollectionItem> = posts.iter().collect();
     sorted.sort_by(|a, b| {
-        let date_a = a.date.as_deref().unwrap_or("");
-        let date_b = b.date.as_deref().unwrap_or("");
+        let date_a = crate::collection::date_sort_key(a.date.as_deref().unwrap_or(""));
+        let date_b = crate::collection::date_sort_key(b.date.as_deref().unwrap_or(""));
         date_b
-            .cmp(date_a) // descending by date
+            .cmp(&date_a) // descending by date (UTC-normalized)
             .then_with(|| b.slug.cmp(&a.slug)) // descending by slug for tiebreaking
     });
 
@@ -1604,9 +1604,9 @@ pub fn build_prev_next_map(
 ) -> HashMap<String, (Option<serde_yaml::Value>, Option<serde_yaml::Value>)> {
     let mut sorted: Vec<&CollectionItem> = items.iter().collect();
     sorted.sort_by(|a, b| {
-        let date_a = a.date.as_deref().unwrap_or("");
-        let date_b = b.date.as_deref().unwrap_or("");
-        date_a.cmp(date_b).then_with(|| a.slug.cmp(&b.slug))
+        let date_a = crate::collection::date_sort_key(a.date.as_deref().unwrap_or(""));
+        let date_b = crate::collection::date_sort_key(b.date.as_deref().unwrap_or(""));
+        date_a.cmp(&date_b).then_with(|| a.slug.cmp(&b.slug))
     });
 
     let mut result = HashMap::new();
@@ -1765,9 +1765,9 @@ pub fn generate_collection_pages_cached_with_progress(
     let sorted_posts_for_related: Vec<&CollectionItem> = if needs_related_posts {
         let mut sorted: Vec<&CollectionItem> = items.iter().collect();
         sorted.sort_by(|a, b| {
-            let date_a = a.date.as_deref().unwrap_or("");
-            let date_b = b.date.as_deref().unwrap_or("");
-            date_b.cmp(date_a).then_with(|| b.slug.cmp(&a.slug))
+            let date_a = crate::collection::date_sort_key(a.date.as_deref().unwrap_or(""));
+            let date_b = crate::collection::date_sort_key(b.date.as_deref().unwrap_or(""));
+            date_b.cmp(&date_a).then_with(|| b.slug.cmp(&a.slug))
         });
         sorted
     } else {
@@ -7943,9 +7943,9 @@ defaults:
     }
 
     #[test]
-    fn test_slim_already_expanded_date_unchanged() {
-        // Already-expanded dates should pass through unchanged
-        // Note: date must be in front_matter for non-post items (issue #518).
+    fn test_slim_date_with_tz_offset_converted_to_utc() {
+        // Issue 567: Dates with timezone offsets are converted to UTC (or site tz)
+        // matching Jekyll's behavior where dates are normalized to the site timezone.
         let mut fm = HashMap::new();
         fm.insert(
             "date".to_string(),
@@ -7973,8 +7973,8 @@ defaults:
             .map(|(_, v)| v.to_kstr().to_string())
             .unwrap();
         assert_eq!(
-            date_val, "2025-11-07 00:00:00 +0200",
-            "Already-expanded date should pass through unchanged, got: {date_val}"
+            date_val, "2025-11-06 22:00:00 +0000",
+            "Date with +0200 offset should be converted to UTC, got: {date_val}"
         );
     }
 
@@ -10393,10 +10393,11 @@ defaults:
             .iter()
             .find(|(k, _)| k.as_str() == "date")
             .map(|(_, v)| v.to_kstr().to_string());
+        // Issue 567: Dates with timezone offsets are now converted to UTC
         assert_eq!(
             date_val,
-            Some("2026-04-02 12:00:00 +0200".to_string()),
-            "Backfilled date should be exposed as-is in the liquid slim context"
+            Some("2026-04-02 10:00:00 +0000".to_string()),
+            "Backfilled date with +0200 should be converted to UTC in the liquid slim context"
         );
     }
 

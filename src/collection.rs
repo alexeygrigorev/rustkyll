@@ -553,6 +553,27 @@ pub fn url_has_extension(url: &str) -> bool {
     }
 }
 
+/// Convert a date string to a UTC-normalized sort key.
+///
+/// Dates with timezone offsets (e.g., `2019-08-11 00:34:00 +0800`) are converted
+/// to their UTC equivalent so that sorting by this key reflects the actual instant
+/// in time, not the wall-clock date in the original timezone.
+///
+/// Date-only strings (`YYYY-MM-DD`) are treated as midnight UTC.
+/// Non-date strings are returned unchanged (as a fallback for string comparison).
+pub fn date_sort_key(date: &str) -> String {
+    // Try "YYYY-MM-DD HH:MM:SS +HHMM" (Jekyll-style with timezone offset)
+    if let Ok(dt) = chrono::DateTime::parse_from_str(date, "%Y-%m-%d %H:%M:%S %z") {
+        return dt.naive_utc().format("%Y-%m-%d %H:%M:%S").to_string();
+    }
+    // Try ISO 8601 / RFC 3339
+    if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(date) {
+        return dt.naive_utc().format("%Y-%m-%d %H:%M:%S").to_string();
+    }
+    // Date without timezone -- use as-is (treated as UTC)
+    date.to_string()
+}
+
 /// Parse a date string (YYYY-MM-DD) into (year, month, day) components.
 fn parse_date_components(date: &str) -> Option<(String, String, String)> {
     // Handle both "YYYY-MM-DD" and "YYYY-MM-DD HH:MM:SS ..." formats
@@ -960,11 +981,13 @@ pub fn load_collection(
     } else if collection_name == "posts" {
         // Posts are ordered by date ascending (oldest first) before site.posts
         // gets reversed to newest-first in the site context.
+        // Use UTC-normalized sort keys so that timezone offsets are handled
+        // correctly (e.g., "2019-08-11 00:34:00 +0800" sorts as Aug 10 UTC).
         items.sort_by(|a, b| {
-            let date_a = a.date.as_deref().unwrap_or("");
-            let date_b = b.date.as_deref().unwrap_or("");
+            let date_a = date_sort_key(a.date.as_deref().unwrap_or(""));
+            let date_b = date_sort_key(b.date.as_deref().unwrap_or(""));
             date_a
-                .cmp(date_b)
+                .cmp(&date_b)
                 .then_with(|| a.source_path.cmp(&b.source_path))
         });
     } else {
@@ -5296,5 +5319,47 @@ mod tests {
         );
         let tags = extract_tags(&fm);
         assert_eq!(tags, vec!["programacao", "dados"]);
+    }
+
+    // ========================================================================
+    // Issue 567: UTC-normalized date sorting
+    // ========================================================================
+
+    #[test]
+    fn test_date_sort_key_normalizes_timezone_offsets() {
+        // "2019-08-11 00:34:00 +0800" = Aug 10 16:34 UTC
+        // "2019-08-09 12:00:00 +0800" = Aug 9 04:00 UTC
+        // The +0800 post should sort as newer.
+        let key_a = date_sort_key("2019-08-11 00:34:00 +0800");
+        let key_b = date_sort_key("2019-08-09 12:00:00 +0800");
+        assert!(key_a > key_b, "Aug 11 +0800 should sort after Aug 9 +0800");
+    }
+
+    #[test]
+    fn test_date_sort_key_cross_midnight_boundary() {
+        // "2019-08-11 00:34:00 +0800" = Aug 10 16:34 UTC
+        // "2019-08-10 18:00:00 +0000" = Aug 10 18:00 UTC
+        // The +0000 post is actually newer in UTC.
+        let key_a = date_sort_key("2019-08-11 00:34:00 +0800");
+        let key_b = date_sort_key("2019-08-10 18:00:00 +0000");
+        assert!(
+            key_a < key_b,
+            "Aug 11 +0800 (=Aug 10 16:34 UTC) should sort before Aug 10 18:00 UTC"
+        );
+    }
+
+    #[test]
+    fn test_date_sort_key_date_only() {
+        // Date-only strings should still work (treated as midnight UTC)
+        let key_a = date_sort_key("2019-08-11");
+        let key_b = date_sort_key("2019-08-10");
+        assert!(key_a > key_b);
+    }
+
+    #[test]
+    fn test_date_sort_key_unicode_fallback() {
+        // Non-date strings should return the string itself as fallback
+        let key = date_sort_key("Veröffentlicht");
+        assert_eq!(key, "Veröffentlicht");
     }
 }

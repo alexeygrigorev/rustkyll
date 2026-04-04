@@ -267,10 +267,26 @@ pub(crate) fn expand_date_only_string_with_tz(s: &str, site_tz: Option<chrono_tz
         }
         format!("{date_str} +0000")
     } else {
+        // Issue 567: Handle "YYYY-MM-DD HH:MM:SS +HHMM" (Jekyll-style with timezone offset).
+        // Jekyll converts these to the site timezone (or UTC if no site tz) for display.
+        // e.g., "2019-08-11 00:34:00 +0800" becomes "2019-08-10 16:34:00 +0000" in UTC.
+        if let Ok(dt) = chrono::DateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S %z") {
+            let utc_dt = dt.with_timezone(&chrono::Utc);
+            if let Some(converted) = format_utc_to_site_tz(utc_dt, site_tz) {
+                return converted;
+            }
+        }
         // Try to normalize ISO 8601 / RFC 3339 dates that already have timezone info.
         // Jekyll renders these as "YYYY-MM-DD HH:MM:SS +HHMM" (space-separated, no colon).
         // e.g. "2024-11-23T20:16:52+08:00" -> "2024-11-23 20:16:52 +0800"
         if let Some(normalized) = normalize_iso8601_date_with_tz(s) {
+            // Also convert the normalized ISO 8601 date to site timezone
+            if let Ok(dt) = chrono::DateTime::parse_from_str(&normalized, "%Y-%m-%d %H:%M:%S %z") {
+                let utc_dt = dt.with_timezone(&chrono::Utc);
+                if let Some(converted) = format_utc_to_site_tz(utc_dt, site_tz) {
+                    return converted;
+                }
+            }
             return normalized;
         }
         // Issue 561: Handle timezone abbreviations (e.g., "2013-07-24 14:34:00 PST").
@@ -867,10 +883,11 @@ title: Not a date
     }
 
     #[test]
-    fn test_date_normalization_existing_full_datetime_unchanged() {
-        // Already-formatted dates should pass through unchanged
+    fn test_date_normalization_existing_full_datetime_converts_to_utc() {
+        // Issue 567: Dates with timezone offsets should be converted to UTC
+        // (or site timezone) to match Jekyll's behavior.
         let result = expand_date_only_string_with_tz("2018-06-04 00:00:00 +0800", None);
-        assert_eq!(result, "2018-06-04 00:00:00 +0800");
+        assert_eq!(result, "2018-06-03 16:00:00 +0000");
     }
 
     // ========================================================================
@@ -881,26 +898,29 @@ title: Not a date
 
     #[test]
     fn test_date_normalization_iso8601_with_colon_tz() {
-        // RFC 3339 / ISO 8601 date with colon in timezone offset
+        // Issue 567: RFC 3339 / ISO 8601 dates are now converted to UTC
+        // (when no site timezone) matching Jekyll's behavior.
         let result = expand_date_only_string_with_tz("2024-11-23T20:16:52+08:00", None);
-        assert_eq!(result, "2024-11-23 20:16:52 +0800");
+        assert_eq!(result, "2024-11-23 12:16:52 +0000");
     }
 
     #[test]
     fn test_date_normalization_iso8601_utc_offset() {
+        // Already in UTC -- should remain unchanged
         let result = expand_date_only_string_with_tz("2024-01-15T14:30:00+00:00", None);
         assert_eq!(result, "2024-01-15 14:30:00 +0000");
     }
 
     #[test]
     fn test_date_normalization_iso8601_negative_offset() {
+        // Issue 567: Negative offset converted to UTC
         let result = expand_date_only_string_with_tz("2024-06-15T10:00:00-05:00", None);
-        assert_eq!(result, "2024-06-15 10:00:00 -0500");
+        assert_eq!(result, "2024-06-15 15:00:00 +0000");
     }
 
     #[test]
     fn test_date_normalization_iso8601_z_suffix() {
-        // Z suffix means UTC
+        // Z suffix means UTC -- already in UTC
         let result = expand_date_only_string_with_tz("2024-01-15T14:30:00Z", None);
         assert_eq!(result, "2024-01-15 14:30:00 +0000");
     }
@@ -1232,5 +1252,54 @@ title: Not a date
         } else {
             panic!("Expected Object");
         }
+    }
+
+    // ========================================================================
+    // Issue 567: Timezone-offset dates should be converted to UTC (or site tz)
+    // ========================================================================
+
+    #[test]
+    fn test_expand_date_converts_positive_tz_offset_to_utc() {
+        // Date "2019-08-11 00:34:00 +0800" should convert to UTC: Aug 10 16:34
+        // Jekyll displays this as "Aug 10, 2019" when no site timezone is set.
+        let result = expand_date_only_string_with_tz("2019-08-11 00:34:00 +0800", None);
+        assert_eq!(result, "2019-08-10 16:34:00 +0000");
+    }
+
+    #[test]
+    fn test_expand_date_converts_negative_tz_offset_to_utc() {
+        // Date with negative offset: "2019-08-10 18:00:00 -0500" = Aug 10 23:00 UTC
+        let result = expand_date_only_string_with_tz("2019-08-10 18:00:00 -0500", None);
+        assert_eq!(result, "2019-08-10 23:00:00 +0000");
+    }
+
+    #[test]
+    fn test_expand_date_converts_tz_offset_to_site_tz() {
+        // With site timezone Asia/Shanghai (+0800), the date should be in that tz
+        let tz: chrono_tz::Tz = "Asia/Shanghai".parse().unwrap();
+        let result = expand_date_only_string_with_tz("2019-08-11 00:34:00 +0800", Some(tz));
+        assert_eq!(result, "2019-08-11 00:34:00 +0800");
+    }
+
+    #[test]
+    fn test_expand_date_converts_tz_offset_cross_day_boundary() {
+        // "2019-08-11 02:00:00 +0800" in US/Eastern = Aug 10 14:00 -0400
+        let tz: chrono_tz::Tz = "US/Eastern".parse().unwrap();
+        let result = expand_date_only_string_with_tz("2019-08-11 02:00:00 +0800", Some(tz));
+        assert_eq!(result, "2019-08-10 14:00:00 -0400");
+    }
+
+    #[test]
+    fn test_expand_date_utc_offset_unchanged() {
+        // Date already in UTC: should remain as-is
+        let result = expand_date_only_string_with_tz("2019-08-10 16:34:00 +0000", None);
+        assert_eq!(result, "2019-08-10 16:34:00 +0000");
+    }
+
+    #[test]
+    fn test_expand_date_unicode_and_non_ascii_passthrough() {
+        // Non-date strings with Unicode should pass through unchanged
+        let result = expand_date_only_string_with_tz("Veröffentlicht am 10. August", None);
+        assert_eq!(result, "Veröffentlicht am 10. August");
     }
 }

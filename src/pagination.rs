@@ -236,12 +236,14 @@ pub fn generate_pagination_pages(
         return Ok(0);
     }
 
-    // Sort posts by date descending (newest first) like Jekyll
+    // Sort posts by date descending (newest first) like Jekyll.
+    // Use UTC-normalized sort keys for correct timezone handling.
+    // Tiebreaker: slug descending (matching Jekyll's reverse-chronological order).
     let mut sorted_posts: Vec<&CollectionItem> = posts.iter().collect();
     sorted_posts.sort_by(|a, b| {
-        let date_a = a.date.as_deref().unwrap_or("");
-        let date_b = b.date.as_deref().unwrap_or("");
-        date_b.cmp(date_a).then_with(|| a.slug.cmp(&b.slug))
+        let date_a = crate::collection::date_sort_key(a.date.as_deref().unwrap_or(""));
+        let date_b = crate::collection::date_sort_key(b.date.as_deref().unwrap_or(""));
+        date_b.cmp(&date_a).then_with(|| b.slug.cmp(&a.slug))
     });
 
     let total_posts = sorted_posts.len();
@@ -685,15 +687,16 @@ pub fn generate_v2_pagination_pages(
             continue;
         }
 
-        // Sort posts by date
+        // Sort posts by date (UTC-normalized for correct timezone handling).
+        // Tiebreaker: slug descending for reverse sort, ascending for forward sort.
         let mut sorted_posts = filtered;
         sorted_posts.sort_by(|a, b| {
-            let date_a = a.date.as_deref().unwrap_or("");
-            let date_b = b.date.as_deref().unwrap_or("");
+            let date_a = crate::collection::date_sort_key(a.date.as_deref().unwrap_or(""));
+            let date_b = crate::collection::date_sort_key(b.date.as_deref().unwrap_or(""));
             if sort_reverse {
-                date_b.cmp(date_a).then_with(|| a.slug.cmp(&b.slug))
+                date_b.cmp(&date_a).then_with(|| b.slug.cmp(&a.slug))
             } else {
-                date_a.cmp(date_b).then_with(|| a.slug.cmp(&b.slug))
+                date_a.cmp(&date_b).then_with(|| a.slug.cmp(&b.slug))
             }
         });
 

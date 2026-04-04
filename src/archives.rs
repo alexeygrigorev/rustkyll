@@ -930,9 +930,9 @@ fn generate_single_v2_archive_page(
 
     let mut sorted_posts: Vec<&CollectionItem> = posts.to_vec();
     sorted_posts.sort_by(|a, b| {
-        let date_a = a.date.as_deref().unwrap_or("");
-        let date_b = b.date.as_deref().unwrap_or("");
-        date_b.cmp(date_a).then_with(|| b.slug.cmp(&a.slug))
+        let date_a = crate::collection::date_sort_key(a.date.as_deref().unwrap_or(""));
+        let date_b = crate::collection::date_sort_key(b.date.as_deref().unwrap_or(""));
+        date_b.cmp(&date_a).then_with(|| b.slug.cmp(&a.slug))
     });
 
     let posts_arr: Vec<LiquidValue> = sorted_posts
@@ -1032,9 +1032,9 @@ fn generate_single_v2_date_archive_page(
 ) -> Result<usize, GeneratorError> {
     let mut sorted_posts: Vec<&CollectionItem> = posts.to_vec();
     sorted_posts.sort_by(|a, b| {
-        let date_a = a.date.as_deref().unwrap_or("");
-        let date_b = b.date.as_deref().unwrap_or("");
-        date_b.cmp(date_a).then_with(|| b.slug.cmp(&a.slug))
+        let date_a = crate::collection::date_sort_key(a.date.as_deref().unwrap_or(""));
+        let date_b = crate::collection::date_sort_key(b.date.as_deref().unwrap_or(""));
+        date_b.cmp(&date_a).then_with(|| b.slug.cmp(&a.slug))
     });
 
     let posts_arr: Vec<LiquidValue> = sorted_posts
@@ -1148,9 +1148,9 @@ fn generate_single_archive_page(
     // filenames with later slugs come first.
     let mut sorted_posts: Vec<&CollectionItem> = posts.to_vec();
     sorted_posts.sort_by(|a, b| {
-        let date_a = a.date.as_deref().unwrap_or("");
-        let date_b = b.date.as_deref().unwrap_or("");
-        date_b.cmp(date_a).then_with(|| b.slug.cmp(&a.slug))
+        let date_a = crate::collection::date_sort_key(a.date.as_deref().unwrap_or(""));
+        let date_b = crate::collection::date_sort_key(b.date.as_deref().unwrap_or(""));
+        date_b.cmp(&date_a).then_with(|| b.slug.cmp(&a.slug))
     });
 
     // Build the posts array for this archive page
@@ -1251,9 +1251,9 @@ fn generate_single_date_archive_page(
     // Sort posts by date descending (newest first)
     let mut sorted_posts: Vec<&CollectionItem> = posts.to_vec();
     sorted_posts.sort_by(|a, b| {
-        let date_a = a.date.as_deref().unwrap_or("");
-        let date_b = b.date.as_deref().unwrap_or("");
-        date_b.cmp(date_a).then_with(|| b.slug.cmp(&a.slug))
+        let date_a = crate::collection::date_sort_key(a.date.as_deref().unwrap_or(""));
+        let date_b = crate::collection::date_sort_key(b.date.as_deref().unwrap_or(""));
+        date_b.cmp(&date_a).then_with(|| b.slug.cmp(&a.slug))
     });
 
     let posts_arr: Vec<LiquidValue> = sorted_posts

@@ -52,9 +52,9 @@ pub fn generate_atom_feed(
     // Filter posts with dates and sort by date descending
     let mut dated_posts: Vec<&CollectionItem> = posts.iter().filter(|p| p.date.is_some()).collect();
     dated_posts.sort_by(|a, b| {
-        let da = a.date.as_deref().unwrap_or("");
-        let db = b.date.as_deref().unwrap_or("");
-        db.cmp(da).then_with(|| a.slug.cmp(&b.slug))
+        let da = crate::collection::date_sort_key(a.date.as_deref().unwrap_or(""));
+        let db = crate::collection::date_sort_key(b.date.as_deref().unwrap_or(""));
+        db.cmp(&da).then_with(|| b.slug.cmp(&a.slug))
     });
     dated_posts.truncate(options.max_posts);
 
