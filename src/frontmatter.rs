@@ -647,6 +647,12 @@ pub fn markdown_to_html(markdown: &str) -> String {
     // `apply_block_ial` can apply to the blockquote.
     let markdown = break_ial_lazy_continuation_after_blockquote(&markdown);
 
+    // Issue 570: Separate paragraphs at block-level IAL boundaries.
+    // When text lines are separated only by `{: .class }` IALs (no blank lines),
+    // comrak merges them into one paragraph. Insert blank lines after IALs
+    // so each text+IAL pair becomes a separate paragraph.
+    let markdown = crate::kramdown::separate_block_ial_paragraphs(&markdown);
+
     // Issue 301: Mark forward-direction IALs (standalone {: .class} with blank
     // lines on both sides) so apply_block_ial can detect them.
     let markdown = crate::kramdown::mark_forward_ial(&markdown);
@@ -876,6 +882,13 @@ pub fn markdown_to_html_with_options(
     // Issue 517: Break lazy continuation for IALs after blockquotes
     let markdown = if has_ial {
         break_ial_lazy_continuation_after_blockquote(&markdown)
+    } else {
+        markdown
+    };
+
+    // Issue 570: Separate paragraphs at block-level IAL boundaries
+    let markdown = if has_ial {
+        crate::kramdown::separate_block_ial_paragraphs(&markdown)
     } else {
         markdown
     };
@@ -1185,6 +1198,9 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
 
     // Issue 517: Break lazy continuation for IALs after blockquotes
     let markdown = break_ial_lazy_continuation_after_blockquote(&markdown);
+
+    // Issue 570: Separate paragraphs at block-level IAL boundaries
+    let markdown = crate::kramdown::separate_block_ial_paragraphs(&markdown);
 
     // Issue 301: Mark forward-direction IALs
     let markdown = crate::kramdown::mark_forward_ial(&markdown);

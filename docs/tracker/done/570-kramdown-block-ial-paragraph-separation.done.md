@@ -110,3 +110,54 @@ The fix must happen BEFORE markdown conversion: detect `{: .class }` patterns on
 ## Dependencies
 
 Issue 496 (kramdown IALs) is done. This extends that work to handle the paragraph-separation case.
+
+## Log
+
+### [SWE] 2026-04-02
+
+**Fix 1: Preprocessing -- separate paragraphs at block IAL boundaries**
+- Wrote 10 tests: test_issue570_separate_block_ial_paragraphs_basic, test_issue570_separate_block_ial_no_false_positive, test_issue570_separate_block_ial_already_separated, test_issue570_separate_block_ial_style_attribute, test_issue570_separate_block_ial_unicode, test_issue570_block_ial_produces_separate_paragraphs, test_issue570_block_ial_single_text_with_class, test_issue570_block_ial_with_style_produces_correct_html, test_issue570_ial_not_on_own_line_ignored, test_issue570_ial_inside_code_block_ignored
+- Ran tests: FAILS -- `separate_block_ial_paragraphs` function does not exist (compilation error)
+- Implemented `separate_block_ial_paragraphs()` in src/kramdown.rs:2854 -- inserts blank line after standalone IAL lines that are between non-blank text lines, skips fenced code blocks
+- Ran tests: 9/10 PASS, 1 FAIL (style attribute IAL `{:style="color:red"}` not handled by `apply_merged_ial` which searched for `"{: "` with space)
+
+**Fix 2: Handle IAL without space after colon in apply_merged_ial**
+- Updated `apply_merged_ial()` to search for `"{:"` instead of `"{: "`, with optional space handling
+- Ran tests: 10/10 PASS
+
+**Fix 3: Wire up preprocessing in frontmatter pipeline**
+- Added `separate_block_ial_paragraphs` call in 3 places in src/frontmatter.rs (all markdown preprocessing pipelines), before `mark_forward_ial`
+- Also added inside `process_markdown_attribute()` in src/kramdown.rs for `<div markdown="1">` content
+
+**Fix 4: Clippy fix**
+- Simplified boolean expression per clippy suggestion
+
+**Summary:**
+- Files modified: src/kramdown.rs, src/frontmatter.rs
+- Tests added: 10 unit tests for block IAL paragraph separation
+- Build results: 3903 tests pass, 1 fail (pre-existing link_tag test), clippy clean, fmt clean (fmt issue in engine.rs is pre-existing)
+- DTC DOM: 790/790 matched, 0 total diffs (baseline 789/790, 163 diffs -- improved)
+- JTD DOM: 16/47 matched, 1757 total diffs (baseline 16/47, 2063 diffs -- 306 diffs reduced)
+  - index-test: 319 -> 28 diffs
+  - labels: 15 -> 8 diffs
+  - typography: 40 -> 40 diffs (unchanged)
+- DTC build time: 0.85s (under 1.0s)
+- Known limitations: Some edge cases in markdown="1" divs where the first/last IAL in a sequence may not perfectly apply (e.g., "Default label" in JTD labels page gets slightly different treatment)
+
+### [PM] 2026-04-02 Review
+- Reviewed diff: 4 files changed (kramdown.rs, frontmatter.rs, tracker file, dom-recount-results.md)
+- Output verification: Built DTC and JTD sites, inspected JTD labels page -- `<p class="label label-blue">Blue label</p>` renders correctly
+- Results verified: DTC 790/790 (baseline was 789/790 -- improved by 1), JTD 16/47 with 1757 diffs (baseline 2063 -- 306 diffs reduced)
+- Tests: 3902 pass, 2 fail (pre-existing link_tag tests, confirmed on main without changes), 10 new issue-570 tests cover preprocessing, postprocessing, unicode, code block skipping, inline IAL exclusion
+- Clippy: clean (only pre-existing lint rename warnings from liquid-lib)
+- Acceptance criteria:
+  - [x] cargo build compiles without errors
+  - [x] cargo test passes with all existing + 10 new tests (2 pre-existing failures unrelated)
+  - [x] `text\n{: .class }\n` produces `<p class="class">text</p>`
+  - [x] Consecutive text+IAL blocks produce separate `<p>` elements
+  - [x] Multiple classes work: `{: .label .label-blue }` -> `class="label label-blue"`
+  - [x] Style attributes work: `{:style="counter-reset:none"}` -> `style="counter-reset:none"`
+  - [x] JTD labels page renders separate colored label paragraphs
+  - [x] DTC DOM 790/790 -- no regression (actually improved from 789)
+  - [x] JTD DOM improved from 2063 to 1757 total diffs
+- VERDICT: ACCEPT

@@ -1947,6 +1947,11 @@ pub fn process_markdown_attribute(content: &str) -> String {
         let trimmed_inner = replace_toc_pattern_with_placeholder(trimmed_inner);
         let trimmed_inner_ref: &str = &trimmed_inner;
 
+        // Issue 570: Separate paragraphs at block-level IAL boundaries before
+        // markdown conversion, so consecutive text+IAL pairs become separate paragraphs.
+        let ial_separated_inner = separate_block_ial_paragraphs(trimmed_inner_ref);
+        let trimmed_inner_ref: &str = &ial_separated_inner;
+
         // Issue 322: Pre-process to join <img> lines with following text so
         // pulldown-cmark treats them as inline content (paragraph) rather than
         // HTML blocks.
@@ -2838,6 +2843,81 @@ pub fn escape_headings_in_list_context(content: &str) -> String {
 /// we insert an HTML comment marker before such IALs so that
 /// `apply_block_ial` can detect them.
 ///
+/// Issue 570: Separate paragraphs at block-level IAL boundaries.
+///
+/// In kramdown, a block IAL like `{: .class }` on its own line between two
+/// text lines acts as a paragraph separator AND applies attributes to the
+/// preceding text. Since CommonMark doesn't recognize IALs, comrak merges
+/// consecutive lines into a single paragraph.
+///
+/// This preprocessing step inserts a blank line AFTER each standalone IAL
+/// that is followed by a non-blank line (text), forcing comrak to create
+/// separate paragraphs. The `apply_merged_ial` postprocessing step then
+/// strips the IAL from each paragraph and applies attributes.
+///
+/// Pattern: `text\n{: .class }\nmore_text` -> `text\n{: .class }\n\nmore_text`
+pub fn separate_block_ial_paragraphs(content: &str) -> String {
+    // Short-circuit: if no IAL markers at all, return as-is.
+    if !content.contains("{:") {
+        return content.to_string();
+    }
+
+    let lines: Vec<&str> = content.split('\n').collect();
+    let mut result = String::with_capacity(content.len() + 64);
+    let mut in_fenced_code = false;
+    let last_idx = lines.len().saturating_sub(1);
+
+    for i in 0..lines.len() {
+        let line = lines[i];
+        let trimmed = line.trim();
+
+        // Track fenced code blocks to avoid modifying IALs inside them
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            in_fenced_code = !in_fenced_code;
+        }
+
+        result.push_str(line);
+        // Don't add newline after the last element (split artifact)
+        if i < last_idx {
+            result.push('\n');
+        }
+
+        // Only process outside code blocks
+        if in_fenced_code {
+            continue;
+        }
+
+        // Check if this line is a standalone IAL: starts with {: and ends with }
+        if trimmed.starts_with("{:") && trimmed.ends_with('}') {
+            // Check that the previous line is non-blank text (not a blank line,
+            // not another IAL, not start of content). If previous line is blank,
+            // mark_forward_ial handles it.
+            let prev_is_text = if i > 0 {
+                let prev = lines[i - 1].trim();
+                !(prev.is_empty() || (prev.starts_with("{:") && prev.ends_with('}')))
+            } else {
+                false
+            };
+
+            // Check that the next line exists and is non-blank (otherwise
+            // no paragraph separation needed)
+            let next_is_text = if i + 1 < lines.len() {
+                let next = lines[i + 1].trim();
+                !next.is_empty()
+            } else {
+                false
+            };
+
+            // Insert a blank line after the IAL to force paragraph separation
+            if prev_is_text && next_is_text {
+                result.push('\n');
+            }
+        }
+    }
+
+    result
+}
+
 /// Pattern detected: `\n\n{: ...}\n\n` (blank line before and after the IAL)
 /// Also handles IAL at the very start of content followed by a non-blank line
 /// (forward IAL applies to the next block element).
@@ -4910,8 +4990,9 @@ fn apply_block_ial(html: &str) -> String {
 /// element's opening tag.
 fn apply_merged_ial(html: &mut String) {
     // We search for patterns like: `{: .class1 .class2 }</p>` or `{: .class }</h1>` etc.
+    // Also handle `{:style="..."}` (no space after colon).
     // working backwards to preserve positions.
-    let ial_marker = "{: ";
+    let ial_marker = "{:";
     let mut search_from = 0;
     let mut replacements: Vec<(usize, usize, String, usize)> = Vec::new();
 
@@ -4920,6 +5001,12 @@ fn apply_merged_ial(html: &mut String) {
 
         // Find the closing `}` on the same line
         let after_marker = abs_ial_start + ial_marker.len();
+        // Skip optional space after {:
+        let after_marker = if html[after_marker..].starts_with(' ') {
+            after_marker + 1
+        } else {
+            after_marker
+        };
         let rest = &html[after_marker..];
         let mut close_brace = None;
         for (i, ch) in rest.char_indices() {
@@ -18013,6 +18100,230 @@ Do It Live\n\
             result.contains("После pre"),
             "Unicode content after bare <pre> must be preserved. Got:\n{}",
             result
+        );
+    }
+
+    // --- Issue 570: Block IAL paragraph separation tests ---
+
+    #[test]
+    fn test_issue570_separate_block_ial_paragraphs_basic() {
+        // A block IAL between two text lines should insert a blank line
+        // after the IAL to separate paragraphs.
+        let input = "blue\n{: .label .label-blue }\ngreen\n{: .label .label-green }\n";
+        let result = separate_block_ial_paragraphs(input);
+        // After separation, the IAL line should be followed by a blank line
+        assert!(
+            result.contains("{: .label .label-blue }\n\ngreen"),
+            "IAL should be followed by blank line to separate paragraphs. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("{: .label .label-green }\n"),
+            "Last IAL should be preserved. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue570_separate_block_ial_no_false_positive() {
+        // Regular paragraphs without IALs should be unchanged
+        let input = "no IAL here\n\nregular paragraph\n";
+        let result = separate_block_ial_paragraphs(input);
+        assert_eq!(result, input, "Input without IALs should be unchanged");
+    }
+
+    #[test]
+    fn test_issue570_separate_block_ial_already_separated() {
+        // If there's already a blank line after the IAL, don't add another
+        let input = "text\n{: .fs-1 }\n\nnext paragraph\n";
+        let result = separate_block_ial_paragraphs(input);
+        assert_eq!(
+            result, input,
+            "Already-separated IALs should be unchanged. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue570_separate_block_ial_style_attribute() {
+        // IAL with style attribute
+        let input = "text\n{:style=\"counter-reset:none\"}\nmore\n";
+        let result = separate_block_ial_paragraphs(input);
+        assert!(
+            result.contains("{:style=\"counter-reset:none\"}\n\nmore"),
+            "Style IAL should separate paragraphs. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue570_separate_block_ial_unicode() {
+        // Unicode content with IAL separation
+        let input = "синий\n{: .label .label-blue }\nзелёный\n{: .label .label-green }\n";
+        let result = separate_block_ial_paragraphs(input);
+        assert!(
+            result.contains("{: .label .label-blue }\n\nзелёный"),
+            "Unicode content should work with IAL separation. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue570_block_ial_produces_separate_paragraphs() {
+        // End-to-end test: markdown with consecutive IAL-separated lines
+        // should produce separate <p> elements with correct classes.
+        let input = "blue\n{: .label .label-blue }\ngreen\n{: .label .label-green }\npurple\n{: .label .label-purple }\n";
+        let preprocessed = separate_block_ial_paragraphs(input);
+        // After preprocessing, each text+IAL pair is a separate paragraph.
+        // Use postprocess to simulate the full pipeline on HTML output.
+        // We need to convert markdown to HTML first.
+        // For this test, simulate what comrak would produce after preprocessing:
+        // Each "text\n{: .class }" becomes a paragraph like <p>text\n{: .class }</p>
+        let html = "<p>blue\n{: .label .label-blue }</p>\n\n<p>green\n{: .label .label-green }</p>\n\n<p>purple\n{: .label .label-purple }</p>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("class=\"label label-blue\""),
+            "First paragraph should have label-blue class. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("class=\"label label-green\""),
+            "Second paragraph should have label-green class. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("class=\"label label-purple\""),
+            "Third paragraph should have label-purple class. Got:\n{}",
+            result
+        );
+        // Each should be a separate <p>
+        let p_count = result.matches("<p").count();
+        assert!(
+            p_count >= 3,
+            "Should have at least 3 separate paragraphs, got {}. Output:\n{}",
+            p_count,
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue570_block_ial_single_text_with_class() {
+        // Single text line followed by IAL
+        let html = "<p>text\n{: .fs-1 }</p>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("class=\"fs-1\""),
+            "Should apply fs-1 class. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains(">text</p>"),
+            "Should preserve text content. Got:\n{}",
+            result
+        );
+        assert!(
+            !result.contains("{: .fs-1 }"),
+            "IAL syntax should be removed. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue570_block_ial_with_style_produces_correct_html() {
+        // Style attribute IAL
+        let html = "<p>text\n{:style=\"color:red\"}</p>\n";
+        let result = postprocess(html);
+        assert!(
+            result.contains("style=\"color:red\""),
+            "Should apply style attribute. Got:\n{}",
+            result
+        );
+        assert!(
+            !result.contains("{:style="),
+            "IAL syntax should be removed. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue570_ial_not_on_own_line_ignored() {
+        // IAL that's inline with text should not trigger paragraph separation
+        let input = "some text {: .class } more text\n";
+        let result = separate_block_ial_paragraphs(input);
+        assert_eq!(
+            result, input,
+            "Inline IAL should not be affected. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue570_ial_inside_code_block_ignored() {
+        // IAL inside a fenced code block should not trigger paragraph separation
+        let input = "```\nblue\n{: .label .label-blue }\ngreen\n```\n";
+        let result = separate_block_ial_paragraphs(input);
+        assert_eq!(
+            result, input,
+            "IAL inside code block should be unchanged. Got:\n{}",
+            result
+        );
+    }
+
+    // --- Issue 573: Kramdown tight list single paragraph ---
+
+    #[test]
+    fn test_issue573_nested_list_single_paragraph_tight() {
+        // Nested list items with single inline content should render tight (no <p>)
+        // Jekyll/kramdown: <li>Status: <a href="...">Fixed</a></li>
+        // Rustkyll was:     <li><p>Status: <a href="...">Fixed</a></p></li>
+        let input = "1. Path traversal during file caching\n   - Status: [Fixed](https://example.com)\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        eprintln!("DEBUG 573 HTML:\n{}", html);
+        assert!(
+            !html.contains("<li><p>Status:"),
+            "Nested list item with single inline content should NOT be wrapped in <p>. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("Status: <a"),
+            "Should contain the link text. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue573_unordered_nested_list_tight() {
+        // Unordered nested list with inline content should also be tight
+        let input = "- Item\n  - Sub: [Fixed](https://example.com)\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<li><p>Sub:"),
+            "Nested unordered sub-item should NOT be wrapped in <p>. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue573_loose_list_multi_paragraph_preserved() {
+        // List items with multiple paragraphs SHOULD remain loose (keep <p> tags)
+        let input = "- First paragraph\n\n  Second paragraph\n\n- Another item\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            html.contains("<p>First paragraph</p>") || html.contains("<p>Second paragraph</p>"),
+            "Multi-paragraph list items should remain loose with <p> tags. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue573_unicode_nested_list_tight() {
+        // Unicode content in nested tight lists
+        let input = "1. Ueberpr\u{00fc}fung der Sicherheit\n   - Status: [Behoben](https://example.com)\n";
+        let html = crate::frontmatter::markdown_to_html(input);
+        assert!(
+            !html.contains("<li><p>Status:"),
+            "Unicode nested list item should NOT be wrapped in <p>. Got:\n{}",
+            html
         );
     }
 }
