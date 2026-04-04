@@ -3500,6 +3500,155 @@ mod tests {
         assert_eq!(resolve_layout(&item, &config, "courses"), None);
     }
 
+    #[test]
+    fn test_resolve_layout_typeless_scope_fallback() {
+        use crate::config::{DefaultConfig, DefaultScope, DefaultValues};
+        // Config with typeless default that has layout, and type-specific default without layout
+        let config = SiteConfig {
+            defaults: vec![
+                DefaultConfig {
+                    scope: DefaultScope {
+                        path: String::new(),
+                        type_name: String::new(),
+                    },
+                    values: DefaultValues {
+                        values: {
+                            let mut m = std::collections::HashMap::new();
+                            m.insert(
+                                "layout".to_string(),
+                                serde_yaml::Value::String("default".to_string()),
+                            );
+                            m
+                        },
+                    },
+                },
+                DefaultConfig {
+                    scope: DefaultScope {
+                        path: String::new(),
+                        type_name: "docs".to_string(),
+                    },
+                    values: DefaultValues {
+                        values: {
+                            let mut m = std::collections::HashMap::new();
+                            m.insert(
+                                "seo".to_string(),
+                                serde_yaml::Value::String("Article".to_string()),
+                            );
+                            m
+                        },
+                    },
+                },
+            ],
+            ..SiteConfig::default()
+        };
+        let item = CollectionItem {
+            slug: "intro".to_string(),
+            front_matter: std::collections::HashMap::new(),
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            excerpt_html: None,
+            url: "/docs/intro.html".to_string(),
+            date: None,
+            collection_name: "docs".to_string(),
+            source_path: "_docs/intro.md".to_string(),
+            id: String::new(),
+        };
+        // Should fallback to typeless layout "default"
+        assert_eq!(
+            resolve_layout(&item, &config, "docs"),
+            Some("default".to_string())
+        );
+    }
+
+    #[test]
+    fn test_resolve_layout_front_matter_overrides_typeless_default() {
+        use crate::config::{DefaultConfig, DefaultScope, DefaultValues};
+        let config = SiteConfig {
+            defaults: vec![DefaultConfig {
+                scope: DefaultScope {
+                    path: String::new(),
+                    type_name: String::new(),
+                },
+                values: DefaultValues {
+                    values: {
+                        let mut m = std::collections::HashMap::new();
+                        m.insert(
+                            "layout".to_string(),
+                            serde_yaml::Value::String("default".to_string()),
+                        );
+                        m
+                    },
+                },
+            }],
+            ..SiteConfig::default()
+        };
+        let mut fm = std::collections::HashMap::new();
+        fm.insert(
+            "layout".to_string(),
+            serde_yaml::Value::String("custom".to_string()),
+        );
+        let item = CollectionItem {
+            slug: "intro".to_string(),
+            front_matter: fm,
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            excerpt_html: None,
+            url: "/docs/intro.html".to_string(),
+            date: None,
+            collection_name: "docs".to_string(),
+            source_path: "_docs/intro.md".to_string(),
+            id: String::new(),
+        };
+        // Front matter layout should win over typeless default
+        assert_eq!(
+            resolve_layout(&item, &config, "docs"),
+            Some("custom".to_string())
+        );
+    }
+
+    #[test]
+    fn test_resolve_layout_null_front_matter_overrides_typeless_default() {
+        use crate::config::{DefaultConfig, DefaultScope, DefaultValues};
+        let config = SiteConfig {
+            defaults: vec![DefaultConfig {
+                scope: DefaultScope {
+                    path: String::new(),
+                    type_name: String::new(),
+                },
+                values: DefaultValues {
+                    values: {
+                        let mut m = std::collections::HashMap::new();
+                        m.insert(
+                            "layout".to_string(),
+                            serde_yaml::Value::String("default".to_string()),
+                        );
+                        m
+                    },
+                },
+            }],
+            ..SiteConfig::default()
+        };
+        let mut fm = std::collections::HashMap::new();
+        fm.insert("layout".to_string(), serde_yaml::Value::Null);
+        let item = CollectionItem {
+            slug: "intro".to_string(),
+            front_matter: fm,
+            content: String::new(),
+            html_content: String::new(),
+            excerpt: None,
+            excerpt_html: None,
+            url: "/docs/intro.html".to_string(),
+            date: None,
+            collection_name: "docs".to_string(),
+            source_path: "_docs/intro.md".to_string(),
+            id: String::new(),
+        };
+        // layout: null in front matter means NO layout, even if typeless default has one
+        assert_eq!(resolve_layout(&item, &config, "docs"), None);
+    }
+
     // ========================================================================
     // Unit: Output path generation
     // ========================================================================

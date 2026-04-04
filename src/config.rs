@@ -359,12 +359,26 @@ impl SiteConfig {
 
     /// Look up the default layout for a given collection type.
     ///
-    /// Returns `None` if no default layout is defined for the given type.
+    /// First checks type-specific defaults (exact `type_name` match).
+    /// If no type-specific default provides a layout, falls back to typeless
+    /// defaults (empty `type_name`), matching Jekyll's behavior where an empty
+    /// type in scope means "all types".
+    /// Returns `None` if no default layout is defined anywhere.
     pub fn default_layout_for(&self, collection_type: &str) -> Option<&str> {
+        // Try type-specific defaults first
+        if let Some(layout) = self
+            .defaults
+            .iter()
+            .filter(|d| d.scope.type_name == collection_type)
+            .find_map(|d| d.values.layout())
+        {
+            return Some(layout);
+        }
+        // Fall back to typeless defaults (empty type_name matches all)
         self.defaults
             .iter()
-            .find(|d| d.scope.type_name == collection_type)
-            .and_then(|d| d.values.layout())
+            .filter(|d| d.scope.type_name.is_empty())
+            .find_map(|d| d.values.layout())
     }
 
     /// Get all matching default values for a given collection type and path, merged.
@@ -2040,5 +2054,145 @@ defaults:
         let cli_source = Path::new("/repo");
         let effective = config.resolve_source(cli_source);
         assert_eq!(effective, PathBuf::from("/repo"));
+    }
+
+    #[test]
+    fn test_default_layout_for_typeless_scope_fallback() {
+        // Config with only a typeless default (empty type_name) that has layout
+        let config = SiteConfig {
+            defaults: vec![DefaultConfig {
+                scope: DefaultScope {
+                    path: String::new(),
+                    type_name: String::new(),
+                },
+                values: DefaultValues {
+                    values: {
+                        let mut m = HashMap::new();
+                        m.insert(
+                            "layout".to_string(),
+                            serde_yaml::Value::String("default".to_string()),
+                        );
+                        m
+                    },
+                },
+            }],
+            ..SiteConfig::default()
+        };
+        // "docs" should inherit layout from typeless scope
+        assert_eq!(config.default_layout_for("docs"), Some("default"));
+    }
+
+    #[test]
+    fn test_default_layout_for_type_specific_wins_over_typeless() {
+        // Type-specific default with layout AND typeless default with layout
+        // Type-specific should win
+        let config = SiteConfig {
+            defaults: vec![
+                DefaultConfig {
+                    scope: DefaultScope {
+                        path: String::new(),
+                        type_name: String::new(),
+                    },
+                    values: DefaultValues {
+                        values: {
+                            let mut m = HashMap::new();
+                            m.insert(
+                                "layout".to_string(),
+                                serde_yaml::Value::String("default".to_string()),
+                            );
+                            m
+                        },
+                    },
+                },
+                DefaultConfig {
+                    scope: DefaultScope {
+                        path: String::new(),
+                        type_name: "docs".to_string(),
+                    },
+                    values: DefaultValues {
+                        values: {
+                            let mut m = HashMap::new();
+                            m.insert(
+                                "layout".to_string(),
+                                serde_yaml::Value::String("page".to_string()),
+                            );
+                            m
+                        },
+                    },
+                },
+            ],
+            ..SiteConfig::default()
+        };
+        assert_eq!(config.default_layout_for("docs"), Some("page"));
+    }
+
+    #[test]
+    fn test_default_layout_for_type_specific_no_layout_falls_back_to_typeless() {
+        // Type-specific default WITHOUT layout AND typeless default WITH layout
+        // Should fall back to typeless layout
+        let config = SiteConfig {
+            defaults: vec![
+                DefaultConfig {
+                    scope: DefaultScope {
+                        path: String::new(),
+                        type_name: String::new(),
+                    },
+                    values: DefaultValues {
+                        values: {
+                            let mut m = HashMap::new();
+                            m.insert(
+                                "layout".to_string(),
+                                serde_yaml::Value::String("default".to_string()),
+                            );
+                            m
+                        },
+                    },
+                },
+                DefaultConfig {
+                    scope: DefaultScope {
+                        path: String::new(),
+                        type_name: "docs".to_string(),
+                    },
+                    values: DefaultValues {
+                        values: {
+                            let mut m = HashMap::new();
+                            m.insert(
+                                "seo".to_string(),
+                                serde_yaml::Value::String("Article".to_string()),
+                            );
+                            m
+                        },
+                    },
+                },
+            ],
+            ..SiteConfig::default()
+        };
+        // Type-specific has no layout, should fallback to typeless
+        assert_eq!(config.default_layout_for("docs"), Some("default"));
+    }
+
+    #[test]
+    fn test_default_layout_for_typeless_unicode_layout_name() {
+        // Test with non-ASCII layout name
+        let config = SiteConfig {
+            defaults: vec![DefaultConfig {
+                scope: DefaultScope {
+                    path: String::new(),
+                    type_name: String::new(),
+                },
+                values: DefaultValues {
+                    values: {
+                        let mut m = HashMap::new();
+                        m.insert(
+                            "layout".to_string(),
+                            serde_yaml::Value::String("макет".to_string()),
+                        );
+                        m
+                    },
+                },
+            }],
+            ..SiteConfig::default()
+        };
+        assert_eq!(config.default_layout_for("posts"), Some("макет"));
     }
 }
