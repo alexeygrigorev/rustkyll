@@ -3012,6 +3012,14 @@ pub fn mark_simple_partial_loose_list_items(content: &str) -> String {
         if region.fully_loose {
             continue;
         }
+        // Issue 573: Track the base indentation of the first list item in this
+        // region. Only mark items at this indentation level; items at deeper
+        // indentation are nested sublist items and should not be marked as
+        // partial-loose (kramdown does not propagate looseness to sublists).
+        let base_indent = {
+            let first = lines[region.start].trim_start();
+            lines[region.start].len() - first.len()
+        };
         let mut i = region.start;
         while i < region.end {
             let trimmed = lines[i].trim_start();
@@ -3021,6 +3029,14 @@ pub fn mark_simple_partial_loose_list_items(content: &str) -> String {
                 continue;
             }
             if in_code_block || !is_markdown_list_item(trimmed) {
+                i += 1;
+                continue;
+            }
+
+            // Issue 573: Skip nested sublist items (deeper indentation than
+            // the region's base level).
+            let item_indent = lines[i].len() - trimmed.len();
+            if item_indent > base_indent {
                 i += 1;
                 continue;
             }
@@ -18274,19 +18290,27 @@ Do It Live\n\
     #[test]
     fn test_issue573_nested_list_single_paragraph_tight() {
         // Nested list items with single inline content should render tight (no <p>)
+        // when there are blank lines between top-level items (makes comrak render loose).
         // Jekyll/kramdown: <li>Status: <a href="...">Fixed</a></li>
         // Rustkyll was:     <li><p>Status: <a href="...">Fixed</a></p></li>
-        let input = "1. Path traversal during file caching\n   - Status: [Fixed](https://example.com)\n";
+        let input = "\
+1. Path traversal during file caching
+    - Status: [Fixed](https://example.com)
+
+2. Sandbox escape via string injection
+    - Status: [Fixed](https://example.com)
+";
         let html = crate::frontmatter::markdown_to_html(input);
-        eprintln!("DEBUG 573 HTML:\n{}", html);
+        // The inner <li> for "Status:" should NOT have <p> wrapping
         assert!(
-            !html.contains("<li><p>Status:"),
+            !html.contains("<p>Status:"),
             "Nested list item with single inline content should NOT be wrapped in <p>. Got:\n{}",
             html
         );
+        // The outer <li> text should also not have <p> wrapping in kramdown
         assert!(
-            html.contains("Status: <a"),
-            "Should contain the link text. Got:\n{}",
+            !html.contains("<p>Path traversal"),
+            "Outer list item with single inline content + sublist should NOT have <p>. Got:\n{}",
             html
         );
     }
@@ -18318,7 +18342,8 @@ Do It Live\n\
     #[test]
     fn test_issue573_unicode_nested_list_tight() {
         // Unicode content in nested tight lists
-        let input = "1. Ueberpr\u{00fc}fung der Sicherheit\n   - Status: [Behoben](https://example.com)\n";
+        let input =
+            "1. Ueberpr\u{00fc}fung der Sicherheit\n   - Status: [Behoben](https://example.com)\n";
         let html = crate::frontmatter::markdown_to_html(input);
         assert!(
             !html.contains("<li><p>Status:"),
