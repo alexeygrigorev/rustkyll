@@ -150,6 +150,13 @@ impl<'a> ExprToken<'a> {
     }
 }
 
+/// Logical connective between sub-expressions.
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum LogicalOp {
+    And,
+    Or,
+}
+
 /// A pre-parsed expression that can be evaluated efficiently per element.
 enum ParsedExpr<'a> {
     /// Binary expression: lhs op rhs
@@ -160,6 +167,12 @@ enum ParsedExpr<'a> {
     },
     /// Truthiness check (no operator found)
     Truthy(ExprToken<'a>),
+    /// Compound expression: sub1 and/or sub2 and/or sub3 ...
+    /// Jekyll supports chaining multiple `and`/`or` in where_exp.
+    Compound {
+        parts: Vec<ParsedExpr<'a>>,
+        ops: Vec<LogicalOp>,
+    },
 }
 
 impl<'a> ParsedExpr<'a> {
@@ -174,6 +187,10 @@ impl<'a> ParsedExpr<'a> {
                 rhs: rhs.pre_resolve(runtime),
             },
             ParsedExpr::Truthy(token) => ParsedExpr::Truthy(token.pre_resolve(runtime)),
+            ParsedExpr::Compound { parts, ops } => ParsedExpr::Compound {
+                parts: parts.into_iter().map(|p| p.pre_resolve(runtime)).collect(),
+                ops,
+            },
         }
     }
 }
@@ -247,7 +264,61 @@ const OPERATORS: &[(&str, ExprOp)] = &[
 
 /// Parse an expression string ONCE, returning a structure that can be
 /// evaluated efficiently against many elements.
-fn parse_expression<'a>(expr: &'a str, var_name: &str) -> ParsedExpr<'a> {
+/// Split an expression on ` and ` / ` or ` logical operators.
+///
+/// Returns None if no logical operator is found.
+/// Returns the sub-expression strings and the logical operators between them.
+///
+/// We must be careful not to split inside quoted strings. We use a simple
+/// approach: scan for ` and ` / ` or ` outside of single/double quotes.
+fn split_logical_operators(expr: &str) -> Option<(Vec<&str>, Vec<LogicalOp>)> {
+    let bytes = expr.as_bytes();
+    let len = bytes.len();
+    let mut parts = Vec::new();
+    let mut ops = Vec::new();
+    let mut last_split = 0;
+    let mut i = 0;
+    let mut in_single_quote = false;
+    let mut in_double_quote = false;
+
+    while i < len {
+        let b = bytes[i];
+        if b == b'\'' && !in_double_quote {
+            in_single_quote = !in_single_quote;
+        } else if b == b'"' && !in_single_quote {
+            in_double_quote = !in_double_quote;
+        } else if !in_single_quote && !in_double_quote {
+            // Check for " and " (5 chars)
+            if i + 5 <= len && &expr[i..i + 5] == " and " {
+                parts.push(&expr[last_split..i]);
+                ops.push(LogicalOp::And);
+                last_split = i + 5;
+                i += 5;
+                continue;
+            }
+            // Check for " or " (4 chars)
+            if i + 4 <= len && &expr[i..i + 4] == " or " {
+                parts.push(&expr[last_split..i]);
+                ops.push(LogicalOp::Or);
+                last_split = i + 4;
+                i += 4;
+                continue;
+            }
+        }
+        i += 1;
+    }
+
+    if ops.is_empty() {
+        return None;
+    }
+
+    parts.push(&expr[last_split..]);
+    Some((parts, ops))
+}
+
+/// Parse a single comparison expression (no and/or).
+fn parse_single_expression<'a>(expr: &'a str, var_name: &str) -> ParsedExpr<'a> {
+    let expr = expr.trim();
     for &(op_str, op) in OPERATORS {
         if let Some(pos) = expr.find(op_str) {
             let lhs_str = &expr[..pos];
@@ -261,6 +332,22 @@ fn parse_expression<'a>(expr: &'a str, var_name: &str) -> ParsedExpr<'a> {
     }
     // No operator found -- treat as truthiness check
     ParsedExpr::Truthy(make_token(expr, var_name))
+}
+
+fn parse_expression<'a>(expr: &'a str, var_name: &str) -> ParsedExpr<'a> {
+    // First try to split on logical operators (and/or)
+    if let Some((sub_exprs, logical_ops)) = split_logical_operators(expr) {
+        let parts: Vec<ParsedExpr<'a>> = sub_exprs
+            .into_iter()
+            .map(|s| parse_single_expression(s, var_name))
+            .collect();
+        return ParsedExpr::Compound {
+            parts,
+            ops: logical_ops,
+        };
+    }
+
+    parse_single_expression(expr, var_name)
 }
 
 /// Compare two liquid values as strings for ordering.
@@ -347,6 +434,19 @@ fn evaluate_parsed_expr(
         ParsedExpr::Truthy(token) => {
             let val = token.resolve(element, runtime);
             is_truthy(&val)
+        }
+        ParsedExpr::Compound { parts, ops } => {
+            // Evaluate left-to-right. Jekyll evaluates `and`/`or` without
+            // precedence -- strictly left-to-right, same as Ruby Liquid.
+            let mut result = evaluate_parsed_expr(&parts[0], element, runtime);
+            for (i, op) in ops.iter().enumerate() {
+                let next = evaluate_parsed_expr(&parts[i + 1], element, runtime);
+                result = match op {
+                    LogicalOp::And => result && next,
+                    LogicalOp::Or => result || next,
+                };
+            }
+            result
         }
     }
 }
@@ -766,5 +866,141 @@ mod tests {
         assert!(!path.is_bound);
         assert_eq!(path.segments, vec!["site", "posts"]);
         assert_eq!(path.runtime_keys.len(), 2);
+    }
+
+    #[test]
+    fn test_where_exp_and_operator() {
+        // Chirpy uses: where_exp: 'item', 'item.pin != true and item.hidden != true'
+        // This requires `and` logical operator support.
+        let input = Value::Array(vec![
+            // pinned, not hidden -> should be EXCLUDED (pin != true is false)
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("title".into(), Value::scalar("Pinned Post"));
+                o.insert("pin".into(), Value::scalar(true));
+                o
+            }),
+            // not pinned, not hidden -> should be INCLUDED
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("title".into(), Value::scalar("Normal Post"));
+                o
+            }),
+            // not pinned, hidden -> should be EXCLUDED (hidden != true is false)
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("title".into(), Value::scalar("Hidden Post"));
+                o.insert("hidden".into(), Value::scalar(true));
+                o
+            }),
+            // pinned and hidden -> should be EXCLUDED (both conditions fail)
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("title".into(), Value::scalar("Pinned Hidden"));
+                o.insert("pin".into(), Value::scalar(true));
+                o.insert("hidden".into(), Value::scalar(true));
+                o
+            }),
+        ]);
+
+        let result = liquid_core::call_filter!(
+            WhereExp,
+            input,
+            "item",
+            "item.pin != true and item.hidden != true"
+        )
+        .unwrap();
+        let arr = result.as_array().unwrap();
+        // Only "Normal Post" should pass both conditions
+        assert_eq!(
+            arr.size(),
+            1,
+            "Expected 1 result (Normal Post only), got {}",
+            arr.size()
+        );
+        let first = arr.values().next().unwrap();
+        let title = first.as_object().unwrap().get("title").unwrap();
+        assert_eq!(title.to_kstr().as_str(), "Normal Post");
+    }
+
+    #[test]
+    fn test_where_exp_or_operator() {
+        // Jekyll docs example: where_exp: "item", "item.sub_genre == 'MCU' or item.sub_genre == 'DCEU'"
+        let input = Value::Array(vec![
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("title".into(), Value::scalar("MCU Movie"));
+                o.insert("sub_genre".into(), Value::scalar("MCU"));
+                o
+            }),
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("title".into(), Value::scalar("DCEU Movie"));
+                o.insert("sub_genre".into(), Value::scalar("DCEU"));
+                o
+            }),
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("title".into(), Value::scalar("Indie Movie"));
+                o.insert("sub_genre".into(), Value::scalar("indie"));
+                o
+            }),
+        ]);
+
+        let result = liquid_core::call_filter!(
+            WhereExp,
+            input,
+            "item",
+            "item.sub_genre == 'MCU' or item.sub_genre == 'DCEU'"
+        )
+        .unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(
+            arr.size(),
+            2,
+            "Expected MCU and DCEU movies, got {}",
+            arr.size()
+        );
+    }
+
+    #[test]
+    fn test_where_exp_and_with_unicode_values() {
+        // Test and operator with non-ASCII content
+        let input = Value::Array(vec![
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("title".into(), Value::scalar("Статья о Rust"));
+                o.insert("lang".into(), Value::scalar("ru"));
+                o.insert("published".into(), Value::scalar(true));
+                o
+            }),
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("title".into(), Value::scalar("記事"));
+                o.insert("lang".into(), Value::scalar("ja"));
+                o.insert("published".into(), Value::scalar(false));
+                o
+            }),
+            Value::Object({
+                let mut o = liquid::Object::new();
+                o.insert("title".into(), Value::scalar("مقالة"));
+                o.insert("lang".into(), Value::scalar("ar"));
+                o.insert("published".into(), Value::scalar(true));
+                o
+            }),
+        ]);
+
+        let result = liquid_core::call_filter!(
+            WhereExp,
+            input,
+            "item",
+            "item.published == true and item.lang != 'ar'"
+        )
+        .unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.size(), 1, "Expected only the Russian article");
+        let first = arr.values().next().unwrap();
+        let title = first.as_object().unwrap().get("title").unwrap();
+        assert_eq!(title.to_kstr().as_str(), "Статья о Rust");
     }
 }

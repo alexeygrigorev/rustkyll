@@ -5358,10 +5358,7 @@ title: "Test Book"
         crate::collection::set_page_permalink_style("pretty");
         let result =
             preprocess_jekyll_tags(r#"<a href="{% link docs/configuration.md %}#aux-links">x</a>"#);
-        assert_eq!(
-            result,
-            r#"<a href="/docs/configuration/#aux-links">x</a>"#
-        );
+        assert_eq!(result, r#"<a href="/docs/configuration/#aux-links">x</a>"#);
         crate::collection::set_page_permalink_style("");
     }
 
