@@ -16,12 +16,14 @@ pub mod mentions;
 pub mod pagination;
 pub mod plugin_generators;
 pub mod progress;
+pub mod redirect_generator;
 pub mod server;
 pub mod sitemap;
 pub mod static_files;
 pub mod syntax;
 pub mod template;
 pub mod template_generators;
+pub mod wallet_generator;
 pub mod yaml;
 
 /// Returns the name of this project.

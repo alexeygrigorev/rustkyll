@@ -173,3 +173,41 @@ The key difference: `redirects.rb` pages use the `redirect` layout (full site ch
 while `redirect_from` generates bare meta-refresh HTML. They should remain separate code paths.
 
 ## Log
+
+### [SWE] 2026-04-02
+
+**Fix 1: Redirect page generator module**
+- Wrote 16 unit tests in src/redirect_generator.rs:
+  - 5 detection tests (activate with plugin+config, no plugin, no config, empty config, wrong plugin content)
+  - 5 path splitting tests (simple, deep, root-level, fragment, unicode)
+  - 6 page generation tests (basic, redirect URL, URL structure, no key, fragment, unicode)
+- Ran tests: ALL PASS (16/16)
+- Implemented redirect_generator.rs with should_activate(), split_redirect_path(), generate_redirect_pages()
+- Ran tests: PASSES
+
+**Fix 2: Integration into main.rs pipeline**
+- Added redirect generator call in step 4a3 (after template generator, before site context build)
+- Pages are added to the `pages` vector and rendered through the normal layout pipeline
+- Verified bitcoin-org build: 483 redirect pages generated, 3534 total HTML files
+- Verified redirect page content: `window.location.href='/en/release/v0.3.21'` and `<div class="redirectmsg">` present
+- Verified redirect pages use full site chrome (base layout with header/footer)
+
+**Summary:**
+- Files created: src/redirect_generator.rs
+- Files modified: src/lib.rs, src/main.rs
+- Tests added: 16 unit tests for detection, path splitting, and page generation
+- Build results: 3963 lib tests + integration tests pass, 0 fail, clippy clean, fmt clean
+- DTC DOM: 790/790 matched, 0 total diffs (no regression)
+- DTC build time: 0.89s (under 1.0s threshold)
+- bitcoin-org: 483 redirect pages generated, 3534 total HTML files (up from ~3050)
+
+### [PM] 2026-04-02 16:45
+- Reviewed diff: 4 files changed (src/redirect_generator.rs new, src/lib.rs, src/main.rs, tracker file)
+- Output verification: Built bitcoin-org site, inspected /tmp/bitcoin_582/en/developer-guide.html -- full site chrome present, window.location.href='https://developer.bitcoin.org/devguide/' correct, redirectmsg div present. Checked /tmp/bitcoin_582/nl/bitcoin-paper.html -- internal redirect to /nl/bitcoin-document correct. 3534 total HTML files.
+- DTC DOM verified: 790/790 matched, no regression
+- Tests: 16 unit tests cover detection (5), path splitting (5), page generation (6) including unicode
+- Code review: clean module, proper detection (plugin file + config), no site-specific hardcoding
+- clippy note: new code is clean; pre-existing warnings in wallet_generator.rs are unrelated to this issue
+- Acceptance criteria: all met
+- Follow-up issues created: none
+- VERDICT: ACCEPT

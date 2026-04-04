@@ -431,6 +431,34 @@ fn build_site(
         }
     }
 
+    // 4a3. Generate wallet pages (wallets.rb plugin emulation)
+    // Must happen before site context is built so generated pages are in site.pages.
+    if rustkyll::wallet_generator::should_activate(source) {
+        match rustkyll::wallet_generator::generate_wallet_pages(source) {
+            Ok(wallet_pages) => {
+                let count = wallet_pages.len();
+                pages.extend(wallet_pages);
+                if count > 0 {
+                    eprintln!("Wallet generator: {} wallet/platform pages generated", count);
+                }
+            }
+            Err(e) => {
+                eprintln!("Warning: wallet generator failed: {}", e);
+            }
+        }
+    }
+
+    // 4a4. Generate redirect pages (redirects.rb plugin emulation)
+    // Must happen before site context is built so generated pages are in site.pages.
+    if rustkyll::redirect_generator::should_activate(source, &config.extras) {
+        let redirect_pages = rustkyll::redirect_generator::generate_redirect_pages(&config.extras);
+        let count = redirect_pages.len();
+        if count > 0 {
+            pages.extend(redirect_pages);
+            eprintln!("Redirect generator: {} redirect pages generated", count);
+        }
+    }
+
     summary.timing.pages = phase_start.elapsed();
 
     // 4b. Detect URL collisions (Issue 225)
