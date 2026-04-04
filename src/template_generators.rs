@@ -571,14 +571,59 @@ mod tests {
     }
 
     #[test]
-    fn test_detection_with_real_bitcoin_org() {
-        let bitcoin_dir = Path::new("/home/alexey/git/rustkyl/websites/bitcoin-org");
-        if !bitcoin_dir.exists() {
-            return; // Skip in CI where websites/ is not cloned
-        }
+    fn test_detection_with_bitcoin_org_fixture() {
+        // Create a minimal fixture mimicking bitcoin-org's directory structure
+        let tmp = tempfile::TempDir::new().unwrap();
+        let root = tmp.path();
+
+        // bitcoin-org has _translations/, _templates/, and _plugins/templates.rb
+        fs::create_dir_all(root.join("_translations")).unwrap();
+        fs::create_dir_all(root.join("_templates")).unwrap();
+        fs::create_dir_all(root.join("_plugins")).unwrap();
+        fs::write(
+            root.join("_plugins/templates.rb"),
+            "class TranslatePageGenerator < Jekyll::Generator\nend\n",
+        )
+        .unwrap();
+
         assert!(
-            should_activate_template_generator(bitcoin_dir),
-            "Template generator should be activated for bitcoin-org"
+            should_activate_template_generator(root),
+            "Template generator should be activated for bitcoin-org-like structure"
+        );
+    }
+
+    #[test]
+    fn test_detection_negative_missing_translations() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let root = tmp.path();
+
+        // Has _templates and _plugins but no _translations
+        fs::create_dir_all(root.join("_templates")).unwrap();
+        fs::create_dir_all(root.join("_plugins")).unwrap();
+        fs::write(
+            root.join("_plugins/templates.rb"),
+            "class TranslatePageGenerator < Jekyll::Generator\nend\n",
+        )
+        .unwrap();
+
+        assert!(
+            !should_activate_template_generator(root),
+            "Template generator should NOT activate without _translations/"
+        );
+    }
+
+    #[test]
+    fn test_detection_negative_missing_plugin() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let root = tmp.path();
+
+        // Has _translations and _templates but no _plugins
+        fs::create_dir_all(root.join("_translations")).unwrap();
+        fs::create_dir_all(root.join("_templates")).unwrap();
+
+        assert!(
+            !should_activate_template_generator(root),
+            "Template generator should NOT activate without _plugins/"
         );
     }
 }
