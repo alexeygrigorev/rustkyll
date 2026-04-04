@@ -241,11 +241,167 @@ fn parse_f64(v: &str) -> Option<f64> {
 ///
 /// Returns `YamlParseError::Scan` if the YAML is syntactically invalid.
 pub fn parse_yaml_lenient(input: &str) -> Result<serde_yaml::Value, YamlParseError> {
-    let docs = LenientYamlLoader::load_from_str(input)?;
-    if docs.is_empty() {
-        return Ok(serde_yaml::Value::Null);
+    match LenientYamlLoader::load_from_str(input) {
+        Ok(docs) => {
+            if docs.is_empty() {
+                return Ok(serde_yaml::Value::Null);
+            }
+            Ok(yaml_to_serde(&docs[0]))
+        }
+        Err(e) => {
+            // If the error is about indentation in quoted scalars, try
+            // re-indenting continuation lines and re-parsing. This handles
+            // valid YAML where multiline quoted scalars have continuation
+            // lines with less indentation than the opening quote position
+            // (common in programming-historian front matter).
+            let err_msg = e.to_string();
+            if err_msg.contains("invalid indentation in quoted scalar") {
+                let fixed = fix_multiline_quoted_scalar_indentation(input);
+                let docs = LenientYamlLoader::load_from_str(&fixed)?;
+                if docs.is_empty() {
+                    return Ok(serde_yaml::Value::Null);
+                }
+                Ok(yaml_to_serde(&docs[0]))
+            } else {
+                Err(e.into())
+            }
+        }
     }
-    Ok(yaml_to_serde(&docs[0]))
+}
+
+/// Fix indentation of continuation lines in multiline quoted scalars.
+///
+/// When a YAML quoted scalar spans multiple lines, yaml-rust2 requires
+/// continuation lines to be indented at least as much as the column where
+/// the opening quote character appears. The YAML spec is more lenient.
+///
+/// This function finds multiline quoted scalars and adds indentation to
+/// continuation lines so they meet yaml-rust2's requirements.
+fn fix_multiline_quoted_scalar_indentation(input: &str) -> String {
+    let mut result = String::with_capacity(input.len() + 256);
+    let mut in_quoted = false;
+    let mut quote_char: char = '"';
+    let mut required_indent: usize = 0;
+
+    for line in input.lines() {
+        if in_quoted {
+            // We're inside a multiline quoted scalar.
+            // Check if this line closes the quote.
+            let trimmed = line.trim_start();
+            let current_indent = line.len() - trimmed.len();
+
+            if current_indent < required_indent {
+                // Add padding to meet the required indentation
+                let padding = required_indent - current_indent;
+                result.push_str(&" ".repeat(padding));
+                result.push_str(line);
+            } else {
+                result.push_str(line);
+            }
+            result.push('\n');
+
+            // Check if the closing quote is on this line
+            // Count unescaped quote characters to see if string closes
+            if line_closes_quote(trimmed, quote_char) {
+                in_quoted = false;
+            }
+        } else {
+            result.push_str(line);
+            result.push('\n');
+
+            // Check if this line opens a multiline quoted scalar
+            if let Some((qchar, indent)) = line_opens_multiline_quote(line) {
+                in_quoted = true;
+                quote_char = qchar;
+                // yaml-rust2 requires continuation lines to be indented
+                // at least at the column of the opening quote + 1
+                required_indent = indent + 1;
+            }
+        }
+    }
+
+    // Handle case where input doesn't end with newline
+    if !input.ends_with('\n') && result.ends_with('\n') {
+        result.pop();
+    }
+
+    result
+}
+
+/// Check if a line opens a multiline quoted scalar (quote opens but doesn't close).
+/// Returns the quote character and its column position if so.
+fn line_opens_multiline_quote(line: &str) -> Option<(char, usize)> {
+    // Look for a key-value pattern where the value starts with a quote
+    // that doesn't close on the same line
+    let chars: Vec<char> = line.chars().collect();
+    let len = chars.len();
+
+    // Find the first unescaped quote that starts a value
+    let mut i = 0;
+    while i < len {
+        if chars[i] == '"' || chars[i] == '\'' {
+            let qchar = chars[i];
+            let col = i;
+            // Check if this quote closes on the same line
+            if !has_closing_quote(&chars, i + 1, qchar) {
+                return Some((qchar, col));
+            } else {
+                // Skip past the closing quote
+                i = find_closing_quote_pos(&chars, i + 1, qchar).unwrap_or(len);
+            }
+        }
+        i += 1;
+    }
+
+    None
+}
+
+/// Check if a closing quote exists for the given quote char starting from position `start`.
+fn has_closing_quote(chars: &[char], start: usize, qchar: char) -> bool {
+    find_closing_quote_pos(chars, start, qchar).is_some()
+}
+
+/// Find position of closing quote, handling escapes for double quotes.
+fn find_closing_quote_pos(chars: &[char], start: usize, qchar: char) -> Option<usize> {
+    let mut i = start;
+    while i < chars.len() {
+        if qchar == '"' && chars[i] == '\\' {
+            // Skip escaped character in double-quoted strings
+            i += 2;
+            continue;
+        }
+        if qchar == '\'' && chars[i] == '\'' && i + 1 < chars.len() && chars[i + 1] == '\'' {
+            // Escaped single quote ('') in single-quoted strings
+            i += 2;
+            continue;
+        }
+        if chars[i] == qchar {
+            return Some(i);
+        }
+        i += 1;
+    }
+    None
+}
+
+/// Check if a line (already trimmed) closes the current quoted scalar.
+fn line_closes_quote(trimmed: &str, qchar: char) -> bool {
+    let chars: Vec<char> = trimmed.chars().collect();
+    let mut i = 0;
+    while i < chars.len() {
+        if qchar == '"' && chars[i] == '\\' {
+            i += 2;
+            continue;
+        }
+        if qchar == '\'' && chars[i] == '\'' && i + 1 < chars.len() && chars[i + 1] == '\'' {
+            i += 2;
+            continue;
+        }
+        if chars[i] == qchar {
+            return true;
+        }
+        i += 1;
+    }
+    false
 }
 
 /// Convert a `yaml_rust2::Yaml` value to a `serde_yaml::Value`.
@@ -702,5 +858,134 @@ transcript:
         let mapping = value.as_mapping().unwrap();
         let count = mapping.get("count").unwrap();
         assert_eq!(count.as_u64(), Some(42));
+    }
+
+    // ========================================================================
+    // Multiline quoted scalar parsing (Issue 572)
+    // ========================================================================
+
+    #[test]
+    fn test_multiline_quoted_scalar_reduced_indentation() {
+        // Continuation lines at column 1, opening quote at column 11+
+        // This is valid YAML per spec but yaml-rust2 rejects it
+        let yaml = r#"title: Test
+abstract: "This lesson shows how to use Python to transliterate automatically a
+list of words from a language with a non-Latin alphabet to a
+standardized format using the American Standard Code for Information
+Interchange (ASCII) characters."
+"#;
+        let value = parse_yaml_lenient(yaml).unwrap();
+        let mapping = value.as_mapping().unwrap();
+        assert_eq!(mapping.get("title").and_then(|v| v.as_str()), Some("Test"));
+        let abstract_val = mapping.get("abstract").and_then(|v| v.as_str()).unwrap();
+        assert!(
+            abstract_val.contains("transliterate automatically"),
+            "abstract should contain the text, got: {}",
+            abstract_val
+        );
+        assert!(
+            abstract_val.contains("ASCII"),
+            "abstract should contain ASCII, got: {}",
+            abstract_val
+        );
+    }
+
+    #[test]
+    fn test_multiline_quoted_scalar_properly_indented_still_works() {
+        // Regression check: properly indented continuation lines still work
+        let yaml = "title: Test\nabstract: \"This lesson shows how to\n           use Python.\"\n";
+        let value = parse_yaml_lenient(yaml).unwrap();
+        let mapping = value.as_mapping().unwrap();
+        assert_eq!(mapping.get("title").and_then(|v| v.as_str()), Some("Test"));
+        let abstract_val = mapping.get("abstract").and_then(|v| v.as_str()).unwrap();
+        assert!(
+            abstract_val.contains("Python"),
+            "abstract should contain Python, got: {}",
+            abstract_val
+        );
+    }
+
+    #[test]
+    fn test_multiline_quoted_scalar_single_quotes() {
+        // Single-quoted multiline scalars with reduced indentation
+        let yaml = "desc: 'This is a long\ndescription that spans\nmultiple lines.'\n";
+        let value = parse_yaml_lenient(yaml).unwrap();
+        let mapping = value.as_mapping().unwrap();
+        let desc = mapping.get("desc").and_then(|v| v.as_str()).unwrap();
+        assert!(
+            desc.contains("description"),
+            "desc should contain 'description', got: {}",
+            desc
+        );
+    }
+
+    #[test]
+    fn test_multiline_quoted_scalar_unicode_content() {
+        // Multiline quoted scalar with non-ASCII/Unicode content
+        let yaml = "abstract: \"Diese Lektion zeigt wie man Python für die\nTransliteration von Wörtern mit Umlauten (ä, ö, ü) und\nSonderzeichen (ß) verwendet.\"\n";
+        let value = parse_yaml_lenient(yaml).unwrap();
+        let mapping = value.as_mapping().unwrap();
+        let abstract_val = mapping.get("abstract").and_then(|v| v.as_str()).unwrap();
+        assert!(
+            abstract_val.contains("Umlauten"),
+            "should contain Umlauten, got: {}",
+            abstract_val
+        );
+        assert!(
+            abstract_val.contains("ß"),
+            "should contain ß, got: {}",
+            abstract_val
+        );
+    }
+
+    #[test]
+    fn test_multiline_quoted_scalar_nested_context() {
+        // Multiline quoted scalar inside a nested mapping
+        let yaml = "metadata:\n  abstract: \"This is a long\n  description that continues.\"\n  title: Test\n";
+        let value = parse_yaml_lenient(yaml).unwrap();
+        let mapping = value.as_mapping().unwrap();
+        let meta = mapping.get("metadata").unwrap().as_mapping().unwrap();
+        assert_eq!(meta.get("title").and_then(|v| v.as_str()), Some("Test"));
+        let abstract_val = meta.get("abstract").and_then(|v| v.as_str()).unwrap();
+        assert!(
+            abstract_val.contains("description"),
+            "should contain description, got: {}",
+            abstract_val
+        );
+    }
+
+    #[test]
+    fn test_multiline_quoted_scalar_programming_historian_pattern() {
+        // Full front matter pattern from programming-historian
+        let yaml = r#"title: Transliterating non-ASCII characters with Python
+layout: lesson
+date: 2013-10-04
+authors:
+- Seth Bernstein
+difficulty: 2
+abstract: "This lesson shows how to use Python to transliterate automatically a
+list of words from a language with a non-Latin alphabet to a
+standardized format using the American Standard Code for Information
+Interchange (ASCII) characters."
+redirect_from: /lessons/transliterating
+doi: 10.46430/phen0032
+"#;
+        let value = parse_yaml_lenient(yaml).unwrap();
+        let mapping = value.as_mapping().unwrap();
+        assert_eq!(
+            mapping.get("title").and_then(|v| v.as_str()),
+            Some("Transliterating non-ASCII characters with Python")
+        );
+        assert_eq!(mapping.get("difficulty").and_then(|v| v.as_u64()), Some(2));
+        let abstract_val = mapping.get("abstract").and_then(|v| v.as_str()).unwrap();
+        assert!(
+            abstract_val.contains("transliterate automatically"),
+            "should contain full text"
+        );
+        assert!(abstract_val.contains("ASCII"), "should contain ASCII");
+        assert_eq!(
+            mapping.get("doi").and_then(|v| v.as_str()),
+            Some("10.46430/phen0032")
+        );
     }
 }

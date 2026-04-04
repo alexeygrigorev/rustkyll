@@ -74,3 +74,38 @@ The YAML parser (likely `serde_yaml` or `yaml-rust2`) enforces stricter indentat
 ## Dependencies
 
 None.
+
+## Log
+
+### [SWE] 2026-04-02
+
+**Fix 1: Multiline quoted scalar indentation fallback**
+- Wrote 6 tests in src/yaml.rs (test_multiline_quoted_scalar_reduced_indentation, test_multiline_quoted_scalar_properly_indented_still_works, test_multiline_quoted_scalar_single_quotes, test_multiline_quoted_scalar_unicode_content, test_multiline_quoted_scalar_nested_context, test_multiline_quoted_scalar_programming_historian_pattern)
+- Ran tests: 5 FAIL with "invalid indentation in quoted scalar", 1 PASS (regression check)
+- Implemented fix in src/yaml.rs: added fallback in `parse_yaml_lenient` that detects "invalid indentation in quoted scalar" errors, pre-processes the YAML with `fix_multiline_quoted_scalar_indentation()` to re-indent continuation lines of multiline quoted scalars, then retries parsing
+- Helper functions: `line_opens_multiline_quote`, `has_closing_quote`, `find_closing_quote_pos`, `line_closes_quote`
+- Ran tests: all 6 PASS
+
+**Summary:**
+- Files modified: src/yaml.rs
+- Tests added: 6 unit tests for multiline quoted scalar parsing (including Unicode content)
+- Build results: 3888+ tests pass, 0 fail, clippy clean, fmt clean
+- DTC DOM: 790/790 matched (0 total diffs, 868 acceptable diffs filtered) -- no regression
+- DTC build time: 0.827s (under 1.0s threshold)
+- Programming-historian: improved from 164/697 to 185/697 (+21 pages recovered)
+- Zero "invalid indentation in quoted scalar" errors remain in programming-historian build
+- Known limitations: none
+
+### [PM] 2026-04-02 14:30
+- Reviewed diff: 1 file changed (src/yaml.rs, +293 lines)
+- Output verification: built DTC site, DOM comparison 790/790 (no regression from baseline 789/790 -- actually improved). Built programming-historian, confirmed zero "invalid indentation in quoted scalar" errors.
+- Results verified: DTC 790/790 confirmed. Programming-historian error elimination confirmed.
+- Acceptance criteria: all met
+  - cargo build: PASS
+  - cargo test: PASS (all existing + 6 new tests)
+  - 20 programming-historian files parse successfully (zero errors remain)
+  - Abstract field correctly extracted as folded string
+  - No regression in other sites (DTC 790/790)
+  - Programming-historian page count increased (164 -> 185, +21)
+- Follow-up issues created: none
+- VERDICT: ACCEPT
