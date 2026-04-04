@@ -1,33 +1,71 @@
+use liquid_core::Expression;
 use liquid_core::Result;
 use liquid_core::Runtime;
-use liquid_core::{Display_filter, Filter, FilterReflection, ParseFilter};
+use liquid_core::{
+    Display_filter, Filter, FilterParameters, FilterReflection, FromFilterParameters, ParseFilter,
+};
 use liquid_core::{Value, ValueView};
 
+use super::date_to_long_string::ordinal_suffix;
 use super::{
     convert_utc_naive_to_site_tz, get_site_timezone, is_naive_yaml_timestamp,
     parse_date_string_with_tz, safe_chrono_format,
 };
 
+#[derive(Debug, FilterParameters)]
+struct DateToStringArgs {
+    #[parameter(
+        description = "Format type: 'ordinal' for ordinal day suffix.",
+        arg_type = "str"
+    )]
+    format_type: Option<Expression>,
+    #[parameter(
+        description = "Date style: 'US' for month-first format.",
+        arg_type = "str"
+    )]
+    style: Option<Expression>,
+}
+
 /// Format a date as "DD Mon YYYY" (e.g., "01 Jan 2024").
+/// With `"ordinal"` argument: "15th Jan 2024".
+/// With `"ordinal", "US"` arguments: "Jan 15th, 2024".
 #[derive(Clone, ParseFilter, FilterReflection)]
 #[filter(
     name = "date_to_string",
     description = "Format a date as DD Mon YYYY.",
+    parameters(DateToStringArgs),
     parsed(DateToStringFilter)
 )]
 pub struct DateToString;
 
-#[derive(Debug, Default, Display_filter)]
+#[derive(Debug, FromFilterParameters, Display_filter)]
 #[name = "date_to_string"]
-struct DateToStringFilter;
+struct DateToStringFilter {
+    #[parameters]
+    args: DateToStringArgs,
+}
 
 impl Filter for DateToStringFilter {
     fn evaluate(&self, input: &dyn ValueView, runtime: &dyn Runtime) -> Result<Value> {
+        let args = self.args.evaluate(runtime)?;
+
         let input_str = input.to_kstr();
         let s = input_str.trim();
         if s.is_empty() {
             return Ok(Value::scalar(String::new()));
         }
+
+        let is_ordinal = args
+            .format_type
+            .as_ref()
+            .map(|v| v.to_kstr().as_ref() == "ordinal")
+            .unwrap_or(false);
+
+        let is_us = args
+            .style
+            .as_ref()
+            .map(|v| v.to_kstr().as_ref() == "US")
+            .unwrap_or(false);
 
         let site_tz = get_site_timezone(runtime);
         match parse_date_string_with_tz(s, site_tz) {
@@ -40,9 +78,33 @@ impl Filter for DateToStringFilter {
                 } else {
                     dt
                 };
-                Ok(Value::scalar(
-                    safe_chrono_format(&dt.format("%d %b %Y")).unwrap_or_else(|| s.to_string()),
-                ))
+                let day = safe_chrono_format(&dt.format("%e"))
+                    .unwrap_or_default()
+                    .trim()
+                    .parse::<u32>()
+                    .unwrap_or(0);
+                let month_abbr =
+                    safe_chrono_format(&dt.format("%b")).unwrap_or_else(|| "???".to_string());
+                let year =
+                    safe_chrono_format(&dt.format("%Y")).unwrap_or_else(|| "????".to_string());
+
+                if is_ordinal && is_us {
+                    let suffix = ordinal_suffix(day);
+                    Ok(Value::scalar(format!(
+                        "{} {}{}, {}",
+                        month_abbr, day, suffix, year
+                    )))
+                } else if is_ordinal {
+                    let suffix = ordinal_suffix(day);
+                    Ok(Value::scalar(format!(
+                        "{}{} {} {}",
+                        day, suffix, month_abbr, year
+                    )))
+                } else {
+                    Ok(Value::scalar(
+                        safe_chrono_format(&dt.format("%d %b %Y")).unwrap_or_else(|| s.to_string()),
+                    ))
+                }
             }
             None => Ok(Value::scalar(s.to_string())),
         }
@@ -115,6 +177,61 @@ mod tests {
     fn test_empty_string() {
         let result = liquid_core::call_filter!(DateToString, "").unwrap();
         assert_eq!(result.to_kstr(), "");
+    }
+
+    // ========================================================================
+    // Ordinal and US-style formatting
+    // ========================================================================
+
+    #[test]
+    fn test_date_to_string_ordinal() {
+        let result = liquid_core::call_filter!(DateToString, "2024-01-15", "ordinal").unwrap();
+        assert_eq!(result.to_kstr(), "15th Jan 2024");
+    }
+
+    #[test]
+    fn test_date_to_string_ordinal_1st() {
+        let result = liquid_core::call_filter!(DateToString, "2024-01-01", "ordinal").unwrap();
+        assert_eq!(result.to_kstr(), "1st Jan 2024");
+    }
+
+    #[test]
+    fn test_date_to_string_ordinal_2nd() {
+        let result = liquid_core::call_filter!(DateToString, "2024-01-02", "ordinal").unwrap();
+        assert_eq!(result.to_kstr(), "2nd Jan 2024");
+    }
+
+    #[test]
+    fn test_date_to_string_ordinal_3rd() {
+        let result = liquid_core::call_filter!(DateToString, "2024-01-03", "ordinal").unwrap();
+        assert_eq!(result.to_kstr(), "3rd Jan 2024");
+    }
+
+    #[test]
+    fn test_date_to_string_ordinal_11th() {
+        let result = liquid_core::call_filter!(DateToString, "2024-01-11", "ordinal").unwrap();
+        assert_eq!(result.to_kstr(), "11th Jan 2024");
+    }
+
+    #[test]
+    fn test_date_to_string_ordinal_us() {
+        let result =
+            liquid_core::call_filter!(DateToString, "2024-01-15", "ordinal", "US").unwrap();
+        assert_eq!(result.to_kstr(), "Jan 15th, 2024");
+    }
+
+    #[test]
+    fn test_date_to_string_ordinal_us_1st() {
+        let result =
+            liquid_core::call_filter!(DateToString, "2024-01-01", "ordinal", "US").unwrap();
+        assert_eq!(result.to_kstr(), "Jan 1st, 2024");
+    }
+
+    #[test]
+    fn test_date_to_string_ordinal_us_31st() {
+        let result =
+            liquid_core::call_filter!(DateToString, "2024-01-31", "ordinal", "US").unwrap();
+        assert_eq!(result.to_kstr(), "Jan 31st, 2024");
     }
 
     // ========================================================================

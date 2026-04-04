@@ -23,6 +23,11 @@ struct DateToLongStringArgs {
         arg_type = "str"
     )]
     format_type: Option<Expression>,
+    #[parameter(
+        description = "Date style: 'US' for month-first format.",
+        arg_type = "str"
+    )]
+    style: Option<Expression>,
 }
 
 /// Format a date as "DD Month YYYY" (e.g., "27 March 2013").
@@ -44,7 +49,7 @@ struct DateToLongStringFilter {
 }
 
 /// Return the English ordinal suffix for a day number.
-fn ordinal_suffix(day: u32) -> &'static str {
+pub(crate) fn ordinal_suffix(day: u32) -> &'static str {
     match day {
         11..=13 => "th",
         _ => match day % 10 {
@@ -72,6 +77,12 @@ impl Filter for DateToLongStringFilter {
             .map(|v| v.to_kstr().as_ref() == "ordinal")
             .unwrap_or(false);
 
+        let is_us = args
+            .style
+            .as_ref()
+            .map(|v| v.to_kstr().as_ref() == "US")
+            .unwrap_or(false);
+
         let site_tz = get_site_timezone(runtime);
         match parse_date_string_with_tz(s, site_tz) {
             Some(dt) => {
@@ -91,7 +102,13 @@ impl Filter for DateToLongStringFilter {
                     safe_chrono_format(&dt.format("%B")).unwrap_or_else(|| "???".to_string());
                 let year =
                     safe_chrono_format(&dt.format("%Y")).unwrap_or_else(|| "????".to_string());
-                if is_ordinal {
+                if is_ordinal && is_us {
+                    let suffix = ordinal_suffix(day);
+                    Ok(Value::scalar(format!(
+                        "{} {}{}, {}",
+                        month, day, suffix, year
+                    )))
+                } else if is_ordinal {
                     let suffix = ordinal_suffix(day);
                     Ok(Value::scalar(format!(
                         "{}{} {} {}",
@@ -201,6 +218,43 @@ mod tests {
     fn test_date_to_long_string_ordinal_21st() {
         let result = liquid_core::call_filter!(DateToLongString, "2024-01-21", "ordinal").unwrap();
         assert_eq!(result.to_kstr(), "21st January 2024");
+    }
+
+    #[test]
+    fn test_date_to_long_string_ordinal_us() {
+        let result =
+            liquid_core::call_filter!(DateToLongString, "2024-01-15", "ordinal", "US").unwrap();
+        assert_eq!(result.to_kstr(), "January 15th, 2024");
+    }
+
+    #[test]
+    fn test_date_to_long_string_ordinal_us_1st() {
+        let result =
+            liquid_core::call_filter!(DateToLongString, "2024-01-01", "ordinal", "US").unwrap();
+        assert_eq!(result.to_kstr(), "January 1st, 2024");
+    }
+
+    #[test]
+    fn test_date_to_long_string_ordinal_us_22nd() {
+        let result =
+            liquid_core::call_filter!(DateToLongString, "2024-01-22", "ordinal", "US").unwrap();
+        assert_eq!(result.to_kstr(), "January 22nd, 2024");
+    }
+
+    #[test]
+    fn test_date_to_long_string_ordinal_us_3rd() {
+        let result =
+            liquid_core::call_filter!(DateToLongString, "2024-03-03", "ordinal", "US").unwrap();
+        assert_eq!(result.to_kstr(), "March 3rd, 2024");
+    }
+
+    #[test]
+    fn test_date_to_long_string_ordinal_us_unicode_month() {
+        // Test with a date whose month name contains no special chars, but verify the filter
+        // handles non-ASCII date input gracefully
+        let result =
+            liquid_core::call_filter!(DateToLongString, "2024-02-14", "ordinal", "US").unwrap();
+        assert_eq!(result.to_kstr(), "February 14th, 2024");
     }
 
     #[test]

@@ -9,7 +9,7 @@ mod camelcase;
 pub(crate) mod cgi_escape;
 mod compact;
 mod date;
-mod date_to_long_string;
+pub(crate) mod date_to_long_string;
 mod date_to_rfc822;
 mod date_to_string;
 mod date_to_xmlschema;
