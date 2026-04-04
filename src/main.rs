@@ -1013,14 +1013,14 @@ fn build_site(
         // Check standalone pages for redirect_to front matter
         for page in &pages {
             if let Some(val) = page.front_matter.get("redirect_to") {
-                // If the page has a layout that exists in the layout engine,
-                // the normal rendering pipeline already rendered it correctly
-                // using that layout (e.g., a custom "redirect" layout).
-                // Skip the hardcoded redirect override in that case.
+                // Only skip the hardcoded redirect if the page explicitly uses
+                // a layout named "redirect" (a custom redirect template).
+                // Regular layouts (home, page, post, etc.) should NOT prevent
+                // the redirect_to directive from generating redirect HTML.
                 if let Some(serde_yaml::Value::String(layout_name)) =
                     page.front_matter.get("layout")
                 {
-                    if layout_engine.has_layout(layout_name) {
+                    if layout_name == "redirect" && layout_engine.has_layout(layout_name) {
                         continue;
                     }
                 }
@@ -1076,12 +1076,11 @@ fn build_site(
         for items in collections.values() {
             for item in items {
                 if let Some(val) = item.front_matter.get("redirect_to") {
-                    // If the item has a layout that exists in the layout engine,
-                    // the normal rendering pipeline already rendered it correctly.
+                    // Only skip if using a custom "redirect" layout.
                     if let Some(serde_yaml::Value::String(layout_name)) =
                         item.front_matter.get("layout")
                     {
-                        if layout_engine.has_layout(layout_name) {
+                        if layout_name == "redirect" && layout_engine.has_layout(layout_name) {
                             continue;
                         }
                     }
@@ -2493,6 +2492,123 @@ mod tests {
         assert!(
             !content.contains("Redirecting&hellip;"),
             "Hardcoded redirect HTML should NOT be used when custom layout exists, got: {}",
+            content
+        );
+    }
+
+    #[test]
+    fn test_integration_redirect_to_with_non_redirect_layout() {
+        // Issue 564: Pages with redirect_to and a regular layout (e.g. "home")
+        // should still generate redirect HTML, not render the full layout.
+        // Only a layout specifically named "redirect" should override the
+        // hardcoded redirect behavior.
+        let tmp = tempfile::tempdir().unwrap();
+        let site_root = tmp.path();
+
+        std::fs::create_dir_all(site_root.join("_layouts")).unwrap();
+        std::fs::write(
+            site_root.join("_config.yml"),
+            "url: \"https://example.com\"\ntitle: \"Redirect With Layout Test\"\n",
+        )
+        .unwrap();
+        // A regular "home" layout -- not a redirect layout
+        std::fs::write(
+            site_root.join("_layouts/home.html"),
+            "<html><body><h1>Home Layout</h1>{{ content }}</body></html>",
+        )
+        .unwrap();
+        // Page with both layout: home AND redirect_to
+        std::fs::write(
+            site_root.join("index.html"),
+            "---\nlayout: home\ntitle: GitHub and Government\npermalink: /\nredirect_to: https://github.com/solutions/industry/government\n---\n<p>Full page content that should NOT appear.</p>",
+        )
+        .unwrap();
+
+        let dest = site_root.join("_site");
+        let options = BuildOptions {
+            incremental: false,
+            force: false,
+            quiet: true,
+            changed_paths: None,
+        };
+
+        let result = build_site(site_root, &dest, &options);
+        assert!(result.is_ok(), "Build failed: {:?}", result.err());
+
+        let page_path = dest.join("index.html");
+        assert!(page_path.exists(), "Page output should exist");
+
+        let content = std::fs::read_to_string(&page_path).unwrap();
+        // Should be redirect HTML, NOT the home layout
+        assert!(
+            content.contains("<meta http-equiv=\"refresh\""),
+            "Page with redirect_to should contain meta refresh even with layout: home, got: {}",
+            content
+        );
+        assert!(
+            content.contains("https://github.com/solutions/industry/government"),
+            "Should redirect to the target URL, got: {}",
+            content
+        );
+        // Should NOT contain the home layout content
+        assert!(
+            !content.contains("Home Layout"),
+            "Should NOT render the home layout when redirect_to is present, got: {}",
+            content
+        );
+        assert!(
+            !content.contains("Full page content"),
+            "Should NOT render page content when redirect_to is present, got: {}",
+            content
+        );
+    }
+
+    #[test]
+    fn test_integration_redirect_to_with_unicode_target() {
+        // Ensure redirect_to works with non-ASCII target URLs
+        let tmp = tempfile::tempdir().unwrap();
+        let site_root = tmp.path();
+
+        std::fs::create_dir_all(site_root.join("_layouts")).unwrap();
+        std::fs::write(
+            site_root.join("_config.yml"),
+            "url: \"https://example.com\"\ntitle: \"Unicode Redirect To Test\"\n",
+        )
+        .unwrap();
+        std::fs::write(
+            site_root.join("_layouts/page.html"),
+            "<html><body>{{ content }}</body></html>",
+        )
+        .unwrap();
+        std::fs::write(
+            site_root.join("redirect-unicode.md"),
+            "---\ntitle: Redirección\npermalink: /redireccion/\nredirect_to: https://example.com/artículos/\n---\nContenido que no debe aparecer.",
+        )
+        .unwrap();
+
+        let dest = site_root.join("_site");
+        let options = BuildOptions {
+            incremental: false,
+            force: false,
+            quiet: true,
+            changed_paths: None,
+        };
+
+        let result = build_site(site_root, &dest, &options);
+        assert!(result.is_ok(), "Build failed: {:?}", result.err());
+
+        let page_path = dest.join("redireccion/index.html");
+        assert!(page_path.exists(), "Redirect page should exist");
+
+        let content = std::fs::read_to_string(&page_path).unwrap();
+        assert!(
+            content.contains("https://example.com/artículos/"),
+            "Should contain unicode target URL, got: {}",
+            content
+        );
+        assert!(
+            content.contains("<meta http-equiv=\"refresh\""),
+            "Should be redirect HTML, got: {}",
             content
         );
     }
