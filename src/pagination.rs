@@ -47,7 +47,7 @@ impl PaginationConfig {
             .extras
             .get("paginate_path")
             .and_then(|v| v.as_str())
-            .unwrap_or("/blog/page:num/")
+            .unwrap_or("/page:num")
             .to_string();
 
         Some(Self {
@@ -896,7 +896,7 @@ mod tests {
         assert!(pagination.is_some());
         let pagination = pagination.unwrap();
         assert_eq!(pagination.per_page, 5);
-        assert_eq!(pagination.paginate_path, "/blog/page:num/");
+        assert_eq!(pagination.paginate_path, "/page:num");
     }
 
     #[test]
@@ -906,6 +906,28 @@ mod tests {
         let pagination = PaginationConfig::from_config(&config).unwrap();
         assert_eq!(pagination.per_page, 10);
         assert_eq!(pagination.paginate_path, "/page:num/");
+    }
+
+    #[test]
+    fn test_pagination_default_path_matches_jekyll() {
+        // Jekyll's documented default paginate_path is /page:num (no /blog/ prefix)
+        // See https://jekyllrb.com/docs/pagination/
+        let yaml = "paginate: 3\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let pagination = PaginationConfig::from_config(&config).unwrap();
+        assert_eq!(
+            pagination.paginate_path, "/page:num",
+            "Default paginate_path should match Jekyll's default of /page:num"
+        );
+    }
+
+    #[test]
+    fn test_pagination_explicit_blog_path_respected() {
+        // Sites that explicitly set paginate_path: /blog/page:num/ should keep working
+        let yaml = "paginate: 5\npaginate_path: /blog/page:num/\n";
+        let config = SiteConfig::from_yaml_str(yaml).unwrap();
+        let pagination = PaginationConfig::from_config(&config).unwrap();
+        assert_eq!(pagination.paginate_path, "/blog/page:num/");
     }
 
     #[test]

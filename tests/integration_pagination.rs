@@ -73,7 +73,7 @@ fn test_pagination_config_default_path() {
     let config = SiteConfig::from_yaml_str(yaml).unwrap();
     let pagination = PaginationConfig::from_config(&config).unwrap();
     assert_eq!(pagination.per_page, 10);
-    assert_eq!(pagination.paginate_path, "/blog/page:num/");
+    assert_eq!(pagination.paginate_path, "/page:num");
 }
 
 #[test]
