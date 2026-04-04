@@ -155,3 +155,48 @@ rendering, or as part of the collection rendering loop. The key is that shorturl
 need the same content as the original alert but different metadata (canonical, no category).
 
 ## Log
+
+### [SWE] 2026-04-02
+
+**Fix 1: Alert shorturl page generation**
+- Wrote 13 unit tests in src/alert_shorturl_generator.rs covering:
+  - Detection (should_activate with/without plugin, with/without output:true, with/without alerts collection)
+  - Generation (alert with shorturl generates 2 pages, without shorturl generates 0, empty shorturl generates 0)
+  - Page properties (layout=alert, lang=en, canonical URL, no category, date)
+  - Canonical URL from .html and .md sources
+  - Multiple alerts correct count
+  - Unicode title preservation
+  - All 14 bitcoin-org alerts produce 28 pages
+- Ran tests: all 13 PASS
+- Implemented alert_shorturl_generator.rs module with should_activate() and generate_shorturl_pages()
+- Wired into main.rs after redirect_generator (step 4a5)
+- Registered module in lib.rs
+
+**Verification:**
+- bitcoin-org build: 28 shorturl pages generated
+- Verified android.html exists with window.location.href='/en/alert/2013-08-11-android' and canonical link
+- DTC DOM: 790/790 matched, 0 total diffs (no regression)
+- DTC build time: 0.876s (under 1.0s)
+- Full test suite: all tests pass (3998+ unit + integration)
+- clippy: clean (no warnings)
+- fmt: clean
+
+**Summary:**
+- Files created: src/alert_shorturl_generator.rs
+- Files modified: src/lib.rs (added module), src/main.rs (wired generator)
+- Tests added: 13 unit tests
+- Build results: all tests pass, clippy clean, fmt clean
+
+### [PM] 2026-04-05 10:00
+- Reviewed diff: 1 new file (src/alert_shorturl_generator.rs, 587 lines), tracker file update
+- lib.rs and main.rs wiring already committed in #581
+- Output verification:
+  - Built DTC site: 790/790 DOM match (no regression)
+  - Built bitcoin-org site: 5054 files generated
+  - All 28 shorturl pages verified present (14 root .html + 14 index.html)
+  - Inspected android.html content: contains window.location.href='/en/alert/2013-08-11-android' and canonical link
+  - Inspected android/index.html: same redirect + canonical present
+- Tests: 13 unit tests covering detection, generation, page properties, canonical URLs, unicode, and full 14-alert count
+- Code review: clean implementation, detection via _plugins/alerts.rb (no hardcoding), proper use of Result/Option
+- Acceptance criteria: all met
+- VERDICT: ACCEPT
