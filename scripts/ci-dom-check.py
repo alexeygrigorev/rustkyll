@@ -94,9 +94,15 @@ def run_dom_compare(
 
     output = result.stdout + result.stderr
 
-    # Extract summary line: "Summary: N files matched, ..."
+    # Extract summary line: "Summary: N matched / M total ..." (new format)
+    # or legacy: "Summary: N files matched, ..."
     for line in output.split("\n"):
         if line.startswith("Summary:"):
+            # New union-based format: "Summary: N matched / M total ..."
+            match = re.match(r"Summary:\s+(\d+)\s+matched\s*/\s*\d+\s+total", line)
+            if match:
+                return (int(match.group(1)), line.strip())
+            # Legacy format: "Summary: N files matched, ..."
             match = re.match(r"Summary:\s+(\d+)\s+files matched", line)
             if match:
                 return (int(match.group(1)), line.strip())
