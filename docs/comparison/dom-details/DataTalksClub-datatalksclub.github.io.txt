@@ -9,5 +9,15 @@ Jekyll directory:   /home/alexey/git/rustkyl/websites/DataTalksClub/datatalksclu
 Rustkyll directory: /home/alexey/git/rustkyl/websites/DataTalksClub/datatalksclub.github.io/_site_rustkyll_recount
 Common HTML files:  790
 
+DIFF people/alexanderhendorf.html (4 differences)
+  body > div > div > div > div > p: text_differs - expected: 'Alexander Hendorf is responsible for data and artificial intelligence at the boutique consultancy KÖNIGSWEG GmbH. Through his commitment as a speaker and chair of various international conferences as ', actual: 'Alexander Hendorf is an independent AI strategy consultant specialising in regulated industries — finance, insurance, and critical infrastructure. Through opotoc GmbH, he advises organisations on buil'
+  body > div > div > div > div > p: extra_element - expected: '(none)', actual: '<p>'
+  body > div > div > div > div > p: extra_element - expected: '(none)', actual: '<p>'
+  body > script > jsonld.description: jsonld_value_differs - expected: 'Alexander Hendorf is responsible for data and artificial intelligence at the boutique consultancy KÖNIGSWEG GmbH. Through his commitment as a speaker and chair of various international conferences ...', actual: 'Alexander Hendorf is an independent AI strategy consultant specialising in regulated industries — finance, insurance, and critical infrastructure. Through opotoc GmbH, he advises organisations on b...'
+DIFF podcast/scaling-enterprise-ai-mlops-data-first-strategy.html (4 differences)
+  body > script > jsonld.@graph[0].about[1].description: jsonld_value_differs - expected: 'Alexander Hendorf is responsible for data and artificial intelligence at the boutique consultancy KÖNIGSWEG GmbH. Through his commitment as a speaker and chair of various international conferences as ', actual: 'Alexander Hendorf is an independent AI strategy consultant specialising in regulated industries — finance, insurance, and critical infrastructure. Through opotoc GmbH, he advises organisations on buil'
+  body > div > div > article > div > section > div > div > div > p: text_differs - expected: 'Alexander Hendorf is responsible for data and artificial intelligence at the boutique consultancy KÖNIGSWEG GmbH. Through his commitment as a speaker and chair of various international conferences as ', actual: 'Alexander Hendorf is an independent AI strategy consultant specialising in regulated industries — finance, insurance, and critical infrastructure. Through opotoc GmbH, he advises organisations on buil'
+  body > div > div > article > div > section > div > div > div > p: extra_element - expected: '(none)', actual: '<p>'
+  body > div > div > article > div > section > div > div > div > p: extra_element - expected: '(none)', actual: '<p>'
 
-Summary: 790 matched / 790 total (868 acceptable diffs filtered out)
+Summary: 788 matched / 790 total (2 with-diffs) 8 total differences (867 acceptable diffs filtered out)

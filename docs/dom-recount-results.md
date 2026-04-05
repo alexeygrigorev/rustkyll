@@ -1,8 +1,8 @@
 # DOM Comparison Results
 
-Generated: 2026-04-04 21:51 UTC
+Generated: 2026-04-05 05:51 UTC
 
-rustkyll version: rustkyll 0.3.0
+rustkyll version: rustkyll 0.4.0
 
 ## How to run
 
@@ -27,14 +27,22 @@ Jekyll output is deterministic and cached in `_site_jekyll_cached/` per site dir
 
 | Site | DOM Match | Common / Total | Only-Jekyll | Only-Rustkyll | Liquid Leaks |
 |------|-----------|----------------|-------------|---------------|-------------|
-| DataTalksClub/datatalksclub.github.io | 790/790 (100%) | 790 / 790 | 0 | 0 | 1 |
+| DataTalksClub/datatalksclub.github.io | 788/790 (100%) | 790 / 790 | 0 | 0 | 1 |
 
 ## Summary
 
 - Sites compared: 1
-- Total DOM matches: 790 / 790
+- Total DOM matches: 788 / 790
 
 ## Diff Categories by Site
+
+### DataTalksClub/datatalksclub.github.io
+
+```
+      4 extra_element
+      2 text_differs
+      2 jsonld_value_differs
+```
 
 
 Per-site full diff output is in `docs/comparison/dom-details/`.

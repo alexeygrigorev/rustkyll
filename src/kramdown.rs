@@ -1912,14 +1912,15 @@ pub fn process_markdown_attribute(content: &str) -> String {
         // Find the matching closing tag
         let after_open = &remaining[tag_start + gt_pos + 1..];
         let close_tag = format!("</{}>", tag_name);
-        let close_pos = match find_markdown_close_tag(after_open, &tag_name, &close_tag) {
-            Some(pos) => pos,
-            None => {
-                result.push_str(&remaining[..tag_start + gt_pos + 1]);
-                remaining = &remaining[tag_start + gt_pos + 1..];
-                continue;
-            }
-        };
+        // Issue 587: When there's no matching close tag (unclosed element),
+        // treat all remaining content as the inner content and process it.
+        // Kramdown does the same: unclosed markdown="1" blocks contain
+        // everything until end of input (or parent close).
+        let (close_pos, has_close_tag) =
+            match find_markdown_close_tag(after_open, &tag_name, &close_tag) {
+                Some(pos) => (pos, true),
+                None => (after_open.len(), false),
+            };
 
         let inner_content = &after_open[..close_pos];
 
@@ -2013,7 +2014,9 @@ pub fn process_markdown_attribute(content: &str) -> String {
             let inner_rendered = strip_outer_p_tags_for_markdown(&rendered_inner);
             result.push_str(&clean_open_tag);
             result.push_str(&inner_rendered);
-            result.push_str(&close_tag);
+            if has_close_tag {
+                result.push_str(&close_tag);
+            }
         } else {
             // For block containers like <aside> and <div>
             result.push_str(&clean_open_tag);
@@ -2025,11 +2028,17 @@ pub fn process_markdown_attribute(content: &str) -> String {
                 result.push('\n');
             }
             result.push_str(&rendered_inner);
-            result.push('\n');
-            result.push_str(&close_tag);
+            if has_close_tag {
+                result.push('\n');
+                result.push_str(&close_tag);
+            }
         }
 
-        remaining = &after_open[close_pos + close_tag.len()..];
+        if has_close_tag {
+            remaining = &after_open[close_pos + close_tag.len()..];
+        } else {
+            remaining = "";
+        }
     }
 
     result
@@ -18774,6 +18783,139 @@ Do It Live\n\
             !html.contains("<li><p>Status:"),
             "Unicode nested list item should NOT be wrapped in <p>. Got:\n{}",
             html
+        );
+    }
+
+    // ========================================================================
+    // Issue 587: markdown="1" not processed on translated aside blocks
+    // ========================================================================
+
+    #[test]
+    fn test_587_aside_markdown1_img_text_bengali() {
+        // Bengali aside block without nested <p markdown="1"> for credit line.
+        // The markdown="1" attribute must be stripped and content processed.
+        let input = r#"<aside markdown="1" class="pquote">
+  <img src="https://avatars.githubusercontent.com/thisisnic?s=180" class="pquote-avatar" alt="avatar">
+  মাঝে মাঝে মনে হয় যেন শূন্যে চিৎকার করছি।
+
+— [@thisisnic](https://github.com/thisisnic) , অ্যাপাচি অ্যারোর রক্ষণাবেক্ষণকারী
+</aside>"#;
+        let result = process_markdown_attribute(input);
+        // markdown="1" must be stripped
+        assert!(
+            !result.contains(r#"markdown="1""#),
+            "markdown=\"1\" should be stripped from aside. Got:\n{}",
+            result
+        );
+        // img and text should be wrapped in <p>
+        assert!(
+            result.contains("<p><img src="),
+            "img and text should be wrapped in <p> tag. Got:\n{}",
+            result
+        );
+        // markdown link should be processed
+        assert!(
+            result.contains(r#"<a href="https://github.com/thisisnic">@thisisnic</a>"#),
+            "Markdown link should be processed. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_587_unclosed_aside_markdown1_stripped() {
+        // When an <aside markdown="1"> has no closing </aside>, the attribute
+        // must still be stripped and content processed as markdown.
+        // This pattern appears in Bengali translations of opensource-guide.
+        let input = r#"<aside markdown="1" class="pquote">
+  <img src="https://example.com/avatar.png" class="pquote-avatar" alt="avatar">
+  কিছু বাংলা টেক্সট।
+
+— [@user](https://github.com/user) , বর্ণনা
+"#;
+        let result = process_markdown_attribute(input);
+        // markdown="1" must be stripped even without closing tag
+        assert!(
+            !result.contains(r#"markdown="1""#),
+            "markdown=\"1\" should be stripped from unclosed aside. Got:\n{}",
+            result
+        );
+        // Content should be processed as markdown
+        assert!(
+            result.contains(r#"<a href="https://github.com/user">@user</a>"#),
+            "Markdown link should be processed in unclosed aside. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_587_unclosed_aside_followed_by_another() {
+        // Two consecutive unclosed <aside markdown="1"> blocks.
+        // Both must have markdown="1" stripped and content processed.
+        let input = r#"<aside markdown="1" class="pquote">
+  <img src="x" alt="">
+  Text one.
+
+— [@user1](https://github.com/user1) , credit
+
+* **List item**
+
+<aside markdown="1" class="pquote">
+  <img src="y" alt="">
+  Text two.
+
+— [@user2](https://github.com/user2) , credit
+</aside>"#;
+        let result = process_markdown_attribute(input);
+        // Neither aside should retain markdown="1"
+        assert!(
+            !result.contains(r#"markdown="1""#),
+            "markdown=\"1\" should be stripped from both asides. Got:\n{}",
+            result
+        );
+        // Both links should be processed
+        assert!(
+            result.contains(r#"<a href="https://github.com/user1">@user1</a>"#),
+            "First aside link should be processed. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains(r#"<a href="https://github.com/user2">@user2</a>"#),
+            "Second aside link should be processed. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_587_aside_markdown1_simple_img_text() {
+        // Simple aside with img followed by text - no nested p tag
+        let input = r#"<aside markdown="1"><img src="x" alt=""> Some text</aside>"#;
+        let result = process_markdown_attribute(input);
+        assert!(
+            !result.contains(r#"markdown="1""#),
+            "markdown=\"1\" should be stripped. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("<p><img src=\"x\" alt=\"\"> Some text</p>"),
+            "img+text should be wrapped in <p>. Got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_587_aside_markdown1_link_processing() {
+        // Markdown links inside aside markdown="1" must be processed
+        let input = r#"<aside markdown="1">[@user](https://github.com/user)</aside>"#;
+        let result = process_markdown_attribute(input);
+        assert!(
+            !result.contains(r#"markdown="1""#),
+            "markdown=\"1\" should be stripped. Got:\n{}",
+            result
+        );
+        assert!(
+            result.contains(r#"<a href="https://github.com/user">@user</a>"#),
+            "Markdown link should be processed. Got:\n{}",
+            result
         );
     }
 }

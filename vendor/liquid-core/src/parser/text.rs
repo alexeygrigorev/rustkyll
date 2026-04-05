@@ -27,4 +27,8 @@ impl Renderable for Text {
             .replace("Failed to render")?;
         Ok(())
     }
+
+    fn is_raw_text(&self) -> bool {
+        true
+    }
 }

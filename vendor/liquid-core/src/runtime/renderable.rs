@@ -38,4 +38,23 @@ pub trait Renderable: Send + Sync + Debug {
     fn needs_trailing_whitespace_strip(&self) -> bool {
         false
     }
+
+    /// Returns `true` if this element is raw template text (a `Text` node).
+    ///
+    /// Used by `Template::render_to_buffered` to distinguish template-originating
+    /// whitespace (which can be stripped by `{{-` / `-}}`) from expression-rendered
+    /// output (which must not be stripped).
+    fn is_raw_text(&self) -> bool {
+        false
+    }
+
+    /// Returns `true` if this element is a Liquid expression (`{{ ... }}`).
+    ///
+    /// Expression output is user-intentional content that must be protected
+    /// from whitespace stripping by adjacent `{{-` / `-}}` tags. Block tags
+    /// (`{% if %}`, `{% assign %}`) return false — their incidental whitespace
+    /// output (from template text in their body) can be stripped.
+    fn is_expression_output(&self) -> bool {
+        false
+    }
 }

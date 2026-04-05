@@ -1442,6 +1442,17 @@ fn preprocess_capture_tags(template: &str) -> String {
 /// These are best-effort transformations. The exact URL depends on the site's
 /// permalink configuration, but the approximation is sufficient for most cases.
 fn preprocess_jekyll_tags(template: &str) -> String {
+    let config = crate::collection::LinkTagConfig::from_globals();
+    preprocess_jekyll_tags_with_config(template, &config)
+}
+
+/// Inner implementation of `preprocess_jekyll_tags` that accepts an explicit
+/// `LinkTagConfig` instead of reading from global state. This allows tests
+/// to pass permalink styles directly, avoiding races on global mutexes.
+fn preprocess_jekyll_tags_with_config(
+    template: &str,
+    link_config: &crate::collection::LinkTagConfig,
+) -> String {
     let mut result = String::with_capacity(template.len());
     let mut remaining = template;
 
@@ -1480,9 +1491,9 @@ fn preprocess_jekyll_tags(template: &str) -> String {
 
                     // Extract collection name for looking up collection-specific suffix.
                     // E.g., from "docs/variables" extract "docs".
-                    let collection_suffix = if is_collection {
+                    let collection_suffix: Option<&str> = if is_collection {
                         let coll_name = url_path.split('/').next().unwrap_or("");
-                        crate::collection::get_collection_link_suffix(coll_name)
+                        link_config.collection_link_suffix(coll_name)
                     } else {
                         None
                     };
@@ -1490,7 +1501,7 @@ fn preprocess_jekyll_tags(template: &str) -> String {
                     // For collection docs: strip .md or .html extension, then apply
                     // collection-specific suffix (trailing slash) if configured.
                     // For root pages: use permalink-style suffix (.html or /)
-                    let link_suffix = crate::collection::get_link_tag_suffix();
+                    let link_suffix = link_config.link_tag_suffix();
                     let url_path = if let Some(stem) = url_path.strip_suffix(".md") {
                         if is_collection {
                             // Check for index files: _docs/index.md -> /docs/
@@ -5248,55 +5259,86 @@ title: "Test Book"
     // Issue 209: Link tag no .html for collection docs
     // ========================================================================
 
+    /// Helper: build a LinkTagConfig with a page permalink style and no collection suffixes.
+    fn link_config_page(style: &str) -> crate::collection::LinkTagConfig {
+        crate::collection::LinkTagConfig {
+            page_permalink_style: style.to_string(),
+            collection_suffixes: None,
+        }
+    }
+
+    /// Helper: build a LinkTagConfig with collection suffix map.
+    fn link_config_collection(suffixes: &[(&str, &str)]) -> crate::collection::LinkTagConfig {
+        let mut map = std::collections::HashMap::new();
+        for &(name, suffix) in suffixes {
+            map.insert(name.to_string(), suffix.to_string());
+        }
+        crate::collection::LinkTagConfig {
+            page_permalink_style: String::new(),
+            collection_suffixes: Some(map),
+        }
+    }
+
     #[test]
     fn test_link_tag_no_html_for_collection_pages() {
         // Collection docs (path starts with _) -> extensionless URL
-        let result = preprocess_jekyll_tags(r#"<a href="{% link _pages/banners.md %}">Link</a>"#);
+        let cfg = crate::collection::LinkTagConfig::default();
+        let result = preprocess_jekyll_tags_with_config(
+            r#"<a href="{% link _pages/banners.md %}">Link</a>"#,
+            &cfg,
+        );
         assert_eq!(result, r#"<a href="/pages/banners">Link</a>"#);
     }
 
     #[test]
-    #[ignore] // Uses global PAGE_PERMALINK_STYLE state — races with parallel tests
     fn test_link_tag_root_page_keeps_html() {
-        crate::collection::set_page_permalink_style("date");
-        let result = preprocess_jekyll_tags(r#"{% link about.md %}"#);
+        let cfg = link_config_page("date");
+        let result = preprocess_jekyll_tags_with_config(r#"{% link about.md %}"#, &cfg);
         assert_eq!(result, "/about.html");
-        crate::collection::set_page_permalink_style("");
     }
 
     #[test]
     fn test_link_tag_unicode_collection_doc() {
-        // Unicode filenames in collection docs
-        let result = preprocess_jekyll_tags(r#"{% link _pages/uber-uns.md %}"#);
+        let cfg = crate::collection::LinkTagConfig::default();
+        let result = preprocess_jekyll_tags_with_config(r#"{% link _pages/uber-uns.md %}"#, &cfg);
         assert_eq!(result, "/pages/uber-uns");
     }
 
     #[test]
     fn test_link_tag_nested_collection_doc() {
-        // Nested paths within collection
-        let result = preprocess_jekyll_tags(r#"{% link _notes/2018/my-note.md %}"#);
+        let cfg = crate::collection::LinkTagConfig::default();
+        let result =
+            preprocess_jekyll_tags_with_config(r#"{% link _notes/2018/my-note.md %}"#, &cfg);
         assert_eq!(result, "/notes/2018/my-note");
     }
 
     #[test]
     fn test_link_tag_posts_uses_permalink_pattern() {
-        // Test /posts/:title pattern (like muan-blog)
+        // NOTE: post permalink pattern is a separate global (frontmatter module),
+        // not affected by LinkTagConfig. This test still uses the global for now.
         crate::frontmatter::set_post_permalink_pattern("/posts/:title");
-        let result = preprocess_jekyll_tags(r#"{% link _posts/2020-06-06-reparations.md %}"#);
+        let cfg = crate::collection::LinkTagConfig::default();
+        let result = preprocess_jekyll_tags_with_config(
+            r#"{% link _posts/2020-06-06-reparations.md %}"#,
+            &cfg,
+        );
         assert_eq!(result, "/posts/reparations");
 
-        // Also test with a different post
-        let result2 = preprocess_jekyll_tags(r#"{% link _posts/2024-11-02-javascript.md %}"#);
+        let result2 = preprocess_jekyll_tags_with_config(
+            r#"{% link _posts/2024-11-02-javascript.md %}"#,
+            &cfg,
+        );
         assert_eq!(result2, "/posts/javascript");
 
-        // Test date-based permalink pattern
         crate::frontmatter::set_post_permalink_pattern(
             "/:categories/:year/:month/:day/:title.html",
         );
-        let result3 = preprocess_jekyll_tags(r#"{% link _posts/2024-11-02-javascript.md %}"#);
+        let result3 = preprocess_jekyll_tags_with_config(
+            r#"{% link _posts/2024-11-02-javascript.md %}"#,
+            &cfg,
+        );
         assert_eq!(result3, "/2024/11/02/javascript.html");
 
-        // Restore default-like pattern to avoid affecting other tests
         crate::frontmatter::set_post_permalink_pattern(
             "/:categories/:year/:month/:day/:title.html",
         );
@@ -5308,26 +5350,26 @@ title: "Test Book"
 
     #[test]
     fn test_link_tag_html_collection_doc_no_extension() {
-        // Collection docs with .html extension (path starts with _) -> extensionless URL
-        let result =
-            preprocess_jekyll_tags(r#"<a href="{% link _pages/issues.html %}">Issues</a>"#);
+        let cfg = crate::collection::LinkTagConfig::default();
+        let result = preprocess_jekyll_tags_with_config(
+            r#"<a href="{% link _pages/issues.html %}">Issues</a>"#,
+            &cfg,
+        );
         assert_eq!(result, r#"<a href="/pages/issues">Issues</a>"#);
     }
 
     #[test]
     fn test_link_tag_html_root_page_keeps_extension() {
-        // Root-level .html files (no _ prefix) -> keep .html extension
-        // Explicitly set non-pretty permalink to avoid test pollution
-        crate::collection::set_page_permalink_style("date");
-        let result = preprocess_jekyll_tags(r#"{% link about.html %}"#);
+        let cfg = link_config_page("date");
+        let result = preprocess_jekyll_tags_with_config(r#"{% link about.html %}"#, &cfg);
         assert_eq!(result, "/about.html");
-        crate::collection::set_page_permalink_style("");
     }
 
     #[test]
     fn test_link_tag_html_collection_unicode() {
-        // Non-ASCII: collection doc with .html extension and German name
-        let result = preprocess_jekyll_tags("{% link _pages/\u{00fc}ber-uns.html %}");
+        let cfg = crate::collection::LinkTagConfig::default();
+        let result =
+            preprocess_jekyll_tags_with_config("{% link _pages/\u{00fc}ber-uns.html %}", &cfg);
         assert_eq!(result, "/pages/\u{00fc}ber-uns");
     }
 
@@ -5337,68 +5379,59 @@ title: "Test Book"
 
     #[test]
     fn test_link_tag_pretty_permalink_md_page() {
-        // When permalink is "pretty", {% link docs/config.md %} -> /docs/config/
-        crate::collection::set_page_permalink_style("pretty");
-        let result = preprocess_jekyll_tags(r#"{% link docs/configuration.md %}"#);
+        let cfg = link_config_page("pretty");
+        let result =
+            preprocess_jekyll_tags_with_config(r#"{% link docs/configuration.md %}"#, &cfg);
         assert_eq!(result, "/docs/configuration/");
-        // Reset to default
-        crate::collection::set_page_permalink_style("");
     }
 
     #[test]
     fn test_link_tag_pretty_permalink_md_root() {
-        // Root-level .md page with pretty permalink
-        crate::collection::set_page_permalink_style("pretty");
-        let result = preprocess_jekyll_tags(r#"{% link about.md %}"#);
+        let cfg = link_config_page("pretty");
+        let result = preprocess_jekyll_tags_with_config(r#"{% link about.md %}"#, &cfg);
         assert_eq!(result, "/about/");
-        crate::collection::set_page_permalink_style("");
     }
 
     #[test]
     fn test_link_tag_pretty_permalink_html_page() {
-        // .html page with pretty permalink -> /path/
-        crate::collection::set_page_permalink_style("pretty");
-        let result = preprocess_jekyll_tags(r#"{% link CHANGELOG.html %}"#);
+        let cfg = link_config_page("pretty");
+        let result = preprocess_jekyll_tags_with_config(r#"{% link CHANGELOG.html %}"#, &cfg);
         assert_eq!(result, "/CHANGELOG/");
-        crate::collection::set_page_permalink_style("");
     }
 
     #[test]
-    #[ignore] // Uses global PAGE_PERMALINK_STYLE state — races with parallel tests
     fn test_link_tag_pretty_permalink_with_anchor() {
-        crate::collection::set_page_permalink_style("pretty");
-        let result =
-            preprocess_jekyll_tags(r#"<a href="{% link docs/configuration.md %}#aux-links">x</a>"#);
+        let cfg = link_config_page("pretty");
+        let result = preprocess_jekyll_tags_with_config(
+            r#"<a href="{% link docs/configuration.md %}#aux-links">x</a>"#,
+            &cfg,
+        );
         assert_eq!(result, r#"<a href="/docs/configuration/#aux-links">x</a>"#);
-        crate::collection::set_page_permalink_style("");
     }
 
     #[test]
     fn test_link_tag_default_permalink_keeps_html() {
-        // Default (date) permalink -> .html as before
-        crate::collection::set_page_permalink_style("date");
-        let result = preprocess_jekyll_tags(r#"{% link docs/configuration.md %}"#);
+        let cfg = link_config_page("date");
+        let result =
+            preprocess_jekyll_tags_with_config(r#"{% link docs/configuration.md %}"#, &cfg);
         assert_eq!(result, "/docs/configuration.html");
-        crate::collection::set_page_permalink_style("");
     }
 
     #[test]
     fn test_link_tag_collection_unaffected_by_pretty() {
-        // Collection docs still get extensionless URLs regardless of permalink
-        crate::collection::set_page_permalink_style("pretty");
-        let result = preprocess_jekyll_tags(r#"{% link _pages/banners.md %}"#);
+        let cfg = link_config_page("pretty");
+        let result = preprocess_jekyll_tags_with_config(r#"{% link _pages/banners.md %}"#, &cfg);
         assert_eq!(result, "/pages/banners");
-        crate::collection::set_page_permalink_style("");
     }
 
     #[test]
     fn test_link_tag_pretty_permalink_unicode_page() {
-        // Unicode page with pretty permalink
-        crate::collection::set_page_permalink_style("pretty");
-        let result =
-            preprocess_jekyll_tags("{% link \u{0447}\u{0430}\u{0441}\u{0442}\u{044c}.md %}");
+        let cfg = link_config_page("pretty");
+        let result = preprocess_jekyll_tags_with_config(
+            "{% link \u{0447}\u{0430}\u{0441}\u{0442}\u{044c}.md %}",
+            &cfg,
+        );
         assert_eq!(result, "/\u{0447}\u{0430}\u{0441}\u{0442}\u{044c}/");
-        crate::collection::set_page_permalink_style("");
     }
 
     // ========================================================================
@@ -5407,59 +5440,50 @@ title: "Test Book"
 
     #[test]
     fn test_link_tag_collection_with_trailing_slash_permalink() {
-        // When collection "docs" has permalink ending in /, {% link _docs/variables.md %} -> /docs/variables/
-        crate::collection::set_collection_permalink_suffix("docs", "/");
-        let result = preprocess_jekyll_tags(r#"{% link _docs/variables.md %}"#);
+        let cfg = link_config_collection(&[("docs", "/")]);
+        let result = preprocess_jekyll_tags_with_config(r#"{% link _docs/variables.md %}"#, &cfg);
         assert_eq!(result, "/docs/variables/");
-        crate::collection::clear_collection_permalink_suffixes();
     }
 
     #[test]
     fn test_link_tag_collection_without_trailing_slash_permalink() {
-        // When collection "docs" has no trailing slash, {% link _docs/variables.md %} -> /docs/variables
-        crate::collection::set_collection_permalink_suffix("docs", "");
-        let result = preprocess_jekyll_tags(r#"{% link _docs/variables.md %}"#);
+        let cfg = link_config_collection(&[("docs", "")]);
+        let result = preprocess_jekyll_tags_with_config(r#"{% link _docs/variables.md %}"#, &cfg);
         assert_eq!(result, "/docs/variables");
-        crate::collection::clear_collection_permalink_suffixes();
     }
 
     #[test]
     fn test_link_tag_collection_index_becomes_directory() {
-        // {% link _docs/index.md %} -> /docs/ (not /docs/index or /docs/index/)
-        crate::collection::set_collection_permalink_suffix("docs", "/");
-        let result = preprocess_jekyll_tags(r#"{% link _docs/index.md %}"#);
+        let cfg = link_config_collection(&[("docs", "/")]);
+        let result = preprocess_jekyll_tags_with_config(r#"{% link _docs/index.md %}"#, &cfg);
         assert_eq!(result, "/docs/");
-        crate::collection::clear_collection_permalink_suffixes();
     }
 
     #[test]
     fn test_link_tag_collection_trailing_slash_html_extension() {
-        // .html files in collection with trailing slash permalink
-        crate::collection::set_collection_permalink_suffix("docs", "/");
-        let result = preprocess_jekyll_tags(r#"{% link _docs/datafiles.html %}"#);
+        let cfg = link_config_collection(&[("docs", "/")]);
+        let result = preprocess_jekyll_tags_with_config(r#"{% link _docs/datafiles.html %}"#, &cfg);
         assert_eq!(result, "/docs/datafiles/");
-        crate::collection::clear_collection_permalink_suffixes();
     }
 
     #[test]
     fn test_link_tag_collection_no_config_falls_back_to_extensionless() {
-        // No collection config set -> falls back to extensionless (existing behavior)
-        crate::collection::clear_collection_permalink_suffixes();
-        let result = preprocess_jekyll_tags(r#"{% link _pages/banners.md %}"#);
+        let cfg = crate::collection::LinkTagConfig::default();
+        let result = preprocess_jekyll_tags_with_config(r#"{% link _pages/banners.md %}"#, &cfg);
         assert_eq!(result, "/pages/banners");
     }
 
     #[test]
     fn test_link_tag_collection_unicode_with_trailing_slash() {
-        // Unicode collection doc with trailing slash permalink
-        crate::collection::set_collection_permalink_suffix("docs", "/");
-        let result =
-            preprocess_jekyll_tags("{% link _docs/\u{0443}\u{0441}\u{0442}\u{0430}\u{043d}\u{043e}\u{0432}\u{043a}\u{0430}.md %}");
+        let cfg = link_config_collection(&[("docs", "/")]);
+        let result = preprocess_jekyll_tags_with_config(
+            "{% link _docs/\u{0443}\u{0441}\u{0442}\u{0430}\u{043d}\u{043e}\u{0432}\u{043a}\u{0430}.md %}",
+            &cfg,
+        );
         assert_eq!(
             result,
             "/docs/\u{0443}\u{0441}\u{0442}\u{0430}\u{043d}\u{043e}\u{0432}\u{043a}\u{0430}/"
         );
-        crate::collection::clear_collection_permalink_suffixes();
     }
 
     // ========================================================================

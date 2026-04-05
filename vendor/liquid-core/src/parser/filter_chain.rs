@@ -60,6 +60,10 @@ impl Renderable for FilterChain {
         write!(writer, "{}", entry.render()).replace("Failed to render")?;
         Ok(())
     }
+
+    fn is_expression_output(&self) -> bool {
+        true
+    }
 }
 
 /// A `FilterChain` wrapped with whitespace-control flags from `{{-` / `-}}`.
@@ -103,5 +107,9 @@ impl Renderable for WhitespaceControlledExpression {
 
     fn needs_trailing_whitespace_strip(&self) -> bool {
         self.rstrip
+    }
+
+    fn is_expression_output(&self) -> bool {
+        true
     }
 }

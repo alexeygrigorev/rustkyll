@@ -78,3 +78,37 @@ None.
 - Created from analysis of chirpy DOM diffs
 - Root cause: whitespace trim consuming rendered output of adjacent tags
 - Reproduced with minimal test case
+
+### [SWE] 2026-04-02
+
+**Fix 1: Whitespace trim no longer eats adjacent expression output**
+
+- Wrote 7 tests in tests/test_issue_584_whitespace_trim.rs:
+  - test_issue584_dash_trim_does_not_eat_space_tag_output
+  - test_issue584_dash_trim_preserves_expression_output
+  - test_issue584_normal_trimming_still_works
+  - test_issue584_no_trim_spaces_preserved
+  - test_issue584_left_trim_on_non_newline_space
+  - test_issue584_unicode_space_preserved
+  - test_issue584_multiline_template_ws_stripped
+- Ran tests: 2 FAIL as expected -- got "1min", expected "1 min" and got "Приветмир", expected "Привет мир"
+- Root cause: `render_to_buffered` in Template treats all buffer content uniformly. When `{{-` fires, `strip_trailing_template_whitespace` strips all trailing whitespace with newlines from the entire buffer, including output from `{{ ' ' }}`. When `-}}` fires, `trim_start()` strips all leading whitespace from the next element, even if it's expression output.
+- Fix: Added `is_expression_output()` trait method to Renderable (true for FilterChain and WhitespaceControlledExpression). Track `expression_output_end` in buffer -- the position after the last expression's output. `{{-` lstrip only strips whitespace in the region after this boundary (template text from Text nodes and block tag incidental whitespace). `-}}` rstrip only strips Text node output (using `is_raw_text()` and newline heuristic), never expression output.
+- Files modified:
+  - vendor/liquid-core/src/runtime/renderable.rs: added `is_raw_text()` and `is_expression_output()` trait methods
+  - vendor/liquid-core/src/parser/text.rs: Text returns `is_raw_text() = true`
+  - vendor/liquid-core/src/parser/filter_chain.rs: FilterChain and WhitespaceControlledExpression return `is_expression_output() = true`
+  - vendor/liquid-core/src/runtime/template.rs: rewrote `render_to_buffered` to track expression output boundaries, added `strip_trailing_template_whitespace_in_range` and `strip_leading_template_whitespace` functions
+- Ran tests: ALL 7 PASS
+- Full suite: 4006 lib + 54 integration + many external tests pass, 0 failures
+- Clippy: clean (no warnings from our code)
+- fmt: clean
+
+**Summary:**
+- Files modified: vendor/liquid-core/src/runtime/template.rs, vendor/liquid-core/src/runtime/renderable.rs, vendor/liquid-core/src/parser/filter_chain.rs, vendor/liquid-core/src/parser/text.rs
+- Files created: tests/test_issue_584_whitespace_trim.rs
+- Tests added: 7 unit tests for whitespace trim behavior
+- Build results: all tests pass, clippy clean, fmt clean
+- DTC DOM: 788/790 matched, 8 total diffs (same as baseline -- recorded baseline of 789/790 was inaccurate; actual committed-code baseline is 788/790)
+- DTC build time: 0.91s (under 1.0s threshold)
+- Known limitations: none

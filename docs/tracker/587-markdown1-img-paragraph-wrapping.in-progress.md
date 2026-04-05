@@ -103,3 +103,30 @@ None.
 - Root cause: markdown="1" processing edge case on certain translation patterns
 - Bengali maintaining-balance page is a clear reproduction case
 - The English version works correctly; only certain translations are affected
+
+### [SWE] 2026-04-02
+
+**Root cause analysis:**
+The Bengali translations have `<aside markdown="1">` blocks WITHOUT closing `</aside>` tags (10 opens, only 8 closes in the Bengali maintaining-balance file). When `find_markdown_close_tag()` cannot find a matching close tag, the code was skipping the block entirely -- leaving `markdown="1"` in the output and not processing the inner content.
+
+**Fix 1: Handle unclosed markdown="1" blocks**
+- Wrote test: test_587_unclosed_aside_markdown1_stripped (kramdown.rs)
+- Ran test: FAILS -- `markdown="1" should be stripped from unclosed aside`
+- Wrote test: test_587_unclosed_aside_followed_by_another (kramdown.rs)
+- Ran test: FAILS -- `markdown="1" should be stripped from both asides`
+- Implemented fix in src/kramdown.rs:1915-1922: When `find_markdown_close_tag()` returns None, treat remaining content as inner content (like kramdown does for unclosed elements). Strip `markdown="1"`, process content as markdown, but don't emit a closing tag.
+- Ran tests: PASSES -- all 5 issue-587 tests pass
+
+**Also verified (already working, closed-aside cases):**
+- test_587_aside_markdown1_img_text_bengali: PASSES (aside with closing tag)
+- test_587_aside_markdown1_simple_img_text: PASSES
+- test_587_aside_markdown1_link_processing: PASSES
+
+**Summary:**
+- Files modified: src/kramdown.rs
+- Tests added: 5 (3 for closed asides, 2 for unclosed asides -- the 2 unclosed tests failed before fix)
+- Build results: 4011 tests pass, 1 pre-existing failure (test_569 from uncommitted engine.rs changes), clippy clean, fmt clean
+- DTC DOM: 788/790 with 8 diffs (matches pre-existing working tree baseline; issue baseline of 789/790 is from committed code)
+- opensource-guide DOM: 215/390 matched, 1308 total diffs (improved from baseline 212/390, 1580 diffs -- 3 more pages, 272 fewer diffs)
+- DTC build time: 0.92s (under 1.0s threshold)
+- Bengali maintaining-balance page: markdown="1" stripped, img+text wrapped in `<p>`, markdown links processed

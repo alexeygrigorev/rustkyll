@@ -66,6 +66,58 @@ pub fn clear_collection_permalink_suffixes() {
     }
 }
 
+/// Configuration for `{% link %}` tag resolution, avoiding global state.
+/// Used by `preprocess_jekyll_tags_with_config` so that tests can pass
+/// permalink styles directly instead of racing on global mutexes.
+#[derive(Debug, Clone, Default)]
+pub struct LinkTagConfig {
+    /// Page permalink style (e.g., "pretty", "date", or empty for default).
+    pub page_permalink_style: String,
+    /// Per-collection URL suffix map. Key = collection name, value = suffix ("/" or "").
+    pub collection_suffixes: Option<HashMap<String, String>>,
+}
+
+impl LinkTagConfig {
+    /// Build a config by reading from the global state (production path).
+    pub fn from_globals() -> Self {
+        let page_permalink_style = PAGE_PERMALINK_STYLE
+            .lock()
+            .ok()
+            .filter(|s| !s.is_empty())
+            .map(|s| s.clone())
+            .unwrap_or_default();
+
+        let collection_suffixes = COLLECTION_PERMALINK_SUFFIXES.lock().ok().and_then(|guard| {
+            guard.as_ref().map(|map| {
+                map.iter()
+                    .map(|(k, v)| (k.clone(), v.to_string()))
+                    .collect()
+            })
+        });
+
+        Self {
+            page_permalink_style,
+            collection_suffixes,
+        }
+    }
+
+    /// Get the URL suffix for root (non-collection) pages based on permalink style.
+    pub fn link_tag_suffix(&self) -> &'static str {
+        if self.page_permalink_style.is_empty() {
+            ".html"
+        } else {
+            page_url_suffix(&self.page_permalink_style)
+        }
+    }
+
+    /// Get the URL suffix for a specific collection, or `None` if not configured.
+    pub fn collection_link_suffix(&self, collection_name: &str) -> Option<&str> {
+        self.collection_suffixes
+            .as_ref()
+            .and_then(|map| map.get(collection_name).map(|s| s.as_str()))
+    }
+}
+
 /// Errors that can occur when loading collections.
 #[derive(Debug, thiserror::Error)]
 pub enum CollectionError {
