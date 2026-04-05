@@ -9,8 +9,33 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  check-versions:
+    name: Verify version consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check tag matches Cargo.toml and python/pyproject.toml
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          CARGO_VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')
+          PYTHON_VERSION=$(grep '^version' python/pyproject.toml | head -1 | sed 's/.*"\(.*\)"/\1/')
+          echo "Tag version:    $TAG"
+          echo "Cargo version:  $CARGO_VERSION"
+          echo "Python version: $PYTHON_VERSION"
+          if [ "$TAG" != "$CARGO_VERSION" ]; then
+            echo "::error::Tag v$TAG does not match Cargo.toml version $CARGO_VERSION"
+            exit 1
+          fi
+          if [ "$TAG" != "$PYTHON_VERSION" ]; then
+            echo "::error::Tag v$TAG does not match python/pyproject.toml version $PYTHON_VERSION"
+            exit 1
+          fi
+          echo "All versions match: $TAG"
+
   test:
     name: Test
+    needs: check-versions
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
