@@ -91,3 +91,28 @@ None.
 - Muan-blog: 2214/2218 matched, 52 total diffs
 
 ## Log
+
+### [SWE] 2026-04-02
+
+**Root cause:** The `wrap_bare_text_in_paragraphs` function in `src/kramdown.rs` did not recognize `<style>` as a block-level element. Its `CONTAINER_TAGS` and `BLOCK_TAGS` lists included `<script>` and `<noscript>` but were missing `<style>`. This caused the function to treat `<style>` blocks as bare text and wrap them in `<p>` tags during postprocessing, even though pulldown-cmark correctly output them as HTML blocks.
+
+A secondary fix was also applied: `unwrap_block_elements_from_p` had `UNWRAP_TAGS` that only included `"noscript"` and `"iframe"`, missing `"style"` and `"script"`.
+
+**Fix 1: Add `style` to `wrap_bare_text_in_paragraphs` tag lists**
+- Wrote tests: test_issue590_markdown_to_html_style_block_not_in_p, test_issue590_markdown_to_html_script_block_not_in_p, test_issue590_markdown_to_html_style_block_unicode (frontmatter.rs)
+- Ran tests: FAILS -- `<p><style> h2 + p {...} </style></p>` (style wrapped in p)
+- Implemented fix: added `"style"` to `CONTAINER_TAGS` and `BLOCK_TAGS` in `wrap_bare_text_in_paragraphs`
+- Ran tests: PASSES
+
+**Fix 2: Add `style` and `script` to `unwrap_block_elements_from_p` UNWRAP_TAGS**
+- Wrote tests: test_issue590_unwrap_style_from_p, test_issue590_unwrap_script_from_p, test_issue590_style_unicode_content, test_issue590_no_false_positive_style_in_text, test_issue590_inline_style_attribute_not_affected (kramdown.rs)
+- Ran tests: FAILS -- `<p><style>...` not unwrapped
+- Implemented fix: added `"style"` and `"script"` to `UNWRAP_TAGS`
+- Ran tests: PASSES
+
+**Summary:**
+- Files modified: src/kramdown.rs, src/frontmatter.rs
+- Tests added: 8 (5 unit tests for unwrap_block_elements_from_p, 3 end-to-end tests for markdown_to_html)
+- Build results: all tests pass, clippy clean, fmt clean
+- DTC DOM: 788/790 matched, 8 total diffs (matches baseline)
+- DTC build time: 0.92s (under 1.0s threshold)

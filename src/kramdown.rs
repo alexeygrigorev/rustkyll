@@ -4496,7 +4496,8 @@ pub fn mark_raw_html_for_commonmark(markdown: &str) -> String {
 /// in paragraph tags.
 fn unwrap_block_elements_from_p(html: &str) -> String {
     /// Block-level tags that should never appear inside `<p>`.
-    const UNWRAP_TAGS: &[&str] = &["noscript", "iframe"];
+    /// Issue 590: Added "style" and "script" (CommonMark Type 1 HTML blocks).
+    const UNWRAP_TAGS: &[&str] = &["noscript", "iframe", "style", "script"];
 
     /// Issue 449: Void (self-closing) tags that should be unwrapped from `<p>`
     /// when they are the sole content of the paragraph.
@@ -6620,6 +6621,7 @@ fn wrap_bare_text_in_paragraphs(html: &str) -> String {
         "dt",
         "script",
         "noscript",
+        "style",
     ];
 
     /// Block-level tags (includes void/self-closing like hr).
@@ -6664,6 +6666,7 @@ fn wrap_bare_text_in_paragraphs(html: &str) -> String {
         "script",
         "noscript",
         "iframe",
+        "style",
     ];
 
     let lines: Vec<&str> = html.split('\n').collect();
@@ -17354,6 +17357,81 @@ by <a href="/people/author.html">Author Name</a>
             result.contains("<p>text</p>"),
             "regular paragraphs should be preserved: {}",
             result
+        );
+    }
+
+    // --- Issue 590: <style> and <script> block elements unwrapped from <p> ---
+
+    #[test]
+    fn test_issue590_unwrap_style_from_p() {
+        // <style> is a block-level element and must never be inside <p>
+        let input = "<p><style>\n  h2 + p { margin-top: -1.2em; }\n</style></p>";
+        let result = unwrap_block_elements_from_p(input);
+        assert!(
+            !result.contains("<p><style>"),
+            "style should be unwrapped from <p>: {}",
+            result
+        );
+        assert!(
+            result.contains("<style>"),
+            "style element should be preserved: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue590_unwrap_script_from_p() {
+        // <script> is a block-level element and must never be inside <p>
+        let input = "<p><script>console.log('hello');\n</script></p>";
+        let result = unwrap_block_elements_from_p(input);
+        assert!(
+            !result.contains("<p><script>"),
+            "script should be unwrapped from <p>: {}",
+            result
+        );
+        assert!(
+            result.contains("<script>"),
+            "script element should be preserved: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue590_style_unicode_content() {
+        // Style block with unicode content (e.g., comments in non-ASCII)
+        let input = "<p><style>\n  /* St\u{00fc}ck: \u{00e4}\u{00f6}\u{00fc} */\n  body { color: red; }\n</style></p>";
+        let result = unwrap_block_elements_from_p(input);
+        assert!(
+            !result.contains("<p><style>"),
+            "style with unicode should be unwrapped: {}",
+            result
+        );
+        assert!(
+            result.contains("\u{00e4}\u{00f6}\u{00fc}"),
+            "unicode content should be preserved: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue590_no_false_positive_style_in_text() {
+        // Text mentioning "style" without tags should not be affected
+        let input = "<p>the style tag is useful</p>";
+        let result = unwrap_block_elements_from_p(input);
+        assert_eq!(
+            result, input,
+            "normal text mentioning style should be unchanged"
+        );
+    }
+
+    #[test]
+    fn test_issue590_inline_style_attribute_not_affected() {
+        // <span style="..."> should not be treated as block element
+        let input = r#"<p><span style="color:red">text</span></p>"#;
+        let result = unwrap_block_elements_from_p(input);
+        assert_eq!(
+            result, input,
+            "inline style attribute should not trigger unwrap"
         );
     }
 
