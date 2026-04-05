@@ -5,6 +5,35 @@
 //! pulldown-cmark's HTML output to match kramdown's behavior.
 
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+
+/// Global flag: when true, fenced code blocks get rouge-table line number wrapping.
+/// Set from `kramdown.syntax_highlighter_opts.block.line_numbers` in `_config.yml`.
+static BLOCK_LINE_NUMBERS: AtomicBool = AtomicBool::new(false);
+
+/// Global start line for block line numbers (default 1).
+/// Set from `kramdown.syntax_highlighter_opts.block.start_line` in `_config.yml`.
+static BLOCK_START_LINE: AtomicU32 = AtomicU32::new(1);
+
+/// Set whether block code should get rouge-table line number wrapping.
+pub fn set_block_line_numbers(enabled: bool) {
+    BLOCK_LINE_NUMBERS.store(enabled, Ordering::Relaxed);
+}
+
+/// Get whether block code should get rouge-table line number wrapping.
+pub fn get_block_line_numbers() -> bool {
+    BLOCK_LINE_NUMBERS.load(Ordering::Relaxed)
+}
+
+/// Set the starting line number for block code line numbers.
+pub fn set_block_start_line(start: u32) {
+    BLOCK_START_LINE.store(start, Ordering::Relaxed);
+}
+
+/// Get the starting line number for block code line numbers.
+pub fn get_block_start_line() -> u32 {
+    BLOCK_START_LINE.load(Ordering::Relaxed)
+}
 
 /// Mark existing HTML headings with a data attribute so that `add_heading_ids`
 /// will skip them. This should be called on content BEFORE markdown conversion
@@ -968,6 +997,15 @@ pub fn postprocess_with_options(html: &str, indent_lists: bool) -> String {
     // for kramdown mode. CommonMark sites should have plain <pre><code>.
     let html = if indent_lists {
         wrap_fenced_code_blocks(&html)
+    } else {
+        html
+    };
+    // Issue 588: When kramdown.syntax_highlighter_opts.block.line_numbers is true,
+    // wrap code blocks in rouge-table structure with line numbers.
+    // Must run immediately after wrap_fenced_code_blocks (before add_block_spacing)
+    // so that the <pre class="highlight"><code> pattern is still intact.
+    let html = if indent_lists && get_block_line_numbers() {
+        wrap_code_with_line_numbers(&html, get_block_start_line())
     } else {
         html
     };
@@ -6436,6 +6474,89 @@ fn wrap_fenced_code_blocks(html: &str) -> String {
             } else {
                 result.push_str("<pre><code>");
                 remaining = after_open_tag;
+            }
+        } else {
+            result.push_str(remaining);
+            break;
+        }
+    }
+
+    result
+}
+
+/// Wrap code inside `<div class="highlight"><code>...</code></pre></div></div>` blocks
+/// with rouge-table line number structure when `block.line_numbers` is enabled.
+///
+/// Transforms:
+/// ```html
+/// <div class="highlight"><code>...code...</code></pre></div></div>
+/// ```
+/// Into:
+/// ```html
+/// <div class="highlight"><code><table class="rouge-table"><tbody><tr>
+/// <td class="rouge-gutter gl"><pre class="lineno">1\n2\n3\n</pre></td>
+/// <td class="rouge-code"><pre>...code...</pre></td>
+/// </tr></tbody></table></code></div></div>
+/// ```
+fn wrap_code_with_line_numbers(html: &str, start_line: u32) -> String {
+    // After wrap_fenced_code_blocks, code blocks look like:
+    //   ...><div class="highlight"><pre class="highlight"><code>CONTENT</code></pre></div></div>
+    // Jekyll with line_numbers=true produces:
+    //   ...><div class="highlight"><code><table class="rouge-table">...</table></code></div></div>
+    // So we replace <pre class="highlight"><code>CONTENT</code></pre> with
+    //   <code><table>...</table></code>
+    let marker = "<pre class=\"highlight\"><code>";
+    let closing = "</code></pre>";
+
+    if !html.contains(marker) {
+        return html.to_string();
+    }
+
+    let mut result = String::with_capacity(html.len() + html.len() / 4);
+    let mut remaining = html;
+
+    while !remaining.is_empty() {
+        if let Some(pos) = remaining.find(marker) {
+            // Copy everything before the marker
+            result.push_str(&remaining[..pos]);
+
+            let after_marker = &remaining[pos + marker.len()..];
+
+            if let Some(close_pos) = after_marker.find(closing) {
+                let code_content = &after_marker[..close_pos];
+
+                // Count lines in the code content.
+                // The content may contain HTML spans from syntax highlighting.
+                // Count newlines to determine line count.
+                let line_count = code_content.chars().filter(|&c| c == '\n').count().max(1);
+
+                // Build line numbers string
+                let mut line_numbers = String::new();
+                for i in 0..line_count {
+                    let line_num = start_line as usize + i;
+                    line_numbers.push_str(&line_num.to_string());
+                    line_numbers.push('\n');
+                }
+
+                // Write the rouge-table structure:
+                // <code><table class="rouge-table"><tbody><tr>
+                //   <td class="rouge-gutter gl"><pre class="lineno">1\n2\n</pre></td>
+                //   <td class="rouge-code"><pre>...code...</pre></td>
+                // </tr></tbody></table></code>
+                result.push_str("<code><table class=\"rouge-table\"><tbody><tr>");
+                result.push_str("<td class=\"rouge-gutter gl\"><pre class=\"lineno\">");
+                result.push_str(&line_numbers);
+                result.push_str("</pre></td>");
+                result.push_str("<td class=\"rouge-code\"><pre>");
+                result.push_str(code_content);
+                result.push_str("</pre></td>");
+                result.push_str("</tr></tbody></table></code>");
+
+                remaining = &after_marker[close_pos + closing.len()..];
+            } else {
+                // No closing found, pass through
+                result.push_str(&remaining[..pos + marker.len()]);
+                remaining = after_marker;
             }
         } else {
             result.push_str(remaining);
@@ -18916,6 +19037,130 @@ Do It Live\n\
             result.contains(r#"<a href="https://github.com/user">@user</a>"#),
             "Markdown link should be processed. Got:\n{}",
             result
+        );
+    }
+
+    // --- Issue 588: Rouge-table line number wrapping tests ---
+
+    #[test]
+    fn test_issue588_wrap_code_with_line_numbers_3_lines() {
+        // Input as produced by wrap_fenced_code_blocks
+        let input = "<div class=\"language-bash highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code><span class=\"k\">if</span> x\n<span class=\"nb\">echo</span> y\n<span class=\"k\">fi</span>\n</code></pre></div></div>";
+        let result = wrap_code_with_line_numbers(input, 1);
+        assert!(
+            result.contains("<table class=\"rouge-table\"><tbody><tr>"),
+            "Should contain rouge-table. Got: {result}"
+        );
+        assert!(
+            result.contains(
+                "<td class=\"rouge-gutter gl\"><pre class=\"lineno\">1\n2\n3\n</pre></td>"
+            ),
+            "Should have line numbers 1-3. Got: {result}"
+        );
+        assert!(
+            result.contains("<td class=\"rouge-code\"><pre>"),
+            "Should have rouge-code td. Got: {result}"
+        );
+        // Code content should be preserved inside rouge-code
+        assert!(
+            result.contains("<span class=\"k\">if</span> x"),
+            "Code content should be preserved. Got: {result}"
+        );
+        // Should NOT have the original <pre class="highlight"> anymore
+        assert!(
+            !result.contains("<pre class=\"highlight\"><code>"),
+            "Original pre should be replaced. Got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue588_wrap_code_with_line_numbers_1_line() {
+        let input = "<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>hello\n</code></pre></div></div>";
+        let result = wrap_code_with_line_numbers(input, 1);
+        assert!(
+            result.contains("<pre class=\"lineno\">1\n</pre>"),
+            "Single line should have lineno 1. Got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue588_wrap_code_with_start_line_5() {
+        let input = "<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>a\nb\nc\n</code></pre></div></div>";
+        let result = wrap_code_with_line_numbers(input, 5);
+        assert!(
+            result.contains("<pre class=\"lineno\">5\n6\n7\n</pre>"),
+            "Should start at line 5. Got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue588_no_wrapping_when_not_called() {
+        // When wrap_code_with_line_numbers is NOT called, there should be no rouge-table
+        let input = "<pre><code class=\"language-python\">x = 1\n</code></pre>";
+        let after_fenced = wrap_fenced_code_blocks(input);
+        // The output should have the highlight wrapper but no rouge-table
+        assert!(
+            !after_fenced.contains("rouge-table"),
+            "Should not have rouge-table without line number wrapping. Got: {after_fenced}"
+        );
+    }
+
+    #[test]
+    fn test_issue588_wrapping_after_fenced_code_wrap() {
+        // Test that wrap_code_with_line_numbers works on the output of wrap_fenced_code_blocks
+        let input = "<pre><code class=\"language-bash\">echo hello\necho world\n</code></pre>";
+        let after_fenced = wrap_fenced_code_blocks(input);
+        // Verify wrap_fenced_code_blocks produced the expected format
+        assert!(
+            after_fenced.contains("<pre class=\"highlight\"><code>"),
+            "wrap_fenced_code_blocks should produce the expected format. Got: {after_fenced}"
+        );
+        let result = wrap_code_with_line_numbers(&after_fenced, 1);
+        assert!(
+            result.contains("rouge-table"),
+            "Should have rouge-table. Got: {result}"
+        );
+        assert!(
+            result.contains("<pre class=\"lineno\">1\n2\n</pre>"),
+            "Should have line numbers 1-2. Got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue588_unicode_code_content_preserved() {
+        let input = "<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>\u{4F60}\u{597D}\u{4E16}\u{754C}\n</code></pre></div></div>";
+        let result = wrap_code_with_line_numbers(input, 1);
+        assert!(
+            result.contains("\u{4F60}\u{597D}\u{4E16}\u{754C}"),
+            "Unicode content should be preserved. Got: {result}"
+        );
+        assert!(
+            result.contains("<pre class=\"lineno\">1\n</pre>"),
+            "Should have line number. Got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue588_multiple_code_blocks() {
+        let input = "<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>a\nb\n</code></pre></div></div>\n<p>text</p>\n<div class=\"highlighter-rouge\"><div class=\"highlight\"><pre class=\"highlight\"><code>x\n</code></pre></div></div>";
+        let result = wrap_code_with_line_numbers(input, 1);
+        // Both blocks should be wrapped
+        assert_eq!(
+            result.matches("rouge-table").count(),
+            2,
+            "Both code blocks should be wrapped. Got: {result}"
+        );
+    }
+
+    #[test]
+    fn test_issue588_no_wrapping_for_non_kramdown() {
+        // CommonMark mode (indent_lists=false) doesn't call wrap_fenced_code_blocks
+        // so wrap_code_with_line_numbers has nothing to transform
+        let input = "<pre><code>some code\n</code></pre>";
+        let result = postprocess_with_options(input, false);
+        assert!(
+            !result.contains("rouge-table"),
+            "CommonMark mode should not have rouge-table. Got: {result}"
         );
     }
 }

@@ -655,6 +655,24 @@ fn build_site(
     // Also enable autolink in the markdownify filter for CommonMark sites.
     rustkyll::frontmatter::set_markdownify_autolink(has_autolink);
 
+    // Issue 588: Extract kramdown.syntax_highlighter_opts.block.line_numbers
+    // and block.start_line from config for rouge-table line number wrapping.
+    if let Some(kramdown) = config.extras.get("kramdown") {
+        if let Some(sh_opts) = kramdown.get("syntax_highlighter_opts") {
+            if let Some(block) = sh_opts.get("block") {
+                if let Some(ln) = block.get("line_numbers") {
+                    let enabled = ln.as_bool().unwrap_or(false);
+                    rustkyll::kramdown::set_block_line_numbers(enabled);
+                }
+                if let Some(sl) = block.get("start_line") {
+                    if let Some(n) = sl.as_u64() {
+                        rustkyll::kramdown::set_block_start_line(n as u32);
+                    }
+                }
+            }
+        }
+    }
+
     // 7b. Pre-render collection items that contain Liquid tags (e.g.,
     // `{% include links.html %}` in posts). This ensures `item.html_content`
     // contains fully rendered HTML BEFORE the site context is built, so that
