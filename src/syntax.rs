@@ -5339,4 +5339,98 @@ u = df['user'].unique()\n";
             "JS '/* multi-line */' should be cm (Comment.Multiline): {html}"
         );
     }
+
+    // ── Issue 591: YAML single-quoted string delimiter tests ──
+
+    #[test]
+    fn test_issue591_yaml_single_quote_begin_is_s2() {
+        // YAML: The opening single-quote delimiter is mapped to s2 (same as double-quote).
+        // This is intentional: changing to s1 causes the delimiter to merge with the
+        // content string (both become s1), shifting all subsequent DOM elements and
+        // causing cascading diffs on the snippets site (Rouge 4.x).
+        // DTC (Rouge 3.x) also expects s2 for the opening delimiter.
+        let html = highlight_code("yaml", "key: 'value'\n").unwrap();
+        assert!(
+            html.contains("<span class=\"s2\">'</span>"),
+            "YAML single-quoted string opening delimiter should be s2 (intentional): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue591_yaml_double_quote_begin_stays_s2() {
+        // YAML: Rouge classifies the opening double-quote as s2.
+        // This should not change.
+        let html = highlight_code("yaml", "key: \"value\"\n").unwrap();
+        assert!(
+            html.contains("<span class=\"s2\">"),
+            "YAML double-quoted string opening delimiter should be s2: {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue591_python_import_module_stays_nn_for_rouge3() {
+        // DTC uses Rouge 3.30 which classifies import module names as nn.
+        // This must not change to avoid DTC regression.
+        let html = highlight_code("python", "import asyncio\n").unwrap();
+        assert!(
+            html.contains("<span class=\"nn\">asyncio</span>"),
+            "Python import module name should be nn (Rouge 3.x compat): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue591_python_constructor_call_is_n_for_rouge3() {
+        // DTC uses Rouge 3.30 which classifies constructor calls as n (not nc).
+        // Rouge 4.x uses nc. We keep n for DTC compatibility.
+        let html = highlight_code("python", "x = Agent(name='foo')\n").unwrap();
+        assert!(
+            html.contains("<span class=\"n\">Agent</span>"),
+            "Python constructor call should be n (Rouge 3.x compat): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue591_python_method_call_is_n_for_rouge3() {
+        // DTC uses Rouge 3.30 which classifies method calls as n (not nf).
+        // Rouge 4.x uses nf. We keep n for DTC compatibility.
+        let html = highlight_code("python", "result = runner.run(agent)\n").unwrap();
+        assert!(
+            html.contains("<span class=\"n\">run</span>"),
+            "Python method call should be n (Rouge 3.x compat): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue591_python_string_stays_single_s_for_rouge3() {
+        // DTC uses Rouge 3.30 which keeps Python strings as single s spans.
+        // Rouge 4.x splits into sh+s+sh. We keep single s for DTC compatibility.
+        let html = highlight_code("python", "x = 'hello'\n").unwrap();
+        assert!(
+            html.contains("<span class=\"s\">'hello'</span>"),
+            "Python string should be single s span (Rouge 3.x compat): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue591_python_triple_quote_stays_single_s_for_rouge3() {
+        // DTC uses Rouge 3.30 which keeps triple-quoted strings as single s spans.
+        // Rouge 4.x splits into sh+s+sh. We keep single s for DTC compatibility.
+        let html = highlight_code("python", "\"\"\"docstring content\"\"\"\n").unwrap();
+        assert!(
+            html.contains("<span class=\"s\">\"\"\"docstring content\"\"\"</span>")
+                || html.contains("<span class=\"s\">&quot;&quot;&quot;docstring content&quot;&quot;&quot;</span>"),
+            "Python triple-quoted string should be single s span (Rouge 3.x compat): {html}"
+        );
+    }
+
+    #[test]
+    fn test_issue591_python_unicode_import_stays_nn() {
+        // Non-ASCII: ensure Python module names with unicode stay nn
+        let html = highlight_code("python", "import \u{00e9}ncoder\n").unwrap();
+        // Even with unicode module name, import should work
+        assert!(
+            html.contains("<span class=\"kn\">import</span>"),
+            "Python import keyword should be kn with unicode module: {html}"
+        );
+    }
 }

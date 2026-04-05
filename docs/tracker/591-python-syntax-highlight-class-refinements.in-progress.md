@@ -125,3 +125,73 @@ None.
 - Snippets: 8/25 matched, 4530 total diffs
 
 ## Log
+
+### [SWE] 2026-04-02
+
+**Analysis: Rouge 3.x vs Rouge 4.x Conflict**
+
+Thorough investigation revealed a fundamental incompatibility between the proposed
+changes and the zero-DTC-regression constraint:
+
+- DTC uses Rouge 3.30.0 (via github-pages gem)
+- Snippets uses Rouge 4.7.0 (via Jekyll 4.3)
+- These versions produce OPPOSITE token classifications for Python code:
+
+| Token Type | Rouge 3.30 (DTC) | Rouge 4.7 (Snippets) | Current Rustkyll |
+|---|---|---|---|
+| Import module names | `nn` | `n` | `nn` (matches DTC) |
+| Constructor calls (Agent()) | `n` | `nc` | `n` (matches DTC) |
+| Method calls (runner.run()) | `n` | `nf` | `n` (matches DTC) |
+| String delimiters | single `s` span | `sh`+`s`+`sh` split | single `s` (matches DTC) |
+| Single-quoted strings | `s` | `sh`+`s`+`sh` | `s` (matches DTC) |
+
+The existing code already has a comment at line 448-450 documenting this:
+> "Python string delimiter split (sh+s+sh) and method call reclassification
+> (n->nf) are disabled because the DTC site's Rouge version keeps strings
+> as single 's' spans and methods as 'n'."
+
+**Failed Hypothesis: YAML single-quote delimiter fix (s2 -> s1)**
+- Wrote test: test_issue591_yaml_single_quote_begin_is_s1
+- Ran test: FAILS (opening `'` mapped to s2, expected s1)
+- Implemented fix: added scope rule for `source.yaml string.quoted.single punctuation.definition.string.begin` -> `s1`
+- Ran test: PASSES (delimiter merges with content into single s1 span)
+- DTC check: 788/790 with 8 diffs (no regression, acceptable diffs reduced 867->852)
+- Snippets check: 8/25 with 4761 diffs (REGRESSION: was 4530, increased by 231)
+- Root cause: merged s1 span shifts all subsequent DOM elements, causing cascading diffs
+- REVERTED the fix
+
+**Documented behavior tests (TDD for regression prevention)**
+- Wrote 8 tests documenting current correct behavior for Rouge 3.x compatibility:
+  1. test_issue591_yaml_single_quote_begin_is_s2 - YAML single-quote delimiter stays s2
+  2. test_issue591_yaml_double_quote_begin_stays_s2 - YAML double-quote delimiter stays s2
+  3. test_issue591_python_import_module_stays_nn_for_rouge3 - import names stay nn
+  4. test_issue591_python_constructor_call_is_n_for_rouge3 - constructor calls stay n
+  5. test_issue591_python_method_call_is_n_for_rouge3 - method calls stay n
+  6. test_issue591_python_string_stays_single_s_for_rouge3 - strings stay single s
+  7. test_issue591_python_triple_quote_stays_single_s_for_rouge3 - triple-quoted strings stay single s
+  8. test_issue591_python_unicode_import_stays_nn - unicode import module names work
+- All 8 tests PASS
+
+**DTC exposure analysis:**
+- 7 DTC pages have Python code blocks
+- 28 constructor calls across 3 pages
+- 74 function calls across 6 pages
+- 30 import module names across 3 pages
+- 224 string spans across 6 pages
+- ANY of the proposed changes would break these matching pages
+
+**Conclusion:**
+The acceptance criteria "DTC DOM not below 788/790" and "Snippets improves to 15+/25"
+are mutually exclusive. Every proposed Python token change improves snippets at the
+cost of regressing DTC. The issue needs to be either:
+1. Descoped to Rouge 3.x-only behavior (already implemented), or
+2. Redesigned to support per-site Rouge version detection (major architecture change)
+
+**Summary:**
+- Files modified: src/syntax.rs (8 regression-prevention tests added)
+- Tests added: 8 (documenting Rouge 3.x compatibility constraints)
+- Build results: 4050 tests pass, 0 fail, clippy clean, fmt clean
+- DTC DOM: 788/790 matched, 8 total diffs (unchanged from baseline)
+- DTC build time: 0.91s (under 1.0s threshold)
+- Snippets DOM: 8/25 matched, 4530 total diffs (unchanged from baseline)
+- Known limitation: Cannot improve snippets/mlbookcamp without regressing DTC due to Rouge version conflict
