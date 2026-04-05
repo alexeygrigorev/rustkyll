@@ -112,6 +112,55 @@ pub fn get_markdownify_autolink() -> bool {
     MARKDOWNIFY_AUTOLINK.load(Ordering::Relaxed)
 }
 
+/// Configuration for the `markdownify` filter, allowing tests to pass
+/// explicit settings instead of relying on global `AtomicBool` flags
+/// (which race when tests run in parallel).
+#[derive(Debug, Clone, Copy)]
+pub struct MarkdownifyConfig {
+    pub code_classes: bool,
+    pub indent_lists: bool,
+    pub smart_punctuation: bool,
+    pub hardbreaks: bool,
+    pub autolink: bool,
+}
+
+impl MarkdownifyConfig {
+    /// Read the current values from the global flags (for production use).
+    pub fn from_globals() -> Self {
+        Self {
+            code_classes: get_markdownify_code_classes(),
+            indent_lists: get_markdownify_indent_lists(),
+            smart_punctuation: get_markdownify_smart_punctuation(),
+            hardbreaks: get_markdownify_hardbreaks(),
+            autolink: get_markdownify_autolink(),
+        }
+    }
+
+    /// Kramdown defaults (code classes on, indent on, smart punctuation on,
+    /// no hardbreaks, no autolink).
+    pub fn kramdown() -> Self {
+        Self {
+            code_classes: true,
+            indent_lists: true,
+            smart_punctuation: true,
+            hardbreaks: false,
+            autolink: false,
+        }
+    }
+
+    /// CommonMark defaults (no code classes, no indent, no smart punctuation,
+    /// no hardbreaks, autolink on).
+    pub fn commonmark() -> Self {
+        Self {
+            code_classes: false,
+            indent_lists: false,
+            smart_punctuation: false,
+            hardbreaks: false,
+            autolink: true,
+        }
+    }
+}
+
 /// Errors that can occur when parsing a document.
 #[derive(Debug, thiserror::Error)]
 pub enum ParseError {
@@ -1175,12 +1224,23 @@ pub fn normalize_br_to_html5(html: &str) -> String {
 /// newline after block tags, but that's only needed for page body content.
 /// In a filter context the template supplies the trailing newline.
 pub fn markdown_to_html_for_filter(markdown: &str) -> String {
+    markdown_to_html_for_filter_with_config(markdown, MarkdownifyConfig::from_globals())
+}
+
+/// Same as [`markdown_to_html_for_filter`] but takes an explicit
+/// [`MarkdownifyConfig`] instead of reading global flags.  This is the
+/// preferred entry-point in tests so that parallel test threads do not race
+/// on the shared `AtomicBool` globals.
+pub fn markdown_to_html_for_filter_with_config(
+    markdown: &str,
+    config: MarkdownifyConfig,
+) -> String {
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TABLES);
     options.insert(Options::ENABLE_STRIKETHROUGH);
     // Issue 560: Only enable smart punctuation when the site uses kramdown.
     // CommonMarkGhPages does not enable smart punctuation by default.
-    if get_markdownify_smart_punctuation() {
+    if config.smart_punctuation {
         options.insert(Options::ENABLE_SMART_PUNCTUATION);
     }
     // Issue 503: Enable footnotes so [^1] references and [^1]: definitions are processed.
@@ -1260,7 +1320,7 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     let markdown = protect_consecutive_single_quotes(&markdown);
 
     // Auto-link bare URLs if the site enables the autolink extension.
-    let markdown = if get_markdownify_autolink() {
+    let markdown = if config.autolink {
         autolink_bare_urls(&markdown)
     } else {
         markdown
@@ -1272,10 +1332,10 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
     let (protected, url_non_ascii_saved) = protect_non_ascii_in_link_urls(&protected);
 
     let parser = Parser::new_ext(&protected, options);
-    let add_code_classes = get_markdownify_code_classes();
+    let add_code_classes = config.code_classes;
     // Issue 560: Pass HARDBREAKS flag to event processing so soft breaks
     // become <br> elements when the site uses CommonMark with HARDBREAKS.
-    let enable_hardbreaks = get_markdownify_hardbreaks();
+    let enable_hardbreaks = config.hardbreaks;
     let events = add_inline_code_class_to_events_impl(
         parser.into_offset_iter(),
         &protected,
@@ -1346,7 +1406,7 @@ pub fn markdown_to_html_for_filter(markdown: &str) -> String {
 
     // Issue 314: Use the global indent_lists flag so CommonMark sites
     // produce unindented <li> elements in the markdownify filter path too.
-    let indent_lists = get_markdownify_indent_lists();
+    let indent_lists = config.indent_lists;
     let html_output =
         crate::kramdown::postprocess_for_filter_with_options(&html_output, indent_lists);
 

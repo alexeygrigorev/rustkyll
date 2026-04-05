@@ -706,16 +706,21 @@ mod tests {
 
     // --- Issue 314: markdownify list indentation for CommonMark sites ---
 
-    /// Test both CommonMark (no indent) and kramdown (indent) modes in a single
-    /// test to avoid race conditions from the global AtomicBool in parallel tests.
+    /// Test both CommonMark (no indent) and kramdown (indent) modes using
+    /// explicit config to avoid race conditions in parallel tests.
     /// Also tests CJK content with emoji.
     #[test]
     fn test_issue314_markdownify_list_indent_modes() {
+        use crate::frontmatter::MarkdownifyConfig;
+
         // --- CommonMark mode: no indentation ---
-        crate::frontmatter::set_markdownify_indent_lists(false);
+        let cm = MarkdownifyConfig {
+            indent_lists: false,
+            ..MarkdownifyConfig::kramdown()
+        };
 
         let input = "- Item 1\n- Item 2\n";
-        let html = crate::frontmatter::markdown_to_html_for_filter(input);
+        let html = crate::frontmatter::markdown_to_html_for_filter_with_config(input, cm);
         assert!(
             !html.contains("  <li>"),
             "CommonMark markdownify should NOT indent <li>. Got: {:?}",
@@ -729,7 +734,7 @@ mod tests {
 
         // CJK + emoji content in CommonMark mode
         let input_cjk = "- \u{4F60}\u{597D}\u{4E16}\u{754C}\n- \u{1F600} Emoji item\n";
-        let html_cjk = crate::frontmatter::markdown_to_html_for_filter(input_cjk);
+        let html_cjk = crate::frontmatter::markdown_to_html_for_filter_with_config(input_cjk, cm);
         assert!(
             !html_cjk.contains("  <li>"),
             "CommonMark markdownify with CJK should NOT indent <li>. Got: {:?}",
@@ -742,9 +747,9 @@ mod tests {
         );
 
         // --- Kramdown mode: with indentation ---
-        crate::frontmatter::set_markdownify_indent_lists(true);
+        let kd = MarkdownifyConfig::kramdown();
 
-        let html_kramdown = crate::frontmatter::markdown_to_html_for_filter(input);
+        let html_kramdown = crate::frontmatter::markdown_to_html_for_filter_with_config(input, kd);
         assert!(
             html_kramdown.contains("  <li>"),
             "Kramdown markdownify should indent <li>. Got: {:?}",
@@ -752,20 +757,21 @@ mod tests {
         );
     }
 
-    // --- Markdownify global mode tests (combined to avoid race conditions) ---
+    // --- Markdownify config-based mode tests (no global state, race-free) ---
 
-    /// Tests inline code class, autolink, and list indentation mode switching.
-    /// All global flag manipulations are in a single test to prevent data races
-    /// when tests run in parallel.
+    /// Tests inline code class, autolink, and list indentation mode switching
+    /// using explicit `MarkdownifyConfig` instead of global flags, so this test
+    /// is safe to run in parallel with any other test.
     #[test]
     fn test_markdownify_global_mode_switching() {
+        use crate::frontmatter::MarkdownifyConfig;
+
         // === CommonMark mode ===
-        crate::frontmatter::set_markdownify_code_classes(false);
-        crate::frontmatter::set_markdownify_indent_lists(false);
-        crate::frontmatter::set_markdownify_autolink(true);
+        let cm_config = MarkdownifyConfig::commonmark();
 
         // Inline code should NOT have highlighter-rouge
-        let html = crate::frontmatter::markdown_to_html_for_filter("`some_code`");
+        let html =
+            crate::frontmatter::markdown_to_html_for_filter_with_config("`some_code`", cm_config);
         assert!(
             html.contains("<code>some_code</code>"),
             "CommonMark mode: inline code should have bare <code> without class. Got: {:?}",
@@ -778,7 +784,10 @@ mod tests {
         );
 
         // CJK inline code in CommonMark mode
-        let html_cjk = crate::frontmatter::markdown_to_html_for_filter("`\u{8A2D}\u{5B9A}`");
+        let html_cjk = crate::frontmatter::markdown_to_html_for_filter_with_config(
+            "`\u{8A2D}\u{5B9A}`",
+            cm_config,
+        );
         assert!(
             !html_cjk.contains("highlighter-rouge"),
             "CommonMark mode: CJK inline code should NOT have highlighter-rouge. Got: {:?}",
@@ -786,8 +795,10 @@ mod tests {
         );
 
         // Autolink should work
-        let html_auto =
-            crate::frontmatter::markdown_to_html_for_filter("Visit https://example.com for more.");
+        let html_auto = crate::frontmatter::markdown_to_html_for_filter_with_config(
+            "Visit https://example.com for more.",
+            cm_config,
+        );
         assert!(
             html_auto.contains("<a href=\"https://example.com\">"),
             "Autolink enabled: bare URL should be linked. Got: {:?}",
@@ -795,12 +806,11 @@ mod tests {
         );
 
         // === Kramdown mode ===
-        crate::frontmatter::set_markdownify_code_classes(true);
-        crate::frontmatter::set_markdownify_indent_lists(true);
-        crate::frontmatter::set_markdownify_autolink(false);
+        let kd_config = MarkdownifyConfig::kramdown();
 
         // Inline code SHOULD have highlighter-rouge
-        let html_kd = crate::frontmatter::markdown_to_html_for_filter("`some_code`");
+        let html_kd =
+            crate::frontmatter::markdown_to_html_for_filter_with_config("`some_code`", kd_config);
         assert!(
             html_kd.contains("<code class=\"language-plaintext highlighter-rouge\">some_code</code>"),
             "Kramdown mode: inline code should have language-plaintext highlighter-rouge. Got: {:?}",
@@ -808,8 +818,10 @@ mod tests {
         );
 
         // Autolink should NOT work
-        let html_kd_auto =
-            crate::frontmatter::markdown_to_html_for_filter("Visit https://example.com for more.");
+        let html_kd_auto = crate::frontmatter::markdown_to_html_for_filter_with_config(
+            "Visit https://example.com for more.",
+            kd_config,
+        );
         assert!(
             !html_kd_auto.contains("<a href=\"https://example.com\">"),
             "Autolink disabled: bare URL should NOT be linked. Got: {:?}",
@@ -1574,14 +1586,13 @@ mod tests {
 
     #[test]
     fn test_issue560_commonmark_no_smart_ellipsis_in_markdownify() {
+        use crate::frontmatter::MarkdownifyConfig;
         // When the site uses CommonMark (not kramdown), the markdownify filter
         // should NOT convert ... to ellipsis character.
-        // Set up CommonMark mode (no smart punctuation, no code classes)
-        crate::frontmatter::set_markdownify_smart_punctuation(false);
-        crate::frontmatter::set_markdownify_code_classes(false);
-        crate::frontmatter::set_markdownify_indent_lists(false);
+        let cm = MarkdownifyConfig::commonmark();
 
-        let html = crate::frontmatter::markdown_to_html_for_filter("Wait for it...\n");
+        let html =
+            crate::frontmatter::markdown_to_html_for_filter_with_config("Wait for it...\n", cm);
         assert!(
             html.contains("..."),
             "CommonMark markdownify should preserve literal '...' not convert to ellipsis. Got: {html}"
@@ -1590,28 +1601,19 @@ mod tests {
             !html.contains('\u{2026}'),
             "CommonMark markdownify should NOT produce ellipsis character. Got: {html}"
         );
-
-        // Restore defaults
-        crate::frontmatter::set_markdownify_smart_punctuation(true);
-        crate::frontmatter::set_markdownify_code_classes(true);
-        crate::frontmatter::set_markdownify_indent_lists(true);
     }
 
     #[test]
     fn test_issue560_commonmark_no_smart_ellipsis_unicode() {
+        use crate::frontmatter::MarkdownifyConfig;
         // Unicode content with ellipsis in CommonMark mode
-        crate::frontmatter::set_markdownify_smart_punctuation(false);
-        crate::frontmatter::set_markdownify_code_classes(false);
+        let cm = MarkdownifyConfig::commonmark();
 
-        let html = crate::frontmatter::markdown_to_html_for_filter("待って...\n");
+        let html = crate::frontmatter::markdown_to_html_for_filter_with_config("待って...\n", cm);
         assert!(
             html.contains("..."),
             "CommonMark markdownify should preserve literal '...' in Unicode context. Got: {html}"
         );
-
-        // Restore defaults
-        crate::frontmatter::set_markdownify_smart_punctuation(true);
-        crate::frontmatter::set_markdownify_code_classes(true);
     }
 
     // ========================================================================
