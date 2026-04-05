@@ -374,6 +374,37 @@ pub fn build_site_context(
         );
     }
 
+    // site.collections -- an iterable array of collection objects, each with
+    // .label (name), .docs (array of items), and .output (bool).
+    // Jekyll exposes this so templates can iterate across all collections.
+    {
+        let mut sorted_names: Vec<&String> = collections.keys().collect();
+        sorted_names.sort();
+        let mut collections_array: Vec<LiquidValue> = Vec::with_capacity(sorted_names.len());
+        for name in sorted_names {
+            let mut coll_obj = Object::new();
+            coll_obj.insert("label".into(), LiquidValue::scalar(name.clone()));
+
+            // Get the output setting from config; default to true for posts, false otherwise
+            let output = config
+                .collections
+                .get(name)
+                .map(|c| c.output)
+                .unwrap_or(name == "posts");
+            coll_obj.insert("output".into(), LiquidValue::scalar(output));
+
+            // .docs is the same array as site.<collection_name>
+            let docs = site
+                .get(name.as_str())
+                .cloned()
+                .unwrap_or(LiquidValue::Array(vec![]));
+            coll_obj.insert("docs".into(), docs);
+
+            collections_array.push(LiquidValue::Object(coll_obj));
+        }
+        site.insert("collections".into(), LiquidValue::Array(collections_array));
+    }
+
     // site.categories and site.tags -- built from posts only (Jekyll behavior).
     // Reuse already-converted Liquid values to avoid redundant conversion.
     let (categories_map, tags_map) = if let Some(ref liquid_posts) = posts_liquid {

@@ -155,3 +155,23 @@ None.
 3. This will preserve Bengali/Hindi viramas and emoji while still stripping smart quotes, em-dashes, en-dashes, non-breaking spaces, and other Unicode punctuation/symbols
 4. DTC DOM must remain at 790/790 (or improve)
 5. Consider using the `unicode-general-category` crate or manual category checks
+
+### [SWE] 2026-04-02 (second attempt)
+
+**Fix 1: Unicode category-based slugify filter (replaces first attempt's `!ch.is_ascii()` approach)**
+
+- Wrote 8 tests (TDD): test_slugify_bengali_virama_preserved, test_slugify_hindi_virama_preserved, test_slugify_devanagari_vowel_signs_preserved, test_slugify_emoji_preserved, test_slugify_ascii_punctuation_still_stripped, test_slugify_emdash_still_stripped, test_slugify_smart_quotes_still_stripped, test_slugify_non_breaking_space_stripped
+- Ran tests: FAILS -- Bengali virama stripped (got `���কষণাবেক��ণকারী` vs expected `রক্ষ���াবেক্ষণকারী`), emoji stripped (got `community-is-the--of-open-source` vs expected with heart emoji)
+- Implemented fix: added `is_unicode_mark_or_emoji()` function with explicit Unicode Mark (Mn, Mc, Me) ranges and emoji ranges. Used in slugify filter as `ch.is_alphanumeric() || ... || is_unicode_mark_or_emoji(ch)`.
+- Key difference from first attempt: does NOT use `!ch.is_ascii()` which would keep smart quotes, em-dashes, etc. Instead checks specific Unicode categories.
+- Ran tests: PASSES -- all 8 new tests pass, all existing tests pass
+- Did NOT change test_slugify_cyrillic_emdash or test_heading_id_numeric_entity (their expectations were correct)
+
+**Summary:**
+- Files modified: src/kramdown.rs (added is_unicode_mark_or_emoji() helper + 8 new tests)
+- Tests added: 8 unit tests covering Bengali virama, Hindi virama, Devanagari vowel signs, emoji, ASCII punctuation stripping, em-dash stripping, smart quote stripping, non-breaking space stripping
+- Build results: 4006 lib tests pass, 0 fail; clippy clean; fmt clean
+- DTC DOM: 788/790 matched, 8 total diffs (same as baseline -- verified by stashing changes and rebuilding)
+- DTC build time: 0.922s (under 1.0s threshold)
+- basic_generate_id() NOT changed (intentionally ASCII-only, as specified)
+- No new dependencies added

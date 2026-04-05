@@ -5822,15 +5822,250 @@ fn decode_entity(entity: &str) -> Option<char> {
 ///
 /// `\p{Word}` matches Unicode letters, digits, and underscore.
 /// This preserves Cyrillic, Arabic, accented Latin, CJK, etc. in heading IDs.
+/// Check if a character is a Unicode Mark (Mn, Mc, Me) or emoji.
+///
+/// Unicode Marks include combining diacritical marks, viramas, vowel signs, etc.
+/// These are needed for correct rendering of Indic scripts (Bengali, Hindi, etc.)
+/// Ruby's kramdown preserves these via `\p{Word}` which matches `[\p{L}\p{N}\p{M}\p{Pc}]`.
+///
+/// Emoji are preserved to match Ruby's byte-level behavior (non-ASCII bytes >= 128 kept).
+fn is_unicode_mark_or_emoji(ch: char) -> bool {
+    let cp = ch as u32;
+
+    // Unicode Mark categories (Mn, Mc, Me) - non-overlapping ranges
+    #[allow(clippy::match_like_matches_macro)]
+    let is_mark = match cp {
+        // Combining Diacritical Marks
+        0x0300..=0x036F => true,
+        // Cyrillic combining marks
+        0x0483..=0x0489 => true,
+        // Hebrew marks
+        0x0591..=0x05BD | 0x05BF | 0x05C1..=0x05C2 | 0x05C4..=0x05C5 | 0x05C7 => true,
+        // Arabic marks
+        0x0610..=0x061A
+        | 0x064B..=0x065F
+        | 0x0670
+        | 0x06D6..=0x06DC
+        | 0x06DF..=0x06E4
+        | 0x06E7..=0x06E8
+        | 0x06EA..=0x06ED => true,
+        // Syriac
+        0x0711 | 0x0730..=0x074A => true,
+        // Thaana
+        0x07A6..=0x07B0 => true,
+        // NKo
+        0x07EB..=0x07F3 | 0x07FD => true,
+        // Samaritan
+        0x0816..=0x0819 | 0x081B..=0x0823 | 0x0825..=0x0827 | 0x0829..=0x082D => true,
+        // Mandaic
+        0x0859..=0x085B => true,
+        // Devanagari (virama U+094D, vowel signs, nukta, etc.)
+        0x0900..=0x0903 | 0x093A..=0x093C | 0x093E..=0x094F | 0x0951..=0x0957 | 0x0962..=0x0963 => {
+            true
+        }
+        // Bengali (virama U+09CD, vowel signs, nukta, etc.)
+        0x0981..=0x0983
+        | 0x09BC
+        | 0x09BE..=0x09C4
+        | 0x09C7..=0x09C8
+        | 0x09CB..=0x09CD
+        | 0x09D7
+        | 0x09E2..=0x09E3
+        | 0x09FE => true,
+        // Gurmukhi
+        0x0A01..=0x0A03
+        | 0x0A3C
+        | 0x0A3E..=0x0A42
+        | 0x0A47..=0x0A48
+        | 0x0A4B..=0x0A4D
+        | 0x0A51
+        | 0x0A70..=0x0A71
+        | 0x0A75 => true,
+        // Gujarati
+        0x0A81..=0x0A83
+        | 0x0ABC
+        | 0x0ABE..=0x0AC5
+        | 0x0AC7..=0x0AC9
+        | 0x0ACB..=0x0ACD
+        | 0x0AE2..=0x0AE3 => true,
+        // Oriya
+        0x0B01..=0x0B03
+        | 0x0B3C
+        | 0x0B3E..=0x0B44
+        | 0x0B47..=0x0B48
+        | 0x0B4B..=0x0B4D
+        | 0x0B55..=0x0B57
+        | 0x0B62..=0x0B63 => true,
+        // Tamil
+        0x0B82 | 0x0BBE..=0x0BC2 | 0x0BC6..=0x0BC8 | 0x0BCA..=0x0BCD | 0x0BD7 => true,
+        // Telugu
+        0x0C00..=0x0C04
+        | 0x0C3C
+        | 0x0C3E..=0x0C44
+        | 0x0C46..=0x0C48
+        | 0x0C4A..=0x0C4D
+        | 0x0C55..=0x0C56
+        | 0x0C62..=0x0C63 => true,
+        // Kannada
+        0x0C81..=0x0C83
+        | 0x0CBC
+        | 0x0CBE..=0x0CC4
+        | 0x0CC6..=0x0CC8
+        | 0x0CCA..=0x0CCD
+        | 0x0CD5..=0x0CD6
+        | 0x0CE2..=0x0CE3 => true,
+        // Malayalam
+        0x0D00..=0x0D03
+        | 0x0D3B..=0x0D3C
+        | 0x0D3E..=0x0D44
+        | 0x0D46..=0x0D48
+        | 0x0D4A..=0x0D4D
+        | 0x0D57
+        | 0x0D62..=0x0D63 => true,
+        // Sinhala
+        0x0D81..=0x0D83 | 0x0DCA | 0x0DCF..=0x0DD4 | 0x0DD6 | 0x0DD8..=0x0DDF | 0x0DF2..=0x0DF3 => {
+            true
+        }
+        // Thai
+        0x0E31 | 0x0E34..=0x0E3A | 0x0E47..=0x0E4E => true,
+        // Lao
+        0x0EB1 | 0x0EB4..=0x0EBC | 0x0EC8..=0x0ECE => true,
+        // Tibetan
+        0x0F18..=0x0F19
+        | 0x0F35
+        | 0x0F37
+        | 0x0F39
+        | 0x0F3E..=0x0F3F
+        | 0x0F71..=0x0F84
+        | 0x0F86..=0x0F87
+        | 0x0F8D..=0x0F97
+        | 0x0F99..=0x0FBC
+        | 0x0FC6 => true,
+        // Myanmar
+        0x102B..=0x103E
+        | 0x1056..=0x1059
+        | 0x105E..=0x1060
+        | 0x1062..=0x1064
+        | 0x1067..=0x106D
+        | 0x1071..=0x1074
+        | 0x1082..=0x108D
+        | 0x108F
+        | 0x109A..=0x109D => true,
+        // Hangul Jamo (combining)
+        0x1160..=0x11FF => true,
+        // Ethiopic combining
+        0x135D..=0x135F => true,
+        // Tagalog etc.
+        0x1712..=0x1715 | 0x1732..=0x1734 | 0x1752..=0x1753 | 0x1772..=0x1773 => true,
+        // Khmer
+        0x17B4..=0x17D3 | 0x17DD => true,
+        // Mongolian
+        0x180B..=0x180D | 0x180F | 0x1885..=0x1886 | 0x18A9 => true,
+        // Combining Diacritical Marks Extended
+        0x1AB0..=0x1AFF => true,
+        // Supplementary combining marks (Vedic Extensions etc.)
+        0x1CD0..=0x1CF9 => true,
+        // Combining Diacritical Marks Supplement
+        0x1DC0..=0x1DFF => true,
+        // Zero-width non-joiner / joiner (used in emoji sequences and Indic)
+        0x200C..=0x200D => true,
+        // Combining Diacritical Marks for Symbols
+        0x20D0..=0x20FF => true,
+        // Variation selectors (BMP)
+        0xFE00..=0xFE0F => true,
+        // Combining Half Marks
+        0xFE20..=0xFE2F => true,
+        // Variation Selectors Supplement
+        0xE0100..=0xE01EF => true,
+        // SMP combining marks (various scripts)
+        0x101FD | 0x102E0 | 0x10376..=0x1037A => true,
+        0x10A01..=0x10A03 | 0x10A05..=0x10A06 | 0x10A0C..=0x10A0F | 0x10A38..=0x10A3A | 0x10A3F => {
+            true
+        }
+        0x10AE5..=0x10AE6 => true,
+        0x10D24..=0x10D27 => true,
+        0x10EAB..=0x10EAC => true,
+        0x10EFD..=0x10EFF => true,
+        0x10F46..=0x10F50 => true,
+        0x11000..=0x11046 | 0x11070 | 0x11073..=0x11074 | 0x1107F..=0x110BA | 0x110C2 => true,
+        0x11100..=0x11134 | 0x11145..=0x11146 | 0x11173 => true,
+        0x11180..=0x111C0 | 0x111C9..=0x111CC | 0x111CE..=0x111CF => true,
+        0x1122C..=0x11237 | 0x1123E | 0x11241 => true,
+        0x112DF..=0x112EA => true,
+        0x11300..=0x11303
+        | 0x1133B..=0x1133C
+        | 0x1133E..=0x11344
+        | 0x11347..=0x11348
+        | 0x1134B..=0x1134D
+        | 0x11357
+        | 0x11362..=0x11363
+        | 0x11366..=0x1136C
+        | 0x11370..=0x11374 => true,
+        0x11435..=0x11446 | 0x1145E => true,
+        0x114B0..=0x114C3 => true,
+        0x115AF..=0x115B5 | 0x115B8..=0x115C0 | 0x115DC..=0x115DD => true,
+        _ => false,
+    };
+
+    if is_mark {
+        return true;
+    }
+
+    // Emoji detection: non-overlapping broad ranges
+    matches!(
+        cp,
+        // Misc technical symbols used as emoji
+        0x231A..=0x231B
+            | 0x23E9..=0x23F3
+            | 0x23F8..=0x23FA
+            // Geometric shapes used as emoji
+            | 0x25AA..=0x25AB
+            | 0x25B6
+            | 0x25C0
+            | 0x25FB..=0x25FE
+            // Misc symbols (hearts, stars, weather, etc.)
+            | 0x2600..=0x26FF
+            // Dingbats
+            | 0x2700..=0x27BF
+            // Supplemental arrows
+            | 0x2934..=0x2935
+            // Misc symbols
+            | 0x2B05..=0x2B07
+            | 0x2B1B..=0x2B1C
+            | 0x2B50
+            | 0x2B55
+            // CJK symbols used as emoji
+            | 0x3030
+            | 0x303D
+            | 0x3297
+            | 0x3299
+            // Regional indicators
+            | 0x1F1E0..=0x1F1FF
+            // Misc Symbols and Pictographs, Emoticons, Transport, etc.
+            | 0x1F300..=0x1F9FF
+            // Chess Symbols
+            | 0x1FA00..=0x1FA6F
+            // Symbols and Pictographs Extended-A
+            | 0x1FA70..=0x1FAFF
+    )
+}
+
 fn slugify(text: &str) -> String {
     // Step 1: Downcase (Unicode-aware)
     let lower = text.to_lowercase();
 
     // Step 2: Keep only Unicode word chars (letters, digits, underscore), hyphens,
-    // spaces, and tabs. Strip everything else (punctuation, symbols, etc.)
+    // spaces, tabs, combining marks, and emoji. Strip everything else (punctuation, symbols, etc.)
+    // This matches Ruby's kramdown `\p{Word}` which is `[\p{L}\p{N}\p{M}\p{Pc}]`.
     let mut slug = String::with_capacity(lower.len());
     for ch in lower.chars() {
-        if ch.is_alphanumeric() || ch == '_' || ch == '-' || ch == ' ' || ch == '\t' {
+        if ch.is_alphanumeric()
+            || ch == '_'
+            || ch == '-'
+            || ch == ' '
+            || ch == '\t'
+            || is_unicode_mark_or_emoji(ch)
+        {
             slug.push(ch);
         }
     }
@@ -8933,6 +9168,60 @@ mod tests {
     #[test]
     fn test_slugify_gfm_accented_latin() {
         assert_eq!(slugify("café au lait"), "café-au-lait");
+    }
+
+    #[test]
+    fn test_slugify_bengali_virama_preserved() {
+        // Bengali virama U+09CD must be preserved in conjuncts
+        assert_eq!(
+            slugify("রক্ষণাবেক্ষণকারী বলতে কী বোঝায়?"),
+            "রক্ষণাবেক্ষণকারী-বলতে-কী-বোঝায়"
+        );
+    }
+
+    #[test]
+    fn test_slugify_hindi_virama_preserved() {
+        // Hindi virama U+094D must be preserved in conjuncts
+        assert_eq!(slugify("खुले स्रोत का क्या"), "खुले-स्रोत-का-क्या");
+    }
+
+    #[test]
+    fn test_slugify_devanagari_vowel_signs_preserved() {
+        // Devanagari vowel signs (Mc category) must be preserved
+        assert_eq!(slugify("प्रक्रिया शुरू करें"), "प्रक्रिया-शुरू-करें");
+    }
+
+    #[test]
+    fn test_slugify_emoji_preserved() {
+        // Emoji characters should be preserved in slugs
+        assert_eq!(
+            slugify("Community is the \u{2764}\u{FE0F} of open source"),
+            "community-is-the-\u{2764}\u{FE0F}-of-open-source"
+        );
+    }
+
+    #[test]
+    fn test_slugify_ascii_punctuation_still_stripped() {
+        // ASCII punctuation must still be stripped
+        assert_eq!(slugify("hello@world#test"), "helloworldtest");
+    }
+
+    #[test]
+    fn test_slugify_emdash_still_stripped() {
+        // Em-dash U+2014 must be stripped (Unicode punctuation, not word char)
+        assert_eq!(slugify("hello — world"), "hello--world");
+    }
+
+    #[test]
+    fn test_slugify_smart_quotes_still_stripped() {
+        // Smart quotes U+2019 must be stripped (Unicode punctuation)
+        assert_eq!(slugify("it\u{2019}s a test"), "its-a-test");
+    }
+
+    #[test]
+    fn test_slugify_non_breaking_space_stripped() {
+        // Non-breaking space U+00A0 must be stripped
+        assert_eq!(slugify("pragmatic\u{00A0}ai"), "pragmaticai");
     }
 
     // --- Unique ID tests ---
