@@ -1639,17 +1639,21 @@ fn convert_tasklist_to_kramdown(html: &str) -> String {
         r#"<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox""#,
     );
 
-    // Add class="task-list" to <ul> elements that contain task list items.
-    // We look for <ul>\n followed by a task-list-item <li>.
-    result = result.replace(
-        "<ul>\n<li class=\"task-list-item\">",
-        "<ul class=\"task-list\">\n<li class=\"task-list-item\">",
-    );
-    // Also handle indented variant (e.g., from add_block_spacing)
-    result = result.replace(
-        "<ul>\n  <li class=\"task-list-item\">",
-        "<ul class=\"task-list\">\n  <li class=\"task-list-item\">",
-    );
+    // Add class="task-list" to ALL <ul> elements that contain task list items.
+    // Issue 589: Must handle any indentation level for nested task lists.
+    // We look for <ul>\n followed by optional whitespace, then <li class="task-list-item">.
+    {
+        use std::sync::LazyLock;
+        static TASK_UL_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
+            regex::Regex::new(r#"<ul>\n(\s*)<li class="task-list-item">"#).unwrap()
+        });
+        result = TASK_UL_RE
+            .replace_all(&result, |caps: &regex::Captures| {
+                let indent = &caps[1];
+                format!("<ul class=\"task-list\">\n{indent}<li class=\"task-list-item\">")
+            })
+            .into_owned();
+    }
 
     result
 }
@@ -10074,6 +10078,62 @@ More text.
         );
     }
 
+    /// Issue 589: Inner <ul> containing task-list-item children must get class="task-list"
+    #[test]
+    fn test_task_list_nested_inner_ul_class() {
+        let md = "- [ ] Milk\n- [x] Cookies\n  - [x] Classic\n  - [x] Sourdough\n";
+        let html = markdown_to_html(md);
+        // Count how many <ul class="task-list"> appear — should be 2 (outer + inner)
+        let task_list_count = html.matches(r#"class="task-list">"#).count();
+        assert_eq!(
+            task_list_count, 2,
+            "Both outer and inner <ul> should have class=\"task-list\". Got {task_list_count} in:\n{html}"
+        );
+    }
+
+    /// Issue 589: Three levels of nesting — all <ul> with task items get class="task-list"
+    #[test]
+    fn test_task_list_deeply_nested_class() {
+        let md = "- [x] Level 1\n  - [x] Level 2\n    - [x] Level 3\n";
+        let html = markdown_to_html(md);
+        let task_list_count = html.matches(r#"class="task-list">"#).count();
+        assert_eq!(
+            task_list_count, 3,
+            "All three levels of nested <ul> should have class=\"task-list\". Got {task_list_count} in:\n{html}"
+        );
+    }
+
+    /// Issue 589: Mixed nested list — inner non-task <ul> should NOT get class="task-list"
+    #[test]
+    fn test_task_list_mixed_nested_no_false_class() {
+        let md = "- [x] Task item\n  - Regular sub-item\n  - Another regular\n";
+        let html = markdown_to_html(md);
+        // Outer <ul> has task items so it gets the class
+        assert!(
+            html.contains(r#"<ul class="task-list">"#),
+            "Outer <ul> should have class=\"task-list\". Got:\n{html}"
+        );
+        // Inner <ul> has no task items — it should NOT get the class
+        // Count: should be exactly 1 task-list class
+        let task_list_count = html.matches(r#"class="task-list">"#).count();
+        assert_eq!(
+            task_list_count, 1,
+            "Only outer <ul> should have class=\"task-list\" when inner has no tasks. Got {task_list_count} in:\n{html}"
+        );
+    }
+
+    /// Issue 589: Unicode content in nested task lists
+    #[test]
+    fn test_task_list_nested_unicode() {
+        let md = "- [x] Молоко\n  - [ ] Печенье\n  - [x] Хлеб\n";
+        let html = markdown_to_html(md);
+        let task_list_count = html.matches(r#"class="task-list">"#).count();
+        assert_eq!(
+            task_list_count, 2,
+            "Nested task list with Unicode content should have 2 task-list classes. Got {task_list_count} in:\n{html}"
+        );
+    }
+
     #[test]
     fn test_task_list_with_options() {
         // markdown_to_html_with_options should also support task lists
@@ -10622,6 +10682,56 @@ More text.
         assert!(
             html.contains("<abbr>MD</abbr>"),
             "MD should be wrapped in <abbr> without title. Got: {}",
+            html
+        );
+    }
+
+    // ========================================================================
+    // Issue 590: <style> block not wrapped in <p>
+    // ========================================================================
+
+    #[test]
+    fn test_issue590_markdown_to_html_style_block_not_in_p() {
+        // A <style> block after a paragraph should render as a block element, not in <p>
+        let md = "Sure `tuple` can exist.\n\n<style>\n  h2 + p { margin-top: -1.2em; font-size: .8em; }\n  article ul { list-style: square; }\n</style>\n";
+        let html = markdown_to_html(md);
+        assert!(
+            !html.contains("<p><style>"),
+            "style block should NOT be wrapped in <p>. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("<style>"),
+            "style block should be preserved. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue590_markdown_to_html_script_block_not_in_p() {
+        // A <script> block after a paragraph should render as a block element, not in <p>
+        let md = "Some text.\n\n<script>console.log('test');</script>\n";
+        let html = markdown_to_html(md);
+        assert!(
+            !html.contains("<p><script>"),
+            "script block should NOT be wrapped in <p>. Got:\n{}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue590_markdown_to_html_style_block_unicode() {
+        // Style block with non-ASCII characters
+        let md = "Text with \u{00fc}ml\u{00e4}uts.\n\n<style>\n  /* \u{00dc}berschrift */\n  body { color: red; }\n</style>\n";
+        let html = markdown_to_html(md);
+        assert!(
+            !html.contains("<p><style>"),
+            "style with unicode should not be in <p>. Got:\n{}",
+            html
+        );
+        assert!(
+            html.contains("\u{00dc}berschrift"),
+            "unicode in style should be preserved. Got:\n{}",
             html
         );
     }
