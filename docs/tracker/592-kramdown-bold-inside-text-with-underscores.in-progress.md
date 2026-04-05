@@ -85,3 +85,46 @@ None.
 - Chirpy: 14/17 matched, 101 total diffs
 
 ## Log
+
+### [SWE] 2026-04-02
+
+**Root Cause Analysis:**
+The `escape_mixed_delimiter_emphasis` function in `src/kramdown.rs` is a pre-processor
+that escapes inner delimiters in mixed-delimiter emphasis (e.g., `_*text*_` -> `_\*text\*_`).
+The bug had two parts:
+
+1. `find_mixed_emphasis_span` would skip over matching closing delimiters when no inner
+   delimiters had been found yet, then keep scanning. This caused `_Settings_` to be
+   treated as starting a span that extended all the way to `_Build and deployment_`,
+   consuming `**Source**` as inner content and escaping its `*` to `\*`.
+
+2. IAL blocks like `{:target="_blank"}` contain `_` characters that were being treated
+   as emphasis delimiters, causing false matches across IAL boundaries.
+
+**Fix 1: Stop scanning past matched closing delimiters (NoMix)**
+- Wrote tests: test_issue592_bold_near_underscore_italic, test_issue592_escape_chirpy_exact_line,
+  test_issue592_chirpy_full_render, and 5 more (8 total)
+- Ran tests: 3 FAIL -- `**Source**` rendered as `<em>*Source*</em>`, escape function
+  produced `\*\*Source\*\*`
+- Implemented fix: Changed `find_mixed_emphasis_span` to return `MixedEmphasisResult::NoMix`
+  when it finds a matching closing delimiter with no inner delimiters, instead of continuing
+  to scan past it. Updated caller to skip past the entire non-mixed span.
+- Ran tests: 7 of 8 PASS (chirpy tests pass), but DTC DOM regression: 787/790 with
+  Daniel Egbo `**bold**` inside link broken by IAL `_blank` underscore.
+
+**Fix 2: Skip IAL blocks in emphasis scanning**
+- Identified that `{:target="_blank"}` underscores were being treated as emphasis delimiters
+- Added IAL block skipping (`{:...}`) in both `escape_mixed_delimiter_emphasis` main loop
+  and `find_mixed_emphasis_span` scanner
+- Ran tests: 8/8 PASS
+- DTC DOM: 788/790 with 8 total diffs (matches baseline exactly)
+- Chirpy DOM: 14/17 with 99 total diffs (improved from 101, -2 diffs from Source fix)
+
+**Summary:**
+- Files modified: src/kramdown.rs
+- Tests added: 8 unit tests for issue 592
+- Build results: 4049 tests pass, 0 fail, clippy clean, fmt clean
+- DTC DOM: 788/790 (0 regression, baseline maintained)
+- DTC build time: 0.955s (under 1.0s)
+- Chirpy DOM: 14/17, 99 diffs (improved from 101)
+- Chirpy getting-started: `<strong>Source</strong>` confirmed correct

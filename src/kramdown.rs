@@ -1330,6 +1330,25 @@ pub fn escape_mixed_delimiter_emphasis(markdown: &str) -> String {
             continue;
         }
 
+        // Issue 592: Skip kramdown IAL blocks {: ... } -- underscores inside
+        // IAL attributes (e.g., {:target="_blank"}) must not be treated as
+        // emphasis delimiters.
+        if chars[i] == '{' && i + 1 < len && chars[i + 1] == ':' {
+            let ial_start = i;
+            let mut j = i + 2;
+            while j < len && chars[j] != '}' && chars[j] != '\n' {
+                j += 1;
+            }
+            if j < len && chars[j] == '}' {
+                // Copy the entire IAL verbatim
+                for ch in &chars[ial_start..=j] {
+                    result.push(*ch);
+                }
+                i = j + 1;
+                continue;
+            }
+        }
+
         // Detect opening emphasis: _ or * (or __ or **)
         if (chars[i] == '_' || chars[i] == '*') && !is_escaped(&chars, i) {
             let outer_delim = chars[i];
@@ -1345,67 +1364,82 @@ pub fn escape_mixed_delimiter_emphasis(markdown: &str) -> String {
             if outer_count <= 2 {
                 // Look ahead for the inner delimiter pattern
                 let after_outer = i + outer_count;
-                if let Some(span) = find_mixed_emphasis_span(
+                match find_mixed_emphasis_span(
                     &chars,
                     after_outer,
                     outer_delim,
                     outer_count,
                     inner_delim,
                 ) {
-                    // Found a mixed-delimiter emphasis span.
-                    // Write the outer delimiters
-                    for _ in 0..outer_count {
-                        result.push(outer_delim);
-                    }
-                    // Write the content with inner delimiters escaped,
-                    // but skip code spans (don't escape inside backticks)
-                    let mut j = after_outer;
-                    while j < span.content_end {
-                        if chars[j] == '`' {
-                            let bt_start = j;
-                            let mut bt_count = 0;
-                            while j < span.content_end && chars[j] == '`' {
-                                bt_count += 1;
-                                j += 1;
-                            }
-                            let mut found_close = false;
-                            let scan_start = j;
-                            while j < span.content_end {
-                                if chars[j] == '`' {
-                                    let mut close_bt = 0;
-                                    while j < span.content_end && chars[j] == '`' {
-                                        close_bt += 1;
-                                        j += 1;
-                                    }
-                                    if close_bt == bt_count {
-                                        found_close = true;
-                                        break;
-                                    }
-                                } else {
+                    Some(MixedEmphasisResult::Mixed { content_end }) => {
+                        // Found a mixed-delimiter emphasis span.
+                        // Write the outer delimiters
+                        for _ in 0..outer_count {
+                            result.push(outer_delim);
+                        }
+                        // Write the content with inner delimiters escaped,
+                        // but skip code spans (don't escape inside backticks)
+                        let mut j = after_outer;
+                        while j < content_end {
+                            if chars[j] == '`' {
+                                let bt_start = j;
+                                let mut bt_count = 0;
+                                while j < content_end && chars[j] == '`' {
+                                    bt_count += 1;
                                     j += 1;
                                 }
+                                let mut found_close = false;
+                                let scan_start = j;
+                                while j < content_end {
+                                    if chars[j] == '`' {
+                                        let mut close_bt = 0;
+                                        while j < content_end && chars[j] == '`' {
+                                            close_bt += 1;
+                                            j += 1;
+                                        }
+                                        if close_bt == bt_count {
+                                            found_close = true;
+                                            break;
+                                        }
+                                    } else {
+                                        j += 1;
+                                    }
+                                }
+                                let end = if found_close { j } else { scan_start };
+                                for ch in &chars[bt_start..end] {
+                                    result.push(*ch);
+                                }
+                                if !found_close {
+                                    j = scan_start;
+                                }
+                                continue;
                             }
-                            let end = if found_close { j } else { scan_start };
-                            for ch in &chars[bt_start..end] {
-                                result.push(*ch);
+                            if chars[j] == inner_delim && !is_escaped(&chars, j) {
+                                result.push('\\');
                             }
-                            if !found_close {
-                                j = scan_start;
-                            }
-                            continue;
+                            result.push(chars[j]);
+                            j += 1;
                         }
-                        if chars[j] == inner_delim && !is_escaped(&chars, j) {
-                            result.push('\\');
+                        // Write the closing outer delimiters
+                        for _ in 0..outer_count {
+                            result.push(outer_delim);
                         }
-                        result.push(chars[j]);
-                        j += 1;
+                        i = content_end + outer_count;
+                        continue;
                     }
-                    // Write the closing outer delimiters
-                    for _ in 0..outer_count {
-                        result.push(outer_delim);
+                    Some(MixedEmphasisResult::NoMix { end }) => {
+                        // Issue 592: Normal emphasis span with no mixed content.
+                        // Copy the entire span verbatim and advance past it so
+                        // the closing delimiter is not re-scanned as an opener.
+                        for ch in &chars[i..end] {
+                            result.push(*ch);
+                        }
+                        i = end;
+                        continue;
                     }
-                    i = span.content_end + outer_count;
-                    continue;
+                    None => {
+                        // No span found at all
+                    }
                 }
             }
 
@@ -1425,9 +1459,20 @@ pub fn escape_mixed_delimiter_emphasis(markdown: &str) -> String {
 }
 
 /// Result of finding a mixed-delimiter emphasis span.
-struct MixedEmphasisSpan {
-    /// Index just past the last content character (before closing outer delimiters)
-    content_end: usize,
+enum MixedEmphasisResult {
+    /// Found a span with inner delimiters that need escaping.
+    Mixed {
+        /// Index just past the last content character (before closing outer delimiters)
+        content_end: usize,
+    },
+    /// Found a matching closing delimiter but no inner delimiters.
+    /// The span is a normal emphasis with no mixed content -- skip past it.
+    /// Issue 592: Without this, the closing delimiter would be re-scanned as an
+    /// opener, falsely matching later text as a mixed span.
+    NoMix {
+        /// Index just past the closing outer delimiters
+        end: usize,
+    },
 }
 
 /// Check if a character at position `pos` is backslash-escaped.
@@ -1462,7 +1507,7 @@ fn find_mixed_emphasis_span(
     outer_delim: char,
     outer_count: usize,
     inner_delim: char,
-) -> Option<MixedEmphasisSpan> {
+) -> Option<MixedEmphasisResult> {
     let len = chars.len();
 
     // The content must contain at least one inner delimiter pair
@@ -1502,6 +1547,19 @@ fn find_mixed_emphasis_span(
             continue;
         }
 
+        // Issue 592: Skip kramdown IAL blocks {: ... } -- delimiters inside
+        // IAL attributes must not affect emphasis scanning.
+        if chars[i] == '{' && i + 1 < len && chars[i + 1] == ':' {
+            let mut j = i + 2;
+            while j < len && chars[j] != '}' && chars[j] != '\n' {
+                j += 1;
+            }
+            if j < len && chars[j] == '}' {
+                i = j + 1;
+                continue;
+            }
+        }
+
         // Skip escaped characters
         if chars[i] == '\\' && i + 1 < len {
             i += 2;
@@ -1528,15 +1586,22 @@ fn find_mixed_emphasis_span(
                 close_count += 1;
                 i += 1;
             }
-            if close_count == outer_count && has_inner_delim {
-                // Verify the inner delimiters appear in pairs or as part
-                // of what pulldown-cmark would parse as emphasis
-                return Some(MixedEmphasisSpan {
-                    content_end: close_start,
-                });
+            if close_count == outer_count {
+                if has_inner_delim {
+                    return Some(MixedEmphasisResult::Mixed {
+                        content_end: close_start,
+                    });
+                }
+                // Issue 592: Matched closing delimiter but no inner delimiters
+                // found -- this is a complete emphasis span with no mixed
+                // content. Return NoMix so the caller skips past the entire
+                // span, preventing the closing delimiter from being re-scanned
+                // as a new opener (e.g., _Settings_ ... **Source** would
+                // otherwise treat the closing _ as an opener and falsely
+                // escape **Source**).
+                return Some(MixedEmphasisResult::NoMix { end: i });
             }
-            // Not matching close -- this might be a different use
-            // Just continue scanning
+            // Different count -- not a matching close, keep scanning
             continue;
         }
 
@@ -15603,6 +15668,156 @@ by <a href="/people/author.html">Author Name</a>
         assert!(
             !html2.is_empty(),
             "Should produce output for URL with asterisks in emphasis"
+        );
+    }
+
+    // ====================================================================
+    // Issue 592: Bold **word** rendered as <em>*word*</em> near underscores
+    // ====================================================================
+
+    #[test]
+    fn test_issue592_bold_near_underscore_italic() {
+        // **Source** adjacent to _Build and deployment_ must produce <strong>
+        let md = "In the **Source** section (under _Build and deployment_), select [**GitHub Actions**](https://example.com)";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("<strong>Source</strong>"),
+            "**Source** must render as <strong>Source</strong>. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<em>Build and deployment</em>"),
+            "_Build and deployment_ must render as <em>. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<strong>GitHub Actions</strong>"),
+            "[**GitHub Actions**] must render as <strong>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue592_bold_italic_bold_sequence() {
+        // Multiple bold and italic in same paragraph
+        let md = "**bold** _italic_ **bold**";
+        let html = crate::frontmatter::markdown_to_html(md);
+        let strong_count = html.matches("<strong>").count();
+        assert_eq!(
+            strong_count, 2,
+            "Must have two <strong> elements. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<em>italic</em>"),
+            "Must have <em>italic</em>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue592_italic_bold_italic() {
+        // *italic* **bold** *italic* must render correctly
+        let md = "*italic* **bold** *italic*";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("<strong>bold</strong>"),
+            "**bold** must render as <strong>. Got: {}",
+            html
+        );
+        let em_count = html.matches("<em>italic</em>").count();
+        assert_eq!(em_count, 2, "Must have two <em>italic</em>. Got: {}", html);
+    }
+
+    #[test]
+    fn test_issue592_italic_wrapping_bold() {
+        // _italic **bold** italic_ in kramdown: inner ** is literal (different
+        // delimiter types don't nest in kramdown). Kramdown renders as
+        // <em>italic **bold** italic</em> (literal asterisks, no <strong>).
+        let md = "_italic **bold** italic_";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(html.contains("<em>"), "Must have <em>. Got: {}", html);
+        // In kramdown, mixed-delimiter nesting produces literal inner delimiters
+        assert!(
+            !html.contains("<strong>"),
+            "kramdown does not nest ** inside _; ** should be literal. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue592_escape_mixed_delimiters_no_false_span() {
+        // Verify that escape_mixed_delimiter_emphasis does NOT treat
+        // **Source** ... _Build_ ... **GitHub** as a single mixed span
+        let md =
+            "In the **Source** section (under _Build and deployment_), select **GitHub Actions**";
+        let escaped = escape_mixed_delimiter_emphasis(md);
+        // The **Source** should remain untouched
+        assert!(
+            escaped.contains("**Source**"),
+            "**Source** must not be modified by escape_mixed_delimiter_emphasis. Got: {}",
+            escaped
+        );
+    }
+
+    #[test]
+    fn test_issue592_escape_chirpy_exact_line() {
+        // Exact chirpy getting-started line that triggers the bug
+        let md = "1. Go to your repository on GitHub. Select the _Settings_ tab, then click _Pages_ in the left navigation bar. In the **Source** section (under _Build and deployment_), select [**GitHub Actions**][pages-workflow-src] from the dropdown menu.";
+        let escaped = escape_mixed_delimiter_emphasis(md);
+        assert!(
+            escaped.contains("**Source**"),
+            "**Source** must not be modified. Got: {}",
+            escaped
+        );
+        assert!(
+            escaped.contains("_Settings_"),
+            "_Settings_ must remain. Got: {}",
+            escaped
+        );
+        assert!(
+            escaped.contains("_Pages_"),
+            "_Pages_ must remain. Got: {}",
+            escaped
+        );
+        assert!(
+            escaped.contains("_Build and deployment_"),
+            "_Build and deployment_ must remain. Got: {}",
+            escaped
+        );
+    }
+
+    #[test]
+    fn test_issue592_chirpy_full_render() {
+        // Full rendering of chirpy getting-started line
+        let md = "Select the _Settings_ tab, then click _Pages_ in the left navigation bar. In the **Source** section (under _Build and deployment_), select [**GitHub Actions**](https://example.com) from the dropdown menu.";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("<strong>Source</strong>"),
+            "**Source** must render as <strong>. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<em>Settings</em>"),
+            "_Settings_ must render as <em>. Got: {}",
+            html
+        );
+        assert!(
+            html.contains("<em>Pages</em>"),
+            "_Pages_ must render as <em>. Got: {}",
+            html
+        );
+    }
+
+    #[test]
+    fn test_issue592_bold_near_underscore_italic_unicode() {
+        // Unicode content: **\u{30BD}\u{30FC}\u{30B9}** near _\u{30D3}\u{30EB}\u{30C9}_
+        let md = "\u{30BD}\u{30FC}\u{30B9}\u{306E}**\u{9078}\u{629E}**\u{30BB}\u{30AF}\u{30B7}\u{30E7}\u{30F3}\u{FF08}_\u{30D3}\u{30EB}\u{30C9}\u{3068}\u{30C7}\u{30D7}\u{30ED}\u{30A4}_\u{FF09}";
+        let html = crate::frontmatter::markdown_to_html(md);
+        assert!(
+            html.contains("<strong>\u{9078}\u{629E}</strong>"),
+            "Unicode bold must render as <strong>. Got: {}",
+            html
         );
     }
 
