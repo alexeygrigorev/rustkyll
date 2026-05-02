@@ -216,10 +216,8 @@ fn extract_redirect_from(fm: &rustkyll::frontmatter::FrontMatter) -> Vec<String>
     let mut redirects = Vec::new();
     if let Some(val) = fm.get("redirect_from") {
         match val {
-            serde_yaml::Value::String(s) => {
-                if !s.is_empty() {
-                    redirects.push(s.clone());
-                }
+            serde_yaml::Value::String(s) if !s.is_empty() => {
+                redirects.push(s.clone());
             }
             serde_yaml::Value::Sequence(seq) => {
                 for item in seq {

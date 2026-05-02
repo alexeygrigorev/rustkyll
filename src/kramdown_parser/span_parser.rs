@@ -4266,7 +4266,7 @@ fn apply_abbreviations(
 
     // Sort abbreviations by length (longest first) to avoid partial matches
     let mut abbrs: Vec<(&String, &String)> = abbreviations.iter().collect();
-    abbrs.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
+    abbrs.sort_by_key(|(k, _)| std::cmp::Reverse(k.len()));
 
     for (abbr, full) in abbrs {
         // Build attribute string from IAL attrs

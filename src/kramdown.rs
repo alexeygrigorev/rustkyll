@@ -9045,7 +9045,7 @@ pub fn apply_abbreviations(html: &str, defs: &[AbbreviationDef]) -> String {
 
     // Sort by length (longest first) to avoid partial matches
     let mut sorted_defs: Vec<&AbbreviationDef> = defs.iter().collect();
-    sorted_defs.sort_by(|a, b| b.abbr.len().cmp(&a.abbr.len()));
+    sorted_defs.sort_by_key(|d| std::cmp::Reverse(d.abbr.len()));
 
     for def in sorted_defs {
         let replacement = if def.full.is_empty() {

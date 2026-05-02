@@ -655,13 +655,11 @@ pub fn extract_categories(front_matter: &FrontMatter) -> Vec<String> {
                     .filter_map(|v| v.as_str().map(|s| s.to_string()))
                     .collect();
             }
-            serde_yaml::Value::String(s) => {
+            serde_yaml::Value::String(s) if !s.is_empty() => {
                 // Jekyll splits space-separated strings into multiple categories.
                 // e.g. "classics crime mystery" -> ["classics", "crime", "mystery"]
-                if !s.is_empty() {
-                    let parts: Vec<String> = s.split_whitespace().map(|p| p.to_string()).collect();
-                    return parts;
-                }
+                let parts: Vec<String> = s.split_whitespace().map(|p| p.to_string()).collect();
+                return parts;
             }
             _ => {}
         }
@@ -693,13 +691,11 @@ pub fn extract_tags(front_matter: &FrontMatter) -> Vec<String> {
                     .filter_map(|v| v.as_str().map(|s| s.to_string()))
                     .collect();
             }
-            serde_yaml::Value::String(s) => {
+            serde_yaml::Value::String(s) if !s.is_empty() => {
                 // Jekyll splits space-separated strings into multiple tags.
                 // e.g. "formatting audios" -> ["formatting", "audios"]
-                if !s.is_empty() {
-                    let parts: Vec<String> = s.split_whitespace().map(|p| p.to_string()).collect();
-                    return parts;
-                }
+                let parts: Vec<String> = s.split_whitespace().map(|p| p.to_string()).collect();
+                return parts;
             }
             _ => {}
         }
