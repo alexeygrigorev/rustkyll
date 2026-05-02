@@ -2308,6 +2308,13 @@ pub fn generate_pages_cached_with_config_and_progress(
                 .or_insert_with(|| serde_yaml::Value::String(page.source_path.clone()));
 
             let is_markdown = page.source_path.ends_with(".md");
+            let is_scss =
+                page.source_path.ends_with(".scss") || page.source_path.ends_with(".sass");
+            // SCSS/SASS files compile to CSS, so they must not be wrapped in
+            // an HTML layout, even when the site config's `defaults` section
+            // declares one for typeless or `pages`-scoped paths. Jekyll skips
+            // layouts here because the converter outputs CSS, not HTML.
+            let layout_name = if is_scss { None } else { layout_name };
             let render_result = if let Some(ref layout) = layout_name {
                 if is_markdown {
                     layout_engine.render_markdown_page_with_cached_site(
@@ -6883,6 +6890,90 @@ defaults:
         assert!(
             !html.contains("col-pages"),
             "Standalone page should NOT have col-pages, got: {html}"
+        );
+    }
+
+    // ========================================================================
+    // SCSS files must skip default layouts: their converter outputs CSS,
+    // not HTML, so wrapping them in an HTML layout breaks SCSS compilation
+    // (compile_scss would receive `<!DOCTYPE html>...` instead of SCSS).
+    // ========================================================================
+
+    #[test]
+    fn test_scss_page_skips_default_layout() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let output_dir = tmp.path();
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            crate::template::Layout {
+                source: "<!DOCTYPE html><html><body>{{ content }}</body></html>".to_string(),
+                parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        let config = SiteConfig {
+            url: "https://example.com".to_string(),
+            defaults: vec![crate::config::DefaultConfig {
+                scope: crate::config::DefaultScope {
+                    path: String::new(),
+                    type_name: "pages".to_string(),
+                },
+                values: crate::config::DefaultValues {
+                    values: {
+                        let mut m = HashMap::new();
+                        m.insert(
+                            "layout".to_string(),
+                            serde_yaml::Value::String("default".to_string()),
+                        );
+                        m
+                    },
+                },
+            }],
+            ..Default::default()
+        };
+
+        let pages = vec![crate::collection::Page {
+            slug: "style".to_string(),
+            front_matter: HashMap::new(),
+            content: "body { color: red; }".to_string(),
+            html_content: String::new(),
+            url: "/assets/css/style.css".to_string(),
+            source_path: "assets/css/style.scss".to_string(),
+        }];
+
+        let site_context = Object::new();
+        let cached_site = LayoutEngine::build_cached_site_context(&site_context);
+        let result = generate_pages_cached_with_config(
+            &pages,
+            &engine,
+            &cached_site,
+            output_dir,
+            Some(&config),
+        )
+        .unwrap();
+
+        assert!(
+            result.errors.is_empty(),
+            "SCSS should compile without errors when defaults set a layout, got: {:?}",
+            result.errors
+        );
+        assert_eq!(result.generated, 1);
+
+        let css = fs::read_to_string(output_dir.join("assets/css/style.css")).unwrap();
+        assert!(
+            !css.contains("<!DOCTYPE html>") && !css.contains("<html>"),
+            "SCSS output must not be wrapped in default layout, got: {}",
+            css
+        );
+        assert!(
+            css.contains("color:red") || css.contains("color: red"),
+            "SCSS should compile to CSS, got: {}",
+            css
         );
     }
 

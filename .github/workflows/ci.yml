@@ -137,19 +137,20 @@ jobs:
             --output dom-report.txt \
             2>&1 | tee dom-output.txt
 
-      - name: Assert DTC main 790/790 matched and 0 diffs
+      - name: Assert DTC main 795/795 matched and 0 diffs
         run: |
           SUMMARY=$(grep '^Summary:' dom-output.txt)
           echo "DOM comparison result: $SUMMARY"
 
-          MATCHED=$(echo "$SUMMARY" | sed 's/Summary: \([0-9]*\) files matched.*/\1/')
-          DIFFS=$(echo "$SUMMARY" | sed 's/.*matched, [0-9]* files with differences, \([0-9]*\) total differences.*/\1/')
+          MATCHED=$(echo "$SUMMARY" | grep -oP '[0-9]+(?= matched)' | head -1)
+          DIFFS=$(echo "$SUMMARY" | grep -oP '[0-9]+(?= total differences)' | head -1)
+          DIFFS=${DIFFS:-0}
 
           echo "Matched: $MATCHED"
           echo "Total diffs: $DIFFS"
 
-          if [ "$MATCHED" -lt 790 ]; then
-            echo "FAIL: DTC main matched file count ($MATCHED) is below 790"
+          if [ "$MATCHED" -lt 795 ]; then
+            echo "FAIL: DTC main matched file count ($MATCHED) is below 795"
             exit 1
           fi
 
@@ -168,19 +169,20 @@ jobs:
             --output dtc-docs-dom-report.txt \
             2>&1 | tee dtc-docs-dom-output.txt
 
-      - name: Assert DTC docs >= 38 matched and <= 26 diffs
+      - name: Assert DTC docs >= 56 matched and <= 26 diffs
         run: |
           SUMMARY=$(grep '^Summary:' dtc-docs-dom-output.txt)
           echo "DOM comparison result: $SUMMARY"
 
-          MATCHED=$(echo "$SUMMARY" | sed 's/Summary: \([0-9]*\) files matched.*/\1/')
-          DIFFS=$(echo "$SUMMARY" | sed 's/.*matched, [0-9]* files with differences, \([0-9]*\) total differences.*/\1/')
+          MATCHED=$(echo "$SUMMARY" | grep -oP '[0-9]+(?= matched)' | head -1)
+          DIFFS=$(echo "$SUMMARY" | grep -oP '[0-9]+(?= total differences)' | head -1)
+          DIFFS=${DIFFS:-0}
 
           echo "Matched: $MATCHED"
           echo "Total diffs: $DIFFS"
 
-          if [ "$MATCHED" -lt 38 ]; then
-            echo "FAIL: DTC docs matched file count ($MATCHED) is below 38"
+          if [ "$MATCHED" -lt 56 ]; then
+            echo "FAIL: DTC docs matched file count ($MATCHED) is below 56"
             exit 1
           fi
 

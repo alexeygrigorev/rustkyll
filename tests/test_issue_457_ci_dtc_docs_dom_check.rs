@@ -1,11 +1,11 @@
 /// Tests for issue #457: CI -- add DTC docs to per-push DOM check
 ///
 /// Validates that:
-/// 1. dom-baselines.json has the correct baseline for DataTalksClub/docs (38, not 57)
+/// 1. dom-baselines.json has the correct baseline for DataTalksClub/docs (56)
 /// 2. ci.yml dom-check job includes DTC docs clone, build, and assertion steps
 
 #[test]
-fn dom_baselines_dtc_docs_is_38() {
+fn dom_baselines_dtc_docs_is_56() {
     let baselines_str = std::fs::read_to_string("docs/dom-baselines.json")
         .expect("docs/dom-baselines.json must exist");
     let baselines: serde_json::Value =
@@ -18,8 +18,8 @@ fn dom_baselines_dtc_docs_is_38() {
         .expect("DataTalksClub/docs value must be a number");
 
     assert_eq!(
-        dtc_docs_baseline, 38,
-        "DataTalksClub/docs baseline must be 38 (matched count), not {} (which was the total file count)",
+        dtc_docs_baseline, 56,
+        "DataTalksClub/docs baseline must be 56 (matched count), got {}",
         dtc_docs_baseline
     );
 }
@@ -132,10 +132,10 @@ fn ci_yml_dom_check_asserts_dtc_docs_baseline() {
         .expect("dom-check job must exist");
     let dom_check_section = &ci_yml[dom_check_start..];
 
-    // Must assert DTC docs matched count >= 38
+    // Must assert DTC docs matched count >= 56
     assert!(
-        dom_check_section.contains("-lt 38"),
-        "dom-check must assert DTC docs matched count >= 38 (check for '-lt 38')"
+        dom_check_section.contains("-lt 56"),
+        "dom-check must assert DTC docs matched count >= 56 (check for '-lt 56')"
     );
     // Must assert DTC docs total diffs <= 26
     assert!(
@@ -174,8 +174,8 @@ fn ci_yml_dtc_main_assertions_unchanged() {
 
     // DTC main assertions must still be present
     assert!(
-        dom_check_section.contains("-lt 790"),
-        "DTC main assertion (matched >= 790) must still be present"
+        dom_check_section.contains("-lt 795"),
+        "DTC main assertion (matched >= 795) must still be present"
     );
     assert!(
         dom_check_section.contains("-ne 0"),

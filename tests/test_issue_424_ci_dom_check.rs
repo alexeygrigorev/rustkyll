@@ -97,7 +97,7 @@ fn dom_check_has_required_steps() {
         ("rustkyll build", "rustkyll build"),
         ("install uv", "astral-sh/setup-uv"),
         ("dom_compare.py", "dom_compare.py"),
-        ("assert matched count", "790"),
+        ("assert matched count", "795"),
     ];
 
     for (description, pattern) in required_patterns {
@@ -182,8 +182,8 @@ fn dom_check_assertion_parses_summary_format() {
 
     // Verify the assertion step checks both matched count and total diffs
     assert!(
-        dom_check_section.contains("-lt 790"),
-        "Assertion must check matched count >= 790"
+        dom_check_section.contains("-lt 795"),
+        "Assertion must check matched count >= 795"
     );
     assert!(
         dom_check_section.contains("-ne 0"),
