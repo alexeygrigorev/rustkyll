@@ -91,15 +91,16 @@ pub fn is_static_file(path: &Path, config: &SiteConfig) -> bool {
 /// Check if a file starts with YAML front matter delimiters (`---`).
 ///
 /// Only checks text-based file extensions that Jekyll would process
-/// (`.xml`, `.html`, `.htm`, `.json`, `.txt`). Binary files and other
-/// extensions are never checked and always return `false`.
+/// (`.xml`, `.html`, `.htm`, `.json`, `.txt`, `.scss`, `.css`, `.js`,
+/// `.rss`, `.atom`). Binary files and other extensions are never checked
+/// and always return `false`.
 ///
 /// Returns `false` if the file cannot be read or is not a text-based type.
 fn file_has_front_matter(path: &Path) -> bool {
     // Only check extensions that might contain front matter
     let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
     match ext {
-        "xml" | "html" | "htm" | "json" | "txt" | "scss" | "css" => {}
+        "xml" | "html" | "htm" | "json" | "txt" | "scss" | "css" | "js" | "rss" | "atom" => {}
         _ => return false,
     }
 
@@ -424,6 +425,49 @@ mod tests {
         assert!(files.contains(&PathBuf::from("images/books/foo.jpg")));
         assert!(files.contains(&PathBuf::from("CNAME")));
         assert!(files.contains(&PathBuf::from("robots.txt")));
+    }
+
+    #[test]
+    fn test_js_rss_atom_with_frontmatter_excluded_from_static() {
+        // Files with YAML front matter must be processed by the page pipeline,
+        // not copied as static. Without this filter, just-the-docs.js leaks
+        // its `---\nlayout: null\n---` header into the served JS file,
+        // breaking the menu expand/collapse JS.
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path();
+
+        fs::create_dir_all(root.join("assets/js")).unwrap();
+        fs::write(
+            root.join("assets/js/just-the-docs.js"),
+            "---\nlayout: null\n---\n(function(){})();\n",
+        )
+        .unwrap();
+        fs::create_dir_all(root.join("feeds")).unwrap();
+        fs::write(root.join("feeds/notes.rss"), "---\n---\n<rss></rss>\n").unwrap();
+        fs::write(root.join("feed.atom"), "---\n---\n<feed></feed>\n").unwrap();
+        // A plain JS file without front matter should still be copied as static.
+        fs::write(root.join("assets/js/vendor.js"), "console.log('hi');\n").unwrap();
+
+        let config = empty_config();
+        let files = collect_static_files(root, &config).unwrap();
+
+        assert!(
+            !files.contains(&PathBuf::from("assets/js/just-the-docs.js")),
+            "JS file with front matter must NOT be copied as static, got: {:?}",
+            files
+        );
+        assert!(
+            !files.contains(&PathBuf::from("feeds/notes.rss")),
+            "RSS file with front matter must NOT be copied as static"
+        );
+        assert!(
+            !files.contains(&PathBuf::from("feed.atom")),
+            "Atom file with front matter must NOT be copied as static"
+        );
+        assert!(
+            files.contains(&PathBuf::from("assets/js/vendor.js")),
+            "Plain JS file (no front matter) should still be copied as static"
+        );
     }
 
     #[test]

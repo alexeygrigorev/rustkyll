@@ -40,6 +40,39 @@ def find_site_dir(websites_dir: Path, site_key: str) -> Path | None:
     return None
 
 
+# File extensions whose first bytes can be safely read as UTF-8 text.
+# Binary asset extensions are skipped to avoid false positives.
+_TEXTY_EXTENSIONS = {
+    ".html", ".htm", ".xml", ".json", ".txt", ".js", ".css", ".scss", ".sass",
+    ".md", ".rss", ".atom", ".csv", ".tsv", ".svg",
+}
+
+
+def find_frontmatter_leaks(output_dir: Path) -> list[Path]:
+    """Return any output file that begins with `---\\n` -- a leaked YAML
+    frontmatter delimiter that should have been stripped during rendering.
+
+    DOM comparison only inspects HTML files. JS/CSS/JSON pages with frontmatter
+    that didn't get processed leave the literal `---\\n...\\n---\\n` at the top,
+    breaking JS execution and CSS parsing. This catches that class of bug.
+    """
+    leaks = []
+    for p in output_dir.rglob("*"):
+        if not p.is_file():
+            continue
+        if p.suffix.lower() not in _TEXTY_EXTENSIONS:
+            continue
+        try:
+            with open(p, "rb") as f:
+                head = f.read(8)
+        except OSError:
+            continue
+        text = head.decode("utf-8", errors="ignore").lstrip("﻿")
+        if text.startswith("---\n") or text.startswith("---\r\n"):
+            leaks.append(p)
+    return leaks
+
+
 def build_with_rustkyll(rustkyll_bin: Path, site_dir: Path, output_dir: Path) -> bool:
     """Build a site with rustkyll, returning True on success."""
     try:
@@ -199,6 +232,17 @@ def main():
             if not build_with_rustkyll(rustkyll_bin, site_dir, output_dir):
                 print(f"  FAIL: build failed")
                 results.append((site_key, baseline, -1, "build failed"))
+                regressions.append(site_key)
+                continue
+
+            leaks = find_frontmatter_leaks(output_dir)
+            if leaks:
+                rels = [str(p.relative_to(output_dir)) for p in leaks]
+                msg = "frontmatter leak in: " + ", ".join(rels[:5])
+                if len(rels) > 5:
+                    msg += f" (+{len(rels) - 5} more)"
+                print(f"  FAIL: {msg}")
+                results.append((site_key, baseline, -1, msg))
                 regressions.append(site_key)
                 continue
 

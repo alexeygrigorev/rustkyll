@@ -1470,10 +1470,10 @@ fn should_skip_directory(name: &str, config: &SiteConfig) -> bool {
 ///
 /// Jekyll processes any file with YAML front matter. We check `.md` files
 /// unconditionally, and also check certain other extensions (`.xml`, `.html`,
-/// `.htm`, `.json`, `.txt`) for front matter presence.
+/// `.htm`, `.json`, `.txt`, `.js`, `.rss`, `.atom`) for front matter presence.
 fn is_processable_extension(name: &str) -> Option<&'static str> {
     [
-        ".md", ".xml", ".html", ".htm", ".json", ".txt", ".scss", ".css",
+        ".md", ".xml", ".html", ".htm", ".json", ".txt", ".scss", ".css", ".js", ".rss", ".atom",
     ]
     .iter()
     .copied()
