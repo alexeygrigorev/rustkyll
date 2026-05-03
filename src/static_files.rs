@@ -88,6 +88,26 @@ pub fn is_static_file(path: &Path, config: &SiteConfig) -> bool {
     true
 }
 
+/// Return true if `dst` already mirrors `src` on size and mtime.
+///
+/// Hard-linked destinations share inode metadata, so this is the common case
+/// after the first build. For real copies, both fields must match. A missing
+/// dst, an unreadable mtime, or any mismatch returns false (the caller will
+/// then re-link/re-copy as usual).
+fn dst_up_to_date(src: &Path, dst: &Path) -> bool {
+    let (src_meta, dst_meta) = match (fs::metadata(src), fs::metadata(dst)) {
+        (Ok(s), Ok(d)) => (s, d),
+        _ => return false,
+    };
+    if src_meta.len() != dst_meta.len() {
+        return false;
+    }
+    match (src_meta.modified(), dst_meta.modified()) {
+        (Ok(s), Ok(d)) => s == d,
+        _ => false,
+    }
+}
+
 /// Check if a file starts with YAML front matter delimiters (`---`).
 ///
 /// Only checks text-based file extensions that Jekyll would process
@@ -235,6 +255,15 @@ pub fn copy_static_files(
     files.par_iter().for_each(|relative_path| {
         let src = source_dir.join(relative_path);
         let dst = output_dir.join(relative_path);
+
+        // Skip if dst is already up-to-date. This avoids re-copying every
+        // static file on `serve` rebuilds and is critical on Windows, where
+        // overwriting a file held open by the HTTP server (or AV scanner)
+        // fails with os error 32 ("being used by another process").
+        if dst_up_to_date(&src, &dst) {
+            return;
+        }
+
         // Try hard link first (much faster than copy -- no data transfer).
         // Falls back to copy if hard linking fails (e.g., cross-device, permissions).
         if fs::hard_link(&src, &dst).is_err() {
@@ -728,5 +757,76 @@ mod tests {
         let count = copy_static_files(src, dst, &config).unwrap();
 
         assert_eq!(count, 50);
+    }
+
+    #[test]
+    fn test_copy_static_files_skips_locked_dst_when_unchanged() {
+        // On Windows, a follow-up build during `serve` cannot overwrite a
+        // destination file held open by the HTTP server (os error 32). The
+        // copier must skip files whose dst already mirrors src on size and
+        // mtime. We simulate the OS lock by holding a destination handle
+        // that would refuse writes on Windows; on Unix this still exercises
+        // the fast-path and the same code path.
+        let src_tmp = tempfile::tempdir().unwrap();
+        let dst_tmp = tempfile::tempdir().unwrap();
+        let src = src_tmp.path();
+        let dst = dst_tmp.path();
+
+        fs::write(src.join("foo.png"), b"image-bytes").unwrap();
+
+        let config = empty_config();
+        copy_static_files(src, dst, &config).unwrap();
+        assert_eq!(
+            fs::read(dst.join("foo.png")).unwrap(),
+            b"image-bytes",
+            "first build copies the file"
+        );
+
+        // Hold an open read handle on dst -- on Windows this would block
+        // overwrite, on Unix it doesn't, but the up-to-date check should
+        // bypass the copy regardless and the second build must succeed.
+        let _open_handle = std::fs::File::open(dst.join("foo.png")).unwrap();
+
+        copy_static_files(src, dst, &config).expect(
+            "second build must not fail when dst is unchanged, even if a reader holds it open",
+        );
+        assert_eq!(
+            fs::read(dst.join("foo.png")).unwrap(),
+            b"image-bytes",
+            "dst content should remain intact"
+        );
+    }
+
+    #[test]
+    fn test_copy_static_files_recopies_when_src_changes() {
+        // After a change, the up-to-date check must let the copy through
+        // so the dst reflects the latest source bytes.
+        let src_tmp = tempfile::tempdir().unwrap();
+        let dst_tmp = tempfile::tempdir().unwrap();
+        let src = src_tmp.path();
+        let dst = dst_tmp.path();
+
+        fs::write(src.join("page.html"), b"v1").unwrap();
+        let config = empty_config();
+        copy_static_files(src, dst, &config).unwrap();
+        assert_eq!(fs::read(dst.join("page.html")).unwrap(), b"v1");
+
+        // Modify source and bump mtime explicitly to avoid filesystem
+        // mtime granularity (some filesystems have 1-2s resolution).
+        fs::write(src.join("page.html"), b"v2-longer-content").unwrap();
+        let later = std::time::SystemTime::now() + std::time::Duration::from_secs(10);
+        let f = std::fs::File::options()
+            .write(true)
+            .open(src.join("page.html"))
+            .unwrap();
+        f.set_modified(later).unwrap();
+        drop(f);
+
+        copy_static_files(src, dst, &config).unwrap();
+        assert_eq!(
+            fs::read(dst.join("page.html")).unwrap(),
+            b"v2-longer-content",
+            "dst should be updated when src changes"
+        );
     }
 }
