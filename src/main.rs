@@ -41,6 +41,10 @@ enum Commands {
         #[arg(long, default_value = "_site")]
         destination: PathBuf,
 
+        /// Override site.baseurl from _config.yml
+        #[arg(long)]
+        baseurl: Option<String>,
+
         /// Enable incremental builds (only rebuild changed pages)
         #[arg(long, default_value_t = false)]
         incremental: bool,
@@ -63,6 +67,10 @@ enum Commands {
         /// Destination directory (default: _site)
         #[arg(long, default_value = "_site")]
         destination: PathBuf,
+
+        /// Override site.baseurl from _config.yml
+        #[arg(long)]
+        baseurl: Option<String>,
 
         /// Port to serve on (default: 4000)
         #[arg(long, default_value_t = 4000)]
@@ -127,6 +135,8 @@ struct BuildOptions {
     force: bool,
     /// Whether to suppress all progress output.
     quiet: bool,
+    /// Optional site.baseurl override from the CLI.
+    baseurl_override: Option<String>,
     /// Pre-determined changed file paths (relative to source) for serve-mode
     /// incremental rebuilds. When `Some`, skips manifest-based change detection
     /// and uses these paths directly.
@@ -286,12 +296,15 @@ fn build_site(
     progress.phase("Loading config...");
     let phase_start = Instant::now();
     let config_path = source.join("_config.yml");
-    let config = if config_path.exists() {
+    let mut config = if config_path.exists() {
         SiteConfig::from_file(&config_path)?
     } else {
         // Jekyll builds sites without _config.yml using defaults.
         SiteConfig::default()
     };
+    if let Some(baseurl) = &options.baseurl_override {
+        config.baseurl = baseurl.clone();
+    }
     summary.timing.config = phase_start.elapsed();
 
     // 1b. Resolve effective source directory.
@@ -1325,6 +1338,7 @@ fn main() {
         Some(Commands::Build {
             source,
             destination,
+            baseurl,
             incremental,
             force,
             quiet,
@@ -1347,6 +1361,7 @@ fn main() {
                 incremental,
                 force,
                 quiet,
+                baseurl_override: baseurl,
                 changed_paths: None,
             };
 
@@ -1416,6 +1431,7 @@ fn main() {
         Some(Commands::Serve {
             source,
             destination,
+            baseurl,
             port,
             livereload,
             no_livereload,
@@ -1434,6 +1450,7 @@ fn main() {
                 incremental: false,
                 force: false,
                 quiet,
+                baseurl_override: baseurl.clone(),
                 changed_paths: None,
             };
             match build_site(&source, &destination, &options) {
@@ -1479,12 +1496,14 @@ fn main() {
                                 incremental: false,
                                 force: false,
                                 quiet,
+                                baseurl_override: baseurl.clone(),
                                 changed_paths: None,
                             },
                             rustkyll::livereload::RebuildScope::Partial(paths) => BuildOptions {
                                 incremental: true,
                                 force: false,
                                 quiet,
+                                baseurl_override: baseurl.clone(),
                                 changed_paths: Some(paths.clone()),
                             },
                         };
@@ -1602,6 +1621,17 @@ mod tests {
     }
 
     #[test]
+    fn test_cli_parses_build_with_baseurl() {
+        let cli = Cli::try_parse_from(["rustkyll", "build", "--baseurl", "/docs"]).unwrap();
+        match cli.command {
+            Some(Commands::Build { baseurl, .. }) => {
+                assert_eq!(baseurl.as_deref(), Some("/docs"));
+            }
+            _ => panic!("Expected Build command"),
+        }
+    }
+
+    #[test]
     fn test_cli_parses_build_with_both_args() {
         let cli = Cli::try_parse_from([
             "rustkyll",
@@ -1704,6 +1734,17 @@ mod tests {
         match cli.command {
             Some(Commands::Serve { port, .. }) => {
                 assert_eq!(port, 8080);
+            }
+            _ => panic!("Expected Serve command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_parses_serve_with_baseurl() {
+        let cli = Cli::try_parse_from(["rustkyll", "serve", "--baseurl", "/docs"]).unwrap();
+        match cli.command {
+            Some(Commands::Serve { baseurl, .. }) => {
+                assert_eq!(baseurl.as_deref(), Some("/docs"));
             }
             _ => panic!("Expected Serve command"),
         }
@@ -1945,6 +1986,7 @@ mod tests {
             incremental: false,
             force: false,
             quiet: false,
+            baseurl_override: None,
             changed_paths: None,
         };
 
@@ -1974,6 +2016,52 @@ mod tests {
     }
 
     #[test]
+    fn test_build_site_baseurl_override_applies_to_relative_url() {
+        let tmp = tempfile::tempdir().unwrap();
+        let site_root = tmp.path();
+
+        std::fs::create_dir_all(site_root.join("_layouts")).unwrap();
+        std::fs::write(
+            site_root.join("_config.yml"),
+            "url: \"https://example.com\"\nbaseurl: \"\"\ntitle: \"Baseurl Override Test\"\n",
+        )
+        .unwrap();
+        std::fs::write(
+            site_root.join("_layouts/page.html"),
+            r#"<html><head><link href="{{ '/assets/site.css' | relative_url }}"></head><body>{{ content }}</body></html>"#,
+        )
+        .unwrap();
+        std::fs::write(
+            site_root.join("index.md"),
+            "---\ntitle: Home\nlayout: page\npermalink: /\n---\nBaseurl test.",
+        )
+        .unwrap();
+
+        let dest = site_root.join("_site");
+        let options = BuildOptions {
+            incremental: false,
+            force: false,
+            quiet: true,
+            baseurl_override: Some("/docs".to_string()),
+            changed_paths: None,
+        };
+
+        let result = build_site(site_root, &dest, &options);
+        assert!(result.is_ok(), "Build failed: {:?}", result.err());
+
+        let content = std::fs::read_to_string(dest.join("index.html")).unwrap();
+        assert!(
+            content.contains(r#"href="/docs/assets/site.css""#),
+            "relative_url should use the CLI baseurl override, got: {}",
+            content
+        );
+        assert!(
+            !content.contains(r#"href="/assets/site.css""#),
+            "relative_url should not use the empty _config.yml baseurl"
+        );
+    }
+
+    #[test]
     fn test_build_site_missing_config_uses_defaults() {
         // Jekyll builds sites without _config.yml using defaults.
         let tmp = tempfile::tempdir().unwrap();
@@ -1983,6 +2071,7 @@ mod tests {
             incremental: false,
             force: false,
             quiet: false,
+            baseurl_override: None,
             changed_paths: None,
         };
 
@@ -2117,6 +2206,7 @@ mod tests {
             incremental: false,
             force: false,
             quiet: true,
+            baseurl_override: None,
             changed_paths: None,
         };
 
@@ -2319,6 +2409,7 @@ mod tests {
             incremental: false,
             force: false,
             quiet: true,
+            baseurl_override: None,
             changed_paths: None,
         };
 
@@ -2380,6 +2471,7 @@ mod tests {
             incremental: false,
             force: false,
             quiet: true,
+            baseurl_override: None,
             changed_paths: None,
         };
 
@@ -2439,6 +2531,7 @@ mod tests {
             incremental: false,
             force: false,
             quiet: true,
+            baseurl_override: None,
             changed_paths: None,
         };
 
@@ -2489,6 +2582,7 @@ mod tests {
             incremental: false,
             force: false,
             quiet: true,
+            baseurl_override: None,
             changed_paths: None,
         };
 
@@ -2545,6 +2639,7 @@ mod tests {
             incremental: false,
             force: false,
             quiet: true,
+            baseurl_override: None,
             changed_paths: None,
         };
 
@@ -2602,6 +2697,7 @@ mod tests {
             incremental: false,
             force: false,
             quiet: true,
+            baseurl_override: None,
             changed_paths: None,
         };
 
@@ -2664,6 +2760,7 @@ mod tests {
             incremental: false,
             force: false,
             quiet: true,
+            baseurl_override: None,
             changed_paths: None,
         };
 
@@ -2714,6 +2811,7 @@ mod tests {
             incremental: false,
             force: false,
             quiet: true,
+            baseurl_override: None,
             changed_paths: None,
         };
 
