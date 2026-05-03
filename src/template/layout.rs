@@ -1253,14 +1253,21 @@ fn extract_layout_front_matter(
         return (None, HashMap::new(), source.to_string());
     };
 
-    for (i, line) in rest.lines().enumerate() {
-        if line.trim() == "---" {
-            let byte_offset: usize = rest.lines().take(i).map(|l| l.len() + 1).sum();
-            let yaml_str = &rest[..byte_offset];
+    // Scan byte-by-byte to find the closing `---` line. Using rest.lines()
+    // with a `len() + 1` offset assumption silently miscalculates byte
+    // positions for CRLF input: `lines()` strips both `\r\n` and `\n` but
+    // `len() + 1` only credits `\n` (1 byte), so on Windows every closing
+    // `---` ends up off-by-one-per-line and leaks into the body.
+    let mut line_start = 0;
+    while line_start < rest.len() {
+        let newline_pos = rest[line_start..].find('\n');
+        let line_end = newline_pos.map(|p| line_start + p).unwrap_or(rest.len());
+        let line = &rest[line_start..line_end];
 
-            let body = &rest[byte_offset..];
-            let body = if let Some(pos) = body.find('\n') {
-                &body[pos + 1..]
+        if line.trim() == "---" {
+            let yaml_str = &rest[..line_start];
+            let body = if line_end < rest.len() {
+                &rest[line_end + 1..]
             } else {
                 ""
             };
@@ -1283,6 +1290,11 @@ fn extract_layout_front_matter(
             }
 
             return (parent_layout, front_matter, body.to_string());
+        }
+
+        match newline_pos {
+            Some(_) => line_start = line_end + 1,
+            None => break,
         }
     }
 
@@ -4366,6 +4378,41 @@ mod tests {
         // as `layout.layout` in parent layout templates).
         assert_eq!(fm.len(), 1);
         assert_eq!(fm.get("layout").and_then(|v| v.as_str()), Some("default"));
+    }
+
+    #[test]
+    fn test_extract_layout_front_matter_crlf_line_endings() {
+        // Windows checkouts use CRLF line endings. The body byte offset must
+        // account for `\r\n` (2 bytes), not just `\n` (1 byte). Otherwise
+        // every layout in the chain leaks its closing `---` delimiter into
+        // the rendered output, which is visible as `--- --- ---` at the top
+        // of every page on Windows builds.
+        let source = "---\r\nlayout: default\r\n---\r\n<html>body</html>";
+        let (parent, fm, body) = extract_layout_front_matter(source);
+        assert_eq!(parent, Some("default".to_string()));
+        assert_eq!(fm.len(), 1);
+        assert!(
+            !body.contains("---"),
+            "body must not contain leaked frontmatter delimiter, got: {:?}",
+            body
+        );
+        assert_eq!(body, "<html>body</html>");
+    }
+
+    #[test]
+    fn test_extract_layout_front_matter_crlf_multiline_yaml() {
+        // Multiple YAML lines + CRLF: byte_offset miscalculation grows by
+        // one per line, so the closing `---` lands inside the body.
+        let source = "---\r\nlayout: parent\r\nfoo: bar\r\nbaz: qux\r\n---\r\nbody content";
+        let (parent, fm, body) = extract_layout_front_matter(source);
+        assert_eq!(parent, Some("parent".to_string()));
+        assert_eq!(fm.len(), 3);
+        assert!(
+            !body.contains("---"),
+            "body must not leak `---` delimiter under CRLF, got: {:?}",
+            body
+        );
+        assert_eq!(body, "body content");
     }
 
     #[test]
