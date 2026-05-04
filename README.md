@@ -44,6 +44,19 @@ uv tool install rustkyll
 pip install rustkyll
 ```
 
+### Install script (Linux / macOS)
+
+```
+curl -fsSL https://raw.githubusercontent.com/alexeygrigorev/rustkyll/main/scripts/install.sh | sh
+```
+
+Installs the latest release into `~/.local/bin`. Override with environment variables:
+
+```
+RUSTKYLL_VERSION=v0.4.5 RUSTKYLL_INSTALL_DIR=~/bin \
+  curl -fsSL https://raw.githubusercontent.com/alexeygrigorev/rustkyll/main/scripts/install.sh | sh
+```
+
 ### Pre-built binaries
 
 Download from [GitHub Releases](https://github.com/alexeygrigorev/rustkyll/releases):
