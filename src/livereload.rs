@@ -119,6 +119,46 @@ pub fn is_in_source(path: &Path, source: &Path) -> bool {
     }
 }
 
+/// Check whether a file's mtime is strictly later than `threshold`.
+///
+/// Used by the watcher to ignore spurious filesystem events for files that
+/// haven't actually changed since the last rebuild — notify-7 emits Access
+/// events on every `IN_OPEN`, so when rustkyll reads its own source files
+/// during a rebuild the debouncer would otherwise re-trigger forever
+/// (gh issue #4).
+///
+/// Treats missing files as changed: a vanished file is a deletion, which
+/// should still trigger a rebuild.
+pub fn file_changed_since(path: &Path, threshold: std::time::SystemTime) -> bool {
+    match std::fs::metadata(path) {
+        Ok(meta) => meta.modified().map(|m| m > threshold).unwrap_or(true),
+        Err(_) => true,
+    }
+}
+
+/// Check whether a file path is within the temporary cleanup directory used by
+/// full rebuilds.
+///
+/// During a full rebuild the destination is renamed to
+/// `<destination>._old_cleanup` and removed in a background thread. Those
+/// removals generate file events whose paths sit alongside the destination
+/// (not inside it), so `is_in_destination` does not filter them out. Without
+/// this check, the watcher would treat every cleanup event as a source change
+/// and trigger another rebuild, looping forever (gh issue #4).
+///
+/// Cleanup paths often don't exist by the time the event is processed (the
+/// deleter has removed them). We derive the cleanup path from the canonical
+/// destination — which the caller has already created — so the prefix
+/// remains stable and absolute even after the cleanup dir is gone.
+pub fn is_in_cleanup_dir(path: &Path, destination: &Path) -> bool {
+    let canon_dest = destination
+        .canonicalize()
+        .unwrap_or_else(|_| destination.to_path_buf());
+    let cleanup = canon_dest.with_extension("_old_cleanup");
+    let canon_path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+    canon_path.starts_with(&cleanup)
+}
+
 /// The kind of file that changed, used to determine rebuild scope.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FileChangeKind {
@@ -366,6 +406,25 @@ pub fn start_file_watcher(
     use notify_debouncer_mini::new_debouncer;
     use std::time::Duration;
 
+    // Canonicalize source and destination once at startup. Both exist by the
+    // time the watcher starts (the initial build creates the destination),
+    // and watching the canonical source makes notify emit absolute event
+    // paths — so prefix matching against the canonical destination and its
+    // cleanup sibling stays correct even when the file is mid-deletion (gh #4).
+    let canon_source = source.canonicalize().unwrap_or_else(|_| source.clone());
+    let canon_destination = destination
+        .canonicalize()
+        .unwrap_or_else(|_| destination.clone());
+    let canon_cleanup = canon_destination.with_extension("_old_cleanup");
+
+    // Watermark used to ignore Access (open/close) events that notify-7 emits
+    // when rustkyll itself reads source files during a rebuild. Without this
+    // we re-trigger on our own reads (gh #4). Any file whose mtime is at or
+    // before the watermark is treated as untouched. Initialized to "now"
+    // since the watcher starts after the initial build — anything older than
+    // this point is by definition unchanged.
+    let mut last_rebuild_start = std::time::SystemTime::now();
+
     let (tx, rx) = std::sync::mpsc::channel();
 
     let mut debouncer = new_debouncer(Duration::from_millis(300), tx)
@@ -373,21 +432,26 @@ pub fn start_file_watcher(
 
     debouncer
         .watcher()
-        .watch(&source, notify::RecursiveMode::Recursive)
+        .watch(&canon_source, notify::RecursiveMode::Recursive)
         .map_err(|e| format!("Failed to watch directory: {}", e))?;
 
-    println!("Watching {} for changes...", source.display());
+    println!("Watching {} for changes...", canon_source.display());
 
     while !shutdown.load(std::sync::atomic::Ordering::Relaxed) {
         match rx.recv_timeout(Duration::from_millis(200)) {
             Ok(Ok(events)) => {
-                // Filter events: ignore destination dir and non-content files
+                // Filter events: ignore destination dir, the rebuild cleanup
+                // sibling, non-content files, and files whose mtime predates
+                // the last rebuild (likely a spurious Access event from our
+                // own read).
                 let relevant_paths: Vec<PathBuf> = events
                     .iter()
                     .filter(|e| {
-                        is_in_source(&e.path, &source)
-                            && !is_in_destination(&e.path, &destination)
+                        e.path.starts_with(&canon_source)
+                            && !e.path.starts_with(&canon_destination)
+                            && !e.path.starts_with(&canon_cleanup)
                             && should_watch_file(&e.path)
+                            && file_changed_since(&e.path, last_rebuild_start)
                     })
                     .map(|e| e.path.clone())
                     .collect();
@@ -396,7 +460,12 @@ pub fn start_file_watcher(
                     continue;
                 }
 
-                let scope = determine_rebuild_scope(&source, &relevant_paths);
+                let scope = determine_rebuild_scope(&canon_source, &relevant_paths);
+
+                // Update the watermark BEFORE the rebuild starts so that all
+                // file reads performed during this rebuild are excluded from
+                // the next batch.
+                last_rebuild_start = std::time::SystemTime::now();
 
                 let start = Instant::now();
                 match &scope {
@@ -574,6 +643,98 @@ mod tests {
         let source_file = dir.path().join("index.md");
         std::fs::write(&source_file, "test").unwrap();
         assert!(!is_in_destination(&source_file, &dest));
+    }
+
+    // --- Cleanup directory filtering tests (gh issue #4) ---
+
+    #[test]
+    fn test_is_in_cleanup_dir_existing() {
+        let dir = tempfile::tempdir().unwrap();
+        let dest = dir.path().join("_site");
+        let cleanup = dir.path().join("_site._old_cleanup");
+        std::fs::create_dir_all(&cleanup).unwrap();
+        let file = cleanup.join("index.html");
+        std::fs::write(&file, "test").unwrap();
+        assert!(is_in_cleanup_dir(&file, &dest));
+    }
+
+    #[test]
+    fn test_is_in_cleanup_dir_nested_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let dest = dir.path().join("_site");
+        let cleanup_sub = dir.path().join("_site._old_cleanup/posts");
+        std::fs::create_dir_all(&cleanup_sub).unwrap();
+        let file = cleanup_sub.join("hello.html");
+        std::fs::write(&file, "test").unwrap();
+        assert!(is_in_cleanup_dir(&file, &dest));
+    }
+
+    #[test]
+    fn test_is_in_cleanup_dir_nonexistent_path() {
+        // After background deletion, the cleanup dir or its files no longer exist,
+        // but pending events still reference those paths. Filtering must still match.
+        let dir = tempfile::tempdir().unwrap();
+        let dest = dir.path().join("_site");
+        let phantom = dir.path().join("_site._old_cleanup").join("gone.html");
+        assert!(!phantom.exists());
+        assert!(is_in_cleanup_dir(&phantom, &dest));
+    }
+
+    #[test]
+    fn test_is_not_in_cleanup_dir_for_destination_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let dest = dir.path().join("_site");
+        std::fs::create_dir_all(&dest).unwrap();
+        let file = dest.join("index.html");
+        std::fs::write(&file, "test").unwrap();
+        assert!(!is_in_cleanup_dir(&file, &dest));
+    }
+
+    #[test]
+    fn test_is_not_in_cleanup_dir_for_source_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let dest = dir.path().join("_site");
+        let src_file = dir.path().join("index.md");
+        std::fs::write(&src_file, "test").unwrap();
+        assert!(!is_in_cleanup_dir(&src_file, &dest));
+    }
+
+    // --- mtime-watermark tests (gh issue #4) ---
+
+    #[test]
+    fn test_file_changed_since_returns_false_for_untouched_file() {
+        // An IN_OPEN event for a file rustkyll just read (no write) must
+        // not re-trigger the watcher. The file's mtime predates the rebuild
+        // start time, so the filter must reject it.
+        let dir = tempfile::tempdir().unwrap();
+        let f = dir.path().join("post.md");
+        std::fs::write(&f, "old").unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        let threshold = std::time::SystemTime::now();
+        // simulate a read-only access happening after the threshold
+        let _ = std::fs::read(&f);
+        assert!(!file_changed_since(&f, threshold));
+    }
+
+    #[test]
+    fn test_file_changed_since_returns_true_for_modified_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let f = dir.path().join("post.md");
+        std::fs::write(&f, "old").unwrap();
+        let threshold = std::time::SystemTime::now();
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        std::fs::write(&f, "new").unwrap();
+        assert!(file_changed_since(&f, threshold));
+    }
+
+    #[test]
+    fn test_file_changed_since_returns_true_for_missing_file() {
+        // Deleted files should still propagate so rebuilds pick up removals.
+        let dir = tempfile::tempdir().unwrap();
+        let f = dir.path().join("gone.md");
+        let threshold = std::time::SystemTime::now();
+        assert!(!f.exists());
+        assert!(file_changed_since(&f, threshold));
     }
 
     // --- Source directory filtering tests ---
