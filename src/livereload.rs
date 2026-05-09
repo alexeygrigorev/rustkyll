@@ -151,10 +151,27 @@ pub fn file_changed_since(path: &Path, threshold: std::time::SystemTime) -> bool
 /// destination — which the caller has already created — so the prefix
 /// remains stable and absolute even after the cleanup dir is gone.
 pub fn is_in_cleanup_dir(path: &Path, destination: &Path) -> bool {
-    let canon_dest = destination
-        .canonicalize()
-        .unwrap_or_else(|_| destination.to_path_buf());
-    let cleanup = canon_dest.with_extension("_old_cleanup");
+    // Build the cleanup prefix from the destination's *parent* — the parent
+    // always exists, while the destination itself may have been renamed away
+    // already. Canonicalizing the parent matters on macOS, where temp paths
+    // carry a /private/... prefix only after canonicalization; canonicalizing
+    // one side and not the other would make starts_with miss.
+    let cleanup = match (destination.parent(), destination.file_name()) {
+        (Some(parent), Some(name)) => {
+            let canon_parent = parent
+                .canonicalize()
+                .unwrap_or_else(|_| parent.to_path_buf());
+            let mut leaf = name.to_os_string();
+            leaf.push("._old_cleanup");
+            canon_parent.join(leaf)
+        }
+        _ => {
+            let canon_dest = destination
+                .canonicalize()
+                .unwrap_or_else(|_| destination.to_path_buf());
+            canon_dest.with_extension("_old_cleanup")
+        }
+    };
     let canon_path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
     canon_path.starts_with(&cleanup)
 }

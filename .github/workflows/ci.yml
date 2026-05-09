@@ -89,7 +89,7 @@ jobs:
             ${{ runner.os }}-gems-dtc-docs-
 
       - name: Install Jekyll and Bundler
-        run: gem install bundler jekyll
+        run: gem install bundler -v '~> 2.5' && gem install jekyll
 
       - name: Bundle install for DTC site
         run: |
