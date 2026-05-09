@@ -430,11 +430,11 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
         // Rouge keeps the whole qualified name in one <span class="nn"> span.
         html = merge_python_dotted_modules(&html);
 
-        // Rouge classifies `print` as `k` (keyword, Python 2 legacy) while
-        // syntect classifies it as `nb` (builtin). Match Rouge.
+        // Rouge classifies `print` as a function name in the current nightly
+        // Jekyll environment.
         html = html.replace(
             "<span class=\"nb\">print</span>",
-            "<span class=\"k\">print</span>",
+            "<span class=\"nf\">print</span>",
         );
 
         // Rouge classifies `input` as a builtin (`nb`) when used as an
@@ -445,9 +445,18 @@ pub fn highlight_code(lang: &str, code: &str) -> Option<String> {
             "<span class=\"nb\">input</span>",
         );
 
-        // Note: Python string delimiter split (sh+s+sh) and method call
-        // reclassification (n->nf) are disabled because the DTC site's Rouge
-        // version keeps strings as single 's' spans and methods as 'n'.
+        html = postprocess_python_import_names(&html);
+        html = postprocess_python_string_delimiter_split(&html);
+        html = postprocess_python_function_calls(&html);
+        html = postprocess_python_decorators(&html);
+        html = html.replace(
+            "<span class=\"nb\">str</span><span class=\"p\">(",
+            "<span class=\"nf\">str</span><span class=\"p\">(",
+        );
+        html = html.replace(
+            "<span class=\"nb\">zip</span><span class=\"p\">(",
+            "<span class=\"nf\">zip</span><span class=\"p\">(",
+        );
 
         // Rouge classifies `not`, `in` as `ow` (Operator.Word).
         html = html.replace(
@@ -1192,9 +1201,174 @@ fn postprocess_java_annotations(html: &str) -> String {
     result
 }
 
-// Note: postprocess_python_string_delimiter_split and postprocess_python_method_calls
-// were removed because the DTC site's Rouge version (3.x) keeps Python strings as
-// single 's' spans and method names as 'n' (not 'nf').
+fn postprocess_python_import_names(html: &str) -> String {
+    html.replace(
+        "<span class=\"kn\">import</span> <span class=\"nn\">",
+        "<span class=\"kn\">import</span> <span class=\"n\">",
+    )
+    .replace(
+        "<span class=\"kn\">from</span> <span class=\"nn\">",
+        "<span class=\"kn\">from</span> <span class=\"n\">",
+    )
+}
+
+fn postprocess_python_string_delimiter_split(html: &str) -> String {
+    let mut result = String::with_capacity(html.len() + html.len() / 8);
+    let mut remaining = html;
+    let open = "<span class=\"s\">";
+    let close = "</span>";
+
+    while let Some(pos) = remaining.find(open) {
+        result.push_str(&remaining[..pos]);
+        let after_open = &remaining[pos + open.len()..];
+        let Some(close_pos) = after_open.find(close) else {
+            result.push_str(open);
+            result.push_str(after_open);
+            return result;
+        };
+
+        let content = &after_open[..close_pos];
+        let after_span = &after_open[close_pos + close.len()..];
+
+        if content.contains('"') || content.contains('\'') {
+            emit_python_string_with_quote_spans(content, &mut result);
+        } else {
+            result.push_str(open);
+            result.push_str(content);
+            result.push_str(close);
+        }
+
+        remaining = after_span;
+    }
+
+    result.push_str(remaining);
+    result
+}
+
+fn emit_python_string_with_quote_spans(content: &str, out: &mut String) {
+    let mut text = String::new();
+    let mut chars = content.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        if ch == '\'' || ch == '"' {
+            if !text.is_empty() {
+                out.push_str("<span class=\"s\">");
+                out.push_str(&text);
+                out.push_str("</span>");
+                text.clear();
+            }
+
+            let mut quote_run = String::from(ch);
+            while quote_run.len() < 3 && chars.peek() == Some(&ch) {
+                quote_run.push(chars.next().unwrap());
+            }
+            out.push_str("<span class=\"sh\">");
+            out.push_str(&quote_run);
+            out.push_str("</span>");
+        } else {
+            text.push(ch);
+        }
+    }
+
+    if !text.is_empty() {
+        out.push_str("<span class=\"s\">");
+        out.push_str(&text);
+        out.push_str("</span>");
+    }
+}
+
+fn postprocess_python_function_calls(html: &str) -> String {
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+    let open = "<span class=\"n\">";
+    let close = "</span>";
+    let call = "<span class=\"p\">(";
+
+    while let Some(pos) = remaining.find(open) {
+        result.push_str(&remaining[..pos]);
+        let after_open = &remaining[pos + open.len()..];
+        let Some(close_pos) = after_open.find(close) else {
+            result.push_str(open);
+            result.push_str(after_open);
+            return result;
+        };
+
+        let name = &after_open[..close_pos];
+        let after_span = &after_open[close_pos + close.len()..];
+        if is_python_identifier_like(name) && after_span.starts_with(call) {
+            if name.chars().next().is_some_and(|ch| ch.is_uppercase()) {
+                result.push_str("<span class=\"nc\">");
+            } else {
+                result.push_str("<span class=\"nf\">");
+            }
+        } else {
+            result.push_str(open);
+        }
+        result.push_str(name);
+        result.push_str(close);
+        remaining = after_span;
+    }
+
+    result.push_str(remaining);
+    result
+}
+
+fn postprocess_python_decorators(html: &str) -> String {
+    let mut result = String::with_capacity(html.len());
+    let mut remaining = html;
+    let pattern = "<span class=\"o\">@</span>";
+
+    while let Some(pos) = remaining.find(pattern) {
+        result.push_str(&remaining[..pos]);
+        let mut after = &remaining[pos + pattern.len()..];
+        let mut decorator = String::from("@");
+
+        loop {
+            if let Some(rest) = after.strip_prefix("<span class=\"n\">") {
+                if let Some(close_pos) = rest.find("</span>") {
+                    decorator.push_str(&rest[..close_pos]);
+                    after = &rest[close_pos + "</span>".len()..];
+                    continue;
+                }
+            }
+            if let Some(rest) = after.strip_prefix("<span class=\"nf\">") {
+                if let Some(close_pos) = rest.find("</span>") {
+                    decorator.push_str(&rest[..close_pos]);
+                    after = &rest[close_pos + "</span>".len()..];
+                    continue;
+                }
+            }
+            if let Some(rest) = after.strip_prefix("<span class=\"p\">.</span>") {
+                decorator.push('.');
+                after = rest;
+                continue;
+            }
+            break;
+        }
+
+        if decorator == "@" {
+            result.push_str(pattern);
+            remaining = after;
+            continue;
+        }
+
+        result.push_str("<span class=\"nd\">");
+        result.push_str(&decorator);
+        result.push_str("</span>");
+        remaining = after;
+    }
+
+    result.push_str(remaining);
+    result
+}
+
+fn is_python_identifier_like(value: &str) -> bool {
+    let mut chars = value.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    (first == '_' || first.is_alphabetic()) && chars.all(|ch| ch == '_' || ch.is_alphanumeric())
+}
 
 /// Post-process Bash highlighted HTML to wrap `install` as a builtin (`nb`).
 fn postprocess_bash_install(html: &str) -> String {
@@ -2745,15 +2919,15 @@ mod tests {
     // ── Python token mapping tests ──
 
     #[test]
-    fn test_python_import_module_is_nn() {
+    fn test_python_import_module_is_n() {
         let html = highlight_code("python", "import scipy\n").unwrap();
         assert!(
             html.contains("<span class=\"kn\">import</span>"),
             "import keyword should be kn: {html}"
         );
         assert!(
-            html.contains("<span class=\"nn\">scipy</span>"),
-            "module name after import should be nn: {html}"
+            html.contains("<span class=\"n\">scipy</span>"),
+            "module name after import should be n: {html}"
         );
     }
 
@@ -2761,8 +2935,8 @@ mod tests {
     fn test_python_from_import_classes() {
         let html = highlight_code("python", "from matplotlib import pyplot as plt\n").unwrap();
         assert!(
-            html.contains("<span class=\"nn\">matplotlib</span>"),
-            "from module should be nn: {html}"
+            html.contains("<span class=\"n\">matplotlib</span>"),
+            "from module should be n: {html}"
         );
         assert!(
             html.contains("<span class=\"n\">pyplot</span>"),
@@ -2816,10 +2990,9 @@ mod tests {
             "\"\"\"Function to solve the fizzbuzz problem.\"\"\"\n",
         )
         .unwrap();
-        // Rouge uses `s` for Python docstrings (triple-quoted strings)
         assert!(
-            html.contains("<span class=\"s\">\"\"\"Function"),
-            "docstring should be s: {html}"
+            html.contains("<span class=\"sh\">\"\"\"</span><span class=\"s\">Function"),
+            "docstring delimiter should be sh and content should be s: {html}"
         );
     }
 
@@ -2828,19 +3001,18 @@ mod tests {
         let code = "\"\"\"This is my great and neat function to solve the famous\nFizz Buzz problem.\n:param num: That's the number which we want the answer for\n:return: fizz, buzz, fizzbuzz or the number itself\n\"\"\"\n";
         let html = highlight_code("python", code).unwrap();
         assert!(
-            html.contains("<span class=\"s\">\"\"\"This is my great and neat function to solve the famous\nFizz Buzz problem.\n:param num: That's the number which we want the answer for\n:return: fizz, buzz, fizzbuzz or the number itself\n\"\"\"</span>"),
-            "multiline Python docstrings should stay in one span like Rouge: {html}"
+            html.contains("<span class=\"sh\">\"\"\"</span><span class=\"s\">This is my great and neat function to solve the famous\nFizz Buzz problem.\n:param num: That</span><span class=\"sh\">'</span><span class=\"s\">s the number which we want the answer for\n:return: fizz, buzz, fizzbuzz or the number itself\n</span><span class=\"sh\">\"\"\"</span>"),
+            "multiline Python docstrings should split quote characters like Rouge: {html}"
         );
     }
 
     #[test]
     fn test_python_builtin_is_nb() {
-        // Rouge classifies `print` as `k` (keyword, Python 2 legacy).
-        // Our post-processing maps `nb` -> `k` for `print` to match Rouge.
+        // Current Rouge classifies `print` as a function name.
         let html = highlight_code("python", "print(\"hello\")\n").unwrap();
         assert!(
-            html.contains("<span class=\"k\">print</span>"),
-            "print should be k (matching Rouge): {html}"
+            html.contains("<span class=\"nf\">print</span>"),
+            "print should be nf (matching Rouge): {html}"
         );
     }
 
@@ -2864,29 +3036,20 @@ mod tests {
     }
 
     #[test]
-    fn test_python_function_call_is_n() {
+    fn test_python_function_call_is_nf() {
         let html = highlight_code("python", "assert fizz_buzz(inp) == out\n").unwrap();
         assert!(
-            html.contains("<span class=\"n\">fizz_buzz</span>"),
-            "function name in call should be n: {html}"
+            html.contains("<span class=\"nf\">fizz_buzz</span>"),
+            "function name in call should be nf: {html}"
         );
     }
 
     #[test]
-    fn test_python_decorator_at_is_o() {
+    fn test_python_decorator_is_nd() {
         let html = highlight_code("python", "@pytest.mark.parametrize\n").unwrap();
         assert!(
-            html.contains("<span class=\"o\">@</span>"),
-            "@ in decorator should be o: {html}"
-        );
-    }
-
-    #[test]
-    fn test_python_dot_accessor_is_p() {
-        let html = highlight_code("python", "@pytest.mark.parametrize\n").unwrap();
-        assert!(
-            html.contains("<span class=\"p\">.</span>"),
-            ". accessor should be p: {html}"
+            html.contains("<span class=\"nd\">@pytest.mark.parametrize</span>"),
+            "decorator should be a single nd span: {html}"
         );
     }
 
@@ -3204,10 +3367,9 @@ mod tests {
             html.contains("<span class=\"o\">==</span>"),
             "Python == should be o: {html}"
         );
-        // Python strings should be a single s span
         assert!(
-            html.contains("<span class=\"s\">'Lisboa'</span>"),
-            "Python single-quoted string should be single s span: {html}"
+            html.contains("<span class=\"sh\">'</span><span class=\"s\">Lisboa</span><span class=\"sh\">'</span>"),
+            "Python single-quoted string should split delimiters: {html}"
         );
     }
 
@@ -3340,14 +3502,13 @@ mod tests {
 
     #[test]
     fn test_issue158_python_import_module_dot() {
-        // "from arize.otel import register" -- Jekyll/Rouge outputs:
-        // <span class="nn">arize.otel</span>
-        // NOT: <span class="nn">arize</span><span class="p">.</span><span class="nn">otel</span>
+        // "from arize.otel import register" -- current Jekyll/Rouge outputs
+        // the dotted module name as one name span.
         let code = "from arize.otel import register\n";
         let html = highlight_code("python", code).unwrap();
         assert!(
-            html.contains("<span class=\"nn\">arize.otel</span>"),
-            "Python dotted module name should keep dot inside nn span. Got: {html}"
+            html.contains("<span class=\"n\">arize.otel</span>"),
+            "Python dotted module name should keep dot inside n span. Got: {html}"
         );
     }
 
@@ -3876,10 +4037,9 @@ mod tests {
             html.contains("class=\"s\""),
             "Python string should still be s: {html}"
         );
-        // Python strings should be a single s span
         assert!(
-            html.contains("<span class=\"s\">\"hello\"</span>"),
-            "Python string should be single s span: {html}"
+            html.contains("<span class=\"sh\">\"</span><span class=\"s\">hello</span><span class=\"sh\">\"</span>"),
+            "Python string should split delimiters: {html}"
         );
     }
 
@@ -4302,8 +4462,8 @@ tests:\n\
         // Non-ASCII: ensure Python highlighting works with CJK content
         let html = highlight_code("python", "print(\"\u{4e16}\u{754c}\")\n").unwrap();
         assert!(
-            html.contains("<span class=\"k\">print</span>"),
-            "Python 'print' should be k (keyword) even with CJK string: {html}"
+            html.contains("<span class=\"nf\">print</span>"),
+            "Python 'print' should be nf even with CJK string: {html}"
         );
     }
 
@@ -4317,13 +4477,13 @@ tests:\n\
     return df\n";
         let html = highlight_code("python", code).unwrap();
         assert!(
-            html.contains("<span class=\"nb\">sum</span><span class=\"p\">()</span>"),
+            html.contains("<span class=\"nf\">sum</span><span class=\"p\">()</span>"),
             "Python builtin-like sum() should match Rouge/Jekyll output: {html}"
         );
         let invalid_line_expected = concat!(
             "<span class=\"n\">df</span> <span class=\"o\">=</span> ",
             "<span class=\"n\">pandas</span><span class=\"p\">.</span>",
-            "<span class=\"n\">concat</span><span class=\"p\">([</span>",
+            "<span class=\"nf\">concat</span><span class=\"p\">([</span>",
             "<span class=\"n\">df</span><span class=\"p\">.</span>",
             "<span class=\"n\">iloc</span><span class=\"p\">[</span>",
             "<span class=\"mi\">0</span><span class=\"p\">:</span>",
@@ -4352,15 +4512,15 @@ df = df[(df['sales'] >= p) & (df['date'] > x]\n\
 u = df['user'].unique()\n";
         let html = highlight_code("python", code).unwrap();
         assert!(
-            html.contains("<span class=\"nb\">min</span><span class=\"p\">().</span><span class=\"nb\">max</span><span class=\"p\">()</span>"),
+            html.contains("<span class=\"nf\">min</span><span class=\"p\">().</span><span class=\"nf\">max</span><span class=\"p\">()</span>"),
             "Python min()/max() should match Rouge/Jekyll output: {html}"
         );
         let expected = concat!(
             "<span class=\"n\">x</span><span class=\"p\">]</span>\n",
             "<span class=\"n\">u</span> <span class=\"o\">=</span> ",
             "<span class=\"n\">df</span><span class=\"p\">[</span>",
-            "<span class=\"s\">'user'</span><span class=\"p\">].</span>",
-            "<span class=\"n\">unique</span><span class=\"p\">()</span>"
+            "<span class=\"sh\">'</span><span class=\"s\">user</span><span class=\"sh\">'</span><span class=\"p\">].</span>",
+            "<span class=\"nf\">unique</span><span class=\"p\">()</span>"
         );
         assert!(
             html.contains(expected),
@@ -5368,58 +5528,49 @@ u = df['user'].unique()\n";
     }
 
     #[test]
-    fn test_issue591_python_import_module_stays_nn_for_rouge3() {
-        // DTC uses Rouge 3.30 which classifies import module names as nn.
-        // This must not change to avoid DTC regression.
+    fn test_issue591_python_import_module_is_n_for_current_rouge() {
+        // The current nightly DTC build uses plain Jekyll/Rouge and classifies
+        // import module names as n.
         let html = highlight_code("python", "import asyncio\n").unwrap();
         assert!(
-            html.contains("<span class=\"nn\">asyncio</span>"),
-            "Python import module name should be nn (Rouge 3.x compat): {html}"
+            html.contains("<span class=\"n\">asyncio</span>"),
+            "Python import module name should be n: {html}"
         );
     }
 
     #[test]
-    fn test_issue591_python_constructor_call_is_n_for_rouge3() {
-        // DTC uses Rouge 3.30 which classifies constructor calls as n (not nc).
-        // Rouge 4.x uses nc. We keep n for DTC compatibility.
+    fn test_issue591_python_constructor_call_is_nc_for_current_rouge() {
         let html = highlight_code("python", "x = Agent(name='foo')\n").unwrap();
         assert!(
-            html.contains("<span class=\"n\">Agent</span>"),
-            "Python constructor call should be n (Rouge 3.x compat): {html}"
+            html.contains("<span class=\"nc\">Agent</span>"),
+            "Python constructor call should be nc: {html}"
         );
     }
 
     #[test]
-    fn test_issue591_python_method_call_is_n_for_rouge3() {
-        // DTC uses Rouge 3.30 which classifies method calls as n (not nf).
-        // Rouge 4.x uses nf. We keep n for DTC compatibility.
+    fn test_issue591_python_method_call_is_nf_for_current_rouge() {
         let html = highlight_code("python", "result = runner.run(agent)\n").unwrap();
         assert!(
-            html.contains("<span class=\"n\">run</span>"),
-            "Python method call should be n (Rouge 3.x compat): {html}"
+            html.contains("<span class=\"nf\">run</span>"),
+            "Python method call should be nf: {html}"
         );
     }
 
     #[test]
-    fn test_issue591_python_string_stays_single_s_for_rouge3() {
-        // DTC uses Rouge 3.30 which keeps Python strings as single s spans.
-        // Rouge 4.x splits into sh+s+sh. We keep single s for DTC compatibility.
+    fn test_issue591_python_string_splits_delimiters_for_current_rouge() {
         let html = highlight_code("python", "x = 'hello'\n").unwrap();
         assert!(
-            html.contains("<span class=\"s\">'hello'</span>"),
-            "Python string should be single s span (Rouge 3.x compat): {html}"
+            html.contains("<span class=\"sh\">'</span><span class=\"s\">hello</span><span class=\"sh\">'</span>"),
+            "Python string should split quote delimiters: {html}"
         );
     }
 
     #[test]
-    fn test_issue591_python_triple_quote_stays_single_s_for_rouge3() {
-        // DTC uses Rouge 3.30 which keeps triple-quoted strings as single s spans.
-        // Rouge 4.x splits into sh+s+sh. We keep single s for DTC compatibility.
+    fn test_issue591_python_triple_quote_splits_delimiters_for_current_rouge() {
         let html = highlight_code("python", "\"\"\"docstring content\"\"\"\n").unwrap();
         assert!(
-            html.contains("<span class=\"s\">\"\"\"docstring content\"\"\"</span>")
-                || html.contains("<span class=\"s\">&quot;&quot;&quot;docstring content&quot;&quot;&quot;</span>"),
-            "Python triple-quoted string should be single s span (Rouge 3.x compat): {html}"
+            html.contains("<span class=\"sh\">\"\"\"</span><span class=\"s\">docstring content</span><span class=\"sh\">\"\"\"</span>"),
+            "Python triple-quoted string should split quote delimiters: {html}"
         );
     }
 

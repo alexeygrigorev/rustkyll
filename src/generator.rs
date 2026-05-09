@@ -454,23 +454,23 @@ pub fn build_site_context(
         Object::new()
     };
 
-    // repository_url: resolve from git remote when the jekyll-github-metadata
-    // plugin is listed, explicit `github:` config exists, or the site appears
-    // to be a GitHub Pages site (source dir ends with .github.io).
-    // Jekyll on GitHub Pages auto-injects the plugin, so sites like DTC rely
-    // on repository_url without listing any plugin or github config.
-    let is_github_pages = site_dir
+    // The github-pages gem auto-activates jekyll-github-metadata in local
+    // Bundler builds even when it is not listed in _config.yml.
+    let has_github_pages_gem = site_dir
         .map(|d| {
-            // Canonicalize to resolve "." to the actual directory name
-            let resolved = d.canonicalize().unwrap_or_else(|_| d.to_path_buf());
-            resolved
-                .file_name()
-                .map(|n| n.to_string_lossy().ends_with(".github.io"))
-                .unwrap_or(false)
+            let gemfile = d.join("Gemfile");
+            gemfile.exists()
+                && std::fs::read_to_string(&gemfile)
+                    .map(|c| c.contains("github-pages"))
+                    .unwrap_or(false)
         })
         .unwrap_or(false);
+
+    // repository_url: resolve from git remote when the jekyll-github-metadata
+    // plugin is active or _config.yml has an explicit `github:` key. A
+    // .github.io directory name alone is not enough for a local Jekyll build.
     if !github.contains_key("repository_url")
-        && (has_plugin || has_explicit_github || is_github_pages)
+        && (has_plugin || has_explicit_github || has_github_pages_gem)
     {
         github.insert(
             "repository_url".into(),
@@ -492,7 +492,8 @@ pub fn build_site_context(
 
     // source.branch: resolve from git HEAD when plugin is active or explicit github config
     // This is needed by the github_edit_link tag to build edit URLs.
-    if !github.contains_key("source") && (has_plugin || has_explicit_github || is_github_pages) {
+    if !github.contains_key("source") && (has_plugin || has_explicit_github || has_github_pages_gem)
+    {
         let branch = resolve_git_branch(site_dir);
         if !branch.is_empty() {
             let mut source = Object::new();
@@ -518,18 +519,7 @@ pub fn build_site_context(
     // When jekyll-github-metadata is active and site.title is empty,
     // Jekyll infers the title from the repository name (the part after the slash).
     // This matches the behavior of github-pages gem which populates site.title.
-    // We also check for github-pages in the Gemfile (group: :jekyll_plugins)
-    // which auto-activates the plugin without it being in the _config.yml plugins list.
-    let has_github_pages_gem = site_dir
-        .map(|d| {
-            let gemfile = d.join("Gemfile");
-            gemfile.exists()
-                && std::fs::read_to_string(&gemfile)
-                    .map(|c| c.contains("github-pages"))
-                    .unwrap_or(false)
-        })
-        .unwrap_or(false);
-    if config.title.is_empty() && (has_plugin || is_github_pages || has_github_pages_gem) {
+    if config.title.is_empty() && (has_plugin || has_github_pages_gem) {
         if let Some(ref repo) = config.repository {
             if let Some((_owner, name)) = repo.split_once('/') {
                 site.insert("title".into(), LiquidValue::scalar(name.to_string()));
@@ -3264,6 +3254,37 @@ mod tests {
             assert!(
                 gh.get("repository_url").is_none(),
                 "repository_url should not be populated without plugin or explicit github config"
+            );
+        } else {
+            panic!("Expected github to be an Object");
+        }
+    }
+
+    #[test]
+    fn test_github_repo_url_nil_for_github_io_dir_without_plugin_or_gemfile() {
+        // A .github.io checkout does not populate site.github.* in local Jekyll
+        // unless jekyll-github-metadata or github-pages is active.
+        let temp = tempfile::tempdir().expect("tempdir");
+        let site_dir = temp.path().join("owner.github.io");
+        std::fs::create_dir(&site_dir).expect("create site dir");
+        let config = SiteConfig {
+            url: "https://owner.github.io".to_string(),
+            name: "Test".to_string(),
+            title: "Test".to_string(),
+            ..Default::default()
+        };
+        let collections = HashMap::new();
+        let data = DataTree::new();
+        let ctx = build_site_context(&config, &collections, &data, Some(&site_dir), &[]);
+        let github = ctx.get("github").expect("should have github");
+        if let LiquidValue::Object(gh) = github {
+            assert!(
+                gh.get("repository_url").is_none(),
+                "repository_url should not be populated from .github.io directory name alone"
+            );
+            assert!(
+                gh.get("source").is_none(),
+                "source should not be populated from .github.io directory name alone"
             );
         } else {
             panic!("Expected github to be an Object");

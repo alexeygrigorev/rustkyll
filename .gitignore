@@ -7,3 +7,4 @@ playwright/screenshots/
 playwright/test-results/
 __pycache__
 _site
+rustkyll.egg-info/
