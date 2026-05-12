@@ -787,7 +787,7 @@ fn discover_test_pairs(base: &Path, dir: &Path, results: &mut Vec<String>) {
                     .unwrap()
                     .with_extension("")
                     .to_string_lossy()
-                    .to_string();
+                    .replace('\\', "/");
                 results.push(stem);
             }
         }

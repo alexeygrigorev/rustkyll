@@ -104,41 +104,6 @@ jobs:
       - name: Generate synthetic sites (large-blog-3000, large-docs-site)
         run: ./scripts/generate-synthetic-sites.sh
 
-      # -- Install Ruby and Jekyll --
-
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.3'
-
-      - name: Cache Ruby gems
-        uses: actions/cache@v4
-        with:
-          path: vendor/bundle
-          key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-gems-
-
-      - name: Install Jekyll and Bundler
-        run: gem install bundler -v '~> 2.5' && gem install jekyll
-
-      - name: Bundle install for DTC site
-        run: |
-          cd websites/DataTalksClub/datatalksclub.github.io
-          bundle config set --local path '${{ github.workspace }}/vendor/bundle'
-          bundle install --jobs 4 --retry 3
-
-      - name: Bundle install for kids-horror-stories-ru
-        run: |
-          cd websites/alexeygrigorev/kids-horror-stories-ru
-          bundle config set --local path '${{ github.workspace }}/vendor/bundle'
-          bundle install --jobs 4 --retry 3
-
-      # -- Install uv for Python scripts --
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
       # -- Build and test --
 
       - name: Build rustkyll (release)
@@ -216,7 +181,7 @@ jobs:
       - name: Validate HTML file count
         shell: bash
         run: |
-          MIN_HTML_FILES=100
+          MIN_HTML_FILES=795
           HTML_COUNT=$(find "$RUNNER_TEMP/dtc-output" -name "*.html" -type f | wc -l)
           echo "HTML files generated: $HTML_COUNT"
           echo "Minimum required: $MIN_HTML_FILES"

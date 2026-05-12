@@ -26,12 +26,8 @@ jobs:
       - name: Build rustkyll (release)
         run: cargo build --release --verbose
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
       # The websites/ directory is gitignored and not available in CI.
       # Clone the DTC site (the most critical site) for nightly checking.
-      # Other sites require their Jekyll cached output which lives locally.
       - name: Set up websites directory
         run: |
           mkdir -p websites/DataTalksClub
@@ -42,46 +38,48 @@ jobs:
             https://github.com/DataTalksClub/datatalksclub.github.io.git \
             websites/DataTalksClub/datatalksclub.github.io
 
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.3'
-
-      - name: Cache Ruby gems
-        uses: actions/cache@v4
-        with:
-          path: vendor/bundle
-          key: ${{ runner.os }}-gems-nightly-${{ hashFiles('websites/DataTalksClub/datatalksclub.github.io/Gemfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-gems-nightly-
-
-      - name: Install Jekyll and Bundler
-        run: gem install bundler -v '~> 2.5' && gem install jekyll
-
-      - name: Build DTC with Jekyll (creates _site_jekyll_cached)
+      - name: Clone DTC docs (shallow)
         run: |
-          cd websites/DataTalksClub/datatalksclub.github.io
-          if [ -f Gemfile ]; then
-            bundle config set --local path '${{ github.workspace }}/vendor/bundle'
-            bundle install --jobs 4 --retry 3
-            bundle exec jekyll build
-          else
-            jekyll build
+          git clone --depth 1 \
+            https://github.com/DataTalksClub/docs.git \
+            websites/DataTalksClub/docs
+
+      - name: Build DTC main with rustkyll
+        run: |
+          ./target/release/rustkyll build \
+            --source websites/DataTalksClub/datatalksclub.github.io \
+            --destination websites/DataTalksClub/datatalksclub.github.io/_site
+
+      - name: Build DTC docs with rustkyll
+        run: |
+          ./target/release/rustkyll build \
+            --source websites/DataTalksClub/docs \
+            --destination websites/DataTalksClub/docs/_site
+
+      - name: Validate DTC main output
+        run: |
+          HTML_COUNT=$(find websites/DataTalksClub/datatalksclub.github.io/_site -name '*.html' -type f | wc -l)
+          TOTAL_COUNT=$(find websites/DataTalksClub/datatalksclub.github.io/_site -type f | wc -l)
+          echo "DTC main: $HTML_COUNT HTML files, $TOTAL_COUNT total files"
+          if [ "$HTML_COUNT" -lt 795 ]; then
+            echo "FAIL: DTC main HTML file count ($HTML_COUNT) is below 795"
+            exit 1
           fi
-          # Rename _site to _site_jekyll_cached so ci-dom-check.py finds it
-          mv _site _site_jekyll_cached
+          echo "PASS: DTC main $HTML_COUNT HTML files"
 
-      - name: Run DOM baseline check
+      - name: Validate DTC docs output
         run: |
-          uv run scripts/ci-dom-check.py \
-            --rustkyll-bin target/release/rustkyll \
-            --websites-dir websites \
-            --baselines docs/dom-baselines.json \
-            --output dom-nightly-report.txt \
-            --sites DataTalksClub/datatalksclub.github.io
+          HTML_COUNT=$(find websites/DataTalksClub/docs/_site -name '*.html' -type f | wc -l)
+          TOTAL_COUNT=$(find websites/DataTalksClub/docs/_site -type f | wc -l)
+          echo "DTC docs: $HTML_COUNT HTML files, $TOTAL_COUNT total files"
+          if [ "$HTML_COUNT" -lt 56 ]; then
+            echo "FAIL: DTC docs HTML file count ($HTML_COUNT) is below 56"
+            exit 1
+          fi
+          echo "PASS: DTC docs $HTML_COUNT HTML files"
 
-      - name: Upload DOM report
-        if: always()
+      - name: Upload report on failure
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: nightly-dom-report

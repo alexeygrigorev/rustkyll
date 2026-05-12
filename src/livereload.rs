@@ -172,7 +172,20 @@ pub fn is_in_cleanup_dir(path: &Path, destination: &Path) -> bool {
             canon_dest.with_extension("_old_cleanup")
         }
     };
-    let canon_path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+    let canon_path = path.canonicalize().unwrap_or_else(|_| {
+        match path.parent() {
+            Some(parent) if parent.exists() => {
+                let mut canon = parent
+                    .canonicalize()
+                    .unwrap_or_else(|_| parent.to_path_buf());
+                if let Some(name) = path.file_name() {
+                    canon.push(name);
+                }
+                canon
+            }
+            _ => path.to_path_buf(),
+        }
+    });
     canon_path.starts_with(&cleanup)
 }
 

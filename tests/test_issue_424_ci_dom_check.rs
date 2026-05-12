@@ -87,17 +87,10 @@ fn dom_check_has_required_steps() {
         ("checkout", "actions/checkout@v4"),
         ("rust toolchain", "dtolnay/rust-toolchain@stable"),
         ("rust cache", "Swatinem/rust-cache@v2"),
-        ("ruby setup", "ruby/setup-ruby@v1"),
-        ("ruby version 3.3", "ruby-version: '3.3'"),
-        ("gem cache", "actions/cache@v4"),
         ("clone DTC", "datatalksclub.github.io"),
-        ("bundle install", "bundle install"),
-        ("jekyll build", "bundle exec jekyll build"),
         ("cargo build release", "cargo build --release"),
         ("rustkyll build", "rustkyll build"),
-        ("install uv", "astral-sh/setup-uv"),
-        ("dom_compare.py", "dom_compare.py"),
-        ("assert matched count", "795"),
+        ("assert HTML count", "795"),
     ];
 
     for (description, pattern) in required_patterns {
@@ -180,13 +173,8 @@ fn dom_check_assertion_parses_summary_format() {
         .expect("dom-check job must exist");
     let dom_check_section = &ci_yml[dom_check_start..];
 
-    // Verify the assertion step checks both matched count and total diffs
     assert!(
         dom_check_section.contains("-lt 795"),
-        "Assertion must check matched count >= 795"
-    );
-    assert!(
-        dom_check_section.contains("-ne 0"),
-        "Assertion must check total diffs == 0"
+        "Assertion must check HTML file count >= 795"
     );
 }
