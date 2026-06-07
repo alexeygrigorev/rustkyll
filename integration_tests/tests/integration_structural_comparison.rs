@@ -10,6 +10,24 @@
 use std::path::Path;
 use std::process::Command;
 
+/// Whether a working Jekyll toolchain is available to build the reference
+/// output for `site`. The comparison script invokes `bundle exec jekyll build`
+/// inside the site directory, so this mirrors that exact requirement.
+///
+/// CI runs Jekyll-free (see integration.yml and nightly-dom.yml, which build
+/// and validate with rustkyll only), so these Jekyll-vs-rustkyll comparison
+/// tests skip there. They run locally where Jekyll is installed.
+fn jekyll_available(site: &str) -> bool {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+    let site_dir = root.join("websites").join(site);
+    Command::new("bundle")
+        .args(["exec", "jekyll", "--version"])
+        .current_dir(&site_dir)
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
 /// Run the structural comparison script for a given site.
 /// Returns (stdout, success) so tests can check output and apply thresholds.
 fn run_comparison(site: &str) -> (String, bool) {
@@ -56,7 +74,12 @@ fn run_comparison(site: &str) -> (String, bool) {
 
 #[test]
 fn test_structural_comparison_kids_horror_stories() {
-    let (output, success) = run_comparison("alexeygrigorev/kids-horror-stories-ru");
+    let site = "alexeygrigorev/kids-horror-stories-ru";
+    if !jekyll_available(site) {
+        eprintln!("SKIPPING {site}: Jekyll toolchain unavailable (CI runs Jekyll-free)");
+        return;
+    }
+    let (output, success) = run_comparison(site);
     assert!(
         success,
         "kids-horror-stories-ru structural comparison should pass with zero diffs.\nOutput:\n{output}"
@@ -65,7 +88,12 @@ fn test_structural_comparison_kids_horror_stories() {
 
 #[test]
 fn test_structural_comparison_dtc_site() {
-    let (output, _success) = run_comparison("DataTalksClub/datatalksclub.github.io");
+    let site = "DataTalksClub/datatalksclub.github.io";
+    if !jekyll_available(site) {
+        eprintln!("SKIPPING {site}: Jekyll toolchain unavailable (CI runs Jekyll-free)");
+        return;
+    }
+    let (output, _success) = run_comparison(site);
 
     // DTC is not at 100% DOM match yet (~68%), so we check structural properties
     // rather than asserting zero diffs. The script exits 1 on any diffs.
