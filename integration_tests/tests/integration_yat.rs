@@ -70,7 +70,7 @@ fn count_html_files(dir: &Path) -> usize {
                 let path = entry.path();
                 if path.is_dir() {
                     stack.push(path);
-                } else if path.extension().map_or(false, |ext| ext == "html") {
+                } else if path.extension().is_some_and(|ext| ext == "html") {
                     count += 1;
                 }
             }

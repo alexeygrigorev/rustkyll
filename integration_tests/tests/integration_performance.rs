@@ -356,7 +356,7 @@ fn test_dtc_blog_post_has_expected_content() {
         let entries: Vec<_> = fs::read_dir(&blog_dir)
             .unwrap()
             .filter_map(|e| e.ok())
-            .filter(|e| e.path().extension().map_or(false, |ext| ext == "html"))
+            .filter(|e| e.path().extension().is_some_and(|ext| ext == "html"))
             .collect();
         assert!(
             !entries.is_empty(),
@@ -392,7 +392,7 @@ fn test_dtc_podcast_page_has_expected_content() {
     let entries: Vec<_> = fs::read_dir(&podcast_dir)
         .unwrap()
         .filter_map(|e| e.ok())
-        .filter(|e| e.path().extension().map_or(false, |ext| ext == "html"))
+        .filter(|e| e.path().extension().is_some_and(|ext| ext == "html"))
         .collect();
     assert!(
         !entries.is_empty(),
@@ -431,7 +431,7 @@ fn test_dtc_person_page_has_expected_content() {
     let entries: Vec<_> = fs::read_dir(&people_dir)
         .unwrap()
         .filter_map(|e| e.ok())
-        .filter(|e| e.path().extension().map_or(false, |ext| ext == "html"))
+        .filter(|e| e.path().extension().is_some_and(|ext| ext == "html"))
         .collect();
     assert!(
         entries.len() > 400,

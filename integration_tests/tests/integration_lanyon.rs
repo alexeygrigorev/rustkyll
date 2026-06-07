@@ -413,10 +413,10 @@ layout: null
         "(function(document) { /* sidebar toggle */ })(document);\n",
     )
     .unwrap();
-    std::fs::write(root.join("public/favicon.ico"), &[0u8; 16]).unwrap();
+    std::fs::write(root.join("public/favicon.ico"), [0u8; 16]).unwrap();
     std::fs::write(
         root.join("public/apple-touch-icon-precomposed.png"),
-        &[0u8; 16],
+        [0u8; 16],
     )
     .unwrap();
 
