@@ -87,6 +87,16 @@ jobs:
       - name: Clone just-the-docs (shallow)
         run: git clone --depth 1 https://github.com/just-the-docs/just-the-docs.git websites/just-the-docs
 
+      - name: Clone lanyon (pinned commit)
+        run: |
+          git clone https://github.com/poole/lanyon.git websites/lanyon
+          cd websites/lanyon && git checkout e637093ba6cd51830a941a112a64d58e6032e5ed
+
+      - name: Clone yat theme (pinned commit)
+        run: |
+          git clone https://github.com/jeffreytse/jekyll-theme-yat.git websites/yat
+          cd websites/yat && git checkout f63b78f74dc12ad90badd484a841fd70a6453dbe
+
       - name: Clone GitHub Pages themes (shallow)
         run: |
           git clone --depth 1 https://github.com/pages-themes/cayman.git websites/cayman-theme

@@ -104,9 +104,13 @@ fn test_documentation_theme_jekyll_page_count() {
 fn test_muan_blog_page_count() {
     let tmp = build_site("muan-blog");
     let count = count_html_files(tmp.path());
+    // 2218 matches Jekyll exactly. The `_pages/acitivitypub.json` page is a
+    // JSON document with front matter; it is correctly emitted as `.json`
+    // (not `.html`), so it is not counted here. An earlier rustkyll build
+    // mis-emitted it as `.html`, which inflated this count to 2219.
     assert_eq!(
-        count, 2219,
-        "muan-blog: expected 2219 HTML files, got {}",
+        count, 2218,
+        "muan-blog: expected 2218 HTML files, got {}",
         count
     );
 }

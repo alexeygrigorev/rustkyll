@@ -239,11 +239,15 @@ fn test_dtc_output_html_file_count() {
         collection_pages, standalone_pages, html_count
     );
 
-    let expected = 785;
+    // DTC is a live site whose page count grows over time (new posts/events),
+    // so assert a lower bound rather than an exact count. This mirrors the
+    // cross-platform workflow's MIN_HTML_FILES gate; precise structural
+    // regressions are caught by the nightly DOM baseline check.
+    let min_expected = 790;
     assert!(
-        html_count >= expected - 5 && html_count <= expected + 5,
-        "Expected {} +/-5 HTML files, got {}",
-        expected,
+        html_count >= min_expected,
+        "Expected at least {} HTML files, got {}",
+        min_expected,
         html_count
     );
 }
