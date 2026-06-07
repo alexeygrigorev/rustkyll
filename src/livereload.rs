@@ -172,19 +172,40 @@ pub fn is_in_cleanup_dir(path: &Path, destination: &Path) -> bool {
             canon_dest.with_extension("_old_cleanup")
         }
     };
-    let canon_path = path.canonicalize().unwrap_or_else(|_| match path.parent() {
-        Some(parent) if parent.exists() => {
-            let mut canon = parent
-                .canonicalize()
-                .unwrap_or_else(|_| parent.to_path_buf());
-            if let Some(name) = path.file_name() {
-                canon.push(name);
-            }
-            canon
-        }
-        _ => path.to_path_buf(),
-    });
+    let canon_path = canonicalize_via_ancestor(path);
     canon_path.starts_with(&cleanup)
+}
+
+/// Canonicalize a path that may not exist.
+///
+/// `Path::canonicalize` fails when the path (or any ancestor) is missing, which
+/// happens routinely for cleanup events whose files have already been deleted.
+/// We walk up to the nearest *existing* ancestor, canonicalize that, then
+/// re-append the remaining components. This keeps the result consistent with a
+/// fully-canonicalized prefix even when the immediate parent is gone — without
+/// it, macOS leaves a `/var/...` path uncanonicalized against a `/private/var/...`
+/// prefix (and Windows a plain path against a `\\?\` prefix), making
+/// `starts_with` miss.
+fn canonicalize_via_ancestor(path: &Path) -> PathBuf {
+    if let Ok(canon) = path.canonicalize() {
+        return canon;
+    }
+    let mut suffix: Vec<std::ffi::OsString> = Vec::new();
+    let mut current = path;
+    while let Some(parent) = current.parent() {
+        if let Some(name) = current.file_name() {
+            suffix.push(name.to_os_string());
+        }
+        if let Ok(canon_parent) = parent.canonicalize() {
+            let mut result = canon_parent;
+            for name in suffix.iter().rev() {
+                result.push(name);
+            }
+            return result;
+        }
+        current = parent;
+    }
+    path.to_path_buf()
 }
 
 /// The kind of file that changed, used to determine rebuild scope.

@@ -138,10 +138,19 @@ fn test_dtc_docs_all_pages_rendered() {
     let dest = std::env::temp_dir().join("dtc-docs-test-pages");
     let output = build_dtc_docs(&dest);
 
-    // The site should produce at least 56 standalone pages
+    // The upstream docs repo grows over time, so assert a lower bound on the
+    // actual parsed count rather than substring-matching a literal number
+    // (which would spuriously match any value containing those digits).
+    let standalone = output
+        .lines()
+        .find_map(|l| l.trim().strip_prefix("Standalone pages:"))
+        .and_then(|n| n.trim().parse::<usize>().ok())
+        .unwrap_or_else(|| panic!("Build output missing 'Standalone pages:' line.\n{}", output));
+
     assert!(
-        output.contains("Standalone pages:") && output.contains("59"),
-        "Should generate 59 standalone pages. Output:\n{}",
+        standalone >= 59,
+        "Should generate at least 59 standalone pages, got {}. Output:\n{}",
+        standalone,
         output
     );
 }
