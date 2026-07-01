@@ -908,6 +908,9 @@ impl TemplateEngine {
             .filter(filters::GroupByExp)
             .filter(filters::XmlEscape)
             .filter(filters::Truncatewords)
+            // Jekyll number_with_delimiter (ActiveSupport): thousands grouping
+            // for star/fork counts etc. (Issue GH#6)
+            .filter(filters::NumberWithDelimiter)
             // Missing filters (Issue 37)
             .filter(filters::NormalizeWhitespace)
             // Custom date filter that handles YYYY-MM-DD strings (Issue 72)
