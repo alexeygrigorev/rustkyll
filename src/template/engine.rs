@@ -6094,7 +6094,7 @@ title: "Test Book"
                 o
             }),
             LiquidValue::Object({
-                let mut o = Object::new();
+                let o = Object::new();
                 // No tags key at all -> map returns Nil
                 o
             }),

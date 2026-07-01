@@ -888,7 +888,6 @@ mod tests {
             path_prefix: "author".to_string(),
         };
 
-        let config = SiteConfig::default();
         let layout_engine = LayoutEngine::new(&layouts_dir, &includes_dir).unwrap();
         let site_context = Object::new();
         let cached_site = CachedSiteContext::new(&site_context);
@@ -956,7 +955,6 @@ mod tests {
             path_prefix: "author".to_string(),
         };
 
-        let config = SiteConfig::default();
         let layout_engine = LayoutEngine::new(&layouts_dir, &includes_dir).unwrap();
         let site_context = Object::new();
         let cached_site = CachedSiteContext::new(&site_context);
@@ -1025,7 +1023,6 @@ mod tests {
             path_prefix: "tag".to_string(),
         };
 
-        let config = SiteConfig::default();
         let layout_engine = LayoutEngine::new(&layouts_dir, &includes_dir).unwrap();
         let site_context = Object::new();
         let cached_site = CachedSiteContext::new(&site_context);
@@ -1079,7 +1076,6 @@ mod tests {
             path_prefix: "tag".to_string(),
         };
 
-        let config = SiteConfig::default();
         let layout_engine = LayoutEngine::new(&layouts_dir, &includes_dir).unwrap();
         let site_context = Object::new();
         let cached_site = CachedSiteContext::new(&site_context);
@@ -1151,7 +1147,6 @@ mod tests {
             path_prefix: "author".to_string(),
         };
 
-        let config = SiteConfig::default();
         let layout_engine = LayoutEngine::new(&layouts_dir, &includes_dir).unwrap();
         let site_context = Object::new();
         let cached_site = CachedSiteContext::new(&site_context);
@@ -1279,7 +1274,6 @@ mod tests {
             path_prefix: "author".to_string(),
         };
 
-        let config = SiteConfig::default();
         let layout_engine = LayoutEngine::new(&layouts_dir, &includes_dir).unwrap();
         let site_context = Object::new();
         let cached_site = CachedSiteContext::new(&site_context);
@@ -1338,7 +1332,6 @@ mod tests {
             path_prefix: "author".to_string(),
         };
 
-        let config = SiteConfig::default();
         let layout_engine = LayoutEngine::new(&layouts_dir, &includes_dir).unwrap();
         let site_context = Object::new();
         let cached_site = CachedSiteContext::new(&site_context);
@@ -1390,7 +1383,6 @@ mod tests {
             path_prefix: "tag".to_string(),
         };
 
-        let config = SiteConfig::default();
         let layout_engine = LayoutEngine::new(&layouts_dir, &includes_dir).unwrap();
         let site_context = Object::new();
         let cached_site = CachedSiteContext::new(&site_context);

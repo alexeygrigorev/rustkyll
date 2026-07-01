@@ -15439,7 +15439,7 @@ by <a href="/people/author.html">Author Name</a>
             "If you put \"Successfully replicated 10TB/day\" some shame",
         );
         // Check that opening quote is U+201C (left), not U+201D (right)
-        let idx = html.find('\u{201C}').or_else(|| html.find('\u{201D}'));
+        let _idx = html.find('\u{201C}').or_else(|| html.find('\u{201D}'));
         assert!(
             html.contains('\u{201C}'),
             "Opening double quote should be U+201C (left). Got: {}",
@@ -19037,7 +19037,7 @@ Do It Live\n\
         // End-to-end test: markdown with consecutive IAL-separated lines
         // should produce separate <p> elements with correct classes.
         let input = "blue\n{: .label .label-blue }\ngreen\n{: .label .label-green }\npurple\n{: .label .label-purple }\n";
-        let preprocessed = separate_block_ial_paragraphs(input);
+        let _preprocessed = separate_block_ial_paragraphs(input);
         // After preprocessing, each text+IAL pair is a separate paragraph.
         // Use postprocess to simulate the full pipeline on HTML output.
         // We need to convert markdown to HTML first.
