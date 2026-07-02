@@ -122,6 +122,9 @@ enum BuildError {
     #[error("feed error: {0}")]
     Feed(#[from] rustkyll::feed::FeedError),
 
+    #[error("extension error: {0}")]
+    Extension(#[from] rustkyll::extensions::ExtensionError),
+
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
 }
@@ -826,6 +829,40 @@ fn build_site(
     };
     let render_progress = progress.render_progress(total_renderable as u64, "Rendering");
 
+    // Build the extension registry (opt-in via `extensions:` in _config.yml).
+    // An empty registry means no extensions are enabled, so the runtime stays
+    // `None` and the render pipeline behaves byte-identically to before.
+    let extension_registry = rustkyll::extensions::Registry::from_config(&config)?;
+
+    // Build the site link index once from ALL pages + collection items so that
+    // extension transforms can resolve `[[target]]`-style links. Only built when
+    // at least one extension is enabled (avoids any cost on the common path).
+    let site_index = if extension_registry.is_empty() {
+        rustkyll::extensions::SiteIndex::new()
+    } else {
+        let mut idx = rustkyll::extensions::SiteIndex::new();
+        for items in collections.values() {
+            for item in items {
+                let title = item.front_matter.get("title").and_then(|v| v.as_str());
+                idx.insert(&item.slug, title, &item.url);
+            }
+        }
+        for page in &pages {
+            let title = page.front_matter.get("title").and_then(|v| v.as_str());
+            idx.insert(&page.slug, title, &page.url);
+        }
+        idx
+    };
+
+    let extension_runtime: Option<generator::ExtensionRuntime> = if extension_registry.is_empty() {
+        None
+    } else {
+        Some(generator::ExtensionRuntime {
+            registry: &extension_registry,
+            index: &site_index,
+        })
+    };
+
     // Process all collections in parallel to maximize thread utilization.
     // Each collection's items are also processed in parallel internally (nested par_iter).
     // This avoids idle threads between sequential collection processing.
@@ -886,6 +923,7 @@ fn build_site(
                 let cached_site = &cached_site;
                 let render_progress = &render_progress;
                 let results = &results;
+                let ext_ref = extension_runtime.as_ref();
                 s.spawn(move |_| {
                     let result = generator::generate_collection_pages_cached_with_progress(
                         items_slice,
@@ -896,6 +934,7 @@ fn build_site(
                         destination,
                         author_items,
                         Some(render_progress),
+                        ext_ref,
                     );
                     results.lock().unwrap().push(result);
                 });
@@ -1007,6 +1046,7 @@ fn build_site(
             Some(&config),
             Some(&render_progress),
             Some(source),
+            extension_runtime.as_ref(),
         )?;
         summary.standalone_pages = page_result.generated;
         summary.errors.extend(page_result.errors);

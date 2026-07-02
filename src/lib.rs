@@ -5,6 +5,7 @@ pub mod compare;
 pub mod config;
 pub mod data;
 pub mod docker_highlight;
+pub mod extensions;
 pub mod feed;
 pub mod frontmatter;
 pub mod generator;

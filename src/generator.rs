@@ -19,10 +19,49 @@ use rayon::prelude::*;
 use crate::collection::{CollectionItem, Page};
 use crate::config::SiteConfig;
 use crate::data::DataTree;
+use crate::extensions::{Registry, SiteIndex, TransformContext};
 use crate::template::context::{normalize_arrays, normalize_frontmatter_date, yaml_to_liquid};
 use crate::template::engine::CachedSiteContext;
 use crate::template::layout::LayoutEngine;
 use crate::template::TemplateError;
+
+/// Bundle of the extension registry and the site link index, threaded through
+/// page/collection generation so post-render HTML transforms can run.
+///
+/// Passed as `Option<&ExtensionRuntime>`; `None` (or an empty registry) means
+/// no transforms run and output is byte-identical to a build without any
+/// extensions.
+pub struct ExtensionRuntime<'a> {
+    /// The enabled extensions, in declared order.
+    pub registry: &'a Registry,
+    /// Site-wide slug/title -> URL index used to resolve links.
+    pub index: &'a SiteIndex,
+}
+
+/// Apply the extension registry to rendered HTML for one document, emitting any
+/// build warnings to stderr. A no-op when `ext` is `None` or its registry is
+/// empty, so the common (no-extensions) path is unchanged.
+fn apply_extensions(
+    html: String,
+    ext: Option<&ExtensionRuntime>,
+    baseurl: &str,
+    collection: Option<&str>,
+) -> String {
+    match ext {
+        Some(rt) if !rt.registry.is_empty() => {
+            let ctx = TransformContext {
+                baseurl,
+                collection,
+            };
+            let res = rt.registry.apply(&html, rt.index, &ctx);
+            for w in &res.warnings {
+                eprintln!("Warning: {w}");
+            }
+            res.html
+        }
+        _ => html,
+    }
+}
 
 /// Errors that can occur during page generation.
 #[derive(Debug, thiserror::Error)]
@@ -1727,6 +1766,7 @@ pub fn generate_collection_pages_cached(
         output_dir,
         author_items,
         None,
+        None,
     )
 }
 
@@ -1744,6 +1784,7 @@ pub fn generate_collection_pages_cached_with_progress(
     output_dir: &Path,
     _author_items: &[CollectionItem],
     progress: Option<&RenderProgress>,
+    ext: Option<&ExtensionRuntime>,
 ) -> Result<GenerationResult, GeneratorError> {
     let collection_out_dir = output_dir.join(collection_type);
     fs::create_dir_all(&collection_out_dir).map_err(|e| GeneratorError::WriteFile {
@@ -2079,6 +2120,8 @@ pub fn generate_collection_pages_cached_with_progress(
                         html
                     };
 
+                    let html = apply_extensions(html, ext, &config.baseurl, Some(collection_type));
+
                     let out_path = url_to_output_path(output_dir, &item.url);
 
                     match fs::write(&out_path, &html) {
@@ -2236,10 +2279,12 @@ pub fn generate_pages_cached_with_config(
         config,
         None,
         None,
+        None,
     )
 }
 
 /// Like `generate_pages_cached_with_config` but accepts an optional progress tracker.
+#[allow(clippy::too_many_arguments)]
 pub fn generate_pages_cached_with_config_and_progress(
     pages: &[crate::collection::Page],
     layout_engine: &LayoutEngine,
@@ -2248,6 +2293,7 @@ pub fn generate_pages_cached_with_config_and_progress(
     config: Option<&SiteConfig>,
     progress: Option<&RenderProgress>,
     site_dir: Option<&Path>,
+    ext: Option<&ExtensionRuntime>,
 ) -> Result<GenerationResult, GeneratorError> {
     fs::create_dir_all(output_dir).map_err(|e| GeneratorError::WriteFile {
         path: output_dir.display().to_string(),
@@ -2375,6 +2421,9 @@ pub fn generate_pages_cached_with_config_and_progress(
                     } else {
                         html
                     };
+
+                    let baseurl = config.map(|c| c.baseurl.as_str()).unwrap_or("");
+                    let html = apply_extensions(html, ext, baseurl, None);
 
                     let out_path = url_to_output_path(output_dir, &page.url);
 
@@ -10803,6 +10852,148 @@ defaults:
         assert!(
             has_date,
             "Non-post unicode item with backfilled date should have date in liquid slim (issue #551)"
+        );
+    }
+
+    // ========================================================================
+    // Issue 600: extension registry wiring into the page render pipeline.
+    // ========================================================================
+
+    #[test]
+    fn test_wikilinks_extension_wired_into_page_generation() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let output_dir = tmp.path();
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            crate::template::Layout {
+                source: "<!DOCTYPE html><body>{{ content }}</body>".to_string(),
+                parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        // Config enabling the wikilinks extension, with a baseurl.
+        let config = SiteConfig::from_yaml_str(
+            "title: t\nbaseurl: /podwiki\nextensions:\n  - wikilinks:\n      on_broken: warn\n",
+        )
+        .unwrap();
+
+        let registry = crate::extensions::Registry::from_config(&config).unwrap();
+        assert!(
+            !registry.is_empty(),
+            "registry should have wikilinks enabled"
+        );
+
+        let mut index = crate::extensions::SiteIndex::new();
+        index.insert(
+            "event-tracking",
+            Some("Event Tracking"),
+            "/wiki/event-tracking/",
+        );
+        let runtime = ExtensionRuntime {
+            registry: &registry,
+            index: &index,
+        };
+
+        let pages = vec![crate::collection::Page {
+            slug: "guide".to_string(),
+            front_matter: {
+                let mut m = HashMap::new();
+                m.insert(
+                    "layout".to_string(),
+                    serde_yaml::Value::String("default".to_string()),
+                );
+                m
+            },
+            content: "<p>See [[event-tracking]] and [[missing-page]].</p>".to_string(),
+            html_content: String::new(),
+            url: "/guide.html".to_string(),
+            source_path: "guide.html".to_string(),
+        }];
+
+        let site_context = Object::new();
+        let cached_site = LayoutEngine::build_cached_site_context(&site_context);
+        let result = generate_pages_cached_with_config_and_progress(
+            &pages,
+            &engine,
+            &cached_site,
+            output_dir,
+            Some(&config),
+            None,
+            None,
+            Some(&runtime),
+        )
+        .unwrap();
+        assert!(result.errors.is_empty(), "errors: {:?}", result.errors);
+
+        let html = fs::read_to_string(output_dir.join("guide.html")).unwrap();
+        assert!(
+            html.contains("<a href=\"/podwiki/wiki/event-tracking/\">event tracking</a>"),
+            "resolved wikilink with baseurl expected, got: {html}"
+        );
+        assert!(
+            html.contains("<span class=\"broken-link\">missing page</span>"),
+            "broken wikilink span expected, got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_no_extensions_leaves_wikilink_syntax_untouched() {
+        // Opt-in off: passing None for the runtime must leave `[[...]]` literal.
+        let tmp = tempfile::TempDir::new().unwrap();
+        let output_dir = tmp.path();
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            crate::template::Layout {
+                source: "<!DOCTYPE html><body>{{ content }}</body>".to_string(),
+                parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+        let config = SiteConfig::from_yaml_str("title: t\n").unwrap();
+
+        let pages = vec![crate::collection::Page {
+            slug: "guide".to_string(),
+            front_matter: {
+                let mut m = HashMap::new();
+                m.insert(
+                    "layout".to_string(),
+                    serde_yaml::Value::String("default".to_string()),
+                );
+                m
+            },
+            content: "<p>See [[event-tracking]].</p>".to_string(),
+            html_content: String::new(),
+            url: "/guide.html".to_string(),
+            source_path: "guide.html".to_string(),
+        }];
+
+        let site_context = Object::new();
+        let cached_site = LayoutEngine::build_cached_site_context(&site_context);
+        generate_pages_cached_with_config_and_progress(
+            &pages,
+            &engine,
+            &cached_site,
+            output_dir,
+            Some(&config),
+            None,
+            None,
+            None,
+        )
+        .unwrap();
+
+        let html = fs::read_to_string(output_dir.join("guide.html")).unwrap();
+        assert!(
+            html.contains("[[event-tracking]]"),
+            "with no extensions the wikilink syntax must remain literal, got: {html}"
         );
     }
 }
