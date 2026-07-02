@@ -1340,8 +1340,13 @@ fn build_site(
 
     // Build collections_vec by iterating the HashMap directly (avoid extra collect)
     let collections_vec: Vec<(String, Vec<CollectionItem>)> = collections.into_iter().collect();
-    let sitemap_count =
-        sitemap::generate_sitemap(&config.url, &collections_vec, &pages, destination)?;
+    let sitemap_count = sitemap::generate_sitemap_with_config(
+        &config.url,
+        &collections_vec,
+        &pages,
+        &config,
+        destination,
+    )?;
     summary.sitemap_entries = sitemap_count;
     progress.phase_done(&format!("Generating sitemap... {} entries", sitemap_count));
 
