@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rustkyll"
-version = "0.4.8"
+version = "0.5.0"
 description = "A fast static site generator compatible with Jekyll, written in Rust"
 license = {text = "MIT"}
 requires-python = ">=3.8"
