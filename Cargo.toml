@@ -33,6 +33,15 @@ notify-debouncer-mini = "0.5"
 syntect = { version = "5", default-features = false, features = ["default-syntaxes", "regex-onig"] }
 tungstenite = "0.24"
 deunicode = "1"
+# WASM external-extension adapter (issue #602). Gated behind the default-on
+# `wasm` feature so `--no-default-features` builds skip the wasmtime engine.
+extism = { version = "1", optional = true }
+
+[features]
+default = ["wasm"]
+# Enables the WASM external-extension adapter (loads `.wasm` plugins declared as
+# `- wasm: <path>` under `extensions:`). Pulls in extism/wasmtime.
+wasm = ["dep:extism"]
 
 [profile.release]
 lto = "thin"

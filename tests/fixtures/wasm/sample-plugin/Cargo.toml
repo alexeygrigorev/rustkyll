@@ -1,0 +1,22 @@
+# Standalone crate (own empty [workspace] table) so it is NOT pulled into the
+# rustkyll workspace — it targets wasm and is built separately with the command
+# in README.md. The resulting `sample.wasm` is committed under
+# tests/fixtures/wasm/ so CI needs no wasm toolchain.
+[workspace]
+
+[package]
+name = "rustkyll-sample-plugin"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+extism-pdk = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true

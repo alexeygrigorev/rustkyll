@@ -25,12 +25,15 @@
 
 pub mod jemoji;
 pub mod mentions;
+#[cfg(feature = "wasm")]
+pub mod wasm;
 pub mod wikilinks;
 
 use crate::archives::slugify;
 use crate::config::SiteConfig;
 use std::collections::HashMap;
 use std::fmt;
+use std::path::Path;
 
 /// A read-only index used by transforms to resolve link targets to URLs.
 ///
@@ -138,6 +141,17 @@ pub enum ExtensionError {
         /// A human-readable reason.
         message: String,
     },
+    /// A `- wasm:` entry was declared but the binary was built without the
+    /// `wasm` feature.
+    WasmUnsupported,
+    /// A `.wasm` plugin could not be loaded or instantiated (missing file,
+    /// corrupt bytes, or a module missing the required `transform` export).
+    WasmLoad {
+        /// The `.wasm` path that failed to load.
+        path: String,
+        /// A human-readable reason.
+        message: String,
+    },
 }
 
 impl fmt::Display for ExtensionError {
@@ -151,6 +165,14 @@ impl fmt::Display for ExtensionError {
             }
             ExtensionError::InvalidConfig { extension, message } => {
                 write!(f, "invalid config for extension `{extension}`: {message}")
+            }
+            ExtensionError::WasmUnsupported => write!(
+                f,
+                "`- wasm:` extension entries require the `wasm` feature, but this \
+                 binary was built without wasm support"
+            ),
+            ExtensionError::WasmLoad { path, message } => {
+                write!(f, "failed to load wasm extension `{path}`: {message}")
             }
         }
     }
@@ -178,7 +200,25 @@ impl Registry {
     ///
     /// Returns an empty (no-op) registry when the block is absent. Fails loudly
     /// (`Err`) on an unknown extension name or an invalid per-extension config.
+    ///
+    /// Relative `- wasm:` paths are resolved against the current directory; use
+    /// [`Registry::from_config_with_source`] to resolve them against the site
+    /// source root instead.
     pub fn from_config(config: &SiteConfig) -> Result<Registry, ExtensionError> {
+        Self::from_config_with_source(config, Path::new("."))
+    }
+
+    /// Build a registry, resolving relative `- wasm:` plugin paths against
+    /// `source_root` (the site source directory).
+    pub fn from_config_with_source(
+        config: &SiteConfig,
+        source_root: &Path,
+    ) -> Result<Registry, ExtensionError> {
+        // Silence the unused parameter when built without the `wasm` feature
+        // (only wasm entries consult the source root).
+        #[cfg(not(feature = "wasm"))]
+        let _ = source_root;
+
         let mut transforms: Vec<Box<dyn HtmlTransform>> = Vec::new();
 
         // Auto-activate plugin-based transforms from `plugins:`/`gems:` (the same
@@ -209,6 +249,19 @@ impl Registry {
                     wikilinks::WikiLinks::NAME => {
                         let ext = wikilinks::WikiLinks::configure(&cfg)?;
                         transforms.push(Box::new(ext));
+                    }
+                    "wasm" => {
+                        let (path, config_json) = parse_wasm_entry(&cfg)?;
+                        #[cfg(feature = "wasm")]
+                        {
+                            let ext = wasm::WasmExtension::load(&path, source_root, config_json)?;
+                            transforms.push(Box::new(ext));
+                        }
+                        #[cfg(not(feature = "wasm"))]
+                        {
+                            let _ = (path, config_json);
+                            return Err(ExtensionError::WasmUnsupported);
+                        }
                     }
                     other => return Err(ExtensionError::UnknownExtension(other.to_string())),
                 }
@@ -273,6 +326,40 @@ fn parse_entry(entry: &serde_yaml::Value) -> Result<(String, serde_yaml::Value),
         return Ok((name.to_string(), val.clone()));
     }
     Err(ExtensionError::NotAList)
+}
+
+/// Parse a `- wasm:` entry's config value into `(path, optional config JSON)`.
+///
+/// Two forms are supported:
+/// - a bare string: `- wasm: _extensions/foo.wasm` (no plugin config).
+/// - a mapping: `- wasm: { path: _extensions/foo.wasm, config: { ... } }`; the
+///   optional `config:` mapping is serialized to a JSON string for the plugin.
+fn parse_wasm_entry(value: &serde_yaml::Value) -> Result<(String, Option<String>), ExtensionError> {
+    let invalid = |message: &str| ExtensionError::InvalidConfig {
+        extension: "wasm".to_string(),
+        message: message.to_string(),
+    };
+
+    if let Some(path) = value.as_str() {
+        return Ok((path.to_string(), None));
+    }
+    if let Some(map) = value.as_mapping() {
+        let path = map
+            .get("path")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| invalid("a `- wasm:` mapping entry must have a string `path` field"))?
+            .to_string();
+        let config_json = match map.get("config") {
+            Some(cfg) if !cfg.is_null() => Some(serde_json::to_string(cfg).map_err(|e| {
+                invalid(&format!("`config` block is not serializable to JSON: {e}"))
+            })?),
+            _ => None,
+        };
+        return Ok((path, config_json));
+    }
+    Err(invalid(
+        "a `- wasm:` entry must be a path string or a mapping with a `path` field",
+    ))
 }
 
 #[cfg(test)]
@@ -540,5 +627,100 @@ mod tests {
             "empty registry must return input byte-identical"
         );
         assert!(res.warnings.is_empty());
+    }
+
+    // --- Issue 602: WASM external-extension adapter ---
+
+    #[cfg(feature = "wasm")]
+    fn wasm_fixture_dir() -> std::path::PathBuf {
+        let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/wasm");
+        assert!(
+            dir.join("sample.wasm").exists(),
+            "sample.wasm fixture missing at {} — build via tests/fixtures/wasm/sample-plugin/README.md",
+            dir.display()
+        );
+        dir
+    }
+
+    #[cfg(feature = "wasm")]
+    #[test]
+    fn test_registry_loads_wasm_after_wikilinks_in_order() {
+        let config =
+            config_with_extensions_yaml("extensions:\n  - wikilinks\n  - wasm: sample.wasm\n");
+        let registry =
+            Registry::from_config_with_source(&config, &wasm_fixture_dir()).expect("registry");
+        assert_eq!(registry.len(), 2);
+        assert_eq!(registry.html_transforms()[0].name(), "wikilinks");
+        assert_eq!(
+            registry.html_transforms()[1].name(),
+            "wasm:sample.wasm",
+            "wasm entry must load and preserve declared order after wikilinks"
+        );
+    }
+
+    #[cfg(feature = "wasm")]
+    #[test]
+    fn test_registry_wasm_missing_file_errors() {
+        let config =
+            config_with_extensions_yaml("extensions:\n  - wasm: _extensions/does-not-exist.wasm\n");
+        let err = Registry::from_config_with_source(&config, Path::new("/tmp"))
+            .expect_err("missing wasm file must error");
+        assert!(
+            matches!(err, ExtensionError::WasmLoad { .. }),
+            "expected WasmLoad, got {err:?}"
+        );
+    }
+
+    #[cfg(feature = "wasm")]
+    #[test]
+    fn test_registry_wasm_config_block_reaches_plugin() {
+        // `config: { marker: ref }` must flow to the plugin and change behavior.
+        let config = config_with_extensions_yaml(
+            "extensions:\n  - wasm:\n      path: sample.wasm\n      config:\n        marker: ref\n",
+        );
+        let registry =
+            Registry::from_config_with_source(&config, &wasm_fixture_dir()).expect("registry");
+        assert_eq!(registry.len(), 1);
+        let mut idx = SiteIndex::new();
+        idx.insert("foo", None, "/wiki/foo/");
+        let ctx = TransformContext {
+            baseurl: "",
+            collection: None,
+        };
+        let res = registry.apply("{{ref:foo}}", &idx, &ctx);
+        assert_eq!(
+            res.html, "<a href=\"/wiki/foo/\">foo</a>",
+            "config.marker=ref must switch the recognized token to {{{{ref:...}}}}"
+        );
+    }
+
+    #[cfg(feature = "wasm")]
+    #[test]
+    fn test_registry_apply_surfaces_wasm_warnings() {
+        // Warnings returned by the plugin must flow through Registry::apply.
+        let config = config_with_extensions_yaml("extensions:\n  - wasm: sample.wasm\n");
+        let registry =
+            Registry::from_config_with_source(&config, &wasm_fixture_dir()).expect("registry");
+        let idx = SiteIndex::new();
+        let ctx = TransformContext {
+            baseurl: "",
+            collection: None,
+        };
+        let res = registry.apply("{{link:missing}}", &idx, &ctx);
+        assert!(
+            res.warnings.iter().any(|w| w.contains("missing")),
+            "plugin warning must surface in Registry::apply, got {:?}",
+            res.warnings
+        );
+        assert!(res.html.contains("class=\"broken\""));
+    }
+
+    #[cfg(not(feature = "wasm"))]
+    #[test]
+    fn test_registry_wasm_entry_errors_without_feature() {
+        let config = config_with_extensions_yaml("extensions:\n  - wasm: _extensions/foo.wasm\n");
+        let err = Registry::from_config(&config)
+            .expect_err("a wasm entry must fail loudly when built without the wasm feature");
+        assert_eq!(err, ExtensionError::WasmUnsupported);
     }
 }

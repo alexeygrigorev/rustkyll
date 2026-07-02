@@ -317,7 +317,8 @@ fn build_site(
     // converted -- including collection loading below (which pre-computes each
     // item's `html_content`) and page rendering -- so every content path is
     // protected. A no-op (byte-identical output) when wikilinks is off.
-    let extension_registry = rustkyll::extensions::Registry::from_config(&config)?;
+    let extension_registry =
+        rustkyll::extensions::Registry::from_config_with_source(&config, source)?;
     let has_wikilinks = extension_registry
         .html_transforms()
         .iter()
