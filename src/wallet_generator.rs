@@ -636,6 +636,7 @@ platform:
 
     #[test]
     fn test_platform_pages_generated() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = create_test_dir("platform_pages");
         setup_full_fixture(&dir);
 
@@ -661,6 +662,7 @@ platform:
 
     #[test]
     fn test_platform_page_url_same_name() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = create_test_dir("platform_url_same");
         setup_full_fixture(&dir);
 
@@ -680,6 +682,7 @@ platform:
 
     #[test]
     fn test_platform_page_url_different_name() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = create_test_dir("platform_url_diff");
         setup_full_fixture(&dir);
 
@@ -699,6 +702,7 @@ platform:
 
     #[test]
     fn test_platform_page_layout() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = create_test_dir("platform_layout");
         setup_full_fixture(&dir);
 
@@ -723,6 +727,7 @@ platform:
 
     #[test]
     fn test_platform_page_id_format() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = create_test_dir("platform_id");
         setup_full_fixture(&dir);
 
@@ -742,6 +747,7 @@ platform:
 
     #[test]
     fn test_platform_page_title_composed() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = create_test_dir("platform_title");
         setup_full_fixture(&dir);
 
@@ -780,6 +786,7 @@ platform:
 
     #[test]
     fn test_wallet_pages_generated() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = create_test_dir("wallet_pages");
         setup_full_fixture(&dir);
 
@@ -805,6 +812,7 @@ platform:
 
     #[test]
     fn test_wallet_page_url_platform_ne_os() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = create_test_dir("wallet_url_diff");
         setup_full_fixture(&dir);
 
@@ -824,6 +832,7 @@ platform:
 
     #[test]
     fn test_wallet_page_url_platform_eq_os() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = create_test_dir("wallet_url_same");
         setup_full_fixture(&dir);
 
@@ -843,6 +852,7 @@ platform:
 
     #[test]
     fn test_wallet_page_layout() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = create_test_dir("wallet_layout");
         setup_full_fixture(&dir);
 
@@ -867,6 +877,7 @@ platform:
 
     #[test]
     fn test_wallet_page_has_wallet_data() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = create_test_dir("wallet_data");
         setup_full_fixture(&dir);
 
@@ -896,6 +907,7 @@ platform:
 
     #[test]
     fn test_wallet_page_has_platform_and_os() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = create_test_dir("wallet_plat_os");
         setup_full_fixture(&dir);
 
@@ -929,6 +941,7 @@ platform:
 
     #[test]
     fn test_wallet_page_id_format() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = create_test_dir("wallet_id");
         setup_full_fixture(&dir);
 
@@ -953,6 +966,7 @@ platform:
 
     #[test]
     fn test_wallet_page_lang_set() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = create_test_dir("wallet_lang");
         setup_full_fixture(&dir);
 
@@ -979,6 +993,7 @@ platform:
 
     #[test]
     fn test_multi_language_generation() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = create_test_dir("multi_lang");
         setup_full_fixture(&dir);
 
@@ -1030,6 +1045,7 @@ platform:
 
     #[test]
     fn test_wallet_with_no_valid_platform_name() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = create_test_dir("no_plat_name");
         setup_full_fixture(&dir);
 
@@ -1061,6 +1077,7 @@ platform:
 
     #[test]
     fn test_unicode_wallet_title() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = create_test_dir("unicode_wallet");
         setup_full_fixture(&dir);
 

@@ -443,6 +443,67 @@ fn render_liquid_in_text(text: &str, _runtime: &dyn Runtime) -> Result<String, S
     Ok(text.to_string())
 }
 
+/// Test-only serialization support for the process-global [`TRANSLATIONS`]
+/// cell.
+///
+/// The translation store is a single process-global (`static TRANSLATIONS`).
+/// That is fine at runtime -- it is populated once per build and only read
+/// during rendering -- but under `cargo test` many tests across
+/// `translate_tag`, `wallet_generator`, and `template_generators` mutate it in
+/// parallel via [`set_translations`] / [`clear_translations`], clobbering each
+/// other mid-test.
+///
+/// Every test that touches the global must hold [`TRANSLATIONS_LOCK`] for its
+/// whole body via [`lock_translations`]. This mirrors the `PROTECT_WIKILINK_PIPES`
+/// serialization pattern in `src/generator.rs`. The lock is shared across all
+/// modules so their tests serialize against one another, not just within a
+/// single module.
+#[cfg(test)]
+pub(crate) mod test_support {
+    use super::clear_translations;
+    use std::sync::{Mutex, MutexGuard};
+
+    /// Shared mutex serializing every test that reads or writes the global
+    /// [`TRANSLATIONS`](super::TRANSLATIONS) cell.
+    pub(crate) static TRANSLATIONS_LOCK: Mutex<()> = Mutex::new(());
+
+    /// RAII helper that clears the global translation store on drop, including
+    /// on panic-unwind. Kept separate from the lock guard so its clearing
+    /// behavior can be verified deterministically while a test still holds the
+    /// serialization lock.
+    pub(crate) struct ClearTranslationsOnDrop;
+
+    impl Drop for ClearTranslationsOnDrop {
+        fn drop(&mut self) {
+            clear_translations();
+        }
+    }
+
+    /// RAII guard returned by [`lock_translations`]. Holds the shared mutex for
+    /// the duration of a test and clears the global translation store on drop
+    /// (including on panic-unwind), so a failing test cannot leak translation
+    /// state into whichever test runs next.
+    pub(crate) struct TranslationsTestGuard {
+        // Field drop order is declaration order: clear the store first, then
+        // release the lock.
+        _clear: ClearTranslationsOnDrop,
+        _lock: MutexGuard<'static, ()>,
+    }
+
+    /// Acquire the shared translations test lock, returning an RAII guard.
+    ///
+    /// If a previous test panicked while holding the lock the mutex is
+    /// poisoned; we recover the inner guard so the poison does not cascade into
+    /// unrelated tests.
+    pub(crate) fn lock_translations() -> TranslationsTestGuard {
+        let lock = TRANSLATIONS_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        TranslationsTestGuard {
+            _clear: ClearTranslationsOnDrop,
+            _lock: lock,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -728,6 +789,10 @@ mod tests {
 
     #[test]
     fn test_resolve_dynamic_args_with_variable() {
+        // Serialize against every other test that touches the process-global
+        // TRANSLATIONS cell; the guard also clears it on drop.
+        let _guard = test_support::lock_translations();
+
         // Test that resolve_dynamic_args correctly substitutes {{var}} placeholders.
         // We verify:
         // 1. The pattern matching extracts and replaces {{var}} correctly
@@ -826,5 +891,52 @@ mod tests {
         assert_eq!(store.strings.len(), 1);
 
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A test body that sets translations and then panics must still leave the
+    /// global `TRANSLATIONS` cell cleared, so a failing test cannot leak
+    /// translation state into whichever test runs next. This exercises the same
+    /// `ClearTranslationsOnDrop` Drop impl used by `lock_translations`.
+    ///
+    /// We hold the raw serialization lock for the whole test so the assertion is
+    /// deterministic (no other translation-touching test can run concurrently),
+    /// and use the standalone clear-on-drop helper inside the panicking closure
+    /// to avoid re-entrant locking of the non-reentrant mutex.
+    #[test]
+    fn test_guard_clears_translations_on_panic() {
+        use std::panic::{catch_unwind, AssertUnwindSafe};
+
+        let _lock = test_support::TRANSLATIONS_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+
+        // Start from a known-clean state.
+        clear_translations();
+
+        let result = catch_unwind(AssertUnwindSafe(|| {
+            let _clear = test_support::ClearTranslationsOnDrop;
+
+            let mut store = TranslationStore::default();
+            let mut en_strings = HashMap::new();
+            let mut nav = HashMap::new();
+            nav.insert("menu-wallets".to_string(), "Wallets Nav".to_string());
+            en_strings.insert("nav".to_string(), nav);
+            store.strings.insert("en".to_string(), en_strings);
+            set_translations(store);
+
+            // Sanity: the store is populated right before the panic.
+            assert!(TRANSLATIONS.read().unwrap().is_some());
+
+            panic!("deliberate panic to exercise RAII drop");
+        }));
+
+        assert!(result.is_err(), "closure should have panicked");
+
+        // The clear-on-drop guard must have cleared the global during unwind.
+        // We still hold the raw lock, so this read cannot race another test.
+        assert!(
+            TRANSLATIONS.read().unwrap().is_none(),
+            "TRANSLATIONS must be cleared by the RAII guard even when the test body panics"
+        );
     }
 }

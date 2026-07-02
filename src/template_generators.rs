@@ -316,6 +316,7 @@ mod tests {
 
     #[test]
     fn test_generate_template_pages_basic() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = std::env::temp_dir().join("rustkyll_test_btc_gen_pages");
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join("_translations")).unwrap();
@@ -389,6 +390,7 @@ mod tests {
 
     #[test]
     fn test_generate_template_pages_multi_language() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = std::env::temp_dir().join("rustkyll_test_btc_gen_multilang");
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join("_translations")).unwrap();
@@ -441,6 +443,7 @@ mod tests {
 
     #[test]
     fn test_generate_template_pages_skips_missing_url() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = std::env::temp_dir().join("rustkyll_test_btc_gen_skip");
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join("_translations")).unwrap();
@@ -484,6 +487,7 @@ mod tests {
 
     #[test]
     fn test_generate_template_pages_url_with_trailing_slash() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = std::env::temp_dir().join("rustkyll_test_btc_gen_slash");
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join("_translations")).unwrap();
@@ -521,6 +525,7 @@ mod tests {
 
     #[test]
     fn test_generate_template_preserves_layout() {
+        let _translations_guard = crate::template::translate_tag::test_support::lock_translations();
         let dir = std::env::temp_dir().join("rustkyll_test_btc_gen_layout");
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join("_translations")).unwrap();
