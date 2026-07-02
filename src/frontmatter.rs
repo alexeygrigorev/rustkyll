@@ -112,6 +112,33 @@ pub fn get_markdownify_autolink() -> bool {
     MARKDOWNIFY_AUTOLINK.load(Ordering::Relaxed)
 }
 
+/// Issue 601: global flag controlling whether the interior `|` of
+/// `[[target|label]]` wikilinks is protected from GFM table detection during
+/// markdown-to-HTML conversion.
+///
+/// The shared kramdown parser turns any line with an unescaped inline `|` into a
+/// table before the post-render wikilinks transform runs, which would mangle the
+/// explicit-label form. When this flag is set, [`markdown_to_html_with_options`]
+/// replaces those interior pipes with a private-use sentinel before conversion
+/// and restores them to `|` immediately after (before any downstream use), so
+/// the pipe never triggers table parsing and no sentinel leaks.
+///
+/// Off by default: set to `true` from `main.rs` only when the `wikilinks`
+/// extension is enabled. When off, conversion is byte-identical to before.
+static PROTECT_WIKILINK_PIPES: AtomicBool = AtomicBool::new(false);
+
+/// Set whether markdown conversion should protect `[[target|label]]` wikilink
+/// pipes from GFM table detection. Enable only when the `wikilinks` extension is
+/// active.
+pub fn set_protect_wikilink_pipes(enabled: bool) {
+    PROTECT_WIKILINK_PIPES.store(enabled, Ordering::Relaxed);
+}
+
+/// Get whether markdown conversion should protect `[[target|label]]` pipes.
+pub fn get_protect_wikilink_pipes() -> bool {
+    PROTECT_WIKILINK_PIPES.load(Ordering::Relaxed)
+}
+
 /// Configuration for the `markdownify` filter, allowing tests to pass
 /// explicit settings instead of relying on global `AtomicBool` flags
 /// (which race when tests run in parallel).
@@ -880,7 +907,45 @@ pub fn markdown_to_html(markdown: &str) -> String {
 ///
 /// This is used when the site config specifies a non-kramdown markdown processor
 /// (e.g., `markdown: CommonMarkGhPages`).
+///
+/// Issue 601: when [`get_protect_wikilink_pipes`] is set (the `wikilinks`
+/// extension is enabled), the interior `|` of each single-line, no-`<`
+/// `[[target|label]]` span is replaced with a private-use sentinel before
+/// conversion so the shared kramdown parser does not turn the line into a GFM
+/// table, and restored to `|` in the returned HTML. Both steps are contained
+/// entirely within this call, so no sentinel can leak and code-block pipes stay
+/// literal. When the flag is off this is byte-identical to the plain conversion.
 pub fn markdown_to_html_with_options(
+    markdown: &str,
+    add_code_classes: bool,
+    enable_smart_punctuation: bool,
+    enable_hardbreaks: bool,
+    enable_autolink: bool,
+) -> String {
+    if get_protect_wikilink_pipes() {
+        let protected = crate::extensions::wikilinks::protect_pipes(markdown);
+        let html = markdown_to_html_with_options_impl(
+            &protected,
+            add_code_classes,
+            enable_smart_punctuation,
+            enable_hardbreaks,
+            enable_autolink,
+        );
+        crate::extensions::wikilinks::restore_pipes(&html)
+    } else {
+        markdown_to_html_with_options_impl(
+            markdown,
+            add_code_classes,
+            enable_smart_punctuation,
+            enable_hardbreaks,
+            enable_autolink,
+        )
+    }
+}
+
+/// The actual markdown-to-HTML conversion; see [`markdown_to_html_with_options`]
+/// for the wikilink-pipe protection wrapper.
+fn markdown_to_html_with_options_impl(
     markdown: &str,
     add_code_classes: bool,
     enable_smart_punctuation: bool,

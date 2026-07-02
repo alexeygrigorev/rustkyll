@@ -10996,4 +10996,201 @@ defaults:
             "with no extensions the wikilink syntax must remain literal, got: {html}"
         );
     }
+
+    // ========================================================================
+    // Issue 601: explicit-label `[[target|label]]` must survive GFM table
+    // detection during markdown conversion (opt-in, via pipe protection).
+    // ========================================================================
+
+    /// Serializes the two tests that toggle the process-global
+    /// `PROTECT_WIKILINK_PIPES` flag so they never overlap. No other test in the
+    /// suite touches that flag.
+    static WIKILINK_PROTECT_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    /// RAII guard: turn wikilink-pipe protection on, and always turn it back off
+    /// on drop (panic-safe).
+    struct ProtectGuard;
+    impl ProtectGuard {
+        fn on() -> Self {
+            crate::frontmatter::set_protect_wikilink_pipes(true);
+            ProtectGuard
+        }
+    }
+    impl Drop for ProtectGuard {
+        fn drop(&mut self) {
+            crate::frontmatter::set_protect_wikilink_pipes(false);
+        }
+    }
+
+    /// Build a `LayoutEngine` with a single `default` layout that renders
+    /// `{{ content }}`.
+    fn wiki_engine() -> LayoutEngine {
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            crate::template::Layout {
+                source: "<!DOCTYPE html><body>{{ content }}</body>".to_string(),
+                parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
+            },
+        );
+        let includes = HashMap::new();
+        LayoutEngine::from_maps(layouts, &includes).unwrap()
+    }
+
+    /// The fixture markdown page exercising every issue-601 scenario:
+    /// explicit-label wikilink in prose, bare wikilink, a genuine pipe-table,
+    /// a lone-`|` prose line, and `[[a|b]]` inside a fenced code block.
+    const WIKI_FIXTURE_MD: &str = "See [[event-tracking|Event Tracking Guide]] here.\n\nBare [[event-tracking]] link.\n\n| Col A | Col B |\n| --- | --- |\n| one | two |\n\n```\n[[event-tracking|inside code]]\n```\n";
+
+    fn wiki_page() -> crate::collection::Page {
+        crate::collection::Page {
+            slug: "guide".to_string(),
+            front_matter: {
+                let mut m = HashMap::new();
+                m.insert(
+                    "layout".to_string(),
+                    serde_yaml::Value::String("default".to_string()),
+                );
+                m
+            },
+            content: WIKI_FIXTURE_MD.to_string(),
+            html_content: String::new(),
+            url: "/guide.html".to_string(),
+            // `.md` source so the markdown render path runs.
+            source_path: "guide.md".to_string(),
+        }
+    }
+
+    fn build_wiki_fixture(engine: &LayoutEngine, config: &SiteConfig, with_ext: bool) -> String {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let output_dir = tmp.path();
+
+        let registry = crate::extensions::Registry::from_config(config).unwrap();
+        let mut index = crate::extensions::SiteIndex::new();
+        index.insert(
+            "event-tracking",
+            Some("Event Tracking"),
+            "/wiki/event-tracking/",
+        );
+        let runtime = ExtensionRuntime {
+            registry: &registry,
+            index: &index,
+        };
+        let ext = if with_ext { Some(&runtime) } else { None };
+
+        let pages = vec![wiki_page()];
+        let site_context = Object::new();
+        let cached_site = LayoutEngine::build_cached_site_context(&site_context);
+        let result = generate_pages_cached_with_config_and_progress(
+            &pages,
+            engine,
+            &cached_site,
+            output_dir,
+            Some(config),
+            None,
+            None,
+            ext,
+        )
+        .unwrap();
+        assert!(result.errors.is_empty(), "errors: {:?}", result.errors);
+        fs::read_to_string(output_dir.join("guide.html")).unwrap()
+    }
+
+    #[test]
+    fn test_explicit_label_wikilink_resolves_end_to_end() {
+        let _lock = WIKILINK_PROTECT_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        // Enable pipe protection for the duration of this build (as main.rs does
+        // when the wikilinks extension is present). Reset on drop.
+        let _guard = ProtectGuard::on();
+
+        let engine = wiki_engine();
+        let config = SiteConfig::from_yaml_str(
+            "title: t\nextensions:\n  - wikilinks:\n      on_broken: warn\n",
+        )
+        .unwrap();
+        let html = build_wiki_fixture(&engine, &config, true);
+
+        // Explicit-label form resolved as an inline anchor inside the paragraph
+        // (NOT split into table cells).
+        assert!(
+            html.contains("See <a href=\"/wiki/event-tracking/\">Event Tracking Guide</a> here."),
+            "explicit-label wikilink must resolve inline, got: {html}"
+        );
+        // The explicit label proves the pipe survived; no leftover raw syntax.
+        assert!(
+            !html.contains("Event Tracking Guide]]"),
+            "raw wikilink syntax must not leak, got: {html}"
+        );
+        // The prose line must NOT have become a table.
+        assert!(
+            !html.contains("<td>Event Tracking Guide</td>")
+                && !html.contains("See </td>")
+                && !html.contains("<td>See"),
+            "explicit-label prose line must not become a table, got: {html}"
+        );
+
+        // Bare form still resolves (humanized label).
+        assert!(
+            html.contains("Bare <a href=\"/wiki/event-tracking/\">event tracking</a> link."),
+            "bare wikilink must still resolve, got: {html}"
+        );
+
+        // A genuine pipe-table (header + separator row) still renders as a table.
+        assert!(
+            html.contains("<table>"),
+            "genuine table expected, got: {html}"
+        );
+        assert!(
+            html.contains("<td>one</td>") && html.contains("<td>two</td>"),
+            "genuine table cells expected, got: {html}"
+        );
+
+        // `[[a|b]]` inside a fenced code block stays literal: no anchor, literal
+        // pipe preserved, and NO sentinel character leaked.
+        assert!(
+            html.contains("[[event-tracking|inside code]]"),
+            "code-block wikilink must stay literal, got: {html}"
+        );
+        assert!(
+            !html.contains(crate::extensions::wikilinks::SENTINEL),
+            "no sentinel character may leak into output, got: {html}"
+        );
+    }
+
+    #[test]
+    fn test_wikilink_pipe_protect_off_is_noop() {
+        // With protection OFF (global flag false, no extension runtime), the
+        // shared parser behaves exactly as before: no sentinel is ever
+        // introduced, and the explicit-label line is still consumed by GFM table
+        // detection (documented out-of-scope pre-existing behavior). This proves
+        // the protect/restore hooks are inert when wikilinks is disabled.
+        let _lock = WIKILINK_PROTECT_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        // Ensure the flag is off (serialized against the resolve test's guard).
+        crate::frontmatter::set_protect_wikilink_pipes(false);
+
+        let engine = wiki_engine();
+        let config = SiteConfig::from_yaml_str("title: t\n").unwrap();
+        let html = build_wiki_fixture(&engine, &config, false);
+
+        // No extension: wikilink syntax remains literal (mangled by table
+        // parsing) and, crucially, no sentinel is present anywhere.
+        assert!(
+            !html.contains(crate::extensions::wikilinks::SENTINEL),
+            "protect-off build must never contain the sentinel, got: {html}"
+        );
+        // The genuine table still renders (unchanged).
+        assert!(
+            html.contains("<table>"),
+            "genuine table expected, got: {html}"
+        );
+        assert!(
+            html.contains("<td>one</td>") && html.contains("<td>two</td>"),
+            "genuine table cells expected, got: {html}"
+        );
+    }
 }

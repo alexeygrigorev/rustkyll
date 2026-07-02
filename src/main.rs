@@ -310,6 +310,20 @@ fn build_site(
     }
     summary.timing.config = phase_start.elapsed();
 
+    // Issue 601: Build the extension registry (opt-in via `extensions:` in
+    // _config.yml) and, when the `wikilinks` extension is enabled, protect the
+    // interior `|` of `[[target|label]]` spans from GFM table detection during
+    // markdown-to-HTML conversion. This flag MUST be set before ANY markdown is
+    // converted -- including collection loading below (which pre-computes each
+    // item's `html_content`) and page rendering -- so every content path is
+    // protected. A no-op (byte-identical output) when wikilinks is off.
+    let extension_registry = rustkyll::extensions::Registry::from_config(&config)?;
+    let has_wikilinks = extension_registry
+        .html_transforms()
+        .iter()
+        .any(|t| t.name() == rustkyll::extensions::wikilinks::WikiLinks::NAME);
+    rustkyll::frontmatter::set_protect_wikilink_pipes(has_wikilinks);
+
     // 1b. Resolve effective source directory.
     // Jekyll reads _config.yml from the CLI --source directory, but if the config
     // contains `source: src`, all content is loaded from `<cli_source>/src/`.
@@ -829,10 +843,9 @@ fn build_site(
     };
     let render_progress = progress.render_progress(total_renderable as u64, "Rendering");
 
-    // Build the extension registry (opt-in via `extensions:` in _config.yml).
-    // An empty registry means no extensions are enabled, so the runtime stays
-    // `None` and the render pipeline behaves byte-identically to before.
-    let extension_registry = rustkyll::extensions::Registry::from_config(&config)?;
+    // The extension registry was built earlier (see `has_wikilinks`). An empty
+    // registry means no extensions are enabled, so the runtime stays `None` and
+    // the render pipeline behaves byte-identically to before.
 
     // Build the site link index once from ALL pages + collection items so that
     // extension transforms can resolve `[[target]]`-style links. Only built when

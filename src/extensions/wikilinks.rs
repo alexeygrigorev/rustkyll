@@ -10,6 +10,79 @@
 
 use super::{ExtensionError, HtmlTransform, SiteIndex, TransformContext, TransformResult};
 
+/// Private-use sentinel that temporarily stands in for the interior `|` of a
+/// `[[target|label]]` wikilink while markdown is converted to HTML.
+///
+/// The shared kramdown parser turns any line with an unescaped inline `|` into a
+/// GFM table before the post-render wikilinks transform runs, which would mangle
+/// the explicit-label form. Replacing the interior pipe with this codepoint
+/// before conversion hides it from table detection; it is restored to `|`
+/// immediately after conversion (before the transform runs) so no sentinel ever
+/// leaks into output. `U+E000` is the first Private Use Area codepoint and does
+/// not occur in normal content; both kramdown and Liquid pass it through as
+/// literal text.
+pub const SENTINEL: char = '\u{E000}';
+
+/// Replace the interior `|` of each single-line, no-`<` `[[...]]` span with
+/// [`SENTINEL`], leaving all other bytes (including pipes outside such spans)
+/// untouched.
+///
+/// Span acceptance mirrors [`find_wiki_close`] exactly, so the spans protected
+/// here are precisely those the wikilinks transform will later resolve: a span
+/// that hits `<`, a newline, or a nested `[[` before its closing `]]` is left
+/// entirely as-is.
+///
+/// This is only invoked when the wikilinks extension is enabled; the caller
+/// gates it, so sites without the extension get byte-identical output.
+pub fn protect_pipes(text: &str) -> String {
+    // Fast path: nothing to protect without both a wikilink open and a pipe.
+    if !text.contains('|') || !text.contains("[[") {
+        return text.to_string();
+    }
+
+    let bytes = text.as_bytes();
+    let len = bytes.len();
+    let mut result = String::with_capacity(text.len());
+    let mut i = 0;
+
+    while i < len {
+        if bytes[i] == b'[' && i + 1 < len && bytes[i + 1] == b'[' {
+            if let Some(close) = find_wiki_close(bytes, i + 2) {
+                result.push_str("[[");
+                for ch in text[i + 2..close].chars() {
+                    if ch == '|' {
+                        result.push(SENTINEL);
+                    } else {
+                        result.push(ch);
+                    }
+                }
+                result.push_str("]]");
+                i = close + 2;
+                continue;
+            }
+        }
+
+        let ch = text[i..].chars().next().expect("valid char boundary");
+        result.push(ch);
+        i += ch.len_utf8();
+    }
+
+    result
+}
+
+/// Restore every [`SENTINEL`] back to `|` across the whole string.
+///
+/// This is the total, unconditional inverse of the single-line, no-`<`
+/// [`protect_pipes`] and runs after markdown conversion so no sentinel can leak
+/// into output. A pipe restored inside a code block stays literal there (the
+/// wikilinks transform skips `<code>` / `<pre>`).
+pub fn restore_pipes(html: &str) -> String {
+    if !html.contains(SENTINEL) {
+        return html.to_string();
+    }
+    html.replace(SENTINEL, "|")
+}
+
 /// What to do when a `[[target]]` fails to resolve.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OnBroken {
@@ -538,5 +611,88 @@ mod tests {
         let ext = warn_ext();
         let out = ext.transform("[[]]", &index(), &ctx_all(""));
         assert_eq!(out.html, "[[]]");
+    }
+
+    // --- pipe protection / restore (issue 601) ---
+
+    #[test]
+    fn test_protect_replaces_only_interior_pipe() {
+        let input = "See [[event-tracking|event tracking]] here.";
+        let out = protect_pipes(input);
+        assert_eq!(
+            out,
+            format!("See [[event-tracking{SENTINEL}event tracking]] here.")
+        );
+        // No literal pipe remains inside the span.
+        assert!(!out.contains('|'));
+    }
+
+    #[test]
+    fn test_protect_leaves_bare_wikilink_untouched() {
+        let input = "See [[event-tracking]] here.";
+        assert_eq!(protect_pipes(input), input);
+    }
+
+    #[test]
+    fn test_protect_does_not_touch_pipe_outside_span() {
+        // A genuine table row: pipes are outside any [[...]] span.
+        let input = "| a | b |\n| --- | --- |\n| 1 | 2 |";
+        assert_eq!(protect_pipes(input), input, "table pipes must be untouched");
+    }
+
+    #[test]
+    fn test_protect_does_not_span_newline() {
+        // find_wiki_close bails on newline; the pipe must be left as-is.
+        let input = "[[a\n|b]]";
+        assert_eq!(protect_pipes(input), input);
+    }
+
+    #[test]
+    fn test_protect_does_not_span_lt() {
+        // find_wiki_close bails on '<'; the pipe must be left as-is.
+        let input = "[[a<b|c]]";
+        assert_eq!(protect_pipes(input), input);
+    }
+
+    #[test]
+    fn test_protect_multiple_spans_and_unicode() {
+        let input = "日本 [[event-tracking|Tracking]] and [[café-culture|Café]] 世界";
+        let out = protect_pipes(input);
+        assert_eq!(
+            out,
+            format!(
+                "日本 [[event-tracking{SENTINEL}Tracking]] and [[café-culture{SENTINEL}Café]] 世界"
+            )
+        );
+        assert!(!out.contains('|'));
+    }
+
+    #[test]
+    fn test_restore_is_inverse_of_protect() {
+        for input in [
+            "See [[event-tracking|event tracking]] here.",
+            "日本 [[event-tracking|Tracking]] and [[café-culture|Café]] 世界",
+            "[[a|b]] and [[c|d]]",
+            "no wikilinks | here",
+        ] {
+            assert_eq!(
+                restore_pipes(&protect_pipes(input)),
+                input,
+                "round-trip must be identity for `{input}`"
+            );
+        }
+    }
+
+    #[test]
+    fn test_restore_maps_every_sentinel_back() {
+        let protected = format!("[[a{SENTINEL}b]] and [[c{SENTINEL}d]]");
+        let restored = restore_pipes(&protected);
+        assert_eq!(restored, "[[a|b]] and [[c|d]]");
+        assert!(!restored.contains(SENTINEL));
+    }
+
+    #[test]
+    fn test_protect_empty_wikilink() {
+        assert_eq!(protect_pipes("[[]]"), "[[]]");
     }
 }
