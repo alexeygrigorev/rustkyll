@@ -125,8 +125,62 @@ Liquid:
 - Jekyll-specific tags: `link`, `post_url`, `seo`, `avatar`, `feed_meta`
 - 70+ filters including `where`, `where_exp`, `group_by`, `group_by_exp`, `markdownify`, `slugify`, `jsonify`, `relative_url`, `absolute_url`, `sample`, `cgi_escape`, `uri_escape`, and all Liquid stdlib filters
 
-Plugins (built-in):
+Jekyll plugin equivalents:
 - jekyll-seo-tag, jekyll-feed, jekyll-sitemap, jekyll-paginate, jekyll-avatar, jekyll-archives, jekyll-redirect-from
+
+Extensions:
+- Opt-in `extensions:` block for post-render HTML transforms. Entries can be extensions that are part of rustkyll or external WASM extensions.
+- `wikilinks`, which is part of rustkyll, for wiki-style cross-links such as `[[target]]` and `[[target|label]]`, resolved against pages and collections:
+
+  ```yaml
+  extensions:
+    - wikilinks:
+        scope: [wiki]
+        on_broken: warn
+  ```
+
+- External WASM extensions loaded from the site, for example:
+
+  ```yaml
+  extensions:
+    - wasm:
+        path: _extensions/chips.wasm
+        config:
+          scope: "wiki"
+  ```
+
+  WASM extensions are supported by default builds and are useful for site-specific transforms such as podwiki's build-time entity chips. They run through the same extension pipeline as rustkyll's own transforms.
+
+rustkyll already implements many common Jekyll plugins directly, including SEO tags, feeds, sitemaps, pagination, avatars, archives, redirects, jemoji, mentions, and wikilinks. If a Ruby plugin's functionality is missing and it can be expressed as a post-render HTML transform, create an `_extensions/` folder in your site, build a WASM extension there, and point `_config.yml` at the `.wasm` file:
+
+```yaml
+extensions:
+  - wasm: _extensions/my_extension.wasm
+```
+
+Prompt for porting a Ruby plugin with a coding agent:
+
+```text
+Convert this Jekyll Ruby plugin into a rustkyll WASM extension.
+
+Context:
+- rustkyll does not load Ruby plugins.
+- The extension should be an Extism WASM plugin, preferably written in Rust.
+- It is a post-render HTML transform: input JSON is
+  { "html": "...", "collection": "wiki-or-null", "baseurl": "" }.
+- It must export `transform` and return JSON:
+  { "html": "...", "warnings": [] }.
+- Optional config is passed as JSON in the Extism config key `config`.
+- The host provides `resolve_link(target) -> url`, returning an empty string on miss.
+- Filesystem and network access are denied by default.
+
+Task:
+1. Read the Ruby plugin and summarize which behavior can be implemented with this HTML-transform ABI.
+2. Reimplement that behavior from scratch as a WASM extension.
+3. Add a minimal fixture site using `_extensions/<name>.wasm` in `_config.yml`.
+4. Add tests proving the generated HTML matches the Ruby plugin's intended behavior.
+5. Document build instructions and any Ruby plugin features that cannot be represented by the current ABI.
+```
 
 Extras:
 - Parallel page generation with rayon
@@ -137,7 +191,7 @@ Extras:
 ## Known limitations
 
 - No gem-based themes. Themes must be present as local layout/include files.
-- No Ruby plugin system. Only the built-in plugin equivalents listed above are supported.
+- No Ruby plugin system. Ruby plugins are not loaded; use the Jekyll plugin equivalents above or opt-in extensions/WASM transforms for post-render HTML changes.
 - No CSV/TSV data files. Only YAML and JSON are loaded.
 - Incremental builds don't track layout/include changes. Use `--force` after modifying layouts.
 - Syntax highlighting classes may differ slightly from Rouge (Jekyll uses Rouge, rustkyll uses syntect).
