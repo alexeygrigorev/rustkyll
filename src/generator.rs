@@ -1909,14 +1909,6 @@ pub fn generate_collection_pages_cached_with_progress(
 
     let site_tz = get_config_timezone(config);
 
-    let mentions_base_url = if crate::mentions::has_mentions_plugin(config) {
-        Some(crate::mentions::mentions_base_url(config).to_string())
-    } else {
-        None
-    };
-
-    let jemoji_enabled = crate::jemoji::has_jemoji_plugin(config);
-
     let item_results: Vec<PerItemResult> = items
         .par_iter()
         .map(|item| {
@@ -2108,18 +2100,10 @@ pub fn generate_collection_pages_cached_with_progress(
             match html_result {
                 Ok((html, captured)) => {
                     captured_content = captured;
-                    let html = if let Some(ref base_url) = mentions_base_url {
-                        crate::mentions::process_mentions(&html, base_url)
-                    } else {
-                        html
-                    };
-
-                    let html = if jemoji_enabled {
-                        crate::jemoji::process_jemoji(&html)
-                    } else {
-                        html
-                    };
-
+                    // jemoji + mentions now run via the extension registry
+                    // (auto-activated from plugins:/gems: as [mentions, jemoji]
+                    // before any extensions: entries), so they execute here in
+                    // the same mentions -> jemoji -> <extensions...> order.
                     let html = apply_extensions(html, ext, &config.baseurl, Some(collection_type));
 
                     let out_path = url_to_output_path(output_dir, &item.url);
@@ -2300,16 +2284,6 @@ pub fn generate_pages_cached_with_config_and_progress(
         source: e,
     })?;
 
-    let mentions_base_url = config.and_then(|cfg| {
-        if crate::mentions::has_mentions_plugin(cfg) {
-            Some(crate::mentions::mentions_base_url(cfg).to_string())
-        } else {
-            None
-        }
-    });
-
-    let jemoji_enabled = config.is_some_and(crate::jemoji::has_jemoji_plugin);
-
     let page_results: Vec<PerItemResult> = pages
         .par_iter()
         .map(|page| {
@@ -2410,18 +2384,10 @@ pub fn generate_pages_cached_with_config_and_progress(
 
                     let html = inject_children_nav(&html, &page_fm, pages, config);
 
-                    let html = if let Some(ref base_url) = mentions_base_url {
-                        crate::mentions::process_mentions(&html, base_url)
-                    } else {
-                        html
-                    };
-
-                    let html = if jemoji_enabled {
-                        crate::jemoji::process_jemoji(&html)
-                    } else {
-                        html
-                    };
-
+                    // jemoji + mentions now run via the extension registry
+                    // (auto-activated from plugins:/gems: as [mentions, jemoji]
+                    // before any extensions: entries), preserving the historic
+                    // mentions -> jemoji -> <extensions...> order.
                     let baseurl = config.map(|c| c.baseurl.as_str()).unwrap_or("");
                     let html = apply_extensions(html, ext, baseurl, None);
 
@@ -10994,6 +10960,99 @@ defaults:
         assert!(
             html.contains("[[event-tracking]]"),
             "with no extensions the wikilink syntax must remain literal, got: {html}"
+        );
+    }
+
+    // ========================================================================
+    // Issue 603: jemoji / mentions migrated onto the extension framework.
+    // End-to-end: a site with plugins: [jemoji, jekyll-mentions] and NO
+    // extensions: block must still emit emoji <img> and user-mention <a> via the
+    // registry / ExtensionRuntime path, while <code> stays untouched.
+    // ========================================================================
+
+    #[test]
+    fn test_jemoji_mentions_run_via_registry_in_page_generation() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let output_dir = tmp.path();
+
+        let mut layouts = HashMap::new();
+        layouts.insert(
+            "default".to_string(),
+            crate::template::Layout {
+                source: "<!DOCTYPE html><body>{{ content }}</body>".to_string(),
+                parent_layout: None,
+                front_matter: std::collections::HashMap::new(),
+            },
+        );
+        let includes = HashMap::new();
+        let engine = LayoutEngine::from_maps(layouts, &includes).unwrap();
+
+        // Plugins activate jemoji + mentions; NO extensions: block present.
+        let config =
+            SiteConfig::from_yaml_str("title: t\nplugins:\n  - jemoji\n  - jekyll-mentions\n")
+                .unwrap();
+
+        let registry = crate::extensions::Registry::from_config(&config).unwrap();
+        assert!(
+            !registry.is_empty(),
+            "plugins-only config must yield a non-empty registry so the runtime is Some"
+        );
+        let names: Vec<&str> = registry
+            .html_transforms()
+            .iter()
+            .map(|t| t.name())
+            .collect();
+        assert_eq!(names, vec!["mentions", "jemoji"]);
+
+        let index = crate::extensions::SiteIndex::new();
+        let runtime = ExtensionRuntime {
+            registry: &registry,
+            index: &index,
+        };
+
+        let pages = vec![crate::collection::Page {
+            slug: "guide".to_string(),
+            front_matter: {
+                let mut m = HashMap::new();
+                m.insert(
+                    "layout".to_string(),
+                    serde_yaml::Value::String("default".to_string()),
+                );
+                m
+            },
+            content: "<p>hi @alice :heart: <code>:heart: @bob</code></p>".to_string(),
+            html_content: String::new(),
+            url: "/guide.html".to_string(),
+            source_path: "guide.html".to_string(),
+        }];
+
+        let site_context = Object::new();
+        let cached_site = LayoutEngine::build_cached_site_context(&site_context);
+        let result = generate_pages_cached_with_config_and_progress(
+            &pages,
+            &engine,
+            &cached_site,
+            output_dir,
+            Some(&config),
+            None,
+            None,
+            Some(&runtime),
+        )
+        .unwrap();
+        assert!(result.errors.is_empty(), "errors: {:?}", result.errors);
+
+        let html = fs::read_to_string(output_dir.join("guide.html")).unwrap();
+        assert!(
+            html.contains("class=\"user-mention\">@alice</a>"),
+            "mention should be converted, got: {html}"
+        );
+        assert!(
+            html.contains("class=\"emoji\""),
+            "emoji should be converted, got: {html}"
+        );
+        assert!(
+            html.contains("<code>:heart: @bob</code>"),
+            "content inside <code> must stay untouched, got: {html}"
         );
     }
 

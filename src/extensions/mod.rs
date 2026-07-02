@@ -23,6 +23,8 @@
 //! built once from every page and collection item and passed into each
 //! transform so links can be resolved.
 
+pub mod jemoji;
+pub mod mentions;
 pub mod wikilinks;
 
 use crate::archives::slugify;
@@ -179,21 +181,37 @@ impl Registry {
     pub fn from_config(config: &SiteConfig) -> Result<Registry, ExtensionError> {
         let mut transforms: Vec<Box<dyn HtmlTransform>> = Vec::new();
 
-        let Some(value) = config.extras.get("extensions") else {
-            // Opt-in off: no extensions block -> empty, no-op registry.
-            return Ok(Registry { transforms });
-        };
+        // Auto-activate plugin-based transforms from `plugins:`/`gems:` (the same
+        // Jekyll gospel used before the extension framework existed), independent
+        // of any `extensions:` block. They are PREPENDED in a FIXED order —
+        // `mentions` then `jemoji` — BEFORE any `extensions:` entries, so that
+        // `Registry::apply` threads HTML through them as
+        // `mentions -> jemoji -> <extensions...>`. This reproduces, byte for byte,
+        // the historic inline post-render order (mentions, then jemoji, then the
+        // wikilinks registry). The order is independent of the order the plugins
+        // appear in `plugins:`/`gems:`.
+        if crate::mentions::has_mentions_plugin(config) {
+            transforms.push(Box::new(mentions::Mentions::from_config(config)));
+        }
+        if crate::jemoji::has_jemoji_plugin(config) {
+            transforms.push(Box::new(jemoji::Jemoji::new()));
+        }
 
-        let seq = value.as_sequence().ok_or(ExtensionError::NotAList)?;
+        // Opt-in `extensions:` block (may be absent). When present it is parsed
+        // after the auto-activated plugin transforms so declared extensions run
+        // last, preserving the mentions -> jemoji -> extensions order.
+        if let Some(value) = config.extras.get("extensions") {
+            let seq = value.as_sequence().ok_or(ExtensionError::NotAList)?;
 
-        for entry in seq {
-            let (name, cfg) = parse_entry(entry)?;
-            match name.as_str() {
-                wikilinks::WikiLinks::NAME => {
-                    let ext = wikilinks::WikiLinks::configure(&cfg)?;
-                    transforms.push(Box::new(ext));
+            for entry in seq {
+                let (name, cfg) = parse_entry(entry)?;
+                match name.as_str() {
+                    wikilinks::WikiLinks::NAME => {
+                        let ext = wikilinks::WikiLinks::configure(&cfg)?;
+                        transforms.push(Box::new(ext));
+                    }
+                    other => return Err(ExtensionError::UnknownExtension(other.to_string())),
                 }
-                other => return Err(ExtensionError::UnknownExtension(other.to_string())),
             }
         }
 
@@ -387,6 +405,124 @@ mod tests {
     }
 
     // --- opt-in off no-op ---
+
+    // --- Issue 603: jemoji / mentions auto-activation from plugins:/gems: ---
+
+    #[test]
+    fn test_registry_auto_activates_jemoji_from_plugins() {
+        // plugins: [jemoji] with NO extensions: block -> non-empty registry
+        // containing a jemoji transform.
+        let config = config_with_extensions_yaml("plugins:\n  - jemoji\n");
+        let registry = Registry::from_config(&config).expect("registry");
+        assert!(
+            !registry.is_empty(),
+            "jemoji plugin must auto-activate a transform without an extensions: block"
+        );
+        let names: Vec<&str> = registry
+            .html_transforms()
+            .iter()
+            .map(|t| t.name())
+            .collect();
+        assert_eq!(names, vec!["jemoji"]);
+    }
+
+    #[test]
+    fn test_registry_auto_activates_mentions_from_gems() {
+        // gems: [jekyll-mentions] with NO extensions: block -> mentions transform.
+        let config = config_with_extensions_yaml("gems:\n  - jekyll-mentions\n");
+        let registry = Registry::from_config(&config).expect("registry");
+        let names: Vec<&str> = registry
+            .html_transforms()
+            .iter()
+            .map(|t| t.name())
+            .collect();
+        assert_eq!(names, vec!["mentions"]);
+    }
+
+    #[test]
+    fn test_registry_empty_when_neither_plugin_nor_extensions() {
+        // No plugins, no extensions block -> empty (byte-identical no-op) registry.
+        let config = config_with_extensions_yaml("plugins:\n  - jekyll-feed\n");
+        let registry = Registry::from_config(&config).expect("registry");
+        assert!(
+            registry.is_empty(),
+            "registry must stay empty when no jemoji/mentions plugin and no extensions block"
+        );
+    }
+
+    #[test]
+    fn test_registry_order_is_mentions_jemoji_wikilinks() {
+        // plugins: [jemoji, jekyll-mentions] + extensions: [wikilinks]
+        // -> order must be exactly [mentions, jemoji, wikilinks].
+        let config = config_with_extensions_yaml(
+            "plugins:\n  - jemoji\n  - jekyll-mentions\nextensions:\n  - wikilinks\n",
+        );
+        let registry = Registry::from_config(&config).expect("registry");
+        let names: Vec<&str> = registry
+            .html_transforms()
+            .iter()
+            .map(|t| t.name())
+            .collect();
+        assert_eq!(names, vec!["mentions", "jemoji", "wikilinks"]);
+    }
+
+    #[test]
+    fn test_registry_order_independent_of_plugin_list_order() {
+        // plugins: [jekyll-mentions, jemoji] (reversed) -> still [mentions, jemoji].
+        let config = config_with_extensions_yaml("plugins:\n  - jekyll-mentions\n  - jemoji\n");
+        let registry = Registry::from_config(&config).expect("registry");
+        let names: Vec<&str> = registry
+            .html_transforms()
+            .iter()
+            .map(|t| t.name())
+            .collect();
+        assert_eq!(names, vec!["mentions", "jemoji"]);
+    }
+
+    #[test]
+    fn test_mentions_transform_honors_custom_base_url_not_ctx_baseurl() {
+        // Custom jekyll-mentions.base_url must win; TransformContext.baseurl is a
+        // different (site) value and must NOT be used for mentions.
+        let config = config_with_extensions_yaml(
+            "plugins:\n  - jekyll-mentions\njekyll-mentions:\n  base_url: https://gitlab.com\n",
+        );
+        let registry = Registry::from_config(&config).expect("registry");
+        let idx = SiteIndex::new();
+        let ctx = TransformContext {
+            baseurl: "/blog",
+            collection: None,
+        };
+        let res = registry.apply("<p>@user</p>", &idx, &ctx);
+        assert_eq!(
+            res.html, "<p><a href=\"https://gitlab.com/user\" class=\"user-mention\">@user</a></p>",
+            "mention must use configured base_url, not ctx.baseurl"
+        );
+    }
+
+    #[test]
+    fn test_registry_byte_identical_to_inline_pipeline() {
+        // The registry (mentions + jemoji auto-activated) must produce output
+        // byte-identical to the historic inline pipeline:
+        // process_jemoji(process_mentions(html, base_url)).
+        let config = config_with_extensions_yaml("plugins:\n  - jemoji\n  - jekyll-mentions\n");
+        let registry = Registry::from_config(&config).expect("registry");
+        let idx = SiteIndex::new();
+        let ctx = TransformContext {
+            baseurl: "/site",
+            collection: Some("posts"),
+        };
+        let fixture = "<p>:heart: hi @alice <code>:heart: @bob</code> mail user@example.com team @jekyll/core done</p>";
+        let via_registry = registry.apply(fixture, &idx, &ctx).html;
+
+        let base_url = crate::mentions::mentions_base_url(&config);
+        let via_inline =
+            crate::jemoji::process_jemoji(&crate::mentions::process_mentions(fixture, base_url));
+
+        assert_eq!(
+            via_registry, via_inline,
+            "registry output must be byte-identical to inline mentions->jemoji pipeline"
+        );
+    }
 
     #[test]
     fn test_empty_registry_apply_is_noop() {
