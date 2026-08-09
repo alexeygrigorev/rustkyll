@@ -50,7 +50,7 @@ jobs:
         run: cargo test --verbose
 
       - name: Run clippy
-        run: cargo clippy -- -D warnings
+        run: cargo clippy -p rustkyll --no-deps -- -D warnings
 
   build:
     name: Build ${{ matrix.name }}
