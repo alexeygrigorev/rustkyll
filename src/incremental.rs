@@ -5,7 +5,7 @@
 //! last build are regenerated. If global files (config, layouts, includes)
 //! have changed, a full rebuild is triggered.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
@@ -51,7 +51,31 @@ pub fn load_manifest(destination: &Path) -> Option<BuildManifest> {
 /// Save the build manifest to the destination directory.
 pub fn save_manifest(destination: &Path, manifest: &BuildManifest) -> Result<(), std::io::Error> {
     let manifest_path = destination.join(MANIFEST_FILENAME);
-    let content = serde_json::to_string_pretty(manifest).map_err(std::io::Error::other)?;
+    #[derive(Serialize)]
+    struct CanonicalManifest<'a> {
+        source_files: BTreeMap<&'a str, u64>,
+        output_map: BTreeMap<&'a str, &'a str>,
+        global_files: BTreeMap<&'a str, u64>,
+    }
+
+    let canonical = CanonicalManifest {
+        source_files: manifest
+            .source_files
+            .iter()
+            .map(|(path, mtime)| (path.as_str(), *mtime))
+            .collect(),
+        output_map: manifest
+            .output_map
+            .iter()
+            .map(|(source, output)| (source.as_str(), output.as_str()))
+            .collect(),
+        global_files: manifest
+            .global_files
+            .iter()
+            .map(|(path, mtime)| (path.as_str(), *mtime))
+            .collect(),
+    };
+    let content = serde_json::to_string_pretty(&canonical).map_err(std::io::Error::other)?;
     fs::write(&manifest_path, content)
 }
 

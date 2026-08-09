@@ -22,8 +22,8 @@ pub struct SitemapEntry {
 /// The `base_url` is the site URL (e.g. `https://example.com`) and is
 /// prepended to each item's relative URL.
 ///
-/// Collection items and pages are included in the order they appear. The
-/// root URL (`base_url + "/"`) is always included as the first entry.
+/// The root URL (`base_url + "/"`) is always first. All remaining entries
+/// are sorted lexicographically by their final absolute location.
 pub fn collect_entries(
     base_url: &str,
     collections: &[(String, Vec<CollectionItem>)],
@@ -56,6 +56,8 @@ pub fn collect_entries(
             });
         }
     }
+
+    entries[1..].sort_by(|left, right| left.loc.cmp(&right.loc));
 
     entries
 }
@@ -191,15 +193,15 @@ mod tests {
     }
 
     #[test]
-    fn test_collect_entries_includes_pages() {
+    fn test_collect_entries_includes_pages_sorted_by_location() {
         let pages = vec![
             make_page("events", "/events.html"),
             make_page("books", "/books.html"),
         ];
         let entries = collect_entries("https://example.com", &[], &pages);
         assert_eq!(entries.len(), 3); // root + 2 pages
-        assert_eq!(entries[1].loc, "https://example.com/events.html");
-        assert_eq!(entries[2].loc, "https://example.com/books.html");
+        assert_eq!(entries[1].loc, "https://example.com/books.html");
+        assert_eq!(entries[2].loc, "https://example.com/events.html");
     }
 
     #[test]

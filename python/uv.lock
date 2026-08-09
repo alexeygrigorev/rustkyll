@@ -13,5 +13,5 @@ exclude-newer-span = "P7D"
 
 [[package]]
 name = "rustkyll"
-version = "0.3.0"
+version = "0.4.9"
 source = { editable = "." }

@@ -1,5 +1,6 @@
 pub mod alert_shorturl_generator;
 pub mod archives;
+pub mod build_time;
 pub mod collection;
 pub mod compare;
 pub mod config;
