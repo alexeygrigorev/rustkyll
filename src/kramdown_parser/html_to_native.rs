@@ -204,25 +204,16 @@ fn try_convert_block(html: &str, options: &Options) -> Option<Vec<Element>> {
                         return None;
                     }
                     "ul" | "ol" => {
-                        if let Some(list_elem) = convert_list(tag_lc.as_str(), attrs, children) {
-                            result.push(list_elem);
-                        } else {
-                            return None;
-                        }
+                        let list_elem = convert_list(tag_lc.as_str(), attrs, children)?;
+                        result.push(list_elem);
                     }
                     "pre" => {
-                        if let Some(code_elem) = convert_pre(children) {
-                            result.push(code_elem);
-                        } else {
-                            return None;
-                        }
+                        let code_elem = convert_pre(children)?;
+                        result.push(code_elem);
                     }
                     "table" => {
-                        if let Some(table_elem) = convert_table(attrs, children, options) {
-                            result.push(table_elem);
-                        } else {
-                            return None;
-                        }
+                        let table_elem = convert_table(attrs, children, options)?;
+                        result.push(table_elem);
                     }
                     "div" | "section" | "article" | "aside" | "header" | "footer" | "nav"
                     | "main" | "figure" | "figcaption" | "fieldset" | "form" => {

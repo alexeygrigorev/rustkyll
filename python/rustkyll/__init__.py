@@ -1,3 +1,3 @@
 """rustkyll - A fast static site generator compatible with Jekyll, written in Rust."""
 
-__version__ = "0.4.9"
+__version__ = "0.4.10"

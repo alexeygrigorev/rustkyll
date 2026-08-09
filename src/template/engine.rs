@@ -1810,10 +1810,9 @@ fn rewrite_condition_filter_chain(content: &str, counter: &mut u32) -> Option<Co
         ("if", rest.trim())
     } else if let Some(rest) = content.strip_prefix("elsif ") {
         ("elsif", rest.trim())
-    } else if let Some(rest) = content.strip_prefix("unless ") {
-        ("unless", rest.trim())
     } else {
-        return None;
+        let rest = content.strip_prefix("unless ")?;
+        ("unless", rest.trim())
     };
 
     // Check if there's actually a pipe in the body (outside of string literals)
@@ -2144,10 +2143,9 @@ fn rewrite_contains_with_nil_guard(condition: &str) -> Option<String> {
 
     let (keyword, expr) = if let Some(rest) = condition.strip_prefix("elsif ") {
         ("elsif", rest.trim())
-    } else if let Some(rest) = condition.strip_prefix("if ") {
-        ("if", rest.trim())
     } else {
-        return None;
+        let rest = condition.strip_prefix("if ")?;
+        ("if", rest.trim())
     };
 
     let rewritten = rewrite_contains_in_expr(expr)?;

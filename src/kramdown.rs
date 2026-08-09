@@ -4613,7 +4613,7 @@ fn unwrap_block_elements_from_p(html: &str) -> String {
             result = format!(
                 "{}{}{}",
                 &result[..p_pos],
-                &block_content,
+                block_content,
                 &result[p_close_end..]
             );
             // Don't advance search_from -- there may be more instances
@@ -4676,7 +4676,7 @@ fn unwrap_block_elements_from_p(html: &str) -> String {
             result = format!(
                 "{}{}{}",
                 &result[..p_pos],
-                &element_content,
+                element_content,
                 &result[p_close_end..]
             );
             // Don't advance search_from -- there may be more instances
