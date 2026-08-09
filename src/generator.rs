@@ -313,6 +313,30 @@ fn get_config_timezone(config: &SiteConfig) -> Option<chrono_tz::Tz> {
         .and_then(|name| name.parse::<chrono_tz::Tz>().ok())
 }
 
+/// Resolve the timezone for a specific build. Reproducible builds use UTC
+/// instead of inheriting an ambient machine timezone when the site does not
+/// explicitly configure one.
+fn get_config_timezone_for_build(
+    config: &SiteConfig,
+    build_time: &crate::build_time::BuildTime,
+) -> Option<chrono_tz::Tz> {
+    if let Some(tz) = config
+        .extras
+        .get("timezone")
+        .and_then(|value| value.as_str())
+        .and_then(|value| value.parse::<chrono_tz::Tz>().ok())
+    {
+        return Some(tz);
+    }
+
+    if build_time.is_reproducible() && !config.extras.contains_key("timezone") {
+        return Some(chrono_tz::UTC);
+    }
+
+    crate::template::filters::get_system_timezone()
+        .and_then(|name| name.parse::<chrono_tz::Tz>().ok())
+}
+
 /// Result of generating pages for a collection.
 #[derive(Debug)]
 pub struct GenerationResult {
@@ -348,7 +372,28 @@ pub fn build_site_context(
     site_dir: Option<&Path>,
     pages: &[Page],
 ) -> Object {
+    build_site_context_at(
+        config,
+        collections,
+        data,
+        site_dir,
+        pages,
+        &crate::build_time::BuildTime::now(),
+    )
+}
+
+/// Build the site context using the build's single frozen clock instant.
+pub fn build_site_context_at(
+    config: &SiteConfig,
+    collections: &HashMap<String, Vec<CollectionItem>>,
+    data: &DataTree,
+    site_dir: Option<&Path>,
+    pages: &[Page],
+    build_time: &crate::build_time::BuildTime,
+) -> Object {
     let mut site = Object::new();
+
+    let site_tz = get_config_timezone_for_build(config, build_time);
 
     // Extra config keys first (so named fields can override)
     for (key, value) in &config.extras {
@@ -359,8 +404,8 @@ pub fn build_site_context(
     // This matches Jekyll's behavior: when no timezone is configured, Jekyll
     // uses the system's local timezone for formatting naive dates.
     if !config.extras.contains_key("timezone") {
-        if let Some(tz_name) = crate::template::filters::get_system_timezone() {
-            site.insert("timezone".into(), LiquidValue::scalar(tz_name));
+        if let Some(tz) = site_tz {
+            site.insert("timezone".into(), LiquidValue::scalar(tz.to_string()));
         }
     }
 
@@ -381,11 +426,15 @@ pub fn build_site_context(
     site.insert("title".into(), LiquidValue::scalar(config.title.clone()));
 
     // site.time -- current build time as a string matching event time format
-    let now = chrono::Local::now();
-    site.insert(
-        "time".into(),
-        LiquidValue::scalar(now.format("%Y-%m-%d %H:%M:%S").to_string()),
-    );
+    let now = match site_tz {
+        Some(tz) => build_time
+            .utc()
+            .with_timezone(&tz)
+            .format("%Y-%m-%d %H:%M:%S")
+            .to_string(),
+        None => build_time.utc().format("%Y-%m-%d %H:%M:%S").to_string(),
+    };
+    site.insert("time".into(), LiquidValue::scalar(now));
 
     // site.<collection_name> for each collection.
     // Use slim conversion to exclude large array fields (like transcript with
@@ -393,7 +442,6 @@ pub fn build_site_context(
     // when rendering the current page (via page.X) and are never accessed
     // from site-level cross-references. Excluding them dramatically reduces
     // the cost of `where`, `sort`, and other filters that clone objects.
-    let site_tz = get_config_timezone(config);
     let mut posts_liquid: Option<Vec<LiquidValue>> = None;
     for (name, items) in collections {
         let mut arr: Vec<LiquidValue> = items
@@ -622,7 +670,28 @@ pub fn build_site_context_with_static_files(
     pages: &[Page],
     static_file_paths: &[PathBuf],
 ) -> Object {
-    let mut site = build_site_context(config, collections, data, site_dir, pages);
+    build_site_context_with_static_files_at(
+        config,
+        collections,
+        data,
+        site_dir,
+        pages,
+        static_file_paths,
+        &crate::build_time::BuildTime::now(),
+    )
+}
+
+/// Build the full site context using the build's single frozen clock instant.
+pub fn build_site_context_with_static_files_at(
+    config: &SiteConfig,
+    collections: &HashMap<String, Vec<CollectionItem>>,
+    data: &DataTree,
+    site_dir: Option<&Path>,
+    pages: &[Page],
+    static_file_paths: &[PathBuf],
+    build_time: &crate::build_time::BuildTime,
+) -> Object {
+    let mut site = build_site_context_at(config, collections, data, site_dir, pages, build_time);
 
     // site.static_files -- metadata about static files for templates
     let static_files_arr: Vec<LiquidValue> = static_file_paths

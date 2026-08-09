@@ -49,6 +49,16 @@ pub fn generate_atom_feed(
     config: &SiteConfig,
     options: &FeedOptions,
 ) -> String {
+    generate_atom_feed_at(posts, config, options, &crate::build_time::BuildTime::now())
+}
+
+/// Generate Atom feed XML using the build's single frozen clock instant.
+pub fn generate_atom_feed_at(
+    posts: &[CollectionItem],
+    config: &SiteConfig,
+    options: &FeedOptions,
+    build_time: &crate::build_time::BuildTime,
+) -> String {
     // Filter posts with dates and sort by date descending
     let mut dated_posts: Vec<&CollectionItem> = posts.iter().filter(|p| p.date.is_some()).collect();
     dated_posts.sort_by(|a, b| {
@@ -64,7 +74,8 @@ pub fn generate_atom_feed(
         .and_then(|p| p.date.as_deref())
         .map(format_date_to_rfc3339)
         .unwrap_or_else(|| {
-            chrono::Utc::now()
+            build_time
+                .utc()
                 .format("%Y-%m-%dT%H:%M:%S+00:00")
                 .to_string()
         });
@@ -273,7 +284,24 @@ pub fn write_atom_feed(
     options: &FeedOptions,
     output_dir: &Path,
 ) -> Result<(), FeedError> {
-    let xml = generate_atom_feed(posts, config, options);
+    write_atom_feed_at(
+        posts,
+        config,
+        options,
+        output_dir,
+        &crate::build_time::BuildTime::now(),
+    )
+}
+
+/// Generate and write the Atom feed using the frozen build clock.
+pub fn write_atom_feed_at(
+    posts: &[CollectionItem],
+    config: &SiteConfig,
+    options: &FeedOptions,
+    output_dir: &Path,
+    build_time: &crate::build_time::BuildTime,
+) -> Result<(), FeedError> {
+    let xml = generate_atom_feed_at(posts, config, options, build_time);
     let feed_path = output_dir.join("feed.xml");
 
     if let Some(parent) = feed_path.parent() {

@@ -125,6 +125,9 @@ enum BuildError {
     #[error("extension error: {0}")]
     Extension(#[from] rustkyll::extensions::ExtensionError),
 
+    #[error("build time error: {0}")]
+    BuildTime(#[from] rustkyll::build_time::BuildTimeError),
+
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
 }
@@ -294,6 +297,7 @@ fn build_site(
 ) -> Result<BuildSummary, BuildError> {
     let progress = ProgressReporter::new(options.quiet);
     let mut summary = BuildSummary::default();
+    let build_time = rustkyll::build_time::BuildTime::from_env()?;
 
     // 1. Load config
     progress.phase("Loading config...");
@@ -307,6 +311,12 @@ fn build_site(
     };
     if let Some(baseurl) = &options.baseurl_override {
         config.baseurl = baseurl.clone();
+    }
+    if build_time.is_reproducible() && !config.extras.contains_key("timezone") {
+        config.extras.insert(
+            "timezone".to_string(),
+            serde_yaml::Value::String("UTC".to_string()),
+        );
     }
     summary.timing.config = phase_start.elapsed();
 
@@ -393,13 +403,13 @@ fn build_site(
             rustkyll::template::filters::get_system_timezone()
                 .and_then(|name| name.parse::<chrono_tz::Tz>().ok())
         });
-    let build_time = collection::build_timestamp(site_tz);
+    let build_timestamp = collection::build_timestamp_at(site_tz, &build_time);
     // Issue 474: Jekyll lazily assigns site.time as the default date for all
     // collection documents, but only exposes it as page.date (in front matter)
     // for posts. Non-post items have page.date = nil unless explicitly set.
     for (name, items) in collections.iter_mut() {
         let is_posts = name == "posts";
-        collection::backfill_default_dates(items, &build_time, is_posts);
+        collection::backfill_default_dates(items, &build_timestamp, is_posts);
     }
 
     // Issue 500: Jekyll infers title from slug for collection documents that have
@@ -424,7 +434,7 @@ fn build_site(
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
     if let Some(posts) = collections.get_mut("posts") {
-        collection::filter_future_posts(posts, allow_future);
+        collection::filter_future_posts_at(posts, allow_future, &build_time);
     }
 
     let total_items: usize = collections.values().map(|v| v.len()).sum();
@@ -613,13 +623,14 @@ fn build_site(
 
     let (mut site_context, layout_result) = rayon::join(
         || {
-            generator::build_site_context_with_static_files(
+            generator::build_site_context_with_static_files_at(
                 &config,
                 &collections,
                 &data_tree,
                 Some(source),
                 &pages,
                 &static_file_paths,
+                &build_time,
             )
         },
         || {
@@ -1353,11 +1364,23 @@ fn build_site(
     // 14. Generate feed.xml (from posts)
     progress.phase("Generating feed...");
     if let Some((_, posts_vec)) = collections_vec.iter().find(|(name, _)| name == "posts") {
-        feed::write_atom_feed(posts_vec, &config, &FeedOptions::default(), destination)?;
+        feed::write_atom_feed_at(
+            posts_vec,
+            &config,
+            &FeedOptions::default(),
+            destination,
+            &build_time,
+        )?;
         progress.phase_done(&format!("Generating feed... {} posts", posts_vec.len()));
     } else {
         // No posts collection -- write empty feed
-        feed::write_atom_feed(&[], &config, &FeedOptions::default(), destination)?;
+        feed::write_atom_feed_at(
+            &[],
+            &config,
+            &FeedOptions::default(),
+            destination,
+            &build_time,
+        )?;
         progress.phase_done("Generating feed... 0 posts");
     }
     summary.timing.sitemap_feed = phase_start.elapsed();

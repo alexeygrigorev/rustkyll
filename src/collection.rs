@@ -735,10 +735,18 @@ pub fn extract_date(front_matter: &FrontMatter, filename_date: Option<&str>) -> 
 /// for collection items that don't have an explicit date in their front matter
 /// or filename.  The format is `YYYY-MM-DD HH:MM:SS +0000`.
 pub fn build_timestamp(site_tz: Option<chrono_tz::Tz>) -> String {
+    build_timestamp_at(site_tz, &crate::build_time::BuildTime::now())
+}
+
+/// Generate a timestamp from the build's single frozen clock instant.
+pub fn build_timestamp_at(
+    site_tz: Option<chrono_tz::Tz>,
+    build_time: &crate::build_time::BuildTime,
+) -> String {
     match site_tz {
         Some(tz) => {
             use chrono::Offset;
-            let now = chrono::Utc::now().with_timezone(&tz);
+            let now = build_time.utc().with_timezone(&tz);
             let offset = now.offset().fix();
             let total_secs = offset.local_minus_utc();
             let sign = if total_secs >= 0 { '+' } else { '-' };
@@ -753,7 +761,8 @@ pub fn build_timestamp(site_tz: Option<chrono_tz::Tz>) -> String {
                 minutes
             )
         }
-        None => chrono::Utc::now()
+        None => build_time
+            .utc()
             .format("%Y-%m-%d %H:%M:%S +0000")
             .to_string(),
     }
@@ -801,10 +810,19 @@ pub fn backfill_default_dates(
 ///
 /// Only the date portion (YYYY-MM-DD) is compared, matching Jekyll's behavior.
 pub fn filter_future_posts(items: &mut Vec<CollectionItem>, allow_future: bool) {
+    filter_future_posts_at(items, allow_future, &crate::build_time::BuildTime::now());
+}
+
+/// Filter future posts using the build's single frozen UTC instant.
+pub fn filter_future_posts_at(
+    items: &mut Vec<CollectionItem>,
+    allow_future: bool,
+    build_time: &crate::build_time::BuildTime,
+) {
     if allow_future {
         return;
     }
-    let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
+    let today = build_time.utc().format("%Y-%m-%d").to_string();
     items.retain(|item| {
         if let Some(ref date) = item.date {
             // Compare only the date portion (first 10 chars: YYYY-MM-DD)
